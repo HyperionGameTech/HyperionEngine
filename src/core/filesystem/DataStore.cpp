@@ -53,9 +53,9 @@ DataStoreBase::DataStoreBase(const String &prefix, DataStoreOptions options)
 {
 }
 
-int DataStoreBase::Claim()
+int DataStoreBase::Claim(int count)
 {
-    return m_claimed_semaphore.Produce(1, [this](bool)
+    return m_claimed_semaphore.Produce(count, [this](bool)
     {
         if (m_options.flags & DSF_WRITE) {
             AssertThrowMsg(MakeDirectory(), "Failed to create directory for data store at path %s", GetDirectory().Data());

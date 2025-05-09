@@ -23,6 +23,8 @@
 #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 #endif
 
+#include <audio/AudioManager.hpp>
+
 #include <Game.hpp>
 
 namespace hyperion {
@@ -48,6 +50,7 @@ HYP_API void InitializeEngine(const FilePath &base_path)
     HypClassRegistry::GetInstance().Initialize();
     dotnet::DotNetSystem::GetInstance().Initialize(base_path);
     ConsoleCommandManager::GetInstance().Initialize();
+    AudioManager::GetInstance().Initialize();
 
     g_engine = CreateObject<Engine>();
     InitObject(g_engine);
@@ -82,6 +85,7 @@ HYP_API void DestroyEngine()
     dotnet::DotNetSystem::GetInstance().Shutdown();
     ComponentInterfaceRegistry::GetInstance().Shutdown();
     ConsoleCommandManager::GetInstance().Shutdown();
+    AudioManager::GetInstance().Shutdown();
 
     g_asset_manager.Reset();
 

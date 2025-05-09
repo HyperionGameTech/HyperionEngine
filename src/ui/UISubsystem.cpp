@@ -62,10 +62,11 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
 
     if (m_ui_render_subsystem->IsInitialized()) {
         UIRenderCollector &render_collector = m_ui_render_subsystem->GetRenderCollector();
-
         render_collector.ResetOrdering();
 
-        m_ui_stage->CollectObjects([&render_collector](UIObject *ui_object)
+        RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
+
+        m_ui_stage->CollectObjects([&render_collector, &proxy_list](UIObject *ui_object)
         {
             AssertThrow(ui_object != nullptr);
 
@@ -80,10 +81,12 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
                 return;
             }
 
-            render_collector.PushEntityToRender(entity, *mesh_component.proxy, ui_object->GetComputedDepth());
+            // @TODO Include a way to determine the parent tree of the UI Object because some objects will
+            // have the same depth but should be rendered in a different order.
+            render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy, ui_object->GetComputedDepth());
         }, /* only_visible */ true);
 
-        render_collector.PushUpdatesToRenderThread();
+        render_collector.PushUpdatesToRenderThread(m_ui_render_subsystem->GetFramebuffer());
     }
 }
 

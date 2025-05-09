@@ -28,6 +28,8 @@ enum class EntityTag : uint32
 
     UI_OBJECT_VISIBLE = DESCRIPTOR_MAX,
 
+    EDITOR_FOCUSED,
+
     UPDATE_AABB,
     UPDATE_BVH,
     UPDATE_BLAS,

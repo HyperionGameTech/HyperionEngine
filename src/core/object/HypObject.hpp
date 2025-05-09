@@ -239,6 +239,80 @@ public:
         }
     }
 
+    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void *_this) const override
+    {
+        if (!_this) {
+            return 0;
+        }
+
+        switch (allocation_method) {
+        case HypClassAllocationMethod::HANDLE:
+        {
+            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
+                return static_cast<T *>(_this)->GetObjectHeader_Internal()->GetRefCountStrong();
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::HANDLE requires HypObjectBase as a base class");
+            }
+
+            break;
+        }
+        case HypClassAllocationMethod::REF_COUNTED_PTR:
+        {
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                return ref_count_data->UseCount_Strong();
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
+            }
+
+            break;
+        }
+        default:
+        {
+            HYP_FAIL("Unhandled HypClass allocation method");
+        }
+        }
+
+        return 0;
+    }
+
+    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void *_this) const override
+    {
+        if (!_this) {
+            return 0;
+        }
+
+        switch (allocation_method) {
+        case HypClassAllocationMethod::HANDLE:
+        {
+            if constexpr (std::is_base_of_v<HypObjectBase, T>) {
+                return static_cast<T *>(_this)->GetObjectHeader_Internal()->GetRefCountWeak();
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::HANDLE requires HypObjectBase as a base class");
+            }
+
+            break;
+        }
+        case HypClassAllocationMethod::REF_COUNTED_PTR:
+        {
+            if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                return ref_count_data->UseCount_Weak();
+            } else {
+                HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
+            }
+
+            break;
+        }
+        default:
+        {
+            HYP_FAIL("Unhandled HypClass allocation method");
+        }
+        }
+
+        return 0;
+    }
+
     HYP_FORCE_INLINE static TypeID GetTypeID_Static()
     {
         static constexpr TypeID type_id = TypeID::ForType<T>();

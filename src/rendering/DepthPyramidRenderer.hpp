@@ -16,7 +16,7 @@ namespace hyperion {
 class DepthPyramidRenderer
 {
 public:
-    DepthPyramidRenderer();
+    DepthPyramidRenderer(const ImageViewRef &depth_image_view);
     ~DepthPyramidRenderer();
 
     HYP_FORCE_INLINE const ImageViewRef &GetResultImageView() const
@@ -32,7 +32,7 @@ public:
     void Render(FrameBase *frame);
 
 private:
-    AttachmentRef               m_depth_attachment;
+    ImageViewRef                m_depth_image_view;
 
     ImageRef                    m_depth_pyramid;
     ImageViewRef                m_depth_pyramid_view;
@@ -42,8 +42,6 @@ private:
     SamplerRef                  m_depth_pyramid_sampler;
 
     ComputePipelineRef          m_generate_depth_pyramid;
-
-    DelegateHandler             m_create_depth_pyramid_resources_handler;
 
     bool                        m_is_rendered;
 };

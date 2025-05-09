@@ -45,6 +45,8 @@ public:
      *  Thread-safe, blocking function. Use sparingly. */
     void Readback(ByteBuffer &out_byte_buffer);
 
+    void Resize(const Vec3u &extent);
+
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;

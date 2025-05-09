@@ -62,15 +62,35 @@ HYP_MAKE_ENUM_FLAGS(NodeFlags)
 HYP_STRUCT()
 struct NodeTag
 {
-    HYP_FIELD()
-    Name    name;
+    using VariantType = Variant<
+        int8, int16, int32, int64,
+        uint8, uint16, uint32, uint64,
+        float, double,
+        char,
+        bool,
+        Vec2f, Vec3f, Vec4f,
+        Vec2i, Vec3i, Vec4i,
+        Vec2u, Vec3u, Vec4u,
+        String,
+        Name,
+        UUID
+    >;
+
+    HYP_FIELD(Property="Name", Serialize=true)
+    Name        name;
     
-    HYP_FIELD()
-    HypData data;
+    HYP_FIELD(Property="Data", Serialize=true)
+    VariantType data;
 
-    NodeTag()                                   = default;
+    NodeTag() = default;
 
-    NodeTag(Name name, HypData &&data)
+    NodeTag(Name name, const VariantType &data)
+        : name(name),
+          data(data)
+    {
+    }
+
+    NodeTag(Name name, VariantType &&data)
         : name(name),
           data(std::move(data))
     {
@@ -83,8 +103,23 @@ struct NodeTag
     {
     }
 
-    NodeTag(const NodeTag &other)               = delete;
-    NodeTag &operator=(const NodeTag &other)    = delete;
+    NodeTag(const NodeTag &other)
+        : name(other.name),
+          data(other.data)
+    {
+    }
+
+    NodeTag &operator=(const NodeTag &other)
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        name = other.name;
+        data = other.data;
+
+        return *this;
+    }
 
     NodeTag(NodeTag &&other) noexcept
         : name(std::move(other.name)),
@@ -113,15 +148,17 @@ struct NodeTag
     HYP_FORCE_INLINE bool IsValid() const
         { return data.IsValid(); }
 
-    // HYP_FORCE_INLINE bool operator==(const NodeTag &other) const
-    // {
-    //     return name == other.name && data == other.data;
-    // }
+    HYP_FORCE_INLINE bool operator==(const NodeTag &other) const
+    {
+        return name == other.name && data == other.data;
+    }
 
-    // HYP_FORCE_INLINE bool operator!=(const NodeTag &other) const
-    // {
-    //     return name != other.name || data != other.data;
-    // }
+    HYP_FORCE_INLINE bool operator!=(const NodeTag &other) const
+    {
+        return name != other.name || data != other.data;
+    }
+
+    HYP_API String ToString() const;
 };
 
 struct NodeUnlockTransformScope;
@@ -183,12 +220,11 @@ public:
     ~Node();
 
     /*! \brief Get the UUID of the Node. */
-    HYP_METHOD(Property="UUID", Serialize=true, Editor=false, Label="UUID")
+    HYP_METHOD()
     HYP_FORCE_INLINE const UUID &GetUUID() const
         { return m_uuid; }
 
     /*! \brief Set the UUID of the Node. For deserialization purposes only. */
-    HYP_METHOD(Property="UUID", Serialize=true, Editor=false)
     HYP_FORCE_INLINE void SetUUID(const UUID &uuid)
         { m_uuid = uuid; }
 
@@ -445,7 +481,7 @@ public:
             return;
         }
 
-        SetLocalTranslation(translation - m_parent_node->GetWorldTranslation());
+        SetLocalTranslation(translation * m_parent_node->GetWorldTransform().GetMatrix().Inverted());
     }
     
     /*! \returns The local-space scale of this Node. */
@@ -625,7 +661,7 @@ protected:
 
     Type                        m_type = Type::NODE;
     EnumFlags<NodeFlags>        m_flags = NodeFlags::NONE;
-    String                      m_name;
+    String                      m_name;    
     Node                        *m_parent_node;
     NodeList                    m_child_nodes;
     Transform                   m_local_transform;
@@ -645,8 +681,10 @@ protected:
 
     UniquePtr<Delegates>        m_delegates;
 
+    HYP_FIELD(Property="Tags", Serialize=true)
     NodeTagSet                  m_tags;
 
+    HYP_FIELD(Property="UUID", Serialize=true)
     UUID                        m_uuid;
 };
 

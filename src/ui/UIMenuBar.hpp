@@ -22,17 +22,6 @@ enum class UIMenuBarDropDirection : uint32
     UP    //! Drop down menu opens above the menu item
 };
 
-#pragma region DropDownMenuItem
-
-struct DropDownMenuItem
-{
-    Name        name;
-    String      text;
-    Proc<void()>  action;
-};
-
-#pragma endregion DropDownMenuItem
-
 #pragma region UIMenuItem
 
 HYP_CLASS()
@@ -77,6 +66,11 @@ public:
     HYP_FORCE_INLINE const RC<UIPanel> &GetDropDownMenuElement() const
         { return m_drop_down_menu; }
 
+    HYP_FORCE_INLINE const Weak<UIMenuItem> &GetSelectedSubItem() const
+        { return m_selected_sub_item; }
+
+    void SetSelectedSubItem(const RC<UIMenuItem> &selected_sub_item);
+
     virtual void Init() override;
 
     virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
@@ -87,14 +81,19 @@ protected:
 
     virtual void OnFontAtlasUpdate_Internal() override;
 
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+
 private:
     void UpdateDropDownMenu();
+    void UpdateSubItemsDropDownMenu();
 
     Array<RC<UIObject>> m_menu_items;
 
     RC<UIText>          m_text_element;
     RC<UIImage>         m_icon_element;
     RC<UIPanel>         m_drop_down_menu;
+    RC<UIPanel>         m_sub_items_drop_down_menu;
+    Weak<UIMenuItem>    m_selected_sub_item;
 };
 
 #pragma endregion UIMenuItem

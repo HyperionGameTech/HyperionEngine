@@ -7,6 +7,7 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
@@ -82,68 +83,25 @@ struct RENDER_COMMAND(CreateSSGIUniformBuffers) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateSSGIDescriptors) : renderer::RenderCommand
-{
-    ImageViewRef    image_view;
-
-    RENDER_COMMAND(CreateSSGIDescriptors)(const ImageViewRef &image_view)
-        : image_view(image_view)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateSSGIDescriptors)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("SSGIResultTexture"), image_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(RemoveSSGIDescriptors) : renderer::RenderCommand
-{
-    RENDER_COMMAND(RemoveSSGIDescriptors)()
-    {
-    }
-
-    virtual ~RENDER_COMMAND(RemoveSSGIDescriptors)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("SSGIResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
 #pragma endregion Render commands
-
-#pragma region SSGIConfig
-
-Vec2u SSGIConfig::GetGBufferResolution()
-{
-    return g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution();
-}
-
-#pragma endregion SSGIConfig
 
 #pragma region SSGI
 
-SSGI::SSGI(SSGIConfig &&config)
+SSGI::SSGI(SSGIConfig &&config, GBuffer *gbuffer)
     : m_config(std::move(config)),
+      m_gbuffer(gbuffer),
       m_is_rendered(false)
 {
 }
 
 SSGI::~SSGI()
 {
+    if (m_temporal_blending) {
+        m_temporal_blending.Reset();
+    }
+    
+    SafeRelease(std::move(m_uniform_buffers));
+    SafeRelease(std::move(m_compute_pipeline));
 }
 
 void SSGI::Create()
@@ -171,26 +129,14 @@ void SSGI::Create()
             ssgi_format,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
-            m_result_texture->GetRenderResource().GetImageView()
+            m_result_texture->GetRenderResource().GetImageView(),
+            m_gbuffer
         );
 
         m_temporal_blending->Create();
     }
 
     CreateComputePipelines();
-}
-
-void SSGI::Destroy()
-{
-    m_is_rendered = false;
-
-    if (m_temporal_blending) {
-        m_temporal_blending.Reset();
-    }
-    
-    SafeRelease(std::move(m_uniform_buffers));
-
-    PUSH_RENDER_COMMAND(RemoveSSGIDescriptors);
 }
 
 const Handle<Texture> &SSGI::GetFinalResultTexture() const
@@ -257,14 +203,9 @@ void SSGI::CreateComputePipelines()
     );
 
     DeferCreate(m_compute_pipeline);
-
-    PUSH_RENDER_COMMAND(
-        CreateSSGIDescriptors,
-        GetFinalResultTexture()->GetRenderResource().GetImageView()
-    );
 }
 
-void SSGI::Render(FrameBase *frame)
+void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
@@ -294,7 +235,7 @@ void SSGI::Render(FrameBase *frame)
         m_compute_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
-                NAME("Scene"),
+                NAME("Global"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
@@ -305,6 +246,17 @@ void SSGI::Render(FrameBase *frame)
         frame_index
     );
 
+    const uint32 scene_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+    if (view != nullptr && scene_descriptor_set_index != ~0u) {
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            view->GetDescriptorSets()[frame->GetFrameIndex()],
+            m_compute_pipeline,
+            ArrayMap<Name, uint32> { },
+            scene_descriptor_set_index
+        );
+    }
+
     frame->GetCommandList().Add<DispatchCompute>(
         m_compute_pipeline,
         Vec3u { num_dispatch_calls, 1, 1 }
@@ -314,7 +266,7 @@ void SSGI::Render(FrameBase *frame)
     frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr) {
-        m_temporal_blending->Render(frame);
+        m_temporal_blending->Render(frame, view);
     }
 
     m_is_rendered = true;

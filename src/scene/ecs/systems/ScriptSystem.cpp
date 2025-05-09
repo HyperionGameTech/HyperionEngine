@@ -165,7 +165,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity> &entity)
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED)) {
                 if (dotnet::Method *before_init_method_ptr = class_ptr->GetMethod("BeforeInit")) {
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
-                    HYP_LOG(Script, Info, "Calling BeforeInit() on script component");
+                    HYP_LOG(Script, Debug, "Calling BeforeInit() on script component");
 
                     script_component.object->InvokeMethod<void>(
                         before_init_method_ptr,

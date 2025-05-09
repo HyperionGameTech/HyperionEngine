@@ -15,6 +15,9 @@
 
 namespace hyperion {
 
+class GBuffer;
+class ViewRenderResource;
+
 enum class TemporalBlendTechnique
 {
     TECHNIQUE_0,
@@ -41,7 +44,8 @@ public:
         const Vec2u &extent,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef &input_image_view
+        const ImageViewRef &input_image_view,
+        GBuffer *gbuffer
     );
 
     TemporalBlending(
@@ -49,7 +53,8 @@ public:
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const FramebufferRef &input_framebuffer
+        const FramebufferRef &input_framebuffer,
+        GBuffer *gbuffer
     );
 
     TemporalBlending(
@@ -57,11 +62,12 @@ public:
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef &input_image_view
+        const ImageViewRef &input_image_view,
+        GBuffer *gbuffer
     );
 
-    TemporalBlending(const TemporalBlending &other) = delete;
-    TemporalBlending &operator=(const TemporalBlending &other) = delete;
+    TemporalBlending(const TemporalBlending &other)             = delete;
+    TemporalBlending &operator=(const TemporalBlending &other)  = delete;
     ~TemporalBlending();
 
     HYP_FORCE_INLINE TemporalBlendTechnique GetTechnique() const
@@ -79,7 +85,7 @@ public:
     void ResetProgressiveBlending();
 
     void Create();
-    void Render(FrameBase *frame);
+    void Render(FrameBase *frame, ViewRenderResource *view);
 
     void Resize(Vec2u new_size);
 
@@ -96,6 +102,7 @@ private:
     InternalFormat                                  m_image_format;
     TemporalBlendTechnique                          m_technique;
     TemporalBlendFeedback                           m_feedback;
+    GBuffer                                         *m_gbuffer;
 
     uint16                                          m_blending_frame_counter;
 
@@ -107,6 +114,8 @@ private:
 
     Handle<Texture>                                 m_result_texture;
     Handle<Texture>                                 m_history_texture;
+
+    DelegateHandler                                 m_on_gbuffer_resolution_changed;
 
     bool                                            m_is_initialized;
 };

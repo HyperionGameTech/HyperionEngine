@@ -116,11 +116,35 @@ void CameraRenderResource::EnqueueUnbind()
     }, /* force_render_thread */ true);
 }
 
+void CameraRenderResource::ApplyJitter()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    static const float jitter_scale = 0.25f;
+
+    AssertThrow(m_buffer_index != ~0u);
+
+    const uint32 frame_counter = g_engine->GetRenderState()->frame_counter + 1;
+
+    CameraShaderData &buffer_data = *static_cast<CameraShaderData *>(m_buffer_address);
+
+    if (buffer_data.projection[3][3] < MathUtil::epsilon_f) {
+        Vec4f jitter = Vec4f::Zero();
+
+        Matrix4::Jitter(frame_counter, buffer_data.dimensions.x, buffer_data.dimensions.y, jitter);
+
+        buffer_data.jitter = jitter * jitter_scale;
+
+        g_engine->GetRenderData()->cameras->MarkDirty(m_buffer_index);
+    }
+}
+
 #pragma endregion CameraRenderResource
 
 namespace renderer {
 
-HYP_DESCRIPTOR_CBUFF(Scene, CamerasBuffer, 1, sizeof(CameraShaderData), true);
+HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 
 } // namespace renderer
 } // namespace hyperion

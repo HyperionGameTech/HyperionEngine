@@ -327,7 +327,7 @@ void AppContext::UpdateConfigurationOverrides()
         m_configuration.Set("rendering.rt.enabled", false);
         m_configuration.Set("rendering.rt.reflections.enabled", false);
         m_configuration.Set("rendering.rt.gi.enabled", false);
-        m_configuration.Set("rendering.rt.path_tracer.enabled", false);
+        m_configuration.Set("rendering.rt.path_tracing.enabled", false);
 
         // Save new configuration to disk
         if (m_configuration.IsChanged()) {

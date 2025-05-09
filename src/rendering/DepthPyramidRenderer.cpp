@@ -30,67 +30,24 @@ struct DepthPyramidUniforms
     uint32  mip_level;
 };
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    ImageViewRef    depth_pyramid_image_view;
-
-    RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet)(
-        const ImageViewRef &depth_pyramid_image_view
-    ) : depth_pyramid_image_view(depth_pyramid_image_view)
-    {
-        AssertThrow(depth_pyramid_image_view.IsValid());
-    }
-
-    virtual ~RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DepthPyramidResult"), depth_pyramid_image_view);
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet) : renderer::RenderCommand
-{
-    virtual ~RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DepthPyramidResult"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
-DepthPyramidRenderer::DepthPyramidRenderer()
-    : m_is_rendered(false)
+DepthPyramidRenderer::DepthPyramidRenderer(const ImageViewRef &depth_image_view)
+    : m_depth_image_view(depth_image_view),
+      m_is_rendered(false)
 {
 }
 
 DepthPyramidRenderer::~DepthPyramidRenderer()
 {
-    PUSH_RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet);
+    SafeRelease(std::move(m_depth_image_view));
 
     SafeRelease(std::move(m_depth_pyramid));
     SafeRelease(std::move(m_depth_pyramid_view));
 
+    SafeRelease(std::move(m_depth_pyramid_sampler));
+
     SafeRelease(std::move(m_mip_image_views));
     SafeRelease(std::move(m_mip_uniform_buffers));
     SafeRelease(std::move(m_mip_descriptor_tables));
-
-    SafeRelease(std::move(m_depth_pyramid_sampler));
-    SafeRelease(std::move(m_depth_attachment));
 
     SafeRelease(std::move(m_generate_depth_pyramid));
 }
@@ -105,11 +62,6 @@ void DepthPyramidRenderer::Create()
         HYP_NAMED_SCOPE("Create depth pyramid resources");
         Threads::AssertOnThread(g_render_thread);
 
-        AttachmentBase *depth_attachment = g_engine->GetDeferredRenderer()->GetGBuffer()->GetBucket(BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-        AssertThrow(depth_attachment != nullptr);
-
-        m_depth_attachment = depth_attachment->HandleFromThis();
-
         m_depth_pyramid_sampler = g_rendering_api->MakeSampler(
             FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
             FilterMode::TEXTURE_FILTER_NEAREST,
@@ -118,7 +70,7 @@ void DepthPyramidRenderer::Create()
 
         HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create());
     
-        const ImageRef &depth_image = m_depth_attachment->GetImage();
+        const ImageRef &depth_image = m_depth_image_view->GetImage();
         AssertThrow(depth_image.IsValid());
 
         // create depth pyramid image
@@ -142,7 +94,7 @@ void DepthPyramidRenderer::Create()
         m_depth_pyramid_view = g_rendering_api->MakeImageView(m_depth_pyramid);
         m_depth_pyramid_view->Create();
 
-        const Vec3u &image_extent = m_depth_attachment->GetImage()->GetExtent();
+        const Vec3u &image_extent = m_depth_image_view->GetImage()->GetExtent();
         const Vec3u &depth_pyramid_extent = m_depth_pyramid->GetExtent();
 
         const uint32 num_mip_levels = m_depth_pyramid->NumMipmaps();
@@ -203,7 +155,7 @@ void DepthPyramidRenderer::Create()
 
                     if (mip_level == 0) {
                         // first mip level -- input is the actual depth image
-                        depth_pyramid_descriptor_set->SetElement(NAME("InImage"), m_depth_attachment->GetImageView());
+                        depth_pyramid_descriptor_set->SetElement(NAME("InImage"), m_depth_image_view);
                     } else {
                         AssertThrow(m_mip_image_views[mip_level - 1] != nullptr);
 
@@ -234,27 +186,9 @@ void DepthPyramidRenderer::Create()
         // use the first mip descriptor table to create the compute pipeline, since the descriptor set layout is the same for all mip levels
         m_generate_depth_pyramid = g_rendering_api->MakeComputePipeline(shader, m_mip_descriptor_tables.Front());
         DeferCreate(m_generate_depth_pyramid);
-
-        PUSH_RENDER_COMMAND(SetDepthPyramidInGlobalDescriptorSet, m_depth_pyramid_view);
     };
 
     CreateDepthPyramidResources();
-
-    m_create_depth_pyramid_resources_handler = g_engine->GetDeferredRenderer()->GetGBuffer()->OnGBufferResolutionChanged.Bind([this, CreateDepthPyramidResources](...)
-    {
-        PUSH_RENDER_COMMAND(UnsetDepthPyramidInGlobalDescriptorSet);
-
-        SafeRelease(std::move(m_depth_pyramid));
-        SafeRelease(std::move(m_depth_pyramid_view));
-        SafeRelease(std::move(m_depth_pyramid_sampler));
-        SafeRelease(std::move(m_depth_attachment));
-        SafeRelease(std::move(m_mip_image_views));
-        SafeRelease(std::move(m_mip_uniform_buffers));
-
-        SafeRelease(std::move(m_generate_depth_pyramid));
-
-        CreateDepthPyramidResources();
-    });
 }
 
 Vec2u DepthPyramidRenderer::GetExtent() const
@@ -277,7 +211,7 @@ void DepthPyramidRenderer::Render(FrameBase *frame)
 
     const SizeType num_depth_pyramid_mip_levels = m_mip_image_views.Size();
 
-    const Vec3u &image_extent = m_depth_attachment->GetImage()->GetExtent();
+    const Vec3u &image_extent = m_depth_image_view->GetImage()->GetExtent();
     const Vec3u &depth_pyramid_extent = m_depth_pyramid->GetExtent();
 
     uint32 mip_width = image_extent.x,

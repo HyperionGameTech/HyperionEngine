@@ -6,6 +6,7 @@
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
@@ -69,8 +70,15 @@ struct RENDER_COMMAND(RemoveAllRenderSubsystems) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
+// For backwards compatibility
 RenderEnvironment::RenderEnvironment()
+    : RenderEnvironment(nullptr)
+{
+}
+
+RenderEnvironment::RenderEnvironment(WorldRenderResource *world_render_resource)
     : HypObject(),
+      m_world_render_resource(world_render_resource),
       m_frame_counter(0),
       m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
@@ -121,11 +129,10 @@ void RenderEnvironment::Init()
     m_gaussian_splatting = CreateObject<GaussianSplatting>();
     InitObject(m_gaussian_splatting);
     
+    // @TODO Move to DeferredRenderer
     m_rt_radiance = MakeUnique<RTRadianceRenderer>(
-        g_engine->GetDeferredRenderer()->GetGBuffer()->GetResolution() / 2,
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.path_tracer.enabled").ToBool()
-            ? RT_RADIANCE_RENDERER_OPTION_PATHTRACER
-            : RT_RADIANCE_RENDERER_OPTION_NONE
+        RTRadianceConfig::FromConfig(),
+        g_engine->GetCurrentView()->GetGBuffer()
     );
 
     if (g_rendering_api->GetRenderConfig().IsRaytracingSupported()
@@ -206,13 +213,13 @@ void RenderEnvironment::ApplyTLASUpdates(FrameBase *frame, RTUpdateStateFlags fl
     }
 }
 
-void RenderEnvironment::RenderRTRadiance(FrameBase *frame)
+void RenderEnvironment::RenderRTRadiance(FrameBase *frame, ViewRenderResource *view)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
     
     if (m_has_rt_radiance) {
-        m_rt_radiance->Render(frame);
+        m_rt_radiance->Render(frame, view);
     }
 }
 

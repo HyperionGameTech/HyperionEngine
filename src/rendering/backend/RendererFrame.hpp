@@ -12,6 +12,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -33,6 +35,8 @@ public:
 
     HYP_FORCE_INLINE const RHICommandList &GetCommandList() const
         { return m_command_list; }
+
+    Delegate<void, FrameBase *> OnFrameEnd;
 
 protected:
     FrameBase(uint32 frame_index)

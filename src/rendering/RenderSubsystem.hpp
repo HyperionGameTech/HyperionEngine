@@ -81,12 +81,14 @@ public:
     void RemoveFromEnvironment();
 
 protected:
-    virtual void Init() = 0;
-    virtual void InitGame() = 0;
-    virtual void OnUpdate(GameCounter::TickUnit delta) = 0;
+    virtual void Init() { };
+    virtual void InitGame() { };
+    virtual void OnUpdate(GameCounter::TickUnit delta) { };
     virtual void OnRender(FrameBase *frame) = 0;
     virtual void OnRemoved() { }
-    virtual void OnComponentIndexChanged(Index new_index, Index prev_index) = 0;
+    virtual void OnComponentIndexChanged(Index new_index, Index prev_index) { };
+
+    RenderEnvironment *GetParent() const;
 
     Name                    m_name;
     const uint32            m_render_frame_slicing; // amount of frames to wait between render calls
@@ -94,7 +96,6 @@ protected:
     Index                   m_index;
 
 private:
-    RenderEnvironment *GetParent() const;
     void SetParent(RenderEnvironment *parent);
     
     RenderEnvironment       *m_parent;

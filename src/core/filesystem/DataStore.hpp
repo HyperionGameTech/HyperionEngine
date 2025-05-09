@@ -105,7 +105,7 @@ protected:
     virtual bool IsNull() const override
         { return false; }
 
-    virtual int Claim() override;
+    virtual int Claim(int count = 1) override;
     virtual int ClaimWithoutInitialize() override;
     virtual int Unclaim() override;
 

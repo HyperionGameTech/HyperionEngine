@@ -2,15 +2,9 @@
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/Light.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/EntityTag.hpp>
-
-#include <scene/ecs/components/MeshComponent.hpp>
-#include <scene/ecs/components/TransformComponent.hpp>
-#include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
 
 #include <scene/ecs/systems/CameraSystem.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
@@ -34,6 +28,7 @@
 #include <scene/world_grid/WorldGridSubsystem.hpp>
 
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
@@ -60,6 +55,71 @@
 
 namespace hyperion {
 
+#pragma region SceneValidation
+
+static SceneValidationResult MergeSceneValidationResults(
+    const SceneValidationResult &result_a,
+    const SceneValidationResult &result_b
+)
+{
+    SceneValidationResult result;
+
+    if (result_a.HasError()) {
+        result = result_a;
+    }
+
+    if (result_b.HasError()) {
+        if (result.HasError()) {
+            result = HYP_MAKE_ERROR(SceneValidationError, "{}\n{}", result_a.GetError().GetMessage(), result_b.GetError().GetMessage());
+        } else {
+            result = result_b;
+        }
+    }
+
+    return result;
+}
+
+static SceneValidationResult ValidateSceneLights(const Scene *scene)
+{
+    auto ValidateMultipleDirectionalLights = [](const Scene *scene) -> SceneValidationResult
+    {
+        int num_directional_lights = 0;
+
+        for (auto [entity_id, light_component] : scene->GetEntityManager()->GetEntitySet<LightComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+            if (!light_component.light.IsValid()) {
+                continue;
+            }
+
+            if (light_component.light->GetLightType() == LightType::DIRECTIONAL) {
+                ++num_directional_lights;
+            }
+        }
+
+        if (num_directional_lights > 1) {
+            return HYP_MAKE_ERROR(SceneValidationError, "Multiple directional lights found in scene");
+        }
+
+        return { };
+    };
+
+    SceneValidationResult result;
+    result = MergeSceneValidationResults(result, ValidateMultipleDirectionalLights(scene));
+
+    return result;
+}
+
+SceneValidationResult SceneValidation::ValidateScene(const Scene *scene)
+{
+    SceneValidationResult result;
+    result = MergeSceneValidationResults(result, ValidateSceneLights(scene));
+
+    return result;
+}
+
+#pragma endregion SceneValidation
+
+#pragma region Scene
+
 Scene::Scene()
     : Scene(nullptr, g_game_thread, { })
 {
@@ -83,7 +143,6 @@ Scene::Scene(
     m_flags(flags),
     m_owner_thread_id(owner_thread_id),
     m_world(world),
-    m_root_node_proxy(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this)),
     m_is_audio_listener(false),
     m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id, this)),
     m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
@@ -95,7 +154,7 @@ Scene::Scene(
         m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
     }
 
-    m_root_node_proxy->SetScene(this);
+    SetRoot(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this));
 }
 
 Scene::~Scene()
@@ -112,6 +171,10 @@ Scene::~Scene()
     entity_manager.Reset();
 
     if (m_render_resource != nullptr) {
+        if (m_world != nullptr && m_world->IsReady()) {
+            m_world->GetRenderResource().RemoveViewsForScene(HandleFromThis());
+        }
+
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
@@ -129,6 +192,10 @@ void Scene::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
     {
         if (m_render_resource != nullptr) {
+            if (m_world != nullptr && m_world->IsReady()) {
+                m_world->GetRenderResource().RemoveViewsForScene(HandleFromThis());
+            }
+
             FreeResource(m_render_resource);
 
             m_render_resource = nullptr;
@@ -277,162 +344,9 @@ void Scene::Update(GameCounter::TickUnit delta)
         m_octree.NextVisibilityState();
     }
 
-    // if (m_camera.IsValid()) {
-    //     HYP_NAMED_SCOPE("Update camera and calculate visibility");
-
-    //     m_camera->Update(delta);
-
-    //     m_octree.CalculateVisibility(m_camera);
-    // }
-
     if (IsForegroundScene()) {
         m_entity_manager->FlushCommandQueue(delta);
     }
-}
-
-RenderCollector::CollectionResult Scene::CollectEntities(
-    RenderCollector &render_collector,
-    const Handle<Camera> &camera,
-    bool skip_frustum_culling
-) const
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    if (!camera.IsValid()) {
-        return { };
-    }
-
-    const ID<Camera> camera_id = camera.GetID();
-
-    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
-
-    uint32 num_collected_entities = 0;
-    uint32 num_skipped_entities = 0;
-
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
-#ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
-                ++num_skipped_entities;
-#endif
-                continue;
-            }
-
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
-                ++num_skipped_entities;
-#endif
-
-                continue;
-            }
-#endif
-        }
-
-        ++num_collected_entities;
-
-        AssertThrow(mesh_component.proxy != nullptr);
-
-        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
-    }
-    
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
-    HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
-#endif
-
-    return render_collector.PushUpdatesToRenderThread(camera);
-}
-
-RenderCollector::CollectionResult Scene::CollectDynamicEntities(
-    RenderCollector &render_collector,
-    const Handle<Camera> &camera,
-    bool skip_frustum_culling
-) const
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    if (!camera.IsValid()) {
-        return { };
-    }
-
-    const ID<Camera> camera_id = camera.GetID();
-    
-    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
-
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
-#ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
-                continue;
-            }
-
-
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
-                HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                    entity_id.Value(), camera_id.Value());
-#endif
-
-                continue;
-            }
-#endif
-        }
-
-        AssertThrow(mesh_component.proxy != nullptr);
-
-        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
-    }
-
-    return render_collector.PushUpdatesToRenderThread(camera);
-}
-
-RenderCollector::CollectionResult Scene::CollectStaticEntities(
-    RenderCollector &render_collector,
-    const Handle<Camera> &camera,
-    bool skip_frustum_culling
-) const
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    if (!camera.IsValid()) {
-        // if camera is invalid, update without adding any entities
-        return render_collector.PushUpdatesToRenderThread(camera);
-    }
-
-    const ID<Camera> camera_id = camera.GetID();
-    
-    const VisibilityStateSnapshot visibility_state_snapshot = m_octree.GetVisibilityState().GetSnapshot(camera_id);
-
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_entity_manager->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
-#ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
-                continue;
-            }
-
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
-                HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                    entity_id.Value(), camera_id.Value());
-#endif
-
-                continue;
-            }
-#endif
-        }
-
-        AssertThrow(mesh_component.proxy != nullptr);
-
-        render_collector.PushEntityToRender(entity_id, *mesh_component.proxy);
-    }
-
-    return render_collector.PushUpdatesToRenderThread(camera);
 }
 
 void Scene::EnqueueRenderUpdates()
@@ -457,6 +371,10 @@ void Scene::SetRoot(const NodeProxy &root)
         return;
     }
 
+#ifdef HYP_DEBUG_MODE
+    RemoveDelegateHandler(NAME("ValidateScene"));
+#endif
+
     NodeProxy prev_root = m_root_node_proxy;
 
     if (prev_root.IsValid() && prev_root->GetScene() == this) {
@@ -467,6 +385,23 @@ void Scene::SetRoot(const NodeProxy &root)
 
     if (m_root_node_proxy.IsValid()) {
         m_root_node_proxy->SetScene(this);
+
+#ifdef HYP_DEBUG_MODE
+        AddDelegateHandler(NAME("ValidateScene"), m_root_node_proxy->GetDelegates()->OnChildAdded.Bind([weak_this = WeakHandleFromThis()](Node *, bool)
+        {
+            Handle<Scene> scene = weak_this.Lock();
+
+            if (!scene.IsValid()) {
+                return;
+            }
+
+            SceneValidationResult validation_result = SceneValidation::ValidateScene(scene.Get());
+
+            if (validation_result.HasError()) {
+                HYP_LOG(Scene, Error, "Scene validation failed: {}", validation_result.GetError().GetMessage());
+            }
+        }));
+#endif
     }
 
     OnRootNodeChanged(m_root_node_proxy, prev_root);
@@ -507,6 +442,25 @@ bool Scene::RemoveFromWorld()
     return true;
 }
 
+String Scene::GetUniqueNodeName(UTF8StringView base_name) const
+{
+    String unique_name = base_name;
+    int counter = 1;
+
+    // Return base_name directly if it's not already used.
+    if (!FindNodeByName(unique_name).IsValid()) {
+        return unique_name;
+    }
+    
+    // Otherwise, append an increasing counter until a unique name is found.
+    while (FindNodeByName(unique_name).IsValid()) {
+        unique_name = HYP_FORMAT("{}{}", base_name, counter);
+        ++counter;
+    }
+    
+    return unique_name;
+}
+
 template <class SystemType>
 void Scene::AddSystemIfApplicable()
 {
@@ -518,5 +472,7 @@ void Scene::AddSystemIfApplicable()
 
     m_entity_manager->AddSystem(std::move(system));
 }
+
+#pragma endregion Scene
 
 } // namespace hyperion

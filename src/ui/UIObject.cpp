@@ -652,6 +652,8 @@ void UIObject::UpdateSize_Internal(bool update_children)
         return IterationResult::CONTINUE;
     }, /* deep */ false);
 
+    OnSizeChange();
+
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 }
 
@@ -1534,7 +1536,6 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 
     return MaterialAttributes {
         .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
-        .bucket             = Bucket::BUCKET_UI,
         .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
                                             BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
         .cull_faces         = FaceCullMode::BACK,

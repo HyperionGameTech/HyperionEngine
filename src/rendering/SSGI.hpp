@@ -17,6 +17,9 @@
 namespace hyperion {
 
 class Engine;
+class GBuffer;
+struct SSGIUniforms;
+class ViewRenderResource;
 
 HYP_STRUCT(ConfigName="app", ConfigPath="rendering.ssgi")
 struct SSGIConfig : public ConfigBase<SSGIConfig>
@@ -29,11 +32,9 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
 
     virtual ~SSGIConfig() override = default;
 
-    static HYP_API Vec2u GetGBufferResolution();
-
     void PostLoadCallback()
     {
-        extent = GetGBufferResolution() / 2;
+        extent = Vec2u { 1024, 1024 };
 
         switch (quality) {
         case 0:
@@ -45,12 +46,10 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
     }
 };
 
-struct SSGIUniforms;
-
 class SSGI
 {
 public:
-    SSGI(SSGIConfig &&config);
+    SSGI(SSGIConfig &&config, GBuffer *gbuffer);
     ~SSGI();
 
     HYP_FORCE_INLINE const Handle<Texture> &GetResultTexture() const
@@ -62,9 +61,8 @@ public:
         { return m_is_rendered; }
 
     void Create();
-    void Destroy();
 
-    void Render(FrameBase *frame);
+    void Render(FrameBase *frame, ViewRenderResource *view);
 
 private:
     ShaderProperties GetShaderProperties() const;
@@ -75,6 +73,10 @@ private:
 
     void GetUniformBufferData(SSGIUniforms &out_uniforms) const;
 
+    SSGIConfig                                      m_config;
+
+    GBuffer                                         *m_gbuffer;
+
     Handle<Texture>                                 m_result_texture;
     
     FixedArray<GPUBufferRef, max_frames_in_flight>  m_uniform_buffers;
@@ -82,8 +84,6 @@ private:
     ComputePipelineRef                              m_compute_pipeline;
 
     UniquePtr<TemporalBlending>                     m_temporal_blending;
-
-    SSGIConfig                                      m_config;
 
     bool                                            m_is_rendered;
 };

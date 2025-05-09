@@ -12,9 +12,11 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderEnvGrid.hpp>
+#include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/EnvGrid.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -342,7 +344,7 @@ void ParticleSystem::CreateBuffers()
     );
 }
 
-void ParticleSystem::UpdateParticles(FrameBase *frame)
+void ParticleSystem::UpdateParticles(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
@@ -350,9 +352,9 @@ void ParticleSystem::UpdateParticles(FrameBase *frame)
     AssertReady();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     if (m_particle_spawners.GetItems().Empty()) {
         if (m_particle_spawners.HasUpdatesPending()) {
@@ -420,22 +422,32 @@ void ParticleSystem::UpdateParticles(FrameBase *frame)
         frame->GetCommandList().Add<BindDescriptorTable>(
             spawner->GetComputePipeline()->GetDescriptorTable(),
             spawner->GetComputePipeline(),
-            ArrayMap<Name, ArrayMap<Name, uint32>> 
-            {
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    NAME("Scene"),
+                    NAME("Global"),
                     {
-                        {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
-                        }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                     }
                 }
             },
             frame->GetFrameIndex()
         );
+
+        const uint32 scene_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+        if (scene_descriptor_set_index != ~0u) {
+            AssertThrow(view != nullptr);
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                view->GetDescriptorSets()[frame->GetFrameIndex()],
+                spawner->GetComputePipeline(),
+                ArrayMap<Name, uint32> { },
+                scene_descriptor_set_index
+            );
+        }
 
         frame->GetCommandList().Add<DispatchCompute>(
             spawner->GetComputePipeline(),
@@ -457,7 +469,7 @@ void ParticleSystem::UpdateParticles(FrameBase *frame)
     }
 }
 
-void ParticleSystem::Render(FrameBase *frame)
+void ParticleSystem::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
@@ -467,9 +479,9 @@ void ParticleSystem::Render(FrameBase *frame)
     const uint32 frame_index = frame->GetFrameIndex();
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     for (const Handle<ParticleSpawner> &particle_spawner : m_particle_spawners.GetItems()) {
         const GraphicsPipelineRef &pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
@@ -481,17 +493,30 @@ void ParticleSystem::Render(FrameBase *frame)
             pipeline,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 {
-                    NAME("Scene"),
+                    NAME("Global"),
                     {
                         { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                     }
                 }
             },
             frame_index
         );
+
+        const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+        if (scene_descriptor_set_index != ~0u) {
+            AssertThrow(view != nullptr);
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                view->GetDescriptorSets()[frame_index],
+                pipeline,
+                ArrayMap<Name, uint32> { },
+                scene_descriptor_set_index
+            );
+        }
 
         m_quad_mesh->GetRenderResource().RenderIndirect(frame->GetCommandList(), particle_spawner->GetIndirectBuffer());
     }

@@ -14,13 +14,13 @@
 namespace hyperion {
 class AudioManager {
 public:
-  static AudioManager *GetInstance();
-  static void Deinitialize();
+  static AudioManager &GetInstance();
 
   AudioManager();
   ~AudioManager();
 
   bool Initialize();
+  void Shutdown();
 
   bool IsInitialized() const
     { return m_is_initialized; }

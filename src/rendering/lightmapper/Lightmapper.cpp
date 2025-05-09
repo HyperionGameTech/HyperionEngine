@@ -10,8 +10,8 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderCollection.hpp>
-#include <rendering/EnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderConfig.hpp>
@@ -651,9 +651,9 @@ void LightmapGPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     UpdateUniforms(frame, ray_offset);
 
@@ -698,12 +698,12 @@ void LightmapGPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
         m_raytracing_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             {
-                NAME("Scene"),
+                NAME("Global"),
                 {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                 }
             }
         },
@@ -721,7 +721,6 @@ void LightmapGPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
 }
 
 #pragma endregion LightmapGPUPathTracer
-
 
 #pragma region LightmapCPUPathTracer
 
@@ -814,7 +813,7 @@ void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
         AssertThrow(env_probe->IsReady());
 
         // prepare env probe texture to be sampled on the CPU in the tasks
-        env_probe->GetRenderResource().GetTexture()->Readback();
+        env_probe->GetRenderResource().GetPrefilteredEnvMap()->Readback();
     }
         // // testing
         // for (uint32 face_index = 0; face_index < env_probe_texture->NumFaces(); face_index++) {
@@ -845,34 +844,8 @@ void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
         if (env_probe.IsValid()) {
             AssertThrow(env_probe->IsReady());
 
-            env_probe_texture = env_probe->GetRenderResource().GetTexture();
+            env_probe_texture = env_probe->GetRenderResource().GetPrefilteredEnvMap();
         }
-
-        // HYP_LOG(Lightmap, Info, "(task) EnvProbeTexture = #{}", env_probe_texture.GetID().Value());
-
-        // { // debugging
-        //     const LightmapUVMap &uv_map = job->GetUVMap();
-
-        //     AssertThrowMsg(
-        //         first_ray.texel_index < uv_map.uvs.Size(),
-        //         "Texel index (%llu) out of range of UV map (size: %llu)",
-        //         first_ray.texel_index,
-        //         uv_map.uvs.Size()
-        //     );
-
-        //     const LightmapUV &uv = uv_map.uvs[first_ray.texel_index];
-
-        //     if (!uv.material) {
-        //         return;
-        //     }
-
-        //     const Vec4f color = Vec4f(uv.material->GetParameter(Material::MATERIAL_KEY_ALBEDO));
-
-        //     LightmapHit &hit = m_hits_buffer[index];
-        //     hit.color = color;
-
-        //     return;
-        // }
 
         uint32 seed = (uint32)rand();//index * m_texel_index;
 

@@ -8,13 +8,14 @@
 namespace hyperion {
 
 class Engine;
+class GBuffer;
 
 class DOFBlur
 {
 public:
-    DOFBlur(const Vec2u &extent);
-    DOFBlur(const DOFBlur &other) = delete;
-    DOFBlur &operator=(const DOFBlur &other) = delete;
+    DOFBlur(const Vec2u &extent, GBuffer *gbuffer);
+    DOFBlur(const DOFBlur &other)               = delete;
+    DOFBlur &operator=(const DOFBlur &other)    = delete;
     ~DOFBlur();
 
     const UniquePtr<FullScreenPass> &GetHorizontalBlurPass() const
@@ -29,9 +30,11 @@ public:
     void Create();
     void Destroy();
     
-    void Render(FrameBase *frame);
+    void Render(FrameBase *frame, ViewRenderResource *view);
 
 private:
+    GBuffer                     *m_gbuffer;
+
     Vec2u                       m_extent;
 
     UniquePtr<FullScreenPass>   m_blur_horizontal_pass;

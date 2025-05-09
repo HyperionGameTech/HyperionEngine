@@ -19,13 +19,14 @@ static inline Array<VkDescriptorSetLayout> GetPipelineVulkanDescriptorSetLayouts
     AssertThrowMsg(pipeline.GetDescriptorTable().IsValid(), "Invalid DescriptorTable provided to Pipeline");
 
     Array<VkDescriptorSetLayout> used_layouts;
-    used_layouts.Reserve(pipeline.GetDescriptorTable()->GetSets()[0].Size());
 
-    for (const VulkanDescriptorSetRef &descriptor_set : pipeline.GetDescriptorTable()->GetSets()[0]) {
-        AssertThrow(descriptor_set != nullptr);
-        AssertThrow(descriptor_set->GetVulkanLayoutWrapper() != nullptr);
+    for (const DescriptorSetRef &descriptor_set : pipeline.GetDescriptorTable()->GetSets()[0]) {
+        VulkanDescriptorSetRef vulkan_descriptor_set = VulkanDescriptorSetRef(descriptor_set);
 
-        used_layouts.PushBack(GetVkDescriptorSetLayout(*descriptor_set->GetVulkanLayoutWrapper()));
+        AssertThrow(vulkan_descriptor_set != nullptr);
+        AssertThrow(vulkan_descriptor_set->GetVulkanLayoutWrapper() != nullptr);
+
+        used_layouts.PushBack(GetVkDescriptorSetLayout(*vulkan_descriptor_set->GetVulkanLayoutWrapper()));
     }
 
     return used_layouts;

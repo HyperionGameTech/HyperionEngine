@@ -213,8 +213,6 @@ void VulkanDescriptorSet::Update()
                 element.dirty_range |= { index, index + 1 };
 
                 dirty_descriptor_element_infos.PushBack(descriptor_element_info);
-
-                // HYP_LOG(RenderingBackend, Debug, "Marked Dirty descriptor set element: {}.{}[{}]", m_layout.GetName().LookupString(), name.LookupString(), index);
             }
 #else
             dirty_descriptor_element_infos.PushBack(descriptor_element_info);
@@ -264,9 +262,11 @@ RendererResult VulkanDescriptorSet::Create()
 {
     AssertThrow(m_handle == VK_NULL_HANDLE);
 
-    HYP_LOG(RenderingBackend, Debug, "Creating descriptor set: {}", GetDebugName());
-
     HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
+
+    if (m_layout.GetDeclaration().is_template) {
+        return RendererResult { };
+    }
 
     RendererResult result;
 
@@ -294,7 +294,6 @@ RendererResult VulkanDescriptorSet::Create()
     return result;
 }
 
-HYP_DISABLE_OPTIMIZATION;
 RendererResult VulkanDescriptorSet::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE) {
@@ -307,7 +306,6 @@ RendererResult VulkanDescriptorSet::Destroy()
 
     return RendererResult { };
 }
-HYP_ENABLE_OPTIMIZATION;
 
 bool VulkanDescriptorSet::IsCreated() const
 {
@@ -316,6 +314,14 @@ bool VulkanDescriptorSet::IsCreated() const
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, uint32 bind_index) const
 {
+#if defined(HYP_DEBUG_MODE) && false
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+        const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
+
+        HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+    }
+#endif
+
     vkCmdBindDescriptorSets(
         static_cast<const VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -347,8 +353,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Gr
         } else {
             offsets_flat[i] = 0;
 
-#ifdef HYP_DEBUG_MODE
-            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#if defined(HYP_DEBUG_MODE) && false
+            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
 #endif
         }
     }
@@ -375,6 +381,14 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Gr
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, uint32 bind_index) const
 {
+#if defined(HYP_DEBUG_MODE) && false
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+        const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
+
+        HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+    }
+#endif
+
     vkCmdBindDescriptorSets(
         static_cast<const VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -406,8 +420,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Co
         } else {
             offsets_flat[i] = 0;
 
-#ifdef HYP_DEBUG_MODE
-            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#if defined(HYP_DEBUG_MODE) && false
+            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
 #endif
         }
     }
@@ -434,6 +448,14 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Co
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, uint32 bind_index) const
 {
+#if defined(HYP_DEBUG_MODE) && false
+    for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++) {
+        const Name dynamic_element_name = m_layout.GetDynamicElements()[i];
+
+        HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+    }
+#endif
+
     vkCmdBindDescriptorSets(
         static_cast<const VulkanCommandBuffer *>(command_buffer)->GetVulkanHandle(),
         VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
@@ -465,8 +487,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Ra
         } else {
             offsets_flat[i] = 0;
 
-#ifdef HYP_DEBUG_MODE
-            // HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
+#if defined(HYP_DEBUG_MODE) && false
+            HYP_LOG(RenderingBackend, Warning, "Missing dynamic offset for descriptor set element: {}", dynamic_element_name);
 #endif
         }
     }

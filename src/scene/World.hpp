@@ -17,6 +17,7 @@ namespace hyperion {
 class WorldRenderResource;
 class EditorDelegates;
 struct EngineRenderStats;
+class View;
 
 struct DetachedScenesContainer
 {
@@ -153,6 +154,15 @@ public:
     HYP_METHOD()
     const Handle<Scene> &GetSceneByName(Name name) const;
 
+    HYP_METHOD()
+    void AddView(const Handle<View> &view);
+
+    HYP_METHOD()
+    void RemoveView(const Handle<View> &view);
+
+    HYP_FORCE_INLINE const Array<Handle<View>> &GetViews() const
+        { return m_views; }
+
     void Init();
     
     /*! \brief Perform any necessary game thread specific updates to the World.
@@ -168,6 +178,7 @@ private:
     DetachedScenesContainer                 m_detached_scenes;
 
     Array<Handle<Scene>>                    m_scenes;
+    Array<Handle<View>>                     m_views;
 
     TypeMap<RC<Subsystem>>                  m_subsystems;
 

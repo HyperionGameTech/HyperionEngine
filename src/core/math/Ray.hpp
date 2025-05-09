@@ -4,6 +4,7 @@
 #define HYPERION_RAY_HPP
 
 #include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
 #include <core/math/Vertex.hpp>
 #include <core/math/Transform.hpp>
 
@@ -47,12 +48,17 @@ struct HYP_API Ray
 
     Ray operator*(const Matrix4 &transform) const;
 
-    bool TestAABB(const BoundingBox &aabb) const;
+    Optional<RayHit> TestAABB(const BoundingBox &aabb) const;
     bool TestAABB(const BoundingBox &aabb, RayTestResults &out_results) const;
     bool TestAABB(const BoundingBox &aabb, RayHitID hit_id, RayTestResults &out_results) const;
     bool TestAABB(const BoundingBox &aabb, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;
 
-    bool TestTriangle(const Triangle &triangle) const;
+    Optional<RayHit> TestPlane(const Vec3f &position, const Vec3f &normal) const;
+    bool TestPlane(const Vec3f &position, const Vec3f &normal, RayTestResults &out_results) const;
+    bool TestPlane(const Vec3f &position, const Vec3f &normal, RayHitID hit_id, RayTestResults &out_results) const;
+    bool TestPlane(const Vec3f &position, const Vec3f &normal, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;
+
+    Optional<RayHit> TestTriangle(const Triangle &triangle) const;
     bool TestTriangle(const Triangle &triangle, RayTestResults &out_results) const;
     bool TestTriangle(const Triangle &triangle, RayHitID hit_id, RayTestResults &out_results) const;
     bool TestTriangle(const Triangle &triangle, RayHitID hit_id, const void *user_data, RayTestResults &out_results) const;

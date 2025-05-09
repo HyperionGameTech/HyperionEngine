@@ -576,7 +576,7 @@ void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
         HYP_MT_CHECK_READ(m_entities_data_race_detector);
 
         EntityData *entity_data = m_entities.TryGetEntityData(entity_id);
-        AssertThrow(entity_data != nullptr);
+        AssertThrowMsg(entity_data != nullptr, "Entity with ID #%u does not exist", entity_id.Value());
 
         // Update the EntityData
         auto component_it = entity_data->FindComponent(component_type_id);

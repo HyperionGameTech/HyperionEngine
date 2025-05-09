@@ -26,6 +26,8 @@ namespace hyperion {
 
 class Engine;
 class Scene;
+class WorldRenderResource;
+class ViewRenderResource;
 
 using renderer::RTUpdateStateFlags;
 
@@ -51,9 +53,13 @@ class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 
 public:
     RenderEnvironment();
+    RenderEnvironment(WorldRenderResource *world_render_resource);
     RenderEnvironment(const RenderEnvironment &other)               = delete;
     RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
     ~RenderEnvironment();
+
+    HYP_FORCE_INLINE WorldRenderResource *GetWorldRenderResource() const
+        { return m_world_render_resource; }
 
     const FixedArray<TLASRef, max_frames_in_flight> &GetTopLevelAccelerationStructures() const
         { return m_top_level_acceleration_structures; }
@@ -218,7 +224,7 @@ public:
     void Init();
     void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(FrameBase *frame);
+    void RenderRTRadiance(FrameBase *frame, ViewRenderResource *view);
     void RenderDDGIProbes(FrameBase *frame);
 
     void RenderSubsystems(FrameBase *frame);
@@ -260,6 +266,8 @@ private:
 
     void InitializeRT();
     bool CreateTopLevelAccelerationStructures();
+
+    WorldRenderResource                                                 *m_world_render_resource;
 
     AtomicVar<RenderEnvironmentUpdates>                                 m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 

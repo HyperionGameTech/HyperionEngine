@@ -6,13 +6,10 @@
 #include <iostream>
 
 namespace hyperion {
-AudioManager *AudioManager::instance = nullptr;
 
-AudioManager *AudioManager::GetInstance()
+AudioManager &AudioManager::GetInstance()
 {
-    if (instance == nullptr) {
-        instance = new AudioManager();
-    }
+    static AudioManager instance;
 
     return instance;
 }
@@ -25,18 +22,8 @@ AudioManager::AudioManager()
 AudioManager::~AudioManager()
 {
     if (m_is_initialized) {
-        alcMakeContextCurrent(NULL);
-        alcDestroyContext(m_context);
-        alcCloseDevice(m_device);
+        Shutdown();
     }
-
-    m_is_initialized = false;
-}
-
-void AudioManager::Deinitialize()
-{
-    delete instance;
-    instance = nullptr;
 }
 
 bool AudioManager::Initialize()
@@ -63,6 +50,17 @@ bool AudioManager::Initialize()
 
     m_is_initialized = true;
     return true;
+}
+
+void AudioManager::Shutdown()
+{
+    if (m_is_initialized) {
+        alcMakeContextCurrent(NULL);
+        alcDestroyContext(m_context);
+        alcCloseDevice(m_device);
+    }
+
+    m_is_initialized = false;
 }
 
 Array<String> AudioManager::ListDevices() const

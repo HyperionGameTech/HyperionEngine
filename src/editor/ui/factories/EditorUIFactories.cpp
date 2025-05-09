@@ -871,7 +871,7 @@ public:
         RC<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
 
-        parent->SetNodeTag(NodeTag(NAME("AssetPackage"), value.HandleFromThis()));
+        parent->SetNodeTag(NodeTag(NAME("AssetPackage"), value.BuildPackagePath()));
 
         return text;
     }
@@ -892,7 +892,7 @@ public:
         RC<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
 
-        parent->SetNodeTag(NodeTag(NAME("AssetObject"), value.HandleFromThis()));
+        parent->SetNodeTag(NodeTag(NAME("AssetObject"), value.GetUUID()));
 
         return text;
     }

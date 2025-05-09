@@ -99,8 +99,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !hyp_class->IsAbstract()) {
         if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
-            managed_object_resource = AllocateResource<ManagedObjectResource>(HypObjectPtr(hyp_class, address));
+            HypObjectPtr hyp_object_ptr(hyp_class, address);
 
+            managed_object_resource = AllocateResource<ManagedObjectResource>(hyp_object_ptr);
             initializer->SetManagedObjectResource(managed_object_resource);
         }
     }
@@ -155,22 +156,26 @@ IDBase HypObjectBase::GetID_Internal() const
 
 HYP_API uint32 HypObjectPtr::GetRefCount_Strong() const
 {
-    AssertThrow(IsValid());
-
-    const TypeID type_id = m_hyp_class->GetTypeID();
-
-    if (m_hyp_class->UseHandles()) {
-        HypObjectBase *hyp_object_ptr = static_cast<HypObjectBase *>(m_ptr);
-
-        return hyp_object_ptr->GetObjectHeader_Internal()->ref_count_strong.Get(MemoryOrder::ACQUIRE);
-    } else if (m_hyp_class->UseRefCountedPtr()) {
-        auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(m_ptr)->weak.GetRefCountData_Internal();
-        AssertThrow(ref_count_data != nullptr);
-
-        return ref_count_data->UseCount_Strong();
-    } else {
-        HYP_FAIL("Unhandled HypClass allocation method");
+    if (!IsValid()) {
+        return 0;
     }
+
+    IHypObjectInitializer *initializer = m_hyp_class->GetObjectInitializer(m_ptr);
+    AssertDebug(initializer != nullptr);
+
+    return initializer->GetRefCount_Strong(m_hyp_class->GetAllocationMethod(), m_ptr);
+}
+
+HYP_API uint32 HypObjectPtr::GetRefCount_Weak() const
+{
+    if (!IsValid()) {
+        return 0;
+    }
+
+    IHypObjectInitializer *initializer = m_hyp_class->GetObjectInitializer(m_ptr);
+    AssertDebug(initializer != nullptr);
+
+    return initializer->GetRefCount_Weak(m_hyp_class->GetAllocationMethod(), m_ptr);
 }
 
 HYP_DISABLE_OPTIMIZATION;
@@ -310,6 +315,8 @@ HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
     return hyp_class->GetManagedClass();
 }
 
+HYP_DISABLE_OPTIMIZATION;
+
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
@@ -331,6 +338,7 @@ HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
         }
     }
 }
+HYP_ENABLE_OPTIMIZATION;
 
 HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count)
 {

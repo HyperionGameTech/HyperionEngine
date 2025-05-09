@@ -26,6 +26,8 @@ Entity::~Entity()
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
 
+        HYP_LOG(ECS, Debug, "Removing entity #{} from entity manager", id.Value());
+
         entity_manager->RemoveEntity(id);
     });
 }

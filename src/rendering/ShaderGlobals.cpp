@@ -8,7 +8,7 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderShadowMap.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderEnvGrid.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -23,96 +23,6 @@
 #include <Engine.hpp>
 
 namespace hyperion {
-
-
-#pragma region Render commands
-
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer) : renderer::RenderCommand
-{
-    GPUBufferRef sh_grid_buffer;
-    
-    RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer)(GPUBufferRef sh_grid_buffer)
-        : sh_grid_buffer(std::move(sh_grid_buffer))
-    {
-        AssertThrow(this->sh_grid_buffer.IsValid());
-    }
-
-    virtual ~RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer)() = default;
-
-    virtual RendererResult operator()() override
-    {
-        // @TODO: Make GPU only buffer
-        HYPERION_BUBBLE_ERRORS(sh_grid_buffer->Create());
-        sh_grid_buffer->Memset(sizeof(SHGridBuffer), 0);
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-struct RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages) : renderer::RenderCommand
-{
-    FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> grid_textures;
-    
-    RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages)(const FixedArray<GlobalSphericalHarmonicsGrid::GridTexture, 9> &grid_textures)
-        : grid_textures(grid_textures)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages)() = default;
-
-    virtual RendererResult operator()() override
-    {
-        for (auto &item : grid_textures) {
-            HYPERION_BUBBLE_ERRORS(item.image->Create());
-            HYPERION_BUBBLE_ERRORS(item.image_view->Create());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
-GlobalSphericalHarmonicsGrid::GlobalSphericalHarmonicsGrid()
-{
-    sh_grid_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(SHGridBuffer));
-
-    {
-        const uint32 dimension_cube = 32;//uint32(MathUtil::Ceil(std::cbrt(max_bound_ambient_probes)));
-        const Vec3u image_dimensions { dimension_cube, dimension_cube, dimension_cube };
-
-        for (auto &item : textures) {
-            item.image = g_rendering_api->MakeImage(TextureDesc {
-                ImageType::TEXTURE_TYPE_3D,
-                InternalFormat::RGBA16F,
-                image_dimensions,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                1,
-                ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE
-            });
-
-            item.image_view = g_rendering_api->MakeImageView(item.image);
-        }
-    }
-}
-
-void GlobalSphericalHarmonicsGrid::Create()
-{
-    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridBuffer, sh_grid_buffer);
-    PUSH_RENDER_COMMAND(CreateGlobalSphericalHarmonicsGridImages, textures);
-}
-
-void GlobalSphericalHarmonicsGrid::Destroy()
-{
-    SafeRelease(std::move(sh_grid_buffer));
-
-    for (auto &item : textures) {
-        SafeRelease(std::move(item.image));
-        SafeRelease(std::move(item.image_view));
-    }
-}
 
 ShaderGlobals::ShaderGlobals()
 {
@@ -130,13 +40,11 @@ ShaderGlobals::ShaderGlobals()
 void ShaderGlobals::Create()
 {
     textures.Create();
-
-    spherical_harmonics_grid.Create();
 }
 
 void ShaderGlobals::Destroy()
 {
-    spherical_harmonics_grid.Destroy();
+    textures.Destroy();
 }
 
 } // namespace hyperion

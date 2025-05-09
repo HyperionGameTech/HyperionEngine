@@ -413,7 +413,6 @@ HYP_EXPORT int8 HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_clas
     return hyp_struct->ToHypData(ByteView(reinterpret_cast<ubyte *>(object_ptr), size), *hyp_data);
 }
 
-
 HYP_EXPORT int8 HypData_IsByteBuffer(const HypData *hyp_data)
 {
     if (!hyp_data) {

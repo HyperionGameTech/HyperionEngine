@@ -26,10 +26,13 @@ public:
         { return m_handle; }
 
     HYP_API virtual bool IsCreated() const override;
+    HYP_API virtual bool IsOwned() const override;
 
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Create(ResourceState initial_state) override;
     HYP_API virtual RendererResult Destroy() override;
+
+    HYP_API virtual RendererResult Resize(const Vec3u &extent) override;
 
     HYP_API void SetResourceState(ResourceState new_state);
 

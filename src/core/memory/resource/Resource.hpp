@@ -49,7 +49,7 @@ public:
 
     virtual bool IsNull() const = 0;
 
-    virtual int Claim() = 0;
+    virtual int Claim(int count = 1) = 0;
     virtual int ClaimWithoutInitialize() = 0;
     virtual int Unclaim() = 0;
 
@@ -90,7 +90,7 @@ public:
     virtual bool IsNull() const override final
         { return false; }
 
-    virtual int Claim() override final;
+    virtual int Claim(int count = 1) override final;
     virtual int Unclaim() override final;
     virtual void WaitForTaskCompletion() const override final;
     virtual void WaitForFinalization() const override final;

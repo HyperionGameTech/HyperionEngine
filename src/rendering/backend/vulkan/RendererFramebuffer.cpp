@@ -7,6 +7,8 @@
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <rendering/rhi/RHICommandList.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
@@ -24,6 +26,8 @@ static inline VulkanRenderingAPI *GetRenderingAPI()
 
 RendererResult VulkanAttachmentMap::Create()
 {
+    Array<VulkanImageRef> images_to_transition;
+
     for (KeyValuePair<uint32, VulkanAttachmentDef> &it : attachments) {
         VulkanAttachmentDef &def = it.second;
 
@@ -33,6 +37,8 @@ RendererResult VulkanAttachmentMap::Create()
             HYPERION_BUBBLE_ERRORS(def.image->Create());
         }
 
+        images_to_transition.PushBack(def.image);
+
         AssertThrow(def.attachment.IsValid());
 
         if (!def.attachment->IsCreated()) {
@@ -40,33 +46,66 @@ RendererResult VulkanAttachmentMap::Create()
         }
     }
 
+    // Transition image layout immediately on creation
+    if (images_to_transition.Any()) {
+        renderer::SingleTimeCommands commands;
+
+        commands.Push([this, &images_to_transition](RHICommandList &cmd)
+        {
+            for (const VulkanImageRef &image : images_to_transition) {
+                AssertThrow(image.IsValid());
+
+                cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+            }
+        });
+
+        HYPERION_ASSERT_RESULT(commands.Execute());
+    }
+
     HYPERION_RETURN_OK;
 }
 
 RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 {
+    Array<VulkanImageRef> images_to_transition;
+
     for (KeyValuePair<uint32, VulkanAttachmentDef> &it : attachments) {
         VulkanAttachmentDef &def = it.second;
 
         AssertThrow(def.image.IsValid());
 
-        TextureDesc texture_desc = def.image->GetTextureDesc();
-        texture_desc.extent = Vec3u { new_size.x, new_size.y, 1 };
+        VulkanImageRef new_image = def.image;
 
-        VulkanImageRef new_image = MakeRenderObject<VulkanImage>(texture_desc);
-        DeferCreate(new_image, ResourceState::SHADER_RESOURCE);
+        if (def.attachment->GetFramebuffer() == framebuffer) {
+            TextureDesc texture_desc = def.image->GetTextureDesc();
+            texture_desc.extent = Vec3u { new_size.x, new_size.y, 1 };
+
+            new_image = MakeRenderObject<VulkanImage>(texture_desc);
+            HYPERION_ASSERT_RESULT(new_image->Create());
+
+            images_to_transition.PushBack(new_image);
+
+            if (def.image.IsValid()) {
+                SafeRelease(std::move(def.image));
+            }
+        } else {
+            if (def.image->GetExtent().GetXY() != new_size) {
+                return HYP_MAKE_ERROR(RendererError, "Expected image to have a size matching {} but got size: {}", 0,
+                    new_size, def.image->GetExtent().GetXY());
+            }
+        }
 
         VulkanAttachmentRef new_attachment = MakeRenderObject<VulkanAttachment>(
             new_image,
-            def.attachment->GetRenderPassStage()
+            framebuffer,
+            def.attachment->GetRenderPassStage(),
+            def.attachment->GetLoadOperation(),
+            def.attachment->GetStoreOperation()
         );
+
         new_attachment->SetBinding(def.attachment->GetBinding());
-
-        DeferCreate(new_attachment);
-
-        if (def.image.IsValid()) {
-            SafeRelease(std::move(def.image));
-        }
+        
+        HYPERION_ASSERT_RESULT(new_attachment->Create());
 
         if (def.attachment.IsValid()) {
             SafeRelease(std::move(def.attachment));
@@ -76,6 +115,22 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
             std::move(new_image),
             std::move(new_attachment)
         };
+    }
+
+    // Transition image layout immediately on resize
+    if (images_to_transition.Any()) {
+        renderer::SingleTimeCommands commands;
+
+        commands.Push([this, &images_to_transition](RHICommandList &cmd)
+        {
+            for (const VulkanImageRef &image : images_to_transition) {
+                AssertThrow(image.IsValid());
+
+                cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+            }
+        });
+
+        HYPERION_ASSERT_RESULT(commands.Execute());
     }
 
     HYPERION_RETURN_OK;
@@ -93,6 +148,7 @@ VulkanFramebuffer::VulkanFramebuffer(
     m_handles { VK_NULL_HANDLE },
     m_render_pass(MakeRenderObject<VulkanRenderPass>(stage, RenderPassMode::RENDER_PASS_INLINE, num_multiview_layers))
 {
+    m_attachment_map.framebuffer = VulkanFramebufferWeakRef(WeakHandleFromThis());
 }
 
 VulkanFramebuffer::~VulkanFramebuffer()
@@ -233,6 +289,9 @@ RendererResult VulkanFramebuffer::Resize(Vec2u new_size)
 
 AttachmentRef VulkanFramebuffer::AddAttachment(const AttachmentRef &attachment)
 {
+    AssertThrowMsg(attachment->GetFramebuffer() == this,
+        "Attachment framebuffer does not match framebuffer");
+
     return m_attachment_map.AddAttachment(VulkanAttachmentRef(attachment));
 }
 
@@ -245,6 +304,7 @@ AttachmentRef VulkanFramebuffer::AddAttachment(
 {
     VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(
         VulkanImageRef(image),
+        VulkanFramebufferWeakRef(WeakHandleFromThis()),
         m_render_pass->GetStage(),
         load_op,
         store_op

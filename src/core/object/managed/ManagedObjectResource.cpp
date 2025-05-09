@@ -33,14 +33,15 @@ ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const dotnet::Obj
         if (managed_class) {
             void *address = m_ptr.GetPointer();
 
-            if (hyp_class->IsReferenceCounted()) {
-                // Increment reference count for the managed object (it is responsible for decrementing the ref count)
-                initializer->IncRef(hyp_class->GetAllocationMethod(), address, /* weak */ false);
-            }
-
             if (object_flags & ObjectFlags::CREATED_FROM_MANAGED) {
                 m_object_ptr = new dotnet::Object(managed_class->RefCountedPtrFromThis(), object_reference, ObjectFlags::CREATED_FROM_MANAGED);
             } else {
+                if (hyp_class->IsReferenceCounted()) {
+                    // Increment reference count for the managed object (creating from managed does this already via HypObject_Initialize())
+                    // The managed object is responsible for decrementing the ref count using HypObject_DecRef() in finalizer and Dispose().
+                    initializer->IncRef(hyp_class->GetAllocationMethod(), address, /* weak */ false);
+                }
+
                 m_object_ptr = managed_class->NewObject(hyp_class, address);
             }
 
@@ -87,7 +88,8 @@ void ManagedObjectResource::Initialize()
             // In this case, the ref count will be decremented once the queued object is finalized
             const HypClass *hyp_class = m_ptr.GetClass();
 
-            HYP_LOG(Object, Info, "Managed object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
+            HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
+                Threads::CurrentThreadID().GetName(),
                 hyp_class->GetName(), m_ptr.GetPointer());
 
             if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {

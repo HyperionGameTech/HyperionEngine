@@ -1182,6 +1182,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<UIEventHandlerResult>                        OnTextChange;
 
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnSizeChange;
+
 protected:
     HYP_FORCE_INLINE void AssertOnOwnerThread() const
     {

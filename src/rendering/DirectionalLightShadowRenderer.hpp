@@ -35,6 +35,7 @@ class ShadowMapRenderResource;
 class SceneRenderResource;
 class WorldRenderResource;
 class LightRenderResource;
+class View;
 
 struct ShadowMapCameraData
 {
@@ -51,9 +52,9 @@ public:
         const TResourceHandle<WorldRenderResource> &world_resource_handle,
         const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle,
+        const TResourceHandle<ViewRenderResource> &view_statics_resource_handle,
+        const TResourceHandle<ViewRenderResource> &view_dynamics_resource_handle,
         const ShaderRef &shader,
-        RenderCollector *render_collector_statics,
-        RenderCollector *render_collector_dynamics,
         RerenderShadowsSemaphore *rerender_semaphore
     );
     ShadowPass(const ShadowPass &other)             = delete;
@@ -69,8 +70,8 @@ public:
     virtual void CreateFramebuffer() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase *frame) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer) override
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
+    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
         { HYP_NOT_IMPLEMENTED(); }
 
 private:
@@ -82,10 +83,10 @@ private:
     TResourceHandle<WorldRenderResource>        m_world_resource_handle;
     TResourceHandle<CameraRenderResource>       m_camera_resource_handle;
     TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
+    TResourceHandle<ViewRenderResource>         m_view_statics_resource_handle;
+    TResourceHandle<ViewRenderResource>         m_view_dynamics_resource_handle;
 
     Vec3f                                       m_origin;
-    RenderCollector                             *m_render_collector_statics;
-    RenderCollector                             *m_render_collector_dynamics;
     RerenderShadowsSemaphore                    *m_rerender_semaphore;
     
     Handle<Texture>                             m_shadow_map_statics;
@@ -139,6 +140,8 @@ private:
     void CreateShader();
 
     Handle<Scene>                               m_parent_scene;
+    Handle<View>                                m_view_statics;
+    Handle<View>                                m_view_dynamics;
 
     TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
 
@@ -151,9 +154,6 @@ private:
     ShaderRef                                   m_shader;
     Handle<Camera>                              m_camera;
     BoundingBox                                 m_aabb;
-
-    RenderCollector                             m_render_collector_statics;
-    RenderCollector                             m_render_collector_dynamics;
 
     TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
 

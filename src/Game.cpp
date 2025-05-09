@@ -342,42 +342,4 @@ void Game::OnInputEvent(const SystemEvent &event)
     }
 }
 
-void Game::OnFrameBegin(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    if (!m_scene_render_resource_handle) {
-        return;
-    }
-
-    SceneRenderResource &scene_render_resource = static_cast<SceneRenderResource &>(*m_scene_render_resource_handle);
-
-    g_engine->GetRenderState()->SetActiveScene(scene_render_resource.GetScene());
-
-    if (const TResourceHandle<CameraRenderResource> &camera_resource_handle = scene_render_resource.GetCameraRenderResourceHandle()) {
-        g_engine->GetRenderState()->BindCamera(camera_resource_handle);
-    }
-}
-
-void Game::OnFrameEnd(FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    if (!m_scene_render_resource_handle) {
-        return;
-    }
-
-    SceneRenderResource &scene_render_resource = static_cast<SceneRenderResource &>(*m_scene_render_resource_handle);
-
-    g_engine->GetRenderState()->UnsetActiveScene();
-
-    if (const TResourceHandle<CameraRenderResource> &camera_resource_handle = scene_render_resource.GetCameraRenderResourceHandle()) {
-        g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
-    }
-}
-
 } // namespace hyperion

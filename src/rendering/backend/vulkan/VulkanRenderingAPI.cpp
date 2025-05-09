@@ -283,11 +283,6 @@ RendererResult VulkanDescriptorSetManager::Destroy(platform::Device<Platform::VU
     return result;
 }
 
-Delegate<void, FrameBase *> &VulkanRenderingAPI::GetOnFrameEndDelegate()
-{
-    return m_on_frame_end_delegates[m_instance->GetSwapchain()->GetCurrentFrameIndex()];
-}
-
 RendererResult VulkanDescriptorSetManager::CreateDescriptorSet(platform::Device<Platform::VULKAN> *device, const VulkanDescriptorSetLayoutWrapperRef &layout, VkDescriptorSet &out_vk_descriptor_set)
 {
     AssertThrow(m_vk_descriptor_pool != VK_NULL_HANDLE);
@@ -395,12 +390,6 @@ RendererResult VulkanRenderingAPI::Initialize(AppContext &app_context)
     m_instance = new platform::Instance<Platform::VULKAN>();
     HYPERION_BUBBLE_ERRORS(m_instance->Initialize(app_context, g_use_debug_layers));
 
-    m_instance->GetSwapchain()->SetFrameEndCallback([this](FrameBase *frame)
-    {
-        m_on_frame_end_delegates[frame->GetFrameIndex()](frame);
-        m_on_frame_end_delegates[frame->GetFrameIndex()].RemoveAllDetached();
-    });
-
     m_crash_handler.Initialize();
 
     HYPERION_BUBBLE_ERRORS(m_descriptor_set_manager->Create(m_instance->GetDevice()));
@@ -420,7 +409,7 @@ RendererResult VulkanRenderingAPI::Initialize(AppContext &app_context)
     m_default_formats.Set(
         DefaultImageFormatType::DEPTH,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { InternalFormat::DEPTH_32F, InternalFormat::DEPTH_24, InternalFormat::DEPTH_16 } },
+            { { InternalFormat::DEPTH_24, InternalFormat::DEPTH_32F, InternalFormat::DEPTH_16 } },
             ImageSupportType::DEPTH
         )
     );
@@ -531,7 +520,10 @@ void VulkanRenderingAPI::PresentFrame(FrameBase *frame)
 
 DescriptorSetRef VulkanRenderingAPI::MakeDescriptorSet(const DescriptorSetLayout &layout)
 {
-    return MakeRenderObject<VulkanDescriptorSet>(layout);
+    DescriptorSetDeclaration decl_copy = layout.GetDeclaration();
+    decl_copy.is_template = false;
+
+    return MakeRenderObject<VulkanDescriptorSet>(DescriptorSetLayout(decl_copy));
 }
 
 DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTableDeclaration &decl)
@@ -661,8 +653,8 @@ BLASRef VulkanRenderingAPI::MakeBLAS(
 )
 {
     return MakeRenderObject<VulkanBLAS>(
-        packed_vertices_buffer,
-        packed_indices_buffer,
+        VulkanGPUBufferRef(packed_vertices_buffer),
+        VulkanGPUBufferRef(packed_indices_buffer),
         material,
         transform
     );

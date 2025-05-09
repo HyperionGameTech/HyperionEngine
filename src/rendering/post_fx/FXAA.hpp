@@ -14,7 +14,7 @@ public:
     static constexpr PostProcessingStage stage = POST_PROCESSING_STAGE_POST_SHADING;
     static constexpr uint32 index = 0;
 
-    FXAAEffect();
+    FXAAEffect(GBuffer *gbuffer);
     virtual ~FXAAEffect() override;
 
     virtual void OnAdded() override;

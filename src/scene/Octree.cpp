@@ -2,11 +2,13 @@
 
 #include <scene/Octree.hpp>
 #include <scene/Entity.hpp>
+#include <scene/Node.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/BVHComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/NodeLinkComponent.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -926,7 +928,8 @@ void Octree::PerformUpdates()
 
     AssertThrow(m_state != nullptr);
 
-    if (m_state->rebuild_state == OctantID::Invalid()) {
+    if (!m_state->NeedsRebuild()) {
+        // No octant to rebuild, skipping
         return;
     }
 
@@ -942,7 +945,7 @@ void Octree::PerformUpdates()
             "Failed to rebuild octree when performing updates: {}",
             rebuild_result.first.message);
     } else {
-        // set rebuild state to invalid if rebuild was successful
+        // set rebuild state back to invalid if rebuild was successful
         m_state->rebuild_state = OctantID::Invalid();
     }
 }
@@ -1046,6 +1049,8 @@ bool Octree::GetNearestOctant(const Vec3f &position, Octree const *&out) const
 bool Octree::GetFittingOctant(const BoundingBox &aabb, Octree const *&out) const
 {
     if (!m_aabb.Contains(aabb)) {
+        out = nullptr;
+
         return false;
     }
 
@@ -1186,7 +1191,7 @@ void Octree::RebuildEntriesHash(uint32 level)
         }
     }
 
-    // Update parent to include this
+    // Update parent's hash to include this octant's hash
     if (m_parent) {
         for (uint32 i = 0; i < uint32(m_entry_hashes.Size()); i++) {
             m_parent->m_entry_hashes[i].Add(m_entry_hashes[i]);
@@ -1252,6 +1257,14 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
                         }
 
                         continue;
+                    } else {
+                        NodeLinkComponent *node_link_component = m_entity_manager->TryGetComponent<NodeLinkComponent>(entry.entity.GetID());
+                        RC<Node> node = node_link_component ? node_link_component->node.Lock() : nullptr;
+
+                        HYP_LOG(Octree, Warning,
+                            "Entity #{} (node: {}) does not have a BVH component, using AABB instead",
+                            entry.entity.GetID().Value(),
+                            node ? node->GetName() : "<null>");
                     }
                 }
             }

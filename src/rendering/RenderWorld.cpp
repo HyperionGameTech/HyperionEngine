@@ -3,10 +3,13 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
-#include <rendering/RenderShadowMap.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderShadowMap.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/Deferred.hpp>
 #include <rendering/Buffers.hpp>
+#include <rendering/FinalPass.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -225,10 +228,10 @@ void ShadowMapManager::Initialize()
     HYPERION_ASSERT_RESULT(m_point_light_shadow_map_image_view->Create());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("ShadowMapsTextureArray"), m_atlas_image_view);
 
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("PointLightShadowMapsTextureArray"), m_point_light_shadow_map_image_view);
     }
 }
@@ -245,10 +248,10 @@ void ShadowMapManager::Destroy()
 
     // unset the shadow map texture array in the global descriptor set
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("ShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8Array());
         
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index)
+        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
             ->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
     }
 
@@ -345,37 +348,64 @@ WorldRenderResource::WorldRenderResource(World *world)
     : m_world(world),
       m_shadow_map_manager(MakeUnique<ShadowMapManager>())
 {
-    m_environment = CreateObject<RenderEnvironment>();
+    m_environment = CreateObject<RenderEnvironment>(this);
     InitObject(m_environment);
 }
 
 WorldRenderResource::~WorldRenderResource() = default;
 
-void WorldRenderResource::AddScene(const Handle<Scene> &scene)
+void WorldRenderResource::AddView(TResourceHandle<ViewRenderResource> &&view_render_resource_handle)
 {
     HYP_SCOPE;
 
-    if (!scene.IsValid()) {
+    if (!view_render_resource_handle) {
         return;
     }
 
-    Execute([this, scene_weak = scene.ToWeak()]()
+    Execute([this, view_render_resource_handle = std::move(view_render_resource_handle)]()
     {
-        if (Handle<Scene> scene = scene_weak.Lock()) {
-            m_bound_scenes.PushBack(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
-        }
-    }, /* force_owner_thread */ true);          
+        m_view_render_resource_handles.PushBack(std::move(view_render_resource_handle));
+
+        std::sort(m_view_render_resource_handles.Begin(), m_view_render_resource_handles.End(), [](const TResourceHandle<ViewRenderResource> &a, const TResourceHandle<ViewRenderResource> &b)
+        {
+            return uint32(b->GetPriority()) < uint32(a->GetPriority());
+        });
+    }, /* force_owner_thread */ true);
 }
 
-Task<bool> WorldRenderResource::RemoveScene(const WeakHandle<Scene> &scene_weak)
+void WorldRenderResource::RemoveView(ViewRenderResource *view_render_resource)
 {
     HYP_SCOPE;
 
-    Task<bool> task;
+    if (!view_render_resource) {
+        return;
+    }
+
+    Execute([this, view_render_resource]()
+    {
+        auto it = m_view_render_resource_handles.FindIf([view_render_resource](const TResourceHandle<ViewRenderResource> &item)
+        {
+            return item.Get() == view_render_resource;
+        });
+
+        if (it != m_view_render_resource_handles.End()) {
+            ViewRenderResource *view_render_resource = it->Get();
+            it->Reset();
+
+            m_view_render_resource_handles.Erase(it);
+        }
+    }, /* force_owner_thread */ true);
+}
+
+Task<void> WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &scene_weak)
+{
+    HYP_SCOPE;
+
+    Task<void> task;
     auto task_executor = task.Initialize();
 
     if (!scene_weak.IsValid()) {
-        task_executor->Fulfill(false);
+        task_executor->Fulfill();
 
         return task;
     }
@@ -384,18 +414,25 @@ Task<bool> WorldRenderResource::RemoveScene(const WeakHandle<Scene> &scene_weak)
     {
         const ID<Scene> scene_id = scene_weak.GetID();
 
-        auto bound_scenes_it = m_bound_scenes.FindIf([&scene_id](const TResourceHandle<SceneRenderResource> &item)
-        {
-            return item->GetScene()->GetID() == scene_id;
-        });
+        for (auto it = m_view_render_resource_handles.Begin(); it != m_view_render_resource_handles.End();) {
+            if (!(*it)->GetScene()) {
+                ++it;
 
-        if (bound_scenes_it != m_bound_scenes.End()) {
-            m_bound_scenes.Erase(bound_scenes_it);
+                continue;
+            }
 
-            task_executor->Fulfill(true);
-        } else {
-            task_executor->Fulfill(false);
+            if ((*it)->GetScene()->GetScene()->GetID() == scene_id) {
+                ViewRenderResource *view_render_resource = it->Get();
+
+                it->Reset();
+
+                it = m_view_render_resource_handles.Erase(it);
+            } else {
+                ++it;
+            }
         }
+
+        task_executor->Fulfill();
     }, /* force_owner_thread */ true);
 
     return task;
@@ -464,7 +501,7 @@ void WorldRenderResource::SetRenderStats(const EngineRenderStats &render_stats)
 void WorldRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
-    
+
     m_shadow_map_manager->Initialize();
 }
 
@@ -472,9 +509,15 @@ void WorldRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
-    m_shadow_map_manager->Destroy();
+    for (TResourceHandle<ViewRenderResource> &view_render_resource_handle : m_view_render_resource_handles) {
+        ViewRenderResource *view_render_resource = view_render_resource_handle.Get();
 
-    m_bound_scenes.Clear();
+        view_render_resource_handle.Reset();
+    }
+
+    m_view_render_resource_handles.Clear();
+
+    m_shadow_map_manager->Destroy();
 }
 
 void WorldRenderResource::Update_Internal()
@@ -487,25 +530,24 @@ GPUBufferHolderBase *WorldRenderResource::GetGPUBufferHolder() const
     return nullptr;
 }
 
-void WorldRenderResource::PreRender(renderer::FrameBase *frame)
+void WorldRenderResource::PreRender(FrameBase *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
+
+    for (const TResourceHandle<ViewRenderResource> &current_view : m_view_render_resource_handles) {
+        current_view->PreFrameUpdate(frame);
+    }
 }
 
-void WorldRenderResource::PostRender(renderer::FrameBase *frame)
+void WorldRenderResource::Render(FrameBase *frame)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
-}
 
-void WorldRenderResource::Render(renderer::FrameBase *frame)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
+    for (const TResourceHandle<ViewRenderResource> &current_view : m_view_render_resource_handles) {
+        current_view->Render(frame, this);
+    }
 
     m_environment->RenderSubsystems(frame);
 }

@@ -3,6 +3,7 @@
 #include <rendering/backend/vulkan/RendererAttachment.hpp>
 #include <rendering/backend/vulkan/RendererImage.hpp>
 #include <rendering/backend/vulkan/RendererImageView.hpp>
+#include <rendering/backend/vulkan/RendererFramebuffer.hpp>
 
 #include <rendering/backend/RendererHelpers.hpp>
 
@@ -82,14 +83,15 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
 
 VulkanAttachment::VulkanAttachment(
     const VulkanImageRef &image,
+    const VulkanFramebufferWeakRef &framebuffer,
     RenderPassStage stage,
     LoadOperation load_operation,
     StoreOperation store_operation,
     BlendFunction blend_function
-) : AttachmentBase(image, load_operation, store_operation, blend_function),
+) : AttachmentBase(image, framebuffer, load_operation, store_operation, blend_function),
     m_stage(stage)
 {
-    m_image_view = MakeRenderObject<VulkanImageView>(m_image);
+    m_image_view = MakeRenderObject<VulkanImageView>(image);
 }
 
 VulkanAttachment::~VulkanAttachment()

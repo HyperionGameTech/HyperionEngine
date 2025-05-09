@@ -26,7 +26,7 @@ class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 public:
     ReflectionProbeRenderer(
         Name name,
-        const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle
+        const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle
     );
 
     ReflectionProbeRenderer(const ReflectionProbeRenderer &other)               = delete;
@@ -42,7 +42,7 @@ private:
 
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
-    TResourceHandle<EnvProbeRenderResource> m_env_probe_resource_handle;
+    TResourceHandle<EnvProbeRenderResource> m_env_probe_render_resource_handle;
 
     bool                                    m_last_visibility_state = false;
 };

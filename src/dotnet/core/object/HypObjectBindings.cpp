@@ -68,11 +68,13 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
     IHypObjectInitializer *initializer = ptr.GetObjectInitializer();
     AssertThrow(initializer != nullptr);
 
-    initializer->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(
+    ManagedObjectResource *managed_object_resource = AllocateResource<ManagedObjectResource>(
         ptr,
         *object_reference,
         ObjectFlags::CREATED_FROM_MANAGED
-    ));
+    );
+    
+    initializer->SetManagedObjectResource(managed_object_resource);
 }
 
 HYP_EXPORT uint32 HypObject_GetRefCount_Strong(const HypClass *hyp_class, void *native_address)

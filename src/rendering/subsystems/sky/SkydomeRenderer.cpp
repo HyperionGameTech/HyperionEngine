@@ -15,6 +15,9 @@
 
 #include <core/threading/Scheduler.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <Engine.hpp>
@@ -61,7 +64,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 
     m_env_probe = CreateObject<EnvProbe>(
         m_virtual_scene,
-        BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)),
+        BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)),
         m_dimensions,
         ENV_PROBE_TYPE_SKY
     );
@@ -134,7 +137,7 @@ void SkydomeRenderer::OnRender(FrameBase *frame)
     m_env_probe->GetRenderResource().Render(frame);
 
     // Copy cubemap from env probe to cubemap texture
-    const ImageRef &src_image = m_env_probe->GetRenderResource().GetTexture()->GetRenderResource().GetImage();
+    const ImageRef &src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();
     const ImageRef &dst_image = m_cubemap->GetRenderResource().GetImage();
 
     frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);

@@ -26,7 +26,7 @@
 namespace hyperion {
 
 class RenderEnvironment;
-class EnvGrid;
+class EnvGridRenderResource;
 class Camera;
 class CameraRenderResource;
 
@@ -81,7 +81,6 @@ struct RenderBinding<Scene>
     ID<Scene>                   id;
     Handle<RenderEnvironment>   render_environment;
     const RenderCollector       *render_collector = nullptr;
-    SceneDrawProxy              scene;
 
     HYP_FORCE_INLINE explicit operator bool() const
         { return bool(id); }
@@ -153,9 +152,8 @@ class RenderState : public HypObject<RenderState>
 public:
     Stack<TResourceHandle<SceneRenderResource>>                                     scene_bindings;
     Array<TResourceHandle<CameraRenderResource>>                                    camera_bindings;
-    FixedArray<Array<TResourceHandle<LightRenderResource>>, uint32(LightType::MAX)> bound_lights;
     Stack<TResourceHandle<LightRenderResource>>                                     light_bindings;
-    Array<EnvGrid *>                                                                env_grid_bindings;
+    Stack<TResourceHandle<EnvGridRenderResource>>                                   env_grid_bindings;
     Stack<TResourceHandle<EnvProbeRenderResource>>                                  env_probe_bindings;
     FixedArray<Array<TResourceHandle<EnvProbeRenderResource>>, ENV_PROBE_TYPE_MAX>  bound_env_probes;
     
@@ -185,42 +183,16 @@ public:
 
     const TResourceHandle<EnvProbeRenderResource> &GetActiveEnvProbe() const;
 
-    HYP_FORCE_INLINE void BindEnvGrid(EnvGrid *env_grid)
+    HYP_FORCE_INLINE void BindEnvGrid(TResourceHandle<EnvGridRenderResource> &&resource_handle)
+        { env_grid_bindings.Push(std::move(resource_handle)); }
+
+    HYP_FORCE_INLINE void UnbindEnvGrid()
     {
-        env_grid_bindings.PushBack(env_grid);
+        AssertThrow(env_grid_bindings.Any());
+        env_grid_bindings.Pop();
     }
 
-    HYP_FORCE_INLINE void UnbindEnvGrid(EnvGrid *env_grid)
-    {
-        for (auto it = env_grid_bindings.Begin(); it != env_grid_bindings.End();) {
-            if (*it == env_grid) {
-                it = env_grid_bindings.Erase(it);
-            } else {
-                ++it;
-            }
-        }
-    }
-
-    HYP_FORCE_INLINE EnvGrid *GetActiveEnvGrid() const
-    {
-        return env_grid_bindings.Empty()
-            ? nullptr
-            : env_grid_bindings.Back();
-    }
-
-    HYP_FORCE_INLINE uint32 NumBoundLights() const
-    {
-        uint32 count = 0;
-
-        for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
-            count += uint32(bound_lights[i].Size());
-        }
-
-        return count;
-    }
-
-    void BindLight(const TResourceHandle<LightRenderResource> &light_resource_handle);
-    void UnbindLight(const LightRenderResource *light_render_resoruce);
+    const TResourceHandle<EnvGridRenderResource> &GetActiveEnvGrid() const;
 
     void SetActiveLight(const TResourceHandle<LightRenderResource> &light_resource_handle);
 
@@ -280,12 +252,6 @@ public:
 
         if (mask & RENDER_STATE_CAMERA) {
             camera_bindings = { };
-        }
-
-        if (mask & RENDER_STATE_LIGHTS) {
-            for (auto &lights : bound_lights) {
-                lights.Clear();
-            }
         }
 
         if (mask & RENDER_STATE_ACTIVE_LIGHT) {

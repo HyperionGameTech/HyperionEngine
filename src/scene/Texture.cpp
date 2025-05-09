@@ -216,6 +216,19 @@ void Texture::Readback_Internal()
     }, m_streamed_texture_data_resource_handle);
 }
 
+void Texture::Resize(const Vec3u &extent)
+{
+    if (m_texture_desc.extent == extent) {
+        return;
+    }
+
+    m_texture_desc.extent = extent;
+
+    if (m_render_resource) {
+        m_render_resource->Resize(extent);
+    }
+}
+
 Vec4f Texture::Sample(Vec3f uvw, uint32 face_index)
 {
     if (!IsReady()) {

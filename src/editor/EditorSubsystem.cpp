@@ -11,6 +11,7 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Mesh.hpp>
+#include <scene/View.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -50,6 +51,8 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/io/ByteWriter.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -58,6 +61,8 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderView.hpp>
+#include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/subsystems/ScreenCapture.hpp>
 
@@ -160,6 +165,11 @@ void GenerateLightmapsEditorTask::Tick_Impl(float delta)
 
 #pragma region EditorManipulationWidgetBase
 
+EditorManipulationWidgetBase::EditorManipulationWidgetBase()
+    : m_is_dragging(false)
+{
+}
+
 void EditorManipulationWidgetBase::Initialize()
 {
     // Keep the node around so we only have to load it once.
@@ -173,77 +183,6 @@ void EditorManipulationWidgetBase::Initialize()
         HYP_LOG(Editor, Warning, "Failed to create manipulation widget node for \"{}\"", InstanceClass()->GetName());
 
         return;
-    }
-
-    for (Node *child : m_node->GetDescendants()) {
-        if (!child->GetEntity().IsValid()) {
-            continue;
-        }
-
-        if (!child->GetScene()) {
-            HYP_LOG(Editor, Warning, "Manipulation widget child \"{}\" has no scene set", child->GetName());
-
-            continue;
-        }
-
-        EntityManager &entity_manager = *child->GetScene()->GetEntityManager();
-
-        entity_manager.RemoveTag<EntityTag::STATIC>(child->GetEntity().GetID());
-        entity_manager.AddTag<EntityTag::DYNAMIC>(child->GetEntity().GetID());
-
-        MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(child->GetEntity().GetID());
-
-        if (!mesh_component) {
-            continue;
-        }
-
-        MaterialAttributes material_attributes;
-        Material::ParameterTable material_parameters;
-
-        if (mesh_component->material.IsValid()) {
-            material_attributes = mesh_component->material->GetRenderAttributes();
-            material_parameters = mesh_component->material->GetParameters();
-        } else {
-            material_parameters = Material::DefaultParameters();
-        }
-
-        // disable depth write and depth test
-        material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
-        material_attributes.bucket = Bucket::BUCKET_TRANSLUCENT;
-
-        // testing
-        material_attributes.stencil_function = StencilFunction {
-            .pass_op        = StencilOp::REPLACE,
-            .fail_op        = StencilOp::REPLACE,
-            .depth_fail_op  = StencilOp::REPLACE,
-            .compare_op     = StencilCompareOp::ALWAYS,
-            .mask           = 0xff,
-            .value          = 0x1
-        };
-
-        mesh_component->material = MaterialCache::GetInstance()->CreateMaterial(material_attributes, material_parameters);
-        mesh_component->material->SetIsDynamic(true);
-
-        entity_manager.AddTag<EntityTag::UPDATE_RENDER_PROXY>(child->GetEntity().GetID());
-
-        child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), HypData(Vec4f(mesh_component->material->GetParameter(Material::MATERIAL_KEY_ALBEDO)))));
-
-        { // Set the axis for the widget to control
-            BoundingBox aabb = child->GetLocalAABB();
-            const Vec3f aabb_extent = aabb.GetExtent();
-
-            int axis = -1;
-
-            if (aabb_extent.x > aabb_extent.y && aabb_extent.x > aabb_extent.z) {
-                axis = 0;
-            } else if (aabb_extent.y > aabb_extent.x && aabb_extent.y > aabb_extent.z) {
-                axis = 1;
-            } else {
-                axis = 2;
-            }
-
-            child->AddTag(NodeTag(NAME("TransformWidgetAxis"), HypData(axis)));
-        }
     }
 
     m_node->UnlockTransform();
@@ -282,9 +221,93 @@ void EditorManipulationWidgetBase::UpdateWidget(const NodeProxy &focused_node)
     m_node->SetWorldTranslation(m_focused_node->GetWorldAABB().GetCenter());
 }
 
+void EditorManipulationWidgetBase::OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint)
+{
+    m_is_dragging = true;
+}
+
+void EditorManipulationWidgetBase::OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
+{
+    m_is_dragging = false;
+}
+
 #pragma endregion EditorManipulationWidgetBase
 
 #pragma region TranslateEditorManipulationWidget
+
+void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint)
+{
+    EditorManipulationWidgetBase::OnDragStart(camera, mouse_event, node, hitpoint);
+
+    m_drag_data.Unset();
+
+    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager()) {
+        return;
+    }
+
+    MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+
+    if (!mesh_component || !mesh_component->material) {
+        return;
+    }
+
+    const NodeTag &axis_tag = node->GetTag("TransformWidgetAxis");
+
+    if (!axis_tag) {
+        return;
+    }
+
+    int axis = axis_tag.data.TryGet<int>(-1);
+
+    if (axis == -1) {
+        return;
+    }
+
+    DragData drag_data {
+        .axis_direction     = Vec3f::Zero(),
+        .plane_normal       = Vec3f::Zero(),
+        .plane_point        = m_node->GetWorldTranslation(),
+        .hitpoint_origin    = hitpoint,
+        .node_origin        = m_focused_node->GetWorldTranslation()
+    };
+
+    drag_data.axis_direction[axis] = 1.0f;
+
+    drag_data.plane_normal = drag_data.axis_direction.Cross(camera->GetDirection()).Normalize();
+
+    if (drag_data.plane_normal.LengthSquared() < 1e6f) {
+        drag_data.plane_normal = drag_data.axis_direction.Cross(camera->GetUpVector()).Normalize();
+    }
+
+    const Vec4f mouse_world = camera->TransformScreenToWorld(mouse_event.position);
+    const Vec4f ray_direction = mouse_world.Normalized();
+
+    const Ray ray { camera->GetTranslation(), ray_direction.GetXYZ() };
+    
+    RayHit plane_ray_hit;
+
+    if (Optional<RayHit> plane_ray_hit_opt = ray.TestPlane(drag_data.plane_point, drag_data.plane_normal)) {
+        plane_ray_hit = *plane_ray_hit_opt;
+    } else {
+        return;
+    }
+
+    m_drag_data = drag_data;
+
+    HYP_LOG(Editor, Info, "Drag data: axis_direction = {}, plane_normal = {}, plane_point = {}, node_origin = {}",
+        m_drag_data->axis_direction,
+        m_drag_data->plane_normal,
+        m_drag_data->plane_point,
+        m_drag_data->node_origin
+    );
+}
+
+void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
+{
+    EditorManipulationWidgetBase::OnDragEnd(camera, mouse_event, node);
+
+    m_drag_data.Unset();
+}
 
 bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
 {
@@ -321,7 +344,7 @@ bool TranslateEditorManipulationWidget::OnMouseLeave(const Handle<Camera> &camer
     if (const NodeTag &tag = node->GetTag("TransformWidgetElementColor")) {
         mesh_component->material->SetParameter(
             Material::MATERIAL_KEY_ALBEDO,
-            tag.data.TryGet<Vec4f>().GetOr(Vec4f::Zero())
+            tag.data.TryGet<Vec4f>(Vec4f::Zero())
         );
     }
 
@@ -338,6 +361,10 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera> &camera
         return false;
     }
 
+    if (!m_drag_data) {
+        return false;
+    }
+
     MeshComponent *mesh_component = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
 
     if (!mesh_component || !mesh_component->material) {
@@ -349,51 +376,35 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera> &camera
     if (!axis_tag) {
         return false;
     }
+    const Vec4f mouse_world = camera->TransformScreenToWorld(mouse_event.position);
+    const Vec4f ray_direction = mouse_world.Normalized();
 
-    int axis = axis_tag.data.TryGet<int>().GetOr(-1);
+    const Ray ray { camera->GetTranslation(), ray_direction.GetXYZ() };
 
-    if (axis == -1) {
-        return false;
-    }
-
-    // const Vec4f mouse_world = camera->TransformScreenToWorld(mouse_event.position);
-    // const Vec4f ray_direction = mouse_world.Normalized();
-
-    // const Ray ray { camera->GetTranslation(), ray_direction.GetXYZ() };
     // const Ray ray_view_space { camera->GetViewMatrix() * ray.position, (camera->GetViewMatrix() * Vec4f(ray.direction, 0.0f)).GetXYZ() };
     
     // Vec4f mouse_view = camera->GetViewMatrix() * mouse_world;
     // mouse_view /= mouse_view.w;
 
-    const Vec3f translation = m_focused_node->GetWorldTranslation();
+    RayHit plane_ray_hit;
 
-    Vec4f view_space_position = camera->GetViewMatrix() * Vec4f(translation, 1.0f);
-    view_space_position /= view_space_position.w;
-
-    if (axis == 0) {
-        view_space_position.x += 0.25f;// testing
-    } else if (axis == 1) {
-        view_space_position.y += 0.25f;// testing
-    } else if (axis == 2) {
-        view_space_position.z += 0.25f;// testing
+    if (Optional<RayHit> plane_ray_hit_opt = ray.TestPlane(m_drag_data->node_origin, m_drag_data->plane_normal)) {
+        plane_ray_hit = *plane_ray_hit_opt;
+    } else {
+        return true;
     }
 
-    Vec4f world_space_position = camera->GetViewMatrix().Inverted() * view_space_position;
-    world_space_position /= world_space_position.w;
+    const float t = (plane_ray_hit.hitpoint - m_drag_data->hitpoint_origin).Dot(m_drag_data->axis_direction);
+    const Vec3f translation = m_drag_data->node_origin + (m_drag_data->axis_direction * t);
 
     NodeUnlockTransformScope unlock_transform_scope(*m_focused_node);
-    m_focused_node->SetWorldTranslation(world_space_position.GetXYZ());
+    m_focused_node->SetWorldTranslation(translation);
 
     Node *parent = node->FindParentWithName("TranslateWidget");
 
     if (parent) {
-        parent->SetWorldTranslation(world_space_position.GetXYZ());
+        parent->SetWorldTranslation(translation);
     }
-
-    // testing entity removal
-    m_focused_node->SetEntity(Handle<Entity>::empty);
-
-    // @TODO - update the focused node's translation
 
     return true;
 }
@@ -405,11 +416,99 @@ NodeProxy TranslateEditorManipulationWidget::Load_Internal() const
     if (result.HasValue()) {
         if (NodeProxy node = result->Result()) {
             node->SetName("TranslateWidget");
+
             node->SetWorldScale(2.5f);
+
+            node->GetChild(1)->SetName("AxisX");
+            node->GetChild(1)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 0));
+
+            node->GetChild(0)->SetName("AxisY");
+            node->GetChild(0)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 1));
+
+            node->GetChild(2)->SetName("AxisZ");
+            node->GetChild(2)->AddTag(NodeTag(NAME("TransformWidgetAxis"), 2));
+
+            for (Node *child : node->GetDescendants()) {
+                if (!child->GetEntity().IsValid()) {
+                    continue;
+                }
+
+                if (!child->GetScene()) {
+                    HYP_LOG(Editor, Warning, "Manipulation widget child \"{}\" has no scene set", child->GetName());
+
+                    continue;
+                }
+
+                EntityManager &entity_manager = *child->GetScene()->GetEntityManager();
+
+                entity_manager.RemoveTag<EntityTag::STATIC>(child->GetEntity().GetID());
+                entity_manager.AddTag<EntityTag::DYNAMIC>(child->GetEntity().GetID());
+
+                VisibilityStateComponent *visibility_state = entity_manager.TryGetComponent<VisibilityStateComponent>(child->GetEntity().GetID());
+
+                if (visibility_state) {
+                    visibility_state->flags |= VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE;
+                } else {
+                    entity_manager.AddComponent<VisibilityStateComponent>(child->GetEntity(), VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+                }
+
+                MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(child->GetEntity().GetID());
+
+                if (!mesh_component) {
+                    continue;
+                }
+
+                MaterialAttributes material_attributes;
+                Material::ParameterTable material_parameters;
+
+                if (mesh_component->material.IsValid()) {
+                    material_attributes = mesh_component->material->GetRenderAttributes();
+                    material_parameters = mesh_component->material->GetParameters();
+                } else {
+                    material_parameters = Material::DefaultParameters();
+                }
+
+                // disable depth write and depth test
+                material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
+                material_attributes.bucket = Bucket::BUCKET_TRANSLUCENT;
+
+                // testing
+                material_attributes.stencil_function = StencilFunction {
+                    .pass_op        = StencilOp::REPLACE,
+                    .fail_op        = StencilOp::REPLACE,
+                    .depth_fail_op  = StencilOp::REPLACE,
+                    .compare_op     = StencilCompareOp::ALWAYS,
+                    .mask           = 0xff,
+                    .value          = 0x1
+                };
+
+                mesh_component->material = MaterialCache::GetInstance()->CreateMaterial(material_attributes, material_parameters);
+                mesh_component->material->SetIsDynamic(true);
+
+                entity_manager.AddTag<EntityTag::UPDATE_RENDER_PROXY>(child->GetEntity().GetID());
+
+                child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(mesh_component->material->GetParameter(Material::MATERIAL_KEY_ALBEDO))));
+            }
+
+            FileByteWriter byte_writer(g_asset_manager->GetBasePath() / "models/editor/axis_arrows.hypmodel");
+            fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
+            writer.Append(*node);
+
+            fbom::FBOMResult write_err = writer.Emit(&byte_writer);
+
+            byte_writer.Close();
+
+            if (write_err) {
+                HYP_LOG(Editor, Error, "Failed to write axis arrows to disk: {}", write_err.message);
+            }
 
             return node;
         }
     }
+
+    HYP_LOG(Editor, Error, "Failed to load axis arrows: {}", result.GetError().GetMessage());
+
+    HYP_BREAKPOINT;
 
     return NodeProxy::empty;
 }
@@ -717,6 +816,29 @@ void EditorSubsystem::Update(GameCounter::TickUnit delta)
     UpdateCamera(delta);
     UpdateTasks(delta);
     UpdateDebugOverlays(delta);
+
+    if (m_focused_node.IsValid()) {
+        g_engine->GetDebugDrawer()->Box(m_focused_node->GetWorldTranslation(), m_focused_node->GetWorldAABB().GetExtent() + Vec3f(1.0001f), Color(0.0f, 0.0f, 1.0f, 1.0f));
+        g_engine->GetDebugDrawer()->Box(m_focused_node->GetWorldTranslation(), m_focused_node->GetWorldAABB().GetExtent(), Color(1.0f), RenderableAttributeSet(
+            MeshAttributes {
+                .vertex_attributes = static_mesh_vertex_attributes
+            },
+            MaterialAttributes {
+                .bucket             = Bucket::BUCKET_TRANSLUCENT,
+                .fill_mode          = FillMode::FILL,
+                .blend_function     = BlendFunction::None(),
+                .flags              = MaterialAttributeFlags::DEPTH_TEST,
+                .stencil_function   = StencilFunction {
+                    .pass_op        = StencilOp::REPLACE,
+                    .fail_op        = StencilOp::REPLACE,
+                    .depth_fail_op  = StencilOp::REPLACE,
+                    .compare_op     = StencilCompareOp::NEVER,
+                    .mask           = 0xFF,
+                    .value          = 0x1
+                }
+            }
+        ));
+    }
 }
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene> &scene)
@@ -772,93 +894,134 @@ void EditorSubsystem::LoadEditorUIDefinitions()
 
 void EditorSubsystem::CreateHighlightNode()
 {
-    m_highlight_node = NodeProxy(MakeRefCountedPtr<Node>("Editor_Highlight"));
-    m_highlight_node->SetFlags(m_highlight_node->GetFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
+    // m_highlight_node = NodeProxy(MakeRefCountedPtr<Node>("Editor_Highlight"));
+    // m_highlight_node->SetFlags(m_highlight_node->GetFlags() | NodeFlags::HIDE_IN_SCENE_OUTLINE);
 
-    const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
+    // const Handle<Entity> entity = m_scene->GetEntityManager()->AddEntity();
 
-    Handle<Mesh> mesh = MeshBuilder::Cube();
-    InitObject(mesh);
+    // Handle<Mesh> mesh = MeshBuilder::Cube();
+    // InitObject(mesh);
 
-    Handle<Material> material = g_material_system->GetOrCreate(
-        {
-            .shader_definition = ShaderDefinition {
-                NAME("Forward"),
-                ShaderProperties(mesh->GetVertexAttributes())
-            },
-            .bucket = Bucket::BUCKET_TRANSLUCENT,
-            // .flags = MaterialAttributeFlags::NONE, // temp
-            .stencil_function = StencilFunction {
-                .pass_op        = StencilOp::REPLACE,
-                .fail_op        = StencilOp::KEEP,
-                .depth_fail_op  = StencilOp::KEEP,
-                .compare_op     = StencilCompareOp::NOT_EQUAL,
-                .mask           = 0xff,
-                .value          = 0x1
-            }
-        },
-        {
-            { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },
-            { Material::MATERIAL_KEY_ROUGHNESS, 0.0f },
-            { Material::MATERIAL_KEY_METALNESS, 0.0f }
-        }
-    );
+    // Handle<Material> material = g_material_system->GetOrCreate(
+    //     {
+    //         .shader_definition = ShaderDefinition {
+    //             NAME("Forward"),
+    //             ShaderProperties(mesh->GetVertexAttributes())
+    //         },
+    //         .bucket = Bucket::BUCKET_TRANSLUCENT,
+    //         // .flags = MaterialAttributeFlags::NONE, // temp
+    //         .stencil_function = StencilFunction {
+    //             .pass_op        = StencilOp::REPLACE,
+    //             .fail_op        = StencilOp::KEEP,
+    //             .depth_fail_op  = StencilOp::KEEP,
+    //             .compare_op     = StencilCompareOp::NOT_EQUAL,
+    //             .mask           = 0xff,
+    //             .value          = 0x1
+    //         }
+    //     },
+    //     {
+    //         { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f, 1.0f, 0.0f, 1.0f) },
+    //         { Material::MATERIAL_KEY_ROUGHNESS, 0.0f },
+    //         { Material::MATERIAL_KEY_METALNESS, 0.0f }
+    //     }
+    // );
 
-    InitObject(material);
+    // InitObject(material);
 
-    m_scene->GetEntityManager()->AddComponent<MeshComponent>(
-        entity,
-        MeshComponent {
-            mesh,
-            material
-        }
-    );
+    // m_scene->GetEntityManager()->AddComponent<MeshComponent>(
+    //     entity,
+    //     MeshComponent {
+    //         mesh,
+    //         material
+    //     }
+    // );
 
-    m_scene->GetEntityManager()->AddComponent<TransformComponent>(
-        entity,
-        TransformComponent { }
-    );
+    // m_scene->GetEntityManager()->AddComponent<TransformComponent>(
+    //     entity,
+    //     TransformComponent { }
+    // );
 
-    m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
-        entity,
-        VisibilityStateComponent {
-            VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
-        }
-    );
+    // m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
+    //     entity,
+    //     VisibilityStateComponent {
+    //         VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+    //     }
+    // );
 
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
-        entity,
-        BoundingBoxComponent {
-            mesh->GetAABB()
-        }
-    );
+    // m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
+    //     entity,
+    //     BoundingBoxComponent {
+    //         mesh->GetAABB()
+    //     }
+    // );
 
-    m_highlight_node->SetEntity(entity);
+    // m_highlight_node->SetEntity(entity);
 }
 
 void EditorSubsystem::InitViewport()
 {
     AssertThrow(m_scene.IsValid());
 
+    const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera();
+    AssertThrow(primary_camera.IsValid());
+
+    for (const RC<ScreenCaptureRenderSubsystem> &screen_capture_render_subsystem : m_screen_capture_render_subsystems) {
+        GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem(screen_capture_render_subsystem);
+    }
+
+    m_screen_capture_render_subsystems.Clear();
+
+    for (const Handle<View> &view : m_views) {
+        GetWorld()->RemoveView(view);
+    }
+
+    m_views.Clear();
+
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
     if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
+        Vec2i viewport_size = MathUtil::Max(g_engine->GetAppContext()->GetMainWindow()->GetDimensions(), Vec2i::One());
+        // Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
+
+        Handle<View> view = CreateObject<View>(ViewDesc {
+            .flags      = ViewFlags::GBUFFER,
+            .viewport   = Viewport { .extent = viewport_size, .position = Vec2i::Zero() },
+            .scene      = m_scene,
+            .camera     = primary_camera
+        });
+
+        InitObject(view);
+
+        GetWorld()->AddView(view);
+
+        m_views.PushBack(view);
+
+        m_delegate_handlers.Remove(&scene_image_object->OnSizeChange);
+        m_delegate_handlers.Add(scene_image_object->OnSizeChange.Bind([this, scene_image_object_weak = scene_image_object.ToWeak(), view_weak = view.ToWeak()]()
+        {
+            if (RC<UIObject> scene_image_object = scene_image_object_weak.Lock()) {
+                if (Handle<View> view = view_weak.Lock()) {
+                    Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
+
+                    view->SetViewport(Viewport { .extent = viewport_size, .position = Vec2i::Zero() });
+
+                    // HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewport_size);
+                }
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
         RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
         AssertThrow(ui_image != nullptr);
 
-        Vec2i viewport_size = Vec2i { 1024, 1024 };
-
-        const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera();
-
-        if (primary_camera.IsValid()) {
-            viewport_size = MathUtil::Max(primary_camera->GetDimensions(), Vec2i::One());
-        }
-
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_component = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), Vec2u(viewport_size));
-        m_scene_texture = screen_capture_component->GetTexture();
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
+        
+        m_scene_texture = screen_capture_render_subsystem->GetTexture();
         AssertThrow(m_scene_texture.IsValid());
         
         m_delegate_handlers.Remove(&ui_image->OnClick);
@@ -1015,6 +1178,37 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Add(ui_image->OnMouseDown.Bind([this, ui_image_weak = ui_image.ToWeak()](const MouseEvent &event)
         {
             if (IsHoveringManipulationWidget()) {
+                RC<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                RC<Node> node = m_hovered_manipulation_widget_node.Lock();
+
+                if (!manipulation_widget || !node) {
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+                    
+                    return UIEventHandlerResult::ERR;
+                }
+
+                if (!manipulation_widget->IsDragging()) {
+
+                    const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
+                    const Vec4f ray_direction = mouse_world.Normalized();
+
+                    const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
+
+                    Vec3f hitpoint;
+                    
+                    RayTestResults results;
+
+                    if (manipulation_widget->GetNode()->TestRay(ray, results, /* use_bvh */ true)) {
+                        for (const RayHit &ray_hit : results) {
+                            hitpoint = ray_hit.hitpoint;
+
+                            break;
+                        }
+                    }
+
+                    manipulation_widget->OnDragStart(m_camera, event, NodeProxy(node), hitpoint);
+                }
+
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
@@ -1029,6 +1223,19 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Add(ui_image->OnMouseUp.Bind([this](const MouseEvent &event)
         {
             if (IsHoveringManipulationWidget()) {
+                RC<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                RC<Node> node = m_hovered_manipulation_widget_node.Lock();
+
+                if (!manipulation_widget || !node) {
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+                    
+                    return UIEventHandlerResult::ERR;
+                }
+
+                if (manipulation_widget->IsDragging()) {
+                    manipulation_widget->OnDragEnd(m_camera, event, NodeProxy(node));
+                }
+
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
@@ -1457,10 +1664,12 @@ void EditorSubsystem::InitContentBrowser()
     {
         if (list_view_item != nullptr) {
             if (const NodeTag &asset_package_tag = list_view_item->GetNodeTag("AssetPackage"); asset_package_tag.IsValid()) {
-                if (const Handle<AssetPackage> &asset_package = asset_package_tag.data.Get<Handle<AssetPackage>>()) {
+                if (Handle<AssetPackage> asset_package = GetCurrentProject()->GetAssetRegistry()->GetPackageFromPath(asset_package_tag.ToString(), /* create_if_not_exist */ false)) {
                     SetSelectedPackage(asset_package);
 
                     return;
+                } else {
+                    HYP_LOG(Editor, Error, "Failed to get asset package from path: {}", asset_package_tag.ToString());
                 }
             }
         }
@@ -1747,22 +1956,31 @@ void EditorSubsystem::AddTask(const RC<IEditorTask> &task)
 
 void EditorSubsystem::SetFocusedNode(const NodeProxy &focused_node)
 {
+    if (focused_node == m_focused_node) {
+        return;
+    }
+
     const NodeProxy previous_focused_node = m_focused_node;
 
     m_focused_node = focused_node;
 
-    m_highlight_node.Remove();
+    // m_highlight_node.Remove();
 
     if (m_focused_node.IsValid()) {
+        if (m_focused_node->GetScene() != nullptr) {
+            if (const Handle<Entity> &entity = m_focused_node.GetEntity()) {
+                m_focused_node->GetScene()->GetEntityManager()->AddTag<EntityTag::EDITOR_FOCUSED>(entity);
+            }
+        }
+
         // @TODO watch for transform changes and update the highlight node
 
-        // m_focused_node->AddChild(m_highlight_node);
-        m_scene->GetRoot()->AddChild(m_highlight_node);
-        m_highlight_node->SetWorldScale(m_focused_node->GetWorldAABB().GetExtent() * 0.5f);
-        m_highlight_node->SetWorldTranslation(m_focused_node->GetWorldTranslation());
+        // m_scene->GetRoot()->AddChild(m_highlight_node);
+        // m_highlight_node->SetWorldScale(m_focused_node->GetWorldAABB().GetExtent() * 0.5f);
+        // m_highlight_node->SetWorldTranslation(m_focused_node->GetWorldTranslation());
 
-        HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focused_node->GetName(), m_focused_node->GetWorldTranslation());
-        HYP_LOG(Editor, Debug, "Set highlight node translation: {}", m_highlight_node->GetWorldTranslation());
+        // HYP_LOG(Editor, Debug, "Set focused node: {}\t{}", m_focused_node->GetName(), m_focused_node->GetWorldTranslation());
+        // HYP_LOG(Editor, Debug, "Set highlight node translation: {}", m_highlight_node->GetWorldTranslation());
 
         if (m_manipulation_widget_holder.GetSelectedManipulationMode() == EditorManipulationMode::NONE) {
             m_manipulation_widget_holder.SetSelectedManipulationMode(EditorManipulationMode::TRANSLATE);
@@ -1770,6 +1988,12 @@ void EditorSubsystem::SetFocusedNode(const NodeProxy &focused_node)
 
         EditorManipulationWidgetBase &manipulation_widget = m_manipulation_widget_holder.GetSelectedManipulationWidget();
         manipulation_widget.UpdateWidget(m_focused_node);
+    }
+
+    if (previous_focused_node.IsValid() && previous_focused_node->GetScene() != nullptr) {
+        if (const Handle<Entity> &entity = previous_focused_node.GetEntity()) {
+            previous_focused_node->GetScene()->GetEntityManager()->RemoveTag<EntityTag::EDITOR_FOCUSED>(entity);
+        }
     }
 
     OnFocusedNodeChanged(m_focused_node, previous_focused_node);

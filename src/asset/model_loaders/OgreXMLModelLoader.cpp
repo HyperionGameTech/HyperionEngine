@@ -299,6 +299,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState &state) const
         }
         
         NodeProxy node(MakeRefCountedPtr<Node>());
+        node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetName(sub_mesh.name);
         node->SetEntity(entity);
 

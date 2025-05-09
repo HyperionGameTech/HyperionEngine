@@ -51,7 +51,7 @@ void PointLightShadowRenderer::Init()
 
     ShadowMapRenderResource *shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(
         ShadowMapType::POINT_SHADOW_MAP,
-        ShadowMapFilterMode::STANDARD,
+        ShadowMapFilterMode::VSM,
         m_extent
     );
     AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
@@ -92,6 +92,17 @@ void PointLightShadowRenderer::InitGame()
 
 void PointLightShadowRenderer::OnRemoved()
 {
+    if (m_light_render_resource_handle) {
+        m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
+    }
+
+    if (m_env_probe.IsValid()) {
+        m_env_probe->GetRenderResource().SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
+        m_env_probe->EnqueueUnbind();
+    }
+
+    m_env_probe.Reset();
+
     if (m_shadow_map_render_resource_handle) {
         ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_render_resource_handle.Get();
         
@@ -107,16 +118,6 @@ void PointLightShadowRenderer::OnRemoved()
             FreeResource(shadow_map_render_resource);
         }
     }
-
-    if (m_light_render_resource_handle) {
-        m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
-    }
-
-    if (m_env_probe.IsValid()) {
-        m_env_probe->EnqueueUnbind();
-    }
-
-    m_env_probe.Reset();
 }
 
 void PointLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -165,6 +166,8 @@ void PointLightShadowRenderer::OnRender(FrameBase *frame)
 
             m_last_visibility_state = true;
         }
+
+        AssertThrow(m_env_probe->IsReady());
 
         m_env_probe->GetRenderResource().Render(frame);
     } else {

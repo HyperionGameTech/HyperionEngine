@@ -75,9 +75,14 @@ public:
 
     HYP_API virtual bool IsCreated() const = 0;
 
+    /*! \brief Returns true if the underlying GPU image is owned by this object. */
+    HYP_API virtual bool IsOwned() const = 0;
+
     HYP_API virtual RendererResult Create() = 0;
     HYP_API virtual RendererResult Create(ResourceState initial_state) = 0;
     HYP_API virtual RendererResult Destroy() = 0;
+
+    HYP_API virtual RendererResult Resize(const Vec3u &extent) = 0;
 
     HYP_API virtual void InsertBarrier(
         CommandBufferBase *command_buffer,

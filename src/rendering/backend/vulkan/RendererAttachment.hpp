@@ -23,6 +23,7 @@ public:
     
     HYP_API VulkanAttachment(
         const VulkanImageRef &image,
+        const VulkanFramebufferWeakRef &framebuffer,
         RenderPassStage stage,
         LoadOperation load_operation = LoadOperation::CLEAR,
         StoreOperation store_operation = StoreOperation::STORE,
@@ -42,7 +43,7 @@ public:
     HYP_API virtual RendererResult Destroy() override;
 
 private:
-    RenderPassStage                     m_stage;
+    RenderPassStage     m_stage;
 };
 
 } // namespace renderer

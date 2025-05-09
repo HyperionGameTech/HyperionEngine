@@ -22,24 +22,6 @@ namespace hyperion {
 class Engine;
 class Entity;
 
-struct GlobalSphericalHarmonicsGrid
-{
-    struct GridTexture
-    {
-        ImageRef image;
-        ImageViewRef image_view;
-    };
-
-    FixedArray<GridTexture, 9> textures;
-
-    GPUBufferRef sh_grid_buffer;
-
-    GlobalSphericalHarmonicsGrid();
-
-    void Create();
-    void Destroy();
-};
-
 struct ShaderGlobals
 {
     ShaderGlobals();
@@ -60,8 +42,6 @@ struct ShaderGlobals
     GPUBufferHolderBase             *env_grids;
     
     BindlessStorage                 textures;
-
-    GlobalSphericalHarmonicsGrid    spherical_harmonics_grid;
 };
 
 } // namespace hyperion

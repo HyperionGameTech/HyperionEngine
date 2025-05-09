@@ -90,6 +90,9 @@ public:
 
     virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
     virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
+
+    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void *_this) const = 0;
+    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void *_this) const = 0;
 };
 
 template <class T, class T2 = void>
@@ -102,7 +105,7 @@ struct IsHypObject
  *  \note A type is considered a HypObject if it is derived from HypObjectBase or if it has HYP_OBJECT_BODY(...) in the class body.
  *  \tparam T The type to check. */
 template <class T>
-struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object /*&& std::is_same_v<T, typename T::HypObjectData::Type>*/)>>
+struct IsHypObject<T, std::enable_if_t<!std::is_same_v<HypObjectBase, T> && std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object /*&& std::is_same_v<T, typename T::HypObjectData::Type>*/)>>
 {
     static constexpr bool value = true;
 
@@ -236,6 +239,7 @@ public:
     HYP_API IHypObjectInitializer *GetObjectInitializer() const;
 
     HYP_API uint32 GetRefCount_Strong() const;
+    HYP_API uint32 GetRefCount_Weak() const;
 
     HYP_API void IncRef(bool weak = false);
     HYP_API void DecRef(bool weak = false);

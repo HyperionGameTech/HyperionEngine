@@ -127,6 +127,8 @@ public:
      *  The texture data will be copied to the CPU and the image will have its StreamedTextureData recreated. */
     void Readback();
 
+    void Resize(const Vec3u &extent);
+
     Vec4f Sample(Vec3f uvw, uint32 face_index);
     Vec4f Sample2D(Vec2f uv);
     Vec4f SampleCube(Vec3f direction);

@@ -124,6 +124,9 @@ struct OctreeState
     // If any octants need to be rebuilt, their topmost parent that needs to be rebuilt will be stored here
     OctantID                                rebuild_state = OctantID::Invalid();
 
+    HYP_FORCE_INLINE bool NeedsRebuild() const
+        { return rebuild_state != OctantID::Invalid(); }
+
     /*! \brief Mark the octant as dirty, meaning it needs to be rebuilt */
     void MarkOctantDirty(OctantID octant_id);
 };

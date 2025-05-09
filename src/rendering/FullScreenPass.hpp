@@ -28,30 +28,38 @@ class Mesh;
 class Texture;
 class RenderGroup;
 class TemporalBlending;
+class GBuffer;
+class ViewRenderResource;
 
 class HYP_API FullScreenPass
 {
 public:
     friend struct RenderCommand_RecreateFullScreenPassFramebuffer;
 
-    FullScreenPass();
+    FullScreenPass(
+        InternalFormat image_format,
+        GBuffer *gbuffer
+    );
 
     FullScreenPass(
         InternalFormat image_format,
-        Vec2u extent = Vec2u { 0, 0 }
+        Vec2u extent,
+        GBuffer *gbuffer
     );
 
     FullScreenPass(
         const ShaderRef &shader,
-        InternalFormat image_format = InternalFormat::RGBA8,
-        Vec2u extent = Vec2u { 0, 0 }
+        InternalFormat image_format,
+        Vec2u extent,
+        GBuffer *gbuffer
     );
 
     FullScreenPass(
         const ShaderRef &shader,
         const DescriptorTableRef &descriptor_table,
-        InternalFormat image_format = InternalFormat::RGBA8,
-        Vec2u extent = Vec2u { 0, 0 }
+        InternalFormat image_format,
+        Vec2u extent,
+        GBuffer *gbuffer
     );
 
     FullScreenPass(const FullScreenPass &)              = delete;
@@ -96,6 +104,9 @@ public:
     HYP_FORCE_INLINE const Optional<DescriptorTableRef> &GetDescriptorTable() const
         { return m_descriptor_table; }
 
+    virtual const ImageViewRef &GetFinalImageView() const;
+    virtual const ImageViewRef &GetPreviousFrameColorImageView() const;
+
     /*! \brief Resizes the full screen pass to the new size.
      *  Callable on any thread, as it enqueues a render command. */
     void Resize(Vec2u new_size);
@@ -108,11 +119,11 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    virtual void Render(FrameBase *frame);
-    virtual void RenderToFramebuffer(FrameBase *frame, const FramebufferRef &framebuffer);
+    virtual void Render(FrameBase *frame, ViewRenderResource *view);
+    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer);
 
-    void Begin(FrameBase *frame);
-    void End(FrameBase *frame);
+    void Begin(FrameBase *frame, ViewRenderResource *view);
+    void End(FrameBase *frame, ViewRenderResource *view);
 
 protected:
     virtual bool UsesTemporalBlending() const
@@ -121,24 +132,20 @@ protected:
     virtual bool ShouldRenderHalfRes() const
         { return false; }
 
-    virtual const ImageViewRef &GetFinalImageView() const;
-
-    virtual const ImageViewRef &GetPreviousFrameColorImageView() const;
-
     virtual void Resize_Internal(Vec2u new_size);
     
     void CreateQuad();
 
-    void RenderPreviousTextureToScreen(FrameBase *frame);
-    void CopyResultToPreviousTexture(FrameBase *frame);
-
-    void MergeHalfResTextures(FrameBase *frame);
+    void RenderPreviousTextureToScreen(FrameBase *frame, ViewRenderResource *view);
+    void CopyResultToPreviousTexture(FrameBase *frame, ViewRenderResource *view);
+    void MergeHalfResTextures(FrameBase *frame, ViewRenderResource *view);
 
     FramebufferRef                                      m_framebuffer;
     ShaderRef                                           m_shader;
     Handle<RenderGroup>                                 m_render_group;
     Handle<Mesh>                                        m_full_screen_quad;
     Vec2u                                               m_extent;
+    GBuffer                                             *m_gbuffer;
 
     PushConstantData                                    m_push_constant_data;
 

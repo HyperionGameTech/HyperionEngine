@@ -40,6 +40,8 @@ class EditorProject;
 class EditorDebugOverlayBase;
 class AssetPackage;
 struct MouseEvent;
+class View;
+class ScreenCaptureRenderSubsystem;
 
 namespace sys {
 class AppContext;
@@ -112,10 +114,17 @@ class HYP_API EditorManipulationWidgetBase : public EnableRefCountedPtrFromThis<
     HYP_OBJECT_BODY(EditorManipulationWidgetBase);
 
 public:
+    EditorManipulationWidgetBase();
     virtual ~EditorManipulationWidgetBase() = default;
 
     HYP_FORCE_INLINE const NodeProxy &GetNode() const
         { return m_node; }
+
+    HYP_FORCE_INLINE const NodeProxy &GetFocusedNode() const
+        { return m_focused_node; }
+
+    HYP_FORCE_INLINE bool IsDragging() const
+        { return m_is_dragging; }
 
     void Initialize();
     void Shutdown();
@@ -123,6 +132,9 @@ public:
     virtual EditorManipulationMode GetManipulationMode() const = 0;
     
     virtual void UpdateWidget(const NodeProxy &focused_node);
+
+    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint);
+    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node);
 
     virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
         { return false; }
@@ -137,9 +149,10 @@ protected:
     virtual NodeProxy Load_Internal() const = 0;
 
     NodeProxy   m_focused_node;
+    NodeProxy   m_node;
 
 private:
-    NodeProxy   m_node;
+    bool        m_is_dragging;
 };
 
 HYP_CLASS()
@@ -169,12 +182,26 @@ public:
     virtual EditorManipulationMode GetManipulationMode() const override
         { return EditorManipulationMode::TRANSLATE; }
 
+    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint) override;
+    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
+
     virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
     virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
     virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
 
 protected:
+    struct DragData
+    {
+        Vec3f   axis_direction;
+        Vec3f   plane_normal;
+        Vec3f   plane_point;
+        Vec3f   hitpoint_origin;
+        Vec3f   node_origin;
+    };
+
     virtual NodeProxy Load_Internal() const override;
+
+    Optional<DragData>  m_drag_data;
 };
 
 class HYP_API EditorManipulationWidgetHolder
@@ -331,6 +358,9 @@ private:
 
     RC<UIGrid>                                                          m_content_browser_contents;
     RC<UIObject>                                                        m_content_browser_contents_empty;
+
+    Array<Handle<View>>                                                 m_views;
+    Array<RC<ScreenCaptureRenderSubsystem>>                             m_screen_capture_render_subsystems;
 
     DelegateHandlerSet                                                  m_delegate_handlers;
 };

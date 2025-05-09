@@ -4,6 +4,7 @@
 #define HYPERION_SCREEN_CAPTURE_HPP
 
 #include <rendering/RenderSubsystem.hpp>
+#include <rendering/RenderResource.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -20,6 +21,8 @@
 
 namespace hyperion {
 
+class ViewRenderResource;
+
 enum class ScreenCaptureMode
 {
     TO_TEXTURE,
@@ -32,7 +35,7 @@ class HYP_API ScreenCaptureRenderSubsystem : public RenderSubsystem
     HYP_OBJECT_BODY(ScreenCaptureRenderSubsystem);
 
 public:
-    ScreenCaptureRenderSubsystem(Name name, const Vec2u &window_size, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
+    ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource> &view, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
     ScreenCaptureRenderSubsystem(const ScreenCaptureRenderSubsystem &other)                 = delete;
     ScreenCaptureRenderSubsystem &operator=(const ScreenCaptureRenderSubsystem &other)      = delete;
     ScreenCaptureRenderSubsystem(ScreenCaptureRenderSubsystem &&other) noexcept             = delete;
@@ -55,10 +58,10 @@ private:
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override
         { }
 
-    ScreenCaptureMode   m_screen_capture_mode;
-    Vec2u               m_window_size;
-    Handle<Texture>     m_texture;
-    GPUBufferRef        m_buffer;
+    TResourceHandle<ViewRenderResource> m_view;
+    ScreenCaptureMode                   m_screen_capture_mode;
+    Handle<Texture>                     m_texture;
+    GPUBufferRef                        m_buffer;
 };
 
 } // namespace hyperion

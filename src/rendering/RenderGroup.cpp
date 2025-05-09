@@ -3,6 +3,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/GBuffer.hpp>
+#include <rendering/Deferred.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderMesh.hpp>
@@ -10,7 +11,9 @@
 #include <rendering/RenderSkeleton.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/EnvGrid.hpp>
+#include <rendering/RenderView.hpp>
+#include <rendering/RenderEnvGrid.hpp>
+#include <rendering/RenderEnvProbe.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
@@ -357,7 +360,7 @@ void RenderGroup::CollectDrawCalls()
     }
 }
 
-void RenderGroup::PerformOcclusionCulling(FrameBase *frame, const CullData *cull_data)
+void RenderGroup::PerformOcclusionCulling(FrameBase *frame, ViewRenderResource *view, const CullData *cull_data)
 {
     HYP_SCOPE;
     
@@ -375,6 +378,7 @@ void RenderGroup::PerformOcclusionCulling(FrameBase *frame, const CullData *cull
 
     m_indirect_renderer->ExecuteCullShaderInBatches(
         frame,
+        view,
         *cull_data
     );
 }
@@ -412,6 +416,7 @@ static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batc
 template <bool IsIndirect>
 static void RenderAll(
     FrameBase *frame,
+    ViewRenderResource *view,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     const DrawCallCollection &draw_state
@@ -426,10 +431,10 @@ static void RenderAll(
     }
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResource> &light_resource_handle = g_engine->GetRenderState()->GetActiveLight();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resource_handle = g_engine->GetRenderState()->GetActiveLight();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -437,7 +442,6 @@ static void RenderAll(
     const DescriptorSetRef &global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index);
 
     const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-    const DescriptorSetRef &scene_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index);
     
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
     const DescriptorSetRef &material_descriptor_set = use_bindless_textures
@@ -451,42 +455,51 @@ static void RenderAll(
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
 
     EngineRenderStatsCounts counts;
-    
-    for (const DrawCall &draw_call : draw_state.GetDrawCalls()) {
-        EntityInstanceBatch *batch = draw_call.batch;
-        AssertDebug(batch != nullptr);
 
-        frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+    frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
 
+    if (global_descriptor_set_index != ~0u) {
         frame->GetCommandList().Add<BindDescriptorSet>(
             global_descriptor_set,
             pipeline,
-            ArrayMap<Name, uint32> { },
+            ArrayMap<Name, uint32> {
+                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle.Get(), 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
+            },
             global_descriptor_set_index
         );
+    }
+
+    if (scene_descriptor_set_index != ~0u) {
+        AssertThrow(view != nullptr);
+            
+        const DescriptorSetRef &scene_descriptor_set = view->GetDescriptorSets()[frame_index];
+        AssertThrow(scene_descriptor_set.IsValid());
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             scene_descriptor_set,
             pipeline,
-            ArrayMap<Name, uint32> {
-                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_resource_handle.Get(), 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
-            },
+            ArrayMap<Name, uint32> { },
             scene_descriptor_set_index
         );
+    }
 
-        // Bind textures globally (bindless)
-        if (material_descriptor_set_index != ~0u && use_bindless_textures) {
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                material_descriptor_set,
-                pipeline,
-                ArrayMap<Name, uint32> { },
-                material_descriptor_set_index
-            );
-        }
+    // Bind textures globally (bindless)
+    if (material_descriptor_set_index != ~0u && use_bindless_textures) {
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            material_descriptor_set,
+            pipeline,
+            ArrayMap<Name, uint32> { },
+            material_descriptor_set_index
+        );
+    }
+    
+    for (const DrawCall &draw_call : draw_state.GetDrawCalls()) {
+        EntityInstanceBatch *batch = draw_call.batch;
+        AssertDebug(batch != nullptr);
 
         if (entity_descriptor_set.IsValid()) {
             if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial()) {
@@ -555,6 +568,7 @@ static void RenderAll(
 template <bool IsIndirect>
 static void RenderAll_Parallel(
     FrameBase *frame,
+    ViewRenderResource *view,
     const GraphicsPipelineRef &pipeline,
     IndirectRenderer *indirect_renderer,
     Array<Span<const DrawCall>> &divided_draw_calls,
@@ -581,7 +595,6 @@ static void RenderAll_Parallel(
     const DescriptorSetRef &global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index);
 
     const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-    const DescriptorSetRef &scene_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Scene"), frame_index);
     
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
     const DescriptorSetRef &material_descriptor_set = use_bindless_textures
@@ -595,10 +608,10 @@ static void RenderAll_Parallel(
     const DescriptorSetRef &instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
 
     const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<LightRenderResource> &light_resource_handle = g_engine->GetRenderState()->GetActiveLight();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    EnvGrid *env_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<LightRenderResource> &light_render_resource_handle = g_engine->GetRenderState()->GetActiveLight();
+    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     // HYP_LOG(Rendering, Debug, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
 
@@ -608,6 +621,47 @@ static void RenderAll_Parallel(
     FixedArray<uint32, num_async_rendering_command_buffers> record_states { };
 
     FixedArray<EngineRenderStatsCounts, num_async_rendering_command_buffers> render_stats_counts { };
+
+    frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+
+    if (global_descriptor_set_index != ~0u) {
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            global_descriptor_set,
+            pipeline,
+            ArrayMap<Name, uint32> {
+                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle.Get(), 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
+            },
+            global_descriptor_set_index
+        );
+    }
+
+    if (scene_descriptor_set_index != ~0u) {
+        AssertThrow(view != nullptr);
+
+        const DescriptorSetRef &scene_descriptor_set = view->GetDescriptorSets()[frame_index];
+        AssertThrow(scene_descriptor_set.IsValid());
+        
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            scene_descriptor_set,
+            pipeline,
+            ArrayMap<Name, uint32> { },
+            scene_descriptor_set_index
+        );
+    }
+
+    // Bind textures globally (bindless)
+    if (material_descriptor_set_index != ~0u && use_bindless_textures) {
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            material_descriptor_set,
+            pipeline,
+            ArrayMap<Name, uint32> { },
+            material_descriptor_set_index
+        );
+    }
 
     TaskSystem::GetInstance().ParallelForEach(
         HYP_STATIC_MESSAGE("RenderAll_Parallel"),
@@ -621,38 +675,6 @@ static void RenderAll_Parallel(
             }
 
             RHICommandList &command_list = command_lists[index];
-            
-            command_list.Add<BindGraphicsPipeline>(pipeline);
-
-            command_list.Add<BindDescriptorSet>(
-                global_descriptor_set,
-                pipeline,
-                ArrayMap<Name, uint32> { },
-                global_descriptor_set_index
-            );
-
-            command_list.Add<BindDescriptorSet>(
-                scene_descriptor_set,
-                pipeline,
-                ArrayMap<Name, uint32> {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid ? env_grid->GetComponentIndex() : 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle.Get(), 0) }
-                },
-                scene_descriptor_set_index
-            );
-
-            // Bind textures globally (bindless)
-            if (material_descriptor_set_index != ~0u && use_bindless_textures) {
-                command_list.Add<BindDescriptorSet>(
-                    material_descriptor_set,
-                    pipeline,
-                    ArrayMap<Name, uint32> { },
-                    material_descriptor_set_index
-                );
-            }
 
             for (const DrawCall &draw_call : draw_calls) {
                 EntityInstanceBatch *entity_instance_batch = draw_call.batch;
@@ -738,7 +760,7 @@ static void RenderAll_Parallel(
     }
 }
 
-void RenderGroup::PerformRendering(FrameBase *frame)
+void RenderGroup::PerformRendering(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
@@ -752,6 +774,7 @@ void RenderGroup::PerformRendering(FrameBase *frame)
     if (m_flags & RenderGroupFlags::PARALLEL_RENDERING) {
         RenderAll_Parallel<false>(
             frame,
+            view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
@@ -760,6 +783,7 @@ void RenderGroup::PerformRendering(FrameBase *frame)
     } else {
         RenderAll<false>(
             frame,
+            view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_draw_state
@@ -767,7 +791,7 @@ void RenderGroup::PerformRendering(FrameBase *frame)
     }
 }
 
-void RenderGroup::PerformRenderingIndirect(FrameBase *frame)
+void RenderGroup::PerformRenderingIndirect(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_SCOPE;
 
@@ -783,6 +807,7 @@ void RenderGroup::PerformRenderingIndirect(FrameBase *frame)
     if (m_flags & RenderGroupFlags::PARALLEL_RENDERING) {
         RenderAll_Parallel<true>(
             frame,
+            view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
@@ -791,6 +816,7 @@ void RenderGroup::PerformRenderingIndirect(FrameBase *frame)
     } else {
         RenderAll<true>(
             frame,
+            view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_draw_state

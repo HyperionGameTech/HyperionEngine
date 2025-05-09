@@ -9,6 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderShadowMap.hpp>
 
@@ -25,6 +26,7 @@
 
 #include <scene/Texture.hpp>
 #include <scene/World.hpp>
+#include <scene/View.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -53,21 +55,19 @@ ShadowPass::ShadowPass(
     const TResourceHandle<WorldRenderResource> &world_resource_handle,
     const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle,
+    const TResourceHandle<ViewRenderResource> &view_statics_resource_handle,
+    const TResourceHandle<ViewRenderResource> &view_dynamics_resource_handle,
     const ShaderRef &shader,
-    RenderCollector *render_collector_statics,
-    RenderCollector *render_collector_dynamics,
     RerenderShadowsSemaphore *rerender_semaphore
-) : FullScreenPass(shadow_map_formats[uint32(shadow_map_resource_handle->GetFilterMode())], shadow_map_resource_handle->GetExtent()),
+) : FullScreenPass(shadow_map_formats[uint32(shadow_map_resource_handle->GetFilterMode())], shadow_map_resource_handle->GetExtent(), nullptr),
     m_parent_scene(parent_scene),
     m_world_resource_handle(world_resource_handle),
     m_camera_resource_handle(camera_resource_handle),
     m_shadow_map_resource_handle(shadow_map_resource_handle),
-    m_render_collector_statics(render_collector_statics),
-    m_render_collector_dynamics(render_collector_dynamics),
+    m_view_statics_resource_handle(view_statics_resource_handle),
+    m_view_dynamics_resource_handle(view_dynamics_resource_handle),
     m_rerender_semaphore(rerender_semaphore)
 {
-    AssertThrow(m_render_collector_statics != nullptr);
-    AssertThrow(m_render_collector_dynamics != nullptr);
     AssertThrow(m_rerender_semaphore != nullptr);
 
     SetShader(shader);
@@ -160,7 +160,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
     DeferCreate(descriptor_table);
 
-    m_combine_shadow_maps_pass = MakeUnique<FullScreenPass>(shader, descriptor_table, GetFormat(), GetExtent());
+    m_combine_shadow_maps_pass = MakeUnique<FullScreenPass>(shader, descriptor_table, GetFormat(), GetExtent(), m_gbuffer);
     m_combine_shadow_maps_pass->Create();
 }
 
@@ -199,20 +199,9 @@ void ShadowPass::Create()
     CreateFramebuffer();
     CreateCombineShadowMapsPass();
     CreateComputePipelines();
-
-    const RenderableAttributeSet override_attributes(
-        MeshAttributes { },
-        MaterialAttributes {
-            .shader_definition  = m_shader->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
-        }
-    );
-
-    m_render_collector_statics->SetOverrideAttributes(override_attributes);
-    m_render_collector_dynamics->SetOverrideAttributes(override_attributes);
 }
 
-void ShadowPass::Render(FrameBase *frame)
+void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -234,14 +223,16 @@ void ShadowPass::Render(FrameBase *frame)
         if (m_rerender_semaphore->IsInSignalState()) {
             HYP_LOG(Shadows, Debug, "Rerendering static objects for shadow map");
 
-            m_render_collector_statics->CollectDrawCalls(
+            m_view_statics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
+                view,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_collector_statics->ExecuteDrawCalls(
+            m_view_statics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
+                view,
                 m_camera_resource_handle,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -260,14 +251,16 @@ void ShadowPass::Render(FrameBase *frame)
         }
 
         { // Render dynamics
-            m_render_collector_dynamics->CollectDrawCalls(
+            m_view_dynamics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
+                view,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
-            m_render_collector_dynamics->ExecuteDrawCalls(
+            m_view_dynamics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
+                view,
                 m_camera_resource_handle,
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
@@ -298,7 +291,7 @@ void ShadowPass::Render(FrameBase *frame)
         AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
 
-        m_combine_shadow_maps_pass->Render(frame);
+        m_combine_shadow_maps_pass->Render(frame, nullptr);
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
@@ -411,6 +404,22 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
 
     InitObject(m_camera);
 
+    m_view_statics = CreateObject<View>(ViewDesc {
+        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene      = m_parent_scene,
+        .camera     = m_camera
+    });
+
+    InitObject(m_view_statics);
+
+    m_view_dynamics = CreateObject<View>(ViewDesc {
+        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene      = m_parent_scene,
+        .camera     = m_camera
+    });
+
+    InitObject(m_view_dynamics);
+
     CreateShader();
 }
 
@@ -437,12 +446,23 @@ void DirectionalLightShadowRenderer::Init()
         TResourceHandle<WorldRenderResource>(m_parent_scene->GetWorld()->GetRenderResource()),
         TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()),
         m_shadow_map_resource_handle,
+        TResourceHandle<ViewRenderResource>(m_view_statics->GetRenderResource()),
+        TResourceHandle<ViewRenderResource>(m_view_dynamics->GetRenderResource()),
         m_shader,
-        &m_render_collector_statics,
-        &m_render_collector_dynamics,
         &m_rerender_semaphore
     );
     m_shadow_pass->Create();
+
+    const RenderableAttributeSet override_attributes(
+        MeshAttributes { },
+        MaterialAttributes {
+            .shader_definition  = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
+            .cull_faces         = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT
+        }
+    );
+
+    m_view_statics->GetRenderResource().GetRenderCollector().SetOverrideAttributes(override_attributes);
+    m_view_dynamics->GetRenderResource().GetRenderCollector().SetOverrideAttributes(override_attributes);
 
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
 }
@@ -487,6 +507,9 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     AssertThrow(m_shader.IsValid());
 
+    // debugging
+    AssertThrow(m_camera->GetRenderResource().GetFramebuffer() != nullptr);
+
     m_camera->Update(delta);
 
     Octree &octree = m_parent_scene->GetOctree();
@@ -495,33 +518,25 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
     Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
-        return m_parent_scene->CollectStaticEntities(
-            m_render_collector_statics,
-            m_camera
-        );
+        return m_view_statics->CollectStaticEntities();
     });
 
     Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
     {
-        m_parent_scene->CollectDynamicEntities(
-            m_render_collector_dynamics,
-            m_camera
-        );
+        m_view_dynamics->CollectDynamicEntities();
     });
 #else
-    RenderCollector::CollectionResult statics_collection_result = m_parent_scene->CollectStaticEntities(
-        m_render_collector_statics,
-        m_camera
-    );
+    RenderCollector::CollectionResult statics_collection_result = m_view_statics->CollectStaticEntities();
 
-    m_parent_scene->CollectDynamicEntities(
-        m_render_collector_dynamics,
-        m_camera
-    );
+    m_view_dynamics->CollectDynamicEntities();
 #endif
 
-    Octree const *fitting_octant = &octree;
+    Octree const *fitting_octant = nullptr;
     octree.GetFittingOctant(m_aabb, fitting_octant);
+
+    if (!fitting_octant) {
+        fitting_octant = &octree;
+    }
     
     const HashCode octant_hash_statics = fitting_octant->GetOctantID().GetHashCode()
         .Add(fitting_octant->GetEntryListHash<EntityTag::STATIC>())
@@ -569,7 +584,7 @@ void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_shadow_pass != nullptr);
-    m_shadow_pass->Render(frame);
+    m_shadow_pass->Render(frame, nullptr);
 }
 
 void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)

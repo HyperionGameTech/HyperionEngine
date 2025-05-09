@@ -30,6 +30,7 @@ struct VulkanAttachmentMap
     using Iterator = typename FlatMap<uint32, VulkanAttachmentDef>::Iterator;
     using ConstIterator = typename FlatMap<uint32, VulkanAttachmentDef>::ConstIterator;
 
+    VulkanFramebufferWeakRef                framebuffer;
     FlatMap<uint32, VulkanAttachmentDef>    attachments;
 
     ~VulkanAttachmentMap()
@@ -102,7 +103,7 @@ struct VulkanAttachmentMap
 
         VulkanImageRef image = MakeRenderObject<VulkanImage>(texture_desc);
 
-        VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(image, stage);
+        VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(image, framebuffer, stage, load_op, store_op);
         attachment->SetBinding(binding);
 
         attachments.Set(

@@ -43,6 +43,8 @@ VulkanImageView::VulkanImageView(
 VulkanImageView::~VulkanImageView()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE, "image view should have been destroyed");
+
+    SafeRelease(std::move(m_image));
 }
 
 bool VulkanImageView::IsCreated() const
@@ -97,6 +99,7 @@ RendererResult VulkanImageView::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE) {
         vkDestroyImageView(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+
         m_handle = VK_NULL_HANDLE;
     }
 
