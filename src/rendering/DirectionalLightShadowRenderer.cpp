@@ -9,6 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
@@ -392,11 +393,17 @@ void ShadowPass::Render(FrameBase *frame)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMapFilterMode filter_mode)
-    : RenderSubsystem(name),
-      m_parent_scene(parent_scene),
-      m_resolution(resolution),
-      m_filter_mode(filter_mode)
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
+    Name name,
+    const Handle<Scene> &parent_scene,
+    const TResourceHandle<LightRenderResource> &light_render_resource_handle,
+    Vec2u resolution,
+    ShadowMapFilterMode filter_mode
+) : RenderSubsystem(name),
+    m_parent_scene(parent_scene),
+    m_light_render_resource_handle(light_render_resource_handle),
+    m_resolution(resolution),
+    m_filter_mode(filter_mode)
 {
     m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
     m_camera->SetName(NAME("DirectionalLightShadowRendererCamera"));
@@ -410,17 +417,6 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(Name name, const 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
     m_shadow_pass.Reset();
-
-    if (m_shadow_map_resource_handle) {
-        ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_resource_handle.Get();
-
-        // Don't hang on to the resource handle - would prevent the resource from being freed
-        m_shadow_map_resource_handle.Reset();
-
-        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
-            HYP_LOG(Shadows, Error, "Failed to free shadow map!");
-        }
-    }
 }
 
 // called from render thread
@@ -432,6 +428,9 @@ void DirectionalLightShadowRenderer::Init()
     AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
 
     m_shadow_map_resource_handle = TResourceHandle<ShadowMapRenderResource>(*shadow_map_render_resource);
+
+    AssertThrow(m_light_render_resource_handle);
+    m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>(m_shadow_map_resource_handle));
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
@@ -446,6 +445,32 @@ void DirectionalLightShadowRenderer::Init()
     m_shadow_pass->Create();
 
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
+}
+
+void DirectionalLightShadowRenderer::OnRemoved()
+{
+    AssertThrow(IsValidComponent());
+
+    if (m_light_render_resource_handle) {
+        m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
+    }
+
+    m_shadow_pass.Reset();
+    m_camera.Reset();
+
+    if (m_shadow_map_resource_handle) {
+        ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_resource_handle.Get();
+
+        m_shadow_map_resource_handle.Reset();
+        
+        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
+            HYP_LOG(Shadows, Error, "Failed to free shadow map!");
+
+            FreeResource(shadow_map_render_resource);
+        }
+    }
+
+    RenderSubsystem::OnRemoved();
 }
 
 // called from game thread
@@ -544,7 +569,6 @@ void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_shadow_pass != nullptr);
-
     m_shadow_pass->Render(frame);
 }
 

@@ -34,6 +34,7 @@ class CameraRenderResource;
 class ShadowMapRenderResource;
 class SceneRenderResource;
 class WorldRenderResource;
+class LightRenderResource;
 
 struct ShadowMapCameraData
 {
@@ -100,7 +101,14 @@ class DirectionalLightShadowRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);
 
 public:
-    DirectionalLightShadowRenderer(Name name, const Handle<Scene> &parent_scene, Vec2u resolution, ShadowMapFilterMode filter_mode);
+    DirectionalLightShadowRenderer(
+        Name name,
+        const Handle<Scene> &parent_scene,
+        const TResourceHandle<LightRenderResource> &light_render_resource_handle,
+        Vec2u resolution,
+        ShadowMapFilterMode filter_mode
+    );
+
     DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
     DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
     virtual ~DirectionalLightShadowRenderer() override;
@@ -125,11 +133,15 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRemoved() override;
     virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
 
     void CreateShader();
 
     Handle<Scene>                               m_parent_scene;
+
+    TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
+
     UniquePtr<ShadowPass>                       m_shadow_pass;
     Vec2u                                       m_resolution;
     ShadowMapFilterMode                         m_filter_mode;

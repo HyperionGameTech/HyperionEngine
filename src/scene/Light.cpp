@@ -118,6 +118,8 @@ void Light::EnqueueRenderUpdates()
         return;
     }
 
+    const BoundingBox aabb = GetAABB();
+
     LightShaderData buffer_data {
         .light_id           = GetID().Value(),
         .light_type         = uint32(m_type),
@@ -128,7 +130,9 @@ void Light::EnqueueRenderUpdates()
         .position_intensity = Vec4f(m_position, m_intensity),
         .normal             = Vec4f(m_normal, 0.0f),
         .spot_angles        = m_spot_angles,
-        .material_index     = ~0u // set later
+        .material_index     = ~0u, // set later
+        .aabb_min           = Vec4f(aabb.min, 1.0f),
+        .aabb_max           = Vec4f(aabb.max, 1.0f)
     };
 
     m_render_resource->SetBufferData(buffer_data);

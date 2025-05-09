@@ -375,7 +375,7 @@ void EnvProbeRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
 
-    m_render_collector.ClearState();
+    // @TODO Clear render collector in a thread-safe way
 
     SafeRelease(std::move(m_prefiltered_image));
     SafeRelease(std::move(m_prefiltered_image_view));

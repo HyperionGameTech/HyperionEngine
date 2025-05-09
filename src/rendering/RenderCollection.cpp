@@ -613,7 +613,7 @@ void RenderCollector::ExecuteDrawCalls(
     }
 }
 
-void RenderCollector::ClearState()
+void RenderCollector::ClearState(bool create_new)
 {
     HYP_SCOPE;
 
@@ -641,7 +641,11 @@ void RenderCollector::ClearState()
         HYP_SYNC_RENDER();
     }
 
-    m_draw_collection = MakeRefCountedPtr<EntityDrawCollection>();
+    if (create_new) {
+        m_draw_collection = MakeRefCountedPtr<EntityDrawCollection>();
+    } else {
+        m_draw_collection.Reset();
+    }
 }
 
 #pragma endregion RenderCollector

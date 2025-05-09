@@ -78,7 +78,7 @@ void ShadowMapRenderResource::UpdateBufferData()
 
     m_buffer_data.dimensions_scale = Vec4f(Vec2f(m_atlas_element.dimensions), m_atlas_element.scale);
     m_buffer_data.offset_uv = m_atlas_element.offset_uv;
-    m_buffer_data.atlas_index = m_atlas_element.atlas_index;
+    m_buffer_data.layer_index = m_type == ShadowMapType::POINT_SHADOW_MAP ? m_atlas_element.point_light_index : m_atlas_element.atlas_index;
     m_buffer_data.flags = uint32(ShadowFlags::NONE);
 
     switch (m_filter_mode) {
