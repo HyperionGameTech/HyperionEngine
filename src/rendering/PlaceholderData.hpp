@@ -51,6 +51,8 @@ public:
     HYP_DEF_DUMMY_DATA(ImageView, ImageViewCube1x1R8, m_image_view_cube_1x1_r8);
     HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8Array, m_image_2d_1x1_r8_array);
     HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8Array, m_image_view_2d_1x1_r8_array);
+    HYP_DEF_DUMMY_DATA(Image, ImageCube1x1R8Array, m_image_cube_1x1_r8_array);
+    HYP_DEF_DUMMY_DATA(ImageView, ImageViewCube1x1R8Array, m_image_view_cube_1x1_r8_array);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinear, m_sampler_linear);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinearMipmap, m_sampler_linear_mipmap);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerNearest, m_sampler_nearest);

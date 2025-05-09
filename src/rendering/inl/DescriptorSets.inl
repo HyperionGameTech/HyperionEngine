@@ -31,7 +31,6 @@ HYP_DESCRIPTOR_SRV(Global, UITexture, 1);
 HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
 
 HYP_DESCRIPTOR_SSBO(Scene, ObjectsBuffer, 1, sizeof(EntityShaderData) * max_entities, false);
-HYP_DESCRIPTOR_SRV(Scene, PointLightShadowMapTextures, max_bound_point_shadow_maps);
 HYP_DESCRIPTOR_SRV(Scene, EnvProbeTextures, max_bound_reflection_probes);
 HYP_DESCRIPTOR_SSBO(Scene, SHGridBuffer, 1, sizeof(SHGridBuffer), false);
 HYP_DESCRIPTOR_SRV(Scene, VoxelGridTexture, 1);

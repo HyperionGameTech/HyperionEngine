@@ -20,6 +20,7 @@ class EnvProbe;
 class Texture;
 class CameraRenderResource;
 class SceneRenderResource;
+class ShadowMapRenderResource;
 
 struct EnvProbeShaderData
 {
@@ -140,6 +141,11 @@ public:
         { return m_scene_resource_handle; }
 
     void SetSceneResourceHandle(TResourceHandle<SceneRenderResource> &&scene_resource_handle);
+
+    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource> &GetShadowMapResourceHandle() const
+        { return m_shadow_map_resource_handle; }
+
+    void SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource> &&shadow_map_resource_handle);
     
     HYP_FORCE_INLINE RenderCollector &GetRenderCollector()
         { return m_render_collector; }
@@ -189,28 +195,29 @@ private:
 
     void ComputeSH(FrameBase *frame);
 
-    EnvProbe                                *m_env_probe;
+    EnvProbe                                    *m_env_probe;
 
-    EnvProbeShaderData                      m_buffer_data;
+    EnvProbeShaderData                          m_buffer_data;
 
-    uint32                                  m_texture_slot;
+    uint32                                      m_texture_slot;
 
-    EnvProbeIndex                           m_bound_index;
+    EnvProbeIndex                               m_bound_index;
 
-    RenderCollector                         m_render_collector;
+    RenderCollector                             m_render_collector;
 
-    Handle<Texture>                         m_texture;
-    FramebufferRef                          m_framebuffer;
-    ShaderRef                               m_shader;
+    Handle<Texture>                             m_texture;
+    FramebufferRef                              m_framebuffer;
+    ShaderRef                                   m_shader;
 
-    ImageRef                                m_irradiance_image;
-    ImageViewRef                            m_irradiance_image_view;
+    ImageRef                                    m_irradiance_image;
+    ImageViewRef                                m_irradiance_image_view;
 
-    ImageRef                                m_prefiltered_image;
-    ImageViewRef                            m_prefiltered_image_view;
+    ImageRef                                    m_prefiltered_image;
+    ImageViewRef                                m_prefiltered_image_view;
 
-    TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
-    TResourceHandle<SceneRenderResource>    m_scene_resource_handle;
+    TResourceHandle<CameraRenderResource>       m_camera_resource_handle;
+    TResourceHandle<SceneRenderResource>        m_scene_resource_handle;
+    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
 };
 
 } // namespace hyperion

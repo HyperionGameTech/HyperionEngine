@@ -68,11 +68,17 @@ public:
     ShadowMapManager();
     ~ShadowMapManager();
 
-    HYP_FORCE_INLINE const ImageRef &GetImage() const
-        { return m_image; }
+    HYP_FORCE_INLINE const ImageRef &GetAtlasImage() const
+        { return m_atlas_image; }
 
-    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
-        { return m_image_view; }
+    HYP_FORCE_INLINE const ImageViewRef &GetAtlasImageView() const
+        { return m_atlas_image_view; }
+
+    HYP_FORCE_INLINE const ImageRef &GetPointLightShadowMapImage() const
+        { return m_point_light_shadow_map_image; }
+
+    HYP_FORCE_INLINE const ImageViewRef &GetPointLightShadowMapImageView() const
+        { return m_point_light_shadow_map_image_view; }
 
     void Initialize();
     void Destroy();
@@ -84,8 +90,13 @@ private:
     Vec2u                       m_atlas_dimensions;
     Array<ShadowMapAtlas>       m_atlases;
 
-    ImageRef                    m_image;
-    ImageViewRef                m_image_view;
+    ImageRef                    m_atlas_image;
+    ImageViewRef                m_atlas_image_view;
+
+    ImageRef                    m_point_light_shadow_map_image;
+    ImageViewRef                m_point_light_shadow_map_image_view;
+
+    IDGenerator                 m_point_light_shadow_map_id_generator;
 };
 
 class WorldRenderResource final : public RenderResourceBase

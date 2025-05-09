@@ -42,8 +42,11 @@ enum class ShadowMapType : uint32
 
 struct ShadowMapAtlasElement
 {
-    // Index of the atlas in the shadow map texture array
+    // Directional and spot lights only: index of the atlas in the shadow map texture array
     uint32  atlas_index = ~0u;
+
+    // Point light shadow maps only: index of the cubemap in the texture array
+    uint32  point_light_index = ~0u;
 
     // Offset in the atlas texture array, in uv space
     Vec2f   offset_uv;
@@ -60,6 +63,7 @@ struct ShadowMapAtlasElement
     HYP_FORCE_INLINE bool operator==(const ShadowMapAtlasElement &other) const
     {
         return atlas_index == other.atlas_index
+            && point_light_index == other.point_light_index
             && offset_uv == other.offset_uv
             && offset_coords == other.offset_coords
             && dimensions == other.dimensions
@@ -69,6 +73,7 @@ struct ShadowMapAtlasElement
     HYP_FORCE_INLINE bool operator!=(const ShadowMapAtlasElement &other) const
     {
         return atlas_index != other.atlas_index
+            || point_light_index != other.point_light_index
             || offset_uv != other.offset_uv
             || offset_coords != other.offset_coords
             || dimensions != other.dimensions

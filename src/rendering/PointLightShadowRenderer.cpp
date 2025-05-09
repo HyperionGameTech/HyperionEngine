@@ -6,12 +6,15 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <scene/Light.hpp>
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -50,6 +53,15 @@ void PointLightShadowRenderer::Init()
         return;
     }
 
+    ShadowMapRenderResource *shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(
+        ShadowMapType::POINT_SHADOW_MAP,
+        ShadowMapFilterMode::STANDARD,
+        m_extent
+    );
+    AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
+
+    m_shadow_map_resource_handle = TResourceHandle<ShadowMapRenderResource>(*shadow_map_render_resource);
+
     m_aabb = m_light->GetAABB();
 
     m_env_probe = CreateObject<EnvProbe>(
@@ -61,8 +73,11 @@ void PointLightShadowRenderer::Init()
 
     InitObject(m_env_probe);
 
-    m_light->SetShadowMapIndex(m_env_probe->GetID().ToIndex());
+    m_env_probe->GetRenderResource().SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>(m_shadow_map_resource_handle));
     m_env_probe->EnqueueBind();
+
+    m_light->GetRenderResource().SetShadowMapIndex(m_env_probe->GetRenderResource().GetBufferIndex());
+
     m_last_visibility_state = true;
 
     m_scene_resource_handle = TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource());
@@ -78,6 +93,26 @@ void PointLightShadowRenderer::InitGame()
 
 void PointLightShadowRenderer::OnRemoved()
 {
+    if (m_shadow_map_resource_handle) {
+        ShadowMapRenderResource *shadow_map_render_resource = m_shadow_map_resource_handle.Get();
+        
+        m_shadow_map_resource_handle.Reset();
+
+        if (m_parent_scene) {
+            if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
+                HYP_LOG(Shadows, Error, "Failed to free shadow map!");
+            }
+        } else {
+            HYP_LOG(Shadows, Warning, "Point shadow renderer attached to invalid Scene");
+
+            FreeResource(shadow_map_render_resource);
+        }
+    }
+
+    if (m_light.IsValid()) {
+        m_light->GetRenderResource().SetShadowMapIndex(~0u);
+    }
+
     if (m_env_probe.IsValid()) {
         m_env_probe->EnqueueUnbind();
     }

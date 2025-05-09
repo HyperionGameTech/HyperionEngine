@@ -168,34 +168,46 @@ void HyperionEditor::Init()
 
 #if 1
 
-    #if 0 // point light test
+    #if 1// point light test
+
+    const Vec3f positions[] = {
+        Vec3f(0.0f, 5.5f, 2.0f),
+        Vec3f(30.0f, 5.5f, 0.0f)
+    };
+
+    const Color colors[] = {
+        Color(1.0f, 0.0f, 0.0f),
+        Color(0.0f, 1.0f, 0.0f)
+    };
 
     // add pointlight (Test)
-    auto point_light = CreateObject<Light>(
-        LightType::POINT,
-        Vec3f(0.0f, 5.5f, 2.0f),
-        Color(0.0f, 1.0f, 0.0f),
-        30.0f,
-        50.0f
-    );
+    for (uint32 i = 0; i < std::size(positions); i++){
+        auto point_light = CreateObject<Light>(
+            LightType::POINT,
+            positions[i],
+            colors[i],
+            30.0f,
+            50.0f
+        );
 
-    NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
-    point_light_node.SetName("point_light_node");
+        NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
+        point_light_node.SetName("point_light_node");
 
-    auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
-    point_light_node.SetEntity(point_light_entity);
-    point_light_node.SetWorldTranslation(Vec3f { 0.0f, 5.0f, 0.0f });
+        auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
+        point_light_node.SetEntity(point_light_entity);
+        point_light_node.SetWorldTranslation(positions[i]);
 
-    m_scene->GetEntityManager()->AddComponent<LightComponent>(point_light_entity, LightComponent {
-        point_light
-    });
+        m_scene->GetEntityManager()->AddComponent<LightComponent>(point_light_entity, LightComponent {
+            point_light
+        });
 
-    m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, ShadowMapComponent { });
+        m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, ShadowMapComponent { });
+    }
 
     #endif
 
     // add sun
-    #if 1
+    #if 0
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),

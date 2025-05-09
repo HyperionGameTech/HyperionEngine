@@ -89,8 +89,6 @@ private:
     
     Handle<Texture>                             m_shadow_map_statics;
     Handle<Texture>                             m_shadow_map_dynamics;
-    
-    ImageViewRef                                m_shadow_map_combined_image_view;
 
     UniquePtr<FullScreenPass>                   m_combine_shadow_maps_pass;
     ComputePipelineRef                          m_blur_shadow_map_pipeline;

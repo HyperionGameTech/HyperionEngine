@@ -19,10 +19,11 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region ShadowMapRenderResource
 
-ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element)
+ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element, const ImageViewRef &image_view)
     : m_type(type),
       m_filter_mode(filter_mode),
       m_atlas_element(atlas_element),
+      m_image_view(image_view),
       m_buffer_data { }
 {
     HYP_LOG(Rendering, Debug, "Creating shadow map for atlas element, (atlas: {}, offset: {}, dimensions: {}, scale: {})",
@@ -37,11 +38,15 @@ ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapRenderResource &&other
       m_type(other.m_type),
       m_filter_mode(other.m_filter_mode),
       m_atlas_element(other.m_atlas_element),
+      m_image_view(std::move(other.m_image_view)),
       m_buffer_data(std::move(other.m_buffer_data))
 {
 }
 
-ShadowMapRenderResource::~ShadowMapRenderResource() = default;
+ShadowMapRenderResource::~ShadowMapRenderResource()
+{
+    SafeRelease(std::move(m_image_view));
+}
 
 void ShadowMapRenderResource::Initialize_Internal()
 {
@@ -113,6 +118,7 @@ void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData &buffer_da
 namespace renderer {
 
 HYP_DESCRIPTOR_SRV(Scene, ShadowMapsTextureArray, 1);
+HYP_DESCRIPTOR_SRV(Scene, PointLightShadowMapsTextureArray, 1);
 HYP_DESCRIPTOR_SSBO(Scene, ShadowMapsBuffer, 1, sizeof(ShadowMapShaderData) * max_shadow_maps, false);
 
 } // namespace renderer

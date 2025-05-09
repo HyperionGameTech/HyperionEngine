@@ -13,6 +13,7 @@
 #include <rendering/PointLightShadowRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderLight.hpp>
 #include <rendering/RenderShadowMap.hpp>
 
 #include <core/math/MathUtil.hpp>
@@ -132,7 +133,7 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
             aabb.max.z = shadow_map_component.radius;
             aabb.min.z = -shadow_map_component.radius;
 
-            light_component.light->SetShadowMapIndex(shadow_renderer->GetShadowMapResourceHandle()->GetBufferIndex());
+            light_component.light->GetRenderResource().SetShadowMapIndex(shadow_renderer->GetShadowMapResourceHandle()->GetBufferIndex());
 
             shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
 
