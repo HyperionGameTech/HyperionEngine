@@ -136,7 +136,6 @@ void Light::EnqueueRenderUpdates()
     };
 
     m_render_resource->SetBufferData(buffer_data);
-    m_render_resource->SetVisibilityBits(m_visibility_bits);
 
     m_mutation_state = DataMutationState::CLEAN;
 }
@@ -154,22 +153,6 @@ void Light::SetMaterial(Handle<Material> material)
 
         m_render_resource->SetMaterial(m_material);
 
-        m_mutation_state |= DataMutationState::DIRTY;
-    }
-}
-
-bool Light::IsVisible(ID<Camera> camera_id) const
-{
-    return m_visibility_bits.Test(camera_id.ToIndex());
-}
-
-void Light::SetIsVisible(ID<Camera> camera_id, bool is_visible)
-{
-    const bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
-
-    m_visibility_bits.Set(camera_id.ToIndex(), is_visible);
-
-    if (is_visible != previous_value && IsInitCalled()) {
         m_mutation_state |= DataMutationState::DIRTY;
     }
 }

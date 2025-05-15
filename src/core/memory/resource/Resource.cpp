@@ -38,17 +38,19 @@ HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 #pragma region ResourceBase
 
+static constexpr uint64 g_initialization_mask_initialized_bit = 0x1;
+static constexpr uint64 g_initialization_mask_read_mask = uint64(-1) & ~g_initialization_mask_initialized_bit;
+
 ResourceBase::ResourceBase()
-    : m_is_initialized(false),
+    : m_initialization_mask(0),
       m_update_counter(0)
 {
 }
 
 ResourceBase::ResourceBase(ResourceBase &&other) noexcept
-    : m_is_initialized(other.m_is_initialized),
+    : m_initialization_mask(other.m_initialization_mask.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
-    other.m_is_initialized = false;
 }
 
 ResourceBase::~ResourceBase()
@@ -57,11 +59,23 @@ ResourceBase::~ResourceBase()
     AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Resource destroyed while still in use, was WaitForFinalization() called?");
 }
 
+bool ResourceBase::IsInitialized() const
+{
+    return m_initialization_mask.Get(MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit;
+}
+
 int ResourceBase::ClaimWithoutInitialize()
 {
     return m_claimed_semaphore.Produce(1, [this](bool)
     {
-        m_is_initialized = true;
+        // loop until we have exclusive access.
+        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
+        AssertDebugMsg(!(state & g_initialization_mask_read_mask), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
+
+        while (state & g_initialization_mask_read_mask) {
+            state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+            Threads::Sleep(0);
+        }
     });
 }
 
@@ -74,18 +88,18 @@ int ResourceBase::Claim(int count)
         {
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
-            // Wait for pre-init to complete
-            m_pre_init_semaphore.Acquire();
+            uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Claim() called on a resource that is already initialized");
+            
+            // loop until we have exclusive access.
+            while (state & g_initialization_mask_read_mask) {
+                state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+                Threads::Sleep(0);
+            }
 
             HYP_MT_CHECK_RW(m_data_race_detector);
 
-            AssertThrow(!m_is_initialized);
-
-            // // So Update() gets called after initialization
-            // m_update_counter.Increment(1, MemoryOrder::RELEASE);
-
             Initialize();
-            m_is_initialized = true;
         }
 
         {
@@ -137,13 +151,26 @@ int ResourceBase::Unclaim()
     {
         HYP_NAMED_SCOPE("Destroying Resource");
 
+        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
+        AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::Unclaim() called on a resource that is not initialized");
+
+        // Wait till all reads are complete before we continue
+        while (state & g_initialization_mask_read_mask) {
+            state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+            Threads::Sleep(0);
+        }
+
+        // While we still have the initialized bit set, add the read access, so Initialize doesn't happen while we are destroying
+        m_initialization_mask.Increment(2, MemoryOrder::RELEASE);
+        // Unset the initialized bit
+        m_initialization_mask.BitAnd(~g_initialization_mask_initialized_bit, MemoryOrder::RELEASE);
+
         HYP_MT_CHECK_RW(m_data_race_detector);
-
-        AssertThrow(m_is_initialized);
-
+        
         Destroy();
 
-        m_is_initialized = false;
+        // Done with destroying, we can now remove our read access
+        m_initialization_mask.Decrement(2, MemoryOrder::RELEASE);
 
         m_completion_semaphore.Release(1);
     };
@@ -178,21 +205,19 @@ void ResourceBase::SetNeedsUpdate()
 {
     auto Impl = [this]()
     {
-        // m_is_initialized could be false if Unclaim() happens before the task is executed
-        if (m_is_initialized) {
-            HYP_NAMED_SCOPE("Applying Resource updates");
+        HYP_NAMED_SCOPE("Applying Resource updates");
+        HYP_MT_CHECK_READ(m_data_race_detector);
 
-            int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
+        int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-            while (current_count != 0) {
-                HYP_MT_CHECK_RW(m_data_race_detector);
+        while (current_count != 0) {
+            AssertDebug(current_count > 0);
 
-                AssertThrow(current_count > 0);
-                
-                Update();
+            HYP_MT_CHECK_RW(m_data_race_detector);
+            
+            Update();
 
-                current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
-            }
+            current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
         }
 
         m_completion_semaphore.Release(1);
@@ -202,20 +227,23 @@ void ResourceBase::SetNeedsUpdate()
 
     m_completion_semaphore.Produce(1);
 
-    // If not yet initialized, increment the counter and return immediately
-    // Otherwise, we need to push a command to the owner thread
     if (m_claimed_semaphore.IsInSignalState()) {
-        m_pre_init_semaphore.Produce(1);
-        HYP_DEFER({ m_pre_init_semaphore.Release(1); });
-
-        // Check again, as it might have been initialized in between the initial check and the increment
-        if (m_claimed_semaphore.IsInSignalState()) {
+        // Check initialization state -- if it is not initialized, we increment the update counter
+        // without waiting for the owner thread to finish
+        if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
             m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+
+            // Remove our read access
+            m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
 
             m_completion_semaphore.Release(1);
 
+            // No work to be done yet since we aren't initialized.
             return;
         }
+
+        // Remove our read access
+        m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
     }
 
     m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
@@ -234,9 +262,6 @@ void ResourceBase::WaitForTaskCompletion() const
     HYP_SCOPE;
 
     if (CanExecuteInline()) {
-        // Wait for any threads that are using this Resource pre-initialization to stop
-        m_pre_init_semaphore.Acquire();
-
         if (!m_completion_semaphore.IsInSignalState()) {
             if (GetOwnerThread() == nullptr) { // No owner thread is used to execute tasks on.
                 HYP_FAIL("No owner thread - cannot wait for task completion");
@@ -277,26 +302,30 @@ void ResourceBase::Execute(Proc<void()> &&proc, bool force_owner_thread)
 
     if (!force_owner_thread) {
         if (m_claimed_semaphore.IsInSignalState()) {
-            // Initialization (happens on owner thread) will wait for this value to hit zero
-            m_pre_init_semaphore.Produce(1);
-
-            HYP_DEFER({ m_pre_init_semaphore.Release(1); });
-
-            // Check again, as it might have been initialized in between the initial check and the increment
-            if (m_claimed_semaphore.IsInSignalState()) {
+            // Try to add read access - if it can't be acquired, we are in the process of initializing
+            // and thus we will remove our read access and enqueue the operation
+            if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
+                // Check again, as it might have been initialized in between the initial check and the increment
                 HYP_NAMED_SCOPE("Executing Resource Command - Inline");
 
-                { // Critical section
-                    HYP_MT_CHECK_RW(m_data_race_detector);
+                HYP_MT_CHECK_RW(m_data_race_detector);
 
-                    // Execute inline if not initialized yet instead of pushing to owner thread
-                    proc();
+                // debugging
+                AssertDebug(m_claimed_semaphore.IsInSignalState());
 
-                    m_completion_semaphore.Release(1);
-                }
+                // Execute inline if not initialized yet instead of pushing to owner thread
+                proc();
+
+                // Remove our read access
+                m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
+
+                m_completion_semaphore.Release(1);
 
                 return;
             }
+
+            // Remove our read access
+            m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
         }
     }
 

@@ -945,10 +945,10 @@ void EnvGridRenderResource::RenderEnvProbe(FrameBase *frame, uint32 probe_index)
     AssertThrow(probe.IsValid());
 
     // Bind a directional light
-    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     {
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+        auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
             light_render_resource_handle = &directional_lights[0];
@@ -958,24 +958,21 @@ void EnvGridRenderResource::RenderEnvProbe(FrameBase *frame, uint32 probe_index)
     }
 
     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(probe->GetRenderResource()));
-    g_engine->GetRenderState()->SetActiveScene(m_scene_render_resource_handle->GetScene());
 
     m_view_render_resource_handle->GetRenderCollector().CollectDrawCalls(
         frame,
-        nullptr,
+        m_view_render_resource_handle.Get(),
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr
     );
 
     m_view_render_resource_handle->GetRenderCollector().ExecuteDrawCalls(
         frame,
-        nullptr,
-        m_camera_render_resource_handle,
+        m_view_render_resource_handle.Get(),
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr
     );
 
-    g_engine->GetRenderState()->UnsetActiveScene();
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
     if (light_render_resource_handle != nullptr) {
@@ -1035,10 +1032,10 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
-    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     {
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+        auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
             light_render_resource_handle = &directional_lights[0];
@@ -1286,15 +1283,15 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_LightField(FrameBase *fram
             0, 0
         };
 
-        const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
+        const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
         uint32 num_bound_lights = 0;
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::POINT/*LightType::MAX*/); light_type++) {
+        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
             if (num_bound_lights >= max_bound_lights) {
                 break;
             }
 
-            for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+            for (const auto &it : m_view_render_resource_handle->GetLights(LightType(light_type))) {
                 if (num_bound_lights >= max_bound_lights) {
                     break;
                 }

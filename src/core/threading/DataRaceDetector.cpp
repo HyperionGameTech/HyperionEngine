@@ -131,22 +131,27 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
 
     uint64 mask;
 
-    if (((mask = m_writers.Get(MemoryOrder::ACQUIRE)) & ~test_mask) != 0) {
-        LogDataRace(0ull, mask);
-        HYP_FAIL("Potential data race detected: Attempt to acquire access while other thread is writing. Write mask: %llu", mask);
-    }
-
     if (access_flags & DataAccessFlags::ACCESS_WRITE) {
-        if (((mask = m_readers.Get(MemoryOrder::ACQUIRE)) & ~test_mask) != 0) {
-            LogDataRace(mask, 0ull);
-            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread(s) are reading. Read mask: %llu", mask);
+        if (((mask = m_writers.BitOr(test_mask, MemoryOrder::ACQUIRE_RELEASE)) & ~test_mask)) {
+            LogDataRace(0ull, mask);
+            if (access_flags & DataAccessFlags::ACCESS_WRITE) {
+                HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is writing. Write mask: %llu", mask);
+            } else {
+                HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
+            }
         }
 
-        m_writers.BitOr(test_mask, MemoryOrder::RELEASE);
-    }
-
-    if (access_flags & DataAccessFlags::ACCESS_READ) {
+        if ((mask = m_readers.BitOr(test_mask, MemoryOrder::ACQUIRE_RELEASE)) & ~test_mask) {
+            LogDataRace(mask, 0ull);
+            HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
+        }
+    } else {
         m_readers.BitOr(test_mask, MemoryOrder::RELEASE);
+
+        if ((mask = m_writers.Get(MemoryOrder::ACQUIRE)) & ~test_mask) {
+            LogDataRace(mask, 0ull);
+            HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
+        }
     }
 
     // return the new bits that were enabled, so scopes know which ones to disable on exit
@@ -241,8 +246,8 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
         }
     }
 
-    HYP_LOG(DataRaceDetector, Error, "Data race detected: Current thread: {}, Writer threads: {}, Reader threads: {}",
-        ThreadID::Current().GetName(),
+    HYP_LOG(DataRaceDetector, Error, "Data race detected: Current thread: {} ({}), Writer threads: {}, Reader threads: {}",
+        ThreadID::Current().GetName(), ThreadID::Current().GetValue(),
         writer_threads_string,
         reader_threads_string);
 }

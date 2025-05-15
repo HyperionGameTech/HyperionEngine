@@ -152,15 +152,9 @@ void PointLightShadowRenderer::OnRender(FrameBase *frame)
         return;
     }
 
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = m_scene_render_resource_handle->GetCameraRenderResourceHandle();
+    // @FIXME: Should be per-view
 
-    if (!camera_render_resource_handle) {
-        return;
-    }
-
-    const ID<Camera> camera_id = camera_render_resource_handle->GetCamera()->GetID();
-
-    if (m_light_render_resource_handle->GetVisibilityBits().Test(camera_id.ToIndex())) {
+    // if (m_light_render_resource_handle->GetVisibilityBits().Test(camera_id.ToIndex())) {
         if (!m_last_visibility_state) {
             g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(m_env_probe->GetRenderResource()));
 
@@ -170,14 +164,14 @@ void PointLightShadowRenderer::OnRender(FrameBase *frame)
         AssertThrow(m_env_probe->IsReady());
 
         m_env_probe->GetRenderResource().Render(frame);
-    } else {
-        // No point in keeping it bound if the light is not visible on the screen.
-        if (m_last_visibility_state) {
-            g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), &m_env_probe->GetRenderResource());
+    // } else {
+    //     // No point in keeping it bound if the light is not visible on the screen.
+    //     if (m_last_visibility_state) {
+    //         g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), &m_env_probe->GetRenderResource());
 
-            m_last_visibility_state = false;
-        }
-    }
+    //         m_last_visibility_state = false;
+    //     }
+    // }
 }
 
 void PointLightShadowRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)

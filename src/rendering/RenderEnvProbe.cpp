@@ -33,7 +33,7 @@
 
 namespace hyperion {
 
-static const InternalFormat reflection_probe_format = InternalFormat::R10G10B10A2;
+static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;
 static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
 
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox &aabb, const Vec3f &origin)
@@ -434,7 +434,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
     
-    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe()) {
         if (m_env_probe->IsSkyProbe()) {
@@ -459,7 +459,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
         
         // @TODO Support selecting a specific light for the EnvProbe in the case of a sky probe.
         // For reflection probes, it would be ideal to bind a number of lights that can be used in forward rendering.
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+        auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
             light_render_resource_handle = &directional_lights[0];
@@ -477,27 +477,18 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
             g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
         }
 
-        g_engine->GetRenderState()->SetActiveScene(m_scene_render_resource_handle->GetScene());
-
-        g_engine->GetRenderState()->BindCamera(m_camera_render_resource_handle);
-
         m_view_render_resource_handle->GetRenderCollector().CollectDrawCalls(
             frame,
-            nullptr,
+            m_view_render_resource_handle.Get(),
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             nullptr
         );
 
         m_view_render_resource_handle->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            nullptr,
-            m_camera_render_resource_handle,
+            m_view_render_resource_handle.Get(),
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
-
-        g_engine->GetRenderState()->UnbindCamera(m_camera_render_resource_handle.Get());
-
-        g_engine->GetRenderState()->UnsetActiveScene();
 
         if (light_render_resource_handle != nullptr) {
             g_engine->GetRenderState()->UnsetActiveLight();
@@ -613,7 +604,7 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase *frame)
     uniforms.out_image_dimensions = m_prefiltered_env_map->GetExtent().GetXY();
     uniforms.world_position = m_buffer_data.world_position;
     
-    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
+    const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
     uint32 num_bound_lights = 0;
 
     for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
@@ -621,7 +612,7 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase *frame)
             break;
         }
 
-        for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+        for (const auto &it : m_view_render_resource_handle->GetLights(LightType(light_type))) {
             if (num_bound_lights >= max_bound_lights) {
                 break;
             }
@@ -809,10 +800,10 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
-    TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
 
     {
-        auto &directional_lights = g_engine->GetRenderState()->bound_lights[uint32(LightType::DIRECTIONAL)];
+        auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
             light_render_resource_handle = &directional_lights[0];

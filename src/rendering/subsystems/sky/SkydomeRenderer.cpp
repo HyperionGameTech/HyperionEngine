@@ -25,7 +25,7 @@
 namespace hyperion {
 
 SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
-    : RenderSubsystem(name, 60),
+    : RenderSubsystem(name),
       m_dimensions(dimensions)
 {
     m_cubemap = CreateObject<Texture>(TextureDesc {
@@ -138,6 +138,14 @@ void SkydomeRenderer::OnRender(FrameBase *frame)
 
     // Copy cubemap from env probe to cubemap texture
     const ImageRef &src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();
+    AssertThrow(src_image.IsValid());
+    // AssertThrow(src_image->IsCreated());
+
+    if (!src_image->IsCreated()) {
+        // hack to avoid crash
+        return;
+    }
+
     const ImageRef &dst_image = m_cubemap->GetRenderResource().GetImage();
 
     frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);

@@ -23,6 +23,7 @@
 #include <ui/UIText.hpp>
 
 #include <scene/Mesh.hpp>
+#include <scene/View.hpp>
 #include <scene/Texture.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
@@ -350,7 +351,6 @@ void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
 void UIRenderCollector::ExecuteDrawCalls(
     FrameBase *frame, 
     ViewRenderResource *view,
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const FramebufferRef &framebuffer
 ) const
 {
@@ -365,8 +365,6 @@ void UIRenderCollector::ExecuteDrawCalls(
     if (framebuffer.IsValid()) {
         frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
     }
-
-    g_engine->GetRenderState()->BindCamera(camera_resource_handle);
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::ConstIterator;
     Array<IteratorType> iterators;
@@ -401,8 +399,6 @@ void UIRenderCollector::ExecuteDrawCalls(
 
         render_group->PerformRendering(frame, view);
     }
-
-    g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
     
     if (framebuffer.IsValid()) {
         frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
@@ -475,6 +471,15 @@ void UIRenderSubsystem::Init()
 
     m_camera_resource_handle = TResourceHandle<CameraRenderResource>(m_ui_stage->GetCamera()->GetRenderResource());
 
+    m_view = CreateObject<View>(ViewDesc {
+        .viewport   = Viewport { .extent = m_ui_stage->GetSurfaceSize(), .position = Vec2i::Zero() },
+        .scene      = m_ui_stage->GetScene()->HandleFromThis(),
+        .camera     = m_ui_stage->GetCamera()
+    });
+    InitObject(m_view);
+
+    m_view_render_resource_handle = TResourceHandle<ViewRenderResource>(m_view->GetRenderResource());
+
     PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
 }
 
@@ -483,6 +488,9 @@ void UIRenderSubsystem::InitGame() { }
 
 void UIRenderSubsystem::OnRemoved()
 {
+    m_view_render_resource_handle.Reset();
+    m_view.Reset();
+
     SafeRelease(std::move(m_framebuffer));
     
     g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
@@ -499,12 +507,8 @@ void UIRenderSubsystem::OnRender(FrameBase *frame)
 {
     HYP_SCOPE;
 
-    g_engine->GetRenderState()->SetActiveScene(m_ui_stage->GetScene());
-
     m_render_collector.CollectDrawCalls(frame);
-    m_render_collector.ExecuteDrawCalls(frame, nullptr, m_camera_resource_handle, m_framebuffer);
-
-    g_engine->GetRenderState()->UnsetActiveScene();
+    m_render_collector.ExecuteDrawCalls(frame, m_view_render_resource_handle.Get(), m_framebuffer);
 }
 
 void UIRenderSubsystem::CreateFramebuffer()
@@ -513,6 +517,11 @@ void UIRenderSubsystem::CreateFramebuffer()
     Threads::AssertOnThread(g_render_thread);
 
     const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
+
+    m_view_render_resource_handle->SetViewport(Viewport {
+        .extent     = surface_size,
+        .position   = Vec2i::Zero()
+    });
 
     m_framebuffer = g_rendering_api->MakeFramebuffer(Vec2u(surface_size) * 2);
 

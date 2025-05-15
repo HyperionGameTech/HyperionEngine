@@ -565,7 +565,10 @@ void ViewRenderResource::RemoveLight(LightRenderResource *light)
     {
         const LightType light_type = light->GetLight()->GetLightType();
 
-        auto it = m_light_render_resource_handles[uint32(light_type)].Find(light);
+        auto it = m_light_render_resource_handles[uint32(light_type)].FindIf([light](const TResourceHandle<LightRenderResource> &item)
+        {
+            return item.Get() == light;
+        });
 
         if (it == m_light_render_resource_handles[uint32(light_type)].End()) {
             return;
@@ -713,8 +716,6 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
         const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
-        const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-        const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
         const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
         const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
@@ -738,7 +739,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
 
         if (use_temporal_aa) {
-            camera_render_resource_handle->ApplyJitter();
+            m_camera_render_resource_handle->ApplyJitter();
         }
 
         struct alignas(128)
@@ -798,6 +799,8 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
 
         // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
         // otherwise the same pass will be executed for each view (shared).
+        // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
+        // so it is rendered with the WorldRenderResource rather than the ViewRenderResource.
         if (is_render_environment_ready) {
             if (use_rt_radiance) {
                 environment->RenderRTRadiance(frame, this);
@@ -907,8 +910,8 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
                     {
                         NAME("Global"),
                         {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*m_scene_render_resource_handle) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_camera_render_resource_handle) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                         }
@@ -942,7 +945,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         m_post_processing->RenderPost(frame, this);
 
         if (use_temporal_aa) {
-            m_temporal_aa->Render(frame);
+            m_temporal_aa->Render(frame, this);
         }
 
         // depth of field
@@ -969,12 +972,9 @@ void ViewRenderResource::ExecuteDrawCalls(FrameBase *frame, uint64 bucket_mask)
 {
     HYP_SCOPE;
 
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
     m_render_collector.ExecuteDrawCalls(
         frame,
         this,
-        camera_resource_handle,
         nullptr,
         Bitset(bucket_mask),
         &m_cull_data

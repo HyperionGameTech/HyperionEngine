@@ -8,6 +8,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
 namespace hyperion {
@@ -18,8 +19,16 @@ class EnvGridUpdaterSystem : public System<
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
+    // Calling EnvGrid::Update() calls View::Update() which reads the MeshComponent of entities.
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false>,
+    // LightComponent has the same deal as MeshComponent.
+    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ, false>,
+
     ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ, false>
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ, false>,
+
+    // EnvGrid::Update() collects static entities
+    ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

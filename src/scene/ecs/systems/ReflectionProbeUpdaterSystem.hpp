@@ -8,6 +8,8 @@
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/LightComponent.hpp>
 
 namespace hyperion {
 
@@ -17,7 +19,15 @@ class ReflectionProbeUpdaterSystem : public System<
     ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
     ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>
+    // calling EnvProbe::Update() calls View::Update() which reads the MeshComponent of entities.
+    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false>,
+    // LightComponent has the same deal as MeshComponent.
+    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ, false>,
+
+    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>,
+
+    // EnvProbe::Update() collects static entities
+    ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

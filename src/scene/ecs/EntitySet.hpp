@@ -281,8 +281,10 @@ struct EntitySetView
           m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
     {
         if constexpr (sizeof...(Components) != 0) {
+            static const FixedArray<ANSIString, sizeof...(Components)> component_names = { TypeNameWithoutNamespace<Components>().Data()... };
+
             for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
-                m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message });
+                m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
             }
         }
     }
@@ -291,16 +293,18 @@ struct EntitySetView
         : entity_set(entity_set),
           m_component_data_race_detectors { &entity_set.m_component_containers.template GetElement< ComponentContainer<Components> & >().GetDataRaceDetector()... }
     {
-        static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
-
+        
         if constexpr (sizeof...(Components) != 0) {
+            static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
+            static const FixedArray<ANSIString, sizeof...(Components)> component_names = { TypeNameWithoutNamespace<Components>().Data()... };
+
             for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++) {
                 auto component_infos_it = component_infos.FindIf([type_id = component_type_ids[i]](const ComponentInfo &info)
                 {
                     return info.type_id == type_id;
                 });
 
-                AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with type ID %u", component_type_ids[i].Value());
+                AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with TypeID %u (%s)", component_type_ids[i].Value(), component_names[i].Data());
 
                 EnumFlags<DataAccessFlags> access_flags = DataAccessFlags::ACCESS_NONE;
 
@@ -312,7 +316,7 @@ struct EntitySetView
                     access_flags |= DataAccessFlags::ACCESS_WRITE;
                 }
 
-                m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message });
+                m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
             }
         }
     }

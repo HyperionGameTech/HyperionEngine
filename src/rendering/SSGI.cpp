@@ -168,7 +168,7 @@ ShaderProperties SSGI::GetShaderProperties() const
 void SSGI::CreateUniformBuffers()
 {
     SSGIUniforms uniforms;
-    GetUniformBufferData(uniforms);
+    FillUniformBufferData(nullptr, uniforms);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
@@ -209,9 +209,6 @@ void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
     // Used for sky
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
@@ -219,7 +216,7 @@ void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
 
     // Update uniform buffer data
     SSGIUniforms uniforms;
-    GetUniformBufferData(uniforms);
+    FillUniformBufferData(view, uniforms);
     m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 
     const uint32 total_pixels_in_image = m_config.extent.Volume();
@@ -237,8 +234,8 @@ void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) },
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
@@ -272,7 +269,7 @@ void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
     m_is_rendered = true;
 }
 
-void SSGI::GetUniformBufferData(SSGIUniforms &out_uniforms) const
+void SSGI::FillUniformBufferData(ViewRenderResource *view, SSGIUniforms &out_uniforms) const
 {
     out_uniforms = SSGIUniforms();
     out_uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
@@ -286,20 +283,24 @@ void SSGI::GetUniformBufferData(SSGIUniforms &out_uniforms) const
     out_uniforms.screen_edge_fade_start = 0.98f;
     out_uniforms.screen_edge_fade_end = 0.99f;
     
-    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(out_uniforms.light_indices));
     uint32 num_bound_lights = 0;
 
-    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
-        if (num_bound_lights >= max_bound_lights) {
-            break;
-        }
+    // Can only fill the lights if we have a view ready
+    if (view) {
+        const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 
-        for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
             if (num_bound_lights >= max_bound_lights) {
                 break;
             }
 
-            out_uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+            for (const auto &it : view->GetLights(LightType(light_type))) {
+                if (num_bound_lights >= max_bound_lights) {
+                    break;
+                }
+
+                out_uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+            }
         }
     }
 
