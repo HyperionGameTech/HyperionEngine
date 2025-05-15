@@ -320,6 +320,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         AssertThrow(m_view.IsValid());
         m_view->Update(delta);
 
+        // @TODO: Refactor so it reuses View::Update()'s collected entities instead of recollecting
         RenderCollector::CollectionResult collection_result;
 
         if (OnlyCollectStaticEntities()) {

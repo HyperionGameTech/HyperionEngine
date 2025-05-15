@@ -157,9 +157,6 @@ void HBAO::Render(FrameBase *frame, ViewRenderResource *view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
     {
         Begin(frame, view);
 
@@ -170,8 +167,8 @@ void HBAO::Render(FrameBase *frame, ViewRenderResource *view)
                 {
                     NAME("Global"),
                     {
-                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
+                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) }
                     }
                 }
             },

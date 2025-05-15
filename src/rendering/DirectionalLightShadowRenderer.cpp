@@ -217,23 +217,20 @@ void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
 
     AssertThrow(m_parent_scene.IsValid());
 
-    g_engine->GetRenderState()->SetActiveScene(m_parent_scene.Get());
-
     { // Render each shadow map as needed
         if (m_rerender_semaphore->IsInSignalState()) {
             HYP_LOG(Shadows, Debug, "Rerendering static objects for shadow map");
 
             m_view_statics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
-                view,
+                m_view_statics_resource_handle.Get(),
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
             m_view_statics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
-                view,
-                m_camera_resource_handle,
+                m_view_statics_resource_handle.Get(),
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -253,15 +250,14 @@ void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
         { // Render dynamics
             m_view_dynamics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
-                view,
+                m_view_dynamics_resource_handle.Get(),
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
 
             m_view_dynamics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
-                view,
-                m_camera_resource_handle,
+                m_view_dynamics_resource_handle.Get(),
                 Bitset((1 << BUCKET_OPAQUE)),
                 nullptr
             );
@@ -276,8 +272,6 @@ void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
             frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_dynamics->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
         }
     }
-
-    g_engine->GetRenderState()->UnsetActiveScene();
 
     const ShadowMapAtlasElement &atlas_element = m_shadow_map_resource_handle->GetAtlasElement();
 
@@ -502,14 +496,9 @@ void DirectionalLightShadowRenderer::InitGame()
 void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_game_thread);
 
-    AssertThrow(m_shader.IsValid());
-
-    // debugging
-    AssertThrow(m_camera->GetRenderResource().GetFramebuffer() != nullptr);
-
+    AssertThrow(m_camera != nullptr);
     m_camera->Update(delta);
 
     Octree &octree = m_parent_scene->GetOctree();

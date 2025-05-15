@@ -84,7 +84,7 @@ void SkySystem::OnEntityRemoved(ID<Entity> entity)
 
 void SkySystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, sky_component, mesh_component] : GetEntityManager().GetEntitySet<SkyComponent, MeshComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity_id, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos())) {
         if (!sky_component.render_subsystem) {
             continue;
         }

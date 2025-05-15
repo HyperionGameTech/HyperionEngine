@@ -290,20 +290,6 @@ public:
     HYP_METHOD(Property="Material", Serialize=true, Editor=true)
     void SetMaterial(Handle<Material> material);
 
-    /*! \brief Check if the light is set as visible to the camera.
-     *
-     * \param camera_id The camera to check visibility for.
-     * \return True if the light is visible, false otherwise.
-     */
-    bool IsVisible(ID<Camera> camera_id) const;
-
-    /*! \brief Set the visibility of the light to the camera.
-     *
-     * \param camera_id The camera to set visibility for.
-     * \param is_visible True if the light is visible, false otherwise.
-     */
-    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
-
     HYP_METHOD()
     BoundingBox GetAABB() const;
 
@@ -329,8 +315,6 @@ private:
     Pair<Vec3f, Vec3f> CalculateAreaLightRect() const;
 
     mutable DataMutationState   m_mutation_state;
-
-    Bitset                      m_visibility_bits;
 
     LightRenderResource         *m_render_resource;
 };

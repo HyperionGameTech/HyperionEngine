@@ -200,7 +200,7 @@ RenderCollector::CollectionResult View::CollectEntities(RenderCollector &render_
     uint32 num_collected_entities = 0;
     uint32 num_skipped_entities = 0;
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+    for (auto [entity_id, mesh_component, bounding_box_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             if (!visibility_state_component.visibility_state) {
@@ -259,7 +259,7 @@ RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+    for (auto [entity_id, mesh_component, bounding_box_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             if (!visibility_state_component.visibility_state) {
@@ -311,7 +311,7 @@ RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &r
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+    for (auto [entity_id, mesh_component, bounding_box_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, BoundingBoxComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             if (!visibility_state_component.visibility_state) {
@@ -341,7 +341,14 @@ void View::CollectLights()
 {
     HYP_SCOPE;
 
+    // @TODO Change this to mirror RenderCollector.
+    // For now, just loop through all lights and set their visibility state
+
     for (auto [entity_id, light_component, transform_component, bounding_box_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
+        if (!light_component.light.IsValid()) {
+            continue;
+        }
+        
         if (!(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
             bool is_light_in_frustum = false;
             is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
@@ -363,7 +370,13 @@ void View::CollectLights()
                 break;
             }
 
-            light_component.light->SetIsVisible(camera.GetID(), is_light_in_frustum);
+            if (is_light_in_frustum) {
+                if (!m_lights.Contains(light_component.light)) {
+                    AddLight(light_component.light);
+                }
+            } else {
+                RemoveLight(light_component.light);
+            }
         }
     }
 }

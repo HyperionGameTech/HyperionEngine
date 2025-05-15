@@ -36,6 +36,7 @@ class HBAO;
 class SSGI;
 class DOFBlur;
 class Texture;
+enum class LightType : uint32;
 
 class ViewRenderResource : public RenderResourceBase
 {
@@ -63,6 +64,17 @@ public:
 
     void AddLight(const TResourceHandle<LightRenderResource> &light);
     void RemoveLight(LightRenderResource *light);
+
+    /*! \brief Get the currently bound Lights with the given LightType.
+     *  \note Only call from render thread or from task on a task thread that is initiated by the render thread.
+     *  \param type The type of light to get. */
+    HYP_FORCE_INLINE const Array<TResourceHandle<LightRenderResource>> &GetLights(LightType type) const
+    {
+        AssertDebug(uint32(type) < m_light_render_resource_handles.Size());
+
+        return m_light_render_resource_handles[uint32(type)];
+    }
+
     void SetLights(Array<TResourceHandle<LightRenderResource>> &&lights);
 
     HYP_FORCE_INLINE SizeType NumLights() const

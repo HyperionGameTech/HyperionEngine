@@ -25,31 +25,6 @@
 
 namespace hyperion {
 
-#pragma region Render commands
-
-struct RENDER_COMMAND(UnbindLight) : renderer::RenderCommand
-{
-    WeakHandle<Light>   light_weak;
-
-    RENDER_COMMAND(UnbindLight)(const WeakHandle<Light> &light_weak)
-        : light_weak(light_weak)
-    {
-    }
-
-    virtual ~RENDER_COMMAND(UnbindLight)() override = default;
-
-    virtual RendererResult operator()() override
-    {
-        if (Handle<Light> light = light_weak.Lock()) {
-            g_engine->GetRenderState()->UnbindLight(&light->GetRenderResource());
-        }
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
-
 #pragma region LightRenderResource
 
 LightRenderResource::LightRenderResource(Light *light)
@@ -61,7 +36,6 @@ LightRenderResource::LightRenderResource(Light *light)
 LightRenderResource::LightRenderResource(LightRenderResource &&other) noexcept
     : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
       m_light(other.m_light),
-      m_visibility_bits(std::move(other.m_visibility_bits)),
       m_material(std::move(other.m_material)),
       m_material_render_resource_handle(std::move(other.m_material_render_resource_handle)),
       m_shadow_map_render_resource_handle(std::move(other.m_shadow_map_render_resource_handle)),
@@ -89,16 +63,6 @@ void LightRenderResource::Update_Internal()
     HYP_SCOPE;
 
     UpdateBufferData();
-}
-
-void LightRenderResource::EnqueueUnbind()
-{
-    HYP_SCOPE;
-
-    Execute([this]()
-    {
-        g_engine->GetRenderState()->UnbindLight(this);
-    }, /* force_render_thread */ true);
 }
 
 GPUBufferHolderBase *LightRenderResource::GetGPUBufferHolder() const
@@ -166,29 +130,6 @@ void LightRenderResource::SetBufferData(const LightShaderData &buffer_data)
             SetNeedsUpdate();
         }
     });
-}
-
-void LightRenderResource::SetVisibilityBits(const Bitset &visibility_bits)
-{
-    HYP_SCOPE;
-
-    Execute([this, visibility_bits]()
-    {
-        const SizeType previous_count = m_visibility_bits.Count();
-        const SizeType new_count = visibility_bits.Count();
-
-        m_visibility_bits = visibility_bits;
-
-        if (previous_count != new_count) {
-            if (previous_count == 0) {
-                // May cause Initialize() to be called due to Claim() being called when binding a light.
-                g_engine->GetRenderState()->BindLight(TResourceHandle<LightRenderResource>(*this));
-            } else if (new_count == 0) {
-                // May cause Destroy() to be called due to Unclaim() being called.
-                g_engine->GetRenderState()->UnbindLight(this);
-            }
-        }
-    }, /* force_render_thread */ true);
 }
 
 void LightRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource> &&shadow_map_render_resource_handle)

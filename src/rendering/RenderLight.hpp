@@ -83,18 +83,10 @@ public:
     HYP_FORCE_INLINE const LightShaderData &GetBufferData() const
         { return m_buffer_data; }
 
-    void SetVisibilityBits(const Bitset &visibility_bits);
-    
-    /*! \note Only to be called from render thread or render task */
-    HYP_FORCE_INLINE const Bitset &GetVisibilityBits() const
-        { return m_visibility_bits; }
-
     HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource> &GetShadowMapResourceHandle() const
         { return m_shadow_map_render_resource_handle; }
 
     void SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource> &&shadow_map_render_resource_handle);
-
-    void EnqueueUnbind();
 
 protected:
     virtual void Initialize_Internal() override;
@@ -107,7 +99,6 @@ private:
     void UpdateBufferData();
 
     Light                                       *m_light;
-    Bitset                                      m_visibility_bits;
     Handle<Material>                            m_material;
     TResourceHandle<MaterialRenderResource>     m_material_render_resource_handle;
     TResourceHandle<ShadowMapRenderResource>    m_shadow_map_render_resource_handle;

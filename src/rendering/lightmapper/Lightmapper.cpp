@@ -580,24 +580,35 @@ void LightmapGPUPathTracer::UpdateUniforms(FrameBase *frame, uint32 ray_offset)
 
     uniforms.ray_offset = ray_offset;
 
-    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
-    uint32 num_bound_lights = 0;
+    // const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
+    // uint32 num_bound_lights = 0;
 
-    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
-        if (num_bound_lights >= max_bound_lights) {
-            break;
-        }
+    // for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
+    //     if (num_bound_lights >= max_bound_lights) {
+    //         break;
+    //     }
 
-        for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
-            if (num_bound_lights >= max_bound_lights) {
-                break;
-            }
+    //     for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+    //         if (num_bound_lights >= max_bound_lights) {
+    //             break;
+    //         }
 
-            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
-        }
-    }
+    //         uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+    //     }
+    // }
 
-    uniforms.num_bound_lights = num_bound_lights;
+    // uniforms.num_bound_lights = num_bound_lights;
+
+    // FIXME: Lights are now stored per-view.
+    // We don't have a View for Lightmapper since it is for the entire WorldRenderResource it is indirectly attached to.
+    // We'll need to find a way to get the lights for the current view.
+    // Ideas: 
+    // a) create a View for the Lightmapper and use that to get the lights. It will need to collect the lights on the Game thread so we'll need to add some kind of System to do that.
+    // b) add a function to the SceneRenderResource to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some LightRenderResource active when it could be inactive if it is not in any view.
+    // OR: We can just use the lights in the current view and ignore the rest. This is a bit of a hack but it will work for now.
+    HYP_NOT_IMPLEMENTED();
+
+    uniforms.num_bound_lights = 0;
 
     m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
 }

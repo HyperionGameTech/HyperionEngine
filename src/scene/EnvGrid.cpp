@@ -349,6 +349,7 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
 
     m_view->Update(delta);
 
+    // FIXME: Reuse the collected entities from View::Update(). View needs to know to only collect static entities.
     // skip frustum culling for now
     m_view->CollectStaticEntities(true);
 

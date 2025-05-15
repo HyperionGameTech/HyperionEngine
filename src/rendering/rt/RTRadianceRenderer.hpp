@@ -73,7 +73,7 @@ private:
     void CreateUniformBuffer();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
-    void UpdateUniforms(FrameBase *frame);
+    void UpdateUniforms(FrameBase *frame, ViewRenderResource *view);
 
     RTRadianceConfig                                    m_config;
 

@@ -26,6 +26,7 @@ class UIStage;
 class UIObject;
 class CameraRenderResource;
 class View;
+class ViewRenderResource;
 
 class UIRenderCollector : RenderCollector
 {
@@ -52,7 +53,6 @@ public:
     void ExecuteDrawCalls(
         FrameBase *frame,
         ViewRenderResource *view,
-        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const FramebufferRef &framebuffer
     ) const;
 
@@ -104,6 +104,7 @@ private:
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 
     Handle<View>                            m_view;
+    TResourceHandle<ViewRenderResource>     m_view_render_resource_handle;
 
     DelegateHandler                         m_on_gbuffer_resolution_changed_handle;
 };

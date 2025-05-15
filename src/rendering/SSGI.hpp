@@ -71,7 +71,7 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
 
-    void GetUniformBufferData(SSGIUniforms &out_uniforms) const;
+    void FillUniformBufferData(ViewRenderResource *view, SSGIUniforms &out_uniforms) const;
 
     SSGIConfig                                      m_config;
 

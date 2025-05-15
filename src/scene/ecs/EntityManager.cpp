@@ -476,7 +476,7 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
 
     {
         HYP_MT_CHECK_RW(m_entities_data_race_detector);
-        HYP_MT_CHECK_RW(other.m_entities_data_race_detector);
+        HYP_MT_CHECK_RW(other->m_entities_data_race_detector);
 
         const auto entities_it = m_entities.Find(entity);
         AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");

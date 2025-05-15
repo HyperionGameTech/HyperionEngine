@@ -114,7 +114,7 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
+void RTRadianceRenderer::UpdateUniforms(FrameBase *frame, ViewRenderResource *view)
 {
     RTRadianceUniforms uniforms { };
 
@@ -123,20 +123,23 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
     uniforms.min_roughness = 0.4f;
     uniforms.output_image_resolution = Vec2i(m_config.extent);
 
-    const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
     uint32 num_bound_lights = 0;
 
-    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
-        if (num_bound_lights >= max_bound_lights) {
-            break;
-        }
+    if (view) {
+        const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
 
-        for (const auto &it : g_engine->GetRenderState()->bound_lights[light_type]) {
+        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
             if (num_bound_lights >= max_bound_lights) {
                 break;
             }
 
-            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+            for (const auto &it : view->GetLights(LightType(light_type))) {
+                if (num_bound_lights >= max_bound_lights) {
+                    break;
+                }
+
+                uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+            }
         }
     }
 
@@ -158,10 +161,8 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase *frame)
 
 void RTRadianceRenderer::Render(FrameBase *frame, ViewRenderResource *view)
 {
-    UpdateUniforms(frame);
+    UpdateUniforms(frame, view);
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
@@ -174,8 +175,8 @@ void RTRadianceRenderer::Render(FrameBase *frame, ViewRenderResource *view)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                 }
@@ -202,10 +203,10 @@ void RTRadianceRenderer::Render(FrameBase *frame, ViewRenderResource *view)
     );
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && camera_render_resource_handle->GetBufferData().view != m_previous_view_matrix) {
+    if (IsPathTracer() && view->GetCamera()->GetBufferData().view != m_previous_view_matrix) {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = camera_render_resource_handle->GetBufferData().view;
+        m_previous_view_matrix = view->GetCamera()->GetBufferData().view;
     }
 
     m_temporal_blending->Render(frame, view);

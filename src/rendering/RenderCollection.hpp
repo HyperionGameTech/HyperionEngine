@@ -113,7 +113,6 @@ public:
     void ExecuteDrawCalls(
         FrameBase *frame,
         ViewRenderResource *view,
-        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
@@ -122,7 +121,6 @@ public:
     void ExecuteDrawCalls(
         FrameBase *frame,
         ViewRenderResource *view,
-        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
         const FramebufferRef &framebuffer,
         const Bitset &bucket_bits,
         const CullData *cull_data = nullptr,

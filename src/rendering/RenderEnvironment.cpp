@@ -231,16 +231,8 @@ void RenderEnvironment::RenderDDGIProbes(FrameBase *frame)
     AssertThrow(g_rendering_api->GetRenderConfig().IsRaytracingSupported());
     
     if (m_has_ddgi_probes) {
-        const DirectionalLightShadowRenderer *shadow_map_renderer = GetRenderSubsystem<DirectionalLightShadowRenderer>();
-
         m_ddgi.RenderProbes(frame);
         m_ddgi.ComputeIrradiance(frame);
-
-        // if (g_engine->GetConfig().Get(CONFIG_RT_GI_DEBUG_PROBES).GetBool()) {
-        //     for (const Probe &probe : m_ddgi.GetProbes()) {
-        //         g_engine->GetDebugDrawer()->Sphere(probe.position);
-        //     }
-        // }
     }
 }
 

@@ -7,6 +7,7 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
@@ -141,13 +142,11 @@ void TemporalAA::CreateComputePipelines()
     DeferCreate(m_compute_taa);
 }
 
-void TemporalAA::Render(FrameBase *frame)
+void TemporalAA::Render(FrameBase *frame, ViewRenderResource *view)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
     const uint32 frame_index = frame->GetFrameIndex();
-    
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     const ImageRef &active_image = frame->GetFrameIndex() % 2 == 0
         ? m_result_texture->GetRenderResource().GetImage()
@@ -166,7 +165,7 @@ void TemporalAA::Render(FrameBase *frame)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
-    push_constants.camera_near_far = Vec2f { camera_resource_handle->GetBufferData().camera_near, camera_resource_handle->GetBufferData().camera_far };
+    push_constants.camera_near_far = Vec2f { view->GetCamera()->GetBufferData().camera_near, view->GetCamera()->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
     

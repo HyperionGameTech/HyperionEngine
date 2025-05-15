@@ -497,22 +497,22 @@ void RenderCollector::CollectDrawCalls(
 void RenderCollector::ExecuteDrawCalls(
     FrameBase *frame,
     ViewRenderResource *view,
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const Bitset &bucket_bits,
     const CullData *cull_data,
     PushConstantData push_constant
 ) const
 {
-    const FramebufferRef &framebuffer = camera_resource_handle->GetFramebuffer();
+    AssertThrow(view != nullptr);
+
+    const FramebufferRef &framebuffer = view->GetCamera()->GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, view, camera_resource_handle, framebuffer, bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, view, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase *frame,
     ViewRenderResource *view,
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle,
     const FramebufferRef &framebuffer,
     const Bitset &bucket_bits,
     const CullData *cull_data,
@@ -548,8 +548,6 @@ void RenderCollector::ExecuteDrawCalls(
             frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
 
-        g_engine->GetRenderState()->BindCamera(camera_resource_handle);
-
         for (const auto &it : render_groups_by_attributes) {
             const RenderableAttributeSet &attributes = it.first;
             const Handle<RenderGroup> &render_group = it.second;
@@ -566,8 +564,6 @@ void RenderCollector::ExecuteDrawCalls(
                 render_group->PerformRendering(frame, view);
             }
         }
-
-        g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
 
         if (framebuffer) {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
@@ -590,8 +586,6 @@ void RenderCollector::ExecuteDrawCalls(
         if (framebuffer) {
             frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
-
-        g_engine->GetRenderState()->BindCamera(camera_resource_handle);
 
         for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
             for (const auto &it : render_groups_by_attributes) {
@@ -617,8 +611,6 @@ void RenderCollector::ExecuteDrawCalls(
                 }
             }
         }
-
-        g_engine->GetRenderState()->UnbindCamera(camera_resource_handle.Get());
 
         if (framebuffer) {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);

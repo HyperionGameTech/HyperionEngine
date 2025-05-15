@@ -69,9 +69,8 @@ public:
 class HYP_API ResourceBase : public IResource
 {
 protected:
-    using PreInitSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using ClaimedSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
-    using CompletionSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using CompletionSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
     ResourceBase();
@@ -92,7 +91,13 @@ public:
 
     virtual int Claim(int count = 1) override final;
     virtual int Unclaim() override final;
+
+    /*! \brief Wait for all tasks to be completed. */
     virtual void WaitForTaskCompletion() const override final;
+
+    /*! \brief Wait for claim count to be 0 and all tasks to be completed. Will also wait for any tasks that are currently executing to complete.
+     *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
+     *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
     virtual void WaitForFinalization() const override final;
 
     virtual ResourceMemoryPoolHandle GetPoolHandle() const override final
@@ -113,8 +118,7 @@ protected:
     // We can't call Initialize() because it is a virtual function and the object might not be fully constructed yet.
     virtual int ClaimWithoutInitialize() override final;
 
-    HYP_FORCE_INLINE bool IsInitialized() const
-        { return m_is_initialized; }
+    bool IsInitialized() const;
 
     virtual IThread *GetOwnerThread() const
         { return nullptr; }
@@ -133,7 +137,6 @@ protected:
     AtomicVar<int16>            m_update_counter;
 
     ClaimedSemaphore            m_claimed_semaphore;
-    PreInitSemaphore            m_pre_init_semaphore;
     CompletionSemaphore         m_completion_semaphore;
 
     ResourceMemoryPoolHandle    m_pool_handle;
@@ -141,7 +144,7 @@ protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 
 private:
-    bool                        m_is_initialized;
+    AtomicVar<uint64>           m_initialization_mask;
 };
 
 class IResourceMemoryPool

@@ -15,6 +15,7 @@ namespace hyperion {
 
 class Engine;
 class GBuffer;
+class ViewRenderResource;
 
 struct RenderCommand_CreateTemporalAADescriptors;
 struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
@@ -41,7 +42,7 @@ public:
     void Resize(Vec2u resolution);
 
     void Create();
-    void Render(FrameBase *frame);
+    void Render(FrameBase *frame, ViewRenderResource *view);
 
 private:
     void CreateImages();
