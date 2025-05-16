@@ -37,7 +37,7 @@ struct ProbeRayData
 
 static_assert(sizeof(ProbeRayData) == 64);
 
-struct alignas(256) DDGIUniforms
+struct DDGIUniforms
 {
     Vec4f   aabb_max;
     Vec4f   aabb_min;
@@ -50,8 +50,6 @@ struct alignas(256) DDGIUniforms
     uint32  _pad0, _pad1, _pad2;
     uint32  light_indices[16];
 };
-
-static_assert(sizeof(DDGIUniforms) == 256);
 
 struct DDGIInfo
 {

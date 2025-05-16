@@ -23,22 +23,39 @@ class ViewRenderResource;
 class Scene;
 class Camera;
 class Light;
+class LightRenderResource;
 
 enum class ViewFlags : uint32
 {
     NONE    = 0x0,
-    GBUFFER = 0x1,
+    GBUFFER = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
+enum class ViewEntityCollectionFlags : uint32
+{
+    NONE                    = 0x0,
+    COLLECT_STATIC          = 0x1,
+    COLLECT_DYNAMIC         = 0x2,
+    COLLECT_ALL             = COLLECT_STATIC | COLLECT_DYNAMIC,
+
+    SKIP_FRUSTUM_CULLING    = 0x4,
+
+    DEFAULT                 = COLLECT_ALL
+};
+
+HYP_MAKE_ENUM_FLAGS(ViewEntityCollectionFlags)
+
 struct ViewDesc
 {
-    EnumFlags<ViewFlags>    flags = ViewFlags::NONE;
-    Viewport                viewport;
-    Handle<Scene>           scene;
-    Handle<Camera>          camera;
-    int                     priority = 0;
+    EnumFlags<ViewFlags>                    flags = ViewFlags::NONE;
+    Viewport                                viewport;
+    Handle<Scene>                           scene;
+    Handle<Camera>                          camera;
+    int                                     priority = 0;
+    EnumFlags<ViewEntityCollectionFlags>    entity_collection_flags = ViewEntityCollectionFlags::DEFAULT;
+    Optional<RenderableAttributeSet>        override_attributes;
 };
 
 HYP_CLASS()
@@ -73,16 +90,6 @@ public:
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Array<Handle<Light>> &GetLights() const
-        { return m_lights; }
-
-    HYP_METHOD()
-    void AddLight(const Handle<Light> &light);
-
-    HYP_METHOD()
-    void RemoveLight(const Handle<Light> &light);
-
     HYP_FORCE_INLINE const Viewport &GetViewport() const
         { return m_viewport; }
 
@@ -95,32 +102,42 @@ public:
     HYP_METHOD()
     void SetPriority(int priority);
 
+    HYP_FORCE_INLINE const typename RenderProxyTracker::Diff &GetLastCollectionResult() const
+        { return m_last_collection_result; }
+
     void Init();
     void Update(GameCounter::TickUnit delta);
-
-    
-    RenderCollector::CollectionResult CollectEntities(bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectDynamicEntities(bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectStaticEntities(bool skip_frustum_culling = false);
     
 protected:
     void CollectLights();
+
+    typename RenderProxyTracker::Diff CollectEntities();
+
+    typename RenderProxyTracker::Diff CollectAllEntities();
+    typename RenderProxyTracker::Diff CollectDynamicEntities();
+    typename RenderProxyTracker::Diff CollectStaticEntities();
+
+    ViewRenderResource                                                  *m_render_resource;
+
+    EnumFlags<ViewFlags>                                                m_flags;
+
+    Viewport                                                            m_viewport;
     
-    RenderCollector::CollectionResult CollectEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectDynamicEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectStaticEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
+    Handle<Scene>                                                       m_scene;
+    Handle<Camera>                                                      m_camera;
 
-    ViewRenderResource      *m_render_resource;
+    int                                                                 m_priority;
 
-    EnumFlags<ViewFlags>    m_flags;
+    EnumFlags<ViewEntityCollectionFlags>                                m_entity_collection_flags;
 
-    Viewport                m_viewport;
+    Optional<RenderableAttributeSet>                                    m_override_attributes;
+
+    // Game thread side collection
+    RenderProxyTracker                                                  m_render_proxy_tracker;
     
-    Handle<Scene>           m_scene;
-    Handle<Camera>          m_camera;
-    Array<Handle<Light>>    m_lights;
+    ResourceTracker<ID<Light>, LightRenderResource *>                   m_tracked_lights;
 
-    int                     m_priority;
+    typename RenderProxyTracker::Diff                                   m_last_collection_result;
 };
 
 } // namespace hyperion

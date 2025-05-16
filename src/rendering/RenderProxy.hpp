@@ -122,7 +122,9 @@ struct RenderProxy
 
     bool operator==(const RenderProxy &other) const
     {
-        return entity == other.entity
+        // Check version first for faster comparison
+        return version == other.version
+            && entity == other.entity
             && mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
@@ -130,13 +132,14 @@ struct RenderProxy
             && previous_model_matrix == other.previous_model_matrix
             && aabb == other.aabb
             && user_data == other.user_data
-            && instance_data == other.instance_data
-            && version == other.version;
+            && instance_data == other.instance_data;
     }
 
     bool operator!=(const RenderProxy &other) const
     {
-        return entity != other.entity
+        // Check version first for faster comparison
+        return version != other.version
+            || entity != other.entity
             || mesh != other.mesh
             || material != other.material
             || skeleton != other.skeleton
@@ -144,89 +147,369 @@ struct RenderProxy
             || previous_model_matrix != other.previous_model_matrix
             || aabb != other.aabb
             || user_data != other.user_data
-            || instance_data != other.instance_data
-            || version != other.version;
+            || instance_data != other.instance_data;
     }
 };
 
-using RenderProxyEntityMap = HashMap<ID<Entity>, RenderProxy>;
-
-/*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */
+/*! \brief The action to take on call to \ref{RenderProxyTracker::Advance}. */
 enum class RenderProxyListAdvanceAction : uint32
 {
-    CLEAR,    //! Clear the 'next' entities, so on next iteration, any entities that have not been re-added are marked for removal.
-    PERSIST   //! Copy the previous entities over to next. To remove entities, `RemoveProxy` needs to be manually called.
+    CLEAR,    //! Clear the 'next' elements, so on next iteration, any elements that have not been re-added are marked for removal.
+    PERSIST   //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
 };
 
-class RenderProxyList
+template <class IDType, class ElementType>
+class ResourceTracker
 {
 public:
-    void Reserve(SizeType capacity);
+    using MapType = HashMap<IDType, ElementType>;
 
-    RenderProxyEntityMap::Iterator Add(ID<Entity> entity, RenderProxy &&proxy);
+    static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
 
-    /*! \brief Mark to keep a proxy from the previous iteration for this iteration.
-     *  Usable when \ref{Advance} is called with \ref{RenderProxyListAdvanceAction::CLEAR}. Returns true if the
-     *  proxy was successfully taken from the previous iteration, false otherwise.
-     *  \param entity The entity to keep the proxy from the previous iteration for
-     *  \returns Whether or not the proxy could be taken from the previous iteration */
-    bool MarkToKeep(ID<Entity> entity);
-
-    /*! \brief Mark the proxy to be removed in the next call to \ref{Advance} */
-    void MarkToRemove(ID<Entity> entity);
-
-    void GetAllEntities(Array<ID<Entity>> &out_entities);
-    void GetRemovedEntities(Array<ID<Entity>> &out_entities, bool include_changed = false);
-    void GetAddedEntities(Array<RenderProxy *> &out_entities, bool include_changed = false);
-
-    RenderProxy *GetProxyForEntity(ID<Entity> entity);
-
-    const RenderProxy *GetProxyForEntity(ID<Entity> entity) const
-        { return const_cast<RenderProxyList *>(this)->GetProxyForEntity(entity); }
-
-    void Advance(RenderProxyListAdvanceAction action);
-
-    /*! \brief Checks if the RenderProxyList already has a proxy for the given entity
-     *  from the previous frame */
-    HYP_FORCE_INLINE bool HasProxyForEntity(ID<Entity> entity) const
-        { return m_previous_entities.Test(entity.ToIndex()); }
-
-    HYP_FORCE_INLINE const Bitset &GetEntities() const
-        { return m_previous_entities; }
-
-    HYP_FORCE_INLINE const Bitset &GetNextEntities() const
-        { return m_next_entities; }
-
-    HYP_FORCE_INLINE RenderProxyEntityMap &GetRenderProxies()
-        { return m_proxies; }
-
-    HYP_FORCE_INLINE const RenderProxyEntityMap &GetRenderProxies() const
-        { return m_proxies; }
-
-    HYP_FORCE_INLINE Bitset GetAddedEntities() const
+    struct Diff
     {
-        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
+        uint32  num_added = 0;
+        uint32  num_removed = 0;
+        uint32  num_changed = 0;
 
-        return Bitset(m_next_entities).Resize(new_num_bits) & ~Bitset(m_previous_entities).Resize(new_num_bits);
+        HYP_FORCE_INLINE bool NeedsUpdate() const
+            { return num_added > 0 || num_removed > 0 || num_changed > 0; }
+    };
+
+    ResourceTracker()
+        : m_was_reset(true)
+    {
     }
 
-    HYP_FORCE_INLINE Bitset GetRemovedEntities() const
-    {
-        const SizeType new_num_bits = MathUtil::Max(m_previous_entities.NumBits(), m_next_entities.NumBits());
+    ResourceTracker(const ResourceTracker &other)                   = delete;
+    ResourceTracker &operator=(const ResourceTracker &other)        = delete;
+    ResourceTracker(ResourceTracker &&other) noexcept               = default;
+    ResourceTracker &operator=(ResourceTracker &&other) noexcept    = default;
+    ~ResourceTracker()                                              = default;
+    
+    /*! \brief Checks if the RenderProxyTracker already has a proxy for the given ID from the previous frame */
+    HYP_FORCE_INLINE bool HasElement(IDType id) const
+        { return m_previous.Test(id.ToIndex()); }
 
-        return Bitset(m_previous_entities).Resize(new_num_bits) & ~Bitset(m_next_entities).Resize(new_num_bits);
+    HYP_FORCE_INLINE const Bitset &GetCurrentBits() const
+        { return m_previous; }
+
+    HYP_FORCE_INLINE MapType &GetElementMap()
+        { return m_element_map; }
+
+    HYP_FORCE_INLINE const MapType &GetElementMap() const
+        { return m_element_map; }
+
+    HYP_FORCE_INLINE Bitset GetAdded() const
+    {
+        const SizeType new_num_bits = MathUtil::Max(m_previous.NumBits(), m_next.NumBits());
+
+        return Bitset(m_next).Resize(new_num_bits) & ~Bitset(m_previous).Resize(new_num_bits);
     }
 
-    HYP_FORCE_INLINE const Bitset &GetChangedEntities() const
-        { return m_changed_entities; }
+    HYP_FORCE_INLINE Bitset GetRemoved() const
+    {
+        const SizeType new_num_bits = MathUtil::Max(m_previous.NumBits(), m_next.NumBits());
 
-private:
-    RenderProxyEntityMap    m_proxies;
+        return Bitset(m_previous).Resize(new_num_bits) & ~Bitset(m_next).Resize(new_num_bits);
+    }
 
-    Bitset                  m_previous_entities;
-    Bitset                  m_next_entities;
-    Bitset                  m_changed_entities;
+    HYP_FORCE_INLINE const Bitset &GetChanged() const
+        { return m_changed; }
+
+    HYP_FORCE_INLINE bool WasReset() const
+        { return m_was_reset; }
+
+    Diff GetDiff() const
+    {
+        Diff diff;
+
+        diff.num_added = GetAdded().Count();
+        diff.num_removed = GetRemoved().Count();
+        diff.num_changed = GetChanged().Count();
+
+        return diff;
+    }
+
+    HYP_FORCE_INLINE void Reserve(SizeType capacity)
+        { m_element_map.Reserve(capacity); }
+
+    typename MapType::Iterator Track(IDType id, const ElementType &element)
+    {
+        typename MapType::Iterator iter = m_element_map.End();
+
+        AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
+
+        if (HasElement(id)) {
+            iter = m_element_map.FindAs(id);
+        }
+
+        if (iter != m_element_map.End()) {
+            // Advance if version has changed
+            if (element != iter->second) { //element.version != iter->second.version) {
+                // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
+                AssertDebug(!m_changed.Test(id.ToIndex()));
+
+                // Mark as changed if it is found in the previous iteration
+                m_changed.Set(id.ToIndex(), true);
+
+                iter->second = element;
+            }
+        } else {
+            // sanity check - if not in previous iteration, it must not be in the changed list
+            AssertDebug(!m_changed.Test(id.ToIndex()));
+
+            iter = m_element_map.Insert(id, element).first;
+        }
+
+        m_next.Set(id.ToIndex(), true);
+
+        return iter;
+    }
+
+    typename MapType::Iterator Track(IDType id, ElementType &&element)
+    {
+        typename MapType::Iterator iter = m_element_map.End();
+
+        AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
+
+        if (HasElement(id)) {
+            iter = m_element_map.FindAs(id);
+        }
+
+        if (iter != m_element_map.End()) {
+            // Advance if version has changed
+            if (element != iter->second) { //element.version != iter->second.version) {
+                // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
+                AssertDebug(!m_changed.Test(id.ToIndex()));
+
+                // Mark as changed if it is found in the previous iteration
+                m_changed.Set(id.ToIndex(), true);
+
+                iter->second = std::move(element);
+            }
+        } else {
+            // sanity check - if not in previous iteration, it must not be in the changed list
+            AssertDebug(!m_changed.Test(id.ToIndex()));
+
+            iter = m_element_map.Insert(id, std::move(element)).first;
+        }
+
+        m_next.Set(id.ToIndex(), true);
+
+        return iter;
+    }
+
+    bool MarkToKeep(IDType id)
+    {
+        if (!m_previous.Test(id.ToIndex())) {
+            return false;
+        }
+
+        m_next.Set(id.ToIndex(), true);
+
+        return true;
+    }
+
+    void MarkToRemove(IDType id)
+    {
+        m_next.Set(id.ToIndex(), false);
+    }
+
+    template <class AllocatorType>
+    void GetRemoved(Array<IDType, AllocatorType> &out_ids, bool include_changed)
+    {
+        HYP_SCOPE;
+
+        Bitset removed_bits = GetRemoved();
+
+        if (include_changed) {
+            removed_bits |= GetChanged();
+        }
+
+        out_ids.Reserve(removed_bits.Count());
+
+        SizeType first_set_bit_index;
+
+        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1) {
+            out_ids.PushBack(IDType::FromIndex(first_set_bit_index));
+
+            removed_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetAdded(Array<ElementType, AllocatorType> &out, bool include_changed)
+    {
+        HYP_SCOPE;
+        
+        Bitset newly_added_bits = GetAdded();
+
+        if (include_changed) {
+            newly_added_bits |= GetChanged();
+        }
+
+        out.Reserve(newly_added_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(it->second);
+
+            newly_added_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetAdded(Array<ElementType *, AllocatorType> &out, bool include_changed)
+    {
+        HYP_SCOPE;
+        
+        Bitset newly_added_bits = GetAdded();
+
+        if (include_changed) {
+            newly_added_bits |= GetChanged();
+        }
+
+        out.Reserve(newly_added_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(&it->second);
+
+            newly_added_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetCurrent(Array<ElementType *, AllocatorType> &out)
+    {
+        HYP_SCOPE;
+
+        Bitset current_bits = m_previous;
+
+        out.Reserve(current_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(&it->second);
+
+            current_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetCurrent(Array<ElementType, AllocatorType> &out)
+    {
+        HYP_SCOPE;
+
+        Bitset current_bits = m_previous;
+
+        out.Reserve(current_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(it->second);
+
+            current_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    ElementType *GetElement(IDType id)
+    {
+        const auto it = m_element_map.Find(id);
+
+        if (it == m_element_map.End()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+    void Advance(RenderProxyListAdvanceAction action)
+    {
+        HYP_SCOPE;
+
+        m_was_reset = false;
+
+        { // Remove proxies for removed bits
+            for (Bitset::BitIndex index : GetRemoved()) {
+                const IDType id = IDType::FromIndex(index);
+
+                const auto it = m_element_map.Find(id);
+
+                if (it != m_element_map.End()) {
+                    // g_safe_deleter->SafeRelease(std::move(it->second));
+
+                    m_element_map.Erase(it);
+                }
+            }
+        }
+
+        switch (action) {
+        case RenderProxyListAdvanceAction::CLEAR:
+            // Next state starts out zeroed out -- and next call to Advance will remove proxies for these objs
+            m_previous = std::move(m_next);
+
+            break;
+        case RenderProxyListAdvanceAction::PERSIST:
+            m_previous = m_next;
+
+            break;
+        default:
+            HYP_UNREACHABLE();
+
+            break;
+        }
+
+        m_changed.Clear();
+    }
+
+    /*! \brief Total reset of the list, including clearing the previous state. */
+    void Reset()
+    {
+        m_element_map.Clear();
+        m_previous.Clear();
+        m_next.Clear();
+        m_changed.Clear();
+
+        m_was_reset = true;
+    }
+
+protected:
+    MapType m_element_map;
+
+    Bitset  m_previous;
+    Bitset  m_next;
+    Bitset  m_changed;
+
+    bool    m_was_reset;
 };
+
+using RenderProxyTracker = ResourceTracker<ID<Entity>, RenderProxy>;
 
 } // namespace hyperion
 

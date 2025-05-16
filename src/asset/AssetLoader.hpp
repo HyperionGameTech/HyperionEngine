@@ -176,7 +176,7 @@ struct AssetLoaderWrapper
 private:
 
 public:
-    static constexpr bool is_handle = has_opaque_handle_defined<T>;
+    static constexpr bool is_handle = has_handle_definition<T>;
 
     using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T &>>;
 

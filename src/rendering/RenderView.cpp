@@ -95,7 +95,7 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy 
 
 static void AddRenderProxy(
     EntityDrawCollection *collection,
-    RenderProxyList &proxy_list,
+    RenderProxyTracker &render_proxy_tracker,
     RenderProxy &&proxy,
     CameraRenderResource *camera_render_resource,
     ViewRenderResource *view_render_resource,
@@ -166,12 +166,12 @@ static void AddRenderProxy(
         InitObject(render_group);
     }
 
-    auto iter = proxy_list.Add(entity, std::move(proxy));
+    auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
     render_group->AddRenderProxy(iter->second);
 }
 
-static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
+static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyTracker &render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
 {
     HYP_SCOPE;
 
@@ -185,7 +185,7 @@ static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyList 
 
     const bool removed = render_group->RemoveRenderProxy(entity);
 
-    proxy_list.MarkToRemove(entity);
+    render_proxy_tracker.MarkToRemove(entity);
 
     return removed;
 }
@@ -200,17 +200,27 @@ ViewRenderResource::ViewRenderResource(View *view)
       m_viewport(view ? view->GetViewport() : Viewport { }),
       m_priority(view ? view->GetPriority() : 0)
 {
-    m_light_render_resource_handles.Resize(uint32(LightType::MAX));
+    m_lights.Resize(uint32(LightType::MAX));
 }
 
 ViewRenderResource::~ViewRenderResource()
 {
-    m_light_render_resource_handles.Clear();
 }
 
 void ViewRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
+
+    // Reclaim any claimed resources that were unclaimed in Destroy_Internal
+    EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
+    RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+
+    Array<RenderProxy *> proxies;
+    render_proxy_tracker.GetCurrent(proxies);
+
+    for (RenderProxy *proxy : proxies) {
+        proxy->ClaimRenderResource();
+    }
 
     if (!m_view || (m_view->GetFlags() & ViewFlags::GBUFFER)) {
         AssertThrow(m_viewport.extent.Volume() > 0);
@@ -222,6 +232,35 @@ void ViewRenderResource::Initialize_Internal()
 void ViewRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
+
+    // Unclaim all the claimed resources
+    { // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
+        EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+
+        Array<RenderProxy *> proxies;
+        render_proxy_tracker.GetCurrent(proxies);
+
+        for (RenderProxy *proxy : proxies) {
+            proxy->UnclaimRenderResource();
+        }
+    }
+
+    { // lights
+        Array<LightRenderResource *> lights;
+        m_tracked_lights.GetCurrent(lights);
+
+        for (LightRenderResource *light : lights) {
+            light->Unclaim();
+        }
+
+        m_tracked_lights.Reset();
+
+        // Empty the lights by LightType arrays
+        for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
+            m_lights[i].Clear();
+        }
+    }
 
     if (m_gbuffer) {
         DestroyRenderer();
@@ -243,6 +282,10 @@ void ViewRenderResource::CreateRenderer()
     m_gbuffer = MakeUnique<GBuffer>(Vec2u(m_viewport.extent));
     m_gbuffer->Create();
 
+    const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+    const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
+    const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+
     m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, m_gbuffer.Get());
     m_env_grid_radiance_pass->Create();
 
@@ -261,7 +304,7 @@ void ViewRenderResource::CreateRenderer()
     m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, m_gbuffer.Get());
     m_direct_pass->Create();
 
-    AttachmentBase *depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AttachmentBase *depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
     AssertThrow(depth_attachment != nullptr);
 
     m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
@@ -290,6 +333,13 @@ void ViewRenderResource::CreateRenderer()
 
     m_reflections_pass = MakeUnique<ReflectionsPass>(m_gbuffer.Get(), m_mip_chain->GetRenderResource().GetImageView(), m_combine_pass->GetFinalImageView());
     m_reflections_pass->Create();
+
+    m_tonemap_pass = MakeUnique<TonemapPass>(m_gbuffer.Get());
+    m_tonemap_pass->Create();
+
+    // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
+    m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+    m_lightmap_pass->Create();
     
     m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_combine_pass->GetFinalImageView(), m_gbuffer.Get());
     m_temporal_aa->Create();
@@ -323,6 +373,7 @@ void ViewRenderResource::CreateDescriptorSets()
     };
 
     const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+    const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
     const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
     // depth attachment goes into separate slot
@@ -382,7 +433,6 @@ void ViewRenderResource::CreateDescriptorSets()
         descriptor_set->SetElement(NAME("DeferredResult"), m_combine_pass->GetFinalImageView());
 
         descriptor_set->SetElement(NAME("DeferredIndirectResultTexture"), m_indirect_pass->GetFinalImageView());
-        descriptor_set->SetElement(NAME("DeferredDirectResultTexture"), m_direct_pass->GetFinalImageView());
 
         descriptor_set->SetElement(NAME("ReflectionProbeResultTexture"), m_reflections_pass->GetFinalImageView());
 
@@ -403,13 +453,34 @@ void ViewRenderResource::CreateCombinePass()
 
     Threads::AssertOnThread(g_render_thread);
 
-    ShaderProperties shader_properties;
-    GetDeferredShaderProperties(shader_properties);
-    
-    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("DeferredCombine"), shader_properties);
-    AssertThrow(shader.IsValid());
+    // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
+    const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    AssertThrow(translucent_fbo != nullptr);
 
-    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::R11G11B10F, Vec2u::Zero(), m_gbuffer.Get());
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), m_indirect_pass->GetFinalImageView());
+    }
+
+    DeferCreate(descriptor_table);
+
+    m_combine_pass = MakeUnique<FullScreenPass>(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        translucent_fbo,
+        translucent_fbo->GetAttachment(0)->GetFormat(),
+        translucent_fbo->GetExtent(),
+        nullptr
+    );
+
     m_combine_pass->Create();
 }
 
@@ -466,6 +537,10 @@ void ViewRenderResource::DestroyRenderer()
 
     m_reflections_pass.Reset();
 
+    m_lightmap_pass.Reset();
+
+    m_tonemap_pass.Reset();
+
     m_mip_chain.Reset();
 
     m_indirect_pass.Reset();
@@ -493,18 +568,30 @@ void ViewRenderResource::SetViewport(const Viewport &viewport)
 
             m_gbuffer->Resize(new_size);
 
+            const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+            const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
+            const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+
             m_hbao->Resize(new_size);
 
             m_direct_pass->Resize(new_size);
             m_indirect_pass->Resize(new_size);
-            m_combine_pass->Resize(new_size);
+            // m_combine_pass->Resize(new_size);
+
+            m_combine_pass.Reset();
+            CreateCombinePass();
 
             m_env_grid_radiance_pass->Resize(new_size);
             m_env_grid_irradiance_pass->Resize(new_size);
 
             m_reflections_pass->Resize(new_size);
+            
+            m_tonemap_pass->Resize(new_size);
 
-            AttachmentBase *depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+            m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+            m_lightmap_pass->Create();
+
+            AttachmentBase *depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
             AssertThrow(depth_attachment != nullptr);
 
             m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
@@ -529,101 +616,19 @@ void ViewRenderResource::SetPriority(int priority)
     });
 }
 
-void ViewRenderResource::AddLight(const TResourceHandle<LightRenderResource> &light)
-{
-    HYP_SCOPE;
-
-    if (!light) {
-        return;
-    }
-
-    AssertThrow(uint32(light->GetLight()->GetLightType()) < uint32(LightType::MAX));
-
-    Execute([this, light]()
-    {
-        const LightType light_type = light->GetLight()->GetLightType();
-
-        if (m_light_render_resource_handles[uint32(light_type)].Contains(light)) {
-            return;
-        }
-
-        m_light_render_resource_handles[uint32(light_type)].PushBack(std::move(light));
-    });
-}
-
-void ViewRenderResource::RemoveLight(LightRenderResource *light)
-{
-    HYP_SCOPE;
-
-    if (!light) {
-        return;
-    }
-
-    AssertThrow(uint32(light->GetLight()->GetLightType()) < uint32(LightType::MAX));
-
-    Execute([this, light]()
-    {
-        const LightType light_type = light->GetLight()->GetLightType();
-
-        auto it = m_light_render_resource_handles[uint32(light_type)].FindIf([light](const TResourceHandle<LightRenderResource> &item)
-        {
-            return item.Get() == light;
-        });
-
-        if (it == m_light_render_resource_handles[uint32(light_type)].End()) {
-            return;
-        }
-
-        m_light_render_resource_handles[uint32(light_type)].Erase(it);
-    });
-}
-
-void ViewRenderResource::SetLights(Array<TResourceHandle<LightRenderResource>> &&lights)
-{
-    HYP_SCOPE;
-
-    if (lights.Empty()) {
-        return;
-    }
-
-    Execute([this, lights = std::move(lights)]()
-    {
-        for (const TResourceHandle<LightRenderResource> &light : lights) {
-            if (!light) {
-                continue;
-            }
-
-            AssertThrow(uint32(light->GetLight()->GetLightType()) < uint32(LightType::MAX));
-
-            const LightType light_type = light->GetLight()->GetLightType();
-
-            if (m_light_render_resource_handles[uint32(light_type)].Contains(light)) {
-                continue;
-            }
-
-            m_light_render_resource_handles[uint32(light_type)].PushBack(std::move(light));
-        }
-    });
-}
-
-RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
+typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
-    RenderProxyList &proxy_list = m_render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
+    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
-    RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
-
-    if (collection_result.NeedsUpdate()) {
+    if (diff.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
-        proxy_list.GetRemovedEntities(removed_proxies, true /* include_changed */);
+        render_proxy_tracker.GetRemoved(removed_proxies, true /* include_changed */);
 
         Array<RenderProxy *> added_proxy_ptrs;
-        proxy_list.GetAddedEntities(added_proxy_ptrs, true /* include_changed */);
+        render_proxy_tracker.GetAdded(added_proxy_ptrs, true /* include_changed */);
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
             Array<RenderProxy, DynamicAllocator> added_proxies;
@@ -635,20 +640,23 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
 
             Execute([this, added_proxies = std::move(added_proxies), removed_proxies = std::move(removed_proxies)]() mutable
             {
+                AssertDebugMsg(IsInitialized(), "UpdateTrackedRenderProxies can only be called on an initialized ViewRenderResource");
+
                 EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
                 const RenderableAttributeSet *override_attributes = m_render_collector.GetOverrideAttributes().TryGet();
 
-                RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+                RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
                 // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-                proxy_list.Reserve(added_proxies.Size());
+                render_proxy_tracker.Reserve(added_proxies.Size());
 
+                // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
                 for (RenderProxy &proxy : added_proxies) {
                     proxy.ClaimRenderResource();
                 }
 
                 for (ID<Entity> entity_id : removed_proxies) {
-                    const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
+                    const RenderProxy *proxy = render_proxy_tracker.GetElement(entity_id);
                     AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
                     proxy->UnclaimRenderResource();
@@ -656,7 +664,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
                     const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                     const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                    AssertThrow(RemoveRenderProxy(collection, proxy_list, entity_id, attributes, bucket));
+                    AssertThrow(RemoveRenderProxy(collection, render_proxy_tracker, entity_id, attributes, bucket));
                 }
 
                 for (RenderProxy &proxy : added_proxies) {
@@ -670,10 +678,10 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
                     const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy, override_attributes);
                     const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                    AddRenderProxy(collection, proxy_list, std::move(proxy), m_camera_render_resource_handle.Get(), this, attributes, bucket);
+                    AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_camera_render_resource_handle.Get(), this, attributes, bucket);
                 }
 
-                proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
+                render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
                 
                 // Clear out groups that are no longer used
                 collection->RemoveEmptyProxyGroups();
@@ -681,9 +689,66 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
         }
     }
 
-    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    return collection_result;
+    return diff;
+}
+
+void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource *> &tracked_lights)
+{
+    if (!tracked_lights.GetDiff().NeedsUpdate()) {
+        tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return;
+    }
+
+    Array<ID<Light>, DynamicAllocator> removed;
+    tracked_lights.GetRemoved(removed, true /* include_changed */);
+
+    Array<LightRenderResource *, DynamicAllocator> added;
+    tracked_lights.GetAdded(added, true /* include_changed */);
+
+    for (LightRenderResource *light_render_resource : added) {
+        // Ensure it doesn't get deleted while we queue the update txn
+        light_render_resource->Claim();
+    }
+
+    Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
+    {
+        if (!m_tracked_lights.WasReset()) {
+            for (ID<Light> id : removed) {
+                LightRenderResource **element_ptr = m_tracked_lights.GetElement(id);
+                AssertDebug(element_ptr != nullptr);
+
+                LightRenderResource *light_render_resource = *element_ptr;
+                AssertDebug(light_render_resource);
+
+                const LightType light_type = light_render_resource->GetLight()->GetLightType();
+
+                auto it = m_lights[uint32(light_type)].Find(light_render_resource);
+                AssertDebug(it != m_lights[uint32(light_type)].End());
+                
+                m_lights[uint32(light_type)].Erase(it);
+
+                light_render_resource->Unclaim();
+
+                m_tracked_lights.MarkToRemove(id);
+            }
+        }
+
+        for (LightRenderResource *light_render_resource : added) {
+            const LightType light_type = light_render_resource->GetLight()->GetLightType();
+            AssertDebug(!m_lights[uint32(light_type)].Contains(light_render_resource));
+
+            m_lights[uint32(light_type)].PushBack(light_render_resource);
+
+            m_tracked_lights.Track(light_render_resource->GetLight()->GetID(), light_render_resource);
+        }
+
+        m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
+    });
+
+    tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void ViewRenderResource::PreFrameUpdate(FrameBase *frame)
@@ -711,9 +776,10 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         g_engine->GetRenderState()->BindCamera(m_camera_render_resource_handle);
         g_engine->GetRenderState()->SetActiveScene(m_scene_render_resource_handle->GetScene());
 
-        const Handle<RenderEnvironment> &environment = world_render_resource->GetEnvironment();
+        const Handle<RenderEnvironment> &environment = m_scene_render_resource_handle->GetEnvironment();
 
         const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+        const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
         const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
         const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
@@ -846,6 +912,15 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
         }
 
+        { // render objects to be lightmapped, separate from the opaque objects.
+            // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+            frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
+
+            ExecuteDrawCalls(frame, uint64(1u << BUCKET_LIGHTMAP));
+
+            frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
+        }
+
         { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
             const ImageRef &src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
             GenerateMipChain(frame, src_image);
@@ -853,6 +928,23 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
 
         { // translucent objects
             frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
+
+            { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
+                frame->GetCommandList().Add<BindGraphicsPipeline>(m_combine_pass->GetRenderGroup()->GetPipeline());
+
+                frame->GetCommandList().Add<BindDescriptorTable>(
+                    m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+                    m_combine_pass->GetRenderGroup()->GetPipeline(),
+                    ArrayMap<Name, ArrayMap<Name, uint32>> { },
+                    frame_index
+                );
+
+                m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+            }
+            { // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+                // Apply lightmaps over the now shaded opaque objects.
+                m_lightmap_pass->RenderToFramebuffer(frame, this, translucent_fbo);
+            }
 
             bool is_sky_set = false;
 
@@ -889,6 +981,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
         }
 
+#if 0
         {
             struct alignas(128)
             {
@@ -934,6 +1027,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
             m_combine_pass->End(frame, this);
         }
+#endif
 
         { // render depth pyramid
             m_depth_pyramid_renderer->Render(frame);
@@ -943,6 +1037,8 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         }
 
         m_post_processing->RenderPost(frame, this);
+
+        m_tonemap_pass->Render(frame, this);
 
         if (use_temporal_aa) {
             m_temporal_aa->Render(frame, this);
@@ -963,7 +1059,7 @@ void ViewRenderResource::CollectDrawCalls(FrameBase *frame)
     m_render_collector.CollectDrawCalls(
         frame,
         this,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
+        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
         &m_cull_data
     );
 }

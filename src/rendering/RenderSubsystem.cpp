@@ -54,24 +54,6 @@ void RenderSubsystem::ComponentRender(FrameBase *frame)
     }
 }
 
-void RenderSubsystem::SetComponentIndex(Index index)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    if (index == m_index) {
-        return;
-    }
-
-    const auto prev_index = m_index;
-
-    m_index = index;
-
-    if (m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread) {
-        OnComponentIndexChanged(index, prev_index);
-    }
-}
-
 RenderEnvironment *RenderSubsystem::GetParent() const
 {
     Threads::AssertOnThread(g_render_thread);
@@ -93,10 +75,10 @@ void RenderSubsystem::RemoveFromEnvironment()
 
     struct RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment) : public renderer::RenderCommand
     {
-        Weak<RenderSubsystem>   render_subsystem_weak;
+        RC<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(Weak<RenderSubsystem> render_subsystem_weak)
-            : render_subsystem_weak(render_subsystem_weak)
+        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(RC<RenderSubsystem> &&render_subsystem)
+            : render_subsystem(render_subsystem)
         {
         }
 
@@ -104,7 +86,7 @@ void RenderSubsystem::RemoveFromEnvironment()
 
         virtual RendererResult operator()() override
         {
-            if (RC<RenderSubsystem> render_subsystem = render_subsystem_weak.Lock()) {
+            if (render_subsystem) {
                 RenderEnvironment *parent = render_subsystem->GetParent();
 
                 if (parent != nullptr) {
@@ -116,7 +98,7 @@ void RenderSubsystem::RemoveFromEnvironment()
         }
     };
 
-    PUSH_RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment, WeakRefCountedPtrFromThis());
+    PUSH_RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment, RefCountedPtrFromThis());
 }
 
 } // namespace hyperion

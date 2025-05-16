@@ -46,6 +46,8 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
     RENDER_ENVIRONMENT_UPDATES_THREAD_MASK          = 0x10 // use mask shifted by ThreadType value to issue unique updates for a specific thread
 };
 
+// @TODO Move RenderEnvironment stuff to SceneRenderResource
+
 HYP_CLASS()
 class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 {
@@ -53,13 +55,9 @@ class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 
 public:
     RenderEnvironment();
-    RenderEnvironment(WorldRenderResource *world_render_resource);
     RenderEnvironment(const RenderEnvironment &other)               = delete;
     RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
     ~RenderEnvironment();
-
-    HYP_FORCE_INLINE WorldRenderResource *GetWorldRenderResource() const
-        { return m_world_render_resource; }
 
     const FixedArray<TLASRef, max_frames_in_flight> &GetTopLevelAccelerationStructures() const
         { return m_top_level_acceleration_structures; }
@@ -266,8 +264,6 @@ private:
 
     void InitializeRT();
     bool CreateTopLevelAccelerationStructures();
-
-    WorldRenderResource                                                 *m_world_render_resource;
 
     AtomicVar<RenderEnvironmentUpdates>                                 m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 

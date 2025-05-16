@@ -64,8 +64,7 @@ public:
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
 
     virtual void *ConstructAtIndex(uint32 index) = 0;
-
-    virtual IDGenerator &GetIDGenerator() = 0;
+    virtual void ReleaseIndex(uint32 index) = 0;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -148,7 +147,7 @@ struct HypObjectMemory final : HypObjectHeader
         T *ptr = GetPointer();
 
         // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
-        HypObjectInitializerGuard<T> context { static_cast<void *>(ptr) };
+        HypObjectInitializerGuard<T> context { ptr };
 
         // Set the object header to point to this
         ptr->HypObjectBase::m_header = static_cast<HypObjectHeader *>(this);
@@ -197,7 +196,7 @@ struct HypObjectMemory final : HypObjectHeader
 #endif
 
                 // Free the slot for this
-                container->GetIDGenerator().FreeID(index + 1);
+                container->ReleaseIndex(index);
             }
         } else {
             HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
@@ -222,7 +221,7 @@ struct HypObjectMemory final : HypObjectHeader
 #endif
 
                 // Free the slot for this
-                container->GetIDGenerator().FreeID(index + 1);
+                container->ReleaseIndex(index);
             }
         }
 
@@ -415,9 +414,9 @@ public:
         return &element.Get();
     }
 
-    virtual IDGenerator &GetIDGenerator() override
+    virtual void ReleaseIndex(uint32 index) override
     {
-        return m_pool.GetIDGenerator();
+        m_pool.ReleaseIndex(index);
     }
 
 // private:

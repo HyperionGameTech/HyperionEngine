@@ -41,7 +41,9 @@ View::View(const ViewDesc &view_desc)
       m_viewport(view_desc.viewport),
       m_scene(view_desc.scene),
       m_camera(view_desc.camera),
-      m_priority(view_desc.priority)
+      m_priority(view_desc.priority),
+      m_entity_collection_flags(view_desc.entity_collection_flags),
+      m_override_attributes(view_desc.override_attributes)
 {
 }
 
@@ -79,23 +81,7 @@ void View::Init()
     m_render_resource->SetScene(TResourceHandle<SceneRenderResource>(m_scene->GetRenderResource()));
     m_render_resource->SetCamera(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
     m_render_resource->SetViewport(m_viewport);
-
-    if (m_lights.Any()) {
-        Array<TResourceHandle<LightRenderResource>> lights;
-        lights.Reserve(m_lights.Size());
-
-        for (const Handle<Light> &light : m_lights) {
-            if (!light) {
-                continue;
-            }
-
-            InitObject(light);
-
-            lights.PushBack(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
-        }
-
-        m_render_resource->SetLights(std::move(lights));
-    }
+    m_render_resource->GetRenderCollector().SetOverrideAttributes(m_override_attributes);
 
     SetReady(true);
 }
@@ -108,7 +94,7 @@ void View::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     CollectLights();
-    CollectEntities();
+    m_last_collection_result = CollectEntities();
 }
 
 void View::SetViewport(const Viewport &viewport)
@@ -129,73 +115,44 @@ void View::SetPriority(int priority)
     }
 }
 
-void View::AddLight(const Handle<Light> &light)
-{
-    if (!light) {
-        return;
-    }
-
-    InitObject(light);
-
-    auto it = m_lights.Find(light);
-
-    if (it != m_lights.End()) {
-        return;
-    }
-
-    m_lights.PushBack(light);
-
-    if (IsInitCalled()) {
-        m_render_resource->AddLight(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
-    }
-}
-
-void View::RemoveLight(const Handle<Light> &light)
-{
-    if (!light) {
-        return;
-    }
-
-    auto it = m_lights.Find(light);
-
-    if (it == m_lights.End()) {
-        return;
-    }
-
-    if (IsInitCalled()) {
-        if (!light->IsReady()) {
-            return;
-        }
-
-        m_render_resource->RemoveLight(&light->GetRenderResource());
-    }
-
-    m_lights.Erase(it);
-}
-
-RenderCollector::CollectionResult View::CollectEntities(bool skip_frustum_culling)
+typename RenderProxyTracker::Diff View::CollectEntities()
 {
     AssertReady();
 
-    return CollectEntities(m_render_resource->GetRenderCollector(), skip_frustum_culling);
+    switch (uint32(m_entity_collection_flags & ViewEntityCollectionFlags::COLLECT_ALL)) {
+    case uint32(ViewEntityCollectionFlags::COLLECT_ALL):
+        return CollectAllEntities();
+    case uint32(ViewEntityCollectionFlags::COLLECT_DYNAMIC):
+        return CollectDynamicEntities();
+    case uint32(ViewEntityCollectionFlags::COLLECT_STATIC):
+        return CollectStaticEntities();
+    default:
+        HYP_UNREACHABLE();
+    }
 }
 
-RenderCollector::CollectionResult View::CollectEntities(RenderCollector &render_collector, bool skip_frustum_culling)
+typename RenderProxyTracker::Diff View::CollectAllEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertReady();
 
-    if (!m_camera.IsValid()) {
-        return m_render_resource->UpdateRenderCollector();
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
     }
+
+    if (!m_camera.IsValid()) {
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    }
+
+    const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
 
     const ID<Camera> camera_id = m_camera.GetID();
 
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
-    
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
     uint32 num_collected_entities = 0;
     uint32 num_skipped_entities = 0;
@@ -222,39 +179,42 @@ RenderCollector::CollectionResult View::CollectEntities(RenderCollector &render_
 
         ++num_collected_entities;
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+        
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
     
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
-RenderCollector::CollectionResult View::CollectDynamicEntities(bool skip_frustum_culling)
-{
-    AssertReady();
-
-    return CollectDynamicEntities(m_render_resource->GetRenderCollector(), skip_frustum_culling);
-}
-
-RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &render_collector, bool skip_frustum_culling)
+typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertReady();
 
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
+    }
+
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector();
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
-    
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
+    const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
+    
     const ID<Camera> camera_id = m_camera.GetID();
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
@@ -278,35 +238,38 @@ RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &
 #endif
         }
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
-RenderCollector::CollectionResult View::CollectStaticEntities(bool skip_frustum_culling)
-{
-    AssertReady();
-
-    return CollectStaticEntities(m_render_resource->GetRenderCollector(), skip_frustum_culling);
-}
-
-RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &render_collector, bool skip_frustum_culling)
+typename RenderProxyTracker::Diff View::CollectStaticEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertReady();
 
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
+    }
+
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector();
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
-    
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
+    const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
+    
     const ID<Camera> camera_id = m_camera.GetID();
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
@@ -329,30 +292,32 @@ RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &r
 #endif
         }
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
 void View::CollectLights()
 {
     HYP_SCOPE;
 
-    // @TODO Change this to mirror RenderCollector.
-    // For now, just loop through all lights and set their visibility state
-
     for (auto [entity_id, light_component, transform_component, bounding_box_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!light_component.light.IsValid()) {
             continue;
         }
         
-        if (!(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
-            bool is_light_in_frustum = false;
-            is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
+        bool is_light_in_frustum = false;
 
+        if (visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE) {
+            is_light_in_frustum = true;
+        } else {
             switch (light_component.light->GetLightType()) {
             case LightType::DIRECTIONAL:
                 is_light_in_frustum = true;
@@ -362,23 +327,22 @@ void View::CollectLights()
                 break;
             case LightType::SPOT:
                 // @TODO Implement frustum culling for spot lights
+                is_light_in_frustum = true;
                 break;
             case LightType::AREA_RECT:
-                is_light_in_frustum = true;
+                is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(light_component.light->GetAABB());
                 break;
             default:
                 break;
             }
+        }
 
-            if (is_light_in_frustum) {
-                if (!m_lights.Contains(light_component.light)) {
-                    AddLight(light_component.light);
-                }
-            } else {
-                RemoveLight(light_component.light);
-            }
+        if (is_light_in_frustum) {
+            m_tracked_lights.Track(light_component.light.GetID(), &light_component.light->GetRenderResource());
         }
     }
+
+    m_render_resource->UpdateTrackedLights(m_tracked_lights);
 }
 
 #pragma endregion View

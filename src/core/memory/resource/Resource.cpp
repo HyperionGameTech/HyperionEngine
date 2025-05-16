@@ -38,9 +38,6 @@ HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 #pragma region ResourceBase
 
-static constexpr uint64 g_initialization_mask_initialized_bit = 0x1;
-static constexpr uint64 g_initialization_mask_read_mask = uint64(-1) & ~g_initialization_mask_initialized_bit;
-
 ResourceBase::ResourceBase()
     : m_initialization_mask(0),
       m_update_counter(0)
@@ -70,7 +67,7 @@ int ResourceBase::ClaimWithoutInitialize()
     {
         // loop until we have exclusive access.
         uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-        AssertDebugMsg(!(state & g_initialization_mask_read_mask), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
 
         while (state & g_initialization_mask_read_mask) {
             state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
@@ -138,6 +135,8 @@ int ResourceBase::Claim(int count)
         Impl();
     });
 
+    AssertDebug(result >= 0);
+
     if (should_release) {
         m_completion_semaphore.Release(1);
     }
@@ -194,6 +193,8 @@ int ResourceBase::Unclaim()
         Impl();
     });
 
+    AssertDebug(result >= 0);
+
     if (should_release) {
         m_completion_semaphore.Release(1);
     }
@@ -231,7 +232,7 @@ void ResourceBase::SetNeedsUpdate()
         // Check initialization state -- if it is not initialized, we increment the update counter
         // without waiting for the owner thread to finish
         if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
-            m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
             // Remove our read access
             m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
@@ -246,7 +247,7 @@ void ResourceBase::SetNeedsUpdate()
         m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
     }
 
-    m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
     if (!CanExecuteInline()) {
         EnqueueOp(std::move(Impl));
@@ -292,61 +293,6 @@ void ResourceBase::WaitForFinalization() const
     WaitForTaskCompletion();
 
     m_claimed_semaphore.Acquire();
-}
-
-void ResourceBase::Execute(Proc<void()> &&proc, bool force_owner_thread)
-{
-    HYP_SCOPE;
-
-    m_completion_semaphore.Produce(1);
-
-    if (!force_owner_thread) {
-        if (m_claimed_semaphore.IsInSignalState()) {
-            // Try to add read access - if it can't be acquired, we are in the process of initializing
-            // and thus we will remove our read access and enqueue the operation
-            if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
-                // Check again, as it might have been initialized in between the initial check and the increment
-                HYP_NAMED_SCOPE("Executing Resource Command - Inline");
-
-                HYP_MT_CHECK_RW(m_data_race_detector);
-
-                // debugging
-                AssertDebug(m_claimed_semaphore.IsInSignalState());
-
-                // Execute inline if not initialized yet instead of pushing to owner thread
-                proc();
-
-                // Remove our read access
-                m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
-
-                m_completion_semaphore.Release(1);
-
-                return;
-            }
-
-            // Remove our read access
-            m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
-        }
-    }
-
-    auto Impl = [this, proc = std::move(proc)]() mutable
-    {
-        HYP_NAMED_SCOPE("Executing Resource command");
-
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        proc();
-
-        m_completion_semaphore.Release(1);
-    };
-
-    if (!CanExecuteInline()) {
-        EnqueueOp(std::move(Impl));
-
-        return;
-    }
-
-    Impl();
 }
 
 bool ResourceBase::CanExecuteInline() const

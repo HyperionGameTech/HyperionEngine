@@ -2496,7 +2496,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
-        if constexpr (has_opaque_handle_defined<T>) {
+        if constexpr (has_handle_definition<T>) {
             return value.Is<T>();
         } else {
             return false;
@@ -2525,7 +2525,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     HYP_FORCE_INLINE T &Get(const AnyHandle &value) const
     {
-        if constexpr (has_opaque_handle_defined<T>) {
+        if constexpr (has_handle_definition<T>) {
             return *value.Cast<T>().Get();
         } else {
             HYP_UNREACHABLE();

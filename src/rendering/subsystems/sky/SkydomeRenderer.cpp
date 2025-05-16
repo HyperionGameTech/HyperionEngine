@@ -30,7 +30,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 {
     m_cubemap = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        InternalFormat::RGBA8,
+        InternalFormat::R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         FilterMode::TEXTURE_FILTER_LINEAR
@@ -38,7 +38,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 
     InitObject(m_cubemap);
 
-    m_virtual_scene = CreateObject<Scene>(nullptr);
+    m_virtual_scene = CreateObject<Scene>(SceneFlags::NONE);
     m_virtual_scene->SetName(Name::Unique("SkydomeRendererScene"));
     InitObject(m_virtual_scene);
 
@@ -76,6 +76,8 @@ void SkydomeRenderer::Init()
 
 void SkydomeRenderer::InitGame()
 {
+    m_virtual_scene->SetOwnerThreadID(g_game_thread);
+    
     g_engine->GetWorld()->AddScene(m_virtual_scene);
 
     InitObject(m_env_probe);

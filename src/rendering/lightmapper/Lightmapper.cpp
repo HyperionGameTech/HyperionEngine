@@ -44,6 +44,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
 #include <core/utilities/Time.hpp>
 #include <core/utilities/DeferredScope.hpp>
 
@@ -546,7 +548,7 @@ void LightmapGPUPathTracer::Create()
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const TLASRef &tlas = m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTopLevelAccelerationStructures()[frame_index];
+        const TLASRef &tlas = m_scene->GetRenderResource().GetEnvironment()->GetTopLevelAccelerationStructures()[frame_index];
         AssertThrow(tlas != nullptr);
 
         const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame_index);
@@ -764,6 +766,8 @@ private:
 
     Array<LightmapHit, DynamicAllocator>    m_hits_buffer;
 
+    Array<LightmapRay, DynamicAllocator>    m_current_rays;
+
     LightmapTaskThreadPool                  m_thread_pool;
 
     AtomicVar<uint32>                       m_num_tracing_tasks;
@@ -813,6 +817,9 @@ void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
 
     m_hits_buffer.Resize(rays.Size());
 
+    m_current_rays.Resize(rays.Size());
+    Memory::MemCpy(m_current_rays.Data(), rays.Data(), m_current_rays.ByteSize());
+
     m_num_tracing_tasks.Increment(rays.Size(), MemoryOrder::RELEASE);
 
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
@@ -846,7 +853,7 @@ void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
         // HYP_BREAKPOINT;
     // }
 
-    Array<Task<void>> tasks = TaskSystem::GetInstance().ParallelForEach_Async(m_thread_pool, rays, [this, job, env_probe](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
+    Array<Task<void>> tasks = TaskSystem::GetInstance().ParallelForEach_Async(m_thread_pool, m_current_rays, [this, job, env_probe](const LightmapRay &first_ray, uint32 index, uint32 batch_index)
     {
         HYP_DEFER({ m_num_tracing_tasks.Decrement(1, MemoryOrder::RELEASE); });
 
@@ -912,15 +919,15 @@ void LightmapCPUPathTracer::Render(FrameBase *frame, LightmapJob *job, Span<cons
                 // @TODO Sample environment map
                 const Vec3f normal = bounce_ray.ray.direction;
 
-                if (env_probe_texture.IsValid()) {
-                    Vec4f env_probe_sample = env_probe_texture->SampleCube(direction);
+                // if (env_probe_texture.IsValid()) {
+                //     Vec4f env_probe_sample = env_probe_texture->SampleCube(direction);
 
-                    payload.emissive += env_probe_sample;
-                }
+                //     payload.emissive += env_probe_sample;
+                // }
 
-                // // testing!! @FIXME
-                // const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
-                // payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+                // testing!! @FIXME
+                const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
+                payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
 
                 ++num_bounces;
 
@@ -1072,9 +1079,6 @@ LightmapJob::~LightmapJob()
             }
         }
     }
-
-    // Prevent dangling pointers to this from being used
-    HYP_SYNC_RENDER();
 }
 
 void LightmapJob::Start()
@@ -1460,6 +1464,7 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
 
 void Lightmapper::PerformLightmapping()
 {
+    HYP_SCOPE;
     const uint32 ideal_triangles_per_job = m_config.ideal_triangles_per_job;
 
     AssertThrowMsg(m_num_jobs.Get(MemoryOrder::ACQUIRE) == 0, "Cannot initialize lightmap renderer -- jobs currently running!");
@@ -1564,6 +1569,7 @@ void Lightmapper::PerformLightmapping()
 
 void Lightmapper::Update(GameCounter::TickUnit delta)
 {
+    HYP_SCOPE;
     uint32 num_jobs = m_num_jobs.Get(MemoryOrder::ACQUIRE);
 
     Mutex::Guard guard(m_queue_mutex);
@@ -1585,6 +1591,7 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
 
 void Lightmapper::HandleCompletedJob(LightmapJob *job)
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
     HYP_LOG(Lightmap, Debug, "Tracing completed for lightmapping job {} ({} subelements)", job->GetUUID(), job->GetSubElements().Size());
@@ -1726,6 +1733,8 @@ void Lightmapper::HandleCompletedJob(LightmapJob *job)
 
         //     is_new_material = true;
         // }
+
+        sub_element.material->SetBucket(BUCKET_LIGHTMAP);
         
         // temp; not thread safe
         sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, radiance_texture);

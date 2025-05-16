@@ -121,17 +121,17 @@ SceneValidationResult SceneValidation::ValidateScene(const Scene *scene)
 #pragma region Scene
 
 Scene::Scene()
-    : Scene(nullptr, g_game_thread, { })
+    : Scene(nullptr, ThreadID::Current(), { })
 {
 }
     
 Scene::Scene(EnumFlags<SceneFlags> flags)
-    : Scene(nullptr, g_game_thread, flags)
+    : Scene(nullptr, ThreadID::Current(), flags)
 {
 }
 
 Scene::Scene(World *world, EnumFlags<SceneFlags> flags)
-    : Scene(world, g_game_thread, flags)
+    : Scene(world, ThreadID::Current(), flags)
 {
 }
 
@@ -154,7 +154,7 @@ Scene::Scene(
         m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
     }
 
-    SetRoot(MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this));
+    m_root_node_proxy = MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this);
 }
 
 Scene::~Scene()
@@ -163,7 +163,16 @@ Scene::~Scene()
     m_octree.Clear();
 
     if (m_root_node_proxy.IsValid()) {
-        m_root_node_proxy->SetScene(nullptr);
+        if (m_owner_thread_id.IsValid() && !Threads::IsOnThread(m_owner_thread_id)) {
+            Task<void> task = Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([&node = m_root_node_proxy]()
+            {
+                node->SetScene(nullptr);
+            });
+
+            task.Await();
+        } else {
+            m_root_node_proxy->SetScene(nullptr);
+        }
     }
 
     // Move so destruction of components can check GetEntityManager() returns nullptr

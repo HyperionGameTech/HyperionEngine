@@ -431,8 +431,6 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase *frame, ViewRenderRe
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
@@ -476,8 +474,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase *frame, ViewRenderRe
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource_handle.Get(), 0) },
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                 }

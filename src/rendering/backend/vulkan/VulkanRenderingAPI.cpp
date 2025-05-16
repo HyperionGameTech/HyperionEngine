@@ -523,7 +523,10 @@ DescriptorSetRef VulkanRenderingAPI::MakeDescriptorSet(const DescriptorSetLayout
     DescriptorSetDeclaration decl_copy = layout.GetDeclaration();
     decl_copy.is_template = false;
 
-    return MakeRenderObject<VulkanDescriptorSet>(DescriptorSetLayout(decl_copy));
+    DescriptorSetRef descriptor_set = MakeRenderObject<VulkanDescriptorSet>(DescriptorSetLayout(decl_copy));
+    descriptor_set->SetDebugName(layout.GetName());
+
+    return descriptor_set;
 }
 
 DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTableDeclaration &decl)

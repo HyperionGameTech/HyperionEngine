@@ -23,8 +23,7 @@ namespace hyperion {
 HypClassMemberIterator::HypClassMemberIterator(const HypClass *hyp_class, EnumFlags<HypMemberType> member_types, Phase phase)
     : m_member_types(member_types),
       m_phase(phase),
-      m_hyp_class(hyp_class),
-      m_iterating_parent(nullptr),
+      m_target(hyp_class),
       m_current_index(0),
       m_current_value(nullptr)
 {
@@ -33,22 +32,29 @@ HypClassMemberIterator::HypClassMemberIterator(const HypClass *hyp_class, EnumFl
 
 void HypClassMemberIterator::Advance()
 {
-    const HypClass *target = m_iterating_parent != nullptr ? m_iterating_parent : m_hyp_class;
+    // HYP_LOG(Object, Debug, "Iterating class {} members: {}, parent = {}, index = {}", target->GetName(), m_phase,
+    //     target->GetParent() ? target->GetParent()->GetName().LookupString() : "null", m_current_index);
 
-    if (m_phase == Phase::MAX) {
-        if ((target = m_iterating_parent = target->GetParent())) {
-            m_phase = NextPhase(m_member_types, m_phase);
-        }
+    if (!m_target) {
+        return;
     }
 
-    if (!target) {
-        return;
+    if (m_phase == Phase::MAX) {
+        m_target = m_target->GetParent();
+        m_current_index = 0;
+        m_current_value = nullptr;
+
+        if (m_target) {
+            m_phase = Phase(0);
+        } else {
+            return;
+        }
     }
 
     switch (m_phase) {
     case Phase::ITERATE_CONSTANTS:
-        if (m_current_index < target->GetConstants().Size()) {
-            m_current_value = target->GetConstants()[m_current_index++];
+        if ((m_member_types & HypMemberType::TYPE_CONSTANT) && m_current_index < m_target->GetConstants().Size()) {
+            m_current_value = m_target->GetConstants()[m_current_index++];
         } else {
             m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
@@ -59,8 +65,8 @@ void HypClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_PROPERTIES:
-        if (m_current_index < target->GetProperties().Size()) {
-            m_current_value = target->GetProperties()[m_current_index++];
+        if ((m_member_types & HypMemberType::TYPE_PROPERTY) && m_current_index < m_target->GetProperties().Size()) {
+            m_current_value = m_target->GetProperties()[m_current_index++];
         } else {
             m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
@@ -71,8 +77,8 @@ void HypClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_METHODS:
-        if (m_current_index < target->GetMethods().Size()) {
-            m_current_value = target->GetMethods()[m_current_index++];
+        if ((m_member_types & HypMemberType::TYPE_METHOD) && m_current_index < m_target->GetMethods().Size()) {
+            m_current_value = m_target->GetMethods()[m_current_index++];
         } else {
             m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;
@@ -83,8 +89,8 @@ void HypClassMemberIterator::Advance()
 
         break;
     case Phase::ITERATE_FIELDS:
-        if (m_current_index < target->GetFields().Size()) {
-            m_current_value = target->GetFields()[m_current_index++];
+        if ((m_member_types & HypMemberType::TYPE_FIELD) && m_current_index < m_target->GetFields().Size()) {
+            m_current_value = m_target->GetFields()[m_current_index++];
         } else {
             m_phase = NextPhase(m_member_types, m_phase);
             m_current_index = 0;

@@ -26,14 +26,14 @@ class AssetCollector;
 class AssetRegistry;
 
 HYP_CLASS()
-class HYP_API EditorProject : public EnableRefCountedPtrFromThis<EditorProject>
+class HYP_API EditorProject : public HypObject<EditorProject>
 {
     HYP_OBJECT_BODY(EditorProject);
 
 public:
     EditorProject();
     EditorProject(Name name);
-    ~EditorProject();
+    virtual ~EditorProject() override;
 
     HYP_METHOD(Property="UUID", Serialize=true)
     HYP_FORCE_INLINE const UUID &GetUUID() const
@@ -96,10 +96,12 @@ public:
     HYP_METHOD(Scriptable)
     Name GetNextDefaultProjectName(const String &default_project_name) const;
 
-    static TResult<RC<EditorProject>> Load(const FilePath &filepath);
+    static TResult<Handle<EditorProject>> Load(const FilePath &filepath);
 
     HYP_METHOD()
     void Close();
+
+    void Init();
 
 private:
     Name GetNextDefaultProjectName_Impl(const String &default_project_name) const;

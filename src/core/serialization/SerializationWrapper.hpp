@@ -17,7 +17,7 @@ template <class T>
 struct SerializationWrapper
 {
     using Type = std::conditional_t<
-        has_opaque_handle_defined<T>,
+        has_handle_definition<T>,
         Handle<T>,
         T
     >;
@@ -25,7 +25,7 @@ struct SerializationWrapper
     template <class Ty> // use template param to disambiguate const v.s non-const ref
     static auto &&Unwrap(Ty &&value)
     {
-        if constexpr (has_opaque_handle_defined<T>) {
+        if constexpr (has_handle_definition<T>) {
             AssertThrow(value.IsValid());
 
             return *value;

@@ -114,8 +114,7 @@ public:
     HypClassMemberIterator(const HypClassMemberIterator &other)
         : m_member_types(other.m_member_types),
           m_phase(other.m_phase),
-          m_hyp_class(other.m_hyp_class),
-          m_iterating_parent(other.m_iterating_parent),
+          m_target(other.m_target),
           m_current_index(other.m_current_index),
           m_current_value(other.m_current_value)
     {
@@ -129,8 +128,7 @@ public:
 
         m_member_types = other.m_member_types;
         m_phase = other.m_phase;
-        m_hyp_class = other.m_hyp_class;
-        m_iterating_parent = other.m_iterating_parent;
+        m_target = other.m_target;
         m_current_index = other.m_current_index;
         m_current_value = other.m_current_value;
 
@@ -141,8 +139,7 @@ public:
     {
         return m_member_types == other.m_member_types
             && m_phase == other.m_phase
-            && m_hyp_class == other.m_hyp_class
-            && m_iterating_parent == other.m_iterating_parent
+            && m_target == other.m_target
             && m_current_index == other.m_current_index
             && m_current_value == other.m_current_value;
     }
@@ -151,8 +148,7 @@ public:
     {
         return m_member_types != other.m_member_types
             || m_phase != other.m_phase
-            || m_hyp_class != other.m_hyp_class
-            || m_iterating_parent != other.m_iterating_parent
+            || m_target != other.m_target
             || m_current_index != other.m_current_index
             || m_current_value != other.m_current_value;
     }
@@ -197,8 +193,7 @@ private:
     EnumFlags<HypMemberType>    m_member_types;
 
     Phase                       m_phase;
-    const HypClass              *m_hyp_class;
-    const HypClass              *m_iterating_parent;
+    const HypClass              *m_target;
     SizeType                    m_current_index;
 
     mutable IHypMember          *m_current_value;
@@ -224,7 +219,7 @@ public:
 
     ~HypClassMemberList()                                               = default;
 
-    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::MAX))
+    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(nullptr, m_member_types, HypClassMemberIterator::Phase::MAX))
 
 private:
     const HypClass              *m_hyp_class;
@@ -345,6 +340,8 @@ public:
     bool HasParent(const HypClass *parent_hyp_class) const;
 
     virtual SizeType GetSize() const = 0;
+    virtual SizeType GetAlignment() const = 0;
+    virtual SizeType GetObjectInitializerOffset() const = 0;
 
     HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer(void *object_ptr) const
         { return GetObjectInitializer_Internal(object_ptr); }
@@ -534,6 +531,16 @@ public:
         return sizeof(T);
     }
 
+    virtual SizeType GetAlignment() const override
+    {
+        return alignof(T);
+    }
+
+    virtual SizeType GetObjectInitializerOffset() const override
+    {
+        return offsetof(T, m_hyp_object_initializer);
+    }
+
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {
         return GetManagedObjectFromObjectInitializer(HypClass::GetObjectInitializer(object_ptr), out_object_reference);
@@ -569,11 +576,12 @@ public:
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
                 EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr);
                 
-                auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-                AssertThrow(ref_count_data != nullptr);
+                auto *ref_count_data = ptr_casted->weak_this.GetRefCountData_Internal();
+                AssertDebug(ref_count_data != nullptr);
+                AssertDebug(ref_count_data->value != nullptr);
 
                 RC<void> rc;
-                rc.SetRefCountData_Internal(ptr_casted->weak.GetUnsafe(), ref_count_data, /* inc_ref */ true);
+                rc.SetRefCountData_Internal(ptr_casted->weak_this.GetUnsafe(), ref_count_data, /* inc_ref */ true);
 
                 out_hyp_data = HypData(std::move(rc));
 

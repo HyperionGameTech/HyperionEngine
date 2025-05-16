@@ -329,10 +329,16 @@ bool ShadowMapManager::FreeShadowMap(ShadowMapRenderResource *shadow_map_render_
 
         ShadowMapAtlas &atlas = m_atlases[atlas_element.atlas_index];
         result = atlas.RemoveElement(atlas_element);
+        
+        if (!result) {
+            HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlas_element.atlas_index);
+        }
     } else if (atlas_element.point_light_index != ~0u) {
         m_point_light_shadow_map_id_generator.FreeID(atlas_element.point_light_index + 1);
 
         result = true;
+    } else {
+        HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid atlas index and point light index");
     }
 
     FreeResource(shadow_map_render_resource);
@@ -348,8 +354,6 @@ WorldRenderResource::WorldRenderResource(World *world)
     : m_world(world),
       m_shadow_map_manager(MakeUnique<ShadowMapManager>())
 {
-    m_environment = CreateObject<RenderEnvironment>(this);
-    InitObject(m_environment);
 }
 
 WorldRenderResource::~WorldRenderResource() = default;
@@ -436,6 +440,41 @@ Task<void> WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &sce
     }, /* force_owner_thread */ true);
 
     return task;
+}
+
+void WorldRenderResource::AddScene(TResourceHandle<SceneRenderResource> &&scene_render_resource_handle)
+{
+    HYP_SCOPE;
+
+    if (!scene_render_resource_handle) {
+        return;
+    }
+
+    Execute([this, scene_render_resource_handle = std::move(scene_render_resource_handle)]()
+    {
+        m_scene_render_resource_handles.PushBack(std::move(scene_render_resource_handle));
+    }, /* force_owner_thread */ true);
+}
+
+void WorldRenderResource::RemoveScene(SceneRenderResource *scene_render_resource)
+{
+    HYP_SCOPE;
+
+    if (!scene_render_resource) {
+        return;
+    }
+
+    Execute([this, scene_render_resource]()
+    {
+        auto it = m_scene_render_resource_handles.FindIf([scene_render_resource](const TResourceHandle<SceneRenderResource> &item)
+        {
+            return item.Get() == scene_render_resource;
+        });
+
+        if (it != m_scene_render_resource_handles.End()) {
+            m_scene_render_resource_handles.Erase(it);
+        }
+    }, /* force_owner_thread */ true);
 }
 
 // void WorldRenderResource::AddShadowMapRenderResource(const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle)
@@ -545,11 +584,13 @@ void WorldRenderResource::Render(FrameBase *frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    for (const TResourceHandle<SceneRenderResource> &scene_render_resource_handle : m_scene_render_resource_handles) {
+        scene_render_resource_handle->GetEnvironment()->RenderSubsystems(frame);
+    }
+
     for (const TResourceHandle<ViewRenderResource> &current_view : m_view_render_resource_handles) {
         current_view->Render(frame, this);
     }
-
-    m_environment->RenderSubsystems(frame);
 }
 
 #pragma endregion WorldRenderResource

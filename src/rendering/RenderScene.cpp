@@ -18,6 +18,8 @@ namespace hyperion {
 SceneRenderResource::SceneRenderResource(Scene *scene)
     : m_scene(scene)
 {
+    m_environment = CreateObject<RenderEnvironment>();
+    InitObject(m_environment);
 }
 
 SceneRenderResource::~SceneRenderResource() = default;
@@ -51,12 +53,8 @@ void SceneRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    // @FIXME: Use World* from Scene
-    const Handle<RenderEnvironment> &render_environment = g_engine->GetWorld()->GetRenderResource().GetEnvironment();
-    AssertThrow(render_environment.IsValid());
-
-    m_buffer_data.frame_counter = render_environment->GetFrameCounter();
-    m_buffer_data.enabled_render_subsystems_mask = render_environment->GetEnabledRenderSubsystemsMask();
+    m_buffer_data.frame_counter = m_environment->GetFrameCounter();
+    m_buffer_data.enabled_render_subsystems_mask = m_environment->GetEnabledRenderSubsystemsMask();
 
     *static_cast<SceneShaderData *>(m_buffer_address) = m_buffer_data;
 

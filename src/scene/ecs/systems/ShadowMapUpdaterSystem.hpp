@@ -29,7 +29,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    void AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component, World *world);
+    void AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component);
 };
 
 } // namespace hyperion

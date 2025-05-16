@@ -23,35 +23,6 @@ namespace hyperion {
 SkySystem::SkySystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        HashSet<ID<Entity>> updated_entity_ids;
-
-        // Trigger removal and addition of render subsystems
-        for (auto [entity_id, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos())) {
-            if (sky_component.render_subsystem) {
-                sky_component.render_subsystem->RemoveFromEnvironment();
-            }
-
-            if (!new_world) {
-                sky_component.render_subsystem.Reset();
-                
-                continue;
-            }
-
-            MeshComponent *mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity_id);
-
-            AddRenderSubsystemToEnvironment(new_world, GetEntityManager(), Handle<Entity>(entity_id), sky_component, mesh_component);
-
-            updated_entity_ids.Insert(entity_id);
-        }
-
-        for (ID<Entity> entity_id : updated_entity_ids) {
-            GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
-        }
-    }));
 }
 
 void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
@@ -61,11 +32,14 @@ void SkySystem::OnEntityAdded(const Handle<Entity> &entity)
     SkyComponent &sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
     MeshComponent *mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity);
 
-    if (World *world = GetWorld()) {
-        AddRenderSubsystemToEnvironment(world, GetEntityManager(), entity, sky_component, mesh_component);
-
-        GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+    if (sky_component.render_subsystem) {
+        sky_component.render_subsystem->RemoveFromEnvironment();
+        sky_component.render_subsystem.Reset();
     }
+
+    AddRenderSubsystemToEnvironment(GetEntityManager(), entity, sky_component, mesh_component);
+
+    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
 void SkySystem::OnEntityRemoved(ID<Entity> entity)
@@ -77,8 +51,7 @@ void SkySystem::OnEntityRemoved(ID<Entity> entity)
 
     if (sky_component.render_subsystem) {
         sky_component.render_subsystem->RemoveFromEnvironment();
-
-        sky_component.render_subsystem = nullptr;
+        sky_component.render_subsystem.Reset();
     }
 }
 
@@ -99,15 +72,12 @@ void SkySystem::Process(GameCounter::TickUnit delta)
     }
 }
 
-void SkySystem::AddRenderSubsystemToEnvironment(World *world, EntityManager &mgr, const Handle<Entity> &entity, SkyComponent &sky_component, MeshComponent *mesh_component)
+void SkySystem::AddRenderSubsystemToEnvironment(EntityManager &mgr, const Handle<Entity> &entity, SkyComponent &sky_component, MeshComponent *mesh_component)
 {
-    AssertThrow(world != nullptr);
-    AssertThrow(world->IsReady());
-
     if (sky_component.render_subsystem) {
-        world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(sky_component.render_subsystem);
+        GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(sky_component.render_subsystem);
     } else {
-        sky_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<SkydomeRenderer>(Name::Unique("sky_renderer"));
+        sky_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<SkydomeRenderer>(Name::Unique("sky_renderer"));
 
         Handle<Mesh> mesh = mesh_component ? mesh_component->mesh : Handle<Mesh>::empty;
         Handle<Material> material = mesh_component ? mesh_component->material : Handle<Material>::empty;

@@ -295,9 +295,6 @@ void TemporalBlending::Render(FrameBase *frame, ViewRenderResource *view)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
     const ImageRef &active_image = frame->GetFrameIndex() % 2 == 0
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
@@ -331,8 +328,8 @@ void TemporalBlending::Render(FrameBase *frame, ViewRenderResource *view)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) }
                 }
             }
         },

@@ -186,6 +186,25 @@ UIObject::~UIObject()
         node->Remove(); // remove from the scene
     };
 
+    if (Handle<Entity> entity = GetEntity()) {
+        Scene *scene = GetScene();
+        AssertThrow(scene != nullptr);
+
+        if (Threads::IsOnThread(scene->GetOwnerThreadID())) {
+            Impl(GetScene(), std::move(entity), std::move(m_node_proxy));
+        } else {
+            // Keep node alive until it can be destroyed on the owner thread
+            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity = std::move(entity)]() mutable
+            {
+                Impl(scene.Get(), std::move(entity), std::move(node));
+            });
+
+            // wait for task completion before finishing destruction,
+            // to ensure that the UIObject is set to nullptr on the UIComponent
+            task.Await();
+        }
+    }
+
     m_child_ui_objects.Clear();
     m_vertical_scrollbar.Reset();
     m_horizontal_scrollbar.Reset();
@@ -208,30 +227,6 @@ UIObject::~UIObject()
     OnClick.RemoveAllDetached();
     OnKeyDown.RemoveAllDetached();
     OnKeyUp.RemoveAllDetached();
-
-    // Unset the UIObject pointer on the UIComponent
-    if (Handle<Entity> entity = GetEntity()) {
-        Scene *scene = GetScene();
-        AssertThrow(scene != nullptr);
-
-        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
-            ui_component->ui_object = nullptr;
-        }
-
-        if (Threads::IsOnThread(scene->GetOwnerThreadID())) {
-            Impl(GetScene(), std::move(entity), std::move(m_node_proxy));
-        } else {
-            // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity = std::move(entity)]() mutable
-            {
-                Impl(scene.Get(), std::move(entity), std::move(node));
-            });
-
-            task.Await();
-        }
-
-        HYP_LOG(UI, Debug, "UIObject {} destroyed on thread {}", GetName(), Threads::CurrentThreadID().GetName());
-    }
 }
 
 void UIObject::Init()

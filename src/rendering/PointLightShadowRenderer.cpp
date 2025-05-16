@@ -174,9 +174,4 @@ void PointLightShadowRenderer::OnRender(FrameBase *frame)
     // }
 }
 
-void PointLightShadowRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)
-{
-    AssertThrowMsg(false, "Not implemented");
-}
-
 } // namespace hyperion

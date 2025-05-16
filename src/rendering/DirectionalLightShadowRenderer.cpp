@@ -285,7 +285,8 @@ void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
         AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
 
-        m_combine_shadow_maps_pass->Render(frame, nullptr);
+        // Note: view unused here
+        m_combine_shadow_maps_pass->Render(frame, m_view_statics_resource_handle.Get());
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
@@ -392,6 +393,7 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     m_resolution(resolution),
     m_filter_mode(filter_mode)
 {
+    debug::LogStackTrace();
     m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
     m_camera->SetName(NAME("DirectionalLightShadowRendererCamera"));
     m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>());
@@ -399,17 +401,19 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     InitObject(m_camera);
 
     m_view_statics = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
-        .scene      = m_parent_scene,
-        .camera     = m_camera
+        .viewport                   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_STATIC
     });
 
     InitObject(m_view_statics);
 
     m_view_dynamics = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
-        .scene      = m_parent_scene,
-        .camera     = m_camera
+        .viewport                   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_DYNAMIC
     });
 
     InitObject(m_view_dynamics);
@@ -425,8 +429,6 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    AssertThrow(IsValidComponent());
-
     ShadowMapRenderResource *shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
 
@@ -463,8 +465,6 @@ void DirectionalLightShadowRenderer::Init()
 
 void DirectionalLightShadowRenderer::OnRemoved()
 {
-    AssertThrow(IsValidComponent());
-
     if (m_light_render_resource_handle) {
         m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
     }
@@ -479,8 +479,6 @@ void DirectionalLightShadowRenderer::OnRemoved()
         
         if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
-
-            FreeResource(shadow_map_render_resource);
         }
     }
 
@@ -505,19 +503,22 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     octree.CalculateVisibility(m_camera);
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    Task<typename RenderProxyTracker::Diff> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
     {
-        return m_view_statics->CollectStaticEntities();
+        m_view_statics->Update(delta);
+
+        return m_view_statics->GetLastCollectionResult();
     });
 
-    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
     {
-        m_view_dynamics->CollectDynamicEntities();
+        m_view_dynamics->Update(delta);
     });
 #else
-    RenderCollector::CollectionResult statics_collection_result = m_view_statics->CollectStaticEntities();
-
-    m_view_dynamics->CollectDynamicEntities();
+    m_view_statics->Update(delta);
+    m_view_dynamics->Update(delta);
+    
+    typename RenderProxyTracker::Diff statics_collection_result = m_view_statics->GetLastCollectionResult();
 #endif
 
     Octree const *fitting_octant = nullptr;
@@ -532,7 +533,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    RenderCollector::CollectionResult &statics_collection_result = statics_collection_task.Await();
+    typename RenderProxyTracker::Diff statics_collection_result = statics_collection_task.Await();
 #endif
 
     // Need to re-render static objects if:
@@ -574,11 +575,6 @@ void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)
 
     AssertThrow(m_shadow_pass != nullptr);
     m_shadow_pass->Render(frame, nullptr);
-}
-
-void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)
-{
-    AssertThrowMsg(false, "Not implemented");
 }
 
 void DirectionalLightShadowRenderer::CreateShader()

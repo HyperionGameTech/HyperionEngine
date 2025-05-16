@@ -594,10 +594,16 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 {
     m_editor_delegates = new EditorDelegates();
 
-    OnProjectOpened.Bind([this](EditorProject *project)
+    OnProjectOpened.Bind([this](const Handle<EditorProject> &project)
     {
+        HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
+
+        InitObject(project);
+
         const Handle<Scene> &project_scene = project->GetScene();
         AssertThrow(project_scene.IsValid());
+
+        HYP_LOG(Editor, Info, "Project {} scene: {}", *project->GetName(), *project_scene->GetName());
 
         GetWorld()->AddScene(project_scene);
 
@@ -663,7 +669,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
         }));
     }).Detach();
 
-    OnProjectClosing.Bind([this](EditorProject *project)
+    OnProjectClosing.Bind([this](const Handle<EditorProject> &project)
     {
         // Shutdown to reinitialize widget holder after project is opened
         m_manipulation_widget_holder.Shutdown();
@@ -681,7 +687,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 
             // @TODO Remove camera controller
 
-            GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
+            project_scene->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
 
             if (m_camera) {
                 m_camera.Reset();
@@ -757,18 +763,17 @@ void EditorSubsystem::Initialize()
 
     InitContentBrowser();
 
-    NewProject();
+    // NewProject();
 
-    // auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject612");
+    auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject3");
 
-    // if (!result) {
-    //     HYP_BREAKPOINT;
-    // }
+    if (!result) {
+        HYP_BREAKPOINT;
+    }
 
-    // OpenProject(*result);
+    OpenProject(*result);
 
     InitDetailView();
-    InitDebugOverlays();
 
     CreateHighlightNode();
 
@@ -796,8 +801,8 @@ void EditorSubsystem::Shutdown()
 {
     HYP_SCOPE;
 
-    if (m_current_project != nullptr) {
-        OnProjectClosing(m_current_project.Get());
+    if (m_current_project) {
+        OnProjectClosing(m_current_project);
 
         m_current_project->Close();
 
@@ -966,7 +971,7 @@ void EditorSubsystem::InitViewport()
     AssertThrow(primary_camera.IsValid());
 
     for (const RC<ScreenCaptureRenderSubsystem> &screen_capture_render_subsystem : m_screen_capture_render_subsystems) {
-        GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem(screen_capture_render_subsystem);
+        screen_capture_render_subsystem->RemoveFromEnvironment();
     }
 
     m_screen_capture_render_subsystems.Clear();
@@ -1018,7 +1023,7 @@ void EditorSubsystem::InitViewport()
 
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
         m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
         
         m_scene_texture = screen_capture_render_subsystem->GetTexture();
@@ -1256,6 +1261,26 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            if (event.key_code == KeyCode::TILDE) {
+                const bool is_console_open = m_console_ui && m_console_ui->IsVisible();
+
+                if (is_console_open) {
+                    m_console_ui->SetIsVisible(false);
+
+                    if (m_debug_overlay_ui_object) {
+                        m_debug_overlay_ui_object->SetIsVisible(true);
+                    }
+                } else {
+                    m_console_ui->SetIsVisible(true);
+
+                    if (m_debug_overlay_ui_object) {
+                        m_debug_overlay_ui_object->SetIsVisible(false);
+                    }
+                }
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event)) {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -1291,7 +1316,9 @@ void EditorSubsystem::InitViewport()
 
         ui_image->SetTexture(m_scene_texture);
 
-        InitConsole();
+        InitConsoleUI();
+        InitDebugOverlays();
+        InitManipulationWidgetSelection();
     } else {
         HYP_FAIL("Failed to find Scene_Image element");
     }
@@ -1593,6 +1620,33 @@ void EditorSubsystem::InitDetailView()
     }));
 }
 
+void EditorSubsystem::InitConsoleUI()
+{
+    HYP_SCOPE;
+
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    if (m_console_ui != nullptr) {
+        m_console_ui->RemoveFromParent();
+    }
+
+    m_console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+    AssertThrow(m_console_ui != nullptr);
+    
+    m_console_ui->SetDepth(150);
+    m_console_ui->SetIsVisible(false);
+
+    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
+        RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
+        AssertThrow(scene_image != nullptr);
+
+        scene_image->AddChildUIObject(m_console_ui);
+    } else {
+        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
+    }
+}
+
 void EditorSubsystem::InitDebugOverlays()
 {
     HYP_SCOPE;
@@ -1600,9 +1654,11 @@ void EditorSubsystem::InitDebugOverlays()
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    m_debug_overlay_ui_object = ui_subsystem->GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
+    m_debug_overlay_ui_object = ui_subsystem->GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
     m_debug_overlay_ui_object->SetDepth(100);
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+    m_debug_overlay_ui_object->SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
+    m_debug_overlay_ui_object->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
     m_debug_overlay_ui_object->OnClick.RemoveAllDetached();
     m_debug_overlay_ui_object->OnKeyDown.RemoveAllDetached();
@@ -1620,30 +1676,63 @@ void EditorSubsystem::InitDebugOverlays()
     }
 }
 
-void EditorSubsystem::InitConsole()
+void EditorSubsystem::InitManipulationWidgetSelection()
 {
     HYP_SCOPE;
 
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIObject> console_ui = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Console"));
-    if (console_ui != nullptr) {
-        console_ui->RemoveFromParent();
+    RC<UIObject> manipulation_widget_selection = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
+    if (manipulation_widget_selection != nullptr) {
+        manipulation_widget_selection->RemoveFromParent();
     }
 
-    console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-    AssertThrow(console_ui != nullptr);
+    manipulation_widget_selection = ui_subsystem->GetUIStage()->CreateUIObject<UIMenuBar>(NAME("ManipulationWidgetSelection"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
+    AssertThrow(manipulation_widget_selection != nullptr);
     
-    console_ui->SetDepth(150);
+    manipulation_widget_selection->SetDepth(150);
+    manipulation_widget_selection->SetTextSize(8.0f);
+    manipulation_widget_selection->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
+    manipulation_widget_selection->SetTextColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    manipulation_widget_selection->SetBorderFlags(UIObjectBorderFlags::ALL);
+    manipulation_widget_selection->SetBorderRadius(5.0f);
+    manipulation_widget_selection->SetPosition(Vec2i { 5, 5 });
+
+    Array<Pair<int, RC<UIObject>>> manipulation_widget_menu_items;
+    manipulation_widget_menu_items.Reserve(m_manipulation_widget_holder.GetManipulationWidgets().Size());
+
+    // add each manipulation widget to the selection menu
+    for (const RC<EditorManipulationWidgetBase> &manipulation_widget : m_manipulation_widget_holder.GetManipulationWidgets()) {
+        if (manipulation_widget->GetManipulationMode() == EditorManipulationMode::NONE) {
+            continue;
+        }
+
+        RC<UIObject> manipulation_widget_menu_item = manipulation_widget_selection->CreateUIObject<UIMenuItem>(manipulation_widget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+        AssertThrow(manipulation_widget_menu_item != nullptr);
+
+        // @TODO Add icon
+        manipulation_widget_menu_item->SetText("<widget>");
+
+        auto it = std::lower_bound(manipulation_widget_menu_items.Begin(), manipulation_widget_menu_items.End(), manipulation_widget->GetPriority(), [](const Pair<int, RC<UIObject>> &a, int b)
+        {
+            return a.first < b;
+        });
+
+        manipulation_widget_menu_items.Insert(it, Pair<int, RC<UIObject>> { manipulation_widget->GetPriority(), std::move(manipulation_widget_menu_item) });
+    }
+
+    for (Pair<int, RC<UIObject>> &manipulation_widget_menu_item : manipulation_widget_menu_items) {
+        manipulation_widget_selection->AddChildUIObject(std::move(manipulation_widget_menu_item.second));
+    }
 
     if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
         RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
         AssertThrow(scene_image != nullptr);
 
-        scene_image->AddChildUIObject(console_ui);
+        scene_image->AddChildUIObject(manipulation_widget_selection);
     } else {
-        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
+        HYP_FAIL("Failed to find Scene_Image element; cannot add manipulation widget selection UI");
     }
 }
 
@@ -1694,21 +1783,44 @@ void EditorSubsystem::InitContentBrowser()
     {
         HYP_LOG(Editor, Debug, "Import button clicked!");
 
-        if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
-            auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/FileBrowserDialog.ui.xml");
+        // if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
+        //     auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/FileBrowserDialog.ui.xml");
                     
-            if (loaded_ui_asset.HasValue()) {
-                auto loaded_ui = loaded_ui_asset->Result();
+        //     if (loaded_ui_asset.HasValue()) {
+        //         auto loaded_ui = loaded_ui_asset->Result();
 
-                if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog")) {
-                    stage->AddChildUIObject(file_browser_dialog);
+        //         if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog")) {
+        //             stage->AddChildUIObject(file_browser_dialog);
             
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
-            }
+        //             return UIEventHandlerResult::STOP_BUBBLING;
+        //         }
+        //     }
 
-            HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
+        //     HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
+        // }
+
+        // find a point light, try removing it
+        auto point_light_node = m_scene->GetRoot()->FindChildByName("PointLight");
+        if (point_light_node) {
+            point_light_node->Remove();
         }
+
+        #if 0
+        // debugging; temp
+        for (const RC<ScreenCaptureRenderSubsystem> &screen_capture_render_subsystem : m_screen_capture_render_subsystems) {
+            screen_capture_render_subsystem->RemoveFromEnvironment();
+        }
+
+        m_screen_capture_render_subsystems.Clear();
+
+        for (const Handle<View> &view : m_views) {
+            GetWorld()->RemoveView(view);
+        }
+
+        m_views.Clear();
+        #endif
+
+        return UIEventHandlerResult::STOP_BUBBLING;
 
         return UIEventHandlerResult::ERR;
     }));
@@ -1828,17 +1940,10 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
 
 void EditorSubsystem::NewProject()
 {
-    OpenProject(MakeRefCountedPtr<EditorProject>());
-
-    // test
-    if (Result result = m_current_project->Save()) {
-
-    } else {
-        HYP_LOG(Editor, Error, "Failed to save project : {}", result.GetError().GetMessage());
-    }
+    OpenProject(CreateObject<EditorProject>());
 }
 
-void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
+void EditorSubsystem::OpenProject(const Handle<EditorProject> &project)
 {
     HYP_SCOPE;
 
@@ -1848,8 +1953,8 @@ void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
         return;
     }
 
-    if (m_current_project != nullptr) {
-        OnProjectClosing(m_current_project.Get());
+    if (m_current_project) {
+        OnProjectClosing(m_current_project);
 
         m_current_project->Close();
     }
@@ -1857,7 +1962,7 @@ void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
     if (project) {
         m_current_project = project;
 
-        OnProjectOpened(m_current_project.Get());
+        OnProjectOpened(m_current_project);
     }
 }
 

@@ -130,7 +130,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
-    void AddRenderProxy(RenderProxyList &proxy_list, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
+    void AddRenderProxy(RenderProxyTracker &render_proxy_tracker, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
@@ -194,12 +194,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             InitObject(render_group);
         }
 
-        auto iter = proxy_list.Add(entity, std::move(proxy));
+        auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
         render_group->AddRenderProxy(iter->second);
     }
 
-    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
+    bool RemoveRenderProxy(RenderProxyTracker &render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
@@ -213,33 +213,19 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         const bool removed = render_group->RemoveRenderProxy(entity);
 
-        proxy_list.MarkToRemove(entity);
+        render_proxy_tracker.MarkToRemove(entity);
 
         return removed;
-
-        // HYP_SCOPE;
-
-        // bool removed = false;
-
-        // for (auto &render_groups_by_attributes : collection->GetProxyGroups()) {
-        //     for (auto &it : render_groups_by_attributes) {
-        //         removed |= it.second->RemoveRenderProxy(entity);
-        //     }
-        // }
-
-        // proxy_list.MarkToRemove(entity);
-
-        // return removed;
     }
 
     virtual RendererResult operator()() override
     {
         HYP_SCOPE;
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-        proxy_list.Reserve(added_proxies.Size());
+        render_proxy_tracker.Reserve(added_proxies.Size());
 
 #if 0
         HYP_LOG(RenderCollection, Debug,
@@ -273,7 +259,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (ID<Entity> entity_id : removed_proxies) {
-            const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
+            const RenderProxy *proxy = render_proxy_tracker.GetElement(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
             proxy->UnclaimRenderResource();
@@ -281,7 +267,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AssertThrow(RemoveRenderProxy(proxy_list, entity_id, attributes, bucket));
+            AssertThrow(RemoveRenderProxy(render_proxy_tracker, entity_id, attributes, bucket));
         }
 
         for (RenderProxy &proxy : added_proxies) {
@@ -295,10 +281,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AddRenderProxy(proxy_list, std::move(proxy), attributes, bucket);
+            AddRenderProxy(render_proxy_tracker, std::move(proxy), attributes, bucket);
         }
 
-        proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
+        render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
         
         // Clear out groups that are no longer used
         collection->RemoveEmptyProxyGroups();
@@ -372,56 +358,6 @@ RenderCollector::RenderCollector()
 }
 
 RenderCollector::~RenderCollector() = default;
-
-RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(const Handle<Camera> &camera, ViewRenderResource *view_render_resource)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    HYP_MT_CHECK_READ(m_data_race_detector);
-
-    AssertThrow(m_draw_collection != nullptr);
-
-    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
-    CollectionResult collection_result { };
-    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
-
-    if (collection_result.NeedsUpdate()) {
-        Array<ID<Entity>> removed_proxies;
-        proxy_list.GetRemovedEntities(removed_proxies, true /* include_changed */);
-
-        Array<RenderProxy *> added_proxy_ptrs;
-        proxy_list.GetAddedEntities(added_proxy_ptrs, true /* include_changed */);
-
-        if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
-            PUSH_RENDER_COMMAND(
-                RebuildProxyGroups,
-                TResourceHandle<ViewRenderResource>(*view_render_resource),
-                m_draw_collection,
-                std::move(added_proxy_ptrs),
-                std::move(removed_proxies),
-                camera,
-                m_override_attributes
-            );
-        }
-    }
-
-    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
-
-    return collection_result;
-}
-
-void RenderCollector::PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy)
-{
-    AssertThrow(render_proxy.entity.IsValid());
-    AssertThrow(render_proxy.mesh.IsValid());
-    AssertThrow(render_proxy.material.IsValid());
-    
-    proxy_list.Add(render_proxy.entity, RenderProxy(render_proxy));
-}
 
 void RenderCollector::CollectDrawCalls(
     FrameBase *frame,
@@ -552,8 +488,6 @@ void RenderCollector::ExecuteDrawCalls(
             const RenderableAttributeSet &attributes = it.first;
             const Handle<RenderGroup> &render_group = it.second;
 
-            AssertThrow(render_group.IsValid());
-
             if (push_constant) {
                 render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
             }
@@ -598,8 +532,6 @@ void RenderCollector::ExecuteDrawCalls(
                     continue;
                 }
 
-                AssertThrow(render_group.IsValid());
-
                 if (push_constant) {
                     render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
                 }
@@ -615,42 +547,6 @@ void RenderCollector::ExecuteDrawCalls(
         if (framebuffer) {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
-    }
-}
-
-void RenderCollector::ClearState(bool create_new)
-{
-    HYP_SCOPE;
-
-    HYP_MT_CHECK_RW(m_data_race_detector);
-
-    if (m_draw_collection != nullptr) {
-        HYP_LOG(RenderCollection, Debug, "Clearing RenderCollector state");
-
-        RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-        Array<ID<Entity>> entity_ids;
-
-        for (Bitset::BitIndex bit_index : proxy_list.GetEntities()) {
-            entity_ids.PushBack(ID<Entity>::FromIndex(bit_index));
-        }
-
-        PUSH_RENDER_COMMAND(
-            RebuildProxyGroups,
-            TResourceHandle<ViewRenderResource>(),
-            m_draw_collection,
-            Array<RenderProxy *>(),
-            std::move(entity_ids),
-            Handle<Camera>::empty,
-            m_override_attributes
-        );
-
-        HYP_SYNC_RENDER();
-    }
-
-    if (create_new) {
-        m_draw_collection = MakeRefCountedPtr<EntityDrawCollection>();
-    } else {
-        m_draw_collection.Reset();
     }
 }
 

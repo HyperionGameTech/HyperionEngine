@@ -79,6 +79,7 @@ enum class KeyCode : uint16
     TAB = 258,
     BACKSPACE = 8,
     CAPSLOCK = 280,
+    TILDE = 96,
 
     ARROW_RIGHT = 79,
     ARROW_LEFT = 80,

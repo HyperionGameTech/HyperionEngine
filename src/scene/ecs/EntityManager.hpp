@@ -72,6 +72,7 @@ HYP_MAKE_ENUM_FLAGS(EntityManagerCommandQueueFlags)
 
 class World;
 class Scene;
+struct HypData;
 
 static constexpr uint32 g_move_entity_write_flag = 0x1u;
 static constexpr uint32 g_move_entity_read_mask = ~0u << 1;
@@ -483,6 +484,12 @@ public:
      */
     HYP_FORCE_INLINE const EntityManagerCommandQueue &GetCommandQueue() const
         { return m_command_queue; }
+
+    HYP_FORCE_INLINE EntityContainer &GetEntities()
+        { return m_entities; }
+
+    HYP_FORCE_INLINE const EntityContainer &GetEntities() const
+        { return m_entities; }
 
     /*! \brief Adds a new entity to the EntityManager.
      *  \note Must be called from the owner thread.

@@ -31,8 +31,6 @@ class ViewRenderResource;
 class UIRenderCollector : RenderCollector
 {
 public:
-    using RenderCollector::GetDrawCollection;
-
     UIRenderCollector();
     UIRenderCollector(const UIRenderCollector &other)                 = delete;
     UIRenderCollector &operator=(const UIRenderCollector &other)      = delete;
@@ -42,9 +40,10 @@ public:
 
     void ResetOrdering();
 
-    void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy, int computed_depth);
+    void PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy, int computed_depth);
 
-    CollectionResult PushUpdatesToRenderThread(
+    typename RenderProxyTracker::Diff PushUpdatesToRenderThread(
+        RenderProxyTracker &render_proxy_tracker,
         const FramebufferRef &framebuffer,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
@@ -83,15 +82,18 @@ public:
     HYP_FORCE_INLINE const UIRenderCollector &GetRenderCollector() const
         { return m_render_collector; }
 
+    HYP_FORCE_INLINE RenderProxyTracker &GetRenderProxyTracker()
+        { return m_render_proxy_tracker; }
+
+    HYP_FORCE_INLINE const RenderProxyTracker &GetRenderProxyTracker() const
+        { return m_render_proxy_tracker; }
+
 private:
     virtual void Init() override;
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase *frame) override;
-
-    virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override
-        { AssertThrowMsg(false, "Not permitted!"); }
 
     void CreateFramebuffer();
 
@@ -100,6 +102,9 @@ private:
     FramebufferRef                          m_framebuffer;
     ShaderRef                               m_shader;
     UIRenderCollector                       m_render_collector;
+
+    // Game thread side list, used for collecting UI objects
+    RenderProxyTracker                      m_render_proxy_tracker;
 
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 

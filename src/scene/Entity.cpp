@@ -3,9 +3,12 @@
 #include <scene/Entity.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <core/object/HypClass.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -28,7 +31,25 @@ Entity::~Entity()
 
         HYP_LOG(ECS, Debug, "Removing entity #{} from entity manager", id.Value());
 
-        entity_manager->RemoveEntity(id);
+        if (entity_manager->HasEntity(id)) {
+
+            for (const Pair<TypeID, ComponentID> &it : *entity_manager->GetAllComponents(id)) {
+                AnyRef component_ref = entity_manager->TryGetComponent(it.first, id);
+
+                if (component_ref.HasValue()) {
+                    const IComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(it.first);
+                    AssertThrow(component_interface != nullptr);
+
+                    if (component_interface->IsEntityTag()) {
+                        HYP_LOG(ECS, Debug, "  Removing entity tag component of type '{}' from Entity #{}", component_interface->GetTypeName(), id.Value());
+                    } else {
+                        HYP_LOG(ECS, Debug, "  Removing component of type '{}' from Entity #{}", component_interface->GetTypeName(), id.Value());
+                    }
+                }
+            }
+
+            entity_manager->RemoveEntity(id);
+        }
     });
 }
 

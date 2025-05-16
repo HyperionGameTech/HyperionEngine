@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-struct alignas(256) ShadowMapShaderData
+struct ShadowMapShaderData
 {
     Matrix4 projection;
     Matrix4 view;
@@ -24,6 +24,11 @@ struct alignas(256) ShadowMapShaderData
     Vec2f   offset_uv; // offset in the atlas texture array
     uint32  layer_index; // index of the atlas in the shadow map texture array, or cubemap index for point lights
     uint32  flags;
+
+    Vec4f   _pad1;
+    Vec4f   _pad2;
+    Vec4f   _pad3;
+    Vec4f   _pad4;
 };
 
 static_assert(sizeof(ShadowMapShaderData) == 256);

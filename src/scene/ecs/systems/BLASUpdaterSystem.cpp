@@ -9,7 +9,7 @@
 #include <scene/World.hpp>
 
 #include <rendering/RenderMesh.hpp>
-#include <rendering/RenderWorld.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
@@ -121,20 +121,6 @@ struct RENDER_COMMAND(RemoveBLASFromTLAS) : renderer::RenderCommand
 BLASUpdaterSystem::BLASUpdaterSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        for (auto [entity_id, mesh_component] : GetEntityManager().GetEntitySet<MeshComponent>().GetScopedView(GetComponentInfos())) {
-            if (previous_world != nullptr && mesh_component.raytracing_data != nullptr) {
-                PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, previous_world->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
-            }
-
-            if (new_world != nullptr && mesh_component.raytracing_data != nullptr) {
-                PUSH_RENDER_COMMAND(AddBLASToTLAS, new_world->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
-            }
-        }
-    }));
 }
 
 bool BLASUpdaterSystem::ShouldCreateForScene(Scene *scene) const
@@ -202,7 +188,7 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         return;
     }
 
-    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
+    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetScene()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
 
     GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity);
 }
@@ -217,7 +203,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
         return;
     }
 
-    PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetWorld()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
+    PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetScene()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
         BLASRef &blas = mesh_component.raytracing_data->bottom_level_acceleration_structures[frame_index];

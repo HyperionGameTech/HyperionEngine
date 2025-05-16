@@ -111,9 +111,6 @@ public:
     HYP_FORCE_INLINE World *GetWorld() const
         { return m_world; }
 
-    HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
-        { return m_environment; }
-
     HYP_FORCE_INLINE ShadowMapManager *GetShadowMapManager() const
         { return m_shadow_map_manager.Get(); }
 
@@ -124,6 +121,9 @@ public:
     void RemoveView(ViewRenderResource *view_render_resource);
 
     Task<void> RemoveViewsForScene(const WeakHandle<Scene> &scene_weak);
+
+    void AddScene(TResourceHandle<SceneRenderResource> &&scene_render_resource_handle);
+    void RemoveScene(SceneRenderResource *scene_render_resource);
 
     const EngineRenderStats &GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats &render_stats);
@@ -142,8 +142,9 @@ private:
     void CreateShadowMapsTextureArray();
 
     World                                                       *m_world;
+
     Array<TResourceHandle<ViewRenderResource>>                  m_view_render_resource_handles;
-    Handle<RenderEnvironment>                                   m_environment;
+    Array<TResourceHandle<SceneRenderResource>>                 m_scene_render_resource_handles;
 
     UniquePtr<ShadowMapManager>                                 m_shadow_map_manager;
 

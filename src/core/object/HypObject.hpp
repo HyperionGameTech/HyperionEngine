@@ -29,6 +29,9 @@ namespace hyperion {
 class HypClass;
 struct HypData;
 
+template <class T>
+class HypClassInstance;
+
 enum class HypClassFlags : uint32;
 
 template <class T>
@@ -41,7 +44,22 @@ namespace dotnet {
 class Class;
 } // namespace dotnet
 
-extern HYP_API void InitHypObjectInitializer(IHypObjectInitializer *initializer, void *parent, TypeID type_id, const HypClass *hyp_class);
+template<typename T, typename FieldType, FieldType T::*Member>
+struct offset_helper
+{
+    static T value;
+    static char size_helper[
+        (char *)&(value.*Member) -
+        (char *)&(value)
+    ];
+};
+
+template<typename T, typename FieldType, FieldType T::*Member>
+constexpr SizeType offset_of()
+{
+    return sizeof(offset_helper<T, FieldType, Member>::size_helper);
+}
+
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
 extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
@@ -161,6 +179,9 @@ public:
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
     {
+        // Temp; debug
+        AssertThrow(uintptr_t(_this) % alignof(T) == 0);
+
         static_cast<T *>(_this)->m_hyp_object_initializer_ptr = ptr;
     }
 
@@ -184,7 +205,7 @@ public:
         case HypClassAllocationMethod::REF_COUNTED_PTR:
         {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
-                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak_this.GetRefCountData_Internal();
                 ref_count_data->inc_ref_count(_this, *ref_count_data, weak);
             } else {
                 HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
@@ -219,7 +240,7 @@ public:
         case HypClassAllocationMethod::REF_COUNTED_PTR:
         {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
-                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak_this.GetRefCountData_Internal();
 
                 if (weak) {
                     ref_count_data->DecRefCount_Weak(_this);
@@ -259,7 +280,7 @@ public:
         case HypClassAllocationMethod::REF_COUNTED_PTR:
         {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
-                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak_this.GetRefCountData_Internal();
                 return ref_count_data->UseCount_Strong();
             } else {
                 HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
@@ -296,7 +317,7 @@ public:
         case HypClassAllocationMethod::REF_COUNTED_PTR:
         {
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
-                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak.GetRefCountData_Internal();
+                auto *ref_count_data = static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(_this))->weak_this.GetRefCountData_Internal();
                 return ref_count_data->UseCount_Weak();
             } else {
                 HYP_FAIL("HypClassAllocationMethod::REF_COUNTED_PTR requires EnableRefCountedPtrFromThisBase as a base class");
@@ -337,7 +358,7 @@ private:
     private: \
         friend class HypObjectInitializer<T>; \
         friend struct HypClassInitializer_##T; \
-        \
+        friend class HypClassInstance<T>; \
         friend struct detail::HypClassRegistration<T>; \
         \
         HypObjectInitializer<T> m_hyp_object_initializer { this }; \

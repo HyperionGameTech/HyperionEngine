@@ -20,6 +20,9 @@
 
 namespace hyperion {
 
+static constexpr uint64 g_initialization_mask_initialized_bit = 0x1;
+static constexpr uint64 g_initialization_mask_read_mask = uint64(-1) & ~g_initialization_mask_initialized_bit;
+
 class IResourceMemoryPool;
 
 template <class T>
@@ -106,12 +109,62 @@ public:
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) override final
         { m_pool_handle = pool_handle; }
 
-    /*! \brief Performs an operation on the owner thread if the resources are initialized,
-     *  otherwise executes it immediately on the calling thread. Initialization on the owner thread will not begin until at least the end of the given proc,
+    /*! \brief Performs an transactional operation on this Resource. Executes on the owner thread if the resources are initialized,
+     *  otherwise executes it inline on the calling thread. Initialization on the owner thread will not begin until at least the end of the given proc,
      *  so it is safe to use this method on any thread.
      *  \param proc The operation to perform.
      *  \param force_owner_thread If true, the operation will be performed on the owner thread regardless of initialization state. */
-    void Execute(Proc<void()> &&proc, bool force_owner_thread = false);
+    template <class Function>
+    void Execute(Function &&function, bool force_owner_thread = false)
+    {
+        m_completion_semaphore.Produce(1);
+
+        if (!force_owner_thread) {
+            if (m_claimed_semaphore.IsInSignalState()) {
+                // Try to add read access - if it can't be acquired, we are in the process of initializing
+                // and thus we will remove our read access and enqueue the operation
+                if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
+                    // Check again, as it might have been initialized in between the initial check and the increment
+                    HYP_MT_CHECK_RW(m_data_race_detector);
+
+                    // debugging
+                    AssertDebug(m_claimed_semaphore.IsInSignalState());
+
+                    // Execute inline if not initialized yet instead of pushing to owner thread
+                    function();
+
+                    // Remove our read access
+                    m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
+
+                    m_completion_semaphore.Release(1);
+
+                    return;
+                }
+
+                // Remove our read access
+                m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
+            }
+        }
+
+        if (!CanExecuteInline()) {
+            EnqueueOp([this, f = std::forward<Function>(function)]() mutable
+            {
+                HYP_MT_CHECK_RW(m_data_race_detector);
+    
+                f();
+    
+                m_completion_semaphore.Release(1);
+            });
+
+            return;
+        }
+
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        function();
+
+        m_completion_semaphore.Release(1);
+    }
 
 protected:
     // Needed to claim resources that are initialized in LOADED state.

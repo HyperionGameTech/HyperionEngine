@@ -44,7 +44,7 @@ class IDebugDrawShape;
 class UIObject;
 class UIStage;
 
-HYP_STRUCT(ConfigName="app", ConfigPath="rendering.debug.debug_drawer")
+HYP_STRUCT(ConfigName="app", JSONPath="rendering.debug.debug_drawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
     HYP_FIELD(Description="Enable or disable the debug drawer.")

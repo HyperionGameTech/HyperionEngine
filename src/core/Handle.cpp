@@ -29,10 +29,10 @@ const AnyHandle AnyHandle::empty = { };
 
 AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
     : type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void()),
-      ptr(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal() : nullptr)
+      ptr(hyp_object_ptr)
 {
     if (IsValid()) {
-        ptr->IncRefStrong();
+        ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
@@ -41,7 +41,7 @@ AnyHandle::AnyHandle(const AnyHandle &other)
       ptr(other.ptr)
 {
     if (IsValid()) {
-        ptr->IncRefStrong();
+        ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
@@ -55,7 +55,7 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
 
     if (!was_same_ptr) {
         if (IsValid()) {
-            ptr->DecRefStrong();
+            ptr->GetObjectHeader_Internal()->DecRefStrong();
         }
     }
 
@@ -64,7 +64,7 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
 
     if (!was_same_ptr) {
         if (IsValid()) {
-            ptr->IncRefStrong();
+            ptr->GetObjectHeader_Internal()->IncRefStrong();
         }
     }
 
@@ -85,7 +85,7 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
     }
 
     if (IsValid()) {
-        ptr->DecRefStrong();
+        ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 
     ptr = other.ptr;
@@ -99,7 +99,7 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
 AnyHandle::~AnyHandle()
 {
     if (IsValid()) {
-        ptr->DecRefStrong();
+        ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 }
 
@@ -109,7 +109,7 @@ AnyHandle::IDType AnyHandle::GetID() const
         return IDType();
     }
 
-    return IDType { ptr->index + 1 };
+    return IDType { ptr->GetObjectHeader_Internal()->index + 1 };
 }
 
 AnyRef AnyHandle::ToRef() const
@@ -118,13 +118,15 @@ AnyRef AnyHandle::ToRef() const
         return AnyRef(type_id, nullptr);
     }
 
-    return AnyRef(type_id, ptr->container->GetObjectPointer(ptr));
+    HypObjectHeader *header = ptr->GetObjectHeader_Internal();
+
+    return AnyRef(type_id, header->container->GetObjectPointer(header));
 }
 
 void AnyHandle::Reset()
 {
     if (IsValid()) {
-        ptr->DecRefStrong();
+        ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 
     ptr = nullptr;
@@ -136,8 +138,8 @@ void *AnyHandle::Release()
         return nullptr;
     }
 
-    void *address = ptr->Release();
-    AssertThrow(address != nullptr);
+    HypObjectHeader *header = ptr->GetObjectHeader_Internal();
+    void *address = header->container->GetObjectPointer(header);
 
     ptr = nullptr;
 

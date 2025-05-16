@@ -50,33 +50,26 @@ public:
     HYP_FORCE_INLINE const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> &GetProxyGroups() const
         { return m_proxy_groups; }
 
-    HYP_FORCE_INLINE RenderProxyList &GetProxyList(ThreadType thread_type)
-        { return m_proxy_lists[uint32(thread_type)]; }
+    /*! \brief Get the Render thread side RenderProxyTracker.
+     */
+    HYP_FORCE_INLINE RenderProxyTracker &GetRenderProxyTracker()
+        { return m_render_proxy_tracker; }
 
-    HYP_FORCE_INLINE const RenderProxyList &GetProxyList(ThreadType thread_type) const
-        { return m_proxy_lists[uint32(thread_type)]; }
+    /*! \brief Get the Render thread side RenderProxyTracker.
+     */
+    HYP_FORCE_INLINE const RenderProxyTracker &GetRenderProxyTracker() const
+        { return m_render_proxy_tracker; }
 
     uint32 NumRenderGroups() const;
 
 private:
     FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>    m_proxy_groups;
-    FixedArray<RenderProxyList, 2>                                                          m_proxy_lists;
+    RenderProxyTracker                                                                      m_render_proxy_tracker;
 };
 
 class RenderCollector
 {
 public:
-    struct CollectionResult
-    {
-        uint32  num_added_entities = 0;
-        uint32  num_removed_entities = 0;
-        uint32  num_changed_entities = 0;
-
-        /*! \brief Returns true if any proxies have been added, removed or changed. */
-        HYP_FORCE_INLINE bool NeedsUpdate() const
-            { return num_added_entities != 0 || num_removed_entities != 0 || num_changed_entities != 0; }
-    };
-
     RenderCollector();
     RenderCollector(const RenderCollector &other)                 = delete;
     RenderCollector &operator=(const RenderCollector &other)      = delete;
@@ -92,16 +85,6 @@ public:
 
     HYP_FORCE_INLINE void SetOverrideAttributes(const Optional<RenderableAttributeSet> &override_attributes)
         { m_override_attributes = override_attributes; }
-
-    /*! \brief Pushes an RenderProxy to the RenderCollector.
-        \param proxy_list The RenderProxyList to push to.
-     *  \param proxy The RenderProxy to push.
-     */
-    void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy);
-
-    /*! \brief Creates RenderGroups needed for rendering the Entity objects.
-     *  Call after calling CollectEntities() on Scene. */
-    CollectionResult PushUpdatesToRenderThread(const Handle<Camera> &camera, ViewRenderResource *view_render_resource);
 
     void CollectDrawCalls(
         FrameBase *frame,
@@ -126,10 +109,6 @@ public:
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
     ) const;
-
-    /*! \brief Perform a full reset, when this is not needed anymore. Not thread safe, so ensure there will be no overlap of usage of this object when calling this. */
-    void ClearState(bool create_new = true);
-
 protected:
 
     RC<EntityDrawCollection>            m_draw_collection;

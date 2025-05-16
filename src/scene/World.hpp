@@ -170,21 +170,21 @@ public:
      * and within each Scene, each Entity, etc. */
     void Update(GameCounter::TickUnit delta);
     
-    Delegate<void, World *, GameStateMode>  OnGameStateChange;
+    Delegate<void, World *, GameStateMode>          OnGameStateChange;
 
 private:
-    PhysicsWorld                            m_physics_world;
+    PhysicsWorld                                    m_physics_world;
 
-    DetachedScenesContainer                 m_detached_scenes;
+    DetachedScenesContainer                         m_detached_scenes;
 
-    Array<Handle<Scene>>                    m_scenes;
-    Array<Handle<View>>                     m_views;
+    Array<Handle<Scene>>                            m_scenes;
+    Array<Handle<View>>                             m_views;
 
-    TypeMap<RC<Subsystem>>                  m_subsystems;
+    TypeMap<RC<Subsystem>>                          m_subsystems;
 
-    GameState                               m_game_state;
+    GameState                                       m_game_state;
 
-    WorldRenderResource                     *m_render_resource;
+    WorldRenderResource                             *m_render_resource;
 };
 
 } // namespace hyperion

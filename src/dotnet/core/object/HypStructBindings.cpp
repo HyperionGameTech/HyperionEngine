@@ -34,6 +34,12 @@ public:
     {
         return m_size;
     }
+
+    virtual SizeType GetAlignment() const override
+    {
+        // @TODO: Implement .NET struct alignment
+        return alignof(void *);
+    }
     
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {

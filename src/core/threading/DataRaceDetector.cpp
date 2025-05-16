@@ -134,16 +134,12 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     if (access_flags & DataAccessFlags::ACCESS_WRITE) {
         if (((mask = m_writers.BitOr(test_mask, MemoryOrder::ACQUIRE_RELEASE)) & ~test_mask)) {
             LogDataRace(0ull, mask);
-            if (access_flags & DataAccessFlags::ACCESS_WRITE) {
-                HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is writing. Write mask: %llu", mask);
-            } else {
-                HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
-            }
+            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is writing. Write mask: %llu", mask);
         }
 
         if ((mask = m_readers.BitOr(test_mask, MemoryOrder::ACQUIRE_RELEASE)) & ~test_mask) {
             LogDataRace(mask, 0ull);
-            HYP_FAIL("Potential data race detected: Attempt to acquire read access while other thread is writing. Write mask: %llu", mask);
+            HYP_FAIL("Potential data race detected: Attempt to acquire write access while other thread is reading. Write mask: %llu", mask);
         }
     } else {
         m_readers.BitOr(test_mask, MemoryOrder::RELEASE);

@@ -148,6 +148,8 @@ void World::Init()
         for (auto &it : m_subsystems) {
             it.second->OnSceneAttached(scene);
         }
+
+        m_render_resource->AddScene(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
     }
 
     for (const Handle<View> &view : m_views) {
@@ -221,8 +223,6 @@ void World::Update(GameCounter::TickUnit delta)
     }
 #endif
 
-    m_render_resource->GetEnvironment()->Update(delta);
-
     Array<EntityManager *> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
 
@@ -236,6 +236,8 @@ void World::Update(GameCounter::TickUnit delta)
         // sanity checks
         AssertThrow(scene->GetWorld() == this);
         AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
+
+        scene->GetRenderResource().GetEnvironment()->Update(delta);
 
         scene->Update(delta);
 
@@ -422,6 +424,8 @@ void World::AddScene(const Handle<Scene> &scene)
     }
 
     if (m_scenes.Contains(scene)) {
+        HYP_LOG(Scene, Warning, "Scene {} already exists in world", scene->GetName());
+        
         return;
     }
 
@@ -433,6 +437,8 @@ void World::AddScene(const Handle<Scene> &scene)
         for (auto &it : m_subsystems) {
             it.second->OnSceneAttached(scene);
         }
+
+        m_render_resource->AddScene(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
     }
 
     m_scenes.PushBack(scene);
@@ -442,6 +448,7 @@ bool World::RemoveScene(const Handle<Scene> &scene)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+    // @TODO RemoveScene needs to trigger a scene detach event for all rendersubsystems
 
     typename Array<Handle<Scene>>::Iterator it = m_scenes.Find(scene);
     
@@ -457,6 +464,8 @@ bool World::RemoveScene(const Handle<Scene> &scene)
         scene->SetWorld(nullptr);
 
         if (IsInitCalled()) {
+            m_render_resource->RemoveScene(&scene->GetRenderResource());
+
             for (auto &it : m_subsystems) {
                 it.second->OnSceneDetached(scene);
             }

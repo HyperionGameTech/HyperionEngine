@@ -63,6 +63,7 @@ public:
     virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const = 0;
 
     virtual bool CreateInstance(HypData &out) const = 0;
+
     virtual bool GetShouldSerialize() const = 0;
 
     virtual bool IsEntityTag() const = 0;

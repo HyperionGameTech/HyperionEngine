@@ -36,6 +36,7 @@ namespace Hyperion
         Horizontal = 0x1,
         Vertical = 0x2
     }
+
     [HypClassBinding(Name="UIEventHandlerResult")]
     [StructLayout(LayoutKind.Explicit, Size=24, Pack=8)]
     public struct UIEventHandlerResult
@@ -180,6 +181,45 @@ namespace Hyperion
         Bottom = 0x4,
         Right = 0x8,
         All = Top | Left | Bottom | Right
+    }
+
+
+    [HypClassBinding(Name="UIObjectAspectRatio")]
+    [StructLayout(LayoutKind.Sequential, Size=8)]
+    public unsafe struct UIObjectAspectRatio
+    {
+        private float x = 1.0f;
+        private float y = 1.0f;
+
+        public UIObjectAspectRatio(float x, float y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
+        public float X
+        {
+            get
+            {
+                return x;
+            }
+            set
+            {
+                x = value;
+            }
+        }
+
+        public float Y
+        {
+            get
+            {
+                return y;
+            }
+            set
+            {
+                y = value;
+            }
+        }
     }
 
     [HypClassBinding(Name="UIObjectSize")]

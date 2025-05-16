@@ -326,7 +326,7 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
         const auto &lights = view->GetLights(light_type);
 
-        for (const TResourceHandle<LightRenderResource> &light_render_resource_handle : lights) {
+        for (LightRenderResource *light_render_resource : lights) {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
@@ -335,7 +335,7 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource_handle) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource) }
                 },
                 global_descriptor_set_index
             );
@@ -349,8 +349,8 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
             
             // Bind material descriptor set (for area lights)
             if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                const DescriptorSetRef &material_descriptor_set = light_render_resource_handle->GetMaterial().IsValid()
-                    ? light_render_resource_handle->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
+                const DescriptorSetRef &material_descriptor_set = light_render_resource->GetMaterial().IsValid()
+                    ? light_render_resource->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
                     : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
         
                 AssertThrow(material_descriptor_set != nullptr);
@@ -369,6 +369,119 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 }
 
 #pragma endregion Deferred pass
+
+#pragma region TonemapPass
+
+TonemapPass::TonemapPass(GBuffer *gbuffer)
+    : FullScreenPass(
+        InternalFormat::R11G11B10F,
+        gbuffer
+      )
+{
+}
+
+TonemapPass::~TonemapPass()
+{
+}
+
+void TonemapPass::Create()
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    FullScreenPass::Create();
+}
+
+void TonemapPass::CreatePipeline()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    RenderableAttributeSet renderable_attributes(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction::None(),
+            .flags          = MaterialAttributeFlags::NONE
+        }
+    );
+
+    m_shader = g_shader_manager->GetOrCreate(NAME("Tonemap"));
+
+    FullScreenPass::CreatePipeline(renderable_attributes);
+}
+
+void TonemapPass::Resize_Internal(Vec2u new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+}
+
+void TonemapPass::Render(FrameBase *frame, ViewRenderResource *view)
+{
+    FullScreenPass::Render(frame, view);
+}
+
+#pragma endregion TonemapPass
+
+#pragma region TonemapPass
+
+LightmapPass::LightmapPass(const FramebufferRef &framebuffer, GBuffer *gbuffer)
+    : FullScreenPass(
+        ShaderRef::Null(),
+        DescriptorTableRef::Null(),
+        framebuffer,
+        InternalFormat::RGBA8,
+        framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
+        gbuffer
+      )
+{
+}
+
+LightmapPass::~LightmapPass()
+{
+}
+
+void LightmapPass::Create()
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    FullScreenPass::Create();
+}
+
+void LightmapPass::CreatePipeline()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    RenderableAttributeSet renderable_attributes(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags          = MaterialAttributeFlags::NONE
+        }
+    );
+
+    m_shader = g_shader_manager->GetOrCreate(NAME("ApplyLightmap"));
+
+    FullScreenPass::CreatePipeline(renderable_attributes);
+}
+
+void LightmapPass::Resize_Internal(Vec2u new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+}
+
+void LightmapPass::Render(FrameBase *frame, ViewRenderResource *view)
+{
+    FullScreenPass::Render(frame, view);
+}
+
+#pragma endregion LightmapPass
 
 #pragma region Env grid pass
 
@@ -707,6 +820,10 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     HYP_SCOPE;
 
     FullScreenPass::Resize_Internal(new_size);
+
+    if (ShouldRenderSSR()) {
+        CreateSSRRenderer();
+    }
 }
 
 void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
@@ -716,7 +833,7 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (ShouldRenderSSR()) { // screen space reflection
+    if (ShouldRenderSSR()) {
         m_ssr_renderer->Render(frame, view);
     }
 

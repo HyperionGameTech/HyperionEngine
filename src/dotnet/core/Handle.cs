@@ -11,7 +11,6 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
         internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
 
-
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
         internal static extern void Handle_Destruct(IntPtr ptr);
     }

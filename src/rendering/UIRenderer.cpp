@@ -142,10 +142,10 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         collection->ClearProxyGroups();
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
         for (const Pair<ID<Entity>, int> &pair : proxy_depths) {
-            RenderProxy *proxy = proxy_list.GetProxyForEntity(pair.first);
+            RenderProxy *proxy = render_proxy_tracker.GetElement(pair.first);
 
             if (!proxy) {
                 continue;
@@ -200,7 +200,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         collection->RemoveEmptyProxyGroups();
     }
 
-    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity)
+    bool RemoveRenderProxy(RenderProxyTracker &render_proxy_tracker, ID<Entity> entity)
     {
         HYP_SCOPE;
 
@@ -212,7 +212,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             }
         }
 
-        proxy_list.MarkToRemove(entity);
+        render_proxy_tracker.MarkToRemove(entity);
 
         return removed;
     }
@@ -221,10 +221,10 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
         // Reserve to prevent iterator invalidation
-        proxy_list.Reserve(added_proxies.Size());
+        render_proxy_tracker.Reserve(added_proxies.Size());
 
         // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
         // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
@@ -233,19 +233,19 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         }
 
         for (ID<Entity> entity : removed_entities) {
-            const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
+            const RenderProxy *proxy = render_proxy_tracker.GetElement(entity);
             AssertThrow(proxy != nullptr);
 
             proxy->UnclaimRenderResource();
 
-            proxy_list.MarkToRemove(entity);
+            render_proxy_tracker.MarkToRemove(entity);
         }
 
         for (RenderProxy &proxy : added_proxies) {
-            proxy_list.Add(proxy.entity.GetID(), std::move(proxy));
+            render_proxy_tracker.Track(proxy.entity.GetID(), std::move(proxy));
         }
 
-        proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
+        render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
 
         BuildProxyGroupsInOrder();
 
@@ -269,35 +269,32 @@ void UIRenderCollector::ResetOrdering()
     m_proxy_depths.Clear();
 }
 
-void UIRenderCollector::PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy, int computed_depth)
+void UIRenderCollector::PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy, int computed_depth)
 {
-    RenderCollector::PushRenderProxy(proxy_list, render_proxy);
+    AssertThrow(render_proxy.entity.IsValid());
+    AssertThrow(render_proxy.mesh.IsValid());
+    AssertThrow(render_proxy.material.IsValid());
+    
+    render_proxy_tracker.Track(render_proxy.entity, render_proxy);
 
     m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker &render_proxy_tracker, const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
     // UISubsystem can have Update() called on a task thread.
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    AssertThrow(m_draw_collection != nullptr);
+    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
-    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
-    RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
-
-    if (collection_result.NeedsUpdate()) {
+    if (diff.NeedsUpdate()) {
         Array<ID<Entity>> removed_entities;
-        proxy_list.GetRemovedEntities(removed_entities, true /* include_changed */);
+        render_proxy_tracker.GetRemoved(removed_entities, true /* include_changed */);
 
         Array<RenderProxy *> added_proxies_ptrs;
-        proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
+        render_proxy_tracker.GetAdded(added_proxies_ptrs, true /* include_changed */);
 
         if (added_proxies_ptrs.Any() || removed_entities.Any()) {
             PUSH_RENDER_COMMAND(
@@ -312,9 +309,9 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
         }
     }
 
-    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    return collection_result;
+    return diff;
 }
 
 void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
@@ -417,7 +414,6 @@ UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
 
 UIRenderSubsystem::~UIRenderSubsystem()
 {
-    g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 }
 
 void UIRenderSubsystem::Init()
@@ -490,10 +486,10 @@ void UIRenderSubsystem::OnRemoved()
 {
     m_view_render_resource_handle.Reset();
     m_view.Reset();
-
-    SafeRelease(std::move(m_framebuffer));
     
     g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+
+    SafeRelease(std::move(m_framebuffer));
 
     m_on_gbuffer_resolution_changed_handle.Reset();
 }

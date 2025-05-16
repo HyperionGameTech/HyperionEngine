@@ -104,6 +104,7 @@ namespace Hyperion
 #if DEBUG
                     uint refCount = HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress);
                     Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress + ", refCount: " + refCount);
+                    
                     Assert.Throw(refCount >= 1, "Strong reference must >= 1 before destruction");
 #endif
 

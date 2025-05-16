@@ -475,7 +475,9 @@ static void RenderAll(
         AssertThrow(view != nullptr);
             
         const DescriptorSetRef &scene_descriptor_set = view->GetDescriptorSets()[frame_index];
-        AssertThrow(scene_descriptor_set.IsValid());
+
+        AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
+            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             scene_descriptor_set,
@@ -639,7 +641,9 @@ static void RenderAll_Parallel(
         AssertThrow(view != nullptr);
 
         const DescriptorSetRef &scene_descriptor_set = view->GetDescriptorSets()[frame_index];
-        AssertThrow(scene_descriptor_set.IsValid());
+        
+        AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
+            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
         
         frame->GetCommandList().Add<BindDescriptorSet>(
             scene_descriptor_set,

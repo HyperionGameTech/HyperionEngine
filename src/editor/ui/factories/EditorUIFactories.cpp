@@ -697,7 +697,7 @@ public:
                         return UIEventHandlerResult::ERR;
                     }
 
-                    const RC<EditorProject> &editor_project = editor_subsystem->GetCurrentProject();
+                    const Handle<EditorProject> &editor_project = editor_subsystem->GetCurrentProject();
 
                     if (!editor_project) {
                         HYP_LOG(Editor, Error, "Failed to get current EditorProject");

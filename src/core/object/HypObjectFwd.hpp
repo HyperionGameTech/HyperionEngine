@@ -141,40 +141,6 @@ struct HypObjectInitializerFlagsGuard
     }
 };
 
-struct HypObjectInitializerGuardBase
-{
-    HYP_API HypObjectInitializerGuardBase(const HypClass *hyp_class, void *address);
-    HYP_API ~HypObjectInitializerGuardBase();
-
-    const HypClass  *hyp_class;
-    void            *address;
-
-#ifdef HYP_DEBUG_MODE
-    ThreadID        initializer_thread_id;
-#else
-    uint32          count;
-#endif
-};
-
-template <class T>
-struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
-{
-    HypObjectInitializerGuard(void *address)
-        : HypObjectInitializerGuardBase(GetClassAndEnsureValid(), address)
-    {
-    }
-
-    static const HypClass *GetClassAndEnsureValid()
-    {
-        using HypObjectType = typename IsHypObject<T>::Type;
-        static const HypClass *hyp_class = GetClass(TypeID::ForType<HypObjectType>());
-
-        AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<HypObjectType>().Data());
-
-        return hyp_class;
-    }
-};
-
 class HypObjectPtr
 {
 public:
@@ -222,10 +188,10 @@ public:
         { return m_ptr != nullptr; }
 
     HYP_FORCE_INLINE bool operator==(const HypObjectPtr &other) const
-        { return m_ptr == other.m_ptr && m_hyp_class == other.m_hyp_class; }
+        { return m_ptr == other.m_ptr; }
 
     HYP_FORCE_INLINE bool operator!=(const HypObjectPtr &other) const
-        { return m_ptr != other.m_ptr || m_hyp_class != other.m_hyp_class; }
+        { return m_ptr != other.m_ptr; }
 
     HYP_FORCE_INLINE bool IsValid() const
         { return m_ptr != nullptr && m_hyp_class != nullptr; }
@@ -256,6 +222,38 @@ HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count);
 HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count);
 HYP_API void HypObject_OnDecRefCount_Weak(HypObjectPtr ptr, uint32 count);
 
+struct HypObjectInitializerGuardBase
+{
+    HYP_API HypObjectInitializerGuardBase(HypObjectPtr ptr);
+    HYP_API ~HypObjectInitializerGuardBase();
+
+    HypObjectPtr    ptr;
+
+#ifdef HYP_DEBUG_MODE
+    ThreadID        initializer_thread_id;
+#else
+    uint32          count;
+#endif
+};
+
+template <class T>
+struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
+{
+    HypObjectInitializerGuard(void *ptr)
+        : HypObjectInitializerGuardBase(HypObjectPtr(GetClassAndEnsureValid(), ptr))
+    {
+    }
+
+    static const HypClass *GetClassAndEnsureValid()
+    {
+        using HypObjectType = typename IsHypObject<T>::Type;
+        static const HypClass *hyp_class = GetClass(TypeID::ForType<HypObjectType>());
+
+        AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<HypObjectType>().Data());
+
+        return hyp_class;
+    }
+};
 namespace detail {
 
 template <class T, class T2>

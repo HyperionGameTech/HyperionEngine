@@ -34,7 +34,6 @@ HYP_DESCRIPTOR_SRV(Scene, EnvGridIrradianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, EnvGridRadianceResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, ReflectionProbeResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, DeferredIndirectResultTexture, 1);
-HYP_DESCRIPTOR_SRV(Scene, DeferredDirectResultTexture, 1);
 HYP_DESCRIPTOR_SRV(Scene, DepthPyramidResult, 1);
 
 HYP_DESCRIPTOR_SRV_COND(Material, Textures, max_bindless_resources, g_rendering_api->GetRenderConfig().IsBindlessSupported());

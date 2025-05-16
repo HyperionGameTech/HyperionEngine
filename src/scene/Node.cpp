@@ -7,6 +7,7 @@
 #include <scene/animation/Bone.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -22,6 +23,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+#include <core/object/HypData.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
@@ -119,6 +121,16 @@ Node::Node(
     m_delegates(MakeUnique<Delegates>())
 {
     SetEntity(entity);
+
+    if (scene != nullptr) {
+        for (const NodeProxy &child : m_child_nodes) {
+            if (!child.IsValid()) {
+                continue;
+            }
+
+            child->SetScene(scene);
+        }
+    }
 }
 
 Node::Node(Node &&other) noexcept
@@ -156,6 +168,7 @@ Node::Node(Node &&other) noexcept
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
+        node->SetScene(m_scene);
     }
 }
 
@@ -212,6 +225,7 @@ Node &Node::operator=(Node &&other) noexcept
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
+        node->SetScene(m_scene);
     }
 
     return *this;
@@ -511,7 +525,6 @@ bool Node::RemoveAt(int index)
     return RemoveChild(m_child_nodes.Begin() + index);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void Node::Remove()
 {
     if (!m_parent_node) {
@@ -525,7 +538,6 @@ void Node::Remove()
 
     m_parent_node->RemoveChild(it);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void Node::RemoveAllChildren()
 {
@@ -683,6 +695,8 @@ void Node::LockTransform()
         if (const RC<EntityManager> &entity_manager = m_scene->GetEntityManager()) {
             entity_manager->AddTag<EntityTag::STATIC>(m_entity);
             entity_manager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+
+            HYP_LOG(Node, Debug, "Node: {} Make Entity #{} static", m_name, m_entity.GetID().Value());
         }
 
         m_transform_changed = false;
@@ -740,9 +754,6 @@ void Node::SetEntity(const Handle<Entity> &entity)
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
-
-        // Move entity to detached scene
-        m_scene->GetEntityManager()->MoveEntity(m_entity, GetDefaultScene()->GetEntityManager());
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
@@ -784,8 +795,12 @@ void Node::SetEntity(const Handle<Entity> &entity)
         RefreshEntityTransform();
 
         // set entity to static by default
-        m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
-        m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        if (m_scene->GetEntityManager()->HasTag<EntityTag::DYNAMIC>(m_entity)) {
+            m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
+        } else {
+            m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
+            m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        }
 
         // set transform_changed to false until entity is set to DYNAMIC
         m_transform_changed = false;
@@ -928,15 +943,19 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     if (m_entity.IsValid()) {
         const RC<EntityManager> &entity_manager = m_scene->GetEntityManager();
 
-        if (!m_transform_changed) {
-            // Set to dynamic
-            if (entity_manager != nullptr) {
-                entity_manager->AddTag<EntityTag::DYNAMIC>(m_entity);
-                entity_manager->RemoveTag<EntityTag::STATIC>(m_entity);
-            }
+        // if (!m_transform_changed) {
+        //     // Set to dynamic
+        //     if (entity_manager != nullptr) {
+        //         entity_manager->AddTag<EntityTag::DYNAMIC>(m_entity);
+        //         entity_manager->RemoveTag<EntityTag::STATIC>(m_entity);
 
-            m_transform_changed = true;
-        }
+        //         HYP_LOG(Node, Debug, "Node: {}; Make Entity #{} dynamic",
+        //             GetName(),
+        //             m_entity.GetID().Value());
+        //     }
+
+        //     m_transform_changed = true;
+        // }
 
         if (entity_manager != nullptr) {
             if (TransformComponent *transform_component = entity_manager->TryGetComponent<TransformComponent>(m_entity)) {

@@ -49,8 +49,6 @@ private:
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase *frame) override;
 
-    virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
-
     Handle<Scene>                               m_parent_scene;
     TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
     Vec2u                                       m_extent;

@@ -61,13 +61,14 @@ struct alignas(16) GaussianSplattingInstanceShaderData {
 
 static_assert(sizeof(GaussianSplattingInstanceShaderData) == 64);
 
-struct alignas(16) GaussianSplattingSceneShaderData {
+struct GaussianSplattingSceneShaderData
+{
     Matrix4 model_matrix;
 };
 
 static_assert(sizeof(GaussianSplattingSceneShaderData) == 64);
 
-struct alignas(256) CubemapUniforms
+struct CubemapUniforms
 {
     Matrix4 projection_matrices[6];
     Matrix4 view_matrices[6];
@@ -87,7 +88,7 @@ struct alignas(16) EntityUserData
     Vec4u   user_data1;
 };
 
-struct alignas(256) EntityShaderData
+struct EntityShaderData
 {
     Matrix4         model_matrix;
     Matrix4         previous_model_matrix;
@@ -112,38 +113,32 @@ struct alignas(256) EntityShaderData
 
 static_assert(sizeof(EntityShaderData) == 256);
 
-struct alignas(16) ImmediateDrawShaderData
+struct ImmediateDrawShaderData
 {
     Matrix4 transform;
     uint32  color_packed;
     uint32  env_probe_type;
     uint32  env_probe_index;
+    uint32  _pad0;
 };
 
 static_assert(sizeof(ImmediateDrawShaderData) == 80);
 
-struct alignas(256) SH9Buffer
+struct SH9Buffer
 {
     Vec4f   values[16];
 };
 
 static_assert(sizeof(SH9Buffer) == 256);
 
-struct alignas(16) EnvGridProbeDataBuffer
-{
-    static constexpr Vec2u probe_storage_resolution = { 64, 64 };
-
-    Vec2u   data[probe_storage_resolution.x * probe_storage_resolution.y][max_bound_ambient_probes];
-};
-
-struct alignas(16) SHTile
+struct SHTile
 {
     Vec4f   coeffs_weights[9];
 };
 
 static_assert(sizeof(SHTile) == 144);
 
-struct alignas(16) VoxelUniforms
+struct VoxelUniforms
 {
     Vec4f   extent;
     Vec4f   aabb_max;

@@ -41,6 +41,12 @@ public:
     }
 
     virtual SizeType GetSize() const override = 0;
+    virtual SizeType GetAlignment() const override = 0;
+
+    virtual SizeType GetObjectInitializerOffset() const override final
+    {
+        return 0;
+    }
 
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
@@ -100,6 +106,11 @@ public:
     virtual SizeType GetSize() const override
     {
         return sizeof(T);
+    }
+
+    virtual SizeType GetAlignment() const override
+    {
+        return alignof(T);
     }
     
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override

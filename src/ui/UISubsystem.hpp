@@ -5,12 +5,17 @@
 
 #include <scene/Subsystem.hpp>
 
+#include <core/Handle.hpp>
+
+#include <core/containers/HashMap.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
 
 namespace hyperion {
 
 class UIStage;
 class UIRenderSubsystem;
+class Scene;
 
 HYP_CLASS()
 class HYP_API UISubsystem : public Subsystem
@@ -29,13 +34,16 @@ public:
     virtual void PreUpdate(GameCounter::TickUnit delta) override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
+    virtual void OnSceneAttached(const Handle<Scene> &scene) override;
+    virtual void OnSceneDetached(const Handle<Scene> &scene) override;
+
     HYP_METHOD()
     HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
         { return m_ui_stage; }
 
 private:
-    RC<UIStage>             m_ui_stage;
-    RC<UIRenderSubsystem>   m_ui_render_subsystem;
+    RC<UIStage>                             m_ui_stage;
+    HashMap<Scene *, RC<UIRenderSubsystem>> m_ui_render_subsystems;
 };
 
 } // namespace hyperion
