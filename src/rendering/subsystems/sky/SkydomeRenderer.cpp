@@ -30,7 +30,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 {
     m_cubemap = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_CUBEMAP,
-        InternalFormat::RGBA8,
+        InternalFormat::R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
         FilterMode::TEXTURE_FILTER_LINEAR

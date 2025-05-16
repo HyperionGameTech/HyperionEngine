@@ -349,34 +349,37 @@ void View::CollectLights()
             continue;
         }
         
-        if (!(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
-            bool is_light_in_frustum = false;
-            is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(bounding_box_component.world_aabb);
+        bool is_light_in_frustum = false;
 
+        if (visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE) {
+            is_light_in_frustum = true;
+        } else {
             switch (light_component.light->GetLightType()) {
             case LightType::DIRECTIONAL:
                 is_light_in_frustum = true;
                 break;
             case LightType::POINT:
-                is_light_in_frustum = m_camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
+            //temp
+                is_light_in_frustum = true;//m_camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
                 break;
             case LightType::SPOT:
                 // @TODO Implement frustum culling for spot lights
+                is_light_in_frustum = true;
                 break;
             case LightType::AREA_RECT:
-                is_light_in_frustum = true;
+                is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(light_component.light->GetAABB());
                 break;
             default:
                 break;
             }
+        }
 
-            if (is_light_in_frustum) {
-                if (!m_lights.Contains(light_component.light)) {
-                    AddLight(light_component.light);
-                }
-            } else {
-                RemoveLight(light_component.light);
+        if (is_light_in_frustum) {
+            if (!m_lights.Contains(light_component.light)) {
+                AddLight(light_component.light);
             }
+        } else {
+            RemoveLight(light_component.light);
         }
     }
 }

@@ -340,32 +340,6 @@ HYP_API void Engine::Initialize(const RC<AppContext> &app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), g_engine->GetRenderData()->shadow_map_data->GetBuffer(frame_index));
 
-        // if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPreStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 0, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 1, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 2, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostFXPostStack"), 3, GetPlaceholderData()->GetImageView2D1x1R8());
-        // }
-        
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PostProcessingUniforms"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(PostProcessingUniforms), true /* exact size */));
-
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SSAOResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SSRResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SSGIResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("TAAResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvGridIrradianceResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvGridRadianceResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ReflectionProbeResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DeferredIndirectResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DeferredDirectResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DepthPyramidResult"), GetPlaceholderData()->GetImageView2D1x1R8());
-
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms), true /* exact size */));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());

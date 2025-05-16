@@ -155,13 +155,13 @@ void SSRRenderer::Create()
 
     CreateComputePipelines();
 
-    m_on_gbuffer_resolution_changed = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u new_size)
-    {
-        SafeRelease(std::move(m_write_uvs));
-        SafeRelease(std::move(m_sample_gbuffer));
+    // m_on_gbuffer_resolution_changed = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u new_size)
+    // {
+    //     SafeRelease(std::move(m_write_uvs));
+    //     SafeRelease(std::move(m_sample_gbuffer));
         
-        CreateComputePipelines();
-    });
+    //     CreateComputePipelines();
+    // });
 }
 
 const Handle<Texture> &SSRRenderer::GetFinalResultTexture() const

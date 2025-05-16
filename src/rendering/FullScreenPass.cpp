@@ -505,9 +505,6 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase *frame, ViewRenderR
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-
     AssertThrow(m_render_texture_to_screen_pass != nullptr);
 
     
@@ -533,8 +530,8 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase *frame, ViewRenderR
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_resource_handle.Get(), 0) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) }
                 }
             }
         },
@@ -624,8 +621,6 @@ void FullScreenPass::RenderToFramebuffer(FrameBase *frame, ViewRenderResource *v
         RenderPreviousTextureToScreen(frame, view);
     }
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
     const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
     const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
@@ -653,8 +648,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase *frame, ViewRenderResource *v
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource, 0) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(camera_render_resource_handle.Get(), 0) },
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
                 }

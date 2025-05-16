@@ -707,6 +707,10 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     HYP_SCOPE;
 
     FullScreenPass::Resize_Internal(new_size);
+
+    if (ShouldRenderSSR()) {
+        CreateSSRRenderer();
+    }
 }
 
 void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
@@ -716,7 +720,7 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (ShouldRenderSSR()) { // screen space reflection
+    if (ShouldRenderSSR()) {
         m_ssr_renderer->Render(frame, view);
     }
 
