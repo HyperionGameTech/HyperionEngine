@@ -113,7 +113,7 @@ public:
     Delegate<void, Vec2u>                                       OnGBufferResolutionChanged;
 
 private:
-    FramebufferRef CreateFramebuffer(const FramebufferRef &opaque_framebuffer, Vec2u resolution);
+    FramebufferRef CreateFramebuffer(const FramebufferRef &opaque_framebuffer, Vec2u resolution, Bucket bucket);
 
     FixedArray<GBufferBucket, uint32(Bucket::BUCKET_MAX) - 1>   m_buckets;
     Array<FramebufferRef>                                       m_framebuffers;

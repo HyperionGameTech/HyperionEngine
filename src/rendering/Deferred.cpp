@@ -370,6 +370,62 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 #pragma endregion Deferred pass
 
+
+#pragma region TonemapPass
+
+TonemapPass::TonemapPass(GBuffer *gbuffer)
+    : FullScreenPass(
+        InternalFormat::R11G11B10F,
+        gbuffer
+      )
+{
+}
+
+TonemapPass::~TonemapPass()
+{
+}
+
+void TonemapPass::Create()
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    FullScreenPass::Create();
+}
+
+void TonemapPass::CreatePipeline()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    RenderableAttributeSet renderable_attributes(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags          = MaterialAttributeFlags::NONE
+        }
+    );
+
+    m_shader = g_shader_manager->GetOrCreate(NAME("Tonemap"));
+
+    FullScreenPass::CreatePipeline(renderable_attributes);
+}
+
+void TonemapPass::Resize_Internal(Vec2u new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+}
+
+void TonemapPass::Render(FrameBase *frame, ViewRenderResource *view)
+{
+    FullScreenPass::Render(frame, view);
+}
+
+#pragma endregion TonemapPass
+
 #pragma region Env grid pass
 
 static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)

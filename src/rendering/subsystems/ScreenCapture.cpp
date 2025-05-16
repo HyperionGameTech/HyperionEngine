@@ -77,7 +77,7 @@ void ScreenCaptureRenderSubsystem::OnRender(FrameBase *frame)
 
     const ImageRef &image_ref = m_view->GetRendererConfig().taa_enabled
         ? m_view->GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
-        : m_view->GetCombinePass()->GetAttachment(0)->GetImage();
+        : m_view->GetTonemapPass()->GetFinalImageView()->GetImage();
 
     AssertThrow(image_ref.IsValid());
 

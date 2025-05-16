@@ -86,26 +86,28 @@ void GBuffer::Create()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    for (GBufferBucket &bucket : m_buckets) {
-        switch (bucket.GetBucket()) {
+    for (GBufferBucket &it : m_buckets) {
+        const Bucket bucket = it.GetBucket();
+
+        switch (bucket) {
         case BUCKET_OPAQUE:
-            bucket.framebuffer = CreateFramebuffer(nullptr, m_extent);
+            it.framebuffer = CreateFramebuffer(nullptr, m_extent, bucket);
             break;
         case BUCKET_TRANSLUCENT:
-            bucket.framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).framebuffer, m_extent);
+            it.framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).framebuffer, m_extent, bucket);
             break;
         case BUCKET_SKYBOX:
-            bucket.framebuffer = GetBucket(BUCKET_TRANSLUCENT).framebuffer;
+            it.framebuffer = GetBucket(BUCKET_TRANSLUCENT).framebuffer;
             break;
         case BUCKET_DEBUG:
-            bucket.framebuffer = GetBucket(BUCKET_TRANSLUCENT).framebuffer;
+            it.framebuffer = GetBucket(BUCKET_TRANSLUCENT).framebuffer;
             break;
         default:
             HYP_UNREACHABLE();
             break;
         }
 
-        AssertThrow(bucket.framebuffer != nullptr);
+        AssertThrow(it.framebuffer != nullptr);
     }
 }
 
@@ -134,7 +136,7 @@ void GBuffer::Resize(Vec2u extent)
     OnGBufferResolutionChanged(m_extent);
 }
 
-FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef &opaque_framebuffer, Vec2u resolution)
+FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef &opaque_framebuffer, Vec2u resolution, Bucket bucket)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -179,8 +181,17 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef &opaque_framebuff
     };
 
     // add gbuffer attachments
-    // color attachment is unique for all buckets
-    AddOwnedAttachment(0, GetImageFormat(GBUFFER_RESOURCE_ALBEDO));
+    // - The color attachment (first attachment) is unique to both the opaque and translucent
+    // - However, the non-opaque buckets can potentially use a different format than
+    //   the opaque bucket. This is because the translucent bucket's framebuffer is used to render
+    //   the shaded result in the deferred pass before the translucent objects are rendered
+    //   using forward rendering, and we need to be able to accommodate the high range of 
+    //   values that can be produced by the deferred shading pass
+    if (bucket == BUCKET_OPAQUE) {
+        AddOwnedAttachment(0, GetImageFormat(GBUFFER_RESOURCE_ALBEDO));
+    } else {
+        AddOwnedAttachment(0, InternalFormat::RGBA16F);
+    }
 
     // opaque creates the main non-color gbuffer attachments,
     // which will be shared with other renderable buckets

@@ -290,6 +290,9 @@ void ViewRenderResource::CreateRenderer()
 
     m_reflections_pass = MakeUnique<ReflectionsPass>(m_gbuffer.Get(), m_mip_chain->GetRenderResource().GetImageView(), m_combine_pass->GetFinalImageView());
     m_reflections_pass->Create();
+
+    m_tonemap_pass = MakeUnique<TonemapPass>(m_gbuffer.Get());
+    m_tonemap_pass->Create();
     
     m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_combine_pass->GetFinalImageView(), m_gbuffer.Get());
     m_temporal_aa->Create();
@@ -382,7 +385,6 @@ void ViewRenderResource::CreateDescriptorSets()
         descriptor_set->SetElement(NAME("DeferredResult"), m_combine_pass->GetFinalImageView());
 
         descriptor_set->SetElement(NAME("DeferredIndirectResultTexture"), m_indirect_pass->GetFinalImageView());
-        descriptor_set->SetElement(NAME("DeferredDirectResultTexture"), m_direct_pass->GetFinalImageView());
 
         descriptor_set->SetElement(NAME("ReflectionProbeResultTexture"), m_reflections_pass->GetFinalImageView());
 
@@ -403,13 +405,34 @@ void ViewRenderResource::CreateCombinePass()
 
     Threads::AssertOnThread(g_render_thread);
 
-    ShaderProperties shader_properties;
-    GetDeferredShaderProperties(shader_properties);
-    
-    ShaderRef shader = g_shader_manager->GetOrCreate(NAME("DeferredCombine"), shader_properties);
-    AssertThrow(shader.IsValid());
+    // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
+    const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    AssertThrow(translucent_fbo != nullptr);
 
-    m_combine_pass = MakeUnique<FullScreenPass>(shader, InternalFormat::R11G11B10F, Vec2u::Zero(), m_gbuffer.Get());
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), m_indirect_pass->GetFinalImageView());
+    }
+
+    DeferCreate(descriptor_table);
+
+    m_combine_pass = MakeUnique<FullScreenPass>(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        translucent_fbo,
+        translucent_fbo->GetAttachment(0)->GetFormat(),
+        translucent_fbo->GetExtent(),
+        nullptr
+    );
+
     m_combine_pass->Create();
 }
 
@@ -466,6 +489,8 @@ void ViewRenderResource::DestroyRenderer()
 
     m_reflections_pass.Reset();
 
+    m_tonemap_pass.Reset();
+
     m_mip_chain.Reset();
 
     m_indirect_pass.Reset();
@@ -497,12 +522,17 @@ void ViewRenderResource::SetViewport(const Viewport &viewport)
 
             m_direct_pass->Resize(new_size);
             m_indirect_pass->Resize(new_size);
-            m_combine_pass->Resize(new_size);
+            // m_combine_pass->Resize(new_size);
+
+            m_combine_pass.Reset();
+            CreateCombinePass();
 
             m_env_grid_radiance_pass->Resize(new_size);
             m_env_grid_irradiance_pass->Resize(new_size);
 
             m_reflections_pass->Resize(new_size);
+            
+            m_tonemap_pass->Resize(new_size);
 
             AttachmentBase *depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
             AssertThrow(depth_attachment != nullptr);
@@ -854,6 +884,19 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         { // translucent objects
             frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
 
+            { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
+                frame->GetCommandList().Add<BindGraphicsPipeline>(m_combine_pass->GetRenderGroup()->GetPipeline());
+
+                frame->GetCommandList().Add<BindDescriptorTable>(
+                    m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+                    m_combine_pass->GetRenderGroup()->GetPipeline(),
+                    ArrayMap<Name, ArrayMap<Name, uint32>> { },
+                    frame_index
+                );
+
+                m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+            }
+
             bool is_sky_set = false;
 
             // Bind sky env probe
@@ -889,6 +932,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
         }
 
+#if 0
         {
             struct alignas(128)
             {
@@ -934,6 +978,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
             m_combine_pass->End(frame, this);
         }
+#endif
 
         { // render depth pyramid
             m_depth_pyramid_renderer->Render(frame);
@@ -943,6 +988,8 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         }
 
         m_post_processing->RenderPost(frame, this);
+
+        m_tonemap_pass->Render(frame, this);
 
         if (use_temporal_aa) {
             m_temporal_aa->Render(frame, this);

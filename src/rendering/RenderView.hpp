@@ -27,6 +27,7 @@ class LightRenderResource;
 class GBuffer;
 class EnvGridPass;
 class ReflectionsPass;
+class TonemapPass;
 class FullScreenPass;
 class DepthPyramidRenderer;
 class TemporalAA;
@@ -109,6 +110,10 @@ public:
     HYP_FORCE_INLINE ReflectionsPass *GetReflectionsPass() const
         { return m_reflections_pass.Get(); }
 
+    HYP_FORCE_INLINE TonemapPass *GetTonemapPass() const
+        { return m_tonemap_pass.Get(); }
+
+    /*! \brief Pre-tonemapping, deferred shaded result with transparent objects rendered using forward rendering. */
     HYP_FORCE_INLINE FullScreenPass *GetCombinePass() const
         { return m_combine_pass.Get(); }
 
@@ -184,6 +189,8 @@ protected:
     UniquePtr<EnvGridPass>                              m_env_grid_irradiance_pass;
 
     UniquePtr<ReflectionsPass>                          m_reflections_pass;
+
+    UniquePtr<TonemapPass>                              m_tonemap_pass;
 
     UniquePtr<PostProcessing>                           m_post_processing;
     UniquePtr<HBAO>                                     m_hbao;

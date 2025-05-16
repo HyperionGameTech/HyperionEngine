@@ -96,6 +96,30 @@ enum class ApplyEnvGridMode : uint32
     MAX
 };
 
+class TonemapPass final : public FullScreenPass
+{
+public:
+    TonemapPass(GBuffer *gbuffer);
+    TonemapPass(const TonemapPass &other)               = delete;
+    TonemapPass &operator=(const TonemapPass &other)    = delete;
+    virtual ~TonemapPass() override;
+
+    virtual void Create() override;
+    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
+
+protected:
+    virtual void CreatePipeline() override;
+
+private:
+    virtual bool UsesTemporalBlending() const override
+        { return false; }
+
+    virtual bool ShouldRenderHalfRes() const override
+        { return false; }
+    
+    virtual void Resize_Internal(Vec2u new_size) override;
+};
+
 class EnvGridPass final : public FullScreenPass
 {
 public:

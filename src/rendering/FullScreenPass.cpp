@@ -88,12 +88,13 @@ FullScreenPass::FullScreenPass(
     GBuffer *gbuffer
 ) : FullScreenPass(
         shader,
+        descriptor_table,
+        FramebufferRef::Null(),
         image_format,
         extent,
         gbuffer
     )
 {
-    m_descriptor_table.Set(descriptor_table);
 }
 
 FullScreenPass::FullScreenPass(
@@ -101,7 +102,26 @@ FullScreenPass::FullScreenPass(
     InternalFormat image_format,
     Vec2u extent,
     GBuffer *gbuffer
+) : FullScreenPass(
+        shader,
+        DescriptorTableRef::Null(),
+        FramebufferRef::Null(),
+        image_format,
+        extent,
+        gbuffer
+    )
+{
+}
+
+FullScreenPass::FullScreenPass(
+    const ShaderRef &shader,
+    const DescriptorTableRef &descriptor_table,
+    const FramebufferRef &framebuffer,
+    InternalFormat image_format,
+    Vec2u extent,
+    GBuffer *gbuffer
 ) : m_shader(shader),
+    m_framebuffer(framebuffer),
     m_image_format(image_format),
     m_extent(extent),
     m_gbuffer(gbuffer),
@@ -109,6 +129,9 @@ FullScreenPass::FullScreenPass(
     m_is_initialized(false),
     m_is_first_frame(true)
 {
+    if (descriptor_table.IsValid()) {
+        m_descriptor_table.Set(descriptor_table);
+    }
 }
 
 FullScreenPass::~FullScreenPass()
@@ -241,6 +264,7 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
     }
 
     SafeRelease(std::move(m_framebuffer));
+
     m_temporal_blending.Reset();
 
     m_render_group.Reset();
@@ -268,6 +292,13 @@ void FullScreenPass::CreateFramebuffer()
 {
     HYP_SCOPE;
 
+    if (m_framebuffer.IsValid()) {
+        AssertThrow(m_framebuffer->GetExtent() == m_extent);
+        DeferCreate(m_framebuffer);
+
+        return;
+    }
+
     if (m_extent.x * m_extent.y == 0) {
         // AssertThrow(m_gbuffer != nullptr);
         // m_extent = m_gbuffer->GetExtent();
@@ -287,8 +318,6 @@ void FullScreenPass::CreateFramebuffer()
 
         // double the width as we swap between the two halves when rendering (checkerboarded)
         framebuffer_extent = Vec2u { uint32(reshaped_extent.x * 2), uint32(reshaped_extent.y) };
-
-        DebugLog(LogType::Debug, "Reshaped extent: %d, %d to %d, %d", m_extent.x, m_extent.y, framebuffer_extent.x, framebuffer_extent.y);
     }
 
     m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_extent);

@@ -62,6 +62,15 @@ public:
         GBuffer *gbuffer
     );
 
+    FullScreenPass(
+        const ShaderRef &shader,
+        const DescriptorTableRef &descriptor_table,
+        const FramebufferRef &framebuffer,
+        InternalFormat image_format,
+        Vec2u extent,
+        GBuffer *gbuffer
+    );
+
     FullScreenPass(const FullScreenPass &)              = delete;
     FullScreenPass &operator=(const FullScreenPass &)   = delete;
     virtual ~FullScreenPass();
