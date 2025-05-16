@@ -285,7 +285,8 @@ void ShadowPass::Render(FrameBase *frame, ViewRenderResource *view)
         AttachmentBase *attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
 
-        m_combine_shadow_maps_pass->Render(frame, nullptr);
+        // Note: view unused here
+        m_combine_shadow_maps_pass->Render(frame, m_view_statics_resource_handle.Get());
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);

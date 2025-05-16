@@ -41,6 +41,9 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -70,14 +73,18 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
     {
     }
 
-    virtual ~RENDER_COMMAND(CreateParticleSpawnerBuffers)() override = default;
+    virtual ~RENDER_COMMAND(CreateParticleSpawnerBuffers)() override
+    {
+        SafeRelease(std::move(particle_buffer));
+        SafeRelease(std::move(indirect_buffer));
+        SafeRelease(std::move(noise_buffer));
+    }
 
     virtual RendererResult operator()() override
     {
         static constexpr uint32 seed = 0xff;
 
-        SimplexNoiseGenerator noise_generator(seed);
-        auto noise_map = noise_generator.CreateBitmap(128, 128, 1024.0f);
+        Bitmap<1> noise_map = SimplexNoiseGenerator(seed).CreateBitmap(128, 128, 1024.0f);
 
         HYPERION_BUBBLE_ERRORS(particle_buffer->Create());
         HYPERION_BUBBLE_ERRORS(indirect_buffer->Create());
@@ -90,6 +97,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers) : renderer::RenderCommand
 
         // copy bytes into noise buffer
         Array<float> unpacked_floats = noise_map.GetUnpackedFloats();
+        AssertThrow(noise_buffer->Size() == unpacked_floats.ByteSize());
 
         noise_buffer->Copy(unpacked_floats.ByteSize(), unpacked_floats.Data());
 
@@ -191,13 +199,12 @@ void ParticleSpawner::Init()
 
     if (m_params.texture) {
         InitObject(m_params.texture);
+        m_params.texture->SetPersistentRenderResourceEnabled(true);
     }
 
     CreateBuffers();
     CreateRenderGroup();
     CreateComputePipelines();
-
-    HYP_SYNC_RENDER();
 
     SetReady(true);
 }
@@ -206,7 +213,7 @@ void ParticleSpawner::CreateBuffers()
 {
     m_particle_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_params.max_particles * sizeof(ParticleShaderData));
     m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-    m_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, 128 * 128);
+    m_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(float) * 128 * 128);
 
     PUSH_RENDER_COMMAND(
         CreateParticleSpawnerBuffers,
@@ -254,6 +261,9 @@ void ParticleSpawner::CreateRenderGroup()
         descriptor_table,
         RenderGroupFlags::NONE
     );
+
+    // @FIXME: needs to be per view!
+    m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }
@@ -517,6 +527,9 @@ void ParticleSystem::Render(FrameBase *frame, ViewRenderResource *view)
                 scene_descriptor_set_index
             );
         }
+
+        HYP_LOG(Rendering, Debug, "Render particles: {} ({})", particle_spawner->GetParams().texture->GetName().LookupString(),
+            particle_spawner->GetParams().max_particles);
 
         m_quad_mesh->GetRenderResource().RenderIndirect(frame->GetCommandList(), particle_spawner->GetIndirectBuffer());
     }

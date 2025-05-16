@@ -5,6 +5,10 @@
 #include <editor/EditorProject.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
+#include <rendering/RenderWorld.hpp>
+
+// temp
+#include <rendering/ParticleSystem.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -107,6 +111,16 @@ void HyperionEditor::Init()
     m_scene = editor_subsystem->GetScene();
 
     // return;
+
+    auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
+        .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
+        .origin = Vec3f(0.0f, 6.0f, 0.0f),
+        .start_size = 0.2f,
+        .has_physics = true
+    });
+    InitObject(test_particle_spawner);
+
+    g_engine->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(
