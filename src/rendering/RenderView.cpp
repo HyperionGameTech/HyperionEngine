@@ -243,6 +243,10 @@ void ViewRenderResource::CreateRenderer()
     m_gbuffer = MakeUnique<GBuffer>(Vec2u(m_viewport.extent));
     m_gbuffer->Create();
 
+    const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+    const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
+    const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+
     m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, m_gbuffer.Get());
     m_env_grid_radiance_pass->Create();
 
@@ -261,7 +265,7 @@ void ViewRenderResource::CreateRenderer()
     m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, m_gbuffer.Get());
     m_direct_pass->Create();
 
-    AttachmentBase *depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AttachmentBase *depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
     AssertThrow(depth_attachment != nullptr);
 
     m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
@@ -293,6 +297,10 @@ void ViewRenderResource::CreateRenderer()
 
     m_tonemap_pass = MakeUnique<TonemapPass>(m_gbuffer.Get());
     m_tonemap_pass->Create();
+
+    // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
+    m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+    m_lightmap_pass->Create();
     
     m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_combine_pass->GetFinalImageView(), m_gbuffer.Get());
     m_temporal_aa->Create();
@@ -326,6 +334,7 @@ void ViewRenderResource::CreateDescriptorSets()
     };
 
     const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+    const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
     const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
     // depth attachment goes into separate slot
@@ -489,6 +498,8 @@ void ViewRenderResource::DestroyRenderer()
 
     m_reflections_pass.Reset();
 
+    m_lightmap_pass.Reset();
+
     m_tonemap_pass.Reset();
 
     m_mip_chain.Reset();
@@ -518,6 +529,10 @@ void ViewRenderResource::SetViewport(const Viewport &viewport)
 
             m_gbuffer->Resize(new_size);
 
+            const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+            const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
+            const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+
             m_hbao->Resize(new_size);
 
             m_direct_pass->Resize(new_size);
@@ -534,7 +549,10 @@ void ViewRenderResource::SetViewport(const Viewport &viewport)
             
             m_tonemap_pass->Resize(new_size);
 
-            AttachmentBase *depth_attachment = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer()->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+            m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+            m_lightmap_pass->Create();
+
+            AttachmentBase *depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
             AssertThrow(depth_attachment != nullptr);
 
             m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
@@ -744,6 +762,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         const Handle<RenderEnvironment> &environment = world_render_resource->GetEnvironment();
 
         const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+        const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
         const FramebufferRef &translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
         const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
@@ -876,6 +895,15 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
             frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
         }
 
+        { // render objects to be lightmapped, separate from the opaque objects.
+            // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+            frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
+
+            ExecuteDrawCalls(frame, uint64(1u << BUCKET_LIGHTMAP));
+
+            frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
+        }
+
         { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
             const ImageRef &src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
             GenerateMipChain(frame, src_image);
@@ -895,6 +923,10 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
                 );
 
                 m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+            }
+            { // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+                // Apply lightmaps over the now shaded opaque objects.
+                m_lightmap_pass->RenderToFramebuffer(frame, this, translucent_fbo);
             }
 
             bool is_sky_set = false;
@@ -1010,7 +1042,7 @@ void ViewRenderResource::CollectDrawCalls(FrameBase *frame)
     m_render_collector.CollectDrawCalls(
         frame,
         this,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
+        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
         &m_cull_data
     );
 }

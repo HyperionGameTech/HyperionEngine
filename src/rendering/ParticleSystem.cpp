@@ -527,10 +527,7 @@ void ParticleSystem::Render(FrameBase *frame, ViewRenderResource *view)
                 scene_descriptor_set_index
             );
         }
-
-        HYP_LOG(Rendering, Debug, "Render particles: {} ({})", particle_spawner->GetParams().texture->GetName().LookupString(),
-            particle_spawner->GetParams().max_particles);
-
+        
         m_quad_mesh->GetRenderResource().RenderIndirect(frame->GetCommandList(), particle_spawner->GetIndirectBuffer());
     }
 }

@@ -345,6 +345,8 @@ public:
     bool HasParent(const HypClass *parent_hyp_class) const;
 
     virtual SizeType GetSize() const = 0;
+    virtual SizeType GetAlignment() const = 0;
+    virtual SizeType GetObjectInitializerOffset() const = 0;
 
     HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer(void *object_ptr) const
         { return GetObjectInitializer_Internal(object_ptr); }
@@ -534,6 +536,16 @@ public:
         return sizeof(T);
     }
 
+    virtual SizeType GetAlignment() const override
+    {
+        return alignof(T);
+    }
+
+    virtual SizeType GetObjectInitializerOffset() const override
+    {
+        return offsetof(T, m_hyp_object_initializer);
+    }
+
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {
         return GetManagedObjectFromObjectInitializer(HypClass::GetObjectInitializer(object_ptr), out_object_reference);
@@ -569,11 +581,12 @@ public:
             if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
                 EnableRefCountedPtrFromThisBase<> *ptr_casted = static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr);
                 
-                auto *ref_count_data = ptr_casted->weak.GetRefCountData_Internal();
-                AssertThrow(ref_count_data != nullptr);
+                auto *ref_count_data = ptr_casted->weak_this.GetRefCountData_Internal();
+                AssertDebug(ref_count_data != nullptr);
+                AssertDebug(ref_count_data->value != nullptr);
 
                 RC<void> rc;
-                rc.SetRefCountData_Internal(ptr_casted->weak.GetUnsafe(), ref_count_data, /* inc_ref */ true);
+                rc.SetRefCountData_Internal(ptr_casted->weak_this.GetUnsafe(), ref_count_data, /* inc_ref */ true);
 
                 out_hyp_data = HypData(std::move(rc));
 

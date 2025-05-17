@@ -148,7 +148,7 @@ struct HypObjectMemory final : HypObjectHeader
         T *ptr = GetPointer();
 
         // Note: don't use Memory::ConstructWithContext as we need to set the header pointer before HypObjectInitializerGuard destructs
-        HypObjectInitializerGuard<T> context { static_cast<void *>(ptr) };
+        HypObjectInitializerGuard<T> context { ptr };
 
         // Set the object header to point to this
         ptr->HypObjectBase::m_header = static_cast<HypObjectHeader *>(this);

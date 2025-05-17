@@ -93,6 +93,9 @@ void GBuffer::Create()
         case BUCKET_OPAQUE:
             it.framebuffer = CreateFramebuffer(nullptr, m_extent, bucket);
             break;
+        case BUCKET_LIGHTMAP:
+            it.framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).framebuffer, m_extent, bucket);
+            break;
         case BUCKET_TRANSLUCENT:
             it.framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).framebuffer, m_extent, bucket);
             break;
@@ -181,14 +184,18 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef &opaque_framebuff
     };
 
     // add gbuffer attachments
-    // - The color attachment (first attachment) is unique to both the opaque and translucent
-    // - However, the non-opaque buckets can potentially use a different format than
-    //   the opaque bucket. This is because the translucent bucket's framebuffer is used to render
+    // - The color attachment (first attachment) is unique to opaque and translucent buckets.
+    //   The lightmap bucket will write into the opaque bucket's albedo attachment.
+    // - The translucent bucket can potentially use a different format than
+    //   the opaque bucket's albedo attachment.
+    //   This is because the translucent bucket's framebuffer is used to render
     //   the shaded result in the deferred pass before the translucent objects are rendered
     //   using forward rendering, and we need to be able to accommodate the high range of 
     //   values that can be produced by the deferred shading pass
     if (bucket == BUCKET_OPAQUE) {
         AddOwnedAttachment(0, GetImageFormat(GBUFFER_RESOURCE_ALBEDO));
+    } else if (bucket == BUCKET_LIGHTMAP) {
+        AddSharedAttachment(0);
     } else {
         AddOwnedAttachment(0, InternalFormat::RGBA16F);
     }

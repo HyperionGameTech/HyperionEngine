@@ -214,7 +214,7 @@ void Mesh::Init()
             m_streamed_mesh_data.Reset();
         }
     }));
-
+    
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
     m_render_resource = AllocateResource<MeshRenderResource>(this);

@@ -370,7 +370,6 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 #pragma endregion Deferred pass
 
-
 #pragma region TonemapPass
 
 TonemapPass::TonemapPass(GBuffer *gbuffer)
@@ -403,8 +402,7 @@ void TonemapPass::CreatePipeline()
         },
         MaterialAttributes {
             .fill_mode      = FillMode::FILL,
-            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .blend_function = BlendFunction::None(),
             .flags          = MaterialAttributeFlags::NONE
         }
     );
@@ -425,6 +423,65 @@ void TonemapPass::Render(FrameBase *frame, ViewRenderResource *view)
 }
 
 #pragma endregion TonemapPass
+
+#pragma region TonemapPass
+
+LightmapPass::LightmapPass(const FramebufferRef &framebuffer, GBuffer *gbuffer)
+    : FullScreenPass(
+        ShaderRef::Null(),
+        DescriptorTableRef::Null(),
+        framebuffer,
+        InternalFormat::RGBA8,
+        framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
+        gbuffer
+      )
+{
+}
+
+LightmapPass::~LightmapPass()
+{
+}
+
+void LightmapPass::Create()
+{
+    Threads::AssertOnThread(g_render_thread);
+
+    FullScreenPass::Create();
+}
+
+void LightmapPass::CreatePipeline()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    RenderableAttributeSet renderable_attributes(
+        MeshAttributes {
+            .vertex_attributes = static_mesh_vertex_attributes
+        },
+        MaterialAttributes {
+            .fill_mode      = FillMode::FILL,
+            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags          = MaterialAttributeFlags::NONE
+        }
+    );
+
+    m_shader = g_shader_manager->GetOrCreate(NAME("ApplyLightmap"));
+
+    FullScreenPass::CreatePipeline(renderable_attributes);
+}
+
+void LightmapPass::Resize_Internal(Vec2u new_size)
+{
+    FullScreenPass::Resize_Internal(new_size);
+}
+
+void LightmapPass::Render(FrameBase *frame, ViewRenderResource *view)
+{
+    FullScreenPass::Render(frame, view);
+}
+
+#pragma endregion LightmapPass
 
 #pragma region Env grid pass
 

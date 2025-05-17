@@ -64,11 +64,21 @@ namespace Hyperion
 
         public void IncRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("RefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.RefCountedPtr_IncRef(ctrlBlock, ptr);
         }
 
         public void DecRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("RefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.RefCountedPtr_DecRef(ctrlBlock, ptr);
         }
     }
@@ -109,11 +119,21 @@ namespace Hyperion
 
         public void IncRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("RefCountedPtr is null");
+            }
+            
             RefCountedPtrNativeBindings.RefCountedPtr_IncRef(ctrlBlock, ptr);
         }
 
         public void DecRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("RefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.RefCountedPtr_DecRef(ctrlBlock, ptr);
         }
 
@@ -171,16 +191,31 @@ namespace Hyperion
 
         public void IncRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("WeakRefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.WeakRefCountedPtr_IncRef(ctrlBlock, ptr);
         }
 
         public void DecRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("WeakRefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.WeakRefCountedPtr_DecRef(ctrlBlock, ptr);
         }
 
         public RefCountedPtr Lock()
         {
+            if (ctrlBlock == RefCountedPtr.NullCtrlBlock)
+            {
+                return RefCountedPtr.Null;
+            }
+
             uint refCount = RefCountedPtrNativeBindings.WeakRefCountedPtr_Lock(ctrlBlock, ptr);
 
             if (refCount == 0)
@@ -226,16 +261,31 @@ namespace Hyperion
 
         public void IncRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("WeakRefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.WeakRefCountedPtr_IncRef(ctrlBlock, ptr);
         }
 
         public void DecRef()
         {
+            if (IsNull)
+            {
+                throw new Exception("WeakRefCountedPtr is null");
+            }
+
             RefCountedPtrNativeBindings.WeakRefCountedPtr_DecRef(ctrlBlock, ptr);
         }
 
         public RefCountedPtr<T> Lock()
         {
+            if (ctrlBlock == RefCountedPtr.NullCtrlBlock)
+            {
+                return RefCountedPtr<T>.Null;
+            }
+
             uint refCount = RefCountedPtrNativeBindings.WeakRefCountedPtr_Lock(ctrlBlock, ptr);
 
             if (refCount == 0)

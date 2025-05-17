@@ -28,6 +28,7 @@ class GBuffer;
 class EnvGridPass;
 class ReflectionsPass;
 class TonemapPass;
+class LightmapPass;
 class FullScreenPass;
 class DepthPyramidRenderer;
 class TemporalAA;
@@ -189,6 +190,8 @@ protected:
     UniquePtr<EnvGridPass>                              m_env_grid_irradiance_pass;
 
     UniquePtr<ReflectionsPass>                          m_reflections_pass;
+
+    UniquePtr<LightmapPass>                             m_lightmap_pass;
 
     UniquePtr<TonemapPass>                              m_tonemap_pass;
 

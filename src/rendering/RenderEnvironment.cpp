@@ -334,7 +334,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
             SizeType index = SizeType(-1);
 
             if (components_it != render_environment->m_render_subsystems.End()) {
-                const auto it = components_it->second.Find(name);
+                auto it = components_it->second.Find(name);
 
                 AssertThrowMsg(
                     it == components_it->second.End(),
@@ -342,7 +342,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
                     name.LookupString()
                 );
 
-                components_it->second.Set(name, render_subsystem);
+                it = components_it->second.Set(name, render_subsystem).first;
 
                 index = components_it->second.IndexOf(it);
             } else {
