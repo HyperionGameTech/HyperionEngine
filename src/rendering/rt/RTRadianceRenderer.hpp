@@ -25,7 +25,7 @@ class ViewRenderResource;
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
-HYP_STRUCT(ConfigName="app", ConfigPath="rendering.rt.reflections")
+HYP_STRUCT(ConfigName="app", JSONPath="rendering.rt.reflections")
 struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
 {
     HYP_FIELD()

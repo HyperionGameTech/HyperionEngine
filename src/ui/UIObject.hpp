@@ -279,12 +279,16 @@ static constexpr inline int UIObjectScrollbarOrientationToIndex(UIObjectScrollba
             : -1;
 }
 
+HYP_STRUCT()
 struct UIObjectAspectRatio
 {
+    HYP_FIELD()
     float x = 1.0f;
+
+    HYP_FIELD()
     float y = 1.0f;
 
-    UIObjectAspectRatio()                                                   = default;
+    UIObjectAspectRatio()   = default;
 
     UIObjectAspectRatio(float ratio)
         : x(ratio),
@@ -545,16 +549,16 @@ public:
     HYP_FORCE_INLINE bool IsInit() const
         { return m_is_init; }
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Name")
     Name GetName() const;
     
-    HYP_METHOD()
+    HYP_METHOD(Property="Name")
     void SetName(Name name);
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Position")
     Vec2i GetPosition() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Position")
     void SetPosition(Vec2i position);
 
     HYP_METHOD()
@@ -563,29 +567,29 @@ public:
     HYP_METHOD()
     Vec2f GetAbsolutePosition() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="IsPositionAbsolute", XMLAttribute="absolute")
     HYP_FORCE_INLINE bool IsPositionAbsolute() const
         { return m_is_position_absolute; }
 
-    HYP_METHOD()
+    HYP_METHOD(Property="IsPositionAbsolute", XMLAttribute="absolute")
     void SetIsPositionAbsolute(bool is_position_absolute);
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Size")
     UIObjectSize GetSize() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="Size")
     void SetSize(UIObjectSize size);
 
-    HYP_METHOD()
+    HYP_METHOD(Property="InnerSize")
     UIObjectSize GetInnerSize() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="InnerSize")
     void SetInnerSize(UIObjectSize size);
 
-    HYP_METHOD()
+    HYP_METHOD(Property="MaxSize")
     UIObjectSize GetMaxSize() const;
 
-    HYP_METHOD()
+    HYP_METHOD(Property="MaxSize")
     void SetMaxSize(UIObjectSize size);
     
     /*! \brief Get the computed size (in pixels) of the UI object.
@@ -646,31 +650,31 @@ public:
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \return The depth of the UI object */
-    HYP_METHOD()
+    HYP_METHOD(Property="Depth")
     int GetDepth() const;
 
     /*! \brief Set the depth of the UI object
      *  The depth of the UI object is used to determine the rendering order of the object in the scene relative to its sibling elements, with higher depth values being rendered on top of lower depth values.
      *  Set the depth to a value between UIStage::min_depth and UIStage::max_depth. If the depth value is set to 0, the depth will be determined by the node's depth in the scene.
      *  \param depth The depth of the UI object */
-    HYP_METHOD()
+    HYP_METHOD(Property="Depth")
     void SetDepth(int depth);
 
     /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
      *  \return True if the this object accepts focus, false otherwise */
-    HYP_METHOD()
+    HYP_METHOD(Property="AcceptsFocus")
     virtual bool AcceptsFocus() const
         { return m_accepts_focus; }
 
     /*! \brief Set whether the UI object accepts focus.
      *  \details If set to true, the UI object can receive focus. If set to false, the UI object cannot receive focus.
      *  \note If a class deriving \ref{UIObject} overrides \ref{AcceptsFocus}, this function has no effect. */
-    HYP_METHOD()
+    HYP_METHOD(Property="AcceptsFocus")
     void SetAcceptsFocus(bool accepts_focus);
 
     /*! \brief Check if the UI object receives update events.
      *  \return True if the UI object receives update events, false otherwise */
-    HYP_METHOD()
+    HYP_METHOD(Property="ReceivesUpdate")
     virtual bool ReceivesUpdate() const
         { return m_receives_update; }
 
@@ -734,9 +738,11 @@ public:
     HYP_FORCE_INLINE bool IsPositionDependentOnParentSize() const
         { return m_parent_alignment != UIObjectAlignment::TOP_LEFT; }
 
+    HYP_METHOD(Property="AspectRatio")
     HYP_FORCE_INLINE UIObjectAspectRatio GetAspectRatio() const
         { return m_aspect_ratio; }
 
+    HYP_METHOD(Property="AspectRatio")
     void SetAspectRatio(UIObjectAspectRatio aspect_ratio);
 
     /*! \brief Get the padding of the UI object
@@ -1196,6 +1202,7 @@ protected:
     RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject *)> &proc) const;
     RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject *)> &proc) const;
 
+    HYP_METHOD(Property="ReceivesUpdate")
     HYP_FORCE_INLINE void SetReceivesUpdate(bool receives_update)
         { m_receives_update = receives_update; }
 

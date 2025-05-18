@@ -966,6 +966,9 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
     DescriptorTableDeclaration table;
 
     for (const DescriptorUsage &descriptor_usage : elements) {
+        AssertThrowMsg(descriptor_usage.slot != renderer::DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptor_usage.slot < renderer::DescriptorSlot::DESCRIPTOR_SLOT_MAX,
+            "Descriptor usage %s has invalid slot %d", descriptor_usage.descriptor_name.LookupString(), descriptor_usage.slot);
+
         DescriptorSetDeclaration *descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
 
         // check if this descriptor set is defined in the static descriptor table

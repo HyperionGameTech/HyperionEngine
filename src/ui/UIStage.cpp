@@ -530,6 +530,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         continue;
                     }
 
+                    if (!ui_object->AcceptsFocus()) {
+                        continue;
+                    }
+
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
                     UIEventHandlerResult current_result = ui_object->OnMouseHover(MouseEvent {
@@ -544,12 +548,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
-                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
+                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
                         GetClass(ui_object.GetTypeID())->GetName(),
                         ui_object->GetName(),
                         ui_object->GetText(),
                         ui_object->GetActualSize(),
                         ui_object->GetActualInnerSize(),
+                        ui_object->GetTextSize(),
                         ui_object->GetNode()->GetWorldAABB().GetExtent(),
                         ui_object->HasChildUIObjects(),
                         ui_object->GetActualSizeClamped(),

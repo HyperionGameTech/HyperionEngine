@@ -411,6 +411,29 @@ public:
      */
     void Concat(Array &&other);
 
+    /*! \brief Reverse the order of the elements in the array in place. */
+    void Reverse();
+
+    /*! \brief Build a new array with the elements in reverse order. Does not modify the original array. */
+    template <class OtherAllocatorType>
+    void Reverse(Array<T, OtherAllocatorType> &out_array) const
+    {
+        const SizeType size = Size();
+
+        if (size < 2) {
+            return;
+        }
+
+        out_array.ResizeUninitialized(size);
+
+        T *buffer = GetBuffer();
+        T *out_buffer = out_array.GetBuffer();
+
+        for (SizeType i = 0; i < size; ++i) {
+            Memory::Construct<T>(&out_buffer[i], buffer[size - 1 - i]);
+        }
+    }
+
     /*! \brief Erase an element by iterator. */
     Iterator Erase(ConstIterator iter);
 
@@ -543,9 +566,6 @@ protected:
     }
 
     void ResetOffsets();
-
-    auto RealBegin() const { return GetBuffer(); }
-    auto RealEnd() const { return GetBuffer() + m_size; }
 
     static SizeType CalculateDesiredCapacity(SizeType size)
     {
@@ -1052,6 +1072,26 @@ Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) cons
     }
 
     return result;
+}
+
+template <class T, class AllocatorType>
+void Array<T, AllocatorType>::Reverse()
+{
+    if (Size() < 2) {
+        return;
+    }
+    
+    T *buffer = GetBuffer();
+
+    SizeType left = m_start_offset;
+    SizeType right = m_size - 1;
+
+    while (left < right) {
+        std::swap(buffer[left], buffer[right]);
+
+        ++left;
+        --right;
+    }
 }
 
 template <class T, class AllocatorType>

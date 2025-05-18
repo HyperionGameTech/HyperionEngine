@@ -40,7 +40,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
         in_attribute_value = false,
         in_attribute_name = false;
 
-    char last_char = '\0';
+    utf::u32char last_char = utf::u32char(-1);
     String element_str, comment_str, value_str;
     Array<Pair<String, String>> attribs;
 
@@ -114,7 +114,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
                         } else if (in_attributes && is_opening) {
                             if (!in_attribute_value && ch == ' ') {
                                 attribs.PushBack({ "", "" });
-                            } else if (ch == '\"') {
+                            } else if (ch == '\"' && last_char != '\\') {
                                 in_attribute_value = !in_attribute_value;
                             } else {
                                 auto &last = attribs.Back();

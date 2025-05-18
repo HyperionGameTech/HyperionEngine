@@ -20,7 +20,7 @@ class Engine;
 class GBuffer;
 class ViewRenderResource;
 
-HYP_STRUCT(ConfigName="app", ConfigPath="rendering.ssr")
+HYP_STRUCT(ConfigName="app", JSONPath="rendering.ssr")
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
     HYP_FIELD(Description="The quality level of the SSR effect. (0 = low, 1 = medium, 2 = high)")
@@ -44,7 +44,7 @@ struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
     HYP_FIELD(Description="Where to start and end fading the SSR effect based on the screen edges.")
     Vec2f   screen_edge_fade = { 0.96f, 0.99f };
 
-    HYP_FIELD(ConfigIgnore)
+    HYP_FIELD(JSONIgnore)
     Vec2u   extent;
 
     virtual ~SSRRendererConfig() override = default;
