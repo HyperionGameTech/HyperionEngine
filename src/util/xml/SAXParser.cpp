@@ -116,7 +116,7 @@ SAXParser::Result SAXParser::Parse(BufferedReader *reader)
                                 attribs.PushBack({ "", "" });
                             } else if (ch == '\"' && last_char != '\\') {
                                 in_attribute_value = !in_attribute_value;
-                            } else {
+                            } else if (ch != '\\') {
                                 auto &last = attribs.Back();
                                 if (!in_attribute_value && ch != '=') {
                                     last.first += ch;

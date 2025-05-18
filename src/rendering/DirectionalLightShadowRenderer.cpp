@@ -476,8 +476,6 @@ void DirectionalLightShadowRenderer::OnRemoved()
         
         if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource)) {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
-
-            FreeResource(shadow_map_render_resource);
         }
     }
 

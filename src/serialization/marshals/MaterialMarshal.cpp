@@ -167,6 +167,8 @@ public:
             ShaderProperties(static_mesh_vertex_attributes)
         );
 
+        attributes.shader_definition = shader->GetCompiledShader()->GetDefinition();
+
         for (const FBOMObject &child : in.GetChildren()) {
             HYP_LOG(Serialization, Debug, "Material : Child TypeID: {}, TypeName: {}", child.GetType().GetNativeTypeID().Value(), child.GetType().name);
             if (child.GetType().IsOrExtends("Texture")) {
@@ -184,7 +186,8 @@ public:
         }
 
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
-        material_handle->SetShader(std::move(shader));
+
+        HYP_BREAKPOINT;
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), AnyRef(*material_handle))) {
             return err;

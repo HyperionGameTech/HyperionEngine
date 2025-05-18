@@ -596,6 +596,8 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 
     OnProjectOpened.Bind([this](EditorProject *project)
     {
+        HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
+
         const Handle<Scene> &project_scene = project->GetScene();
         AssertThrow(project_scene.IsValid());
 
@@ -1912,13 +1914,6 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
 void EditorSubsystem::NewProject()
 {
     OpenProject(MakeRefCountedPtr<EditorProject>());
-
-    // test
-    if (Result result = m_current_project->Save()) {
-
-    } else {
-        HYP_LOG(Editor, Error, "Failed to save project : {}", result.GetError().GetMessage());
-    }
 }
 
 void EditorSubsystem::OpenProject(const RC<EditorProject> &project)

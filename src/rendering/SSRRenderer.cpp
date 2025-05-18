@@ -70,7 +70,6 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
     {   
         HYPERION_BUBBLE_ERRORS(uniform_buffer->Create());
         
-        DebugLog(LogType::Debug, "Size of buffer = %u\n",uniform_buffer->Size());
         uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
         HYPERION_RETURN_OK;

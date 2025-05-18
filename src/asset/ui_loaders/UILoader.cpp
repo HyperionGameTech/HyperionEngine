@@ -485,6 +485,19 @@ public:
             for (const Pair<String, String> &attribute : attributes) {
                 const String attribute_name_upper = attribute.first.ToUpper();
 
+                if (g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
+                    continue;
+                }
+
+                if (attribute_name_upper.StartsWith("TAG:")) {
+                    // Strip the tag prefix
+                    String attribute_name_lower = String(attribute_name_upper.Substr(4)).ToLower();
+
+                    ui_object->SetNodeTag(NodeTag(CreateNameFromDynamicString(attribute_name_lower), attribute.second));
+
+                    continue;
+                }
+
                 if (attribute_name_upper.StartsWith("ON")) {
                     bool found = false;
 
@@ -547,125 +560,114 @@ public:
                     HYP_LOG(Assets, Warning, "Unknown event attribute: {}", attribute.first);
                 }
                 
-                if (!g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
-                    const String attribute_name_lower = attribute.first.ToLower();
+                const String attribute_name_lower = attribute.first.ToLower();
 
-                    // Check HypClass attributes
-                    auto HandleFoundMember = [ui_object](const IHypMember &member, const String &str) -> bool
+                // Check HypClass attributes
+                auto HandleFoundMember = [ui_object](const IHypMember &member, const String &str) -> bool
+                {
+                    HypData data;
+                    json::ParseResult json_parse_result = json::JSON::Parse(str);
+
+                    if (json_parse_result.ok) {
+                        if (!JSONToHypData(json_parse_result.value, member.GetTypeID(), data)) {
+                            HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of HypClass \"{}\" from JSON",
+                                member.GetName(), ui_object->GetName());
+
+                            return false;
+                        }
+                    } else {
+                        HYP_LOG(Assets, Error, "Failed to parse JSON for field \"{}\" of HypClass \"{}\": {}",
+                            member.GetName(), ui_object->GetName(), json_parse_result.message);
+
+                        return false;
+                    }
+
+                    HypData target_value { ui_object };
+
+                    switch (member.GetMemberType()) {
+                    case HypMemberType::TYPE_FIELD:
                     {
-                        HypData data;
-                        json::ParseResult json_parse_result = json::JSON::Parse(str);
+                        const HypField *hyp_field = dynamic_cast<const HypField *>(&member);
 
-                        if (json_parse_result.ok) {
-                            if (!JSONToHypData(json_parse_result.value, member.GetTypeID(), data)) {
-                                HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of HypClass \"{}\" from JSON",
-                                    member.GetName(), ui_object->GetName());
+                        if (!hyp_field) {
+                            HYP_LOG(Assets, Error, "Cannot set HypClass field: {}", member.GetName());
 
-                                return false;
-                            }
-                        } else {
-                            // Set data as string if JSON parsing failed
-                            data = HypData(str);
-                            // @TODO Handle if string is not valid for the type
+                            return false;
                         }
 
-                        HypData target_value { ui_object };
+                        hyp_field->Set(target_value, data);
 
-                        switch (member.GetMemberType()) {
-                        case HypMemberType::TYPE_FIELD:
-                        {
-                            const HypField *hyp_field = dynamic_cast<const HypField *>(&member);
+                        return true;
+                    }
+                    case HypMemberType::TYPE_PROPERTY:
+                    {
+                        const HypProperty *hyp_property = dynamic_cast<const HypProperty *>(&member);
 
-                            if (!hyp_field) {
-                                HYP_LOG(Assets, Error, "Cannot set HypClass field: {}", member.GetName());
+                        if (!hyp_property || !hyp_property->CanSet()) {
+                            HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member.GetName());
 
-                                return false;
-                            }
-
-                            hyp_field->Set(target_value, data);
-
-                            return true;
+                            return false;
                         }
-                        case HypMemberType::TYPE_PROPERTY:
-                        {
-                            const HypProperty *hyp_property = dynamic_cast<const HypProperty *>(&member);
 
-                            if (!hyp_property || !hyp_property->CanSet()) {
-                                HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member.GetName());
+                        hyp_property->Set(target_value, data);
 
-                                return false;
-                            }
+                        return true;
+                    }
+                    default:
+                        HYP_UNREACHABLE();
+                    }
 
-                            hyp_property->Set(target_value, data);
+                    return false;
+                };
+                
+                { // find XMLAttribute member
+                    HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
-                            return true;
-                        }
-                        default:
-                            HYP_UNREACHABLE();
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
+                    {
+                        if (const HypClassAttributeValue &attr = it.GetAttribute("xmlattribute"); attr.IsValid()) {
+                            return attr.GetString().ToLower() == attribute_name_lower;
                         }
 
                         return false;
-                    };
+                    });
 
-                    HYP_LOG(Assets, Debug, "Checking for attribute {} on UIObject {} with class {}", attribute_name_lower, ui_object->GetName(), hyp_class->GetName());
-                    
-                    { // find XMLAttribute member
-                        HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
-
-                        auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
-                        {
-                            HYP_LOG(Assets, Debug, "Checking member (xml): {} vs {}", it.GetName(), attribute_name_lower);
-
-                            if (const HypClassAttributeValue &attr = it.GetAttribute("xmlattribute"); attr.IsValid()) {
-                                return attr.GetString().ToLower() == attribute_name_lower;
-                            }
-
-                            return false;
-                        });
-
-                        if (member_it != member_list.End()) {
-                            if (!HandleFoundMember(*member_it, attribute.second)) {
-                                HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
-                            }
-
-                            continue;
+                    if (member_it != member_list.End()) {
+                        if (!HandleFoundMember(*member_it, attribute.second)) {
+                            HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
                         }
+
+                        continue;
                     }
-
-                    // Find property with name matching, without xmlattribute attribute
-                    { // find XMLAttribute member
-                        HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY);
-
-                        auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
-                        {
-                            HYP_LOG(Assets, Debug, "Checking member: {} vs {}", it.GetName(), attribute_name_lower);
-
-                            if (it.GetAttribute("xmlattribute").IsValid()) {
-                                return false;
-                            }
-
-                            if (String(it.GetName().LookupString()).ToLower() == attribute_name_lower) {
-                                return true;
-                            }
-
-                            return false;
-                        });
-
-                        if (member_it != member_list.End()) {
-                            if (!HandleFoundMember(*member_it, attribute.second)) {
-                                HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
-                            }
-
-                            continue;
-                        }
-                    }
-
-                    HYP_LOG(Assets, Warning, "Unknown attribute: {}", attribute.first);
-                    HYP_BREAKPOINT;
-
-                    // Finally, if not found, set node tag
-                    ui_object->SetNodeTag(NodeTag(CreateNameFromDynamicString(attribute_name_lower), attribute.second));
                 }
+
+                // Find property with name matching, without xmlattribute attribute
+                { // find XMLAttribute member
+                    HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY);
+
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
+                    {
+                        if (it.GetAttribute("xmlattribute").IsValid()) {
+                            return false;
+                        }
+
+                        if (String(it.GetName().LookupString()).ToLower() == attribute_name_lower) {
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                    if (member_it != member_list.End()) {
+                        if (!HandleFoundMember(*member_it, attribute.second)) {
+                            HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
+                        }
+
+                        continue;
+                    }
+                }
+
+                HYP_LOG(Assets, Warning, "Unknown attribute: {}", attribute.first);
             }
 
             LastObject()->AddChildUIObject(ui_object);

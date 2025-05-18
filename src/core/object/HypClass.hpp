@@ -114,8 +114,7 @@ public:
     HypClassMemberIterator(const HypClassMemberIterator &other)
         : m_member_types(other.m_member_types),
           m_phase(other.m_phase),
-          m_hyp_class(other.m_hyp_class),
-          m_iterating_parent(other.m_iterating_parent),
+          m_target(other.m_target),
           m_current_index(other.m_current_index),
           m_current_value(other.m_current_value)
     {
@@ -129,8 +128,7 @@ public:
 
         m_member_types = other.m_member_types;
         m_phase = other.m_phase;
-        m_hyp_class = other.m_hyp_class;
-        m_iterating_parent = other.m_iterating_parent;
+        m_target = other.m_target;
         m_current_index = other.m_current_index;
         m_current_value = other.m_current_value;
 
@@ -141,8 +139,7 @@ public:
     {
         return m_member_types == other.m_member_types
             && m_phase == other.m_phase
-            && m_hyp_class == other.m_hyp_class
-            && m_iterating_parent == other.m_iterating_parent
+            && m_target == other.m_target
             && m_current_index == other.m_current_index
             && m_current_value == other.m_current_value;
     }
@@ -151,8 +148,7 @@ public:
     {
         return m_member_types != other.m_member_types
             || m_phase != other.m_phase
-            || m_hyp_class != other.m_hyp_class
-            || m_iterating_parent != other.m_iterating_parent
+            || m_target != other.m_target
             || m_current_index != other.m_current_index
             || m_current_value != other.m_current_value;
     }
@@ -197,8 +193,7 @@ private:
     EnumFlags<HypMemberType>    m_member_types;
 
     Phase                       m_phase;
-    const HypClass              *m_hyp_class;
-    const HypClass              *m_iterating_parent;
+    const HypClass              *m_target;
     SizeType                    m_current_index;
 
     mutable IHypMember          *m_current_value;
@@ -224,7 +219,7 @@ public:
 
     ~HypClassMemberList()                                               = default;
 
-    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::MAX))
+    HYP_DEF_STL_BEGIN_END(HypClassMemberIterator(m_hyp_class, m_member_types, HypClassMemberIterator::Phase::ITERATE_PROPERTIES), HypClassMemberIterator(nullptr, m_member_types, HypClassMemberIterator::Phase::MAX))
 
 private:
     const HypClass              *m_hyp_class;
