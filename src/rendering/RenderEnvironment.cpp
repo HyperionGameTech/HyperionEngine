@@ -354,7 +354,6 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
             AssertDebug(index != SizeType(-1));
 
             render_subsystem->SetParent(render_environment.Get());
-            render_subsystem->SetComponentIndex(index);
 
             if (!render_subsystem->IsInitialized()) {
                 render_subsystem->ComponentInit();

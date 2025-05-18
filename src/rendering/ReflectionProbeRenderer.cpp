@@ -77,9 +77,4 @@ void ReflectionProbeRenderer::OnRender(FrameBase *frame)
     );
 }
 
-void ReflectionProbeRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)
-{
-    AssertThrowMsg(false, "Not implemented");
-}
-
 } // namespace hyperion

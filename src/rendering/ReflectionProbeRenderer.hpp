@@ -40,8 +40,6 @@ private:
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase *frame) override;
 
-    virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override;
-
     TResourceHandle<EnvProbeRenderResource> m_env_probe_render_resource_handle;
 
     bool                                    m_last_visibility_state = false;

@@ -768,7 +768,6 @@ void EditorSubsystem::Initialize()
     // OpenProject(*result);
 
     InitDetailView();
-    InitDebugOverlays();
 
     CreateHighlightNode();
 
@@ -1256,6 +1255,26 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
 
+            if (event.key_code == KeyCode::TILDE) {
+                const bool is_console_open = m_console_ui && m_console_ui->IsVisible();
+
+                if (is_console_open) {
+                    m_console_ui->SetIsVisible(false);
+
+                    if (m_debug_overlay_ui_object) {
+                        m_debug_overlay_ui_object->SetIsVisible(true);
+                    }
+                } else {
+                    m_console_ui->SetIsVisible(true);
+
+                    if (m_debug_overlay_ui_object) {
+                        m_debug_overlay_ui_object->SetIsVisible(false);
+                    }
+                }
+
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
             if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event)) {
                 return UIEventHandlerResult::STOP_BUBBLING;
             }
@@ -1291,7 +1310,9 @@ void EditorSubsystem::InitViewport()
 
         ui_image->SetTexture(m_scene_texture);
 
-        InitConsole();
+        InitConsoleUI();
+        InitDebugOverlays();
+        InitManipulationWidgetSelection();
     } else {
         HYP_FAIL("Failed to find Scene_Image element");
     }
@@ -1593,6 +1614,33 @@ void EditorSubsystem::InitDetailView()
     }));
 }
 
+void EditorSubsystem::InitConsoleUI()
+{
+    HYP_SCOPE;
+
+    UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    if (m_console_ui != nullptr) {
+        m_console_ui->RemoveFromParent();
+    }
+
+    m_console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+    AssertThrow(m_console_ui != nullptr);
+    
+    m_console_ui->SetDepth(150);
+    m_console_ui->SetIsVisible(false);
+
+    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
+        RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
+        AssertThrow(scene_image != nullptr);
+
+        scene_image->AddChildUIObject(m_console_ui);
+    } else {
+        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
+    }
+}
+
 void EditorSubsystem::InitDebugOverlays()
 {
     HYP_SCOPE;
@@ -1600,9 +1648,11 @@ void EditorSubsystem::InitDebugOverlays()
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    m_debug_overlay_ui_object = ui_subsystem->GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize(100, UIObjectSize::PERCENT));
+    m_debug_overlay_ui_object = ui_subsystem->GetUIStage()->CreateUIObject<UIListView>(NAME("DebugOverlay"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 0, UIObjectSize::AUTO }));
     m_debug_overlay_ui_object->SetDepth(100);
     m_debug_overlay_ui_object->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+    m_debug_overlay_ui_object->SetParentAlignment(UIObjectAlignment::BOTTOM_LEFT);
+    m_debug_overlay_ui_object->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
 
     m_debug_overlay_ui_object->OnClick.RemoveAllDetached();
     m_debug_overlay_ui_object->OnKeyDown.RemoveAllDetached();
@@ -1620,30 +1670,63 @@ void EditorSubsystem::InitDebugOverlays()
     }
 }
 
-void EditorSubsystem::InitConsole()
+void EditorSubsystem::InitManipulationWidgetSelection()
 {
     HYP_SCOPE;
 
     UISubsystem *ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIObject> console_ui = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Console"));
-    if (console_ui != nullptr) {
-        console_ui->RemoveFromParent();
+    RC<UIObject> manipulation_widget_selection = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
+    if (manipulation_widget_selection != nullptr) {
+        manipulation_widget_selection->RemoveFromParent();
     }
 
-    console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-    AssertThrow(console_ui != nullptr);
+    manipulation_widget_selection = ui_subsystem->GetUIStage()->CreateUIObject<UIMenuBar>(NAME("ManipulationWidgetSelection"), Vec2i { 0, 0 }, UIObjectSize({ 80, UIObjectSize::PIXEL }, { 12, UIObjectSize::PIXEL }));
+    AssertThrow(manipulation_widget_selection != nullptr);
     
-    console_ui->SetDepth(150);
+    manipulation_widget_selection->SetDepth(150);
+    manipulation_widget_selection->SetTextSize(8.0f);
+    manipulation_widget_selection->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.5f));
+    manipulation_widget_selection->SetTextColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    manipulation_widget_selection->SetBorderFlags(UIObjectBorderFlags::ALL);
+    manipulation_widget_selection->SetBorderRadius(5.0f);
+    manipulation_widget_selection->SetPosition(Vec2i { 5, 5 });
+
+    Array<Pair<int, RC<UIObject>>> manipulation_widget_menu_items;
+    manipulation_widget_menu_items.Reserve(m_manipulation_widget_holder.GetManipulationWidgets().Size());
+
+    // add each manipulation widget to the selection menu
+    for (const RC<EditorManipulationWidgetBase> &manipulation_widget : m_manipulation_widget_holder.GetManipulationWidgets()) {
+        if (manipulation_widget->GetManipulationMode() == EditorManipulationMode::NONE) {
+            continue;
+        }
+
+        RC<UIObject> manipulation_widget_menu_item = manipulation_widget_selection->CreateUIObject<UIMenuItem>(manipulation_widget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+        AssertThrow(manipulation_widget_menu_item != nullptr);
+
+        // @TODO Add icon
+        manipulation_widget_menu_item->SetText("<widget>");
+
+        auto it = std::lower_bound(manipulation_widget_menu_items.Begin(), manipulation_widget_menu_items.End(), manipulation_widget->GetPriority(), [](const Pair<int, RC<UIObject>> &a, int b)
+        {
+            return a.first < b;
+        });
+
+        manipulation_widget_menu_items.Insert(it, Pair<int, RC<UIObject>> { manipulation_widget->GetPriority(), std::move(manipulation_widget_menu_item) });
+    }
+
+    for (Pair<int, RC<UIObject>> &manipulation_widget_menu_item : manipulation_widget_menu_items) {
+        manipulation_widget_selection->AddChildUIObject(std::move(manipulation_widget_menu_item.second));
+    }
 
     if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"))) {
         RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
         AssertThrow(scene_image != nullptr);
 
-        scene_image->AddChildUIObject(console_ui);
+        scene_image->AddChildUIObject(manipulation_widget_selection);
     } else {
-        HYP_FAIL("Failed to find Scene_Image element; cannot add console UI");
+        HYP_FAIL("Failed to find Scene_Image element; cannot add manipulation widget selection UI");
     }
 }
 

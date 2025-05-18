@@ -426,8 +426,6 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    AssertThrow(IsValidComponent());
-
     ShadowMapRenderResource *shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
 
@@ -464,8 +462,6 @@ void DirectionalLightShadowRenderer::Init()
 
 void DirectionalLightShadowRenderer::OnRemoved()
 {
-    AssertThrow(IsValidComponent());
-
     if (m_light_render_resource_handle) {
         m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
     }
@@ -575,11 +571,6 @@ void DirectionalLightShadowRenderer::OnRender(FrameBase *frame)
 
     AssertThrow(m_shadow_pass != nullptr);
     m_shadow_pass->Render(frame, nullptr);
-}
-
-void DirectionalLightShadowRenderer::OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index /*prev_index*/)
-{
-    AssertThrowMsg(false, "Not implemented");
 }
 
 void DirectionalLightShadowRenderer::CreateShader()

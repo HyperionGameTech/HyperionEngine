@@ -33,8 +33,6 @@ class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsyst
     HYP_OBJECT_BODY(RenderSubsystem);
 
 public:
-    using Index = uint32;
-
     friend class RenderEnvironment;
 
     /*! \param render_frame_slicing Number of frames to wait between render calls */
@@ -42,7 +40,6 @@ public:
         : m_name(name),
           m_render_frame_slicing(MathUtil::NextMultiple(render_frame_slicing, max_frames_in_flight)),
           m_render_frame_slicing_counter(0),
-          m_index(~0u),
           m_parent(nullptr),
           m_is_initialized(0)
     {
@@ -54,14 +51,6 @@ public:
 
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
-
-    HYP_FORCE_INLINE bool IsValidComponent() const
-        { return m_index != ~0u; }
-
-    HYP_FORCE_INLINE Index GetComponentIndex() const
-        { return m_index; }
-
-    void SetComponentIndex(Index index);
 
     HYP_FORCE_INLINE bool IsInitialized(const StaticThreadID &thread_id = g_render_thread) const
         { return m_is_initialized.Get(MemoryOrder::ACQUIRE) & thread_id; }
@@ -86,14 +75,12 @@ protected:
     virtual void OnUpdate(GameCounter::TickUnit delta) { };
     virtual void OnRender(FrameBase *frame) = 0;
     virtual void OnRemoved() { }
-    virtual void OnComponentIndexChanged(Index new_index, Index prev_index) { };
 
     RenderEnvironment *GetParent() const;
 
     Name                    m_name;
     const uint32            m_render_frame_slicing; // amount of frames to wait between render calls
     uint32                  m_render_frame_slicing_counter;
-    Index                   m_index;
 
 private:
     void SetParent(RenderEnvironment *parent);

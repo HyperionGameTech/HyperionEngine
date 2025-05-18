@@ -90,9 +90,6 @@ private:
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase *frame) override;
 
-    virtual void OnComponentIndexChanged(RenderSubsystem::Index new_index, RenderSubsystem::Index prev_index) override
-        { AssertThrowMsg(false, "Not permitted!"); }
-
     void CreateFramebuffer();
 
     RC<UIStage>                             m_ui_stage;

@@ -54,24 +54,6 @@ void RenderSubsystem::ComponentRender(FrameBase *frame)
     }
 }
 
-void RenderSubsystem::SetComponentIndex(Index index)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    if (index == m_index) {
-        return;
-    }
-
-    const auto prev_index = m_index;
-
-    m_index = index;
-
-    if (m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread) {
-        OnComponentIndexChanged(index, prev_index);
-    }
-}
-
 RenderEnvironment *RenderSubsystem::GetParent() const
 {
     Threads::AssertOnThread(g_render_thread);

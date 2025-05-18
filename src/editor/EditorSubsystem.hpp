@@ -42,6 +42,7 @@ class AssetPackage;
 struct MouseEvent;
 class View;
 class ScreenCaptureRenderSubsystem;
+class ConsoleUI;
 
 namespace sys {
 class AppContext;
@@ -130,6 +131,9 @@ public:
     void Shutdown();
 
     virtual EditorManipulationMode GetManipulationMode() const = 0;
+
+    virtual int GetPriority() const
+        { return -1; }
     
     virtual void UpdateWidget(const NodeProxy &focused_node);
 
@@ -182,6 +186,9 @@ public:
     virtual EditorManipulationMode GetManipulationMode() const override
         { return EditorManipulationMode::TRANSLATE; }
 
+    virtual int GetPriority() const override
+        { return 0; }
+
     virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint) override;
     virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
 
@@ -215,6 +222,9 @@ public:
     using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase &, EditorManipulationWidgetBase &>;
 
     EditorManipulationWidgetHolder();
+
+    HYP_FORCE_INLINE const EditorManipulationWidgetSet &GetManipulationWidgets() const
+        { return m_manipulation_widgets; }
 
     EditorManipulationMode GetSelectedManipulationMode() const;
     void SetSelectedManipulationMode(EditorManipulationMode mode);
@@ -301,8 +311,9 @@ private:
     void InitSceneOutline();
     void InitContentBrowser();
     void InitDetailView();
+    void InitConsoleUI();
     void InitDebugOverlays();
-    void InitConsole();
+    void InitManipulationWidgetSelection();
     
     RC<FontAtlas> CreateFontAtlas();
 
@@ -352,6 +363,8 @@ private:
 
     Array<RC<EditorDebugOverlayBase>>                                   m_debug_overlays;
     RC<UIObject>                                                        m_debug_overlay_ui_object;
+
+    RC<ConsoleUI>                                                       m_console_ui;
 
     RC<UIListView>                                                      m_content_browser_directory_list;
     Handle<AssetPackage>                                                m_selected_package;

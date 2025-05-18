@@ -22,7 +22,7 @@ UIMenuItem::UIMenuItem()
 {
     SetBorderRadius(0);
     SetPadding({ 5, 2 });
-    SetBackgroundColor(Vec4f { 0.0f, 0.0f, 0.0f, 0.0f });
+    SetBackgroundColor(Color::Transparent());
 }
 
 void UIMenuItem::Init()
@@ -284,7 +284,7 @@ void UIMenuItem::OnFontAtlasUpdate_Internal()
 
 Material::ParameterTable UIMenuItem::GetMaterialParameters() const
 {
-    Color color = ComputeBlendedBackgroundColor();
+    Color color = GetBackgroundColor();
 
     const EnumFlags<UIObjectFocusState> focus_state = GetFocusState();
 

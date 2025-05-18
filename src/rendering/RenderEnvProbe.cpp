@@ -702,9 +702,15 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase *frame)
 
     frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
-    SafeRelease(std::move(uniform_buffer));
-    SafeRelease(std::move(convolve_probe_compute_pipeline));
-    SafeRelease(std::move(descriptor_table));
+    DelegateHandler *delegate_handle = new DelegateHandler();
+    *delegate_handle = frame->OnFrameEnd.Bind([delegate_handle, uniform_buffer = std::move(uniform_buffer), convolve_probe_compute_pipeline = std::move(convolve_probe_compute_pipeline), descriptor_table = std::move(descriptor_table)](...)
+    {
+        HYPERION_ASSERT_RESULT(uniform_buffer->Destroy());
+        HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Destroy());
+        HYPERION_ASSERT_RESULT(descriptor_table->Destroy());
+
+        delete delegate_handle;
+    });
 }
 
 void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
@@ -996,32 +1002,35 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
     );
 
     DelegateHandler *delegate_handle = new DelegateHandler();
-    *delegate_handle = frame->OnFrameEnd.Bind(
-        [resource_handle = TResourceHandle<EnvProbeRenderResource>(*this), delegate_handle](FrameBase *frame)
-        {
-            HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
+    *delegate_handle = frame->OnFrameEnd.Bind([resource_handle = TResourceHandle<EnvProbeRenderResource>(*this), pipelines = std::move(pipelines), descriptor_tables = std::move(compute_sh_descriptor_tables), delegate_handle](FrameBase *frame) mutable
+    {
+        HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 
-            EnvProbeShaderData readback_buffer;
+        EnvProbeShaderData readback_buffer;
 
-            g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
+        g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
 
-            Memory::MemCpy(resource_handle->m_spherical_harmonics.values, readback_buffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
+        Memory::MemCpy(resource_handle->m_spherical_harmonics.values, readback_buffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
 
-            resource_handle->SetNeedsUpdate();
+        resource_handle->SetNeedsUpdate();
 
-            HYP_LOG(EnvProbe, Debug, "EnvProbe #{} (type: {}) SH computed", resource_handle->GetEnvProbe()->GetID().Value(), resource_handle->GetEnvProbe()->GetEnvProbeType());
-            for (uint32 i = 0; i < 9; i++) {
-                HYP_LOG(EnvProbe, Debug, "SH[{}]: {}", i, resource_handle->m_spherical_harmonics.values[i]);
-            }
+        // HYP_LOG(EnvProbe, Debug, "EnvProbe #{} (type: {}) SH computed", resource_handle->GetEnvProbe()->GetID().Value(), resource_handle->GetEnvProbe()->GetEnvProbeType());
+        // for (uint32 i = 0; i < 9; i++) {
+        //     HYP_LOG(EnvProbe, Debug, "SH[{}]: {}", i, resource_handle->m_spherical_harmonics.values[i]);
+        // }
 
-            delete delegate_handle;
+        for (auto &it : pipelines) {
+            ShaderRef &shader = it.second.first;
+            ComputePipelineRef &pipeline = it.second.second;
+
+            SafeRelease(std::move(shader));
+            SafeRelease(std::move(pipeline));
         }
-    );
 
-    for (auto &it : pipelines) {
-        SafeRelease(std::move(it.second.first));
-        SafeRelease(std::move(it.second.second));
-    }
+        SafeRelease(std::move(descriptor_tables));
+
+        delete delegate_handle;
+    });
 }
 
 #pragma endregion EnvProbeRenderResource

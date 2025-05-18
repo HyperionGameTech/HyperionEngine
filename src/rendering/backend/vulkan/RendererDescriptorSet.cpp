@@ -79,6 +79,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout &layout)
 
 VulkanDescriptorSet::~VulkanDescriptorSet()
 {
+    HYP_LOG(RenderingBackend, Debug, "Destroying descriptor set {}", GetDebugName());
 }
 
 void VulkanDescriptorSet::Update()
@@ -515,7 +516,10 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase *command_buffer, const Ra
 
 DescriptorSetRef VulkanDescriptorSet::Clone() const
 {
-    return MakeRenderObject<VulkanDescriptorSet>(GetLayout());
+    DescriptorSetRef descriptor_set = MakeRenderObject<VulkanDescriptorSet>(GetLayout());
+    descriptor_set->SetDebugName(GetDebugName());
+
+    return descriptor_set;
 }
 
 #pragma endregion VulkanDescriptorSet
@@ -547,7 +551,10 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration &d
         DescriptorSetLayout layout { set_decl };
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            m_sets[frame_index].PushBack(MakeRenderObject<VulkanDescriptorSet>(layout));
+            DescriptorSetRef descriptor_set = MakeRenderObject<VulkanDescriptorSet>(layout);
+            descriptor_set->SetDebugName(layout.GetName());
+            
+            m_sets[frame_index].PushBack(std::move(descriptor_set));
         }
     }
 }
