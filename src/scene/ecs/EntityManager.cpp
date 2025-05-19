@@ -461,8 +461,8 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
         NotifySystemsOfEntityRemoved(entity, entity_data.components);
     }
 
-    uint64 state = m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE)
-        | other->m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE);
+    uint64 state = m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE_RELEASE)
+        | other->m_move_entity_rw_mask.BitOr(g_move_entity_write_flag, MemoryOrder::ACQUIRE_RELEASE);
 
     // Wait for read mask to be empty
     while (state & g_move_entity_read_mask) {
@@ -547,15 +547,20 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
         GetEntityToEntityManagerMap().Remap(entity, other);
     }
 
+    other->m_move_entity_rw_mask.Increment(2, MemoryOrder::RELEASE);
+
     m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
-    other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
 
     if (Threads::IsOnThread(other->GetOwnerThreadID())) {
+        other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
         other->NotifySystemsOfEntityAdded(entity, new_component_ids);
+        other->m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
     } else {
-        Threads::GetThread(other->GetOwnerThreadID())->GetScheduler().Enqueue([other, entity, new_component_ids = std::move(new_component_ids)]()
+        Threads::GetThread(other->GetOwnerThreadID())->GetScheduler().Enqueue([other = other, entity = entity, new_component_ids = std::move(new_component_ids)]()
         {
+            other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
             other->NotifySystemsOfEntityAdded(entity, new_component_ids);
+            other->m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
         }, TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }

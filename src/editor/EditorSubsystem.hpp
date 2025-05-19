@@ -269,14 +269,14 @@ public:
         { return m_action_stack.Get(); }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<EditorProject> &GetCurrentProject() const
+    HYP_FORCE_INLINE const Handle<EditorProject> &GetCurrentProject() const
         { return m_current_project; }
 
     HYP_METHOD()
     void NewProject();
 
     HYP_METHOD()
-    void OpenProject(const RC<EditorProject> &project);
+    void OpenProject(const Handle<EditorProject> &project);
 
     HYP_METHOD()
     void AddTask(const RC<IEditorTask> &task);
@@ -299,8 +299,8 @@ public:
 
     Delegate<void, const NodeProxy &, const NodeProxy &>    OnFocusedNodeChanged;
 
-    Delegate<void, EditorProject *>                         OnProjectClosing;
-    Delegate<void, EditorProject *>                         OnProjectOpened;
+    Delegate<void, const Handle<EditorProject> &>           OnProjectClosing;
+    Delegate<void, const Handle<EditorProject> &>           OnProjectOpened;
 
 private:
     void LoadEditorUIDefinitions();
@@ -341,7 +341,7 @@ private:
 
     OwningRC<EditorActionStack>                                         m_action_stack;
 
-    RC<EditorProject>                                                   m_current_project;
+    Handle<EditorProject>                                               m_current_project;
 
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX>   m_tasks_by_thread_type;
 

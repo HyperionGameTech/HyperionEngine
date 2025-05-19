@@ -187,6 +187,12 @@ RenderCollector::CollectionResult View::CollectEntities(RenderCollector &render_
 
     AssertReady();
 
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
+    }
+
     if (!m_camera.IsValid()) {
         return m_render_resource->UpdateRenderCollector();
     }
@@ -248,6 +254,12 @@ RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &
 
     AssertReady();
 
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
+    }
+
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
         return m_render_resource->UpdateRenderCollector();
@@ -299,6 +311,12 @@ RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &r
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertReady();
+
+    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+        HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
+
+        return { };
+    }
 
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities

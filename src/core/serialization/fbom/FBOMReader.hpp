@@ -98,7 +98,7 @@ private:
             FBOMStaticData::Type            type = FBOMStaticData::FBOM_STATIC_DATA_NONE;
             SizeType                        offset = 0;
             SizeType                        size = 0;
-            UniquePtr<FBOMSerializableBase>    ptr;
+            UniquePtr<FBOMSerializableBase> ptr;
 
             HYP_FORCE_INLINE bool IsValid() const
                 { return type != FBOMStaticData::FBOM_STATIC_DATA_NONE && size != 0; }

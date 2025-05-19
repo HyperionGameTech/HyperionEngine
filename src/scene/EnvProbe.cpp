@@ -248,11 +248,25 @@ void EnvProbe::SetParentScene(const Handle<Scene> &parent_scene)
 
     if (IsInitCalled()) {
         if (parent_scene.IsValid()) {
-            AssertThrow(parent_scene->IsReady());
+            InitObject(parent_scene);
+            
+            Handle<View> new_view = CreateObject<View>(ViewDesc {
+                .viewport   = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
+                .scene      = m_parent_scene,
+                .camera     = m_camera
+            });
 
+            InitObject(new_view);
+
+            m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(new_view->GetRenderResource()));
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
+
+            m_view = std::move(new_view);
         } else {
+            m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>());
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
+
+            m_view.Reset();
         }
     }
     

@@ -119,6 +119,16 @@ Node::Node(
     m_delegates(MakeUnique<Delegates>())
 {
     SetEntity(entity);
+
+    if (scene != nullptr) {
+        for (const NodeProxy &child : m_child_nodes) {
+            if (!child.IsValid()) {
+                continue;
+            }
+
+            child->SetScene(scene);
+        }
+    }
 }
 
 Node::Node(Node &&other) noexcept
@@ -156,6 +166,7 @@ Node::Node(Node &&other) noexcept
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
+        node->SetScene(m_scene);
     }
 }
 
@@ -212,6 +223,7 @@ Node &Node::operator=(Node &&other) noexcept
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
+        node->SetScene(m_scene);
     }
 
     return *this;
@@ -511,7 +523,6 @@ bool Node::RemoveAt(int index)
     return RemoveChild(m_child_nodes.Begin() + index);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 void Node::Remove()
 {
     if (!m_parent_node) {
@@ -525,7 +536,6 @@ void Node::Remove()
 
     m_parent_node->RemoveChild(it);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 void Node::RemoveAllChildren()
 {

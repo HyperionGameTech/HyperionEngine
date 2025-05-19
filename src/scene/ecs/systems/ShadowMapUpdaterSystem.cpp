@@ -29,26 +29,6 @@ HYP_DECLARE_LOG_CHANNEL(Shadows);
 ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        // Trigger removal and addition of render subsystems
-
-        for (auto [entity_id, shadow_map_component, light_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent>().GetScopedView(GetComponentInfos())) {
-            if (shadow_map_component.render_subsystem) {
-                shadow_map_component.render_subsystem->RemoveFromEnvironment();
-            }
-
-            if (!new_world) {
-                shadow_map_component.render_subsystem.Reset();
-                
-                continue;
-            }
-
-            AddRenderSubsystemToEnvironment(shadow_map_component, light_component, new_world);
-        }
-    }));
 }
 
 void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
@@ -58,19 +38,18 @@ void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
     ShadowMapComponent &shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
     LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
-    if (!light_component.light) {
-        return;
-    }
-
     if (shadow_map_component.render_subsystem) {
+        shadow_map_component.render_subsystem->RemoveFromEnvironment();
+        shadow_map_component.render_subsystem.Reset();
+    }
+
+    if (!light_component.light) {
+        HYP_LOG(Shadows, Warning, "LightComponent is not valid for Entity #{}", entity->GetID().Value());
+
         return;
     }
 
-    if (!GetWorld()) {
-        return;
-    }
-
-    AddRenderSubsystemToEnvironment(shadow_map_component, light_component, GetWorld());
+    AddRenderSubsystemToEnvironment(shadow_map_component, light_component);
 }
 
 void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -82,8 +61,7 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     if (shadow_map_component.render_subsystem) {
         shadow_map_component.render_subsystem->RemoveFromEnvironment();
-
-        shadow_map_component.render_subsystem = nullptr;
+        shadow_map_component.render_subsystem.Reset();
     }
 }
 
@@ -134,7 +112,6 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
             aabb.min.z = -shadow_map_component.radius;
 
             shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
-
             shadow_renderer->SetAABB(aabb);
 
             break;
@@ -148,41 +125,39 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
     }
 }
 
-void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component, World *world)
+void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component)
 {
-    AssertThrow(world != nullptr);
-    AssertThrow(world->IsReady());
-
     AssertThrow(light_component.light->IsReady());
 
     if (shadow_map_component.render_subsystem) {
-        world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(shadow_map_component.render_subsystem);
-    } else {
-        switch (light_component.light->GetLightType()) {
-        case LightType::DIRECTIONAL:
-            shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
-                Name::Unique("shadow_map_renderer_directional"),
-                GetScene()->HandleFromThis(),
-                TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
-                shadow_map_component.resolution,
-                shadow_map_component.mode
-            );
+        shadow_map_component.render_subsystem->RemoveFromEnvironment();
+        shadow_map_component.render_subsystem.Reset();
+    }
 
-            break;
-        case LightType::POINT:
-            shadow_map_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
-                Name::Unique("shadow_map_renderer_point"),
-                GetScene()->HandleFromThis(),
-                TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
-                shadow_map_component.resolution
-            );
+    switch (light_component.light->GetLightType()) {
+    case LightType::DIRECTIONAL:
+        shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
+            Name::Unique("shadow_map_renderer_directional"),
+            GetScene()->HandleFromThis(),
+            TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
+            shadow_map_component.resolution,
+            shadow_map_component.mode
+        );
 
-            break;
-        default:
-            HYP_LOG(Shadows, Error, "Unsupported light type for shadow map");
+        break;
+    case LightType::POINT:
+        shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
+            Name::Unique("shadow_map_renderer_point"),
+            GetScene()->HandleFromThis(),
+            TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
+            shadow_map_component.resolution
+        );
 
-            break;
-        }
+        break;
+    default:
+        HYP_LOG(Shadows, Error, "Unsupported light type for shadow map");
+
+        break;
     }
 }
 

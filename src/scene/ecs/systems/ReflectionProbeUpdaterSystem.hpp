@@ -41,7 +41,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    void AddRenderSubsystemToEnvironment(ReflectionProbeComponent &reflection_probe_component, World *world);
+    void AddRenderSubsystemToEnvironment(ReflectionProbeComponent &reflection_probe_component);
 };
 
 } // namespace hyperion

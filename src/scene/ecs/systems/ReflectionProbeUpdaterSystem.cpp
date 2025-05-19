@@ -30,30 +30,6 @@ HYP_DECLARE_LOG_CHANNEL(EnvProbe);
 ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        // Trigger removal and addition of render subsystems
-
-        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
-            if (reflection_probe_component.reflection_probe_renderer) {
-                reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
-
-                if (!new_world) {
-                    reflection_probe_component.reflection_probe_renderer.Reset();
-
-                    continue;
-                }
-
-                if (GetScene()->IsForegroundScene()) {
-                    AddRenderSubsystemToEnvironment(reflection_probe_component, new_world);
-                }
-            } else if (!previous_world) {
-                OnEntityAdded(Handle<Entity> { entity_id });
-            }
-        }
-    }));
 }
 
 void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
@@ -74,6 +50,11 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
+    if (reflection_probe_component.reflection_probe_renderer) {
+        reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
+        reflection_probe_component.reflection_probe_renderer.Reset();
+    }
+
     if (reflection_probe_component.env_probe.IsValid()) {
         reflection_probe_component.env_probe->SetParentScene(GetScene()->HandleFromThis());
         reflection_probe_component.env_probe->SetAABB(world_aabb);
@@ -88,15 +69,11 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
 
     reflection_probe_component.env_probe->SetOrigin(transform_component.transform.GetTranslation());
 
+    InitObject(reflection_probe_component.env_probe);
+
     GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity);
 
-    if (!GetWorld()) {
-        return;
-    }
-
-    if (GetScene()->IsForegroundScene()) {
-        AddRenderSubsystemToEnvironment(reflection_probe_component, GetWorld());
-    }
+    AddRenderSubsystemToEnvironment(reflection_probe_component);
 }
 
 void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -109,10 +86,9 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
         reflection_probe_component.env_probe->SetParentScene(Handle<Scene>::empty);
     }
 
-    if (reflection_probe_component.reflection_probe_renderer != nullptr) {
+    if (reflection_probe_component.reflection_probe_renderer) {
         reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
-
-        reflection_probe_component.reflection_probe_renderer = nullptr;
+        reflection_probe_component.reflection_probe_renderer.Reset();
     }
 }
 
@@ -167,22 +143,21 @@ void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
     }
 }
 
-void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent &reflection_probe_component, World *world)
+void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent &reflection_probe_component)
 {
-    AssertThrow(world != nullptr);
-    AssertThrow(world->IsReady());
-
     if (reflection_probe_component.reflection_probe_renderer) {
-        world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
+        GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
     } else {
         if (!reflection_probe_component.env_probe.IsValid()) {
+            HYP_LOG(EnvProbe, Warning, "ReflectionProbeComponent has invalid EnvProbe");
+
             return;
         }
 
         InitObject(reflection_probe_component.env_probe);
 
-        reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
-            Name::Unique("reflection_probe"),
+        reflection_probe_component.reflection_probe_renderer = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+            Name::Unique("ReflectionProbeRenderer"),
             TResourceHandle<EnvProbeRenderResource>(reflection_probe_component.env_probe->GetRenderResource())
         );
     }

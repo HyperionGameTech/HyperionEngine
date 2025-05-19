@@ -6,6 +6,7 @@
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderScene.hpp>
 
 // temp
 #include <rendering/ParticleSystem.hpp>
@@ -101,7 +102,7 @@ void HyperionEditor::Init()
     Game::Init();
 
     RC<EditorSubsystem> editor_subsystem = MakeRefCountedPtr<EditorSubsystem>(GetAppContext());
-    editor_subsystem->OnProjectOpened.Bind([this](EditorProject *project)
+    editor_subsystem->OnProjectOpened.Bind([this](const Handle<EditorProject> &project)
     {
         m_scene = project->GetScene();
     }).Detach();
@@ -110,7 +111,7 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-    // return;
+    return;
 
     auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
         .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
@@ -120,7 +121,7 @@ void HyperionEditor::Init()
     });
     InitObject(test_particle_spawner);
 
-    g_engine->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
+    m_scene->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
 
     if (false) { // add test area light
         Handle<Light> light = CreateObject<Light>(

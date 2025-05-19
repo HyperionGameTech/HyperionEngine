@@ -203,7 +203,9 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall &draw_call, ID<Entity> ent
                 void *src_ptr = reinterpret_cast<void *>(uintptr_t(mesh_instance_data.buffers[buffer_index].Data()) + (instance_offset * buffer_struct_size));
 
                 // sanity checks
-                AssertDebug((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof);
+                AssertDebugMsg((uintptr_t(dst_ptr) + buffer_struct_size) - uintptr_t(draw_call.batch) <= batch_sizeof,
+                    "Buffer struct size is larger than batch size! Buffer struct size: %u, Buffer struct alignment: %u, Batch size: %u, Entity index: %u, Field offset: %u",
+                    buffer_struct_size, buffer_struct_alignment, batch_sizeof, entity_index, field_offset);
                 AssertDebugMsg(mesh_instance_data.buffers[buffer_index].Size() >= (instance_offset + 1) * buffer_struct_size,
                     "Buffer size is not large enough to copy data! Buffer size: %u, Buffer struct size: %u, Instance offset: %u",
                     mesh_instance_data.buffers[buffer_index].Size(), buffer_struct_size, instance_offset);

@@ -594,12 +594,16 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 {
     m_editor_delegates = new EditorDelegates();
 
-    OnProjectOpened.Bind([this](EditorProject *project)
+    OnProjectOpened.Bind([this](const Handle<EditorProject> &project)
     {
         HYP_LOG(Editor, Info, "Opening project: {}", *project->GetName());
 
+        InitObject(project);
+
         const Handle<Scene> &project_scene = project->GetScene();
         AssertThrow(project_scene.IsValid());
+
+        HYP_LOG(Editor, Info, "Project {} scene: {}", *project->GetName(), *project_scene->GetName());
 
         GetWorld()->AddScene(project_scene);
 
@@ -665,7 +669,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
         }));
     }).Detach();
 
-    OnProjectClosing.Bind([this](EditorProject *project)
+    OnProjectClosing.Bind([this](const Handle<EditorProject> &project)
     {
         // Shutdown to reinitialize widget holder after project is opened
         m_manipulation_widget_holder.Shutdown();
@@ -683,7 +687,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
 
             // @TODO Remove camera controller
 
-            GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
+            project_scene->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
 
             if (m_camera) {
                 m_camera.Reset();
@@ -759,15 +763,15 @@ void EditorSubsystem::Initialize()
 
     InitContentBrowser();
 
-    NewProject();
+    // NewProject();
 
-    // auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject612");
+    auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject3");
 
-    // if (!result) {
-    //     HYP_BREAKPOINT;
-    // }
+    if (!result) {
+        HYP_BREAKPOINT;
+    }
 
-    // OpenProject(*result);
+    OpenProject(*result);
 
     InitDetailView();
 
@@ -797,8 +801,8 @@ void EditorSubsystem::Shutdown()
 {
     HYP_SCOPE;
 
-    if (m_current_project != nullptr) {
-        OnProjectClosing(m_current_project.Get());
+    if (m_current_project) {
+        OnProjectClosing(m_current_project);
 
         m_current_project->Close();
 
@@ -967,7 +971,7 @@ void EditorSubsystem::InitViewport()
     AssertThrow(primary_camera.IsValid());
 
     for (const RC<ScreenCaptureRenderSubsystem> &screen_capture_render_subsystem : m_screen_capture_render_subsystems) {
-        GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem(screen_capture_render_subsystem);
+        screen_capture_render_subsystem->RemoveFromEnvironment();
     }
 
     m_screen_capture_render_subsystems.Clear();
@@ -1019,7 +1023,7 @@ void EditorSubsystem::InitViewport()
 
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
         m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
         
         m_scene_texture = screen_capture_render_subsystem->GetTexture();
@@ -1913,10 +1917,10 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
 
 void EditorSubsystem::NewProject()
 {
-    OpenProject(MakeRefCountedPtr<EditorProject>());
+    OpenProject(CreateObject<EditorProject>());
 }
 
-void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
+void EditorSubsystem::OpenProject(const Handle<EditorProject> &project)
 {
     HYP_SCOPE;
 
@@ -1926,8 +1930,8 @@ void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
         return;
     }
 
-    if (m_current_project != nullptr) {
-        OnProjectClosing(m_current_project.Get());
+    if (m_current_project) {
+        OnProjectClosing(m_current_project);
 
         m_current_project->Close();
     }
@@ -1935,7 +1939,7 @@ void EditorSubsystem::OpenProject(const RC<EditorProject> &project)
     if (project) {
         m_current_project = project;
 
-        OnProjectOpened(m_current_project.Get());
+        OnProjectOpened(m_current_project);
     }
 }
 

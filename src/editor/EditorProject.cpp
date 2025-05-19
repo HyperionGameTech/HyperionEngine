@@ -39,10 +39,7 @@ EditorProject::EditorProject(Name name)
       m_last_saved_time(~0ull)
 {
     m_asset_registry = CreateObject<AssetRegistry>();
-    InitObject(m_asset_registry);
-
     m_scene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND);
-    InitObject(m_scene);
 
     Handle<Camera> camera = CreateObject<Camera>();
     camera->SetName(Name::Unique("EditorDefaultCamera"));
@@ -63,6 +60,18 @@ EditorProject::EditorProject(Name name)
 
 EditorProject::~EditorProject()
 {
+}
+
+void EditorProject::Init()
+{
+    if (IsInitCalled()) {
+        return;
+    }
+
+    HypObject::Init();
+
+    InitObject(m_asset_registry);
+    InitObject(m_scene);
 }
 
 void EditorProject::SetScene(const Handle<Scene> &scene)
@@ -200,7 +209,7 @@ Result EditorProject::SaveAs(FilePath filepath)
     return result;
 }
 
-TResult<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
+TResult<Handle<EditorProject>> EditorProject::Load(const FilePath &filepath)
 {
     HYP_SCOPE;
 
@@ -237,13 +246,13 @@ TResult<RC<EditorProject>> EditorProject::Load(const FilePath &filepath)
         return HYP_MAKE_ERROR(Error, "Failed to load project");
     }
 
-    Optional<const RC<EditorProject> &> project_opt = project_object.m_deserialized_object->TryGet<RC<EditorProject>>();
+    Optional<const Handle<EditorProject> &> project_opt = project_object.m_deserialized_object->TryGet<Handle<EditorProject>>();
 
     if (!project_opt) {
         return HYP_MAKE_ERROR(Error, "Failed to get project");
     }
 
-    RC<EditorProject> project = *project_opt;
+    Handle<EditorProject> project = *project_opt;
 
     Proc<TResult<Handle<AssetPackage>>(const FilePath &directory)> InitializePackage;
 

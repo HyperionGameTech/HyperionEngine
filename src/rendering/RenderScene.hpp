@@ -51,6 +51,9 @@ public:
 
     void SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource> &camera_render_resource_handle);
 
+    HYP_FORCE_INLINE const Handle<RenderEnvironment> &GetEnvironment() const
+        { return m_environment; }
+
     void SetBufferData(const SceneShaderData &buffer_data);
 
     /*! \note Only to be called from render thread or render task */
@@ -70,6 +73,8 @@ private:
     Scene                                   *m_scene;
 
     TResourceHandle<CameraRenderResource>   m_camera_render_resource_handle;
+
+    Handle<RenderEnvironment>               m_environment;
 
     SceneShaderData                         m_buffer_data;
 

@@ -759,7 +759,7 @@ void ViewRenderResource::Render(FrameBase *frame, WorldRenderResource *world_ren
         g_engine->GetRenderState()->BindCamera(m_camera_render_resource_handle);
         g_engine->GetRenderState()->SetActiveScene(m_scene_render_resource_handle->GetScene());
 
-        const Handle<RenderEnvironment> &environment = world_render_resource->GetEnvironment();
+        const Handle<RenderEnvironment> &environment = m_scene_render_resource_handle->GetEnvironment();
 
         const FramebufferRef &opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
         const FramebufferRef &lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();

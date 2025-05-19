@@ -187,8 +187,6 @@ public:
 
         Handle<Material> material_handle = g_material_system->GetOrCreate(attributes, parameters, textures);
 
-        HYP_BREAKPOINT;
-
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, Material::Class(), AnyRef(*material_handle))) {
             return err;
         }

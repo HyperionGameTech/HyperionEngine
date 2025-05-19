@@ -15,7 +15,6 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderScene.hpp>
-#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 
@@ -80,31 +79,6 @@ private:
 EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager &entity_manager)
     : System(entity_manager)
 {
-    m_delegate_handlers.Add(NAME("OnWorldChange"), OnWorldChanged.Bind([this](World *new_world, World *previous_world)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        // Trigger removal and addition of render subsystems
-
-        for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos())) {
-            if (env_grid_component.env_grid_render_subsystem) {
-                env_grid_component.env_grid_render_subsystem->RemoveFromEnvironment();
-
-                if (new_world && GetScene()->IsForegroundScene()) {
-                    env_grid_component.env_grid_render_subsystem = new_world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
-                        Name::Unique("EnvGridRenderSubsystem"),
-                        env_grid_component.env_grid_render_resource_handle
-                    );
-
-                    continue;
-                }
-
-                env_grid_component.env_grid_render_subsystem.Reset();
-            } else if (!previous_world) {
-                OnEntityAdded(Handle<Entity> { entity_id });
-            }
-        }
-    }));
 }
 
 void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
@@ -144,7 +118,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
         InitObject(env_grid_component.env_grid);
         
         env_grid_component.env_grid_render_resource_handle = TResourceHandle<EnvGridRenderResource>(env_grid_component.env_grid->GetRenderResource());
-        env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
+        env_grid_component.env_grid_render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
             Name::Unique("EnvGridRenderSubsystem"),
             env_grid_component.env_grid_render_resource_handle
         );

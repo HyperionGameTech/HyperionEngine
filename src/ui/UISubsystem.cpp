@@ -5,6 +5,7 @@
 
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+#include <scene/Scene.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 
@@ -12,7 +13,7 @@
 
 #include <rendering/UIRenderer.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderWorld.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 namespace hyperion {
@@ -35,16 +36,17 @@ void UISubsystem::Initialize()
     AssertThrow(m_ui_stage != nullptr);
 
     m_ui_stage->Init();
-
-    m_ui_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(Name::Unique("UIRenderSubsystem"), m_ui_stage);
 }
 
 void UISubsystem::Shutdown()
 {
     HYP_SCOPE;
 
-    m_ui_render_subsystem->RemoveFromEnvironment();
-    m_ui_render_subsystem.Reset();
+    for (const Pair<Scene *, RC<UIRenderSubsystem>> &it : m_ui_render_subsystems) {
+        it.second->RemoveFromEnvironment();
+    }
+
+    m_ui_render_subsystems.Clear();
 }
 
 void UISubsystem::PreUpdate(GameCounter::TickUnit delta)
@@ -60,8 +62,15 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    if (m_ui_render_subsystem->IsInitialized()) {
-        UIRenderCollector &render_collector = m_ui_render_subsystem->GetRenderCollector();
+    for (const Pair<Scene *, RC<UIRenderSubsystem>> &it : m_ui_render_subsystems) {
+        RC<UIRenderSubsystem> ui_render_subsystem = it.second;
+        AssertThrow(ui_render_subsystem != nullptr);
+
+        if (!ui_render_subsystem->IsInitialized()) {
+            continue;
+        }
+
+        UIRenderCollector &render_collector = ui_render_subsystem->GetRenderCollector();
         render_collector.ResetOrdering();
 
         RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
@@ -86,8 +95,35 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
             render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy, ui_object->GetComputedDepth());
         }, /* only_visible */ true);
 
-        render_collector.PushUpdatesToRenderThread(m_ui_render_subsystem->GetFramebuffer());
+        render_collector.PushUpdatesToRenderThread(ui_render_subsystem->GetFramebuffer());
     }
+}
+
+void UISubsystem::OnSceneAttached(const Handle<Scene> &scene)
+{
+    // Scene must be foreground and not detached or UI
+    if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::UI)) != SceneFlags::FOREGROUND) {
+        return;
+    }
+
+    RC<UIRenderSubsystem> ui_render_subsystem = scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(Name::Unique("UIRenderSubsystem"), m_ui_stage);
+    m_ui_render_subsystems.Insert(scene.Get(), std::move(ui_render_subsystem));
+}
+
+void UISubsystem::OnSceneDetached(const Handle<Scene> &scene)
+{
+    auto it = m_ui_render_subsystems.Find(scene.Get());
+
+    if (it == m_ui_render_subsystems.End()) {
+        return;
+    }
+
+    RC<UIRenderSubsystem> ui_render_subsystem = it->second;
+    AssertThrow(ui_render_subsystem != nullptr);
+
+    ui_render_subsystem->RemoveFromEnvironment();
+
+    m_ui_render_subsystems.Erase(it);
 }
 
 } // namespace hyperion
