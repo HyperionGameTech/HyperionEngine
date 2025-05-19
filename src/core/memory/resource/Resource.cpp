@@ -38,9 +38,6 @@ HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 #pragma region ResourceBase
 
-static constexpr uint64 g_initialization_mask_initialized_bit = 0x1;
-static constexpr uint64 g_initialization_mask_read_mask = uint64(-1) & ~g_initialization_mask_initialized_bit;
-
 ResourceBase::ResourceBase()
     : m_initialization_mask(0),
       m_update_counter(0)
@@ -292,61 +289,6 @@ void ResourceBase::WaitForFinalization() const
     WaitForTaskCompletion();
 
     m_claimed_semaphore.Acquire();
-}
-
-void ResourceBase::Execute(Proc<void()> &&proc, bool force_owner_thread)
-{
-    HYP_SCOPE;
-
-    m_completion_semaphore.Produce(1);
-
-    if (!force_owner_thread) {
-        if (m_claimed_semaphore.IsInSignalState()) {
-            // Try to add read access - if it can't be acquired, we are in the process of initializing
-            // and thus we will remove our read access and enqueue the operation
-            if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
-                // Check again, as it might have been initialized in between the initial check and the increment
-                HYP_NAMED_SCOPE("Executing Resource Command - Inline");
-
-                HYP_MT_CHECK_RW(m_data_race_detector);
-
-                // debugging
-                AssertDebug(m_claimed_semaphore.IsInSignalState());
-
-                // Execute inline if not initialized yet instead of pushing to owner thread
-                proc();
-
-                // Remove our read access
-                m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
-
-                m_completion_semaphore.Release(1);
-
-                return;
-            }
-
-            // Remove our read access
-            m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
-        }
-    }
-
-    auto Impl = [this, proc = std::move(proc)]() mutable
-    {
-        HYP_NAMED_SCOPE("Executing Resource command");
-
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        proc();
-
-        m_completion_semaphore.Release(1);
-    };
-
-    if (!CanExecuteInline()) {
-        EnqueueOp(std::move(Impl));
-
-        return;
-    }
-
-    Impl();
 }
 
 bool ResourceBase::CanExecuteInline() const
