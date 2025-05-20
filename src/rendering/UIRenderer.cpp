@@ -145,7 +145,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
 
         for (const Pair<ID<Entity>, int> &pair : proxy_depths) {
-            RenderProxy *proxy = proxy_list.GetProxyForEntity(pair.first);
+            RenderProxy *proxy = proxy_list.GetElement(pair.first);
 
             if (!proxy) {
                 continue;
@@ -233,7 +233,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         }
 
         for (ID<Entity> entity : removed_entities) {
-            const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity);
+            const RenderProxy *proxy = proxy_list.GetElement(entity);
             AssertThrow(proxy != nullptr);
 
             proxy->UnclaimRenderResource();
@@ -276,28 +276,24 @@ void UIRenderCollector::PushRenderProxy(RenderProxyList &proxy_list, const Rende
     m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(RenderProxyList &render_proxy_list, const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
     // UISubsystem can have Update() called on a task thread.
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    AssertThrow(m_draw_collection != nullptr);
-
-    RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
     RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
+    collection_result.num_added_entities = render_proxy_list.GetAdded().Count();
+    collection_result.num_removed_entities = render_proxy_list.GetRemoved().Count();
+    collection_result.num_changed_entities = render_proxy_list.GetChanged().Count();
 
     if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_entities;
-        proxy_list.GetRemovedEntities(removed_entities, true /* include_changed */);
+        render_proxy_list.GetRemoved(removed_entities, true /* include_changed */);
 
         Array<RenderProxy *> added_proxies_ptrs;
-        proxy_list.GetAddedEntities(added_proxies_ptrs, true /* include_changed */);
+        render_proxy_list.GetAdded(added_proxies_ptrs, true /* include_changed */);
 
         if (added_proxies_ptrs.Any() || removed_entities.Any()) {
             PUSH_RENDER_COMMAND(
@@ -312,7 +308,7 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(c
         }
     }
 
-    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
 
     return collection_result;
 }

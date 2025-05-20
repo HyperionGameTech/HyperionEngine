@@ -182,17 +182,17 @@ RenderCollector::CollectionResult View::CollectEntities()
 
     switch (uint32(m_entity_collection_flags & ViewEntityCollectionFlags::COLLECT_ALL)) {
     case uint32(ViewEntityCollectionFlags::COLLECT_ALL):
-        return CollectAllEntities(m_render_resource->GetRenderCollector());
+        return CollectAllEntities();
     case uint32(ViewEntityCollectionFlags::COLLECT_DYNAMIC):
-        return CollectDynamicEntities(m_render_resource->GetRenderCollector());
+        return CollectDynamicEntities();
     case uint32(ViewEntityCollectionFlags::COLLECT_STATIC):
-        return CollectStaticEntities(m_render_resource->GetRenderCollector());
+        return CollectStaticEntities();
     default:
         HYP_UNREACHABLE();
     }
 }
 
-RenderCollector::CollectionResult View::CollectAllEntities(RenderCollector &render_collector)
+RenderCollector::CollectionResult View::CollectAllEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -206,7 +206,7 @@ RenderCollector::CollectionResult View::CollectAllEntities(RenderCollector &rend
     }
 
     if (!m_camera.IsValid()) {
-        return m_render_resource->UpdateRenderCollector();
+        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
@@ -214,8 +214,6 @@ RenderCollector::CollectionResult View::CollectAllEntities(RenderCollector &rend
     const ID<Camera> camera_id = m_camera.GetID();
 
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
-    
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
 
     uint32 num_collected_entities = 0;
     uint32 num_skipped_entities = 0;
@@ -244,17 +242,17 @@ RenderCollector::CollectionResult View::CollectAllEntities(RenderCollector &rend
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
     }
     
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
 }
 
-RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &render_collector)
+RenderCollector::CollectionResult View::CollectDynamicEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -269,13 +267,11 @@ RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &
 
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector();
+        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
     
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
     const ID<Camera> camera_id = m_camera.GetID();
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
@@ -301,13 +297,13 @@ RenderCollector::CollectionResult View::CollectDynamicEntities(RenderCollector &
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
 }
 
-RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &render_collector)
+RenderCollector::CollectionResult View::CollectStaticEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -322,13 +318,11 @@ RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &r
 
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector();
+        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
     
-    RenderProxyList &proxy_list = render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
     const ID<Camera> camera_id = m_camera.GetID();
     
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
@@ -353,10 +347,10 @@ RenderCollector::CollectionResult View::CollectStaticEntities(RenderCollector &r
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        render_collector.PushRenderProxy(proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector();
+    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
 }
 
 void View::CollectLights()

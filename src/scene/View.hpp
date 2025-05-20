@@ -121,9 +121,10 @@ protected:
     void CollectLights();
 
     RenderCollector::CollectionResult CollectEntities();
-    RenderCollector::CollectionResult CollectAllEntities(RenderCollector &render_collector);
-    RenderCollector::CollectionResult CollectDynamicEntities(RenderCollector &render_collector);
-    RenderCollector::CollectionResult CollectStaticEntities(RenderCollector &render_collector);
+    
+    RenderCollector::CollectionResult CollectAllEntities();
+    RenderCollector::CollectionResult CollectDynamicEntities();
+    RenderCollector::CollectionResult CollectStaticEntities();
 
     ViewRenderResource                      *m_render_resource;
 
@@ -140,6 +141,9 @@ protected:
     EnumFlags<ViewEntityCollectionFlags>    m_entity_collection_flags;
 
     Optional<RenderableAttributeSet>        m_override_attributes;
+
+    // Game thread side collection
+    RenderProxyList                         m_render_proxy_list;
 
     RenderCollector::CollectionResult       m_last_collection_result;
 };

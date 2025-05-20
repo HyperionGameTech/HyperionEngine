@@ -45,6 +45,7 @@ public:
     void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy, int computed_depth);
 
     CollectionResult PushUpdatesToRenderThread(
+        RenderProxyList &render_proxy_list,
         const FramebufferRef &framebuffer,
         const Optional<RenderableAttributeSet> &override_attributes = { }
     );
@@ -83,6 +84,12 @@ public:
     HYP_FORCE_INLINE const UIRenderCollector &GetRenderCollector() const
         { return m_render_collector; }
 
+    HYP_FORCE_INLINE RenderProxyList &GetRenderProxyList()
+        { return m_render_proxy_list; }
+
+    HYP_FORCE_INLINE const RenderProxyList &GetRenderProxyList() const
+        { return m_render_proxy_list; }
+
 private:
     virtual void Init() override;
     virtual void InitGame() override; // init on game thread
@@ -97,6 +104,9 @@ private:
     FramebufferRef                          m_framebuffer;
     ShaderRef                               m_shader;
     UIRenderCollector                       m_render_collector;
+
+    // Game thread side list, used for collecting UI objects
+    RenderProxyList                         m_render_proxy_list;
 
     TResourceHandle<CameraRenderResource>   m_camera_resource_handle;
 

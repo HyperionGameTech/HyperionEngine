@@ -94,14 +94,14 @@ public:
         { m_override_attributes = override_attributes; }
 
     /*! \brief Pushes an RenderProxy to the RenderCollector.
-        \param proxy_list The RenderProxyList to push to.
+        \param render_proxy_list The RenderProxyList to push to.
      *  \param proxy The RenderProxy to push.
      */
-    void PushRenderProxy(RenderProxyList &proxy_list, const RenderProxy &render_proxy);
+    void PushRenderProxy(RenderProxyList &render_proxy_list, const RenderProxy &render_proxy);
 
     /*! \brief Creates RenderGroups needed for rendering the Entity objects.
      *  Call after calling CollectEntities() on Scene. */
-    CollectionResult PushUpdatesToRenderThread(const Handle<Camera> &camera, ViewRenderResource *view_render_resource);
+    CollectionResult PushUpdatesToRenderThread(RenderProxyList &render_proxy_list, const Handle<Camera> &camera, ViewRenderResource *view_render_resource);
 
     void CollectDrawCalls(
         FrameBase *frame,

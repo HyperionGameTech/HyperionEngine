@@ -139,8 +139,8 @@ public:
     HYP_FORCE_INLINE const RenderCollector &GetRenderCollector() const
         { return m_render_collector; }
 
-    /*! \brief Update the render collector on the render thread to reflect the current state */
-    RenderCollector::CollectionResult UpdateRenderCollector();
+    /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_list} */
+    RenderCollector::CollectionResult UpdateRenderCollector(RenderProxyList &render_proxy_list);
 
     virtual void PreFrameUpdate(FrameBase *frame);
 

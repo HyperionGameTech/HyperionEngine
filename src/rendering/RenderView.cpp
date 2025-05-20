@@ -654,24 +654,22 @@ void ViewRenderResource::SetLights(Array<TResourceHandle<LightRenderResource>> &
     });
 }
 
-RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
+RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(RenderProxyList &render_proxy_list)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
-    RenderProxyList &proxy_list = m_render_collector.GetDrawCollection()->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-
     RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = proxy_list.GetAddedEntities().Count();
-    collection_result.num_removed_entities = proxy_list.GetRemovedEntities().Count();
-    collection_result.num_changed_entities = proxy_list.GetChangedEntities().Count();
+    collection_result.num_added_entities = render_proxy_list.GetAdded().Count();
+    collection_result.num_removed_entities = render_proxy_list.GetRemoved().Count();
+    collection_result.num_changed_entities = render_proxy_list.GetChanged().Count();
 
     if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
-        proxy_list.GetRemovedEntities(removed_proxies, true /* include_changed */);
+        render_proxy_list.GetRemoved(removed_proxies, true /* include_changed */);
 
         Array<RenderProxy *> added_proxy_ptrs;
-        proxy_list.GetAddedEntities(added_proxy_ptrs, true /* include_changed */);
+        render_proxy_list.GetAdded(added_proxy_ptrs, true /* include_changed */);
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
             Array<RenderProxy, DynamicAllocator> added_proxies;
@@ -696,7 +694,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
                 }
 
                 for (ID<Entity> entity_id : removed_proxies) {
-                    const RenderProxy *proxy = proxy_list.GetProxyForEntity(entity_id);
+                    const RenderProxy *proxy = proxy_list.GetElement(entity_id);
                     AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
                     proxy->UnclaimRenderResource();
@@ -729,7 +727,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector()
         }
     }
 
-    proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
 
     return collection_result;
 }
