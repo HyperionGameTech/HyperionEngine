@@ -237,7 +237,6 @@ void World::Update(GameCounter::TickUnit delta)
         AssertThrow(scene->GetWorld() == this);
         AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
 
-        HYP_LOG(Scene, Debug, "Updating scene {}", scene->GetName());
         scene->GetRenderResource().GetEnvironment()->Update(delta);
 
         scene->Update(delta);

@@ -128,6 +128,10 @@ void EnvProbeRenderResource::SetCameraResourceHandle(TResourceHandle<CameraRende
 
     Execute([this, camera_render_resource_handle = std::move(camera_render_resource_handle)]()
     {
+        if (m_camera_render_resource_handle == camera_render_resource_handle) {
+            return;
+        }
+
         if (m_camera_render_resource_handle) {
             m_camera_render_resource_handle->SetFramebuffer(nullptr);
         }
@@ -146,6 +150,10 @@ void EnvProbeRenderResource::SetSceneResourceHandle(TResourceHandle<SceneRenderR
 
     Execute([this, scene_render_resource_handle = std::move(scene_render_resource_handle)]()
     {
+        if (m_scene_render_resource_handle == scene_render_resource_handle) {
+            return;
+        }
+
         m_scene_render_resource_handle = std::move(scene_render_resource_handle);
     });
 }
@@ -156,6 +164,10 @@ void EnvProbeRenderResource::SetViewResourceHandle(TResourceHandle<ViewRenderRes
 
     Execute([this, view_render_resource_handle = std::move(view_render_resource_handle)]()
     {
+        if (m_view_render_resource_handle == view_render_resource_handle) {
+            return;
+        }
+
         m_view_render_resource_handle = std::move(view_render_resource_handle);
     });
 }
@@ -166,6 +178,10 @@ void EnvProbeRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMa
 
     Execute([this, shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle)]()
     {
+        if (m_shadow_map_render_resource_handle == shadow_map_render_resource_handle) {
+            return;
+        }
+
         m_shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle);
     });
 }
@@ -330,6 +346,8 @@ void EnvProbeRenderResource::Update_Internal()
 {
     HYP_SCOPE;
 
+    HYP_LOG(EnvProbe, Debug, "Updating EnvProbe #{}", m_env_probe->GetID().Value());
+
     UpdateBufferData();
 }
 
@@ -476,6 +494,9 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
         if (light_render_resource_handle != nullptr) {
             g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
         }
+
+        // debugging
+        AssertThrow(m_view_render_resource_handle->GetRenderCollector().GetOverrideAttributes().HasValue());
 
         m_view_render_resource_handle->GetRenderCollector().CollectDrawCalls(
             frame,

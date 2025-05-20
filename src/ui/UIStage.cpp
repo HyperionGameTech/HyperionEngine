@@ -127,7 +127,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
             SceneFlags::FOREGROUND | SceneFlags::UI
         );
 
-        new_scene->SetName(CreateNameFromDynamicString(HYP_FORMAT("UIStage_{}_Scene", GetName())));
+        new_scene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
     }
 
     if (new_scene == m_scene) {

@@ -27,18 +27,34 @@ class Light;
 enum class ViewFlags : uint32
 {
     NONE    = 0x0,
-    GBUFFER = 0x1,
+    GBUFFER = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
+enum class ViewEntityCollectionFlags : uint32
+{
+    NONE                    = 0x0,
+    COLLECT_STATIC          = 0x1,
+    COLLECT_DYNAMIC         = 0x2,
+    COLLECT_ALL             = COLLECT_STATIC | COLLECT_DYNAMIC,
+
+    SKIP_FRUSTUM_CULLING    = 0x4,
+
+    DEFAULT                 = COLLECT_ALL
+};
+
+HYP_MAKE_ENUM_FLAGS(ViewEntityCollectionFlags)
+
 struct ViewDesc
 {
-    EnumFlags<ViewFlags>    flags = ViewFlags::NONE;
-    Viewport                viewport;
-    Handle<Scene>           scene;
-    Handle<Camera>          camera;
-    int                     priority = 0;
+    EnumFlags<ViewFlags>                    flags = ViewFlags::NONE;
+    Viewport                                viewport;
+    Handle<Scene>                           scene;
+    Handle<Camera>                          camera;
+    int                                     priority = 0;
+    EnumFlags<ViewEntityCollectionFlags>    entity_collection_flags = ViewEntityCollectionFlags::DEFAULT;
+    Optional<RenderableAttributeSet>        override_attributes;
 };
 
 HYP_CLASS()
@@ -95,32 +111,37 @@ public:
     HYP_METHOD()
     void SetPriority(int priority);
 
+    HYP_FORCE_INLINE const RenderCollector::CollectionResult &GetLastCollectionResult() const
+        { return m_last_collection_result; }
+
     void Init();
     void Update(GameCounter::TickUnit delta);
-
-    
-    RenderCollector::CollectionResult CollectEntities(bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectDynamicEntities(bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectStaticEntities(bool skip_frustum_culling = false);
     
 protected:
     void CollectLights();
+
+    RenderCollector::CollectionResult CollectEntities();
+    RenderCollector::CollectionResult CollectAllEntities(RenderCollector &render_collector);
+    RenderCollector::CollectionResult CollectDynamicEntities(RenderCollector &render_collector);
+    RenderCollector::CollectionResult CollectStaticEntities(RenderCollector &render_collector);
+
+    ViewRenderResource                      *m_render_resource;
+
+    EnumFlags<ViewFlags>                    m_flags;
+
+    Viewport                                m_viewport;
     
-    RenderCollector::CollectionResult CollectEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectDynamicEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
-    RenderCollector::CollectionResult CollectStaticEntities(RenderCollector &render_collector, bool skip_frustum_culling = false);
+    Handle<Scene>                           m_scene;
+    Handle<Camera>                          m_camera;
+    Array<Handle<Light>>                    m_lights;
 
-    ViewRenderResource      *m_render_resource;
+    int                                     m_priority;
 
-    EnumFlags<ViewFlags>    m_flags;
+    EnumFlags<ViewEntityCollectionFlags>    m_entity_collection_flags;
 
-    Viewport                m_viewport;
-    
-    Handle<Scene>           m_scene;
-    Handle<Camera>          m_camera;
-    Array<Handle<Light>>    m_lights;
+    Optional<RenderableAttributeSet>        m_override_attributes;
 
-    int                     m_priority;
+    RenderCollector::CollectionResult       m_last_collection_result;
 };
 
 } // namespace hyperion

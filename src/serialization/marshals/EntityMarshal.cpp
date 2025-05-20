@@ -168,6 +168,8 @@ public:
             }
 
             if (!entity_manager->IsValidComponentType(child_type_id)) {
+                HYP_LOG(Serialization, Warning, "Component with TypeID {} is not a valid component type", child_type_id.Value());
+
                 continue;
             }
             
@@ -180,6 +182,8 @@ public:
             }
 
             if (!component_interface->GetShouldSerialize()) {
+                HYP_LOG(Serialization, Warning, "Component with TypeID {} is not marked for serialization", component_interface->GetTypeID().Value());
+
                 continue;
             }
 
@@ -192,12 +196,26 @@ public:
                     return err;
                 }
 
+                HYP_LOG(Serialization, Debug, "Deserializing entity tag component with value {}", entity_tag_value);
+
                 EntityTag entity_tag = EntityTag(entity_tag_value);
 
                 if (!entity_manager->IsEntityTagComponent(component_interface->GetTypeID())) {
                     HYP_LOG(Serialization, Warning, "Component with TypeID {} is not an entity tag component", component_interface->GetTypeID().Value());
 
                     continue;
+                }
+
+                // Hack: if the entity tag is static, remove the dynamic tag if it exists and vice versa for dynamic
+                switch (entity_tag) {
+                case EntityTag::STATIC:
+                    entity_manager->RemoveTag<EntityTag::DYNAMIC>(entity);
+                    break;
+                case EntityTag::DYNAMIC:
+                    entity_manager->RemoveTag<EntityTag::STATIC>(entity);
+                    break;
+                default:
+                    break;
                 }
 
                 entity_manager->AddTag(entity, entity_tag);

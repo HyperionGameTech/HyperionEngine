@@ -180,13 +180,13 @@ public:
     uint32 m_grid_slot = ~0u; // temp
     
 private:
-    bool OnlyCollectStaticEntities() const
+    HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
         { return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe(); }
 
-    void Invalidate()
-    {
-        m_octant_hash_code = HashCode();
-    }
+    HYP_FORCE_INLINE void Invalidate()
+        { m_octant_hash_code = HashCode(); }
+
+    void CreateView();
 
     Handle<Scene>           m_parent_scene;
     Handle<View>            m_view;

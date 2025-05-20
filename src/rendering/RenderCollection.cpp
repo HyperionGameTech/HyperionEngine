@@ -552,8 +552,6 @@ void RenderCollector::ExecuteDrawCalls(
             const RenderableAttributeSet &attributes = it.first;
             const Handle<RenderGroup> &render_group = it.second;
 
-            AssertThrow(render_group.IsValid());
-
             if (push_constant) {
                 render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
             }
@@ -597,8 +595,6 @@ void RenderCollector::ExecuteDrawCalls(
                 if (!bucket_bits.Test(uint32(bucket))) {
                     continue;
                 }
-
-                AssertThrow(render_group.IsValid());
 
                 if (push_constant) {
                     render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());

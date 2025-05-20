@@ -401,17 +401,19 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     InitObject(m_camera);
 
     m_view_statics = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
-        .scene      = m_parent_scene,
-        .camera     = m_camera
+        .viewport                   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_STATIC
     });
 
     InitObject(m_view_statics);
 
     m_view_dynamics = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
-        .scene      = m_parent_scene,
-        .camera     = m_camera
+        .viewport                   = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_DYNAMIC
     });
 
     InitObject(m_view_dynamics);
@@ -501,19 +503,22 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     octree.CalculateVisibility(m_camera);
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
     {
-        return m_view_statics->CollectStaticEntities();
+        m_view_statics->Update(delta);
+
+        return m_view_statics->GetLastCollectionResult();
     });
 
-    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, renderable_attribute_set]
+    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
     {
-        m_view_dynamics->CollectDynamicEntities();
+        m_view_dynamics->Update(delta);
     });
 #else
-    RenderCollector::CollectionResult statics_collection_result = m_view_statics->CollectStaticEntities();
-
-    m_view_dynamics->CollectDynamicEntities();
+    m_view_statics->Update(delta);
+    m_view_dynamics->Update(delta);
+    
+    RenderCollector::CollectionResult statics_collection_result = m_view_statics->GetLastCollectionResult();
 #endif
 
     Octree const *fitting_octant = nullptr;

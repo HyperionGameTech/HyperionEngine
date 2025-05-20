@@ -693,6 +693,8 @@ void Node::LockTransform()
         if (const RC<EntityManager> &entity_manager = m_scene->GetEntityManager()) {
             entity_manager->AddTag<EntityTag::STATIC>(m_entity);
             entity_manager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+
+            HYP_LOG(Node, Debug, "Node: {} Make Entity #{} static", m_name, m_entity.GetID().Value());
         }
 
         m_transform_changed = false;
@@ -794,8 +796,12 @@ void Node::SetEntity(const Handle<Entity> &entity)
         RefreshEntityTransform();
 
         // set entity to static by default
-        m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
-        m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        if (m_scene->GetEntityManager()->HasTag<EntityTag::DYNAMIC>(m_entity)) {
+            m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
+        } else {
+            m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
+            m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
+        }
 
         // set transform_changed to false until entity is set to DYNAMIC
         m_transform_changed = false;
@@ -938,15 +944,19 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     if (m_entity.IsValid()) {
         const RC<EntityManager> &entity_manager = m_scene->GetEntityManager();
 
-        if (!m_transform_changed) {
-            // Set to dynamic
-            if (entity_manager != nullptr) {
-                entity_manager->AddTag<EntityTag::DYNAMIC>(m_entity);
-                entity_manager->RemoveTag<EntityTag::STATIC>(m_entity);
-            }
+        // if (!m_transform_changed) {
+        //     // Set to dynamic
+        //     if (entity_manager != nullptr) {
+        //         entity_manager->AddTag<EntityTag::DYNAMIC>(m_entity);
+        //         entity_manager->RemoveTag<EntityTag::STATIC>(m_entity);
 
-            m_transform_changed = true;
-        }
+        //         HYP_LOG(Node, Debug, "Node: {}; Make Entity #{} dynamic",
+        //             GetName(),
+        //             m_entity.GetID().Value());
+        //     }
+
+        //     m_transform_changed = true;
+        // }
 
         if (entity_manager != nullptr) {
             if (TransformComponent *transform_component = entity_manager->TryGetComponent<TransformComponent>(m_entity)) {

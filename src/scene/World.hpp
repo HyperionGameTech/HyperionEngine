@@ -177,7 +177,7 @@ private:
 
     DetachedScenesContainer                         m_detached_scenes;
 
-    Array<Handle<Scene>>                    m_scenes;
+    Array<Handle<Scene>>                            m_scenes;
     Array<Handle<View>>                             m_views;
 
     TypeMap<RC<Subsystem>>                          m_subsystems;

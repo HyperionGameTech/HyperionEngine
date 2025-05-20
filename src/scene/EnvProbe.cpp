@@ -170,22 +170,7 @@ void EnvProbe::Init()
 
         m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
 
-        m_view = CreateObject<View>(ViewDesc {
-            .viewport   = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
-            .scene      = m_parent_scene,
-            .camera     = m_camera
-        });
-
-        InitObject(m_view);
-
-        m_view->GetRenderResource().GetRenderCollector().SetOverrideAttributes(RenderableAttributeSet(
-            MeshAttributes { },
-            MaterialAttributes {
-                .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                .blend_function     = BlendFunction::AlphaBlending(),
-                .cull_faces         = FaceCullMode::NONE
-            }
-        ));
+        CreateView();
 
         m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
     }
@@ -205,6 +190,30 @@ void EnvProbe::Init()
     m_render_resource->SetBufferData(buffer_data);
 
     SetReady(true);
+}
+
+void EnvProbe::CreateView()
+{
+    if (IsControlledByEnvGrid()) {
+        return;
+    }
+
+    m_view = CreateObject<View>(ViewDesc {
+        .viewport                   = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = (OnlyCollectStaticEntities() ? ViewEntityCollectionFlags::COLLECT_STATIC : ViewEntityCollectionFlags::COLLECT_ALL) | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
+        .override_attributes        = RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
+                .blend_function     = BlendFunction::AlphaBlending(),
+                .cull_faces         = FaceCullMode::NONE
+            }
+        )
+    });
+
+    InitObject(m_view);
 }
 
 void EnvProbe::SetAABB(const BoundingBox &aabb)
@@ -250,18 +259,13 @@ void EnvProbe::SetParentScene(const Handle<Scene> &parent_scene)
         if (parent_scene.IsValid()) {
             InitObject(parent_scene);
             
-            Handle<View> new_view = CreateObject<View>(ViewDesc {
-                .viewport   = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
-                .scene      = m_parent_scene,
-                .camera     = m_camera
-            });
+            CreateView();
 
-            InitObject(new_view);
+            if (m_view.IsValid()) {
+                m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
+            }
 
-            m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(new_view->GetRenderResource()));
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
-
-            m_view = std::move(new_view);
         } else {
             m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>());
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
@@ -335,16 +339,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         m_view->Update(delta);
 
         // @TODO: Refactor so it reuses View::Update()'s collected entities instead of recollecting
-        RenderCollector::CollectionResult collection_result;
-
-        if (OnlyCollectStaticEntities()) {
-            collection_result = m_view->CollectStaticEntities(true);
-        } else {
-            // // Calculate visibility of entities in the octree
-            // m_parent_scene->GetOctree().CalculateVisibility(m_camera.Get());
-
-            collection_result = m_view->CollectEntities(true);
-        }
+        RenderCollector::CollectionResult collection_result = m_view->GetLastCollectionResult();
 
         if (collection_result.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {
             SetNeedsRender(true);

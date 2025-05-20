@@ -146,24 +146,25 @@ void EnvGrid::Init()
     InitObject(m_camera);
 
     m_view = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
-        .scene      = m_parent_scene,
-        .camera     = m_camera
+        .viewport                   = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
+        .scene                      = m_parent_scene,
+        .camera                     = m_camera,
+        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_STATIC | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
+        .override_attributes        = RenderableAttributeSet(
+            MeshAttributes { },
+            MaterialAttributes {
+                .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
+                .cull_faces         = FaceCullMode::BACK
+            }
+        )
     });
+    
     InitObject(m_view);
 
     m_render_resource = AllocateResource<EnvGridRenderResource>(this);
     m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
     m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
     m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
-
-    m_view->GetRenderResource().GetRenderCollector().SetOverrideAttributes(RenderableAttributeSet(
-        MeshAttributes { },
-        MaterialAttributes {
-            .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces         = FaceCullMode::BACK
-        }
-    ));
 
     SetReady(true);
 }
@@ -346,12 +347,7 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     m_camera->Update(delta);
-
     m_view->Update(delta);
-
-    // FIXME: Reuse the collected entities from View::Update(). View needs to know to only collect static entities.
-    // skip frustum culling for now
-    m_view->CollectStaticEntities(true);
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++) {
         const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);

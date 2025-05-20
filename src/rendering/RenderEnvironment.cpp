@@ -183,10 +183,6 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
 
     // @TODO: Use double buffering, or have another atomic flag for game thread and update an internal array to match m_render_subsystems
     for (const RC<RenderSubsystem> &render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_GAME]) {
-        AssertThrow(render_subsystem->IsInitialized());
-
-        HYP_LOG(Rendering, Debug, "Updating render subsystem {}", render_subsystem->GetName());
-
         render_subsystem->ComponentUpdate(delta);
     }
 }
