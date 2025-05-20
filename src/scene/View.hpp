@@ -135,7 +135,7 @@ protected:
     // Game thread side collection
     RenderProxyTracker                                                  m_render_proxy_tracker;
     
-    ResourceTracker<ID<Light>, TResourceHandle<LightRenderResource>>    m_tracked_lights;
+    ResourceTracker<ID<Light>, LightRenderResource *>                   m_tracked_lights;
 
     RenderCollector::CollectionResult                                   m_last_collection_result;
 };

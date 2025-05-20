@@ -684,7 +684,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateTrackedRenderProxies
     return collection_result;
 }
 
-void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, TResourceHandle<LightRenderResource>> &tracked_lights)
+void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource *> &tracked_lights)
 {
     RenderCollector::CollectionResult collection_result { };
     collection_result.num_added_entities = tracked_lights.GetAdded().Count();
@@ -695,14 +695,17 @@ void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, TResourc
         Array<ID<Light>> removed_proxies;
         tracked_lights.GetRemoved(removed_proxies, true /* include_changed */);
 
-        Array<Pair<ID<Light>, TResourceHandle<LightRenderResource> *>> added_proxy_ptrs;
+        Array<Pair<ID<Light>, LightRenderResource **>> added_proxy_ptrs;
         tracked_lights.GetAdded(added_proxy_ptrs, true /* include_changed */);
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
-            Array<Pair<ID<Light>, TResourceHandle<LightRenderResource>>, DynamicAllocator> added_proxies;
+            Array<Pair<ID<Light>, LightRenderResource *>, DynamicAllocator> added_proxies;
             added_proxies.Reserve(added_proxy_ptrs.Size());
     
-            for (Pair<ID<Light>, TResourceHandle<LightRenderResource> *> &it : added_proxy_ptrs) {
+            for (Pair<ID<Light>, LightRenderResource **> &it : added_proxy_ptrs) {
+                // Ensure it doesn't get deleted while we queue the update txn
+                (*it.second)->Claim();
+
                 added_proxies.EmplaceBack(it.first, *it.second);
             }
 
@@ -712,28 +715,30 @@ void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, TResourc
                 m_tracked_lights.Reserve(added_proxies.Size());
 
                 for (ID<Light> id : removed_proxies) {
-                    TResourceHandle<LightRenderResource> *element = m_tracked_lights.GetElement(id);
-                    AssertDebug(element != nullptr);
+                    LightRenderResource **element_ptr = m_tracked_lights.GetElement(id);
+                    AssertDebug(element_ptr != nullptr);
 
-                    const TResourceHandle<LightRenderResource> &light_render_resource_handle = *element;
-                    AssertDebug(light_render_resource_handle);
+                    LightRenderResource *light_render_resource = *element_ptr;
+                    AssertDebug(light_render_resource);
 
-                    m_lights[uint32(light_render_resource_handle->GetLight()->GetLightType())].Erase(light_render_resource_handle.Get());
+                    light_render_resource->Unclaim();
+
+                    m_lights[uint32(light_render_resource->GetLight()->GetLightType())].Erase(light_render_resource);
 
                     m_tracked_lights.MarkToRemove(id);
                 }
 
-                for (Pair<ID<Light>, TResourceHandle<LightRenderResource>> &it : added_proxies) {
+                for (Pair<ID<Light>, LightRenderResource *> &it : added_proxies) {
                     const ID<Light> &id = it.first;
 
-                    TResourceHandle<LightRenderResource> &light_render_resource_handle = it.second;
-                    AssertDebug(light_render_resource_handle);
+                    LightRenderResource *light_render_resource = it.second;
+                    AssertDebug(light_render_resource);
 
-                    AssertDebug(!m_lights[uint32(light_render_resource_handle->GetLight()->GetLightType())].Contains(light_render_resource_handle.Get()));
+                    AssertDebug(!m_lights[uint32(light_render_resource->GetLight()->GetLightType())].Contains(light_render_resource));
 
-                    m_lights[uint32(light_render_resource_handle->GetLight()->GetLightType())].PushBack(light_render_resource_handle.Get());
+                    m_lights[uint32(light_render_resource->GetLight()->GetLightType())].PushBack(light_render_resource);
 
-                    m_tracked_lights.Track(id, std::move(light_render_resource_handle));
+                    m_tracked_lights.Track(id, light_render_resource);
                 }
 
                 m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);

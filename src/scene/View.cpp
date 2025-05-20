@@ -338,7 +338,7 @@ void View::CollectLights()
         }
 
         if (is_light_in_frustum) {
-            m_tracked_lights.Track(light_component.light.GetID(), TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()));
+            m_tracked_lights.Track(light_component.light.GetID(), &light_component.light->GetRenderResource());
         }
     }
 
