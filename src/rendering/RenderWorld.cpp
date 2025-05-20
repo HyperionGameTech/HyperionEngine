@@ -329,10 +329,16 @@ bool ShadowMapManager::FreeShadowMap(ShadowMapRenderResource *shadow_map_render_
 
         ShadowMapAtlas &atlas = m_atlases[atlas_element.atlas_index];
         result = atlas.RemoveElement(atlas_element);
+        
+        if (!result) {
+            HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlas_element.atlas_index);
+        }
     } else if (atlas_element.point_light_index != ~0u) {
         m_point_light_shadow_map_id_generator.FreeID(atlas_element.point_light_index + 1);
 
         result = true;
+    } else {
+        HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid atlas index and point light index");
     }
 
     FreeResource(shadow_map_render_resource);

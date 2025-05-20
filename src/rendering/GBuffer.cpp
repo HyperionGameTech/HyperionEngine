@@ -119,6 +119,10 @@ void GBuffer::Destroy()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    for (GBufferBucket &it : m_buckets) {
+        it.SetFramebuffer(nullptr);
+    }
+
     SafeRelease(std::move(m_framebuffers));
 }
 

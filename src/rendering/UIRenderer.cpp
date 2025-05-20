@@ -142,7 +142,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         collection->ClearProxyGroups();
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyList &proxy_list = collection->GetProxyList();
 
         for (const Pair<ID<Entity>, int> &pair : proxy_depths) {
             RenderProxy *proxy = proxy_list.GetElement(pair.first);
@@ -221,7 +221,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyList &proxy_list = collection->GetProxyList();
 
         // Reserve to prevent iterator invalidation
         proxy_list.Reserve(added_proxies.Size());
@@ -413,7 +413,6 @@ UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
 
 UIRenderSubsystem::~UIRenderSubsystem()
 {
-    g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 }
 
 void UIRenderSubsystem::Init()
@@ -486,10 +485,10 @@ void UIRenderSubsystem::OnRemoved()
 {
     m_view_render_resource_handle.Reset();
     m_view.Reset();
-
-    SafeRelease(std::move(m_framebuffer));
     
     g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+
+    SafeRelease(std::move(m_framebuffer));
 
     m_on_gbuffer_resolution_changed_handle.Reset();
 }

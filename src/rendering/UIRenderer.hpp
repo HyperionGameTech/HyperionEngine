@@ -31,8 +31,6 @@ class ViewRenderResource;
 class UIRenderCollector : RenderCollector
 {
 public:
-    using RenderCollector::GetDrawCollection;
-
     UIRenderCollector();
     UIRenderCollector(const UIRenderCollector &other)                 = delete;
     UIRenderCollector &operator=(const UIRenderCollector &other)      = delete;

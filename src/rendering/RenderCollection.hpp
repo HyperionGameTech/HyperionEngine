@@ -50,17 +50,21 @@ public:
     HYP_FORCE_INLINE const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> &GetProxyGroups() const
         { return m_proxy_groups; }
 
-    HYP_FORCE_INLINE RenderProxyList &GetProxyList(ThreadType thread_type)
-        { return m_proxy_lists[uint32(thread_type)]; }
+    /*! \brief Get the Render thread side RenderProxyList.
+     */
+    HYP_FORCE_INLINE RenderProxyList &GetProxyList()
+        { return m_proxy_list; }
 
-    HYP_FORCE_INLINE const RenderProxyList &GetProxyList(ThreadType thread_type) const
-        { return m_proxy_lists[uint32(thread_type)]; }
+    /*! \brief Get the Render thread side RenderProxyList.
+     */
+    HYP_FORCE_INLINE const RenderProxyList &GetProxyList() const
+        { return m_proxy_list; }
 
     uint32 NumRenderGroups() const;
 
 private:
     FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>    m_proxy_groups;
-    FixedArray<RenderProxyList, 2>                                                          m_proxy_lists;
+    RenderProxyList                                                                         m_proxy_list;
 };
 
 class RenderCollector
@@ -99,10 +103,6 @@ public:
      */
     void PushRenderProxy(RenderProxyList &render_proxy_list, const RenderProxy &render_proxy);
 
-    /*! \brief Creates RenderGroups needed for rendering the Entity objects.
-     *  Call after calling CollectEntities() on Scene. */
-    CollectionResult PushUpdatesToRenderThread(RenderProxyList &render_proxy_list, const Handle<Camera> &camera, ViewRenderResource *view_render_resource);
-
     void CollectDrawCalls(
         FrameBase *frame,
         ViewRenderResource *view,
@@ -126,10 +126,6 @@ public:
         const CullData *cull_data = nullptr,
         PushConstantData push_constant = { }
     ) const;
-
-    /*! \brief Perform a full reset, when this is not needed anymore. Not thread safe, so ensure there will be no overlap of usage of this object when calling this. */
-    void ClearState(bool create_new = true);
-
 protected:
 
     RC<EntityDrawCollection>            m_draw_collection;

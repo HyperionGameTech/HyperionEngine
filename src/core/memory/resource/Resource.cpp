@@ -67,7 +67,7 @@ int ResourceBase::ClaimWithoutInitialize()
     {
         // loop until we have exclusive access.
         uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-        AssertDebugMsg(!(state & g_initialization_mask_read_mask), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
 
         while (state & g_initialization_mask_read_mask) {
             state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
@@ -135,6 +135,8 @@ int ResourceBase::Claim(int count)
         Impl();
     });
 
+    AssertDebug(result >= 0);
+
     if (should_release) {
         m_completion_semaphore.Release(1);
     }
@@ -191,6 +193,8 @@ int ResourceBase::Unclaim()
         Impl();
     });
 
+    AssertDebug(result >= 0);
+
     if (should_release) {
         m_completion_semaphore.Release(1);
     }
@@ -228,7 +232,7 @@ void ResourceBase::SetNeedsUpdate()
         // Check initialization state -- if it is not initialized, we increment the update counter
         // without waiting for the owner thread to finish
         if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
-            m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+            m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
             // Remove our read access
             m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
@@ -243,7 +247,7 @@ void ResourceBase::SetNeedsUpdate()
         m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
     }
 
-    m_update_counter.Increment(1, MemoryOrder::ACQUIRE_RELEASE);
+    m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
     if (!CanExecuteInline()) {
         EnqueueOp(std::move(Impl));

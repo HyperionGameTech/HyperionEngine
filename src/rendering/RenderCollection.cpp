@@ -236,7 +236,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+        RenderProxyList &proxy_list = collection->GetProxyList();
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
         proxy_list.Reserve(added_proxies.Size());
@@ -372,43 +372,6 @@ RenderCollector::RenderCollector()
 }
 
 RenderCollector::~RenderCollector() = default;
-
-RenderCollector::CollectionResult RenderCollector::PushUpdatesToRenderThread(RenderProxyList &render_proxy_list, const Handle<Camera> &camera, ViewRenderResource *view_render_resource)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    HYP_MT_CHECK_READ(m_data_race_detector);
-
-    CollectionResult collection_result { };
-    collection_result.num_added_entities = render_proxy_list.GetAdded().Count();
-    collection_result.num_removed_entities = render_proxy_list.GetRemoved().Count();
-    collection_result.num_changed_entities = render_proxy_list.GetChanged().Count();
-
-    if (collection_result.NeedsUpdate()) {
-        Array<ID<Entity>> removed_proxies;
-        render_proxy_list.GetRemoved(removed_proxies, true /* include_changed */);
-
-        Array<RenderProxy *> added_proxy_ptrs;
-        render_proxy_list.GetAdded(added_proxy_ptrs, true /* include_changed */);
-
-        if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
-            PUSH_RENDER_COMMAND(
-                RebuildProxyGroups,
-                TResourceHandle<ViewRenderResource>(*view_render_resource),
-                m_draw_collection,
-                std::move(added_proxy_ptrs),
-                std::move(removed_proxies),
-                camera,
-                m_override_attributes
-            );
-        }
-    }
-
-    render_proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
-
-    return collection_result;
-}
 
 void RenderCollector::PushRenderProxy(RenderProxyList &render_proxy_list, const RenderProxy &render_proxy)
 {
@@ -607,42 +570,6 @@ void RenderCollector::ExecuteDrawCalls(
         if (framebuffer) {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
-    }
-}
-
-void RenderCollector::ClearState(bool create_new)
-{
-    HYP_SCOPE;
-
-    HYP_MT_CHECK_RW(m_data_race_detector);
-
-    if (m_draw_collection != nullptr) {
-        HYP_LOG(RenderCollection, Debug, "Clearing RenderCollector state");
-
-        RenderProxyList &proxy_list = m_draw_collection->GetProxyList(ThreadType::THREAD_TYPE_GAME);
-        Array<ID<Entity>> entity_ids;
-
-        for (Bitset::BitIndex bit_index : proxy_list.GetCurrentBits()) {
-            entity_ids.PushBack(ID<Entity>::FromIndex(bit_index));
-        }
-
-        PUSH_RENDER_COMMAND(
-            RebuildProxyGroups,
-            TResourceHandle<ViewRenderResource>(),
-            m_draw_collection,
-            Array<RenderProxy *>(),
-            std::move(entity_ids),
-            Handle<Camera>::empty,
-            m_override_attributes
-        );
-
-        HYP_SYNC_RENDER();
-    }
-
-    if (create_new) {
-        m_draw_collection = MakeRefCountedPtr<EntityDrawCollection>();
-    } else {
-        m_draw_collection.Reset();
     }
 }
 

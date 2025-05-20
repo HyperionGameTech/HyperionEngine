@@ -317,6 +317,28 @@ public:
         }
     }
 
+    void GetCurrent(Array<ElementType *> &out)
+    {
+        HYP_SCOPE;
+
+        Bitset current_bits = m_previous;
+
+        out.Reserve(current_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_proxies.Find(id);
+            AssertThrow(it != m_proxies.End());
+
+            out.PushBack(&it->second);
+
+            current_bits.Set(first_set_bit_index, false);
+        }
+    }
+
     ElementType *GetElement(IDType id)
     {
         const auto it = m_proxies.Find(id);
@@ -362,6 +384,15 @@ public:
             break;
         }
 
+        m_changed.Clear();
+    }
+
+    /*! \brief Total reset of the list, including clearing the previous state. */
+    void Reset()
+    {
+        m_proxies.Clear();
+        m_previous.Clear();
+        m_next.Clear();
         m_changed.Clear();
     }
 

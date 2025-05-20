@@ -212,6 +212,17 @@ void ViewRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
 
+    // Reclaim any claimed resources that were unclaimed in Destroy_Internal
+    EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
+    RenderProxyList &proxy_list = collection->GetProxyList();
+
+    Array<RenderProxy *> proxies;
+    proxy_list.GetCurrent(proxies);
+
+    for (RenderProxy *proxy : proxies) {
+        proxy->ClaimRenderResource();
+    }
+
     if (!m_view || (m_view->GetFlags() & ViewFlags::GBUFFER)) {
         AssertThrow(m_viewport.extent.Volume() > 0);
 
@@ -222,6 +233,19 @@ void ViewRenderResource::Initialize_Internal()
 void ViewRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
+
+    // Unclaim all the claimed resources
+    EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
+    RenderProxyList &proxy_list = collection->GetProxyList();
+
+    Array<RenderProxy *> proxies;
+    proxy_list.GetCurrent(proxies);
+
+    for (RenderProxy *proxy : proxies) {
+        proxy->UnclaimRenderResource();
+    }
+
+    // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
 
     if (m_gbuffer) {
         DestroyRenderer();
@@ -681,14 +705,17 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
 
             Execute([this, added_proxies = std::move(added_proxies), removed_proxies = std::move(removed_proxies)]() mutable
             {
+                AssertDebugMsg(IsInitialized(), "UpdateRenderCollector can only be called on an initialized ViewRenderResource");
+
                 EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
                 const RenderableAttributeSet *override_attributes = m_render_collector.GetOverrideAttributes().TryGet();
 
-                RenderProxyList &proxy_list = collection->GetProxyList(ThreadType::THREAD_TYPE_RENDER);
+                RenderProxyList &proxy_list = collection->GetProxyList();
 
                 // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
                 proxy_list.Reserve(added_proxies.Size());
 
+                // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
                 for (RenderProxy &proxy : added_proxies) {
                     proxy.ClaimRenderResource();
                 }
