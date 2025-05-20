@@ -50,21 +50,21 @@ public:
     HYP_FORCE_INLINE const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> &GetProxyGroups() const
         { return m_proxy_groups; }
 
-    /*! \brief Get the Render thread side RenderProxyList.
+    /*! \brief Get the Render thread side RenderProxyTracker.
      */
-    HYP_FORCE_INLINE RenderProxyList &GetProxyList()
-        { return m_proxy_list; }
+    HYP_FORCE_INLINE RenderProxyTracker &GetRenderProxyTracker()
+        { return m_render_proxy_tracker; }
 
-    /*! \brief Get the Render thread side RenderProxyList.
+    /*! \brief Get the Render thread side RenderProxyTracker.
      */
-    HYP_FORCE_INLINE const RenderProxyList &GetProxyList() const
-        { return m_proxy_list; }
+    HYP_FORCE_INLINE const RenderProxyTracker &GetRenderProxyTracker() const
+        { return m_render_proxy_tracker; }
 
     uint32 NumRenderGroups() const;
 
 private:
     FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>    m_proxy_groups;
-    RenderProxyList                                                                         m_proxy_list;
+    RenderProxyTracker                                                                      m_render_proxy_tracker;
 };
 
 class RenderCollector
@@ -98,10 +98,10 @@ public:
         { m_override_attributes = override_attributes; }
 
     /*! \brief Pushes an RenderProxy to the RenderCollector.
-        \param render_proxy_list The RenderProxyList to push to.
+        \param render_proxy_tracker The RenderProxyTracker to push to.
      *  \param proxy The RenderProxy to push.
      */
-    void PushRenderProxy(RenderProxyList &render_proxy_list, const RenderProxy &render_proxy);
+    void PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy);
 
     void CollectDrawCalls(
         FrameBase *frame,

@@ -149,29 +149,29 @@ struct RenderProxy
     }
 };
 
-/*! \brief The action to take on call to \ref{RenderProxyList::Advance}. */
+/*! \brief The action to take on call to \ref{RenderProxyTracker::Advance}. */
 enum class RenderProxyListAdvanceAction : uint32
 {
-    CLEAR,    //! Clear the 'next' entities, so on next iteration, any entities that have not been re-added are marked for removal.
-    PERSIST   //! Copy the previous entities over to next. To remove entities, `RemoveProxy` needs to be manually called.
+    CLEAR,    //! Clear the 'next' elements, so on next iteration, any elements that have not been re-added are marked for removal.
+    PERSIST   //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
 };
 
 template <class IDType, class ElementType>
-class TRenderProxyListBase
+class RenderableTracker
 {
 public:
     using MapType = HashMap<IDType, ElementType>;
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
 
-    TRenderProxyListBase(const TRenderProxyListBase &other)                 = delete;
-    TRenderProxyListBase &operator=(const TRenderProxyListBase &other)      = delete;
-    TRenderProxyListBase(TRenderProxyListBase &&other) noexcept             = default;
-    TRenderProxyListBase &operator=(TRenderProxyListBase &&other) noexcept  = default;
-    virtual ~TRenderProxyListBase()                                         = default;
+    RenderableTracker()                                                 = default;
+    RenderableTracker(const RenderableTracker &other)                   = delete;
+    RenderableTracker &operator=(const RenderableTracker &other)        = delete;
+    RenderableTracker(RenderableTracker &&other) noexcept               = default;
+    RenderableTracker &operator=(RenderableTracker &&other) noexcept    = default;
+    ~RenderableTracker()                                                = default;
     
-    /*! \brief Checks if the RenderProxyList already has a proxy for the given entity
-     *  from the previous frame */
+    /*! \brief Checks if the RenderProxyTracker already has a proxy for the given ID from the previous frame */
     HYP_FORCE_INLINE bool HasElement(IDType id) const
         { return m_previous.Test(id.ToIndex()); }
 
@@ -270,7 +270,7 @@ public:
         }
     }
 
-    void GetRemoved(Array<IDType> &out_entities, bool include_changed)
+    void GetRemoved(Array<IDType> &out_ids, bool include_changed)
     {
         HYP_SCOPE;
 
@@ -280,12 +280,12 @@ public:
             removed_bits |= GetChanged();
         }
 
-        out_entities.Reserve(removed_bits.Count());
+        out_ids.Reserve(removed_bits.Count());
 
         SizeType first_set_bit_index;
 
         while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1) {
-            out_entities.PushBack(IDType::FromIndex(first_set_bit_index));
+            out_ids.PushBack(IDType::FromIndex(first_set_bit_index));
 
             removed_bits.Set(first_set_bit_index, false);
         }
@@ -397,9 +397,6 @@ public:
     }
 
 protected:
-    // Protected constructor to prevent instantiation without a derived class
-    TRenderProxyListBase() = default;
-
     MapType m_proxies;
 
     Bitset  m_previous;
@@ -407,16 +404,7 @@ protected:
     Bitset  m_changed;
 };
 
-class RenderProxyList final : public TRenderProxyListBase<ID<Entity>, RenderProxy>
-{
-public:
-    RenderProxyList()                                               = default;
-    RenderProxyList(const RenderProxyList &other)                   = delete;
-    RenderProxyList &operator=(const RenderProxyList &other)        = delete;
-    RenderProxyList(RenderProxyList &&other) noexcept               = default;
-    RenderProxyList &operator=(RenderProxyList &&other) noexcept    = default;
-    virtual ~RenderProxyList() override                             = default;
-};
+using RenderProxyTracker = RenderableTracker<ID<Entity>, RenderProxy>;
 
 } // namespace hyperion
 

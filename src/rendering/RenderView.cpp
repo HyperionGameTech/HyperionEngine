@@ -95,7 +95,7 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy 
 
 static void AddRenderProxy(
     EntityDrawCollection *collection,
-    RenderProxyList &proxy_list,
+    RenderProxyTracker &render_proxy_tracker,
     RenderProxy &&proxy,
     CameraRenderResource *camera_render_resource,
     ViewRenderResource *view_render_resource,
@@ -166,12 +166,12 @@ static void AddRenderProxy(
         InitObject(render_group);
     }
 
-    auto iter = proxy_list.Add(entity, std::move(proxy));
+    auto iter = render_proxy_tracker.Add(entity, std::move(proxy));
 
     render_group->AddRenderProxy(iter->second);
 }
 
-static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
+static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyTracker &render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
 {
     HYP_SCOPE;
 
@@ -185,7 +185,7 @@ static bool RemoveRenderProxy(EntityDrawCollection *collection, RenderProxyList 
 
     const bool removed = render_group->RemoveRenderProxy(entity);
 
-    proxy_list.MarkToRemove(entity);
+    render_proxy_tracker.MarkToRemove(entity);
 
     return removed;
 }
@@ -214,10 +214,10 @@ void ViewRenderResource::Initialize_Internal()
 
     // Reclaim any claimed resources that were unclaimed in Destroy_Internal
     EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
-    RenderProxyList &proxy_list = collection->GetProxyList();
+    RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
     Array<RenderProxy *> proxies;
-    proxy_list.GetCurrent(proxies);
+    render_proxy_tracker.GetCurrent(proxies);
 
     for (RenderProxy *proxy : proxies) {
         proxy->ClaimRenderResource();
@@ -236,10 +236,10 @@ void ViewRenderResource::Destroy_Internal()
 
     // Unclaim all the claimed resources
     EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
-    RenderProxyList &proxy_list = collection->GetProxyList();
+    RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
     Array<RenderProxy *> proxies;
-    proxy_list.GetCurrent(proxies);
+    render_proxy_tracker.GetCurrent(proxies);
 
     for (RenderProxy *proxy : proxies) {
         proxy->UnclaimRenderResource();
@@ -678,22 +678,22 @@ void ViewRenderResource::SetLights(Array<TResourceHandle<LightRenderResource>> &
     });
 }
 
-RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(RenderProxyList &render_proxy_list)
+RenderCollector::CollectionResult ViewRenderResource::UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
     RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = render_proxy_list.GetAdded().Count();
-    collection_result.num_removed_entities = render_proxy_list.GetRemoved().Count();
-    collection_result.num_changed_entities = render_proxy_list.GetChanged().Count();
+    collection_result.num_added_entities = render_proxy_tracker.GetAdded().Count();
+    collection_result.num_removed_entities = render_proxy_tracker.GetRemoved().Count();
+    collection_result.num_changed_entities = render_proxy_tracker.GetChanged().Count();
 
     if (collection_result.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
-        render_proxy_list.GetRemoved(removed_proxies, true /* include_changed */);
+        render_proxy_tracker.GetRemoved(removed_proxies, true /* include_changed */);
 
         Array<RenderProxy *> added_proxy_ptrs;
-        render_proxy_list.GetAdded(added_proxy_ptrs, true /* include_changed */);
+        render_proxy_tracker.GetAdded(added_proxy_ptrs, true /* include_changed */);
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
             Array<RenderProxy, DynamicAllocator> added_proxies;
@@ -705,15 +705,15 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
 
             Execute([this, added_proxies = std::move(added_proxies), removed_proxies = std::move(removed_proxies)]() mutable
             {
-                AssertDebugMsg(IsInitialized(), "UpdateRenderCollector can only be called on an initialized ViewRenderResource");
+                AssertDebugMsg(IsInitialized(), "UpdateTrackedRenderProxies can only be called on an initialized ViewRenderResource");
 
                 EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
                 const RenderableAttributeSet *override_attributes = m_render_collector.GetOverrideAttributes().TryGet();
 
-                RenderProxyList &proxy_list = collection->GetProxyList();
+                RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
                 // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-                proxy_list.Reserve(added_proxies.Size());
+                render_proxy_tracker.Reserve(added_proxies.Size());
 
                 // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
                 for (RenderProxy &proxy : added_proxies) {
@@ -721,7 +721,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
                 }
 
                 for (ID<Entity> entity_id : removed_proxies) {
-                    const RenderProxy *proxy = proxy_list.GetElement(entity_id);
+                    const RenderProxy *proxy = render_proxy_tracker.GetElement(entity_id);
                     AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
                     proxy->UnclaimRenderResource();
@@ -729,7 +729,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
                     const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                     const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                    AssertThrow(RemoveRenderProxy(collection, proxy_list, entity_id, attributes, bucket));
+                    AssertThrow(RemoveRenderProxy(collection, render_proxy_tracker, entity_id, attributes, bucket));
                 }
 
                 for (RenderProxy &proxy : added_proxies) {
@@ -743,10 +743,10 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
                     const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy, override_attributes);
                     const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                    AddRenderProxy(collection, proxy_list, std::move(proxy), m_camera_render_resource_handle.Get(), this, attributes, bucket);
+                    AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_camera_render_resource_handle.Get(), this, attributes, bucket);
                 }
 
-                proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
+                render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
                 
                 // Clear out groups that are no longer used
                 collection->RemoveEmptyProxyGroups();
@@ -754,7 +754,7 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateRenderCollector(Rend
         }
     }
 
-    render_proxy_list.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
 
     return collection_result;
 }

@@ -121,7 +121,7 @@ protected:
     void CollectLights();
 
     RenderCollector::CollectionResult CollectEntities();
-    
+
     RenderCollector::CollectionResult CollectAllEntities();
     RenderCollector::CollectionResult CollectDynamicEntities();
     RenderCollector::CollectionResult CollectStaticEntities();
@@ -143,7 +143,9 @@ protected:
     Optional<RenderableAttributeSet>        m_override_attributes;
 
     // Game thread side collection
-    RenderProxyList                         m_render_proxy_list;
+    RenderProxyTracker                      m_render_proxy_tracker;
+    // testing.
+    RenderableTracker<ID<Entity>, Handle<Light>> m_light_renderable_tracker;
 
     RenderCollector::CollectionResult       m_last_collection_result;
 };

@@ -130,7 +130,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
-    void AddRenderProxy(RenderProxyList &proxy_list, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
+    void AddRenderProxy(RenderProxyTracker &render_proxy_tracker, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
@@ -194,12 +194,12 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             InitObject(render_group);
         }
 
-        auto iter = proxy_list.Add(entity, std::move(proxy));
+        auto iter = render_proxy_tracker.Add(entity, std::move(proxy));
 
         render_group->AddRenderProxy(iter->second);
     }
 
-    bool RemoveRenderProxy(RenderProxyList &proxy_list, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
+    bool RemoveRenderProxy(RenderProxyTracker &render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
@@ -213,7 +213,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
 
         const bool removed = render_group->RemoveRenderProxy(entity);
 
-        proxy_list.MarkToRemove(entity);
+        render_proxy_tracker.MarkToRemove(entity);
 
         return removed;
 
@@ -227,7 +227,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         //     }
         // }
 
-        // proxy_list.MarkToRemove(entity);
+        // render_proxy_tracker.MarkToRemove(entity);
 
         // return removed;
     }
@@ -236,10 +236,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        RenderProxyList &proxy_list = collection->GetProxyList();
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-        proxy_list.Reserve(added_proxies.Size());
+        render_proxy_tracker.Reserve(added_proxies.Size());
 
 #if 0
         HYP_LOG(RenderCollection, Debug,
@@ -273,7 +273,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         for (ID<Entity> entity_id : removed_proxies) {
-            const RenderProxy *proxy = proxy_list.GetElement(entity_id);
+            const RenderProxy *proxy = render_proxy_tracker.GetElement(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
             proxy->UnclaimRenderResource();
@@ -281,7 +281,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AssertThrow(RemoveRenderProxy(proxy_list, entity_id, attributes, bucket));
+            AssertThrow(RemoveRenderProxy(render_proxy_tracker, entity_id, attributes, bucket));
         }
 
         for (RenderProxy &proxy : added_proxies) {
@@ -295,10 +295,10 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            AddRenderProxy(proxy_list, std::move(proxy), attributes, bucket);
+            AddRenderProxy(render_proxy_tracker, std::move(proxy), attributes, bucket);
         }
 
-        proxy_list.Advance(RenderProxyListAdvanceAction::PERSIST);
+        render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
         
         // Clear out groups that are no longer used
         collection->RemoveEmptyProxyGroups();
@@ -373,13 +373,13 @@ RenderCollector::RenderCollector()
 
 RenderCollector::~RenderCollector() = default;
 
-void RenderCollector::PushRenderProxy(RenderProxyList &render_proxy_list, const RenderProxy &render_proxy)
+void RenderCollector::PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy)
 {
     AssertThrow(render_proxy.entity.IsValid());
     AssertThrow(render_proxy.mesh.IsValid());
     AssertThrow(render_proxy.material.IsValid());
     
-    render_proxy_list.Add(render_proxy.entity, RenderProxy(render_proxy));
+    render_proxy_tracker.Add(render_proxy.entity, RenderProxy(render_proxy));
 }
 
 void RenderCollector::CollectDrawCalls(

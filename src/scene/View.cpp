@@ -206,7 +206,7 @@ RenderCollector::CollectionResult View::CollectAllEntities()
     }
 
     if (!m_camera.IsValid()) {
-        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
@@ -242,14 +242,14 @@ RenderCollector::CollectionResult View::CollectAllEntities()
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
     }
     
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
 
-    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
 RenderCollector::CollectionResult View::CollectDynamicEntities()
@@ -267,7 +267,7 @@ RenderCollector::CollectionResult View::CollectDynamicEntities()
 
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
@@ -297,10 +297,10 @@ RenderCollector::CollectionResult View::CollectDynamicEntities()
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
 RenderCollector::CollectionResult View::CollectStaticEntities()
@@ -318,7 +318,7 @@ RenderCollector::CollectionResult View::CollectStaticEntities()
 
     if (!m_camera.IsValid()) {
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
@@ -347,10 +347,10 @@ RenderCollector::CollectionResult View::CollectStaticEntities()
 
         AssertThrow(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_list, *mesh_component.proxy);
+        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
     }
 
-    return m_render_resource->UpdateRenderCollector(m_render_proxy_list);
+    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
 void View::CollectLights()
@@ -390,12 +390,16 @@ void View::CollectLights()
             }
         }
 
+        // if (is_light_in_frustum) {
+        //     if (!m_lights.Contains(light_component.light)) {
+        //         AddLight(light_component.light);
+        //     }
+        // } else {
+        //     RemoveLight(light_component.light);
+        // }
+
         if (is_light_in_frustum) {
-            if (!m_lights.Contains(light_component.light)) {
-                AddLight(light_component.light);
-            }
-        } else {
-            RemoveLight(light_component.light);
+            m_light_renderable_tracker.Add(entity_id, Handle<Light>(light_component.light));
         }
     }
 }
