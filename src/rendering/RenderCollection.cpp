@@ -194,7 +194,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             InitObject(render_group);
         }
 
-        auto iter = render_proxy_tracker.Add(entity, std::move(proxy));
+        auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
         render_group->AddRenderProxy(iter->second);
     }
@@ -216,20 +216,6 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         render_proxy_tracker.MarkToRemove(entity);
 
         return removed;
-
-        // HYP_SCOPE;
-
-        // bool removed = false;
-
-        // for (auto &render_groups_by_attributes : collection->GetProxyGroups()) {
-        //     for (auto &it : render_groups_by_attributes) {
-        //         removed |= it.second->RemoveRenderProxy(entity);
-        //     }
-        // }
-
-        // render_proxy_tracker.MarkToRemove(entity);
-
-        // return removed;
     }
 
     virtual RendererResult operator()() override
@@ -372,15 +358,6 @@ RenderCollector::RenderCollector()
 }
 
 RenderCollector::~RenderCollector() = default;
-
-void RenderCollector::PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy)
-{
-    AssertThrow(render_proxy.entity.IsValid());
-    AssertThrow(render_proxy.mesh.IsValid());
-    AssertThrow(render_proxy.material.IsValid());
-    
-    render_proxy_tracker.Add(render_proxy.entity, RenderProxy(render_proxy));
-}
 
 void RenderCollector::CollectDrawCalls(
     FrameBase *frame,

@@ -64,26 +64,21 @@ public:
 
     void SetPriority(int priority);
 
-    void AddLight(const TResourceHandle<LightRenderResource> &light);
-    void RemoveLight(LightRenderResource *light);
-
     /*! \brief Get the currently bound Lights with the given LightType.
      *  \note Only call from render thread or from task on a task thread that is initiated by the render thread.
      *  \param type The type of light to get. */
-    HYP_FORCE_INLINE const Array<TResourceHandle<LightRenderResource>> &GetLights(LightType type) const
+    HYP_FORCE_INLINE const Array<LightRenderResource *> &GetLights(LightType type) const
     {
-        AssertDebug(uint32(type) < m_light_render_resource_handles.Size());
+        AssertDebug(uint32(type) < m_lights.Size());
 
-        return m_light_render_resource_handles[uint32(type)];
+        return m_lights[uint32(type)];
     }
-
-    void SetLights(Array<TResourceHandle<LightRenderResource>> &&lights);
 
     HYP_FORCE_INLINE SizeType NumLights() const
     {
         SizeType num_lights = 0;
 
-        for (const auto &lights : m_light_render_resource_handles) {
+        for (const auto &lights : m_lights) {
             num_lights += lights.Size();
         }
 
@@ -141,6 +136,7 @@ public:
 
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
     RenderCollector::CollectionResult UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker);
+    void UpdateTrackedLights(ResourceTracker<ID<Light>, TResourceHandle<LightRenderResource>> &tracked_lights);
 
     virtual void PreFrameUpdate(FrameBase *frame);
 
@@ -163,54 +159,56 @@ protected:
 
     void GenerateMipChain(FrameBase *frame, const ImageRef &image);
 
-    View                                                *m_view;
+    View                                                                *m_view;
 
-    RendererConfig                                      m_renderer_config;
+    RendererConfig                                                      m_renderer_config;
 
-    Viewport                                            m_viewport;
+    Viewport                                                            m_viewport;
 
-    int                                                 m_priority;
+    int                                                                 m_priority;
 
     // Descriptor set used when rendering the View using FinalPass.
-    DescriptorSetRef                                    m_final_pass_descriptor_set;
+    DescriptorSetRef                                                    m_final_pass_descriptor_set;
 
-    TResourceHandle<SceneRenderResource>                m_scene_render_resource_handle;
-    TResourceHandle<CameraRenderResource>               m_camera_render_resource_handle;
+    TResourceHandle<SceneRenderResource>                                m_scene_render_resource_handle;
+    TResourceHandle<CameraRenderResource>                               m_camera_render_resource_handle;
 
-    Array<Array<TResourceHandle<LightRenderResource>>>  m_light_render_resource_handles;
+    Array<Array<LightRenderResource *>>                                 m_lights;
 
-    RenderCollector                                     m_render_collector;
+    RenderCollector                                                     m_render_collector;
 
-    UniquePtr<GBuffer>                                  m_gbuffer;
+    ResourceTracker<ID<Light>, TResourceHandle<LightRenderResource>>    m_tracked_lights;
 
-    UniquePtr<DeferredPass>                             m_indirect_pass;
-    UniquePtr<DeferredPass>                             m_direct_pass;
+    UniquePtr<GBuffer>                                                  m_gbuffer;
 
-    UniquePtr<EnvGridPass>                              m_env_grid_radiance_pass;
-    UniquePtr<EnvGridPass>                              m_env_grid_irradiance_pass;
+    UniquePtr<DeferredPass>                                             m_indirect_pass;
+    UniquePtr<DeferredPass>                                             m_direct_pass;
 
-    UniquePtr<ReflectionsPass>                          m_reflections_pass;
+    UniquePtr<EnvGridPass>                                              m_env_grid_radiance_pass;
+    UniquePtr<EnvGridPass>                                              m_env_grid_irradiance_pass;
 
-    UniquePtr<LightmapPass>                             m_lightmap_pass;
+    UniquePtr<ReflectionsPass>                                          m_reflections_pass;
 
-    UniquePtr<TonemapPass>                              m_tonemap_pass;
+    UniquePtr<LightmapPass>                                             m_lightmap_pass;
 
-    UniquePtr<PostProcessing>                           m_post_processing;
-    UniquePtr<HBAO>                                     m_hbao;
-    UniquePtr<TemporalAA>                               m_temporal_aa;
-    UniquePtr<SSGI>                                     m_ssgi;
+    UniquePtr<TonemapPass>                                              m_tonemap_pass;
 
-    UniquePtr<FullScreenPass>                           m_combine_pass;
+    UniquePtr<PostProcessing>                                           m_post_processing;
+    UniquePtr<HBAO>                                                     m_hbao;
+    UniquePtr<TemporalAA>                                               m_temporal_aa;
+    UniquePtr<SSGI>                                                     m_ssgi;
 
-    UniquePtr<DepthPyramidRenderer>                     m_depth_pyramid_renderer;
+    UniquePtr<FullScreenPass>                                           m_combine_pass;
 
-    UniquePtr<DOFBlur>                                  m_dof_blur;
+    UniquePtr<DepthPyramidRenderer>                                     m_depth_pyramid_renderer;
 
-    Handle<Texture>                                     m_mip_chain;
+    UniquePtr<DOFBlur>                                                  m_dof_blur;
+
+    Handle<Texture>                                                     m_mip_chain;
     
-    CullData                                            m_cull_data;
+    CullData                                                            m_cull_data;
 
-    FixedArray<DescriptorSetRef, max_frames_in_flight>  m_descriptor_sets;
+    FixedArray<DescriptorSetRef, max_frames_in_flight>                  m_descriptor_sets;
 };
 
 } // namespace hyperion

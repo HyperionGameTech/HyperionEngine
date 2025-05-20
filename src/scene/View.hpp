@@ -23,6 +23,7 @@ class ViewRenderResource;
 class Scene;
 class Camera;
 class Light;
+class LightRenderResource;
 
 enum class ViewFlags : uint32
 {
@@ -89,16 +90,6 @@ public:
     HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
         { return m_camera; }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Array<Handle<Light>> &GetLights() const
-        { return m_lights; }
-
-    HYP_METHOD()
-    void AddLight(const Handle<Light> &light);
-
-    HYP_METHOD()
-    void RemoveLight(const Handle<Light> &light);
-
     HYP_FORCE_INLINE const Viewport &GetViewport() const
         { return m_viewport; }
 
@@ -126,28 +117,27 @@ protected:
     RenderCollector::CollectionResult CollectDynamicEntities();
     RenderCollector::CollectionResult CollectStaticEntities();
 
-    ViewRenderResource                      *m_render_resource;
+    ViewRenderResource                                                  *m_render_resource;
 
-    EnumFlags<ViewFlags>                    m_flags;
+    EnumFlags<ViewFlags>                                                m_flags;
 
-    Viewport                                m_viewport;
+    Viewport                                                            m_viewport;
     
-    Handle<Scene>                           m_scene;
-    Handle<Camera>                          m_camera;
-    Array<Handle<Light>>                    m_lights;
+    Handle<Scene>                                                       m_scene;
+    Handle<Camera>                                                      m_camera;
 
-    int                                     m_priority;
+    int                                                                 m_priority;
 
-    EnumFlags<ViewEntityCollectionFlags>    m_entity_collection_flags;
+    EnumFlags<ViewEntityCollectionFlags>                                m_entity_collection_flags;
 
-    Optional<RenderableAttributeSet>        m_override_attributes;
+    Optional<RenderableAttributeSet>                                    m_override_attributes;
 
     // Game thread side collection
-    RenderProxyTracker                      m_render_proxy_tracker;
-    // testing.
-    RenderableTracker<ID<Entity>, Handle<Light>> m_light_renderable_tracker;
+    RenderProxyTracker                                                  m_render_proxy_tracker;
+    
+    ResourceTracker<ID<Light>, TResourceHandle<LightRenderResource>>    m_tracked_lights;
 
-    RenderCollector::CollectionResult       m_last_collection_result;
+    RenderCollector::CollectionResult                                   m_last_collection_result;
 };
 
 } // namespace hyperion

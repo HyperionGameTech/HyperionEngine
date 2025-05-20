@@ -97,12 +97,6 @@ public:
     HYP_FORCE_INLINE void SetOverrideAttributes(const Optional<RenderableAttributeSet> &override_attributes)
         { m_override_attributes = override_attributes; }
 
-    /*! \brief Pushes an RenderProxy to the RenderCollector.
-        \param render_proxy_tracker The RenderProxyTracker to push to.
-     *  \param proxy The RenderProxy to push.
-     */
-    void PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy);
-
     void CollectDrawCalls(
         FrameBase *frame,
         ViewRenderResource *view,

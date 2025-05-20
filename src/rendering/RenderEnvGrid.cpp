@@ -945,15 +945,16 @@ void EnvGridRenderResource::RenderEnvProbe(FrameBase *frame, uint32 probe_index)
     AssertThrow(probe.IsValid());
 
     // Bind a directional light
-    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    LightRenderResource *light_render_resource = nullptr;
 
     {
         auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
-            light_render_resource_handle = &directional_lights[0];
+            light_render_resource = directional_lights.Front();
+            AssertDebug(light_render_resource != nullptr);
 
-            g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
+            g_engine->GetRenderState()->SetActiveLight(TResourceHandle<LightRenderResource>(*light_render_resource));
         }
     }
 
@@ -975,7 +976,7 @@ void EnvGridRenderResource::RenderEnvProbe(FrameBase *frame, uint32 probe_index)
 
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
-    if (light_render_resource_handle != nullptr) {
+    if (light_render_resource != nullptr) {
         g_engine->GetRenderState()->UnsetActiveLight();
     }
 
@@ -1032,13 +1033,13 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
-    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    LightRenderResource *light_render_resource = nullptr;
 
     {
         auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
-            light_render_resource_handle = &directional_lights[0];
+            light_render_resource = directional_lights.Front();
         }
     }
 
@@ -1104,7 +1105,7 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
                 NAME("Global"),
                 {
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
@@ -1129,7 +1130,7 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
                 NAME("Global"),
                 {
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
@@ -1180,7 +1181,7 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
                         NAME("Global"),
                         {
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                         }
                     }
@@ -1218,7 +1219,7 @@ void EnvGridRenderResource::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBa
                 NAME("Global"),
                 {
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }

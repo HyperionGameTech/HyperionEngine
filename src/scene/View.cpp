@@ -83,23 +83,6 @@ void View::Init()
     m_render_resource->SetViewport(m_viewport);
     m_render_resource->GetRenderCollector().SetOverrideAttributes(m_override_attributes);
 
-    if (m_lights.Any()) {
-        Array<TResourceHandle<LightRenderResource>> lights;
-        lights.Reserve(m_lights.Size());
-
-        for (const Handle<Light> &light : m_lights) {
-            if (!light) {
-                continue;
-            }
-
-            InitObject(light);
-
-            lights.PushBack(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
-        }
-
-        m_render_resource->SetLights(std::move(lights));
-    }
-
     SetReady(true);
 }
 
@@ -130,50 +113,6 @@ void View::SetPriority(int priority)
     if (IsInitCalled()) {
         m_render_resource->SetPriority(priority);
     }
-}
-
-void View::AddLight(const Handle<Light> &light)
-{
-    if (!light) {
-        return;
-    }
-
-    InitObject(light);
-
-    auto it = m_lights.Find(light);
-
-    if (it != m_lights.End()) {
-        return;
-    }
-
-    m_lights.PushBack(light);
-
-    if (IsInitCalled()) {
-        m_render_resource->AddLight(TResourceHandle<LightRenderResource>(light->GetRenderResource()));
-    }
-}
-
-void View::RemoveLight(const Handle<Light> &light)
-{
-    if (!light) {
-        return;
-    }
-
-    auto it = m_lights.Find(light);
-
-    if (it == m_lights.End()) {
-        return;
-    }
-
-    if (IsInitCalled()) {
-        if (!light->IsReady()) {
-            return;
-        }
-
-        m_render_resource->RemoveLight(&light->GetRenderResource());
-    }
-
-    m_lights.Erase(it);
 }
 
 RenderCollector::CollectionResult View::CollectEntities()
@@ -240,9 +179,13 @@ RenderCollector::CollectionResult View::CollectAllEntities()
 
         ++num_collected_entities;
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+        
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
     
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
@@ -295,9 +238,13 @@ RenderCollector::CollectionResult View::CollectDynamicEntities()
 #endif
         }
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
 
     return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
@@ -345,9 +292,13 @@ RenderCollector::CollectionResult View::CollectStaticEntities()
 #endif
         }
 
-        AssertThrow(mesh_component.proxy != nullptr);
+        AssertDebug(mesh_component.proxy != nullptr);
 
-        m_render_resource->GetRenderCollector().PushRenderProxy(m_render_proxy_tracker, *mesh_component.proxy);
+        AssertDebug(mesh_component.proxy->entity.IsValid());
+        AssertDebug(mesh_component.proxy->mesh.IsValid());
+        AssertDebug(mesh_component.proxy->material.IsValid());
+
+        m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
 
     return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
@@ -356,9 +307,6 @@ RenderCollector::CollectionResult View::CollectStaticEntities()
 void View::CollectLights()
 {
     HYP_SCOPE;
-
-    // @TODO Change this to mirror RenderCollector.
-    // For now, just loop through all lights and set their visibility state
 
     for (auto [entity_id, light_component, transform_component, bounding_box_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
         if (!light_component.light.IsValid()) {
@@ -375,8 +323,7 @@ void View::CollectLights()
                 is_light_in_frustum = true;
                 break;
             case LightType::POINT:
-            //temp
-                is_light_in_frustum = true;//m_camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
+                is_light_in_frustum = m_camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
                 break;
             case LightType::SPOT:
                 // @TODO Implement frustum culling for spot lights
@@ -390,18 +337,12 @@ void View::CollectLights()
             }
         }
 
-        // if (is_light_in_frustum) {
-        //     if (!m_lights.Contains(light_component.light)) {
-        //         AddLight(light_component.light);
-        //     }
-        // } else {
-        //     RemoveLight(light_component.light);
-        // }
-
         if (is_light_in_frustum) {
-            m_light_renderable_tracker.Add(entity_id, Handle<Light>(light_component.light));
+            m_tracked_lights.Track(light_component.light.GetID(), TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()));
         }
     }
+
+    m_render_resource->UpdateTrackedLights(m_tracked_lights);
 }
 
 #pragma endregion View

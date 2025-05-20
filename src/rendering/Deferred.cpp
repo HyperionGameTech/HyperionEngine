@@ -326,7 +326,7 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
         const auto &lights = view->GetLights(light_type);
 
-        for (const TResourceHandle<LightRenderResource> &light_render_resource_handle : lights) {
+        for (LightRenderResource *light_render_resource : lights) {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
@@ -335,7 +335,7 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource_handle) }
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource) }
                 },
                 global_descriptor_set_index
             );
@@ -349,8 +349,8 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
             
             // Bind material descriptor set (for area lights)
             if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                const DescriptorSetRef &material_descriptor_set = light_render_resource_handle->GetMaterial().IsValid()
-                    ? light_render_resource_handle->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
+                const DescriptorSetRef &material_descriptor_set = light_render_resource->GetMaterial().IsValid()
+                    ? light_render_resource->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
                     : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
         
                 AssertThrow(material_descriptor_set != nullptr);

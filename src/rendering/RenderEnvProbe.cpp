@@ -452,7 +452,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
     
-    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    LightRenderResource *light_render_resource = nullptr;
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe()) {
         if (m_env_probe->IsSkyProbe()) {
@@ -480,10 +480,10 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
         auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
-            light_render_resource_handle = &directional_lights[0];
+            light_render_resource = directional_lights.Front();
         }
 
-        if (!light_render_resource_handle) {
+        if (!light_render_resource) {
             HYP_LOG(EnvProbe, Warning, "No directional light found for Sky EnvProbe #{}", m_env_probe->GetID().Value());
         }
     }
@@ -491,8 +491,8 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
     {
         g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(*this));
 
-        if (light_render_resource_handle != nullptr) {
-            g_engine->GetRenderState()->SetActiveLight(*light_render_resource_handle);
+        if (light_render_resource != nullptr) {
+            g_engine->GetRenderState()->SetActiveLight(TResourceHandle<LightRenderResource>(*light_render_resource));
         }
 
         // debugging
@@ -511,7 +511,7 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT))
         );
 
-        if (light_render_resource_handle != nullptr) {
+        if (light_render_resource != nullptr) {
             g_engine->GetRenderState()->UnsetActiveLight();
         }
 
@@ -827,13 +827,13 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
     const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
-    const TResourceHandle<LightRenderResource> *light_render_resource_handle = nullptr;
+    LightRenderResource *light_render_resource = nullptr;
 
     {
         auto &directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any()) {
-            light_render_resource_handle = &directional_lights[0];
+            light_render_resource = directional_lights.Front();
         }
     }
 
@@ -894,7 +894,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
@@ -918,7 +918,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }
@@ -968,7 +968,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
                     {
                         NAME("Global"),
                         {
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                         }
                     }
@@ -1005,7 +1005,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase *frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource_handle ? (*light_render_resource_handle)->GetBufferIndex() : 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
                 }
             }

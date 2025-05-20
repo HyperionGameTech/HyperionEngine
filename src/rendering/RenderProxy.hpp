@@ -122,7 +122,9 @@ struct RenderProxy
 
     bool operator==(const RenderProxy &other) const
     {
-        return entity == other.entity
+        // Check version first for faster comparison
+        return version == other.version
+            && entity == other.entity
             && mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
@@ -130,13 +132,14 @@ struct RenderProxy
             && previous_model_matrix == other.previous_model_matrix
             && aabb == other.aabb
             && user_data == other.user_data
-            && instance_data == other.instance_data
-            && version == other.version;
+            && instance_data == other.instance_data;
     }
 
     bool operator!=(const RenderProxy &other) const
     {
-        return entity != other.entity
+        // Check version first for faster comparison
+        return version != other.version
+            || entity != other.entity
             || mesh != other.mesh
             || material != other.material
             || skeleton != other.skeleton
@@ -144,8 +147,7 @@ struct RenderProxy
             || previous_model_matrix != other.previous_model_matrix
             || aabb != other.aabb
             || user_data != other.user_data
-            || instance_data != other.instance_data
-            || version != other.version;
+            || instance_data != other.instance_data;
     }
 };
 
@@ -157,19 +159,19 @@ enum class RenderProxyListAdvanceAction : uint32
 };
 
 template <class IDType, class ElementType>
-class RenderableTracker
+class ResourceTracker
 {
 public:
     using MapType = HashMap<IDType, ElementType>;
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
 
-    RenderableTracker()                                                 = default;
-    RenderableTracker(const RenderableTracker &other)                   = delete;
-    RenderableTracker &operator=(const RenderableTracker &other)        = delete;
-    RenderableTracker(RenderableTracker &&other) noexcept               = default;
-    RenderableTracker &operator=(RenderableTracker &&other) noexcept    = default;
-    ~RenderableTracker()                                                = default;
+    ResourceTracker()                                               = default;
+    ResourceTracker(const ResourceTracker &other)                   = delete;
+    ResourceTracker &operator=(const ResourceTracker &other)        = delete;
+    ResourceTracker(ResourceTracker &&other) noexcept               = default;
+    ResourceTracker &operator=(ResourceTracker &&other) noexcept    = default;
+    ~ResourceTracker()                                              = default;
     
     /*! \brief Checks if the RenderProxyTracker already has a proxy for the given ID from the previous frame */
     HYP_FORCE_INLINE bool HasElement(IDType id) const
@@ -179,10 +181,10 @@ public:
         { return m_previous; }
 
     HYP_FORCE_INLINE MapType &GetElementMap()
-        { return m_proxies; }
+        { return m_element_map; }
 
     HYP_FORCE_INLINE const MapType &GetElementMap() const
-        { return m_proxies; }
+        { return m_element_map; }
 
     HYP_FORCE_INLINE Bitset GetAdded() const
     {
@@ -202,21 +204,54 @@ public:
         { return m_changed; }
 
     HYP_FORCE_INLINE void Reserve(SizeType capacity)
-        { m_proxies.Reserve(capacity); }
+        { m_element_map.Reserve(capacity); }
 
-    typename MapType::Iterator Add(IDType id, ElementType &&element)
+    typename MapType::Iterator Track(IDType id, const ElementType &element)
     {
-        typename MapType::Iterator iter = m_proxies.End();
+        typename MapType::Iterator iter = m_element_map.End();
 
         AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
 
         if (HasElement(id)) {
-            iter = m_proxies.FindAs(id);
+            iter = m_element_map.FindAs(id);
         }
 
-        if (iter != m_proxies.End()) {
+        if (iter != m_element_map.End()) {
             // Advance if version has changed
-            if (element.version != iter->second.version) {
+            if (element != iter->second) { //element.version != iter->second.version) {
+                // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
+                AssertDebug(!m_changed.Test(id.ToIndex()));
+
+                // Mark as changed if it is found in the previous iteration
+                m_changed.Set(id.ToIndex(), true);
+
+                iter->second = element;
+            }
+        } else {
+            // sanity check - if not in previous iteration, it must not be in the changed list
+            AssertDebug(!m_changed.Test(id.ToIndex()));
+
+            iter = m_element_map.Insert(id, element).first;
+        }
+
+        m_next.Set(id.ToIndex(), true);
+
+        return iter;
+    }
+
+    typename MapType::Iterator Track(IDType id, ElementType &&element)
+    {
+        typename MapType::Iterator iter = m_element_map.End();
+
+        AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
+
+        if (HasElement(id)) {
+            iter = m_element_map.FindAs(id);
+        }
+
+        if (iter != m_element_map.End()) {
+            // Advance if version has changed
+            if (element != iter->second) { //element.version != iter->second.version) {
                 // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
                 AssertDebug(!m_changed.Test(id.ToIndex()));
 
@@ -229,7 +264,7 @@ public:
             // sanity check - if not in previous iteration, it must not be in the changed list
             AssertDebug(!m_changed.Test(id.ToIndex()));
 
-            iter = m_proxies.Insert(id, std::move(element)).first;
+            iter = m_element_map.Insert(id, std::move(element)).first;
         }
 
         m_next.Set(id.ToIndex(), true);
@@ -251,23 +286,6 @@ public:
     void MarkToRemove(IDType id)
     {
         m_next.Set(id.ToIndex(), false);
-    }
-
-    void GetElementIDs(Array<IDType> &out_ids)
-    {
-        HYP_SCOPE;
-
-        Bitset ids = m_previous | m_next;
-
-        out_ids.Reserve(ids.Count());
-
-        SizeType first_set_bit_index;
-
-        while ((first_set_bit_index = ids.FirstSetBitIndex()) != -1) {
-            out_ids.PushBack(IDType::FromIndex(first_set_bit_index));
-
-            ids.Set(first_set_bit_index, false);
-        }
     }
 
     void GetRemoved(Array<IDType> &out_ids, bool include_changed)
@@ -308,10 +326,36 @@ public:
         while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
-            auto it = m_proxies.Find(id);
-            AssertThrow(it != m_proxies.End());
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
 
             out.PushBack(&it->second);
+
+            newly_added_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    void GetAdded(Array<Pair<IDType, ElementType *>> &out, bool include_changed)
+    {
+        HYP_SCOPE;
+        
+        Bitset newly_added_bits = GetAdded();
+
+        if (include_changed) {
+            newly_added_bits |= GetChanged();
+        }
+
+        out.Reserve(newly_added_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.EmplaceBack(id, &it->second);
 
             newly_added_bits.Set(first_set_bit_index, false);
         }
@@ -330,8 +374,8 @@ public:
         while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
-            auto it = m_proxies.Find(id);
-            AssertThrow(it != m_proxies.End());
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
 
             out.PushBack(&it->second);
 
@@ -341,9 +385,9 @@ public:
 
     ElementType *GetElement(IDType id)
     {
-        const auto it = m_proxies.Find(id);
+        const auto it = m_element_map.Find(id);
 
-        if (it == m_proxies.End()) {
+        if (it == m_element_map.End()) {
             return nullptr;
         }
 
@@ -358,12 +402,12 @@ public:
             for (Bitset::BitIndex index : GetRemoved()) {
                 const IDType id = IDType::FromIndex(index);
 
-                const auto it = m_proxies.Find(id);
+                const auto it = m_element_map.Find(id);
 
-                if (it != m_proxies.End()) {
+                if (it != m_element_map.End()) {
                     // g_safe_deleter->SafeRelease(std::move(it->second));
 
-                    m_proxies.Erase(it);
+                    m_element_map.Erase(it);
                 }
             }
         }
@@ -390,21 +434,21 @@ public:
     /*! \brief Total reset of the list, including clearing the previous state. */
     void Reset()
     {
-        m_proxies.Clear();
+        m_element_map.Clear();
         m_previous.Clear();
         m_next.Clear();
         m_changed.Clear();
     }
 
 protected:
-    MapType m_proxies;
+    MapType m_element_map;
 
     Bitset  m_previous;
     Bitset  m_next;
     Bitset  m_changed;
 };
 
-using RenderProxyTracker = RenderableTracker<ID<Entity>, RenderProxy>;
+using RenderProxyTracker = ResourceTracker<ID<Entity>, RenderProxy>;
 
 } // namespace hyperion
 
