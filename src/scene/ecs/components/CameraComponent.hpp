@@ -12,7 +12,7 @@ namespace hyperion {
 class CameraController;
 class Camera;
 
-HYP_STRUCT(Component, Label="Camera Component", Size=8)
+HYP_STRUCT(Component, Label="Camera Component", Size=16)
 struct CameraComponent
 {
     HYP_FIELD(Property="Camera", Serialize=true, Editor=true)

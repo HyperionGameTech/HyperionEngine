@@ -6,25 +6,27 @@ namespace Hyperion
     public static class ManagedHandleNativeBindings
     {
         [DllImport("hyperion", EntryPoint = "Handle_Get")]
-        internal static extern void Handle_Get(TypeID type_id, IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Handle_Get(TypeID type_id, IntPtr headerPtr, [Out] out HypDataBuffer outHypDataBuffer);
 
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
-        internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
+        internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr outHeaderPtr, [Out] out IntPtr outPtr);
 
 
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
-        internal static extern void Handle_Destruct(IntPtr ptr);
+        internal static extern void Handle_Destruct(IntPtr headerPtr);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 8)]
+    [StructLayout(LayoutKind.Sequential, Size = 16)]
     public struct Handle<T> : IDisposable where T : HypObject
     {
         public static readonly Handle<T> Empty = new Handle<T>();
 
+        private IntPtr header;
         private IntPtr ptr;
 
         public Handle()
         {
+            this.header = IntPtr.Zero;
             this.ptr = IntPtr.Zero;
         }
 
@@ -32,7 +34,9 @@ namespace Hyperion
         {
             if (value == null)
             {
+                header = IntPtr.Zero;
                 ptr = IntPtr.Zero;
+                
                 return;
             }
 
@@ -45,15 +49,17 @@ namespace Hyperion
 
             using (HypData hypData = new HypData((T)value))
             {
-                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ref hypData.Buffer, out ptr);
+                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ref hypData.Buffer, out header, out ptr);
             }
         }
 
         public void Dispose()
         {
-            if (ptr != IntPtr.Zero)
+            if (header != IntPtr.Zero)
             {
-                ManagedHandleNativeBindings.Handle_Destruct(ptr);
+                ManagedHandleNativeBindings.Handle_Destruct(header);
+
+                header = IntPtr.Zero;
                 ptr = IntPtr.Zero;
             }
         }
@@ -62,12 +68,17 @@ namespace Hyperion
         {
             get
             {
-                return ptr != IntPtr.Zero;
+                return header != IntPtr.Zero && ptr != IntPtr.Zero;
             }
         }
 
         public T? GetValue()
         {
+            if (!IsValid)
+            {
+                return null;
+            }
+
             HypClass? hypClass = HypClass.GetClass<T>();
             
             if (hypClass == null)
@@ -76,7 +87,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            ManagedHandleNativeBindings.Handle_Get(((HypClass)hypClass).TypeID, ptr, out hypDataBuffer);
+            ManagedHandleNativeBindings.Handle_Get(((HypClass)hypClass).TypeID, header, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

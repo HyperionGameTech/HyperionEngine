@@ -11,7 +11,7 @@ namespace hyperion {
 
 class Light;
 
-HYP_STRUCT(Component, Size=8, Label="Light Component", Description="Controls the rendering of an object acting as a light source.", Editor=true)
+HYP_STRUCT(Component, Size=16, Label="Light Component", Description="Controls the rendering of an object acting as a light source.", Editor=true)
 struct LightComponent
 {
     HYP_FIELD(Property="Light", Serialize=true, Editor=true)

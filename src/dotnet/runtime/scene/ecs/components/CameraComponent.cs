@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="CameraComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
     public struct CameraComponent : IComponent
     {
         [FieldOffset(0)]

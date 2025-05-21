@@ -17,9 +17,10 @@ HYP_EXPORT void Handle_Get(uint32 type_id_value, HypObjectHeader *header_ptr, Va
     out_hyp_data->Construct(AnyRef(container->GetObjectTypeID(), container->GetObjectPointer(header_ptr)));
 }
 
-HYP_EXPORT void Handle_Set(uint32 type_id_value, HypData *hyp_data, HypObjectHeader **out_header_ptr)
+HYP_EXPORT void Handle_Set(uint32 type_id_value, HypData *hyp_data, HypObjectHeader **out_header_ptr, void **out_ptr)
 {
     AssertThrow(out_header_ptr != nullptr);
+    AssertThrow(out_ptr != nullptr);
 
     if (hyp_data != nullptr) {
         AnyHandle &handle = hyp_data->Get<AnyHandle>();
@@ -28,12 +29,14 @@ HYP_EXPORT void Handle_Set(uint32 type_id_value, HypData *hyp_data, HypObjectHea
             handle.header->IncRefStrong();
 
             *out_header_ptr = handle.header;
+            *out_ptr = handle.ptr;
 
             return;
         }
     }
 
     *out_header_ptr = nullptr;
+    *out_ptr = nullptr;
 }
 
 HYP_EXPORT void Handle_Destruct(HypObjectHeader *header_ptr)
