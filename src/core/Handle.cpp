@@ -136,7 +136,7 @@ void *AnyHandle::Release()
         return nullptr;
     }
 
-    void *address = ptr->Release();
+    void *address = ptr->container->GetObjectPointer(ptr);
     AssertThrow(address != nullptr);
 
     ptr = nullptr;

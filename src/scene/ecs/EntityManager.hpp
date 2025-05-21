@@ -763,7 +763,9 @@ public:
         return it->second.components;
     }
 
+#if 0
     void GetAllComponents(Span<const TypeID> component_type_ids, ID<Entity> entity, Array<HypData> &out_components);
+#endif
 
     void AddComponent(ID<Entity> entity_id, AnyRef component);
     bool RemoveComponent(TypeID component_type_id, ID<Entity> entity_id);

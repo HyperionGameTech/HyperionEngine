@@ -565,6 +565,7 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
     }
 }
 
+#if 0
 void EntityManager::GetAllComponents(Span<const TypeID> component_type_ids, ID<Entity> entity, Array<HypData> &out_components)
 {
     for (const TypeID &component_type_id : component_type_ids) {
@@ -615,6 +616,7 @@ void EntityManager::GetAllComponents(Span<const TypeID> component_type_ids, ID<E
         out_components[index] = std::move(hyp_data);
     }
 }
+#endif
 
 void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
 {

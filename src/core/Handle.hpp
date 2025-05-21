@@ -55,7 +55,7 @@ struct Handle final : HandleBase
 {
     using IDType = ID<T>;
 
-    static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+    static_assert(implementation_exists<HandleDefinition<T>>, "Type does not support handles");
 
 public:
     friend struct AnyHandle;
@@ -111,7 +111,7 @@ public:
         }
 
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefStrong(ptr);
+            ptr->DecRefStrong();
         }
 
         ptr = other.ptr;
@@ -136,7 +136,7 @@ public:
         }
 
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefStrong(ptr);
+            ptr->DecRefStrong();
         }
 
         ptr = other.ptr;
@@ -148,7 +148,7 @@ public:
     ~Handle()
     {
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefStrong(ptr);
+            ptr->DecRefStrong();
         }
     }
     
@@ -229,7 +229,7 @@ public:
     HYP_FORCE_INLINE void Reset()
     {
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefStrong(ptr);
+            ptr->DecRefStrong();
         }
 
         ptr = nullptr;
@@ -255,7 +255,7 @@ struct WeakHandle final
 {
     using IDType = ID<T>;
 
-    static_assert(has_opaque_handle_defined<T>, "Type does not support handles");
+    static_assert(implementation_exists<HandleDefinition<T>>, "Type does not support handles");
 
     static const WeakHandle empty;
 
@@ -287,15 +287,6 @@ struct WeakHandle final
         }
     }
 
-    // template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType *, T *>>>
-    // explicit WeakHandle(TPointerType *ptr)
-    //     : ptr(nullptr)
-    // {
-    //     if (ptr != nullptr) {
-    //         *this = ptr->WeakHandleFromThis();
-    //     }
-    // }
-
     WeakHandle(const Handle<T> &other)
         : ptr(other.ptr)
     {
@@ -311,7 +302,7 @@ struct WeakHandle final
         }
 
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefWeak(ptr);
+            ptr->DecRefWeak();
         }
 
         ptr = other.ptr;
@@ -338,7 +329,7 @@ struct WeakHandle final
         }
 
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefWeak(ptr);
+            ptr->DecRefWeak();
         }
 
         ptr = other.ptr;
@@ -363,7 +354,7 @@ struct WeakHandle final
         }
 
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefWeak(ptr);
+            ptr->DecRefWeak();
         }
 
         ptr = other.ptr;
@@ -375,7 +366,7 @@ struct WeakHandle final
     ~WeakHandle()
     {
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefWeak(ptr);
+            ptr->DecRefWeak();
         }
     }
 
@@ -458,7 +449,7 @@ struct WeakHandle final
     void Reset()
     {
         if (ptr != nullptr && !ptr->IsNull()) {
-            GetContainer<T>()->DecRefWeak(ptr);
+            ptr->DecRefWeak();
         }
 
         ptr = nullptr;
@@ -584,11 +575,26 @@ public:
     /*! \brief Get the TypeID for this handle type
      *  \return The TypeID for the handle */
     HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return type_id; }
+        { return ptr ? ptr->container->GetObjectTypeID() : TypeID::Void(); }
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const
-        { return type_id == TypeID::ForType<T>(); }
+    {
+        if (!ptr) {
+            return false;
+        }
+
+        static_assert(
+            std::is_base_of_v<HypObjectBase, T>,
+            "Is<T> check is invalid; will never be true"
+        );
+
+        constexpr TypeID type_id = TypeID::ForType<T>();
+        const TypeID current_type_id = GetTypeID();
+
+        return current_type_id == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), ptr->container->GetObjectPointer(ptr), current_type_id);
+    }
 
     template <class T>
     HYP_NODISCARD Handle<T> Cast() const
@@ -681,8 +687,6 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
     template <> \
     struct HandleDefinition< T > \
     { \
-        static constexpr const char *class_name = HYP_STR(T); \
-        \
         HYP_API static IObjectContainer *GetAllottedContainerPointer(); \
     };
 
@@ -696,8 +700,6 @@ HYP_FORCE_INLINE inline bool InitObject(const Handle<T> &handle)
     template <> \
     struct HandleDefinition< ns::T > \
     { \
-        static constexpr const char *class_name = HYP_STR(ns) "::" HYP_STR(T); \
-        \
         HYP_API static IObjectContainer *GetAllottedContainerPointer(); \
     };
 

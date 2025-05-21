@@ -63,7 +63,10 @@ public:
     virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const = 0;
 
     virtual bool CreateInstance(HypData &out) const = 0;
+
+#if 0
     virtual bool CreateInstance(HypData &out, ConstAnyRef other_ref) const = 0;
+#endif
 
     virtual bool GetShouldSerialize() const = 0;
 
@@ -129,6 +132,7 @@ public:
     virtual bool CreateInstance(HypData &out) const override
         { return ComponentInterface_CreateInstance(GetClass(), out); }
 
+#if 0
     virtual bool CreateInstance(HypData &out, ConstAnyRef other_ref) const override
     {
         if (!other_ref.HasValue()) {
@@ -140,11 +144,14 @@ public:
         }
 
         if (!ComponentInterface_CreateInstance(GetClass(), out)) {
-            out.Get<Component>() = other_ref.Get<Component>();
+            return false;
         }
+
+        out.Get<Component>() = other_ref.Get<Component>();
 
         return true;
     }
+#endif
 
     virtual bool GetShouldSerialize() const override
     {
@@ -227,10 +234,12 @@ public:
         return true;
     }
 
+#if 0
     virtual bool CreateInstance(HypData &out, ConstAnyRef) const override
     {
         return CreateInstance(out);
     }
+#endif
 
     virtual bool GetShouldSerialize() const override
     {

@@ -6,8 +6,6 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/LinkedList.hpp>
 
-#include <core/memory/UniquePtr.hpp>
-
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Triangle.hpp>
 #include <core/math/Vertex.hpp>
@@ -33,8 +31,8 @@ public:
     {
     }
 
-    BVHNode(const BVHNode &other)                   = delete;
-    BVHNode &operator=(const BVHNode &other)        = delete;
+    BVHNode(const BVHNode &other)                   = default;
+    BVHNode &operator=(const BVHNode &other)        = default;
 
     BVHNode(BVHNode &&other) noexcept               = default;
     BVHNode &operator=(BVHNode &&other) noexcept    = default;
