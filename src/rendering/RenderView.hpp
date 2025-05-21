@@ -135,7 +135,7 @@ public:
         { return m_render_collector; }
 
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
-    RenderCollector::CollectionResult UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker);
+    typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker);
     void UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource *> &tracked_lights);
 
     virtual void PreFrameUpdate(FrameBase *frame);

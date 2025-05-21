@@ -70,17 +70,6 @@ private:
 class RenderCollector
 {
 public:
-    struct CollectionResult
-    {
-        uint32  num_added_entities = 0;
-        uint32  num_removed_entities = 0;
-        uint32  num_changed_entities = 0;
-
-        /*! \brief Returns true if any proxies have been added, removed or changed. */
-        HYP_FORCE_INLINE bool NeedsUpdate() const
-            { return num_added_entities != 0 || num_removed_entities != 0 || num_changed_entities != 0; }
-    };
-
     RenderCollector();
     RenderCollector(const RenderCollector &other)                 = delete;
     RenderCollector &operator=(const RenderCollector &other)      = delete;

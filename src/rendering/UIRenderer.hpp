@@ -42,7 +42,7 @@ public:
 
     void PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy, int computed_depth);
 
-    CollectionResult PushUpdatesToRenderThread(
+    typename RenderProxyTracker::Diff PushUpdatesToRenderThread(
         RenderProxyTracker &render_proxy_tracker,
         const FramebufferRef &framebuffer,
         const Optional<RenderableAttributeSet> &override_attributes = { }

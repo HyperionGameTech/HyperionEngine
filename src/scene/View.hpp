@@ -102,7 +102,7 @@ public:
     HYP_METHOD()
     void SetPriority(int priority);
 
-    HYP_FORCE_INLINE const RenderCollector::CollectionResult &GetLastCollectionResult() const
+    HYP_FORCE_INLINE const typename RenderProxyTracker::Diff &GetLastCollectionResult() const
         { return m_last_collection_result; }
 
     void Init();
@@ -111,11 +111,11 @@ public:
 protected:
     void CollectLights();
 
-    RenderCollector::CollectionResult CollectEntities();
+    typename RenderProxyTracker::Diff CollectEntities();
 
-    RenderCollector::CollectionResult CollectAllEntities();
-    RenderCollector::CollectionResult CollectDynamicEntities();
-    RenderCollector::CollectionResult CollectStaticEntities();
+    typename RenderProxyTracker::Diff CollectAllEntities();
+    typename RenderProxyTracker::Diff CollectDynamicEntities();
+    typename RenderProxyTracker::Diff CollectStaticEntities();
 
     ViewRenderResource                                                  *m_render_resource;
 
@@ -137,7 +137,7 @@ protected:
     
     ResourceTracker<ID<Light>, LightRenderResource *>                   m_tracked_lights;
 
-    RenderCollector::CollectionResult                                   m_last_collection_result;
+    typename RenderProxyTracker::Diff                                   m_last_collection_result;
 };
 
 } // namespace hyperion

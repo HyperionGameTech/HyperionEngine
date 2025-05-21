@@ -1799,6 +1799,13 @@ void EditorSubsystem::InitContentBrowser()
         //     HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
         // }
 
+        // find a point light, try removing it
+        auto point_light_node = m_scene->GetRoot()->FindChildByName("PointLight");
+        if (point_light_node) {
+            point_light_node->Remove();
+        }
+
+        #if 0
         // debugging; temp
         for (const RC<ScreenCaptureRenderSubsystem> &screen_capture_render_subsystem : m_screen_capture_render_subsystems) {
             screen_capture_render_subsystem->RemoveFromEnvironment();
@@ -1811,6 +1818,7 @@ void EditorSubsystem::InitContentBrowser()
         }
 
         m_views.Clear();
+        #endif
 
         return UIEventHandlerResult::STOP_BUBBLING;
 

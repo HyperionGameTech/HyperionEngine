@@ -565,6 +565,57 @@ void EntityManager::MoveEntity(const Handle<Entity> &entity, const RC<EntityMana
     }
 }
 
+void EntityManager::GetAllComponents(Span<const TypeID> component_type_ids, ID<Entity> entity, Array<HypData> &out_components)
+{
+    for (const TypeID &component_type_id : component_type_ids) {
+        EnsureValidComponentType(component_type_id);
+    }
+
+    out_components.Resize(component_type_ids.Size());
+
+    if (!entity.IsValid()) {
+        return;
+    }
+    
+    MoveEntityGuard move_entity_guard(*this);
+    HYP_MT_CHECK_READ(m_entities_data_race_detector);
+    HYP_MT_CHECK_READ(m_containers_data_race_detector);
+
+    EntityData *entity_data = m_entities.TryGetEntityData(entity);
+
+    if (!entity_data) {
+        return;
+    }
+
+    for (SizeType index = 0; index < component_type_ids.Size(); ++index) {
+        const TypeID component_type_id = component_type_ids[index];
+
+        const auto component_it = entity_data->FindComponent(component_type_id);
+
+        if (component_it == entity_data->components.End()) {
+            continue;
+        }
+
+        const ComponentID component_id = component_it->second;
+
+        auto component_container_it = m_containers.Find(component_type_id);
+        AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+
+        ConstAnyRef component = component_container_it->second->TryGetComponent(component_id);
+        AssertThrowMsg(component.HasValue(), "Component does not exist in component container");
+
+        HypData hyp_data;
+
+        if (!ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id)->CreateInstance(hyp_data, component)) {
+            HYP_LOG(ECS, Error, "Failed to create component instance for type %u", component_type_id.Value());
+
+            continue;
+        }
+
+        out_components[index] = std::move(hyp_data);
+    }
+}
+
 void EntityManager::AddComponent(ID<Entity> entity_id, AnyRef component)
 {
     const TypeID component_type_id = component.GetTypeID();

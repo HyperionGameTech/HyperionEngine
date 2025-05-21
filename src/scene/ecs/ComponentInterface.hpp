@@ -63,6 +63,8 @@ public:
     virtual ComponentContainerFactoryBase *GetComponentContainerFactory() const = 0;
 
     virtual bool CreateInstance(HypData &out) const = 0;
+    virtual bool CreateInstance(HypData &out, ConstAnyRef other_ref) const = 0;
+
     virtual bool GetShouldSerialize() const = 0;
 
     virtual bool IsEntityTag() const = 0;
@@ -126,6 +128,23 @@ public:
 
     virtual bool CreateInstance(HypData &out) const override
         { return ComponentInterface_CreateInstance(GetClass(), out); }
+
+    virtual bool CreateInstance(HypData &out, ConstAnyRef other_ref) const override
+    {
+        if (!other_ref.HasValue()) {
+            return false;
+        }
+
+        if (!other_ref.Is<Component>()) {
+            return false;
+        }
+
+        if (!ComponentInterface_CreateInstance(GetClass(), out)) {
+            out.Get<Component>() = other_ref.Get<Component>();
+        }
+
+        return true;
+    }
 
     virtual bool GetShouldSerialize() const override
     {
@@ -206,6 +225,11 @@ public:
         out = HypData(EntityTagComponent<Tag> { });
 
         return true;
+    }
+
+    virtual bool CreateInstance(HypData &out, ConstAnyRef) const override
+    {
+        return CreateInstance(out);
     }
 
     virtual bool GetShouldSerialize() const override

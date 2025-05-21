@@ -7,6 +7,7 @@
 #include <scene/animation/Bone.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -22,6 +23,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+#include <core/object/HypData.hpp>
 
 #ifdef HYP_EDITOR
 #include <editor/EditorDelegates.hpp>
@@ -53,6 +55,36 @@ String NodeTag::ToString() const
 }
 
 #pragma endregion NodeTag
+
+#pragma region NodeDetachedEntityComponents
+
+class NodeDetachedEntityComponents
+{
+public:
+    NodeDetachedEntityComponents(Array<HypData> &&components)
+        : m_components(std::move(components))
+    {
+    }
+
+    NodeDetachedEntityComponents(const NodeDetachedEntityComponents &other)                 = delete;
+    NodeDetachedEntityComponents &operator=(const NodeDetachedEntityComponents &other)      = delete;
+
+    NodeDetachedEntityComponents(NodeDetachedEntityComponents &&other) noexcept             = default;
+    NodeDetachedEntityComponents &operator=(NodeDetachedEntityComponents &&other) noexcept  = default;
+
+    ~NodeDetachedEntityComponents()                                                         = default;
+
+    HYP_FORCE_INLINE Array<HypData> &GetComponents()
+        { return m_components; }
+
+    HYP_FORCE_INLINE const Array<HypData> &GetComponents() const
+        { return m_components; }
+
+private:
+    Array<HypData>  m_components;
+};
+
+#pragma endregion NodeDetachedEntityComponents
 
 #pragma region Node
 
@@ -752,9 +784,6 @@ void Node::SetEntity(const Handle<Entity> &entity)
     if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {
         // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
         m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
-
-        // Move entity to detached scene
-        m_scene->GetEntityManager()->MoveEntity(m_entity, GetDefaultScene()->GetEntityManager());
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr) {

@@ -503,7 +503,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     octree.CalculateVisibility(m_camera);
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    Task<RenderCollector::CollectionResult> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
+    Task<typename RenderProxyTracker::Diff> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
     {
         m_view_statics->Update(delta);
 
@@ -518,7 +518,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_view_statics->Update(delta);
     m_view_dynamics->Update(delta);
     
-    RenderCollector::CollectionResult statics_collection_result = m_view_statics->GetLastCollectionResult();
+    typename RenderProxyTracker::Diff statics_collection_result = m_view_statics->GetLastCollectionResult();
 #endif
 
     Octree const *fitting_octant = nullptr;
@@ -533,7 +533,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         .Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    RenderCollector::CollectionResult &statics_collection_result = statics_collection_task.Await();
+    typename RenderProxyTracker::Diff statics_collection_result = statics_collection_task.Await();
 #endif
 
     // Need to re-render static objects if:

@@ -280,19 +280,16 @@ void UIRenderCollector::PushRenderProxy(RenderProxyTracker &render_proxy_tracker
     m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker &render_proxy_tracker, const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker &render_proxy_tracker, const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
 {
     HYP_SCOPE;
 
     // UISubsystem can have Update() called on a task thread.
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = render_proxy_tracker.GetAdded().Count();
-    collection_result.num_removed_entities = render_proxy_tracker.GetRemoved().Count();
-    collection_result.num_changed_entities = render_proxy_tracker.GetChanged().Count();
+    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
-    if (collection_result.NeedsUpdate()) {
+    if (diff.NeedsUpdate()) {
         Array<ID<Entity>> removed_entities;
         render_proxy_tracker.GetRemoved(removed_entities, true /* include_changed */);
 
@@ -314,7 +311,7 @@ RenderCollector::CollectionResult UIRenderCollector::PushUpdatesToRenderThread(R
 
     render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    return collection_result;
+    return diff;
 }
 
 void UIRenderCollector::CollectDrawCalls(FrameBase *frame)

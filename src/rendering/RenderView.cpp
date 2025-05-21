@@ -205,7 +205,6 @@ ViewRenderResource::ViewRenderResource(View *view)
 
 ViewRenderResource::~ViewRenderResource()
 {
-    m_lights.Clear();
 }
 
 void ViewRenderResource::Initialize_Internal()
@@ -235,19 +234,33 @@ void ViewRenderResource::Destroy_Internal()
     HYP_SCOPE;
 
     // Unclaim all the claimed resources
-    // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
+    { // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
+        EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
+        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
 
-    EntityDrawCollection *collection = m_render_collector.GetDrawCollection();
-    RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+        Array<RenderProxy *> proxies;
+        render_proxy_tracker.GetCurrent(proxies);
 
-    Array<RenderProxy *> proxies;
-    render_proxy_tracker.GetCurrent(proxies);
-
-    for (RenderProxy *proxy : proxies) {
-        proxy->UnclaimRenderResource();
+        for (RenderProxy *proxy : proxies) {
+            proxy->UnclaimRenderResource();
+        }
     }
 
-    // @TODO: In order to properly unclaim lights, we'll need some weak version of TResourceHandle, so we can track if we can ressurect them
+    { // lights
+        Array<LightRenderResource *> lights;
+        m_tracked_lights.GetCurrent(lights);
+
+        for (LightRenderResource *light : lights) {
+            light->Unclaim();
+        }
+
+        m_tracked_lights.Reset();
+
+        // Empty the lights by LightType arrays
+        for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
+            m_lights[i].Clear();
+        }
+    }
 
     if (m_gbuffer) {
         DestroyRenderer();
@@ -603,17 +616,14 @@ void ViewRenderResource::SetPriority(int priority)
     });
 }
 
-RenderCollector::CollectionResult ViewRenderResource::UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker)
+typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies(RenderProxyTracker &render_proxy_tracker)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
-    RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = render_proxy_tracker.GetAdded().Count();
-    collection_result.num_removed_entities = render_proxy_tracker.GetRemoved().Count();
-    collection_result.num_changed_entities = render_proxy_tracker.GetChanged().Count();
+    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
-    if (collection_result.NeedsUpdate()) {
+    if (diff.NeedsUpdate()) {
         Array<ID<Entity>> removed_proxies;
         render_proxy_tracker.GetRemoved(removed_proxies, true /* include_changed */);
 
@@ -681,70 +691,62 @@ RenderCollector::CollectionResult ViewRenderResource::UpdateTrackedRenderProxies
 
     render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    return collection_result;
+    return diff;
 }
 
 void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource *> &tracked_lights)
 {
-    RenderCollector::CollectionResult collection_result { };
-    collection_result.num_added_entities = tracked_lights.GetAdded().Count();
-    collection_result.num_removed_entities = tracked_lights.GetRemoved().Count();
-    collection_result.num_changed_entities = tracked_lights.GetChanged().Count();
+    if (!tracked_lights.GetDiff().NeedsUpdate()) {
+        tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 
-    if (collection_result.NeedsUpdate()) {
-        Array<ID<Light>> removed_proxies;
-        tracked_lights.GetRemoved(removed_proxies, true /* include_changed */);
-
-        Array<Pair<ID<Light>, LightRenderResource **>> added_proxy_ptrs;
-        tracked_lights.GetAdded(added_proxy_ptrs, true /* include_changed */);
-
-        if (added_proxy_ptrs.Any() || removed_proxies.Any()) {
-            Array<Pair<ID<Light>, LightRenderResource *>, DynamicAllocator> added_proxies;
-            added_proxies.Reserve(added_proxy_ptrs.Size());
-    
-            for (Pair<ID<Light>, LightRenderResource **> &it : added_proxy_ptrs) {
-                // Ensure it doesn't get deleted while we queue the update txn
-                (*it.second)->Claim();
-
-                added_proxies.EmplaceBack(it.first, *it.second);
-            }
-
-            Execute([this, added_proxies = std::move(added_proxies), removed_proxies = std::move(removed_proxies)]() mutable
-            {
-                // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-                m_tracked_lights.Reserve(added_proxies.Size());
-
-                for (ID<Light> id : removed_proxies) {
-                    LightRenderResource **element_ptr = m_tracked_lights.GetElement(id);
-                    AssertDebug(element_ptr != nullptr);
-
-                    LightRenderResource *light_render_resource = *element_ptr;
-                    AssertDebug(light_render_resource);
-
-                    light_render_resource->Unclaim();
-
-                    m_lights[uint32(light_render_resource->GetLight()->GetLightType())].Erase(light_render_resource);
-
-                    m_tracked_lights.MarkToRemove(id);
-                }
-
-                for (Pair<ID<Light>, LightRenderResource *> &it : added_proxies) {
-                    const ID<Light> &id = it.first;
-
-                    LightRenderResource *light_render_resource = it.second;
-                    AssertDebug(light_render_resource);
-
-                    AssertDebug(!m_lights[uint32(light_render_resource->GetLight()->GetLightType())].Contains(light_render_resource));
-
-                    m_lights[uint32(light_render_resource->GetLight()->GetLightType())].PushBack(light_render_resource);
-
-                    m_tracked_lights.Track(id, light_render_resource);
-                }
-
-                m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
-            });
-        }
+        return;
     }
+
+    Array<ID<Light>, DynamicAllocator> removed;
+    tracked_lights.GetRemoved(removed, true /* include_changed */);
+
+    Array<LightRenderResource *, DynamicAllocator> added;
+    tracked_lights.GetAdded(added, true /* include_changed */);
+
+    for (LightRenderResource *light_render_resource : added) {
+        // Ensure it doesn't get deleted while we queue the update txn
+        light_render_resource->Claim();
+    }
+
+    Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
+    {
+        if (!m_tracked_lights.WasReset()) {
+            for (ID<Light> id : removed) {
+                LightRenderResource **element_ptr = m_tracked_lights.GetElement(id);
+                AssertDebug(element_ptr != nullptr);
+
+                LightRenderResource *light_render_resource = *element_ptr;
+                AssertDebug(light_render_resource);
+
+                const LightType light_type = light_render_resource->GetLight()->GetLightType();
+
+                auto it = m_lights[uint32(light_type)].Find(light_render_resource);
+                AssertDebug(it != m_lights[uint32(light_type)].End());
+                
+                m_lights[uint32(light_type)].Erase(it);
+
+                light_render_resource->Unclaim();
+
+                m_tracked_lights.MarkToRemove(id);
+            }
+        }
+
+        for (LightRenderResource *light_render_resource : added) {
+            const LightType light_type = light_render_resource->GetLight()->GetLightType();
+            AssertDebug(!m_lights[uint32(light_type)].Contains(light_render_resource));
+
+            m_lights[uint32(light_type)].PushBack(light_render_resource);
+
+            m_tracked_lights.Track(light_render_resource->GetLight()->GetID(), light_render_resource);
+        }
+
+        m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
+    });
 
     tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }

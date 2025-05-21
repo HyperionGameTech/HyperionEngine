@@ -338,10 +338,9 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         AssertThrow(m_view.IsValid());
         m_view->Update(delta);
 
-        // @TODO: Refactor so it reuses View::Update()'s collected entities instead of recollecting
-        RenderCollector::CollectionResult collection_result = m_view->GetLastCollectionResult();
+        typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
 
-        if (collection_result.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {
+        if (diff.NeedsUpdate() || m_octant_hash_code != octant_hash_code) {
             SetNeedsRender(true);
         }
 

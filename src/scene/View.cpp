@@ -115,7 +115,7 @@ void View::SetPriority(int priority)
     }
 }
 
-RenderCollector::CollectionResult View::CollectEntities()
+typename RenderProxyTracker::Diff View::CollectEntities()
 {
     AssertReady();
 
@@ -131,7 +131,7 @@ RenderCollector::CollectionResult View::CollectEntities()
     }
 }
 
-RenderCollector::CollectionResult View::CollectAllEntities()
+typename RenderProxyTracker::Diff View::CollectAllEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -195,7 +195,7 @@ RenderCollector::CollectionResult View::CollectAllEntities()
     return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
-RenderCollector::CollectionResult View::CollectDynamicEntities()
+typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -250,7 +250,7 @@ RenderCollector::CollectionResult View::CollectDynamicEntities()
     return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
 }
 
-RenderCollector::CollectionResult View::CollectStaticEntities()
+typename RenderProxyTracker::Diff View::CollectStaticEntities()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);

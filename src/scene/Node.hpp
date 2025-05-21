@@ -163,6 +163,8 @@ struct NodeTag
 
 struct NodeUnlockTransformScope;
 
+class NodeDetachedEntityComponents;
+
 HYP_CLASS()
 class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
 {
@@ -659,33 +661,33 @@ protected:
     void GetEditorDelegates(Function &&func);
 #endif
 
-    Type                        m_type = Type::NODE;
-    EnumFlags<NodeFlags>        m_flags = NodeFlags::NONE;
-    String                      m_name;    
-    Node                        *m_parent_node;
-    NodeList                    m_child_nodes;
-    Transform                   m_local_transform;
-    Transform                   m_world_transform;
-    BoundingBox                 m_entity_aabb;
+    Type                            m_type = Type::NODE;
+    EnumFlags<NodeFlags>            m_flags = NodeFlags::NONE;
+    String                          m_name;    
+    Node                            *m_parent_node;
+    NodeList                        m_child_nodes;
+    Transform                       m_local_transform;
+    Transform                       m_world_transform;
+    BoundingBox                     m_entity_aabb;
 
-    Handle<Entity>              m_entity;
+    Handle<Entity>                  m_entity;
 
-    Array<Node *>               m_descendants;
+    Array<Node *>                   m_descendants;
 
-    Scene                       *m_scene;
+    Scene                           *m_scene;
 
-    bool                        m_transform_locked;
+    bool                            m_transform_locked;
 
     // has the transform been updated since the entity has been set or transform has been unlocked?
-    bool                        m_transform_changed;
+    bool                            m_transform_changed;
 
-    UniquePtr<Delegates>        m_delegates;
+    UniquePtr<Delegates>            m_delegates;
 
     HYP_FIELD(Property="Tags", Serialize=true)
-    NodeTagSet                  m_tags;
+    NodeTagSet                      m_tags;
 
     HYP_FIELD(Property="UUID", Serialize=true)
-    UUID                        m_uuid;
+    UUID                            m_uuid;
 };
 
 struct NodeUnlockTransformScope

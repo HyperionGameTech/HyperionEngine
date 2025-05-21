@@ -166,7 +166,21 @@ public:
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
 
-    ResourceTracker()                                               = default;
+    struct Diff
+    {
+        uint32  num_added = 0;
+        uint32  num_removed = 0;
+        uint32  num_changed = 0;
+
+        HYP_FORCE_INLINE bool NeedsUpdate() const
+            { return num_added > 0 || num_removed > 0 || num_changed > 0; }
+    };
+
+    ResourceTracker()
+        : m_was_reset(true)
+    {
+    }
+
     ResourceTracker(const ResourceTracker &other)                   = delete;
     ResourceTracker &operator=(const ResourceTracker &other)        = delete;
     ResourceTracker(ResourceTracker &&other) noexcept               = default;
@@ -202,6 +216,20 @@ public:
 
     HYP_FORCE_INLINE const Bitset &GetChanged() const
         { return m_changed; }
+
+    HYP_FORCE_INLINE bool WasReset() const
+        { return m_was_reset; }
+
+    Diff GetDiff() const
+    {
+        Diff diff;
+
+        diff.num_added = GetAdded().Count();
+        diff.num_removed = GetRemoved().Count();
+        diff.num_changed = GetChanged().Count();
+
+        return diff;
+    }
 
     HYP_FORCE_INLINE void Reserve(SizeType capacity)
         { m_element_map.Reserve(capacity); }
@@ -288,7 +316,8 @@ public:
         m_next.Set(id.ToIndex(), false);
     }
 
-    void GetRemoved(Array<IDType> &out_ids, bool include_changed)
+    template <class AllocatorType>
+    void GetRemoved(Array<IDType, AllocatorType> &out_ids, bool include_changed)
     {
         HYP_SCOPE;
 
@@ -309,7 +338,35 @@ public:
         }
     }
 
-    void GetAdded(Array<ElementType *> &out, bool include_changed)
+    template <class AllocatorType>
+    void GetAdded(Array<ElementType, AllocatorType> &out, bool include_changed)
+    {
+        HYP_SCOPE;
+        
+        Bitset newly_added_bits = GetAdded();
+
+        if (include_changed) {
+            newly_added_bits |= GetChanged();
+        }
+
+        out.Reserve(newly_added_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(it->second);
+
+            newly_added_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetAdded(Array<ElementType *, AllocatorType> &out, bool include_changed)
     {
         HYP_SCOPE;
         
@@ -335,33 +392,8 @@ public:
         }
     }
 
-    void GetAdded(Array<Pair<IDType, ElementType *>> &out, bool include_changed)
-    {
-        HYP_SCOPE;
-        
-        Bitset newly_added_bits = GetAdded();
-
-        if (include_changed) {
-            newly_added_bits |= GetChanged();
-        }
-
-        out.Reserve(newly_added_bits.Count());
-
-        Bitset::BitIndex first_set_bit_index;
-
-        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
-            const IDType id = IDType::FromIndex(first_set_bit_index);
-
-            auto it = m_element_map.Find(id);
-            AssertThrow(it != m_element_map.End());
-
-            out.EmplaceBack(id, &it->second);
-
-            newly_added_bits.Set(first_set_bit_index, false);
-        }
-    }
-
-    void GetCurrent(Array<ElementType *> &out)
+    template <class AllocatorType>
+    void GetCurrent(Array<ElementType *, AllocatorType> &out)
     {
         HYP_SCOPE;
 
@@ -383,6 +415,29 @@ public:
         }
     }
 
+    template <class AllocatorType>
+    void GetCurrent(Array<ElementType, AllocatorType> &out)
+    {
+        HYP_SCOPE;
+
+        Bitset current_bits = m_previous;
+
+        out.Reserve(current_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(it->second);
+
+            current_bits.Set(first_set_bit_index, false);
+        }
+    }
+
     ElementType *GetElement(IDType id)
     {
         const auto it = m_element_map.Find(id);
@@ -397,6 +452,8 @@ public:
     void Advance(RenderProxyListAdvanceAction action)
     {
         HYP_SCOPE;
+
+        m_was_reset = false;
 
         { // Remove proxies for removed bits
             for (Bitset::BitIndex index : GetRemoved()) {
@@ -438,6 +495,8 @@ public:
         m_previous.Clear();
         m_next.Clear();
         m_changed.Clear();
+
+        m_was_reset = true;
     }
 
 protected:
@@ -446,6 +505,8 @@ protected:
     Bitset  m_previous;
     Bitset  m_next;
     Bitset  m_changed;
+
+    bool    m_was_reset;
 };
 
 using RenderProxyTracker = ResourceTracker<ID<Entity>, RenderProxy>;
