@@ -9,25 +9,23 @@ namespace Hyperion
         internal static extern void Handle_Get(TypeID type_id, IntPtr headerPtr, [Out] out HypDataBuffer outHypDataBuffer);
 
         [DllImport("hyperion", EntryPoint = "Handle_Set")]
-        internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr outHeaderPtr, [Out] out IntPtr outPtr);
+        internal static extern void Handle_Set(TypeID type_id, [In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr outHeaderPtr);
 
 
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
         internal static extern void Handle_Destruct(IntPtr headerPtr);
     }
 
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Sequential, Size = 8)]
     public struct Handle<T> : IDisposable where T : HypObject
     {
         public static readonly Handle<T> Empty = new Handle<T>();
 
         private IntPtr header;
-        private IntPtr ptr;
 
         public Handle()
         {
             this.header = IntPtr.Zero;
-            this.ptr = IntPtr.Zero;
         }
 
         public Handle(T? value)
@@ -35,8 +33,7 @@ namespace Hyperion
             if (value == null)
             {
                 header = IntPtr.Zero;
-                ptr = IntPtr.Zero;
-                
+
                 return;
             }
 
@@ -49,7 +46,7 @@ namespace Hyperion
 
             using (HypData hypData = new HypData((T)value))
             {
-                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ref hypData.Buffer, out header, out ptr);
+                ManagedHandleNativeBindings.Handle_Set(((HypClass)hypClass).TypeID, ref hypData.Buffer, out header);
             }
         }
 
@@ -60,7 +57,6 @@ namespace Hyperion
                 ManagedHandleNativeBindings.Handle_Destruct(header);
 
                 header = IntPtr.Zero;
-                ptr = IntPtr.Zero;
             }
         }
 
@@ -68,7 +64,7 @@ namespace Hyperion
         {
             get
             {
-                return header != IntPtr.Zero && ptr != IntPtr.Zero;
+                return header != IntPtr.Zero;
             }
         }
 

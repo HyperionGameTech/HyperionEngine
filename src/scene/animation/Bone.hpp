@@ -27,7 +27,7 @@ public:
     Bone(const String &name = String::empty);
     Bone(const Bone &other)             = delete;
     Bone &operator=(const Bone &other)  = delete;
-    ~Bone();
+    virtual ~Bone() override;
 
     Vec3f GetOffsetTranslation() const;
     Quaternion GetOffsetRotation() const;

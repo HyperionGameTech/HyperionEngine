@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="ReflectionProbeComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 40)]
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct ReflectionProbeComponent : IComponent
     {
         [FieldOffset(0)]
@@ -13,7 +13,7 @@ namespace Hyperion
         [FieldOffset(8)]
         private Handle<EnvProbe> envProbeHandle;
 
-        [FieldOffset(24)]
+        [FieldOffset(16)]
         private RefCountedPtr renderSubsystem;
 
         public ReflectionProbeComponent()

@@ -10,7 +10,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 272)]
+    [StructLayout(LayoutKind.Explicit, Size = 256)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -22,22 +22,22 @@ namespace Hyperion
         [FieldOffset(16)]
         private Handle<Skeleton> skeletonHandle;
 
-        [FieldOffset(40)]
+        [FieldOffset(24)]
         private MeshInstanceData instanceData;
 
-        [FieldOffset(144)]
+        [FieldOffset(128)]
         private IntPtr proxyPtr;
 
-        [FieldOffset(152)]
+        [FieldOffset(136)]
         private uint meshComponentFlags;
 
-        [FieldOffset(160)]
+        [FieldOffset(144)]
         private Matrix4 previousModelMatrix;
 
-        [FieldOffset(224)]
+        [FieldOffset(208)]
         private IntPtr raytracingDataPtr;
 
-        [FieldOffset(240)]
+        [FieldOffset(224)]
         private fixed byte userData[32];
 
         public void Dispose()

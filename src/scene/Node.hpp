@@ -219,7 +219,7 @@ public:
     Node &operator=(const Node &other)  = delete;
     Node(Node &&other) noexcept;
     Node &operator=(Node &&other) noexcept;
-    ~Node();
+    virtual ~Node();
 
     /*! \brief Get the UUID of the Node. */
     HYP_METHOD()
