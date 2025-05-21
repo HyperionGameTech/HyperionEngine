@@ -48,7 +48,7 @@ EditorProject::EditorProject(Name name)
     camera->SetNear(0.1f);
     camera->SetFar(3000.0f);
 
-    NodeProxy camera_node = m_scene->GetRoot()->AddChild();
+    Handle<Node> camera_node = m_scene->GetRoot()->AddChild();
     camera_node->SetName(camera->GetName().LookupString());
     
     Handle<Entity> camera_entity = m_scene->GetEntityManager()->AddEntity();

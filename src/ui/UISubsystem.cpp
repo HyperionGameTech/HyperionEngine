@@ -79,7 +79,7 @@ void UISubsystem::Update(GameCounter::TickUnit delta)
         {
             AssertThrow(ui_object != nullptr);
 
-            const NodeProxy &node = ui_object->GetNode();
+            const Handle<Node> &node = ui_object->GetNode();
             AssertThrow(node.IsValid());
 
             const Handle<Entity> &entity = node->GetEntity();

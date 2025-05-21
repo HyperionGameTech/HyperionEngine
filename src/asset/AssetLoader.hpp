@@ -220,34 +220,6 @@ public:
     }
 };
 
-template <>
-struct AssetLoaderWrapper<Node>
-{
-    using CastedType = NodeProxy;
-
-    AssetLoaderBase &loader;
-
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
-    {
-        auto result = value.TryGet<NodeProxy>();
-
-        if (!result) {
-            return CastedType { };
-        }
-
-        if (*result) {
-            (*result)->SetScene(nullptr); 
-        }
-
-        return *result;
-    }
-
-    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
-        : loader(loader)
-    {
-    }
-};
-
 // AssetLoader
 class AssetLoader : public AssetLoaderBase
 {

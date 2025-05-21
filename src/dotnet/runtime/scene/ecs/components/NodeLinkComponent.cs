@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="NodeLinkComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct NodeLinkComponent : IComponent
     {
         [FieldOffset(0)]
-        private WeakRefCountedPtr<Node> node;
+        private WeakHandle<Node> node;
 
         public NodeLinkComponent()
         {

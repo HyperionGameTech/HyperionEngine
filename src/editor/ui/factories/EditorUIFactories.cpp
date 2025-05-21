@@ -383,15 +383,15 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIElementFactory);
 
-class EditorWeakNodeFactory : public UIElementFactory<Weak<Node>, EditorWeakNodeFactory>
+class EditorWeakNodeFactory : public UIElementFactory<WeakHandle<Node>, EditorWeakNodeFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const Weak<Node> &value) const
+    RC<UIObject> Create(UIObject *parent, const WeakHandle<Node> &value) const
     {
         String node_name = "Invalid";
         UUID node_uuid = UUID::Invalid();
 
-        if (RC<Node> node_rc = value.Lock()) {
+        if (Handle<Node> node_rc = value.Lock()) {
             node_name = node_rc->GetName();
             node_uuid = node_rc->GetUUID();
         } else {
@@ -404,12 +404,12 @@ public:
         return text;
     }
 
-    void Update(UIObject *ui_object, const Weak<Node> &value) const
+    void Update(UIObject *ui_object, const WeakHandle<Node> &value) const
     {
         static const String invalid_node_name = "<Invalid>";
 
         if (UIText *text = dynamic_cast<UIText *>(ui_object)) {
-            if (RC<Node> node_rc = value.Lock()) {
+            if (Handle<Node> node_rc = value.Lock()) {
                 text->SetText(node_rc->GetName());
             } else {
                 text->SetText(invalid_node_name);
@@ -418,7 +418,7 @@ public:
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(Weak<Node>, EditorWeakNodeFactory);
+HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Node>, EditorWeakNodeFactory);
 
 class EntityUIElementFactory : public UIElementFactory<Handle<Entity>, EntityUIElementFactory>
 {
@@ -442,7 +442,7 @@ public:
             {
                 HYP_LOG(Editor, Debug, "Add Entity clicked");
 
-                if (RC<Node> node_rc = node_weak.Lock()) {
+                if (Handle<Node> node_rc = node_weak.Lock()) {
                     world->GetSubsystem<EditorSubsystem>()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
                         NAME("NodeSetEntity"),
                         [node_rc, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
@@ -778,7 +778,7 @@ class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef,
 public:
     RC<UIObject> Create(UIObject *parent, const EditorNodePropertyRef &value) const
     {
-        RC<Node> node_rc = value.node.Lock();
+        Handle<Node> node_rc = value.node.Lock();
         
         if (!node_rc) {
             HYP_LOG(Editor, Error, "Node reference is invalid, cannot create UI element for property \"{}\"", value.title);
@@ -843,7 +843,7 @@ public:
     {
         // @TODO Implement without recreating the UI element
 
-        // RC<Node> node_rc = value.node.Lock();
+        // Handle<Node> node_rc = value.node.Lock();
         // AssertThrow(node_rc != nullptr);
 
         // UIElementFactoryBase *factory = GetEditorUIElementFactory(value.property->GetTypeID());

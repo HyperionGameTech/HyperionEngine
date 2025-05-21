@@ -8,7 +8,6 @@
 #include <editor/EditorTask.hpp>
 
 #include <scene/Subsystem.hpp>
-#include <scene/NodeProxy.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
@@ -118,10 +117,10 @@ public:
     EditorManipulationWidgetBase();
     virtual ~EditorManipulationWidgetBase() = default;
 
-    HYP_FORCE_INLINE const NodeProxy &GetNode() const
+    HYP_FORCE_INLINE const Handle<Node> &GetNode() const
         { return m_node; }
 
-    HYP_FORCE_INLINE const NodeProxy &GetFocusedNode() const
+    HYP_FORCE_INLINE const Handle<Node> &GetFocusedNode() const
         { return m_focused_node; }
 
     HYP_FORCE_INLINE bool IsDragging() const
@@ -135,25 +134,25 @@ public:
     virtual int GetPriority() const
         { return -1; }
     
-    virtual void UpdateWidget(const NodeProxy &focused_node);
+    virtual void UpdateWidget(const Handle<Node> &focused_node);
 
-    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint);
-    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node);
+    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node, const Vec3f &hitpoint);
+    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node);
 
-    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node)
         { return false; }
 
-    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node)
         { return false; }
 
-    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node)
+    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node)
         { return false; }
 
 protected:
-    virtual NodeProxy Load_Internal() const = 0;
+    virtual Handle<Node> Load_Internal() const = 0;
 
-    NodeProxy   m_focused_node;
-    NodeProxy   m_node;
+    Handle<Node>   m_focused_node;
+    Handle<Node>   m_node;
 
 private:
     bool        m_is_dragging;
@@ -171,8 +170,8 @@ public:
         { return EditorManipulationMode::NONE; }
 
 protected:
-    virtual NodeProxy Load_Internal() const override
-        { return NodeProxy::empty; }
+    virtual Handle<Node> Load_Internal() const override
+        { return Handle<Node>::empty; }
 };
 
 HYP_CLASS()
@@ -189,12 +188,12 @@ public:
     virtual int GetPriority() const override
         { return 0; }
 
-    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node, const Vec3f &hitpoint) override;
-    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual void OnDragStart(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node, const Vec3f &hitpoint) override;
+    virtual void OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node) override;
 
-    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
-    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
-    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const NodeProxy &node) override;
+    virtual bool OnMouseHover(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node) override;
+    virtual bool OnMouseLeave(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node) override;
+    virtual bool OnMouseMove(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node) override;
 
 protected:
     struct DragData
@@ -206,7 +205,7 @@ protected:
         Vec3f   node_origin;
     };
 
-    virtual NodeProxy Load_Internal() const override;
+    virtual Handle<Node> Load_Internal() const override;
 
     Optional<DragData>  m_drag_data;
 };
@@ -282,7 +281,7 @@ public:
     void AddTask(const RC<IEditorTask> &task);
 
     HYP_METHOD()
-    void SetFocusedNode(const NodeProxy &focused_node);
+    void SetFocusedNode(const Handle<Node> &focused_node);
 
     HYP_METHOD()
     void AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_overlay);
@@ -291,13 +290,13 @@ public:
     bool RemoveDebugOverlay(WeakName name);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const NodeProxy &GetFocusedNode() const
+    HYP_FORCE_INLINE const Handle<Node> &GetFocusedNode() const
         { return m_focused_node; }
 
     HYP_FORCE_INLINE EditorDelegates *GetEditorDelegates()
         { return m_editor_delegates; }
 
-    Delegate<void, const NodeProxy &, const NodeProxy &>    OnFocusedNodeChanged;
+    Delegate<void, const Handle<Node> &, const Handle<Node> &>    OnFocusedNodeChanged;
 
     Delegate<void, const Handle<EditorProject> &>           OnProjectClosing;
     Delegate<void, const Handle<EditorProject> &>           OnProjectOpened;
@@ -327,7 +326,7 @@ private:
     void SetHoveredManipulationWidget(
         const MouseEvent &event,
         EditorManipulationWidgetBase *manipulation_widget,
-        const NodeProxy &manipulation_widget_node
+        const Handle<Node> &manipulation_widget_node
     );
 
     HYP_FORCE_INLINE bool IsHoveringManipulationWidget() const
@@ -347,14 +346,14 @@ private:
 
     EditorManipulationWidgetHolder                                      m_manipulation_widget_holder;
     Weak<EditorManipulationWidgetBase>                                  m_hovered_manipulation_widget;
-    Weak<Node>                                                          m_hovered_manipulation_widget_node;
+    WeakHandle<Node>                                                          m_hovered_manipulation_widget_node;
 
     Handle<Texture>                                                     m_scene_texture;
     RC<UIObject>                                                        m_main_panel;
 
-    NodeProxy                                                           m_focused_node;
+    Handle<Node>                                                           m_focused_node;
     // the actual node that displays the highlight for the focused item
-    NodeProxy                                                           m_highlight_node;
+    Handle<Node>                                                           m_highlight_node;
 
     bool                                                                m_editor_camera_enabled;
     bool                                                                m_should_cancel_next_click;

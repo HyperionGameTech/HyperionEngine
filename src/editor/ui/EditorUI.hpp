@@ -8,7 +8,7 @@
 
 #include <core/containers/String.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Handle.hpp>
 
 #include <core/Defines.hpp>
 
@@ -21,7 +21,7 @@ struct EditorNodePropertyRef
 {
     String              title;
     Optional<String>    description;
-    Weak<Node>          node;
+    WeakHandle<Node>    node;
     HypProperty         *property = nullptr;
 };
 

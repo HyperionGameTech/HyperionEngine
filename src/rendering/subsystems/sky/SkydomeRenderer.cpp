@@ -53,7 +53,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
     
     InitObject(m_camera);
 
-    NodeProxy camera_node = m_virtual_scene->GetRoot()->AddChild();
+    Handle<Node> camera_node = m_virtual_scene->GetRoot()->AddChild();
     camera_node->SetName("SkydomeRendererCamera");
     
     Handle<Entity> camera_entity = m_virtual_scene->GetEntityManager()->AddEntity();
@@ -86,9 +86,9 @@ void SkydomeRenderer::InitGame()
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
     if (dome_node_asset.HasValue()) {
-        NodeProxy dome_node = NodeProxy(dome_node_asset->Result());
-        dome_node.Scale(Vec3f(10.0f));
-        dome_node.LockTransform();
+        Handle<Node> dome_node = dome_node_asset->Result();
+        dome_node->Scale(Vec3f(10.0f));
+        dome_node->LockTransform();
 
         m_virtual_scene->GetRoot()->AddChild(dome_node);
     }

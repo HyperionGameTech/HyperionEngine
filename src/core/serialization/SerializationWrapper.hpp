@@ -11,13 +11,12 @@
 namespace hyperion {
 
 class Node;
-class NodeProxy;
 
 template <class T>
 struct SerializationWrapper
 {
     using Type = std::conditional_t<
-        has_handle_definition<T>,
+        has_handle_definition<T> && !std::is_same_v<T, Node>,
         Handle<T>,
         T
     >;
@@ -64,7 +63,7 @@ struct SerializationWrapperReverseMapping<RC<T>> { using Type = T; };
 template <>
 struct SerializationWrapper<Node>
 {
-    using Type = NodeProxy;
+    using Type = Handle<Node>;
 
     HYP_API static Node &Unwrap(const Type &value);
 
@@ -72,7 +71,7 @@ struct SerializationWrapper<Node>
 };
 
 template <>
-struct SerializationWrapperReverseMapping<NodeProxy> { using Type = Node; };
+struct SerializationWrapperReverseMapping<Handle<Node>> { using Type = Node; };
 
 } // namespace hyperion
 

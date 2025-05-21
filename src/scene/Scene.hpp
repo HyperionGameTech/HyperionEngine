@@ -4,7 +4,6 @@
 #define HYPERION_SCENE_HPP
 
 #include <scene/Node.hpp>
-#include <scene/NodeProxy.hpp>
 #include <scene/Entity.hpp>
 #include <scene/Octree.hpp>
 #include <scene/camera/Camera.hpp>
@@ -139,17 +138,17 @@ public:
         { m_name = name; }
 
     HYP_METHOD()
-    HYP_NODISCARD NodeProxy FindNodeWithEntity(ID<Entity> entity) const;
+    HYP_NODISCARD Handle<Node> FindNodeWithEntity(ID<Entity> entity) const;
 
     HYP_METHOD()
-    HYP_NODISCARD NodeProxy FindNodeByName(UTF8StringView name) const;
+    HYP_NODISCARD Handle<Node> FindNodeByName(UTF8StringView name) const;
     
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
-    HYP_FORCE_INLINE const NodeProxy &GetRoot() const
-        { return m_root_node_proxy; }
+    HYP_FORCE_INLINE const Handle<Node> &GetRoot() const
+        { return m_root; }
 
     HYP_METHOD(Property="Root", Serialize=true, Editor=true)
-    void SetRoot(const NodeProxy &root);
+    void SetRoot(const Handle<Node> &root);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const RC<EntityManager> &GetEntityManager() const
@@ -207,7 +206,7 @@ public:
     
     void EnqueueRenderUpdates();
 
-    Delegate<void, const NodeProxy & /* new */, const NodeProxy & /* prev */>   OnRootNodeChanged;
+    Delegate<void, const Handle<Node> & /* new */, const Handle<Node> & /* prev */>   OnRootNodeChanged;
 
 private:
     template <class SystemType>
@@ -219,7 +218,7 @@ private:
     HYP_FIELD(Property="Flags", Serialize=true)
     EnumFlags<SceneFlags>       m_flags;
 
-    NodeProxy                   m_root_node_proxy;
+    Handle<Node>                m_root;
 
     ThreadID                    m_owner_thread_id;
 

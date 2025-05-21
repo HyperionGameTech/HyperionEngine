@@ -75,7 +75,7 @@ TResult<String> MapToCSharpType(const ASTType *type)
             { "FilePath", "string" },
             { "ByteBuffer", "byte[]" },
             { "ID", "IDBase" },
-            { "NodeProxy", "Node" },
+            { "Handle<Node>", "Node" },
             { "Name", "Name" },
             { "WeakName", "Name" },
             { "AnyHandle", "object" },

@@ -32,6 +32,8 @@ namespace Hyperion
                     return;
                 }
 
+                //@FIXME Dispose would need to get called on all components to ensure proper refcounts.
+                // We should just decrement the ref count that was added by Handle<T> (C#) and just use the managed ref count (by HypObject_OnIncRefCount)
                 lightHandle = new Handle<Light>(value);
             }
         }

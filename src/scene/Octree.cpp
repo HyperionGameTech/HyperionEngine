@@ -1259,7 +1259,7 @@ bool Octree::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) 
                         continue;
                     } else {
                         NodeLinkComponent *node_link_component = m_entity_manager->TryGetComponent<NodeLinkComponent>(entry.entity.GetID());
-                        RC<Node> node = node_link_component ? node_link_component->node.Lock() : nullptr;
+                        Handle<Node> node = node_link_component ? node_link_component->node.Lock() : nullptr;
 
                         HYP_LOG(Octree, Warning,
                             "Entity #{} (node: {}) does not have a BVH component, using AABB instead",

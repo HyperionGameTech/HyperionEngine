@@ -123,7 +123,7 @@ Node::Node(
     SetEntity(entity);
 
     if (scene != nullptr) {
-        for (const NodeProxy &child : m_child_nodes) {
+        for (const Handle<Node> &child : m_child_nodes) {
             if (!child.IsValid()) {
                 continue;
             }
@@ -164,7 +164,7 @@ Node::Node(Node &&other) noexcept
     m_child_nodes = std::move(other.m_child_nodes);
     m_descendants = std::move(other.m_descendants);
 
-    for (const NodeProxy &node : m_child_nodes) {
+    for (const Handle<Node> &node : m_child_nodes) {
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
@@ -221,7 +221,7 @@ Node &Node::operator=(Node &&other) noexcept
     m_child_nodes = std::move(other.m_child_nodes);
     m_descendants = std::move(other.m_descendants);
 
-    for (const NodeProxy &node : m_child_nodes) {
+    for (const Handle<Node> &node : m_child_nodes) {
         AssertThrow(node.IsValid());
 
         node->m_parent_node = this;
@@ -233,7 +233,7 @@ Node &Node::operator=(Node &&other) noexcept
 
 Node::~Node()
 {
-    for (const NodeProxy &child : m_child_nodes) {
+    for (const Handle<Node> &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -367,7 +367,7 @@ void Node::SetScene(Scene *scene)
         }
     }
 
-    for (const NodeProxy &child : m_child_nodes) {
+    for (const Handle<Node> &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -405,10 +405,10 @@ void Node::OnNestedNodeRemoved(Node *node, bool direct)
     }
 }
 
-NodeProxy Node::AddChild(const NodeProxy &node)
+Handle<Node> Node::AddChild(const Handle<Node> &node)
 {
     if (!node.IsValid()) {
-        return AddChild(NodeProxy(MakeRefCountedPtr<Node>()));
+        return AddChild(Handle<Node>(CreateObject<Node>()));
     }
 
     if (node.Get() == this || node->GetParent() == this) {
@@ -470,7 +470,7 @@ bool Node::RemoveChild(NodeList::Iterator iter)
         return false;
     }
 
-    if (const NodeProxy &node = *iter) {
+    if (const Handle<Node> &node = *iter) {
         AssertThrow(node.IsValid());
         AssertThrow(node->GetParent() == this);
 
@@ -542,7 +542,7 @@ void Node::Remove()
 void Node::RemoveAllChildren()
 {
     for (auto it = m_child_nodes.begin(); it != m_child_nodes.end();) {
-        if (const NodeProxy &node = *it) {
+        if (const Handle<Node> &node = *it) {
             AssertThrow(node.IsValid());
             AssertThrow(node->GetParent() == this);
 
@@ -570,22 +570,22 @@ void Node::RemoveAllChildren()
     UpdateWorldTransform();
 }
 
-NodeProxy Node::GetChild(int index) const
+Handle<Node> Node::GetChild(int index) const
 {
     if (index < 0) {
         index = int(m_child_nodes.Size()) + index;
     }
 
     if (index >= m_child_nodes.Size()) {
-        return NodeProxy::empty;
+        return Handle<Node>::empty;
     }
 
     return m_child_nodes[index];
 }
 
-NodeProxy Node::Select(UTF8StringView selector) const
+Handle<Node> Node::Select(UTF8StringView selector) const
 {
-    NodeProxy result;
+    Handle<Node> result;
 
     if (selector.Size() == 0) {
         return result;
@@ -612,14 +612,14 @@ NodeProxy Node::Select(UTF8StringView selector) const
             const auto it = search_node->FindChild(buffer);
 
             if (it == search_node->GetChildren().End()) {
-                return NodeProxy::empty;
+                return Handle<Node>::empty;
             }
 
             search_node = it->Get();
             result = *it;
 
             if (!search_node) {
-                return NodeProxy::empty;
+                return Handle<Node>::empty;
             }
 
             buffer_index = 0;
@@ -632,7 +632,7 @@ NodeProxy Node::Select(UTF8StringView selector) const
                 HYP_LOG(Node, Warning, "Node search string too long, must be within buffer size limit of {}",
                     std::size(buffer));
 
-                return NodeProxy::empty;
+                return Handle<Node>::empty;
             }
         }
 
@@ -644,7 +644,7 @@ NodeProxy Node::Select(UTF8StringView selector) const
         const auto it = search_node->FindChild(buffer);
 
         if (it == search_node->GetChildren().End()) {
-            return NodeProxy::empty;
+            return Handle<Node>::empty;
         }
 
         search_node = it->Get();
@@ -674,7 +674,11 @@ Node::NodeList::Iterator Node::FindChild(const char *name)
 {
     return m_child_nodes.FindIf([name](const auto &it)
     {
-        return it.GetName() == name;
+        if (!it.IsValid()) {
+            return false;
+        }
+
+        return it->GetName() == name;
     });
 }
 
@@ -682,7 +686,11 @@ Node::NodeList::ConstIterator Node::FindChild(const char *name) const
 {
     return m_child_nodes.FindIf([name](const auto &it)
     {
-        return it.GetName() == name;
+        if (!it.IsValid()) {
+            return false;
+        }
+
+        return it->GetName() == name;
     });
 }
 
@@ -702,7 +710,7 @@ void Node::LockTransform()
         m_transform_changed = false;
     }
 
-    for (const NodeProxy &child : m_child_nodes) {
+    for (const Handle<Node> &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -715,7 +723,7 @@ void Node::UnlockTransform()
 {
     m_transform_locked = false;
 
-    for (const NodeProxy &child : m_child_nodes) {
+    for (const Handle<Node> &child : m_child_nodes) {
         if (!child.IsValid()) {
             continue;
         }
@@ -807,9 +815,9 @@ void Node::SetEntity(const Handle<Entity> &entity)
         
         // Update / add a NodeLinkComponent to the new entity
         if (NodeLinkComponent *node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity)) {
-            node_link_component->node = WeakRefCountedPtrFromThis();
+            node_link_component->node = WeakHandleFromThis();
         } else {
-            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, { WeakRefCountedPtrFromThis() });
+            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, { WeakHandleFromThis() });
         }
 
         if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity)) {
@@ -855,7 +863,7 @@ BoundingBox Node::GetLocalAABBExcludingSelf() const
 {
     BoundingBox aabb = BoundingBox::Zero();
 
-    for (const NodeProxy &child : GetChildren()) {
+    for (const Handle<Node> &child : GetChildren()) {
         if (!child.IsValid()) {
             continue;
         }
@@ -872,7 +880,7 @@ BoundingBox Node::GetLocalAABB() const
 {
     BoundingBox aabb = m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero();
 
-    for (const NodeProxy &child : GetChildren()) {
+    for (const Handle<Node> &child : GetChildren()) {
         if (!child.IsValid()) {
             continue;
         }
@@ -889,7 +897,7 @@ BoundingBox Node::GetWorldAABB() const
 {
     BoundingBox aabb = m_world_transform * (m_entity_aabb.IsValid() ? m_entity_aabb : BoundingBox::Zero());
 
-    for (const NodeProxy &child : GetChildren()) {
+    for (const Handle<Node> &child : GetChildren()) {
         if (!child.IsValid()) {
             continue;
         }
@@ -974,7 +982,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
     }
 
     if (update_child_transforms) {
-        for (const NodeProxy &node : m_child_nodes) {
+        for (const Handle<Node> &node : m_child_nodes) {
             node->UpdateWorldTransform(true);
         }
     }
@@ -1125,7 +1133,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
             }
         }
 
-        for (const NodeProxy &child_node : m_child_nodes) {
+        for (const Handle<Node> &child_node : m_child_nodes) {
             if (!child_node.IsValid()) {
                 continue;
             }
@@ -1139,7 +1147,7 @@ bool Node::TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh) co
     return has_entity_hit;
 }
 
-NodeProxy Node::FindChildWithEntity(ID<Entity> entity_id) const
+Handle<Node> Node::FindChildWithEntity(ID<Entity> entity_id) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -1148,12 +1156,12 @@ NodeProxy Node::FindChildWithEntity(ID<Entity> entity_id) const
     while (queue.Any()) {
         const Node *parent = queue.Pop();
 
-        for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child) {
+        for (const Handle<Node> &child : parent->GetChildren()) {
+            if (!child.IsValid()) {
                 continue;
             }
 
-            if (child.GetEntity().GetID() == entity_id) {
+            if (child->GetEntity().GetID() == entity_id) {
                 return child;
             }
 
@@ -1161,10 +1169,10 @@ NodeProxy Node::FindChildWithEntity(ID<Entity> entity_id) const
         }
     }
 
-    return NodeProxy::empty;
+    return Handle<Node>::empty;
 }
 
-NodeProxy Node::FindChildByName(UTF8StringView name) const
+Handle<Node> Node::FindChildByName(UTF8StringView name) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -1173,12 +1181,12 @@ NodeProxy Node::FindChildByName(UTF8StringView name) const
     while (queue.Any()) {
         const Node *parent = queue.Pop();
 
-        for (const NodeProxy &child : parent->GetChildren()) {
-            if (!child) {
+        for (const Handle<Node> &child : parent->GetChildren()) {
+            if (!child.IsValid()) {
                 continue;
             }
 
-            if (child.GetName() == name) {
+            if (child->GetName() == name) {
                 return child;
             }
 
@@ -1186,10 +1194,10 @@ NodeProxy Node::FindChildByName(UTF8StringView name) const
         }
     }
 
-    return NodeProxy::empty;
+    return Handle<Node>::empty;
 }
 
-NodeProxy Node::FindChildByUUID(const UUID &uuid) const
+Handle<Node> Node::FindChildByUUID(const UUID &uuid) const
 {
     // breadth-first search
     Queue<const Node *> queue;
@@ -1198,7 +1206,7 @@ NodeProxy Node::FindChildByUUID(const UUID &uuid) const
     while (queue.Any()) {
         const Node *parent = queue.Pop();
 
-        for (const NodeProxy &child : parent->GetChildren()) {
+        for (const Handle<Node> &child : parent->GetChildren()) {
             if (!child) {
                 continue;
             }
@@ -1211,7 +1219,7 @@ NodeProxy Node::FindChildByUUID(const UUID &uuid) const
         }
     }
 
-    return NodeProxy::empty;
+    return Handle<Node>::empty;
 }
 
 void Node::AddTag(NodeTag &&value)
@@ -1286,7 +1294,7 @@ void Node::GetEditorDelegates(Function &&func)
             func(editor_subsystem->GetEditorDelegates());
         }
     } else {
-        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([weak_this = WeakRefCountedPtrFromThis(), func = std::forward<Function>(func)]()
+        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([weak_this = WeakHandleFromThis(), func = std::forward<Function>(func)]()
         {
             if (weak_this.Lock()) {
                 if (EditorSubsystem *editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>()) {

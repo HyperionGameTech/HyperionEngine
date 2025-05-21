@@ -135,7 +135,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
     }
 
     if (m_scene.IsValid()) {
-        NodeProxy current_root_node;
+        Handle<Node> current_root_node;
 
         current_root_node = m_scene->GetRoot();
         AssertThrow(current_root_node.IsValid());
@@ -145,7 +145,7 @@ void UIStage::SetScene(const Handle<Scene> &scene)
         new_scene->SetRoot(std::move(current_root_node));
     }
 
-    NodeProxy camera_node = new_scene->GetRoot()->AddChild();
+    Handle<Node> camera_node = new_scene->GetRoot()->AddChild();
     camera_node->SetName("UICamera");
     
     Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
@@ -276,7 +276,7 @@ void UIStage::OnAttached_Internal(UIObject *parent)
     AssertThrow(parent->GetNode() != nullptr);
 
     // Set root to be empty node proxy, now that it is attached to another object.
-    m_scene->SetRoot(NodeProxy::empty);
+    m_scene->SetRoot(Handle<Node>::empty);
 
     OnAttached();
 }
@@ -287,7 +287,7 @@ void UIStage::OnRemoved_Internal()
     AssertOnOwnerThread();
 
     // Re-set scene root to be our node proxy
-    m_scene->SetRoot(m_node_proxy);
+    m_scene->SetRoot(m_node);
     m_scene->RemoveFromWorld();
 
     OnRemoved();
@@ -840,8 +840,8 @@ bool UIStage::Remove(ID<Entity> entity)
         return false;
     }
 
-    if (NodeProxy child_node = GetNode()->FindChildWithEntity(entity)) {
-        child_node.Remove();
+    if (Handle<Node> child_node = GetNode()->FindChildWithEntity(entity)) {
+        child_node->Remove();
 
         return true;
     }

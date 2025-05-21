@@ -18,7 +18,6 @@
 #include <core/utilities/ForEach.hpp>
 
 #include <scene/Node.hpp>
-#include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Material.hpp>
 
@@ -537,7 +536,7 @@ public:
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity> &GetEntity() const
-        { return m_node_proxy.IsValid() ? m_node_proxy->GetEntity() : Handle<Entity>::empty; }
+        { return m_node.IsValid() ? m_node->GetEntity() : Handle<Entity>::empty; }
 
     HYP_METHOD()
     UIStage *GetStage() const;
@@ -942,7 +941,7 @@ public:
     void RemoveScriptComponent();
 
     HYP_METHOD()
-    const NodeProxy &GetNode() const;
+    const Handle<Node> &GetNode() const;
 
     HYP_METHOD()
     World *GetWorld() const;
@@ -1112,16 +1111,16 @@ public:
             name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
-        NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
+        Handle<Node> node = CreateObject<Node>(name.LookupString());
         
         // if (attach_to_root) {
-        //     node_proxy = GetNode()->AddChild(node_proxy);
+        //     node = GetNode()->AddChild(node);
         // }
         
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
-        node_proxy->SetFlags(node_proxy->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+        node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
-        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node_proxy, false /* init */);
+        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node, false /* init */);
 
         ui_object->SetPosition(position);
         ui_object->SetSize(size);
@@ -1225,9 +1224,9 @@ protected:
 
     void UpdateComputedTextSize();
 
-    /*! \brief Sets the NodeProxy for this UIObject.
+    /*! \brief Sets the Handle<Node> for this UIObject.
      *  \internal To be called internally from UIStage */
-    void SetNodeProxy(NodeProxy);
+    void SetNodeProxy(Handle<Node>);
 
     /*! \brief Get the shared quad mesh used for rendering UI objects. Vertices are in range: 0..1, with the origin at the top-left corner.
      *
@@ -1339,9 +1338,9 @@ protected:
 
 private:
     template <class T>
-    RC<UIObject> CreateUIObjectInternal(Name name, NodeProxy &node_proxy, bool init = false)
+    RC<UIObject> CreateUIObjectInternal(Name name, Handle<Node> &node, bool init = false)
     {
-        AssertThrow(node_proxy.IsValid());
+        AssertThrow(node.IsValid());
 
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
@@ -1357,7 +1356,7 @@ private:
         // so we can set it right here.
         ui_object->m_computed_text_size = m_computed_text_size;
 
-        ui_object->SetNodeProxy(node_proxy);
+        ui_object->SetNodeProxy(node);
         ui_object->SetName(name);
 
         if (init) {
@@ -1410,7 +1409,7 @@ private:
 
     AtomicVar<bool>                         m_needs_repaint;
 
-    NodeProxy                               m_node_proxy;
+    Handle<Node>                               m_node;
 
     Array<RC<UIObject>>                     m_child_ui_objects;
 

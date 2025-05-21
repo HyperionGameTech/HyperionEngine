@@ -26,7 +26,7 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, Node *root_node, Span<con
     AssertThrow(root_node != nullptr);
 
     NodeWatcher &node_watcher = m_node_watchers.EmplaceBack(watcher_key, NodeWatcher { }).second;
-    node_watcher.root_node = root_node->WeakRefCountedPtrFromThis();
+    node_watcher.root_node = root_node->WeakHandleFromThis();
     node_watcher.OnChange.Bind(std::move(proc), g_game_thread).Detach();
 
     for (const HypProperty &property : properties_to_watch) {
@@ -61,11 +61,11 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
     AssertThrow(node != nullptr);
     AssertThrow(property != nullptr);
 
-    auto Impl = [this, node_weak = node->WeakRefCountedPtrFromThis(), property]()
+    auto Impl = [this, node_weak = node->WeakHandleFromThis(), property]()
     {
         HYP_SCOPE;
     
-        RC<Node> node = node_weak.Lock();
+        Handle<Node> node = node_weak.Lock();
 
         if (!node) {
             return;
@@ -82,7 +82,7 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
         for (Pair<Name, NodeWatcher> &it : m_node_watchers) {
             NodeWatcher &node_watcher = it.second;
 
-            if (!node_watcher.root_node.Empty() && !node->IsOrHasParent(node_watcher.root_node.GetUnsafe())) {
+            if (node_watcher.root_node.IsValid() && !node->IsOrHasParent(node_watcher.root_node.GetUnsafe())) {
                 continue;
             }
 

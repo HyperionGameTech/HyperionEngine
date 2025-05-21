@@ -198,7 +198,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
     Handle<Skeleton> skeleton_handle = CreateObject<Skeleton>();
 
     for (const auto &item : object.bones) {
-        RC<Bone> bone = MakeRefCountedPtr<Bone>(item.name);
+        Handle<Bone> bone = CreateObject<Bone>(item.name);
 
         bone->SetBindingTransform(Transform(
             item.binding_translation,
@@ -208,7 +208,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState &state) const
 
         if (item.parent_name.Any()) {
             if (Bone *parent_bone = skeleton_handle->FindBone(item.parent_name)) {
-                parent_bone->AddChild(NodeProxy(bone));
+                parent_bone->AddChild(bone);
 
                 continue;
             }

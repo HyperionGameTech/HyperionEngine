@@ -41,8 +41,6 @@ namespace hyperion {
 struct HypData;
 
 class Node;
-class NodeProxy;
-
 class Entity;
 
 namespace filesystem {
@@ -1049,14 +1047,6 @@ struct HypDataHelper<RC<T>, std::enable_if_t< !std::is_void_v<T> >> : HypDataHel
 
         return fbom::FBOMResult::FBOM_OK;
     }
-};
-
-template <>
-struct HypDataHelperDecl<NodeProxy> { };
-
-template <>
-struct HypDataHelper<NodeProxy> : HypDataHelper<RC<Node>>
-{
 };
 
 template <>

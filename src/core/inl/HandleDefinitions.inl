@@ -1,4 +1,6 @@
 DEF_HANDLE(Engine)
+DEF_HANDLE(Node)
+DEF_HANDLE(Bone)
 DEF_HANDLE(RenderState)
 DEF_HANDLE(Texture)
 DEF_HANDLE(View)

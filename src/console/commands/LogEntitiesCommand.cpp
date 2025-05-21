@@ -77,7 +77,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
                         return IterationResult::CONTINUE;
                     }
 
-                    RC<Node> node = node_link_component->node.Lock();
+                    Handle<Node> node = node_link_component->node.Lock();
                     
                     if (node == nullptr || node->GetParent() != nullptr) {
                         return IterationResult::CONTINUE;
@@ -113,13 +113,13 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
                     if (component_type_id == TypeID::ForType<NodeLinkComponent>()) {
                         const NodeLinkComponent *node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity);
                         if (node_link_component) {
-                            if (RC<Node> node = node_link_component->node.Lock()) {
+                            if (Handle<Node> node = node_link_component->node.Lock()) {
                                 component_json["node"] = json::JSONObject({
                                     { "uuid", json::JSONString(node->GetUUID().ToString()) },
                                     { "name", json::JSONString(*node->GetName()) },
                                     { "type", json::JSONString(*node->InstanceClass()->GetName()) },
-                                    { "num_strong_refs", node.GetRefCountData_Internal()->UseCount_Strong() - 1 },
-                                    { "num_weak_refs", node.GetRefCountData_Internal()->UseCount_Weak() },
+                                    { "num_strong_refs", node->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
+                                    { "num_weak_refs", node->GetObjectHeader_Internal()->GetRefCountWeak() },
                                     { "parent_name", node->GetParent() ? json::JSONValue(json::JSONString(*node->GetParent()->GetName())) : json::JSONValue(json::JSONNull()) },
                                     { "parent_uuid", node->GetParent() ? json::JSONValue(json::JSONString(node->GetParent()->GetUUID().ToString())) : json::JSONValue(json::JSONNull()) },
                                     { "scene_id", node->GetScene() ? json::JSONValue(node->GetScene()->GetID().Value()) : json::JSONValue(uint32(0)) },

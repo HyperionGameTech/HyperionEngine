@@ -1411,7 +1411,7 @@ Lightmapper::Lightmapper(LightmapperConfig &&config, const Handle<Scene> &scene)
     m_volume = CreateObject<LightmapVolume>();
     InitObject(m_volume);
 
-    NodeProxy lightmap_volume_node = m_scene->GetRoot()->AddChild();
+    Handle<Node> lightmap_volume_node = m_scene->GetRoot()->AddChild();
     lightmap_volume_node->SetName("LightmapVolume");
 
     Handle<Entity> lightmap_volume_entity = m_scene->GetEntityManager()->AddEntity();

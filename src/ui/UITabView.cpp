@@ -200,7 +200,7 @@ void UITabView::SetSelectedTabIndex(uint32 index)
 
     m_selected_tab_index = index;
 
-    if (NodeProxy node = m_container->GetNode()) {
+    if (Handle<Node> node = m_container->GetNode()) {
         node->RemoveAllChildren();
     }
 

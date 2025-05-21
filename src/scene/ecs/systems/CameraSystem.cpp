@@ -74,7 +74,7 @@ void CameraSystem::Process(GameCounter::TickUnit delta)
             continue;
         }
 
-        RC<Node> node = node_link_component.node.Lock();
+        Handle<Node> node = node_link_component.node.Lock();
 
         if (!node) {
             continue;

@@ -209,7 +209,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState &state) const
     
     BuildVertices(model);
 
-    NodeProxy top(MakeRefCountedPtr<Node>());
+    Handle<Node> top = CreateObject<Node>();
 
     Handle<Skeleton> skeleton;
 
@@ -298,7 +298,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState &state) const
             );
         }
         
-        NodeProxy node(MakeRefCountedPtr<Node>());
+        Handle<Node> node = CreateObject<Node>();
         node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetName(sub_mesh.name);
         node->SetEntity(entity);

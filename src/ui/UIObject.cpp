@@ -166,7 +166,7 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    static const auto Impl = [](Scene *scene, Handle<Entity> entity, NodeProxy node)
+    static const auto Impl = [](Scene *scene, Handle<Entity> entity, Handle<Node> node)
     {
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
@@ -191,10 +191,10 @@ UIObject::~UIObject()
         AssertThrow(scene != nullptr);
 
         if (Threads::IsOnThread(scene->GetOwnerThreadID())) {
-            Impl(GetScene(), std::move(entity), std::move(m_node_proxy));
+            Impl(GetScene(), std::move(entity), std::move(m_node));
         } else {
             // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node_proxy), entity = std::move(entity)]() mutable
+            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node), entity = std::move(entity)]() mutable
             {
                 Impl(scene.Get(), std::move(entity), std::move(node));
             });
@@ -237,7 +237,7 @@ void UIObject::Init()
         AssertThrowMsg(m_stage != nullptr, "Invalid UIStage pointer provided to UIObject!");
     }
 
-    AssertThrowMsg(m_node_proxy.IsValid(), "Invalid NodeProxy provided to UIObject!");
+    AssertThrowMsg(m_node.IsValid(), "Invalid Handle<Node> provided to UIObject!");
 
     const Scene *scene = GetScene();
     AssertThrow(scene != nullptr);
@@ -431,7 +431,7 @@ Vec2f UIObject::GetAbsolutePosition() const
 {
     HYP_SCOPE;
 
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         const Vec3f world_translation = node->GetWorldTranslation();
 
         return { world_translation.x, world_translation.y };
@@ -467,7 +467,7 @@ void UIObject::UpdatePosition(bool update_children)
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_POSITION | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_POSITION : UIObjectUpdateType::NONE));
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return;
@@ -691,7 +691,7 @@ void UIObject::UpdateClampedSize(bool update_children)
 
 void UIObject::UpdateNodeTransform()
 {
-    if (!m_node_proxy.IsValid()) {
+    if (!m_node.IsValid()) {
         return;
     }
 
@@ -700,24 +700,24 @@ void UIObject::UpdateNodeTransform()
     
     float z_value = float(GetComputedDepth());
 
-    if (Node *parent_node = m_node_proxy->GetParent()) {
+    if (Node *parent_node = m_node->GetParent()) {
         z_value -= parent_node->GetWorldTranslation().z;
     }
 
     const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
 
-    Node *parent_node = m_node_proxy->GetParent();
+    Node *parent_node = m_node->GetParent();
 
-    Transform world_transform = m_node_proxy->GetWorldTransform();
+    Transform world_transform = m_node->GetWorldTransform();
 
     if (m_is_position_absolute) {
-        m_node_proxy->SetLocalTranslation(Vec3f {
+        m_node->SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offset_position.x,
             float(m_position.y) + m_offset_position.y,
             z_value
         });
     } else {
-        m_node_proxy->SetLocalTranslation(Vec3f {
+        m_node->SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
             float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
             z_value
@@ -1065,7 +1065,7 @@ void UIObject::SetIsVisible(bool is_visible)
 
     m_is_visible = is_visible;
 
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         if (m_is_visible) {
             if (m_affects_parent_size) {
                 node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
@@ -1204,8 +1204,8 @@ bool UIObject::IsOrHasParent(const UIObject *other) const
         return true;
     }
 
-    const NodeProxy &this_node = GetNode();
-    const NodeProxy &other_node = other->GetNode();
+    const Handle<Node> &this_node = GetNode();
+    const Handle<Node> &other_node = other->GetNode();
 
     if (!this_node.IsValid() || !other_node.IsValid()) {
         return false;
@@ -1224,7 +1224,7 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
 
     AssertThrow(!ui_object->IsOrHasParent(this));
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         HYP_LOG(UI, Error, "Parent UI object has no attachable node: {}", GetName());
@@ -1232,7 +1232,7 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    if (NodeProxy child_node = ui_object->GetNode()) {
+    if (Handle<Node> child_node = ui_object->GetNode()) {
         node->AddChild(child_node);
     } else {
         HYP_LOG(UI, Error, "Child UI object '{}' has no attachable node", ui_object->GetName());
@@ -1256,13 +1256,13 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return false;
     }
 
-    if (NodeProxy child_node = ui_object->GetNode()) {
+    if (Handle<Node> child_node = ui_object->GetNode()) {
         if (child_node->IsOrHasParent(node.Get())) {
             UIObject *parent_ui_object = ui_object->GetParentUIObject();
             AssertThrow(parent_ui_object != nullptr);
@@ -1417,15 +1417,15 @@ RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject *)> predicate, bo
     return found_object;
 }
 
-const NodeProxy &UIObject::GetNode() const
+const Handle<Node> &UIObject::GetNode() const
 {
-    return m_node_proxy;
+    return m_node;
 }
 
 World *UIObject::GetWorld() const
 {
-    if (m_node_proxy.IsValid()) {
-        return m_node_proxy->GetWorld();
+    if (m_node.IsValid()) {
+        return m_node->GetWorld();
     }
 
     return nullptr;
@@ -1435,7 +1435,7 @@ BoundingBox UIObject::GetWorldAABB() const
 {
     HYP_SCOPE;
 
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         return node->GetWorldAABB();
     }
 
@@ -1446,7 +1446,7 @@ BoundingBox UIObject::GetLocalAABB() const
 {
     HYP_SCOPE;
     
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         return node->GetLocalAABB();
     }
 
@@ -1463,7 +1463,7 @@ void UIObject::SetEntityAABB(const BoundingBox &aabb)
         BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
         bounding_box_component.local_aabb = aabb;
 
-        if (const NodeProxy &node = GetNode()) {
+        if (const Handle<Node> &node = GetNode()) {
             node->SetEntityAABB(aabb);
 
             transform = node->GetWorldTransform();
@@ -1491,7 +1491,7 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         const BoundingBox aabb = node->GetLocalAABB();
 
         if (aabb.IsFinite() && aabb.IsValid()) {
@@ -1516,11 +1516,11 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
         return;
     }
 
-    if (m_node_proxy.IsValid()) {
+    if (m_node.IsValid()) {
         if (m_affects_parent_size) {
-            m_node_proxy->SetFlags(m_node_proxy->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetFlags(m_node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         } else {
-            m_node_proxy->SetFlags(m_node_proxy->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -1629,7 +1629,7 @@ UIObject *UIObject::GetParentUIObject() const
         return nullptr;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return nullptr;
@@ -1662,7 +1662,7 @@ UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
         return nullptr;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return nullptr;
@@ -1697,7 +1697,7 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject
         return nullptr;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return nullptr;
@@ -1754,7 +1754,7 @@ Scene *UIObject::GetScene() const
 {
     HYP_SCOPE;
     
-    if (const NodeProxy &node = GetNode()) {
+    if (const Handle<Node> &node = GetNode()) {
         return node->GetScene();
     }
 
@@ -2307,34 +2307,34 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
     return child_object_ptr ? child_object_ptr->RefCountedPtrFromThis() : nullptr;
 }
 
-void UIObject::SetNodeProxy(NodeProxy node_proxy)
+void UIObject::SetNodeProxy(Handle<Node> node)
 {
-    if (m_node_proxy == node_proxy) {
+    if (m_node == node) {
         return;
     }
 
-    if (m_node_proxy.IsValid() && m_node_proxy.GetEntity().IsValid() && m_node_proxy->GetScene() != nullptr) {
-        const Handle<Entity> &entity = m_node_proxy->GetEntity();
-        const RC<EntityManager> &entity_manager = m_node_proxy->GetScene()->GetEntityManager();
+    if (m_node.IsValid() && m_node->GetEntity().IsValid() && m_node->GetScene() != nullptr) {
+        const Handle<Entity> &entity = m_node->GetEntity();
+        const RC<EntityManager> &entity_manager = m_node->GetScene()->GetEntityManager();
 
         if (entity_manager->HasComponent<UIComponent>(entity)) {
             entity_manager->RemoveComponent<UIComponent>(entity);
         }
     }
 
-    m_node_proxy = std::move(node_proxy);
+    m_node = std::move(node);
 
-    if (m_node_proxy.IsValid()) {
-        if (!m_node_proxy.GetEntity().IsValid()) {
-            AssertThrow(m_node_proxy->GetScene() != nullptr);
+    if (m_node.IsValid()) {
+        if (!m_node->GetEntity().IsValid()) {
+            AssertThrow(m_node->GetScene() != nullptr);
 
-            m_node_proxy->SetEntity(m_node_proxy->GetScene()->GetEntityManager()->AddEntity());
+            m_node->SetEntity(m_node->GetScene()->GetEntityManager()->AddEntity());
         }
 
-        m_node_proxy->GetScene()->GetEntityManager()->AddComponent<UIComponent>(m_node_proxy->GetEntity(), UIComponent { this });
+        m_node->GetScene()->GetEntityManager()->AddComponent<UIComponent>(m_node->GetEntity(), UIComponent { this });
 
         if (!m_affects_parent_size || !m_is_visible) {
-            m_node_proxy->SetFlags(m_node_proxy->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
+            m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
@@ -2343,8 +2343,8 @@ const NodeTag &UIObject::GetNodeTag(WeakName key) const
 {
     static const NodeTag empty_tag { };
 
-    if (m_node_proxy.IsValid()) {
-        return m_node_proxy->GetTag(key);
+    if (m_node.IsValid()) {
+        return m_node->GetTag(key);
     }
 
     return empty_tag;
@@ -2352,15 +2352,15 @@ const NodeTag &UIObject::GetNodeTag(WeakName key) const
 
 void UIObject::SetNodeTag(NodeTag &&tag)
 {
-    if (m_node_proxy.IsValid()) {
-        m_node_proxy->AddTag(std::move(tag));
+    if (m_node.IsValid()) {
+        m_node->AddTag(std::move(tag));
     }
 }
 
 bool UIObject::HasNodeTag(WeakName key) const
 {
-    if (m_node_proxy.IsValid()) {
-        return m_node_proxy->HasTag(key);
+    if (m_node.IsValid()) {
+        return m_node->HasTag(key);
     }
 
     return false;
@@ -2368,8 +2368,8 @@ bool UIObject::HasNodeTag(WeakName key) const
 
 bool UIObject::RemoveNodeTag(WeakName key)
 {
-    if (m_node_proxy.IsValid()) {
-        return m_node_proxy->RemoveTag(key);
+    if (m_node.IsValid()) {
+        return m_node->RemoveTag(key);
     }
 
     return false;
@@ -2411,9 +2411,9 @@ void UIObject::CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible)
     // proc(const_cast<UIObject *>(this));
 
     // Array<Pair<Node *, UIObject *>> children;
-    // children.Reserve(m_node_proxy->GetChildren().Size());
+    // children.Reserve(m_node->GetChildren().Size());
 
-    // for (const auto &it : m_node_proxy->GetChildren()) {
+    // for (const auto &it : m_node->GetChildren()) {
     //     if (!it.IsValid()) {
     //         continue;
     //     }
@@ -2557,7 +2557,7 @@ void UIObject::ForEachParentUIObject(Lambda &&lambda) const
         return;
     }
 
-    const NodeProxy &node = GetNode();
+    const Handle<Node> &node = GetNode();
 
     if (!node) {
         return;
@@ -2719,16 +2719,16 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
         name = Name::Unique(ANSIString("Unnamed_") + hyp_class->GetName().LookupString());
     }
 
-    NodeProxy node_proxy(MakeRefCountedPtr<Node>(name.LookupString()));
+    Handle<Node> node = CreateObject<Node>(name.LookupString());
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
-    node_proxy->SetFlags(node_proxy->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
+    node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
     UIStage *stage = GetStage();
 
     ui_object->m_spawn_parent = WeakRefCountedPtrFromThis();
     ui_object->m_stage = stage;
 
-    ui_object->SetNodeProxy(node_proxy);
+    ui_object->SetNodeProxy(node);
     ui_object->SetName(name);
     ui_object->SetPosition(position);
     ui_object->SetSize(size);

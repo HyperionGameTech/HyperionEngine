@@ -17,6 +17,9 @@
 #include <scene/Light.hpp>
 #include <scene/Texture.hpp>
 
+// temp
+#include <scene/animation/Bone.hpp>
+
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
@@ -134,6 +137,13 @@ void HyperionEditor::Init()
             1.0f
         );
 
+        // testing
+        Handle<Node> tmp_node_handle = CreateObject<Node>();
+        AssertThrow(tmp_node_handle.IsValid());
+
+        Handle<Bone> tmp_bone_handle = Handle<Bone>(tmp_node_handle);
+        AssertThrow(tmp_bone_handle.IsValid());
+
         Handle<Texture> dummy_light_texture;
 
         if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png")) {
@@ -161,8 +171,8 @@ void HyperionEditor::Init()
 
         InitObject(light);
 
-        NodeProxy light_node = m_scene->GetRoot()->AddChild();
-        light_node.SetName("AreaLight");
+        Handle<Node> light_node = m_scene->GetRoot()->AddChild();
+        light_node->SetName("AreaLight");
 
         auto area_light_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -207,8 +217,8 @@ void HyperionEditor::Init()
             50.0f
         );
 
-        NodeProxy point_light_node = m_scene->GetRoot()->AddChild();
-        point_light_node.SetName(HYP_FORMAT("point_light_node_{}", i));
+        Handle<Node> point_light_node = m_scene->GetRoot()->AddChild();
+        point_light_node->SetName(HYP_FORMAT("point_light_node_{}", i));
 
         auto point_light_entity = m_scene->GetEntityManager()->AddEntity();
         point_light_node.SetEntity(point_light_entity);
@@ -235,12 +245,12 @@ void HyperionEditor::Init()
 
     InitObject(sun);
 
-    NodeProxy sun_node = m_scene->GetRoot()->AddChild();
-    sun_node.SetName("Sun");
+    Handle<Node> sun_node = m_scene->GetRoot()->AddChild();
+    sun_node->SetName("Sun");
 
-    auto sun_entity = m_scene->GetEntityManager()->AddEntity();
-    sun_node.SetEntity(sun_entity);
-    sun_node.SetWorldTranslation(Vec3f { -0.4f, 0.8f, 0.0f }.Normalize());
+    Handle<Entity> sun_entity = m_scene->GetEntityManager()->AddEntity();
+    sun_node->SetEntity(sun_entity);
+    sun_node->SetWorldTranslation(Vec3f { -0.4f, 0.8f, 0.0f }.Normalize());
 
     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent {
         sun
@@ -273,9 +283,9 @@ void HyperionEditor::Init()
             BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f))
         });
 
-        NodeProxy skydome_node = m_scene->GetRoot()->AddChild();
-        skydome_node.SetEntity(skybox_entity);
-        skydome_node.SetName("Sky");
+        Handle<Node> skydome_node = m_scene->GetRoot()->AddChild();
+        skydome_node->SetEntity(skybox_entity);
+        skydome_node->SetName("Sky");
     }
 
 #if 1
@@ -293,25 +303,20 @@ void HyperionEditor::Init()
     batch->OnComplete.Bind([this](AssetMap &results)
     {
 #if 0
-        if (NodeProxy house = results["house"].ExtractAs<Node>(); house.IsValid()) {
-            house.Translate(Vec3f(0.0f, 0.0f, -1.0f));
-            house.SetName("house");
+        if (Handle<Node> house = results["house"].ExtractAs<Node>(); house.IsValid()) {
+            house->Translate(Vec3f(0.0f, 0.0f, -1.0f));
+            house->SetName("house");
             m_scene->GetRoot()->AddChild(house);
         }
 #endif
 
 #if 1
-        NodeProxy node = results["test_model"].ExtractAs<Node>();
+        Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
         // node.Scale(3.0f);
         node->Scale(0.03f);
-        node.SetName("test_model");
-        node.LockTransform();
-
-#if 1
-        if (node.IsValid()) {
-        }
-#endif
+        node->SetName("test_model");
+        node->LockTransform();
 
         GetScene()->GetRoot()->AddChild(node);
 
@@ -332,9 +337,9 @@ void HyperionEditor::Init()
             EnvGridMobility::STATIONARY //EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
         });
 
-        NodeProxy env_grid_node = m_scene->GetRoot()->AddChild();
-        env_grid_node.SetEntity(env_grid_entity);
-        env_grid_node.SetName("EnvGrid2");
+        Handle<Node> env_grid_node = m_scene->GetRoot()->AddChild();
+        env_grid_node->SetEntity(env_grid_entity);
+        env_grid_node->SetName("EnvGrid2");
 #endif
 
         if (true) {
@@ -350,19 +355,20 @@ void HyperionEditor::Init()
 
             m_scene->GetEntityManager()->AddComponent<ReflectionProbeComponent>(reflection_probe_entity, ReflectionProbeComponent { });
 
-            NodeProxy reflection_probe_node = m_scene->GetRoot()->AddChild();
-            reflection_probe_node.SetEntity(reflection_probe_entity);
-            reflection_probe_node.SetName("ReflectionProbeTest");
+            Handle<Node> reflection_probe_node = m_scene->GetRoot()->AddChild();
+            reflection_probe_node->SetEntity(reflection_probe_entity);
+            reflection_probe_node->SetName("ReflectionProbeTest");
             reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 4.0f, 0.0f));
         }
 
 #endif
 
         if (auto &zombie_asset = results["zombie"]; zombie_asset.IsValid()) {
-            auto zombie = NodeProxy(zombie_asset.ExtractAs<Node>());
-            zombie.Scale(0.25f);
-            zombie.Translate(Vec3f(0, 2.0f, -1.0f));
-            auto zombie_entity = zombie[0].GetEntity();
+            Handle<Node> zombie = zombie_asset.ExtractAs<Node>();
+            zombie->Scale(0.25f);
+            zombie->Translate(Vec3f(0, 2.0f, -1.0f));
+
+            Handle<Entity> zombie_entity = zombie->GetChild(0)->GetEntity();
 
             m_scene->GetRoot()->AddChild(zombie);
 
@@ -384,7 +390,7 @@ void HyperionEditor::Init()
                 });
             }
 
-            zombie.SetName("zombie");
+            zombie->SetName("zombie");
         }
 
 #if 0
@@ -416,9 +422,9 @@ void HyperionEditor::Init()
     
     DebugLog(LogType::Debug, "Loaded scene root node : %s\n", *loaded_scene->GetRoot().GetName());
 
-    Proc<void(const NodeProxy &, int)> DebugPrintNode;
+    Proc<void(const Handle<Node> &, int)> DebugPrintNode;
 
-    DebugPrintNode = [this, &DebugPrintNode](const NodeProxy &node, int depth)
+    DebugPrintNode = [this, &DebugPrintNode](const Handle<Node> &node, int depth)
     {
         if (!node.IsValid()) {
             return;
@@ -434,7 +440,7 @@ void HyperionEditor::Init()
         node_json["name"] = node.GetName();
 
         json::JSONValue entity_json = json::JSONUndefined();
-        if (auto entity = node.GetEntity()) {
+        if (auto entity = node->GetEntity()) {
             json::JSONObject entity_json_object;
             entity_json_object["id"] = entity.GetID().Value();
 
@@ -505,9 +511,9 @@ void HyperionEditor::Init()
     // HYP_BREAKPOINT;
 
 
-    NodeProxy root = loaded_scene->GetRoot();
+    Handle<Node> root = loaded_scene->GetRoot();
 
-    loaded_scene->SetRoot(NodeProxy::empty);
+    loaded_scene->SetRoot(Handle<Node>::empty);
 
     m_scene->GetRoot()->AddChild(root);
 #endif
@@ -526,7 +532,7 @@ void HyperionEditor::OnInputEvent(const SystemEvent &event)
     Game::OnInputEvent(event);
 
     if (event.GetType() == SystemEventType::EVENT_KEYDOWN && event.GetNormalizedKeyCode() == KeyCode::KEY_L) {
-        NodeProxy sun = m_scene->FindNodeByName("Sun");
+        Handle<Node> sun = m_scene->FindNodeByName("Sun");
 
         if (sun) {
             sun->UnlockTransform();

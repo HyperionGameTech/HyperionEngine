@@ -22,7 +22,6 @@
 #include <core/Handle.hpp>
 
 #include <scene/Entity.hpp>
-#include <scene/NodeProxy.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
 #include <core/math/Transform.hpp>
@@ -164,11 +163,10 @@ struct NodeTag
 struct NodeUnlockTransformScope;
 
 HYP_CLASS()
-class HYP_API Node : public EnableRefCountedPtrFromThis<Node>
+class HYP_API Node : public HypObject<Node>
 {
     friend class Scene;
     friend class Entity;
-    friend class NodeProxy;
 
     HYP_OBJECT_BODY(Node);
 
@@ -181,7 +179,7 @@ public:
         Delegate<void, Node *, bool /* direct */> OnChildRemoved;
     };
 
-    using NodeList = Array<NodeProxy>;
+    using NodeList = Array<Handle<Node>, DynamicAllocator>;
 
     using NodeTagSet = HashSet<NodeTag, &NodeTag::name>;
 
@@ -308,7 +306,7 @@ public:
      *  \param node The Node to be added as achild of this Node
      *  \returns The added Node */
     HYP_METHOD()
-    NodeProxy AddChild(const NodeProxy &node = { });
+    Handle<Node> AddChild(const Handle<Node> &node = { });
 
     /*! \brief Remove a child using the given iterator (i.e from FindChild())
      *  \param iter The iterator from this Node's child list
@@ -333,7 +331,7 @@ public:
      *  \returns The child node at the given index. If the index is out of bounds, nullptr
      *  will be returned. */
     HYP_METHOD()
-    NodeProxy GetChild(int index) const;
+    Handle<Node> GetChild(int index) const;
 
     /*! \brief Search for a (potentially nested) node using the syntax `some/child/node`.
      *  Each `/` indicates searching a level deeper, so first a child node with the name "some"
@@ -344,7 +342,7 @@ public:
      *  The string is case-sensitive.
      *  The '/' can be escaped by using a '\' char. */
     HYP_METHOD()
-    NodeProxy Select(UTF8StringView selector) const;
+    Handle<Node> Select(UTF8StringView selector) const;
 
     /*! \brief Get an iterator for the given child Node from this Node's child list
      * \param node The node to find in this Node's child list
@@ -571,15 +569,15 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
     HYP_METHOD()
-    NodeProxy FindChildWithEntity(ID<Entity> entity) const;
+    Handle<Node> FindChildWithEntity(ID<Entity> entity) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
-    NodeProxy FindChildByName(UTF8StringView name) const;
+    Handle<Node> FindChildByName(UTF8StringView name) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given UUID is found. */
     HYP_METHOD()
-    NodeProxy FindChildByUUID(const UUID &uuid) const;
+    Handle<Node> FindChildByUUID(const UUID &uuid) const;
 
     /*! \brief Get the delegates for this Node. */
     HYP_FORCE_INLINE Delegates *GetDelegates() const
@@ -606,10 +604,6 @@ public:
      *  \returns True if the tag exists, false otherwise. */
     bool HasTag(WeakName key) const;
 
-    /*! \brief Get a NodeProxy for this Node. Increments the reference count of the Node's underlying reference count. */
-    HYP_FORCE_INLINE NodeProxy GetProxy()
-        { return NodeProxy(RefCountedPtrFromThis()); }
-
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hc;
@@ -620,7 +614,7 @@ public:
         hc.Add(m_world_transform);
         hc.Add(m_entity);
 
-        for (const NodeProxy &child : m_child_nodes) {
+        for (const Handle<Node> &child : m_child_nodes) {
             if (!child.IsValid()) {
                 continue;
             }

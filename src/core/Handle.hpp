@@ -64,6 +64,8 @@ public:
     HypObjectBase *ptr;
 
     Handle() : ptr(nullptr) { }
+
+    Handle(std::nullptr_t) : Handle() { }
     
     explicit Handle(HypObjectHeader *header)
         : ptr(header ? static_cast<HypObjectBase *>(static_cast<T *>(header->container->GetObjectPointer(header))) : nullptr)
@@ -156,10 +158,7 @@ public:
     HYP_FORCE_INLINE T *operator->() const
         { return Get(); }
     
-    HYP_FORCE_INLINE T &operator*()
-        { return *Get(); }
-    
-    HYP_FORCE_INLINE const T &operator*() const
+    HYP_FORCE_INLINE T &operator*() const
         { return *Get(); }
     
     HYP_FORCE_INLINE bool operator!() const
@@ -225,6 +224,29 @@ public:
         ptr = nullptr;
     }
 
+    HYP_FORCE_INLINE operator T *() const
+        { return Get(); }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
+    HYP_FORCE_INLINE operator Handle<Ty>() const
+    {
+        if (ptr) {
+            return Handle<Ty>(static_cast<Ty *>(ptr));
+        }
+
+        return Handle<Ty>::empty;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE explicit operator Handle<Ty>() const
+    {
+        if (ptr) {
+            return Handle<Ty>(static_cast<Ty *>(ptr));
+        }
+
+        return Handle<Ty>::empty;
+    }
+
     HYP_FORCE_INLINE WeakHandle<T> ToWeak() const
     {
         return WeakHandle<T>(*this);
@@ -245,16 +267,13 @@ struct WeakHandle final
 {
     using IDType = ID<T>;
 
-    static_assert(has_handle_definition<T>, "Type does not support handles");
-
     static const WeakHandle empty;
 
     HypObjectBase *ptr;
 
-    WeakHandle()
-        : ptr(nullptr)
-    {
-    }
+    WeakHandle() : ptr(nullptr) { }
+
+    WeakHandle(std::nullptr_t) : ptr(nullptr) { }
     
     explicit WeakHandle(HypObjectHeader *header)
         : ptr(header ? static_cast<HypObjectBase *>(static_cast<T *>(header->container->GetObjectPointer(header))) : nullptr)

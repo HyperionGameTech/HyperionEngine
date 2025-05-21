@@ -154,7 +154,7 @@ Scene::Scene(
         m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
     }
 
-    m_root_node_proxy = MakeRefCountedPtr<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this);
+    m_root = CreateObject<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this);
 }
 
 Scene::~Scene()
@@ -162,16 +162,16 @@ Scene::~Scene()
     m_octree.SetEntityManager(nullptr);
     m_octree.Clear();
 
-    if (m_root_node_proxy.IsValid()) {
+    if (m_root.IsValid()) {
         if (m_owner_thread_id.IsValid() && !Threads::IsOnThread(m_owner_thread_id)) {
-            Task<void> task = Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([&node = m_root_node_proxy]()
+            Task<void> task = Threads::GetThread(m_owner_thread_id)->GetScheduler().Enqueue([&node = m_root]()
             {
                 node->SetScene(nullptr);
             });
 
             task.Await();
         } else {
-            m_root_node_proxy->SetScene(nullptr);
+            m_root->SetScene(nullptr);
         }
     }
 
@@ -308,32 +308,32 @@ WorldGrid *Scene::GetWorldGrid() const
     return nullptr;
 }
 
-NodeProxy Scene::FindNodeWithEntity(ID<Entity> entity) const
+Handle<Node> Scene::FindNodeWithEntity(ID<Entity> entity) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
-    AssertThrow(m_root_node_proxy);
+    AssertThrow(m_root);
 
-    if (m_root_node_proxy->GetEntity() == entity) {
-        return m_root_node_proxy;
+    if (m_root->GetEntity() == entity) {
+        return m_root;
     }
 
-    return m_root_node_proxy->FindChildWithEntity(entity);
+    return m_root->FindChildWithEntity(entity);
 }
 
-NodeProxy Scene::FindNodeByName(UTF8StringView name) const
+Handle<Node> Scene::FindNodeByName(UTF8StringView name) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
-    AssertThrow(m_root_node_proxy);
+    AssertThrow(m_root);
 
-    if (m_root_node_proxy->GetName() == name) {
-        return m_root_node_proxy;
+    if (m_root->GetName() == name) {
+        return m_root;
     }
 
-    return m_root_node_proxy->FindChildByName(name);
+    return m_root->FindChildByName(name);
 }
 
 void Scene::Update(GameCounter::TickUnit delta)
@@ -371,12 +371,12 @@ void Scene::EnqueueRenderUpdates()
     m_render_resource->SetBufferData(shader_data);
 }
 
-void Scene::SetRoot(const NodeProxy &root)
+void Scene::SetRoot(const Handle<Node> &root)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
-    if (root == m_root_node_proxy) {
+    if (root == m_root) {
         return;
     }
 
@@ -384,19 +384,19 @@ void Scene::SetRoot(const NodeProxy &root)
     RemoveDelegateHandler(NAME("ValidateScene"));
 #endif
 
-    NodeProxy prev_root = m_root_node_proxy;
+    Handle<Node> prev_root = m_root;
 
     if (prev_root.IsValid() && prev_root->GetScene() == this) {
         prev_root->SetScene(nullptr);
     }
 
-    m_root_node_proxy = root;
+    m_root = root;
 
-    if (m_root_node_proxy.IsValid()) {
-        m_root_node_proxy->SetScene(this);
+    if (m_root.IsValid()) {
+        m_root->SetScene(this);
 
 #ifdef HYP_DEBUG_MODE
-        AddDelegateHandler(NAME("ValidateScene"), m_root_node_proxy->GetDelegates()->OnChildAdded.Bind([weak_this = WeakHandleFromThis()](Node *, bool)
+        AddDelegateHandler(NAME("ValidateScene"), m_root->GetDelegates()->OnChildAdded.Bind([weak_this = WeakHandleFromThis()](Node *, bool)
         {
             Handle<Scene> scene = weak_this.Lock();
 
@@ -413,7 +413,7 @@ void Scene::SetRoot(const NodeProxy &root)
 #endif
     }
 
-    OnRootNodeChanged(m_root_node_proxy, prev_root);
+    OnRootNodeChanged(m_root, prev_root);
 }
 
 bool Scene::AddToWorld(World *world)

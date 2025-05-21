@@ -47,7 +47,7 @@ public:
             out.SetProperty("Tags", std::move(tags_data));
         }
 
-        for (const NodeProxy &child : in_object.GetChildren()) {
+        for (const Handle<Node> &child : in_object.GetChildren()) {
             if (!child.IsValid() || (child->GetFlags() & NodeFlags::TRANSIENT)) {
                 continue;
             }
@@ -76,14 +76,14 @@ public:
             return err;
         }
 
-        NodeProxy node;
+        Handle<Node> node;
 
         switch (node_type) {
         case Node::Type::NODE:
-            node = NodeProxy(MakeRefCountedPtr<Node>());
+            node = Handle<Node>(CreateObject<Node>());
             break;
         case Node::Type::BONE:
-            node = NodeProxy(MakeRefCountedPtr<Bone>());
+            node = Handle<Node>(CreateObject<Bone>());
 
             break;
         default:
@@ -100,7 +100,7 @@ public:
 
         for (const FBOMObject &child : in.GetChildren()) {
             if (child.GetType().IsOrExtends("Node")) {
-                node->AddChild(child.m_deserialized_object->Get<NodeProxy>());
+                node->AddChild(child.m_deserialized_object->Get<Handle<Node>>());
             }
         }
 

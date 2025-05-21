@@ -12,7 +12,6 @@
 #include <core/functional/Delegate.hpp>
 
 #include <scene/Node.hpp>
-#include <scene/NodeProxy.hpp>
 #include <scene/Scene.hpp>
 
 #include <scene/ecs/components/UIComponent.hpp>

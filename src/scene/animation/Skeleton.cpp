@@ -20,12 +20,11 @@ namespace hyperion {
 
 Skeleton::Skeleton()
     : HypObject(),
-      m_root_bone(nullptr),
       m_mutation_state(DataMutationState::CLEAN)
 {
 }
 
-Skeleton::Skeleton(const RC<Bone> &root_bone)
+Skeleton::Skeleton(const Handle<Bone> &root_bone)
     : HypObject(),
       m_root_bone(root_bone),
       m_mutation_state(DataMutationState::CLEAN)
@@ -170,12 +169,12 @@ uint32 Skeleton::FindBoneIndex(UTF8StringView name) const
     return uint32(-1);
 }
 
-const RC<Bone> &Skeleton::GetRootBone() const
+const Handle<Bone> &Skeleton::GetRootBone() const
 {
     return m_root_bone;
 }
 
-void Skeleton::SetRootBone(const RC<Bone> &bone)
+void Skeleton::SetRootBone(const Handle<Bone> &bone)
 {
     if (m_root_bone) {
         m_root_bone->SetSkeleton(nullptr);

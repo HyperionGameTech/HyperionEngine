@@ -36,7 +36,7 @@ class HypProperty;
 
 struct NodeWatcher
 {
-    Weak<Node>                                  root_node;
+    WeakHandle<Node>                                  root_node;
     FlatSet<const HypProperty *>                properties_to_watch;
     Delegate<void, Node *, const HypProperty *> OnChange;
 };

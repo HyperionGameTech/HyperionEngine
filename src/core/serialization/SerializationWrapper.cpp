@@ -1,6 +1,5 @@
 #include <core/serialization/SerializationWrapper.hpp>
 
-#include <scene/NodeProxy.hpp>
 #include <scene/Node.hpp>
 
 namespace hyperion {

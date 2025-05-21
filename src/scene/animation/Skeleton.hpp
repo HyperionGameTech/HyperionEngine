@@ -15,8 +15,6 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <scene/NodeProxy.hpp>
-
 #include <GameCounter.hpp>
 #include <Types.hpp>
 
@@ -66,7 +64,7 @@ class HYP_API Skeleton : public HypObject<Skeleton>
 
 public:
     Skeleton();
-    Skeleton(const RC<Bone> &root_bone);
+    Skeleton(const Handle<Bone> &root_bone);
     Skeleton(const Skeleton &other)             = delete;
     Skeleton &operator=(const Skeleton &other)  = delete;
     ~Skeleton();
@@ -102,12 +100,12 @@ public:
      *  If no root bone was set on this Skeleton, nullptr is returned
      *  \returns The root bone of this skeleton, or nullptr */
     HYP_METHOD(Serialize, Property="RootBone")
-    const RC<Bone> &GetRootBone() const;
+    const Handle<Bone> &GetRootBone() const;
 
     /*! \brief Set the root Bone of this skeleton, which all nested Bones fall under.
      *  \param bone The root bone to set on this skeleton. */
     HYP_METHOD(Serialize, Property="RootBone")
-    void SetRootBone(const RC<Bone> &bone);
+    void SetRootBone(const Handle<Bone> &bone);
 
     /*! \brief Returns the number of bones in this skeleton.
      *  \returns The number of bones in this skeleton. */
@@ -159,7 +157,7 @@ public:
 private:
     SkeletonBoneData            m_bone_data;
     
-    RC<Bone>                    m_root_bone;
+    Handle<Bone>                m_root_bone;
     Array<Handle<Animation>>    m_animations;
 
     mutable DataMutationState   m_mutation_state;

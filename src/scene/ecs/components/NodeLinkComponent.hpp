@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_NODE_LINK_COMPONENT_HPP
 #define HYPERION_ECS_NODE_LINK_COMPONENT_HPP
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Handle.hpp>
 
 #include <HashCode.hpp>
 
@@ -11,11 +11,11 @@ namespace hyperion {
 
 class Node;
 
-HYP_STRUCT(Component, Size=16, Serialize=false, Editor=false)
+HYP_STRUCT(Component, Size=8, Serialize=false, Editor=false)
 struct NodeLinkComponent
 {
     HYP_FIELD()
-    Weak<Node>  node;
+    WeakHandle<Node>    node;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

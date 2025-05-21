@@ -216,7 +216,6 @@ struct FBXNode
     Matrix4                     local_bind_matrix;
 
     Optional<Handle<Skeleton>>  skeleton;
-    //Optional<NodeProxy> node_proxy;
 };
 
 struct FBXNodeMapping
@@ -583,17 +582,17 @@ static bool GetFBXObjectInMapping(FlatMap<FBXObjectID, FBXNodeMapping> &mapping,
     return false;
 }
 
-// static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *node)
+// static void AddSkeletonToEntities(const Handle<Skeleton> &skeleton, Node *fbx_node)
 // {
-//     AssertThrow(node != nullptr);
+//     AssertThrow(fbx_node != nullptr);
 
-//     if (Handle<Entity> &entity = node->GetEntity()) {
+//     if (Handle<Entity> &entity = fbx_node->GetEntity()) {
 //         entity->SetSkeleton(skeleton);
 
 //         g_engine->GetComponents().Add<AnimationController>(entity, MakeUnique<AnimationController>());
 //     }
 
-//     for (auto &child : node->GetChildren()) {
+//     for (auto &child : fbx_node->GetChildren()) {
 //         if (child) {
 //             AddSkeletonToEntities(skeleton, child.Get());
 //         }
@@ -604,7 +603,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    NodeProxy top(MakeRefCountedPtr<Node>());
+    Handle<Node> top = CreateObject<Node>();
     Handle<Skeleton> root_skeleton = CreateObject<Skeleton>();
 
     // Include our root dir as part of the path
@@ -686,7 +685,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
                 }
 
             } else {
-                HYP_LOG(Assets, Warning, "Invalid matrix in FBX node -- invalid size");
+                HYP_LOG(Assets, Warning, "Invalid matrix in FBX fbx_node -- invalid size");
             }
         }
 
@@ -1107,12 +1106,12 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
                     ? node_type_it->second
                     : FBXNode::Type::NODE;
 
-                FBXNode node;
-                node.name = node_name;
-                node.type = node_type;
-                node.local_transform = transform;
+                FBXNode fbx_node;
+                fbx_node.name = node_name;
+                fbx_node.type = node_type;
+                fbx_node.local_transform = transform;
 
-                mapping.data.Set(node);
+                mapping.data.Set(fbx_node);
             }
 
             object_mapping[object_id] = std::move(mapping);
@@ -1141,7 +1140,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
             right_name = "<not found>"; \
         } \
         \
-        HYP_LOG(Assets, Warning, "Invalid node connection: {} \"{}\" ({}) -> {} \"{}\" ({})\n\t" msg, \
+        HYP_LOG(Assets, Warning, "Invalid fbx_node connection: {} \"{}\" ({}) -> {} \"{}\" ({})\n\t" msg, \
             left_type.Data(), \
             left_name.Data(), \
             connection.left, \
@@ -1160,11 +1159,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
         const auto right_it = connection.right != 0 ? object_mapping.Find(connection.right) : object_mapping.End();
 
         if (left_it == object_mapping.End()) {
-            INVALID_NODE_CONNECTION("Left ID not found in node map");
+            INVALID_NODE_CONNECTION("Left ID not found in fbx_node map");
         }
 
         if (!left_it->second.data.IsValid()) {
-            INVALID_NODE_CONNECTION("Left node has no valid data");
+            INVALID_NODE_CONNECTION("Left fbx_node has no valid data");
         }
 
         if (connection.right == 0) {
@@ -1177,11 +1176,11 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
         }
 
         if (right_it == object_mapping.End()) {
-            INVALID_NODE_CONNECTION("Right ID not found in node map");
+            INVALID_NODE_CONNECTION("Right ID not found in fbx_node map");
         }
 
         if (!right_it->second.data.IsValid()) {
-            INVALID_NODE_CONNECTION("Right node has no valid data");
+            INVALID_NODE_CONNECTION("Right fbx_node has no valid data");
         }
 
         if (auto *left_mesh = left_it->second.data.TryGet<FBXMesh>()) {
@@ -1194,7 +1193,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
         } else if (auto *left_node = left_it->second.data.TryGet<FBXNode>()) {
             if (auto *right_node = right_it->second.data.TryGet<FBXNode>()) {
                 if (left_node->parent_id) {
-                    HYP_LOG(Assets, Warning, "Left node already has parent, cannot add to right node");
+                    HYP_LOG(Assets, Warning, "Left fbx_node already has parent, cannot add to right fbx_node");
                 } else {
                     left_node->parent_id = right_it->first;
                     right_node->child_ids.Insert(left_it->first);
@@ -1233,44 +1232,44 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 #undef INVALID_NODE_CONNECTION
     }
 
-    RC<Bone> root_bone = MakeRefCountedPtr<Bone>();
+    Handle<Bone> root_bone = CreateObject<Bone>();
     root_skeleton->SetRootBone(root_bone);
 
     bool found_first_bone = false;
 
     Proc<void(FBXNode::Type, FBXNode &, Node *)> BuildNodes;
 
-    BuildNodes = [&](FBXNode::Type type, FBXNode &node, Node *parent_node)
+    BuildNodes = [&](FBXNode::Type type, FBXNode &fbx_node, Node *parent_node)
     {
 #if 0 // temporarily disabled due to 'Internal Server Error' on MSW
         AssertThrow(parent_node != nullptr);
 
-        if (node.type != type) {
+        if (fbx_node.type != type) {
             return;
         }
 
-        NodeProxy node_proxy;
+        Handle<Node> node;
 
-        if (node.type == FBXNode::Type::NODE) {
-            node_proxy = NodeProxy(MakeRefCountedPtr<Node>());
-        } else if (node.type == FBXNode::Type::LIMB_NODE) {
+        if (fbx_node.type == FBXNode::Type::NODE) {
+            node = CreateObject<Node>();
+        } else if (fbx_node.type == FBXNode::Type::LIMB_NODE) {
             Transform binding_transform;
-            binding_transform.SetTranslation(node.local_bind_matrix.ExtractTranslation());
-            binding_transform.SetRotation(node.local_bind_matrix.ExtractRotation());
-            binding_transform.SetScale(node.local_bind_matrix.ExtractScale());
+            binding_transform.SetTranslation(fbx_node.local_bind_matrix.ExtractTranslation());
+            binding_transform.SetRotation(fbx_node.local_bind_matrix.ExtractRotation());
+            binding_transform.SetScale(fbx_node.local_bind_matrix.ExtractScale());
 
-            RC<Bone> bone = MakeRefCountedPtr<Bone>();
+            Handle<Bone> bone = CreateObject<Bone>();
             bone->SetBindingTransform(binding_transform);
 
-            node_proxy = NodeProxy(bone);
+            node = Handle<Node>(bone);
         }
 
-        node_proxy.SetName(node.name);
+        node->SetName(fbx_node.name);
 
-        if (node.mesh_id) {
+        if (fbx_node.mesh_id) {
             FBXMesh *mesh;
 
-            if (GetFBXObject(node.mesh_id, mesh)) {
+            if (GetFBXObject(fbx_node.mesh_id, mesh)) {
                 ApplyClustersToMesh(*mesh);
 
                 auto material = g_material_system->GetOrCreate({
@@ -1310,16 +1309,16 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
                     VisibilityStateComponent { }
                 );
 
-                node_proxy.SetEntity(entity);
+                node.SetEntity(entity);
             }
         }
 
-        for (const FBXObjectID id : node.child_ids) {
+        for (const FBXObjectID id : fbx_node.child_ids) {
             if (id) {
                 FBXNode *child_node;
 
                 if (GetFBXObject(id, child_node)) {
-                    BuildNodes(type, *child_node, node_proxy.Get());
+                    BuildNodes(type, *child_node, node.Get());
 
                     continue;
                 }
@@ -1328,7 +1327,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
             }
         }
 
-        parent_node->AddChild(node_proxy);
+        parent_node->AddChild(node);
 #endif
     };
 
@@ -1338,7 +1337,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
             FBXBindPose *bind_pose;
 
             if (!GetFBXObject(id, bind_pose)) {
-                HYP_LOG(Assets, Warning, "Not a valid bind pose node: {}", id);
+                HYP_LOG(Assets, Warning, "Not a valid bind pose fbx_node: {}", id);
 
                 continue;
             }
@@ -1347,7 +1346,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
                 FBXNode *linked_node;
 
                 if (!GetFBXObject(pose_node.node_id, linked_node)) {
-                    HYP_LOG(Assets, Warning, "Linked node {} to pose node is not valid", pose_node.node_id);
+                    HYP_LOG(Assets, Warning, "Linked fbx_node {} to pose fbx_node is not valid", pose_node.node_id);
 
                     continue;
                 }
@@ -1359,19 +1358,19 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 
     Proc<void(FBXNode &)> ApplyLocalBindPose;
 
-    ApplyLocalBindPose = [&](FBXNode &node)
+    ApplyLocalBindPose = [&](FBXNode &fbx_node)
     {
-        node.local_bind_matrix = node.world_bind_matrix;
+        fbx_node.local_bind_matrix = fbx_node.world_bind_matrix;
 
-        if (node.parent_id) {
+        if (fbx_node.parent_id) {
             FBXNode *parent_node;
 
-            if (GetFBXObject(node.parent_id, parent_node)) {
-                node.local_bind_matrix = parent_node->world_bind_matrix.Inverted() * node.local_bind_matrix;
+            if (GetFBXObject(fbx_node.parent_id, parent_node)) {
+                fbx_node.local_bind_matrix = parent_node->world_bind_matrix.Inverted() * fbx_node.local_bind_matrix;
             }
         }
 
-        for (const FBXObjectID id : node.child_ids) {
+        for (const FBXObjectID id : fbx_node.child_ids) {
             if (id) {
                 FBXNode *child_node;
 
@@ -1388,7 +1387,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
             FBXBindPose *bind_pose;
 
             if (!GetFBXObject(id, bind_pose)) {
-                HYP_LOG(Assets, Warning, "Not a valid bind pose node: {}", id);
+                HYP_LOG(Assets, Warning, "Not a valid bind pose fbx_node: {}", id);
 
                 continue;
             }
@@ -1397,7 +1396,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
                 FBXNode *linked_node;
 
                 if (!GetFBXObject(pose_node.node_id, linked_node)) {
-                    HYP_LOG(Assets, Warning, "Linked node {} to pose node is not valid", pose_node.node_id);
+                    HYP_LOG(Assets, Warning, "Linked fbx_node {} to pose fbx_node is not valid", pose_node.node_id);
 
                     continue;
                 }
@@ -1412,14 +1411,14 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 
     Proc<void(FBXNode &)> BuildLimbNodes;
 
-    BuildLimbNodes = [&](FBXNode &node)
+    BuildLimbNodes = [&](FBXNode &fbx_node)
     {
-        if (node.type == FBXNode::Type::LIMB_NODE) {
+        if (fbx_node.type == FBXNode::Type::LIMB_NODE) {
             found_first_bone = true;
 
-            BuildNodes(FBXNode::Type::LIMB_NODE, node, root_bone.Get());
+            BuildNodes(FBXNode::Type::LIMB_NODE, fbx_node, root_bone.Get());
         } else {
-            for (const FBXObjectID id : node.child_ids) {
+            for (const FBXObjectID id : fbx_node.child_ids) {
                 if (id) {
                     FBXNode *child_node;
 
@@ -1435,13 +1434,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState &state) const
 
     Proc<FBXNode *(FBXNode &)> FindFirstLimbNode;
 
-    FindFirstLimbNode = [&](FBXNode &node) -> FBXNode *
+    FindFirstLimbNode = [&](FBXNode &fbx_node) -> FBXNode *
     {
-        if (node.type == FBXNode::Type::LIMB_NODE) {
-            return &node;
+        if (fbx_node.type == FBXNode::Type::LIMB_NODE) {
+            return &fbx_node;
         }
 
-        for (const FBXObjectID id : node.child_ids) {
+        for (const FBXObjectID id : fbx_node.child_ids) {
             if (id) {
                 FBXNode *child_node;
 

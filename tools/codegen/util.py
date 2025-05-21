@@ -42,7 +42,7 @@ CXX_TO_CSHARP_TYPE_MAPPING = {
     'FilePath': ('string', True),
     'ByteBuffer': ('byte[]', True),
     'ID': ('IDBase', True),
-    'NodeProxy': ('Node', False),
+    'Handle<Node>': ('Node', False),
     'Node': ('Node', False),
     'Name': ('Name', False),
     'WeakName': ('Name', False),

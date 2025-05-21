@@ -254,7 +254,7 @@ private:
 
     FlatMap<int, RC<WorldGridPlugin>>   m_plugins;
 
-    NodeProxy                           m_root_node;
+    Handle<Node>                           m_root_node;
 
     bool                                m_is_initialized;
 };

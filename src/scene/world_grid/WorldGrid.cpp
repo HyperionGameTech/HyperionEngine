@@ -84,7 +84,7 @@ void WorldGridState::PushUpdate(WorldGridPatchUpdate &&update)
 
 WorldGrid::WorldGrid()
     : m_params { },
-      m_root_node(NodeProxy(MakeRefCountedPtr<Node>())),
+      m_root_node(Handle<Node>(CreateObject<Node>())),
       m_is_initialized(false)
 {
 }
@@ -92,7 +92,7 @@ WorldGrid::WorldGrid()
 WorldGrid::WorldGrid(const WorldGridParams &params, const Handle<Scene> &scene)
     : m_params(params),
       m_scene(scene),
-      m_root_node(NodeProxy(MakeRefCountedPtr<Node>())),
+      m_root_node(Handle<Node>(CreateObject<Node>())),
       m_is_initialized(false)
 {
     if (scene.IsValid()) {
@@ -295,7 +295,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
             {
                 Threads::AssertOnThread(g_game_thread);
 
-                NodeProxy patch_node(MakeRefCountedPtr<Node>());
+                Handle<Node> patch_node(CreateObject<Node>());
                 patch_node->SetFlags(NodeFlags::TRANSIENT);
                 // patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
                 patch_node->SetName(HYP_FORMAT("Patch_{}_{}", patch_info.coord.x, patch_info.coord.y));
@@ -413,20 +413,18 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                     entity_manager->PushCommand([&state = m_state, update, entity = std::move(patch_entity)](EntityManager &mgr, GameCounter::TickUnit delta)
                     {
                         // tmp; debugging
-                        Weak<Node> weak_node;
+                        WeakHandle<Node> weak_node;
 
                         // Remove the node from the parent
                         if (mgr.HasEntity(entity)) {
                             if (NodeLinkComponent *node_link_component = mgr.TryGetComponent<NodeLinkComponent>(entity)) {
-                                if (RC<Node> node = node_link_component->node.Lock()) {
+                                if (Handle<Node> node = node_link_component->node.Lock()) {
                                     weak_node = node; // temp; debugging
 
                                     node->Remove();
                                 }
                             }
                         }
-
-                        HYP_LOG(WorldGrid, Info, "Patch entity at {} removed (Entity ID : {}), usecount strong: {}, weak: {}", update.coord, entity.GetID().Value(), weak_node.GetRefCountData_Internal()->UseCount_Strong(), weak_node.GetRefCountData_Internal()->UseCount_Weak());
 
                         // weak_node.GetRefCountData_Internal()->GetRefTrackData([](const auto &ref_track_data)
                         // {
