@@ -24,12 +24,16 @@ HYP_EXPORT void Handle_Set(uint32 type_id_value, HypData *hyp_data, HypObjectHea
     if (hyp_data != nullptr) {
         AnyHandle &handle = hyp_data->Get<AnyHandle>();
         
-        handle.ptr->IncRefStrong();
+        if (handle.IsValid()) {
+            handle.header->IncRefStrong();
 
-        *out_header_ptr = handle.ptr;
-    } else {
-        *out_header_ptr = nullptr;
+            *out_header_ptr = handle.header;
+
+            return;
+        }
     }
+
+    *out_header_ptr = nullptr;
 }
 
 HYP_EXPORT void Handle_Destruct(HypObjectHeader *header_ptr)

@@ -877,12 +877,12 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
 
     HYP_FORCE_INLINE Handle<T> &Get(AnyHandle &value) const
     {
-        return *reinterpret_cast<Handle<T> *>(&value);
+        return static_cast<Handle<T> &>(value);
     }
 
     HYP_FORCE_INLINE const Handle<T> &Get(const AnyHandle &value) const
     {
-        return *reinterpret_cast<const Handle<T> *>(&value);
+        return static_cast<const Handle<T> &>(value);
     }
 
     HYP_FORCE_INLINE void Set(HypData &hyp_data, const Handle<T> &value) const

@@ -57,8 +57,9 @@ public:
     virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
 
     virtual void *ConstructAtIndex(uint32 index) = 0;
-
     virtual void ReleaseIndex(uint32 index) = 0;
+
+    virtual HypObjectHeader *GetDefaultObjectHeader() = 0;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
@@ -319,6 +320,11 @@ public:
     virtual void ReleaseIndex(uint32 index) override
     {
         m_pool.ReleaseIndex(index);
+    }
+
+    virtual HypObjectHeader *GetDefaultObjectHeader() override
+    {
+        return &m_default_object;
     }
 
 private:

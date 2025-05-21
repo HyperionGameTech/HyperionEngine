@@ -91,8 +91,8 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments &args)
                 json::JSONObject entity_json;
                 entity_json["id"] = entity.GetID().Value();
 
-                entity_json["num_strong_refs"] = entity.ptr->GetRefCountStrong() - 1;
-                entity_json["num_weak_refs"] = entity.ptr->GetRefCountWeak();
+                entity_json["num_strong_refs"] = entity.header->GetRefCountStrong() - 1;
+                entity_json["num_weak_refs"] = entity.header->GetRefCountWeak();
                 
                 json::JSONArray components_json;
 

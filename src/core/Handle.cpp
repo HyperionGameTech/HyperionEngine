@@ -27,21 +27,12 @@ namespace hyperion {
 
 const AnyHandle AnyHandle::empty = { };
 
-AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
-    : type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void()),
-      ptr(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal() : nullptr)
-{
-    if (IsValid()) {
-        ptr->IncRefStrong();
-    }
-}
-
 AnyHandle::AnyHandle(const AnyHandle &other)
     : type_id(other.type_id),
-      ptr(other.ptr)
+      header(other.header)
 {
     if (IsValid()) {
-        ptr->IncRefStrong();
+        header->IncRefStrong();
     }
 }
 
@@ -51,20 +42,20 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
         return *this;
     }
 
-    const bool was_same_ptr = ptr == other.ptr;
+    const bool was_same_ptr = header == other.header;
 
     if (!was_same_ptr) {
         if (IsValid()) {
-            ptr->DecRefStrong();
+            header->DecRefStrong();
         }
     }
 
-    ptr = other.ptr;
+    header = other.header;
     type_id = other.type_id;
 
     if (!was_same_ptr) {
         if (IsValid()) {
-            ptr->IncRefStrong();
+            header->IncRefStrong();
         }
     }
 
@@ -73,9 +64,9 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
 
 AnyHandle::AnyHandle(AnyHandle &&other) noexcept
     : type_id(other.type_id),
-      ptr(other.ptr)
+      header(other.header)
 {
-    other.ptr = nullptr;
+    other.header = nullptr;
 }
 
 AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
@@ -85,13 +76,13 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
     }
 
     if (IsValid()) {
-        ptr->DecRefStrong();
+        header->DecRefStrong();
     }
 
-    ptr = other.ptr;
+    header = other.header;
     type_id = other.type_id;
 
-    other.ptr = nullptr;
+    other.header = nullptr;
 
     return *this;
 }
@@ -99,7 +90,7 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
 AnyHandle::~AnyHandle()
 {
     if (IsValid()) {
-        ptr->DecRefStrong();
+        header->DecRefStrong();
     }
 }
 
@@ -109,25 +100,25 @@ AnyHandle::IDType AnyHandle::GetID() const
         return IDType();
     }
 
-    return IDType { ptr->index + 1 };
+    return IDType { header->index + 1 };
 }
 
-AnyRef AnyHandle::ToRef() const
+AnyRef AnyHandle::ToRef() const &
 {
     if (!IsValid()) {
         return AnyRef(type_id, nullptr);
     }
 
-    return AnyRef(type_id, ptr->container->GetObjectPointer(ptr));
+    return AnyRef(type_id, header->container->GetObjectPointer(header));
 }
 
 void AnyHandle::Reset()
 {
     if (IsValid()) {
-        ptr->DecRefStrong();
+        header->DecRefStrong();
     }
 
-    ptr = nullptr;
+    header = nullptr;
 }
 
 void *AnyHandle::Release()
@@ -136,10 +127,10 @@ void *AnyHandle::Release()
         return nullptr;
     }
 
-    void *address = ptr->container->GetObjectPointer(ptr);
+    void *address = header->container->GetObjectPointer(header);
     AssertThrow(address != nullptr);
 
-    ptr = nullptr;
+    header = nullptr;
 
     return address;
 }
