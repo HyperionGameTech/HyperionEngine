@@ -393,7 +393,6 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     m_resolution(resolution),
     m_filter_mode(filter_mode)
 {
-    debug::LogStackTrace();
     m_camera = CreateObject<Camera>(m_resolution.x, m_resolution.y);
     m_camera->SetName(NAME("DirectionalLightShadowRendererCamera"));
     m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>());

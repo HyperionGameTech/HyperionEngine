@@ -134,7 +134,6 @@ HYP_API uint32 HypObjectPtr::GetRefCount_Weak() const
     return initializer->GetRefCount_Weak(m_hyp_class->GetAllocationMethod(), m_ptr);
 }
 
-HYP_DISABLE_OPTIMIZATION;
 HYP_API void HypObjectPtr::IncRef(bool weak)
 {
     AssertDebug(IsValid());
@@ -154,7 +153,6 @@ HYP_API void HypObjectPtr::DecRef(bool weak)
 
     initializer->DecRef(m_hyp_class->GetAllocationMethod(), m_ptr, weak);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 HYP_API IHypObjectInitializer *HypObjectPtr::GetObjectInitializer() const
 {
@@ -236,8 +234,6 @@ HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
     return hyp_class->GetManagedClass();
 }
 
-HYP_DISABLE_OPTIMIZATION;
-
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
     if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
@@ -259,7 +255,6 @@ HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
         }
     }
 }
-HYP_ENABLE_OPTIMIZATION;
 
 HYP_API void HypObject_OnIncRefCount_Weak(HypObjectPtr ptr, uint32 count)
 {

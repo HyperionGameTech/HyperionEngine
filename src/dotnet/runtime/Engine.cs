@@ -10,9 +10,10 @@ namespace Hyperion
         {
             get
             {
-                return (Engine)HypObject.GetMethod(HypClass.GetClass(typeof(Engine)), new Name("GetInstance", weak: true))
-                    .Invoke()
-                    .GetValue();
+                using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass(typeof(Engine)), new Name("GetInstance", weak: true)).InvokeNative())
+                {
+                    return (Engine)resultData.GetValue();
+                }
             }
         }
 

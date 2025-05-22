@@ -95,7 +95,7 @@ namespace Hyperion
             }
         }
 
-        public HypData Invoke(params object[] args)
+        public HypDataBuffer InvokeNative(params object[] args)
         {
             if (ptr == IntPtr.Zero)
             {
@@ -152,36 +152,32 @@ namespace Hyperion
                 {
                     HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(args[argIndex]);
-
-                    HypMethodParameter param = Marshal.PtrToStructure<HypMethodParameter>(paramsPtr + argIndex * Marshal.SizeOf<HypMethodParameter>());
-                    
-                    // if (hypDataArgsBuffers[argIndex].TypeID != param.TypeID)
-                    // {
-                    //     throw new InvalidOperationException("Cannot invoke method: Invalid argument type for parameter " + argIndex + ": expected to have TypeID " + param.TypeID.Value + " but got " + hypDataArgsBuffers[argIndex].TypeID.Value);
-                    // }
                 }
             }
 
             HypDataBuffer resultBuffer;
 
-            // Args is pointer contiguous HypData
+            // Args is pointer to contiguous HypDataBuffer objects
             unsafe
             {
                 fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
                 {
-                    if (!HypMethod_Invoke(ptr, (IntPtr)argsPtr, (uint)numArgs, out resultBuffer))
-                    {
+                    bool result = HypMethod_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+
+                    for (int i = 0; i < numArgs; i++)
+                        hypDataArgsBuffers[i].Dispose();
+
+                    if (!result)
                         throw new InvalidOperationException("Failed to invoke method");
-                    }
                 }
             }
 
-            for (int i = 0; i < numArgs; i++)
-            {
-                hypDataArgsBuffers[i].Destruct();
-            }
+            return resultBuffer;
+        }
 
-            return new HypData(resultBuffer);
+        public HypData Invoke(params object[] args)
+        {
+            return HypData.FromBuffer(InvokeNative(args));
         }
         
         [DllImport("hyperion", EntryPoint = "HypMethod_GetName")]

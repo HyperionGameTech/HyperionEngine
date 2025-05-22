@@ -73,19 +73,16 @@ namespace Hyperion
     ///  Needs to be a struct to be passed by value, has a fixed size of 32 bytes
     ///  Destructor needs to be called manually (HypData_Destruct)
     /// </summary>
-    [StructLayout(LayoutKind.Explicit, Size = 40)]
-    public unsafe struct HypDataBuffer
+    [StructLayout(LayoutKind.Explicit, Size = 40, Pack = 8)]
+    public unsafe struct HypDataBuffer : IDisposable
     {
         [FieldOffset(0)]
         private fixed byte buffer[32];
 
-        [FieldOffset(0)]
+        [FieldOffset(32)]
         private IntPtr serializeFunctionPtr;
 
-        /// <summary>
-        /// Destructs the underlying HypData object. This needs to be called manually and may only be called on a valid HypData object.
-        /// </summary>
-        public void Destruct()
+        public void Dispose()
         {
             HypData_Destruct(ref this);
         }
@@ -779,6 +776,10 @@ namespace Hyperion
         private HypDataBuffer _data;
         private bool _disposed = false;
 
+        private HypData()
+        {
+        }
+
         public HypData(object? value)
         {
             HypDataBuffer.HypData_Construct(ref _data);
@@ -789,16 +790,19 @@ namespace Hyperion
             }
         }
 
-        public HypData(HypDataBuffer data)
+        internal static HypData FromBuffer(HypDataBuffer data)
         {
-            _data = data;
+            HypData hypData = new HypData();
+            hypData._data = data;
+
+            return hypData;
         }
         
         public void Dispose()
         {
             if (!_disposed)
             {
-                _data.Destruct();
+                _data.Dispose();
                 _disposed = true;
             }
         }

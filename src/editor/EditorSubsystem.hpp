@@ -120,9 +120,6 @@ public:
     HYP_FORCE_INLINE const Handle<Node> &GetNode() const
         { return m_node; }
 
-    HYP_FORCE_INLINE const Handle<Node> &GetFocusedNode() const
-        { return m_focused_node; }
-
     HYP_FORCE_INLINE bool IsDragging() const
         { return m_is_dragging; }
 
@@ -151,11 +148,11 @@ public:
 protected:
     virtual Handle<Node> Load_Internal() const = 0;
 
-    Handle<Node>   m_focused_node;
-    Handle<Node>   m_node;
+    WeakHandle<Node>    m_focused_node;
+    Handle<Node>        m_node;
 
 private:
-    bool        m_is_dragging;
+    bool                m_is_dragging;
 };
 
 HYP_CLASS()
@@ -281,7 +278,7 @@ public:
     void AddTask(const RC<IEditorTask> &task);
 
     HYP_METHOD()
-    void SetFocusedNode(const Handle<Node> &focused_node);
+    void SetFocusedNode(const Handle<Node> &focused_node, bool should_select_in_outline = true);
 
     HYP_METHOD()
     void AddDebugOverlay(const RC<EditorDebugOverlayBase> &debug_overlay);
@@ -290,16 +287,15 @@ public:
     bool RemoveDebugOverlay(WeakName name);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Node> &GetFocusedNode() const
-        { return m_focused_node; }
+    Handle<Node> GetFocusedNode() const;
 
     HYP_FORCE_INLINE EditorDelegates *GetEditorDelegates()
         { return m_editor_delegates; }
 
-    Delegate<void, const Handle<Node> &, const Handle<Node> &>    OnFocusedNodeChanged;
+    Delegate<void, const Handle<Node> &, const Handle<Node> &, bool>    OnFocusedNodeChanged;
 
-    Delegate<void, const Handle<EditorProject> &>           OnProjectClosing;
-    Delegate<void, const Handle<EditorProject> &>           OnProjectOpened;
+    Delegate<void, const Handle<EditorProject> &>                       OnProjectClosing;
+    Delegate<void, const Handle<EditorProject> &>                       OnProjectOpened;
 
 private:
     void LoadEditorUIDefinitions();
@@ -351,9 +347,9 @@ private:
     Handle<Texture>                                                     m_scene_texture;
     RC<UIObject>                                                        m_main_panel;
 
-    Handle<Node>                                                           m_focused_node;
+    WeakHandle<Node>                                                    m_focused_node;
     // the actual node that displays the highlight for the focused item
-    Handle<Node>                                                           m_highlight_node;
+    Handle<Node>                                                        m_highlight_node;
 
     bool                                                                m_editor_camera_enabled;
     bool                                                                m_should_cancel_next_click;

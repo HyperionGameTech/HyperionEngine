@@ -495,9 +495,6 @@ void EnvProbeRenderResource::Render(FrameBase *frame)
             g_engine->GetRenderState()->SetActiveLight(TResourceHandle<LightRenderResource>(*light_render_resource));
         }
 
-        // debugging
-        AssertThrow(m_view_render_resource_handle->GetRenderCollector().GetOverrideAttributes().HasValue());
-
         m_view_render_resource_handle->GetRenderCollector().CollectDrawCalls(
             frame,
             m_view_render_resource_handle.Get(),

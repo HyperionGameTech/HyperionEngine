@@ -12,7 +12,7 @@ namespace Hyperion
         internal static extern void Handle_Set([In] ref HypDataBuffer hypDataBuffer, [Out] out IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "Handle_Destruct")]
-        internal static extern void Handle_Destruct(IntPtr ptr);
+        public static extern void Handle_Destruct(IntPtr ptr);
 
         [DllImport("hyperion", EntryPoint = "WeakHandle_Lock")]
         [return: MarshalAs(UnmanagedType.U1)]
@@ -67,6 +67,14 @@ namespace Hyperion
             }
         }
 
+        public IntPtr Address
+        {
+            get
+            {
+                return ptr;
+            }
+        }
+
         public bool IsValid
         {
             get
@@ -82,7 +90,7 @@ namespace Hyperion
 
             T? value = (T?)hypDataBuffer.GetValue();
 
-            hypDataBuffer.Destruct();
+            hypDataBuffer.Dispose();
 
             return value;
         }
@@ -121,6 +129,14 @@ namespace Hyperion
             {
                 ManagedHandleNativeBindings.WeakHandle_Destruct(ptr);
                 ptr = IntPtr.Zero;
+            }
+        }
+
+        public IntPtr Address
+        {
+            get
+            {
+                return ptr;
             }
         }
 

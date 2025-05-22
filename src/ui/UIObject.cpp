@@ -754,6 +754,54 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
     OnScrollOffsetUpdate(m_scroll_offset.GetValue());
 }
 
+void UIObject::ScrollToChild(UIObject *child)
+{
+    HYP_SCOPE;
+    
+    if (!child || child == this) {
+        return;
+    }
+
+    // Check if the child is a descendant of this object
+    if (!child->IsOrHasParent(this)) {
+        return;
+    }
+
+    // Already in view of this object
+    if (m_aabb_clamped.Contains(child->m_aabb_clamped)) {
+        return;
+    }
+
+    // Child is set to not visible
+    if (!child->IsVisible()) {
+        return;
+    }
+
+    // Get the position of the child relative to this object
+    Vec2f child_position = child->GetAbsolutePosition() - GetAbsolutePosition();
+
+    Vec2i scroll_offset = GetScrollOffset();
+
+    Vec2i new_scroll_offset = scroll_offset;
+    Vec2i child_size = child->GetActualSize();
+
+    if (child_position.x < 0) {
+        new_scroll_offset.x = MathUtil::Clamp(int(scroll_offset.x + child_position.x), 0, m_actual_inner_size.x - m_actual_size.x);
+    } else if (child_position.x + child_size.x > m_actual_size.x) {
+        new_scroll_offset.x = MathUtil::Clamp(int(scroll_offset.x + child_position.x) + child_size.x - m_actual_size.x, 0, m_actual_inner_size.x - m_actual_size.x);
+    }
+
+    if (child_position.y < 0) {
+        new_scroll_offset.y = MathUtil::Clamp(int(scroll_offset.y + child_position.y), 0, m_actual_inner_size.y - m_actual_size.y);
+    } else if (child_position.y + child_size.y > m_actual_size.y) {
+        new_scroll_offset.y = MathUtil::Clamp(int(scroll_offset.y + child_position.y) + child_size.y - m_actual_size.y, 0, m_actual_inner_size.y - m_actual_size.y);
+    }
+
+    if (new_scroll_offset != scroll_offset) {
+        SetScrollOffset(new_scroll_offset, /* smooth */ false);
+    }
+}
+
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
 {
     HYP_SCOPE;

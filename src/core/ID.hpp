@@ -14,6 +14,9 @@ namespace hyperion {
 
 class Engine;
 
+/*! \brief A transient, global ID for an instance of an object. 
+ *  \details This ID is not guaranteed to be stable across runs of the engine, but is guaranteed to be unique for the lifetime of the object.
+ *  \note The ID is not a pointer to the object, but rather an index into a pool of objects. */
 struct IDBase
 {
     using ValueType = uint32;
@@ -49,9 +52,9 @@ struct IDBase
     ValueType value { 0 };
 };
 
-template <class T>
-struct ID;
-
+/*! \brief A transient, global ID for an instance of an object. 
+ *  \details This ID is not guaranteed to be stable across runs of the engine, but is guaranteed to be unique for the lifetime of the object.
+ *  \note The ID is not a pointer to the object, but rather an index into a pool of objects. */
 template <class T>
 struct ID : IDBase
 {

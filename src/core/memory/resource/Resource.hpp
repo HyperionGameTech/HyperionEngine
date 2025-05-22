@@ -127,9 +127,6 @@ public:
                     // Check again, as it might have been initialized in between the initial check and the increment
                     HYP_MT_CHECK_RW(m_data_race_detector);
 
-                    // debugging
-                    AssertDebug(m_claimed_semaphore.IsInSignalState());
-
                     // Execute inline if not initialized yet instead of pushing to owner thread
                     function();
 

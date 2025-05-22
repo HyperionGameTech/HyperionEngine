@@ -340,7 +340,7 @@ namespace Hyperion
 
             UIObject? result = (UIObject?)hypDataBuffer.GetValue();
 
-            hypDataBuffer.Destruct();
+            hypDataBuffer.Dispose();
 
             return result;
         }
@@ -356,7 +356,7 @@ namespace Hyperion
 
             T? result = (T?)hypDataBuffer.GetValue();
 
-            hypDataBuffer.Destruct();
+            hypDataBuffer.Dispose();
 
             return result;
         }

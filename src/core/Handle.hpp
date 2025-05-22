@@ -55,7 +55,6 @@ struct Handle final : HandleBase
 {
     using IDType = ID<T>;
 
-public:
     friend struct AnyHandle;
     friend struct WeakHandle<T>;
 
@@ -204,7 +203,7 @@ public:
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
-    HYP_FORCE_INLINE IDType GetID() const
+    HYP_DEPRECATED HYP_FORCE_INLINE IDType GetID() const
         { return IDType(*this); }
     
     /*! \brief Get a pointer to the object that the handle is referencing.
@@ -558,7 +557,7 @@ public:
         { return GetID() < id; }
     
     HYP_FORCE_INLINE bool IsValid() const
-        { return type_id != TypeID::Void() && ptr != nullptr; }
+        { return ptr != nullptr; }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */

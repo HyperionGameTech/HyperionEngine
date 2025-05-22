@@ -628,6 +628,9 @@ public:
     void SetScrollOffset(Vec2i scroll_offset, bool smooth);
 
     HYP_METHOD()
+    void ScrollToChild(UIObject *child);
+
+    HYP_METHOD()
     virtual int GetVerticalScrollbarSize() const
         { return scrollbar_size; }
 
@@ -1409,7 +1412,7 @@ private:
 
     AtomicVar<bool>                         m_needs_repaint;
 
-    Handle<Node>                               m_node;
+    Handle<Node>                            m_node;
 
     Array<RC<UIObject>>                     m_child_ui_objects;
 

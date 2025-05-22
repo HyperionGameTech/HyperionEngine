@@ -363,6 +363,21 @@ Handle<Material> Material::Clone() const
     return material;
 }
 
+HashCode Material::GetHashCode() const
+{
+    HashCode hc;
+
+    if (m_shader.IsValid()) {
+        hc.Add(m_shader->GetCompiledShader()->GetHashCode());
+    }
+    
+    hc.Add(m_parameters.GetHashCode());
+    hc.Add(m_textures.GetHashCode());
+    hc.Add(m_render_attributes.GetHashCode());
+
+    return hc;
+}
+
 #pragma endregion Material
 
 #pragma region MaterialGroup

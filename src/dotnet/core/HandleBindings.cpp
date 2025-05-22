@@ -27,9 +27,9 @@ HYP_EXPORT void Handle_Set(HypData *hyp_data, HypObjectBase **out_ptr)
         AnyHandle &handle = hyp_data->Get<AnyHandle>();
 
         if (handle.IsValid()) {
-            handle.ptr->GetObjectHeader_Internal()->IncRefStrong();
-
             *out_ptr = handle.ptr;
+
+            (void)handle.Release();
 
             return;
         }
@@ -69,6 +69,8 @@ HYP_EXPORT void WeakHandle_Set(HypData *hyp_data, HypObjectBase **out_ptr)
             handle.ptr->GetObjectHeader_Internal()->IncRefWeak();
 
             *out_ptr = handle.ptr;
+
+            handle.Reset();
 
             return;
         }

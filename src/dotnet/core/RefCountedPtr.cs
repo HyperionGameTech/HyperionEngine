@@ -151,7 +151,7 @@ namespace Hyperion
 
             T? value = (T?)hypDataBuffer.GetValue();
 
-            hypDataBuffer.Destruct();
+            hypDataBuffer.Dispose();
 
             return value;
         }

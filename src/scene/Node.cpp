@@ -525,18 +525,18 @@ bool Node::RemoveAt(int index)
     return RemoveChild(m_child_nodes.Begin() + index);
 }
 
-void Node::Remove()
+bool Node::Remove()
 {
     if (!m_parent_node) {
         SetScene(nullptr);
 
-        return;
+        return true;
     }
 
     auto it = m_parent_node->FindChild(this);
     AssertDebug(it != m_parent_node->GetChildren().End());
 
-    m_parent_node->RemoveChild(it);
+    return m_parent_node->RemoveChild(it);
 }
 
 void Node::RemoveAllChildren()

@@ -54,6 +54,8 @@ protected:
 
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
+    virtual Material::ParameterTable GetMaterialParameters() const override;
+
 private:
     RC<UIObject>    m_expanded_element;
     bool            m_is_selected_item;
@@ -82,6 +84,9 @@ public:
 
     HYP_FORCE_INLINE const Weak<UIListViewItem> &GetSelectedItem() const
         { return m_selected_item; }
+
+    HYP_METHOD()
+    void SetSelectedItem(UIListViewItem *list_view_item);
 
     HYP_METHOD()
     HYP_FORCE_INLINE int GetSelectedItemIndex() const

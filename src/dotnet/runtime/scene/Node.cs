@@ -16,7 +16,11 @@ namespace Hyperion
 
         ExcludeFromParentAABB = 0x8,
 
-        HideInSceneOutline = 0x100 // Should this node be hidden in the editor's outline window?
+        BuildBVH = 0x10, // Should this Node ensure a BVHComponent is added to its Entity?
+        
+        Transient = 0x100, // Set if the node should not be serialized.
+
+        HideInSceneOutline = 0x1000 // Should this node be hidden in the editor's outline window?
     }
 
     [HypClassBinding(Name="Node")]

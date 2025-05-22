@@ -179,9 +179,6 @@ public:
 
     virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
     {
-        // Temp; debug
-        AssertThrow(uintptr_t(_this) % alignof(T) == 0);
-
         static_cast<T *>(_this)->m_hyp_object_initializer_ptr = ptr;
     }
 
@@ -413,6 +410,8 @@ class HypObject : public HypObjectBase
     using InnerType = T;
 
 public:
+    using IDType = ID<InnerType>;
+
     enum InitState : uint16
     {
         INIT_STATE_UNINITIALIZED    = 0x0,
@@ -437,8 +436,8 @@ public:
 
     virtual ~HypObject() override = default;
 
-    HYP_FORCE_INLINE ID<InnerType> GetID() const
-        { return ID<InnerType>(HypObjectBase::GetID().Value()); }
+    HYP_FORCE_INLINE IDType GetID() const
+        { return IDType(HypObjectBase::GetID().Value()); }
 
     HYP_FORCE_INLINE bool IsInitCalled() const
         { return m_init_state.Get(MemoryOrder::RELAXED) & INIT_STATE_INIT_CALLED; }

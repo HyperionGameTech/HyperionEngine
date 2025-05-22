@@ -748,7 +748,7 @@ struct HypDataHelper<ID<T>> : HypDataHelper<IDBase>
 
     HYP_FORCE_INLINE bool Is(const AnyHandle &value) const
     {
-        return value.GetTypeID() == TypeID::ForType<T>();
+        return value.Is<T>();
     }
 
     HYP_FORCE_INLINE ID<T> Get(IDBase value) const

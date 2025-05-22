@@ -98,7 +98,7 @@ void EditorDelegates::OnNodeUpdate(Node *node, const HypProperty *property)
         Impl();
     } else {
         m_scheduler.Enqueue(
-            HYP_STATIC_MESSAGE(HYP_PRETTY_FUNCTION_NAME),
+            HYP_STATIC_MESSAGE(HYP_FUNCTION_NAME_LIT),
             Impl,
             TaskEnqueueFlags::FIRE_AND_FORGET
         );

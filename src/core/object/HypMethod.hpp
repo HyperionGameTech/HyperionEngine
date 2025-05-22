@@ -34,7 +34,7 @@ namespace detail {
 #pragma region CallHypMethod
 
 template <class FunctionType, class ReturnType, class... ArgTypes, SizeType... Indices>
-decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData **args, std::index_sequence<Indices...>)
+HYP_FORCE_INLINE decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData **args, std::index_sequence<Indices...>)
 {
     auto AssertArgType = [args]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
@@ -59,18 +59,6 @@ decltype(auto) CallHypMethod(FunctionType fn, HypData **args)
 {
     return CallHypMethod_Impl<FunctionType, ReturnType, ArgTypes...>(fn, args, std::make_index_sequence<sizeof...(ArgTypes)>{});
 }
-
-template <class FunctionType, class ReturnType, class ArgsTupleType>
-struct CallHypMethod_Tuple;
-
-template <class FunctionType, class ReturnType, class... ArgTypes>
-struct CallHypMethod_Tuple<FunctionType, ReturnType, Tuple<ArgTypes...>>
-{
-    decltype(auto) operator()(FunctionType fn, Span<HypData> args) const
-    {
-        return CallHypMethod<FunctionType, ReturnType, ArgTypes...>(fn, args);
-    }
-};
 
 #pragma endregion CallHypMethod
 
@@ -158,11 +146,11 @@ struct HypMethodHelper<FunctionType, std::enable_if_t< !FunctionTraits<FunctionT
 } // namespace detail
 
 #define HYP_METHOD_MEMBER_FN_WRAPPER(_mem_fn) \
-    [_mem_fn](TargetType *target, ArgTypes... args) -> ReturnType \
+    [_mem_fn]<class... InnerArgTypes>(TargetType *target, InnerArgTypes &&... args) -> ReturnType \
     { \
         AssertThrow(target != nullptr); \
         \
-        return (target->*_mem_fn)(args...); \
+        return (target->*_mem_fn)(std::forward<InnerArgTypes>(args)...); \
     }
 
 class HypMethod : public IHypMember
@@ -470,7 +458,7 @@ private:
     HypClassAttributeSet                                                        m_attributes;
 
     Proc<HypData(HypData **, SizeType)>                                         m_proc;
-    Proc<HypData(const Array<HypData *> &)>                                     m_proc_array;
+    
     Proc<fbom::FBOMData(Span<HypData>)>                                         m_serialize_proc;
     Proc<void(fbom::FBOMLoadContext &, Span<HypData>, const fbom::FBOMData &)>  m_deserialize_proc;
 };

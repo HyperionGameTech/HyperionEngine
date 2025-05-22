@@ -22,16 +22,16 @@ extern "C" {
 
 HYP_EXPORT void HypData_Construct(ValueStorage<HypData> *hyp_data_storage)
 {
-    if (hyp_data_storage) {
-        hyp_data_storage->Construct();
-    }
+    AssertThrow(hyp_data_storage != nullptr);
+    
+    hyp_data_storage->Construct();
 }
 
 HYP_EXPORT void HypData_Destruct(ValueStorage<HypData> *hyp_data_storage)
 {
-    if (hyp_data_storage) {
-        hyp_data_storage->Destruct();
-    }
+    AssertThrow(hyp_data_storage != nullptr);
+
+    hyp_data_storage->Destruct();
 }
 
 HYP_EXPORT void HypData_GetTypeID(const HypData *hyp_data, TypeID *out_type_id)

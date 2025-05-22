@@ -257,9 +257,8 @@ void RenderGroup::AddRenderProxy(const RenderProxy &render_proxy)
     AssertDebug(render_proxy.material.IsValid());
     AssertDebug(render_proxy.material->IsReady());
 
-    AssertThrow(m_render_proxies.Insert(render_proxy.entity.GetID(), &render_proxy).second);
-
-    // render_proxy.ClaimRenderResource();
+    bool inserted = m_render_proxies.Insert(render_proxy.entity.GetID(), &render_proxy).second;
+    AssertThrow(inserted);
 }
 
 bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
@@ -321,19 +320,19 @@ void RenderGroup::CollectDrawCalls()
         }
 
         AssertDebug(render_proxy->mesh.IsValid());
-        AssertDebugMsg(render_proxy->mesh->IsReady(), "Mesh #%u is not ready", render_proxy->mesh.GetID().Value());
+        AssertDebugMsg(render_proxy->mesh->IsReady(), "Mesh #%u is not ready", render_proxy->mesh->GetID().Value());
 
         AssertDebug(render_proxy->material.IsValid());
-        AssertDebugMsg(render_proxy->material->IsReady(), "Material #%u is not ready", render_proxy->material.GetID().Value());
+        AssertDebugMsg(render_proxy->material->IsReady(), "Material #%u is not ready", render_proxy->material->GetID().Value());
 
         DrawCallID draw_call_id;
 
         if (unique_per_material) {
             // @TODO: Rather than using Material ID we could use hashcode of the material,
             // so that we can use the same material with different IDs
-            draw_call_id = DrawCallID(render_proxy->mesh.GetID(), render_proxy->material.GetID());
+            draw_call_id = DrawCallID(render_proxy->mesh->GetID(), render_proxy->material->GetID());
         } else {
-            draw_call_id = DrawCallID(render_proxy->mesh.GetID());
+            draw_call_id = DrawCallID(render_proxy->mesh->GetID());
         }
 
         EntityInstanceBatch *batch = nullptr;

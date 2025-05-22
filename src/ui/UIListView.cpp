@@ -128,21 +128,32 @@ void UIListViewItem::SetIsSelectedItem(bool is_selected_item)
     }
 
     m_is_selected_item = is_selected_item;
+
+    UpdateMaterial(false);
 }
 
 void UIListViewItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state)
 {
     UIObject::SetFocusState_Internal(focus_state);
 
-    if (focus_state & UIObjectFocusState::HOVER) {
-        if (GetFocusState() == UIObjectFocusState::NONE) {
-            m_initial_background_color = GetBackgroundColor();
-        }
+    UpdateMaterial(false);
+}
 
-        SetBackgroundColor(Vec4f { 0.5f, 0.5f, 0.5f, 0.5f });
-    } else if (focus_state == UIObjectFocusState::NONE) {
-        SetBackgroundColor(m_initial_background_color);
+Material::ParameterTable UIListViewItem::GetMaterialParameters() const
+{
+    Color color = GetBackgroundColor();
+
+    const EnumFlags<UIObjectFocusState> focus_state = GetFocusState();
+
+    if (m_is_selected_item) {
+        color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
+    } else if (focus_state & UIObjectFocusState::HOVER) {
+        color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
     }
+
+    return Material::ParameterTable {
+        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
+    };
 }
 
 #pragma endregion UIListViewItem
@@ -429,20 +440,7 @@ void UIListView::AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourc
             return UIEventHandlerResult::ERR;
         }
 
-        if (!list_view_item->HasFocus(true)) {
-            // only call Focus if the item doesn't have focus (including children)
-            list_view_item->Focus();
-        }
-
-        if (RC<UIListViewItem> selected_item = m_selected_item.Lock()) {
-            selected_item->SetIsSelectedItem(false);
-        }
-        
-        m_selected_item = list_view_item;
-
-        list_view_item->SetIsSelectedItem(true);
-
-        OnSelectedItemChange(list_view_item.Get());
+        SetSelectedItem(list_view_item.Get());
 
         return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
@@ -490,6 +488,64 @@ void UIListView::SetSelectedItemIndex(int index)
     list_view_item->SetIsSelectedItem(true);
 
     m_selected_item = list_view_item;
+
+    OnSelectedItemChange(list_view_item);
+}
+
+void UIListView::SetSelectedItem(UIListViewItem *list_view_item)
+{
+    HYP_SCOPE;
+
+    if (m_selected_item.GetUnsafe() == list_view_item) {
+        return;
+    }
+
+    // List view item must have this as a parent
+    if (!list_view_item || !list_view_item->IsOrHasParent(this)) {
+        SetSelectedItemIndex(-1);
+
+        return;
+    }
+
+    if (RC<UIListViewItem> selected_item = m_selected_item.Lock()) {
+        selected_item->SetIsSelectedItem(false);
+    }
+
+    if (!list_view_item->HasFocus()) {
+        list_view_item->Focus();
+    }
+
+    list_view_item->SetIsSelectedItem(true);
+
+    if (list_view_item->GetParentUIObject() != this) {
+        // Iterate until we reach this
+        UIObject *parent = list_view_item->GetParentUIObject();
+
+        bool is_expanded = false;
+
+        while (parent != nullptr && parent != this) {
+            if (parent->IsInstanceOf<UIListViewItem>()) {
+                UIListViewItem *parent_list_view_item = static_cast<UIListViewItem *>(parent);
+
+                if (!parent_list_view_item->IsExpanded()) {
+                    parent_list_view_item->SetIsExpanded(true);
+
+                    is_expanded = true;
+                }
+            }
+
+            parent = parent->GetParentUIObject();
+        }
+
+        // Force update of the list view and children after expanding items.
+        if (is_expanded) {
+            UpdateSize();
+        }
+    }
+
+    ScrollToChild(list_view_item);
+
+    m_selected_item = list_view_item->WeakRefCountedPtrFromThis().CastUnsafe<UIListViewItem>();
 
     OnSelectedItemChange(list_view_item);
 }

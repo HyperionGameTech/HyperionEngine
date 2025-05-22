@@ -9,6 +9,7 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
 
 namespace hyperion {
 
@@ -16,7 +17,9 @@ class ShadowMapUpdaterSystem : public System<
     ShadowMapUpdaterSystem,
     ComponentDescriptor<ShadowMapComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
     ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
+    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+
+    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false>
 >
 {
 public:

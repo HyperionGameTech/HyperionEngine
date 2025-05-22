@@ -9,6 +9,8 @@
 
 #include <core/object/HypData.hpp>
 
+#include <core/functional/Proc.hpp>
+
 #include <core/utilities/Optional.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
@@ -16,8 +18,6 @@
 #include <core/serialization/SerializationWrapper.hpp>
 
 #include <core/debug/Debug.hpp>
-
-#include <scene/Node.hpp>
 
 #include <Constants.hpp>
 

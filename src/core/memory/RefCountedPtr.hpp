@@ -1198,6 +1198,34 @@ public:
         return reinterpret_cast<const WeakRefCountedPtr<Ty, CountType> &>(*this);
     }
 
+    template <class Ty>
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<Ty, CountType> CastUnsafe() const &
+    {
+        WeakRefCountedPtr<Ty, CountType> weak;
+
+        if (Base::IsValid()) {
+            weak.SetRefCountData_Internal(static_cast<Ty *>(GetUnsafe()), Base::m_ref, /* inc_ref */ true);
+        }
+
+        return weak;
+    }
+
+    template <class Ty>
+    HYP_NODISCARD HYP_FORCE_INLINE WeakRefCountedPtr<Ty, CountType> CastUnsafe() &&
+    {
+        WeakRefCountedPtr<Ty, CountType> weak;
+
+        if (Base::IsValid()) {
+            weak.SetRefCountData_Internal(static_cast<Ty *>(GetUnsafe()), Base::m_ref, /* inc_ref */ false);
+
+            Base::m_ref = nullptr;
+            Base::m_ptr = nullptr;
+        }
+
+        return weak;
+    }
+
+
     /*! \brief Gets a pointer to the value held by the reference counted pointer.
      *  \note Use sparringly. This method does not lock the reference -- the object may be deleted from another thread while using it */
     HYP_FORCE_INLINE T *GetUnsafe() const

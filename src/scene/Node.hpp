@@ -319,9 +319,10 @@ public:
     HYP_METHOD()
     bool RemoveAt(int index);
 
-    /*! \brief Remove this node from the parent Node's list of child Nodes. */
+    /*! \brief Remove this node from the parent Node's list of child Nodes.
+     *  \returns Whether the removal was successful. */
     HYP_METHOD()
-    void Remove();
+    bool Remove();
 
     HYP_METHOD()
     void RemoveAllChildren();

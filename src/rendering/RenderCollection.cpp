@@ -239,7 +239,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
                 RenderCollection,
                 Debug,
                 "Added proxy for entity {} (mesh={}, count: {}, material={}, count: {})",
-                added.entity.GetID().Value(),
+                added.entity->GetID().Value(),
                 added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumClaims() : 0,
                 added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumClaims() : 0
             );

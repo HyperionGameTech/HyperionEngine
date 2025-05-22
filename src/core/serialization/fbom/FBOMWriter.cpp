@@ -346,61 +346,6 @@ FBOMResult FBOMWriter::AddExternalObjects(FBOMLoadContext &context, FBOMObject &
         m_write_stream->AddToObjectLibrary(object);
     }
 
-    // Proc<FBOMResult(FBOMLoadContext &, FBOMData &)> AddNestedExternalObjects;
-
-    // AddNestedExternalObjects = [this, &AddNestedExternalObjects](FBOMLoadContext &context, FBOMData &data) -> FBOMResult
-    // {
-    //     if (data.IsObject()) {
-    //         FBOMObject subobject;
-
-    //         if (FBOMResult err = data.ReadObject(context, subobject)) {
-    //             return err;
-    //         }
-
-    //         // debugging
-    //         bool is_external = subobject.IsExternal();
-
-    //         if (FBOMResult err = AddExternalObjects(context, subobject)) {
-    //             return err;
-    //         }
-
-    //         // debugging
-    //         if (is_external) {
-    //             AssertThrow(subobject.GetExternalObjectInfo() != nullptr);
-    //             AssertThrow(subobject.GetExternalObjectInfo()->IsLinked());
-    //         }
-
-    //         data = FBOMData::FromObject(subobject);
-    //     } else if (data.IsArray()) {
-    //         FBOMArray array { fbom::FBOMUnset() };
-
-    //         if (FBOMResult err = data.ReadArray(context, array)) {
-    //             return err;
-    //         }
-
-    //         for (SizeType index = 0; index < array.Size(); index++) {
-    //             FBOMData &element = array.GetElement(index);
-
-    //             if (FBOMResult err = AddNestedExternalObjects(context, element)) {
-    //                 return err;
-    //             }
-    //         }
-
-    //         data = FBOMData::FromArray(std::move(array));
-    //     }
-
-    //     return { };
-    // };
-
-    // for (Pair<ANSIString, FBOMData> &it : object.GetProperties()) {
-    //     const ANSIString &property_name = it.first;
-    //     FBOMData &data = it.second;
-
-    //     if (FBOMResult err = AddNestedExternalObjects(context, data)) {
-    //         return err;
-    //     }
-    // }
-
     for (FBOMObject &child : object.m_children) {
         if (FBOMResult err = AddExternalObjects(context, child)) {
             return err;

@@ -291,7 +291,7 @@ Material::ParameterTable UIMenuItem::GetMaterialParameters() const
     if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) {
         color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
     } else if (focus_state & UIObjectFocusState::HOVER) {
-        color = Color(Vec4f { 0.75f, 0.75f, 0.75f, 1.0f });
+        color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
     }
 
     return Material::ParameterTable {

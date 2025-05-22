@@ -98,7 +98,7 @@ void MaterialRenderResource::Update_Internal()
     auto SetMaterialTexture = [](const Handle<Material> &material, uint32 texture_index, const Handle<Texture> &texture)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager()->GetDescriptorSet(material.GetID(), frame_index);
+            const DescriptorSetRef &descriptor_set = g_engine->GetMaterialDescriptorSetManager()->GetDescriptorSet(material->GetID(), frame_index);
             AssertThrow(descriptor_set != nullptr);
 
             if (texture.IsValid()) {
@@ -495,6 +495,10 @@ void MaterialDescriptorSetManager::RemoveMaterial(ID<Material> id)
         while (true) {
             const auto pending_addition_it = m_pending_addition.FindIf([id](const auto &item)
             {
+                if (!item.first.IsValid()) {
+                    return false;
+                }
+
                 return item.first.GetID() == id;
             });
 

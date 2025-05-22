@@ -17,9 +17,6 @@
 #include <scene/Light.hpp>
 #include <scene/Texture.hpp>
 
-// temp
-#include <scene/animation/Bone.hpp>
-
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
@@ -78,11 +75,6 @@
 
 #include <HyperionEngine.hpp>
 
-// temp
-#include <unordered_set>
-#include <set>
-#include <list>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -136,13 +128,6 @@ void HyperionEditor::Init()
             1.0f,
             1.0f
         );
-
-        // testing
-        Handle<Node> tmp_node_handle = CreateObject<Node>();
-        AssertThrow(tmp_node_handle.IsValid());
-
-        Handle<Bone> tmp_bone_handle = Handle<Bone>(tmp_node_handle);
-        AssertThrow(tmp_bone_handle.IsValid());
 
         Handle<Texture> dummy_light_texture;
 
@@ -291,8 +276,8 @@ void HyperionEditor::Init()
 #if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    batch->Add("test_model", "models/sponza/sponza.obj");
-    // batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    // batch->Add("test_model", "models/sponza/sponza.obj");
+    batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     //batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->Add("house", "models/house.obj");
@@ -313,8 +298,8 @@ void HyperionEditor::Init()
 #if 1
         Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
-        // node.Scale(3.0f);
-        node->Scale(0.03f);
+        node->Scale(3.0f);
+        // node->Scale(0.03f);
         node->SetName("test_model");
         node->LockTransform();
 
@@ -442,7 +427,7 @@ void HyperionEditor::Init()
         json::JSONValue entity_json = json::JSONUndefined();
         if (auto entity = node->GetEntity()) {
             json::JSONObject entity_json_object;
-            entity_json_object["id"] = entity.GetID().Value();
+            entity_json_object["id"] = entity->GetID().Value();
 
             EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
             AssertThrow(entity_manager != nullptr);
@@ -464,9 +449,9 @@ void HyperionEditor::Init()
                     AssertThrow(mesh_component != nullptr);
 
                     json::JSONObject mesh_component_json;
-                    mesh_component_json["mesh_id"] = mesh_component->mesh.GetID().Value();
-                    mesh_component_json["material_id"] = mesh_component->material.GetID().Value();
-                    mesh_component_json["skeleton_id"] = mesh_component->skeleton.GetID().Value();
+                    mesh_component_json["mesh_id"] = mesh_component->mesh->GetID().Value();
+                    mesh_component_json["material_id"] = mesh_component->material->GetID().Value();
+                    mesh_component_json["skeleton_id"] = mesh_component->skeleton->GetID().Value();
 
                     json::JSONObject mesh_json;
                     mesh_json["type"] = "Mesh";
