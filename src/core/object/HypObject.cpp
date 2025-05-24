@@ -75,12 +75,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
     IHypObjectInitializer *initializer = ptr.GetObjectInitializer();
     AssertThrow(initializer != nullptr);
 
-    ManagedObjectResource *managed_object_resource = nullptr;
-
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !ptr.GetClass()->IsAbstract()) {
         if (dotnet::Class *managed_class = ptr.GetClass()->GetManagedClass()) {
-            managed_object_resource = AllocateResource<ManagedObjectResource>(ptr);
-            initializer->SetManagedObjectResource(managed_object_resource);
+            initializer->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr));
         }
     }
 

@@ -23,6 +23,20 @@ UIMenuItem::UIMenuItem()
     SetBorderRadius(0);
     SetPadding({ 5, 2 });
     SetBackgroundColor(Color::Transparent());
+
+    OnEnabled.Bind([this]()
+    {
+        UpdateMaterial(false);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    OnDisabled.Bind([this]()
+    {
+        UpdateMaterial(false);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
 }
 
 void UIMenuItem::Init()
@@ -286,12 +300,14 @@ Material::ParameterTable UIMenuItem::GetMaterialParameters() const
 {
     Color color = GetBackgroundColor();
 
-    const EnumFlags<UIObjectFocusState> focus_state = GetFocusState();
+    if (IsEnabled()) {
+        const EnumFlags<UIObjectFocusState> focus_state = GetFocusState();
 
-    if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) {
-        color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
-    } else if (focus_state & UIObjectFocusState::HOVER) {
-        color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
+        if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) {
+            color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
+        } else if (focus_state & UIObjectFocusState::HOVER) {
+            color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
+        }
     }
 
     return Material::ParameterTable {

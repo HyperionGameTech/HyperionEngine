@@ -526,11 +526,11 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         first_hit = ui_object;
                     }
 
-                    if (!m_hovered_ui_objects.Insert(ui_object).second) {
+                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled()) {
                         continue;
                     }
 
-                    if (!ui_object->AcceptsFocus()) {
+                    if (!m_hovered_ui_objects.Insert(ui_object).second) {
                         continue;
                     }
 
@@ -630,6 +630,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     mouse_button_pressed_states_it->second.mouse_buttons |= event.GetMouseButtons();
                 } else {
+                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled()) {
+                        continue;
+                    }
+
                     mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object, {
                         event.GetMouseButtons(),
                         0.0f
@@ -679,6 +683,10 @@ UIEventHandlerResult UIStage::OnInputEvent(
             const RC<UIObject> &ui_object = *it;
 
             if (m_mouse_button_pressed_states.Contains(ui_object)) {
+                if (!ui_object->IsEnabled()) {
+                    continue;
+                }
+
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
                     .input_manager      = input_manager,
                     .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),

@@ -56,6 +56,8 @@ class HYP_API FunctionalEditorAction : public IEditorAction
     HYP_OBJECT_BODY(FunctionalEditorAction);
 
 public:
+    FunctionalEditorAction() = default;
+
     FunctionalEditorAction(Name name, Proc<EditorActionFunctions()> &&get_state_proc)
         : m_name(name),
           m_get_state_proc(std::move(get_state_proc)),
@@ -63,26 +65,28 @@ public:
     {
     }
 
-protected:
-    virtual Name GetName_Impl() const override
+    HYP_METHOD()
+    virtual Name GetName() const override final
     {
         return m_name;
     }
 
-    virtual void Execute_Impl() override
+    HYP_METHOD()
+    virtual void Execute() override final
     {
         m_get_state_proc_result.execute();
     }
 
-    virtual void Revert_Impl() override
+    HYP_METHOD()
+    virtual void Revert() override final
     {
         m_get_state_proc_result.revert();
     }
 
 private:
-    Name                        m_name;
-    Proc<EditorActionFunctions()> m_get_state_proc;
-    EditorActionFunctions       m_get_state_proc_result;
+    Name                            m_name;
+    Proc<EditorActionFunctions()>   m_get_state_proc;
+    EditorActionFunctions           m_get_state_proc_result;
 };
 
 class IEditorActionFactory;

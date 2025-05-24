@@ -6,18 +6,28 @@
 #include <core/functional/ScriptableDelegateFwd.hpp>
 #include <core/functional/Delegate.hpp>
 
+#include <core/memory/resource/Resource.hpp>
+
+#include <core/object/managed/ManagedObjectResource.hpp>
+
+#include <core/utilities/DeferredScope.hpp>
+
 #include <dotnet/Object.hpp>
 
 namespace hyperion {
 
 namespace functional {
 
+HYP_API void LogScriptableDelegateError(const char *message, dotnet::Object *object_ptr);
+
 class IScriptableDelegate : public virtual IDelegate
 {
 public:
     virtual ~IScriptableDelegate() = default;
 
-    virtual DelegateHandler BindManaged(UniquePtr<dotnet::Object> &&delegate_object_ptr) = 0;
+    virtual DelegateHandler BindManaged(const String &method_name, Proc<ManagedObjectResource *()> &&get_fn) = 0;
+    virtual DelegateHandler BindManaged(const String &method_name, ManagedObjectResource *managed_object_resource) = 0;
+    virtual DelegateHandler BindManaged(const String &method_name, UniquePtr<dotnet::Object> &&object) = 0;
 };
 
 /*! \brief A delegate that can be bound to a managed .NET object.
@@ -44,13 +54,136 @@ public:
 
     virtual ~ScriptableDelegate() override                              = default;
 
-    HYP_NODISCARD virtual DelegateHandler BindManaged(UniquePtr<dotnet::Object> &&delegate_object_ptr) override
+    HYP_NODISCARD virtual DelegateHandler BindManaged(const String &method_name, Proc<ManagedObjectResource *()> &&get_fn) override
     {
-        return Delegate<ReturnType, Args...>::Bind([delegate_object_ptr = std::move(delegate_object_ptr)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        if (!get_fn) {
+            return DelegateHandler();
+        }
+
+        return Delegate<ReturnType, Args...>::Bind([method_name = method_name, get_fn = std::move(get_fn)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
         {
-            return delegate_object_ptr->InvokeMethodByName<ReturnType>("Invoke", std::forward<ArgTypes>(args)...);
+            ManagedObjectResource *managed_object_resource = get_fn();
+            AssertThrowMsg(managed_object_resource != nullptr, "Managed object resource is null!");
+
+            managed_object_resource->Claim();
+            HYP_DEFER({ managed_object_resource->Unclaim(); });
+
+            dotnet::Object *object = managed_object_resource->GetManagedObject();
+            AssertThrowMsg(object != nullptr, "Managed object is null!");
+            AssertThrowMsg(object->IsValid(), "Managed object is invalid!");
+
+            if (!object->GetMethod(method_name)) {
+                HYP_FAIL("Failed to find method %s!", method_name.Data());
+            }
+
+            return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
         });
     }
+
+    template <class DefaultReturnType, typename = std::enable_if_t<std::is_copy_constructible_v<NormalizedType<DefaultReturnType>>>>
+    HYP_NODISCARD DelegateHandler BindManaged(const String &method_name, Proc<ManagedObjectResource *()> &&get_fn, DefaultReturnType &&default_return)
+    {
+        if (!get_fn) {
+            return DelegateHandler();
+        }
+
+        return Delegate<ReturnType, Args...>::Bind([method_name = method_name, get_fn = std::move(get_fn), default_return = std::forward<DefaultReturnType>(default_return)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        {
+            ManagedObjectResource *managed_object_resource = get_fn();
+            AssertThrowMsg(managed_object_resource != nullptr, "Managed object resource is null!");
+
+            managed_object_resource->Claim();
+            HYP_DEFER({ managed_object_resource->Unclaim(); });
+
+            dotnet::Object *object = managed_object_resource->GetManagedObject();
+            AssertThrowMsg(object != nullptr, "Managed object is null!");
+            AssertThrowMsg(object->IsValid(), "Managed object is invalid!");
+
+            if (!object->GetMethod(method_name)) {
+                return default_return;
+            }
+
+            return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+        });
+    }
+
+    HYP_NODISCARD virtual DelegateHandler BindManaged(const String &method_name, ManagedObjectResource *managed_object_resource) override
+    {
+        if (!managed_object_resource) {
+            return DelegateHandler();
+        }
+
+        return Delegate<ReturnType, Args...>::Bind([method_name = method_name, managed_object_resource]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        {
+            managed_object_resource->Claim();
+            HYP_DEFER({ managed_object_resource->Unclaim(); });
+
+            dotnet::Object *object = managed_object_resource->GetManagedObject();
+            AssertThrowMsg(object != nullptr, "Managed object is null!");
+            AssertThrowMsg(object->IsValid(), "Managed object is invalid!");
+
+            if (!object->GetMethod(method_name)) {
+                HYP_FAIL("Failed to find method %s!", method_name.Data());
+            }
+
+            return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+        });
+    }
+
+    template <class DefaultReturnType, typename = std::enable_if_t<std::is_copy_constructible_v<NormalizedType<DefaultReturnType>>>>
+    HYP_NODISCARD DelegateHandler BindManaged(const String &method_name, ManagedObjectResource *managed_object_resource, DefaultReturnType &&default_return)
+    {
+        if (!managed_object_resource) {
+            return DelegateHandler();
+        }
+
+        return Delegate<ReturnType, Args...>::Bind([method_name = method_name, managed_object_resource, default_return = std::forward<DefaultReturnType>(default_return)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        {
+            managed_object_resource->Claim();
+            HYP_DEFER({ managed_object_resource->Unclaim(); });
+
+            dotnet::Object *object = managed_object_resource->GetManagedObject();
+            AssertThrowMsg(object != nullptr, "Managed object is null!");
+            AssertThrowMsg(object->IsValid(), "Managed object is invalid!");
+
+            if (!object->GetMethod(method_name)) {
+                return default_return;
+            }
+
+            return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+        });
+    }
+
+    HYP_NODISCARD virtual DelegateHandler BindManaged(const String &method_name, UniquePtr<dotnet::Object> &&object) override
+    {
+        if (!object) {
+            return DelegateHandler();
+        }
+
+        if (!object->IsValid()) {
+            LogScriptableDelegateError("Managed object is invalid!", object.Get());
+
+            return DelegateHandler();
+        }
+
+        if (!object->SetKeepAlive(true)) {
+            LogScriptableDelegateError("Failed to set keep alive to true!", object.Get());
+
+            return DelegateHandler();
+        }
+
+        if (!object->GetMethod(method_name)) {
+            LogScriptableDelegateError("Failed to find method!", object.Get());
+
+            return DelegateHandler();
+        }
+
+        return Delegate<ReturnType, Args...>::Bind([method_name = method_name, object = std::move(object)]<class... ArgTypes>(ArgTypes &&... args) mutable -> ReturnType
+        {
+            return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+        });
+    }
+
     /*! \brief Call operator overload - alias method for Broadcast().
      *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.

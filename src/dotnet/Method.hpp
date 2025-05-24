@@ -31,9 +31,10 @@ const HypData *SetArg_HypData(HypData *arr, SizeType index, T &&arg)
 
 // Expand over each argument to fill args_array and args_array_ptr
 template <class... Args, SizeType... Indices>
-void FillArgs_HypData(std::index_sequence<Indices...>, HypData *arr, const HypData *(&array_ptr)[sizeof...(Args)], Args &&... args)
+void FillArgs_HypData(std::index_sequence<Indices...>, HypData *arr, const HypData *(&array_ptr)[sizeof...(Args) + 1], Args &&... args)
 {
     ((array_ptr[Indices] = SetArg_HypData(arr, Indices, std::forward<Args>(args))), ...);
+    array_ptr[sizeof...(Args)] = nullptr;
 }
 
 class Method

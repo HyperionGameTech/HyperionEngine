@@ -5,6 +5,9 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <Types.hpp>
 
 using namespace hyperion;
@@ -46,7 +49,7 @@ HYP_EXPORT void UIObject_Spawn(UIObject *spawn_parent, const HypClass *hyp_class
     *out_hyp_data = HypData(std::move(ui_object));
 }
 
-HYP_EXPORT bool UIObject_Find(UIObject *parent, const HypClass *hyp_class, Name *name, HypData *out_hyp_data)
+HYP_EXPORT int8 UIObject_Find(UIObject *parent, const HypClass *hyp_class, Name *name, HypData *out_hyp_data)
 {
     AssertThrow(parent != nullptr);
     AssertThrow(hyp_class != nullptr);

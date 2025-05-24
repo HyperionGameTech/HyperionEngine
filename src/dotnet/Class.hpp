@@ -31,7 +31,9 @@ enum class ManagedClassFlags : uint32
     NONE        = 0x0,
     CLASS_TYPE  = 0x1,
     STRUCT_TYPE = 0x2,
-    ENUM_TYPE   = 0x4
+    ENUM_TYPE   = 0x4,
+
+    ABSTRACT    = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
@@ -321,15 +323,15 @@ public:
 
         if constexpr (sizeof...(args) != 0) {
             HypData *args_array = (HypData *)StackAlloc(sizeof(HypData) * sizeof...(args));
-            const HypData *args_array_ptr[sizeof...(args)];
+            const HypData *args_array_ptr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
 
             FillArgs_HypData(std::make_index_sequence<sizeof...(args)>(), args_array, args_array_ptr, std::forward<Args>(args)...);
 
             if constexpr (std::is_void_v<ReturnType>) {
-                InvokeStaticMethod_Internal(method_ptr, &args_array_ptr[0], nullptr);
+                InvokeStaticMethod_Internal(method_ptr, args_array_ptr, nullptr);
             } else {
                 HypData return_hyp_data;
-                InvokeStaticMethod_Internal(method_ptr, &args_array_ptr[0], &return_hyp_data);
+                InvokeStaticMethod_Internal(method_ptr, args_array_ptr, &return_hyp_data);
 
                 if (return_hyp_data.IsNull()) {
                     return ReturnType();
@@ -338,11 +340,13 @@ public:
                 return std::move(return_hyp_data.Get<ReturnType>());
             }
         } else {
+            const HypData *args_array_ptr[] = { nullptr };
+
             if constexpr (std::is_void_v<ReturnType>) {
-                InvokeStaticMethod_Internal(method_ptr, nullptr, nullptr);
+                InvokeStaticMethod_Internal(method_ptr, args_array_ptr, nullptr);
             } else {
                 HypData return_hyp_data;
-                InvokeStaticMethod_Internal(method_ptr, nullptr, &return_hyp_data);
+                InvokeStaticMethod_Internal(method_ptr, args_array_ptr, &return_hyp_data);
 
                 if (return_hyp_data.IsNull()) {
                     return ReturnType();

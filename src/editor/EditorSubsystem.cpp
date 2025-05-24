@@ -5,6 +5,8 @@
 #include <editor/EditorCamera.hpp>
 #include <editor/EditorTask.hpp>
 #include <editor/EditorProject.hpp>
+#include <editor/EditorActionStack.hpp>
+#include <editor/EditorAction.hpp>
 
 #include <editor/ui/debug/EditorDebugOverlay.hpp>
 
@@ -1222,7 +1224,27 @@ void EditorSubsystem::InitViewport()
                         }
                     }
 
-                    manipulation_widget->OnDragStart(m_camera, event, Handle<Node>(node), hitpoint);
+                    // temp; debug.
+                    auto action = MakeRefCountedPtr<FunctionalEditorAction>(
+                        NAME("TranslateNode"),
+                        [node]() mutable -> EditorActionFunctions
+                        {
+                            return {
+                                [&]()
+                                {
+                                    HYP_LOG(Editor, Debug, "Translate node action executed");
+                                },
+                                [&]()
+                                {
+                                    HYP_LOG(Editor, Debug, "Translate node action reverted");
+                                }
+                            };
+                        }
+                    );
+                    AssertThrow(action->GetManagedObjectResource() != nullptr);
+                    m_current_project->GetActionStack()->Push(action);
+
+                    manipulation_widget->OnDragStart(m_camera, event, node, hitpoint);
                 }
 
                 return UIEventHandlerResult::STOP_BUBBLING;

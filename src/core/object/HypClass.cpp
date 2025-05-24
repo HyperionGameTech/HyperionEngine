@@ -460,7 +460,15 @@ dotnet::Class *HypClass::GetManagedClass() const
 
 bool HypClass::GetManagedObjectFromObjectInitializer(const IHypObjectInitializer *object_initializer, dotnet::ObjectReference &out_object_reference)
 {
-    if (!object_initializer || !object_initializer->GetManagedObjectResource()) {
+    if (!object_initializer) {
+        HYP_LOG(Object, Error, "Cannot get managed object from null object initializer");
+
+        return false;
+    }
+
+    if (!object_initializer->GetManagedObjectResource()) {
+        HYP_LOG(Object, Error, "Cannot get managed object from object initializer without a managed object resource");
+
         return false;
     }
 

@@ -131,6 +131,7 @@ UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
       m_focus_state(UIObjectFocusState::NONE),
       m_is_visible(true),
       m_computed_visibility(false),
+      m_is_enabled(true),
       m_computed_depth(0),
       m_accepts_focus(true),
       m_receives_update(true),
@@ -140,23 +141,26 @@ UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
       m_deferred_updates(UIObjectUpdateType::NONE),
       m_locked_updates(UIObjectUpdateType::NONE)
 {
-    OnInit.Bind(UIScriptDelegate< > { this, "OnInit", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnAttached.Bind(UIScriptDelegate< > { this, "OnAttached", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnRemoved.Bind(UIScriptDelegate< > { this, "OnRemoved", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnChildAttached.Bind(UIScriptDelegate< UIObject * > { this, "OnChildAttached", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnChildRemoved.Bind(UIScriptDelegate< UIObject * > { this, "OnChildRemoved", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseDown.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDown", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseUp.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseUp", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseDrag.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseDrag", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseHover.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseHover", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseLeave.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseLeave", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnMouseMove.Bind(UIScriptDelegate<MouseEvent> { this, "OnMouseMove", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE}).Detach();
-    OnGainFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnGainFocus", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnLoseFocus.Bind(UIScriptDelegate<MouseEvent> { this, "OnLoseFocus", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnScroll.Bind(UIScriptDelegate<MouseEvent> { this, "OnScroll", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnClick.Bind(UIScriptDelegate<MouseEvent> { this, "OnClick", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnKeyDown.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyDown", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
-    OnKeyUp.Bind(UIScriptDelegate<KeyboardEvent> { this, "OnKeyUp", UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE }).Detach();
+    OnInit.BindManaged("OnInit", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnAttached.BindManaged("OnAttached", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnRemoved.BindManaged("OnRemoved", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnChildAttached.BindManaged("OnChildAttached", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnChildRemoved.BindManaged("OnChildRemoved", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseDown.BindManaged("OnMouseDown", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseUp.BindManaged("OnMouseUp", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseDrag.BindManaged("OnMouseDrag", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseHover.BindManaged("OnMouseHover", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseLeave.BindManaged("OnMouseLeave", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnMouseMove.BindManaged("OnMouseMove", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnGainFocus.BindManaged("OnGainFocus", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnLoseFocus.BindManaged("OnLoseFocus", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnScroll.BindManaged("OnScroll", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnClick.BindManaged("OnClick", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnKeyDown.BindManaged("OnKeyDown", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnKeyUp.BindManaged("OnKeyUp", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnComputedVisibilityChange.BindManaged("OnComputedVisibilityChange", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnEnabled.BindManaged("OnEnabled", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
+    OnDisabled.BindManaged("OnDisabled", GetManagedObjectResource(), UIEventHandlerResult::OK).Detach();
 }
 
 UIObject::UIObject()
@@ -348,6 +352,10 @@ void UIObject::OnAttached_Internal(UIObject *parent)
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     }
 
+    if (m_is_enabled && !parent->IsEnabled()) {
+        OnDisabled();
+    }
+
     OnAttached();
 }
 
@@ -361,6 +369,12 @@ void UIObject::OnRemoved_Internal()
     }
 
     SetStage_Internal(nullptr);
+
+    if (UIObject *parent = GetParentUIObject()) {
+        if (m_is_enabled && !parent->IsEnabled()) {
+            OnEnabled();
+        }
+    }
 
     if (IsInit()) {
         UpdateSize();
@@ -1169,7 +1183,7 @@ void UIObject::UpdateComputedVisibility(bool update_children)
             }
         }
 
-        OnComputedVisibilityChange_Internal();
+        OnComputedVisibilityChange();
     }
 
     if (update_children) {
@@ -1180,6 +1194,58 @@ void UIObject::UpdateComputedVisibility(bool update_children)
             return IterationResult::CONTINUE;
         }, /* deep */ false);
     }
+}
+
+bool UIObject::IsEnabled() const
+{
+    if (!m_is_enabled) {
+        return false;
+    }
+
+    bool is_enabled = true;
+
+    ForEachParentUIObject([&is_enabled](UIObject *parent)
+    {
+        if (!parent->m_is_enabled) {
+            is_enabled = false;
+
+            return IterationResult::STOP;
+        }
+
+        return IterationResult::CONTINUE;
+    });
+
+    return is_enabled;
+}
+
+void UIObject::SetIsEnabled(bool is_enabled)
+{
+    HYP_SCOPE;
+
+    if (is_enabled == m_is_enabled) {
+        return;
+    }
+
+    m_is_enabled = is_enabled;
+
+    if (is_enabled) {
+        OnEnabled();
+    } else {
+        OnDisabled();
+    }
+
+    ForEachChildUIObject([is_enabled](UIObject *child)
+    {
+        if (child->m_is_enabled) {
+            if (is_enabled) {
+                child->OnEnabled();
+            } else {
+                child->OnDisabled();
+            }
+        }
+
+        return IterationResult::CONTINUE;
+    }, /* deep */ true);
 }
 
 void UIObject::UpdateComputedTextSize()

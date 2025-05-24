@@ -38,11 +38,26 @@ namespace Hyperion
             return NativeInterop_VerifyEngineVersion(assemblyEngineVersion, major, minor, patch);
         }
 
+        private static void InitializeAssemblyTypes(Assembly assembly)
+        {
+            Type[] types = assembly.GetExportedTypes();
+
+            foreach (Type type in types)
+            {
+                if (type.IsGenericType)
+                {
+                    // skip generic types
+                    continue;
+                }
+
+                if (type.IsClass || type.IsValueType || type.IsEnum)
+                    InitManagedClass(type);
+            }
+        }
+
         [UnmanagedCallersOnly]
         public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
-            Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPathStringPtr);
-
             // AppDomain currentDomain = AppDomain.CurrentDomain;
             // currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
 
@@ -50,6 +65,8 @@ namespace Hyperion
             {
                 // Create a managed string from the pointer
                 string assemblyPath = Marshal.PtrToStringAnsi(assemblyPathStringPtr);
+
+                Logger.Log(LogType.Info, "Initializing assembly {0}...", assemblyPath);
 
                 if (isCoreAssembly != 0)
                 {
@@ -97,23 +114,7 @@ namespace Hyperion
                 NativeInterop_SetSetKeepAliveFunction(Marshal.GetFunctionPointerForDelegate<SetKeepAliveDelegate>(SetKeepAlive));
                 NativeInterop_SetTriggerGCFunction(Marshal.GetFunctionPointerForDelegate<TriggerGCDelegate>(TriggerGC));
 
-                Type[] types = assembly.GetExportedTypes();
-
-                foreach (Type type in types)
-                {
-                    if (type.IsGenericType)
-                    {
-                        // skip generic types
-                        continue;
-                    }
-
-                    if (type.IsClass || type.IsValueType || type.IsEnum)
-                    {
-                        Logger.Log(LogType.Debug, "\tInitializing managed class for type: {0}", type.Name);
-
-                        InitManagedClass(type);
-                    }
-                }
+                InitializeAssemblyTypes(assembly);
             }
             catch (Exception ex)
             {
@@ -364,6 +365,11 @@ namespace Hyperion
                 typeSize = (uint)Marshal.SizeOf(Enum.GetUnderlyingType(type));
             }
 
+            if (type.IsAbstract)
+            {
+                managedClassFlags |= ManagedClassFlags.Abstract;
+            }
+
             TypeID typeId = TypeID.ForType(type);
 
             ManagedClass_Create(ref assemblyGuid, assemblyPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
@@ -523,7 +529,7 @@ namespace Hyperion
         {
             int numParams = methodInfo.GetParameters().Length;
 
-            if (numParams == 0 || argsHypDataPtr == IntPtr.Zero)
+            if (numParams == 0)
             {
                 parameters = Array.Empty<object>();
 
@@ -532,22 +538,82 @@ namespace Hyperion
 
             parameters = new object[numParams];
 
+            HypDataBuffer* paramPtr = *(HypDataBuffer**)argsHypDataPtr;
             int paramsOffset = 0;
 
-            for (int i = 0; i < numParams; i++)
+            for (int paramIndex = 0; paramIndex < numParams; paramIndex++)
             {
-                // params is stored as HypData*, 
-                IntPtr paramAddress = argsHypDataPtr + paramsOffset;
-                paramsOffset += sizeof(IntPtr);
+                // Get the ParameterInfo for the current parameter
+                ParameterInfo parameterInfo = methodInfo.GetParameters()[paramIndex];
+
+                Type parameterType = parameterInfo.ParameterType;
+
+                // Check if it has ParamArrayAttribute (params)
+                if (parameterInfo.GetCustomAttribute(typeof(ParamArrayAttribute)) != null)
+                {
+                    // Calculate array size by iterating until we hit a null pointer.
+                    int paramArraySize = 0;
+
+                    for (IntPtr currentParamPtr = argsHypDataPtr + paramsOffset; (IntPtr)(*((HypDataBuffer**)currentParamPtr)) != IntPtr.Zero; currentParamPtr += sizeof(IntPtr))
+                    {
+                        paramArraySize++;
+                    }
+
+                    // Empty array
+                    if (paramArraySize == 0)
+                    {
+                        parameters[paramIndex] = Array.CreateInstance(parameterType.GetElementType()!, 0);
+
+                        break;
+                    }
+
+                    // We need to read the params array from the argsHypDataPtr
+
+                    Array paramArray = Array.CreateInstance(parameterType.GetElementType()!, paramArraySize);
+
+                    // Copy the values from the list to the array
+                    int paramElementIndex = 0;
+
+                    while ((IntPtr)paramPtr != IntPtr.Zero)
+                    {
+                        object? paramValue;
+                        
+                        try
+                        {
+                            paramValue = paramPtr->GetValue();
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new Exception("Failed to get params element value at index: " + paramElementIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name, ex);
+                        }
+
+                        if (paramValue == null)
+                            throw new InvalidOperationException("Failed to get parameter value for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
+
+                        paramArray.SetValue(paramValue, paramElementIndex);
+
+                        paramsOffset += sizeof(IntPtr);
+                        paramPtr = *(HypDataBuffer**)(argsHypDataPtr + paramsOffset);
+
+                        paramElementIndex++;
+                    }
+
+                    parameters[paramIndex] = paramArray;
+
+                    break;
+                }
 
                 try
                 {
-                    parameters[i] = (object)(*(HypDataBuffer**)paramAddress)->GetValue();
+                    parameters[paramIndex] = paramPtr->GetValue();
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception("Failed to get parameter value at index: " + i + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name, ex);
+                    throw new Exception("Failed to get parameter value at index: " + paramIndex + " for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name, ex);
                 }
+
+                paramsOffset += sizeof(IntPtr);
+                paramPtr = *(HypDataBuffer**)(argsHypDataPtr + paramsOffset);
             }
         }
 

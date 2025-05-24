@@ -24,6 +24,7 @@ namespace hyperion {
 class Scene;
 class AssetCollector;
 class AssetRegistry;
+class EditorActionStack;
 
 HYP_CLASS()
 class HYP_API EditorProject : public HypObject<EditorProject>
@@ -33,6 +34,8 @@ class HYP_API EditorProject : public HypObject<EditorProject>
 public:
     EditorProject();
     EditorProject(Name name);
+    EditorProject(const EditorProject &other)               = delete;
+    EditorProject &operator=(const EditorProject &other)    = delete;
     virtual ~EditorProject() override;
 
     HYP_METHOD(Property="UUID", Serialize=true)
@@ -96,6 +99,10 @@ public:
     HYP_METHOD(Scriptable)
     Name GetNextDefaultProjectName(const String &default_project_name) const;
 
+    HYP_METHOD()
+    const Handle<EditorActionStack> &GetActionStack() const
+        { return m_action_stack; }
+
     static TResult<Handle<EditorProject>> Load(const FilePath &filepath);
 
     HYP_METHOD()
@@ -117,6 +124,8 @@ private:
     Handle<Scene>                   m_scene;
 
     Handle<AssetRegistry>           m_asset_registry;
+
+    Handle<EditorActionStack>       m_action_stack;
 };
 
 } // namespace hyperion

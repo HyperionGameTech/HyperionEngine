@@ -483,7 +483,10 @@ public:
             }
 
             for (const Pair<String, String> &attribute : attributes) {
-                const String attribute_name_upper = attribute.first.ToUpper();
+                const String &attribute_name = attribute.first;
+                const String &attribute_value = attribute.second;
+
+                const String attribute_name_upper = attribute_name.ToUpper();
 
                 if (g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
                     continue;
@@ -499,6 +502,70 @@ public:
                 }
 
                 if (attribute_name_upper.StartsWith("ON")) {
+#if 1
+                    // Find a ScriptableDelegate field with the name, bind C# function
+                    HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_FIELD);
+
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&attribute_name_upper](const IHypMember &member)
+                    {
+                        const HypClassAttributeValue &attr = member.GetAttribute("scriptabledelegate");
+
+                        if (!attr.GetBool()) {
+                            return false;
+                        }
+
+                        if (String(member.GetName().LookupString()).ToUpper() == attribute_name_upper) {
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                    ScriptComponent *script_component = ui_object->GetScriptComponent(true);
+
+                    if (!script_component) {
+                        HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No script component found on UI object \"{}\"",
+                            attribute_name_upper, ui_object->GetName());
+
+                        continue;
+                    }
+
+                    if (!script_component->resource) {
+                        HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No ManagedObjectResource found on ScriptComponent for UIObject \"{}\"",
+                            attribute_name_upper, ui_object->GetName());
+
+                        continue;
+                    }
+
+                    // Bind a C# member function to the delegate
+                    if (member_it != member_list.End()) {
+                        const HypField &field = static_cast<const HypField &>(*member_it);
+
+                        const uintptr_t field_address = uintptr_t(ui_object.Get()) + uintptr_t(field.GetOffset());
+
+                        IScriptableDelegate *scriptable_delegate = reinterpret_cast<IScriptableDelegate *>(field_address);
+
+                        scriptable_delegate->BindManaged(attribute_value, [ui_object_weak = ui_object->WeakRefCountedPtrFromThis()]() -> ManagedObjectResource *
+                        {
+                            RC<UIObject> ui_object = ui_object_weak.Lock();
+
+                            if (!ui_object) {
+                                return nullptr;
+                            }
+
+                            ScriptComponent *script_component = ui_object->GetScriptComponent(true);
+
+                            if (!script_component) {
+                                return nullptr;
+                            }
+
+                            return script_component->resource;
+                        }).Detach();
+
+                        continue;
+                    }
+
+#else
                     bool found = false;
 
                     const auto get_delegate_functions_it = g_get_delegate_functions.Find(attribute_name_upper);
@@ -556,6 +623,7 @@ public:
                     if (found) {
                         continue;
                     }
+#endif
 
                     HYP_LOG(Assets, Warning, "Unknown event attribute: {}", attribute.first);
                 }

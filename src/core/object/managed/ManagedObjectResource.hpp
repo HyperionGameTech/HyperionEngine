@@ -29,6 +29,7 @@ enum class ObjectFlags : uint32;
 class HYP_API ManagedObjectResource final : public ResourceBase
 {
 public:
+    ManagedObjectResource(dotnet::Object *object_ptr);
     ManagedObjectResource(HypObjectPtr ptr);
     ManagedObjectResource(HypObjectPtr ptr, const dotnet::ObjectReference &object_reference, EnumFlags<ObjectFlags> object_flags);
 

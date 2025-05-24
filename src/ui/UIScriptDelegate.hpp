@@ -5,9 +5,10 @@
 
 #include <core/containers/Array.hpp>
 
-#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/DeferredScope.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -33,17 +34,8 @@ enum class UIScriptDelegateFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(UIScriptDelegateFlags)
 
-class IUIScriptDelegate
-{
-public:
-    virtual ~IUIScriptDelegate() = default;
-
-    virtual UIObject *GetUIObject() const = 0;
-    virtual const String &GetMethodName() const = 0;
-};
-
 template <class... Args>
-class UIScriptDelegate : public IUIScriptDelegate
+class UIScriptDelegate
 {
 public:
     /*! \param ui_object The UIObject to call the method on.
@@ -62,14 +54,14 @@ public:
     UIScriptDelegate(UIScriptDelegate &&other) noexcept             = default;
     UIScriptDelegate &operator=(UIScriptDelegate &&other) noexcept  = default;
 
-    virtual ~UIScriptDelegate() override                            = default;
+    virtual ~UIScriptDelegate()                                     = default;
 
-    virtual UIObject *GetUIObject() const override
+    HYP_FORCE_INLINE UIObject *GetUIObject() const
     {
         return m_ui_object;
     }
 
-    virtual const String &GetMethodName() const override
+    HYP_FORCE_INLINE const String &GetMethodName() const
     {
         return m_method_name;
     }
@@ -95,11 +87,14 @@ public:
             return default_result;
         }
 
-        if (!script_component->object || !script_component->object->IsValid()) {
+        if (!script_component->resource || !script_component->resource->GetManagedObject() || !script_component->resource->GetManagedObject()->IsValid()) {
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid ScriptComponent Object"));
         }
         
-        if (dotnet::Class *class_ptr = script_component->object->GetClass()) {
+        script_component->resource->Claim();
+        HYP_DEFER({ script_component->resource->Unclaim(); });
+        
+        if (dotnet::Class *class_ptr = script_component->resource->GetManagedObject()->GetClass()) {
             if (dotnet::Method *method_ptr = class_ptr->GetMethod(m_method_name)) {
                 if (m_flags & UIScriptDelegateFlags::REQUIRE_UI_EVENT_ATTRIBUTE) {
                     if (!method_ptr->GetAttributes().GetAttribute("UIEvent")) {
@@ -112,7 +107,7 @@ public:
                 //     return default_result;
                 // }
 
-                UIEventHandlerResult result = script_component->object->InvokeMethod<UIEventHandlerResult>(method_ptr, std::forward<Args>(args)...);
+                UIEventHandlerResult result = script_component->resource->GetManagedObject()->InvokeMethod<UIEventHandlerResult>(method_ptr, std::forward<Args>(args)...);
 
                 if (result == UIEventHandlerResult::OK) {
                     return result | default_result;

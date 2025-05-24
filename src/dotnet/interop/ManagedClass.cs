@@ -94,7 +94,8 @@ namespace Hyperion
         None = 0x0,
         ClassType = 0x1,
         StructType = 0x2,
-        EnumType = 0x4
+        EnumType = 0x4,
+        Abstract = 0x8
     }
 
     [StructLayout(LayoutKind.Sequential)]

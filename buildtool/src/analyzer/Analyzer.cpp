@@ -398,6 +398,18 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
     return results;
 }
 
+// Add attributes to allow the runtime to access metadata on the member
+static void AddMetadata(ASTMemberDecl *decl, HypMemberDefinition &result)
+{
+    if (!decl) {
+        return;
+    }
+
+    if (decl->type && decl->type->IsScriptableDelegate()) {
+        result.AddAttribute("ScriptableDelegate", HypClassAttributeValue(true));
+    }
+}
+
 static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer &analyzer, const Module &mod, const HypClassDefinition &hyp_class_definition)
 {
     Array<HypMemberDefinition> results;
@@ -528,6 +540,8 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(c
         }
 
         AssertThrow(decl != nullptr);
+
+        AddMetadata(decl, result);
 
         result.name = decl->name;
         result.cxx_type = decl->type;

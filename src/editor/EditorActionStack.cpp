@@ -12,23 +12,28 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorActionStack::EditorActionStack()
-    : m_current_action_index(-1)
+    : m_current_action_index(-1),
+      m_current_state(EditorActionStackState::NONE)
 {
 }
 
 EditorActionStack::EditorActionStack(EditorActionStack &&other) noexcept
     : m_actions(Move(other.m_actions)),
-      m_current_action_index(other.m_current_action_index)
+      m_current_action_index(other.m_current_action_index),
+      m_current_state(other.m_current_state)
 {
     other.m_current_action_index = -1;
+    other.m_current_state = EditorActionStackState::NONE;
 }
 
 EditorActionStack &EditorActionStack::operator=(EditorActionStack &&other) noexcept
 {
     m_actions = Move(other.m_actions);
     m_current_action_index = other.m_current_action_index;
+    m_current_state = other.m_current_state;
 
     other.m_current_action_index = -1;
+    other.m_current_state = EditorActionStackState::NONE;
 
     return *this;
 }
@@ -49,6 +54,8 @@ void EditorActionStack::Push(const RC<IEditorAction> &action)
 {
     AssertThrow(action != nullptr);
 
+    const EnumFlags<EditorActionStackState> previous_state = m_current_state;
+
     OnBeforeActionPush(action.Get());
 
     action->Execute();
@@ -60,6 +67,8 @@ void EditorActionStack::Push(const RC<IEditorAction> &action)
 
     m_actions.PushBack(action);
     m_current_action_index = int(m_actions.Size()) - 1;
+
+    UpdateState();
 
     OnAfterActionPush(action.Get());
 }
@@ -78,6 +87,8 @@ void EditorActionStack::Undo()
     
     --m_current_action_index;
 
+    UpdateState();
+
     OnAfterActionPop(action);
 }
 
@@ -95,7 +106,40 @@ void EditorActionStack::Redo()
 
     ++m_current_action_index;
 
+    UpdateState();
+
     OnAfterActionPush(action);
+}
+
+IEditorAction *EditorActionStack::GetUndoAction() const
+{
+    if (!CanUndo()) {
+        return nullptr;
+    }
+
+    return m_actions[m_current_action_index].Get();
+}
+
+IEditorAction *EditorActionStack::GetRedoAction() const
+{
+    if (!CanRedo()) {
+        return nullptr;
+    }
+
+    return m_actions[m_current_action_index + 1].Get();
+}
+
+void EditorActionStack::UpdateState()
+{
+    EnumFlags<EditorActionStackState> new_state = EditorActionStackState::NONE;
+    new_state[EditorActionStackState::CAN_UNDO] = CanUndo();
+    new_state[EditorActionStackState::CAN_REDO] = CanRedo();
+
+    if (m_current_state != new_state) {
+        m_current_state = new_state;
+
+        OnStateChange(m_current_state);
+    }
 }
 
 } // namespace hyperion

@@ -95,6 +95,69 @@ namespace Hyperion
             }
         }
 
+        public HypDataBuffer InvokeNativeWithThis(HypObject thisObject, object[]? args = null)
+        {
+            if (ptr == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("Cannot invoke method: Invalid method");
+            }
+
+            uint numArgs = args == null ? 1 : (uint)args.Length + 1;
+
+            bool isMemberFunction = IsMemberFunction;
+
+            if (!IsMemberFunction)
+            {
+                throw new InvalidOperationException("Cannot invoke method: Method is not a member function");
+            }
+
+            IntPtr paramsPtr;
+            uint numParams = HypMethod_GetParameters(ptr, out paramsPtr);
+
+            if (numArgs != numParams)
+            {
+                throw new InvalidOperationException("Cannot invoke method: Invalid number of arguments - expected " + numParams + " but got " + numArgs);
+            }
+
+            bool shouldStackAlloc = numArgs * Marshal.SizeOf<HypDataBuffer>() < 1024;
+
+            Span<HypDataBuffer> hypDataArgsBuffers = (shouldStackAlloc ? stackalloc HypDataBuffer[(int)numArgs] : new HypDataBuffer[(int)numArgs]);
+            
+            int argIndex = 0;
+
+            HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+            hypDataArgsBuffers[argIndex].SetValue(thisObject);
+            argIndex++;
+
+            if (numArgs > 1)
+            {
+                for (; argIndex < numArgs; argIndex++)
+                {
+                    HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
+                    hypDataArgsBuffers[argIndex].SetValue(args[argIndex - 1]);
+                }
+            }
+
+            HypDataBuffer resultBuffer;
+
+            // Args is pointer to contiguous HypDataBuffer objects
+            unsafe
+            {
+                fixed (HypDataBuffer* argsPtr = hypDataArgsBuffers)
+                {
+                    bool result = HypMethod_Invoke(ptr, (IntPtr)argsPtr, numArgs, out resultBuffer);
+
+                    for (int i = 0; i < numArgs; i++)
+                        hypDataArgsBuffers[i].Dispose();
+
+                    if (!result)
+                        throw new InvalidOperationException("Failed to invoke method");
+                }
+            }
+
+            return resultBuffer;
+        }
+
         public HypDataBuffer InvokeNative(params object[] args)
         {
             if (ptr == IntPtr.Zero)

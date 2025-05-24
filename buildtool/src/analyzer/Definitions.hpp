@@ -36,7 +36,7 @@ struct HypMemberDefinition
     RC<ASTType>                                 cxx_type;
     String                                      source;
 
-    HYP_FORCE_INLINE bool HasAttribute(UTF8StringView key) const
+    bool HasAttribute(UTF8StringView key) const
     {
         auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
         {
@@ -46,7 +46,7 @@ struct HypMemberDefinition
         return it != attributes.End();
     }
 
-    HYP_FORCE_INLINE const HypClassAttributeValue &GetAttribute(UTF8StringView key) const
+    const HypClassAttributeValue &GetAttribute(UTF8StringView key) const
     {
         auto it = attributes.FindIf([key_lower = String(key).ToLower()](const auto &item)
         {
@@ -56,6 +56,17 @@ struct HypMemberDefinition
         return it != attributes.End()
             ? it->second
             : HypClassAttributeValue::empty;
+    }
+
+    bool AddAttribute(const String &key, const HypClassAttributeValue &value)
+    {
+        if (HasAttribute(key)) {
+            return false;
+        }
+
+        attributes.PushBack({ key, value });
+
+        return true;
     }
 };
 

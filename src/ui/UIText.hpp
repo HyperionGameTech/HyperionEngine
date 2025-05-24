@@ -115,8 +115,6 @@ protected:
 
     virtual void OnFontAtlasUpdate_Internal() override;
 
-    virtual void OnComputedVisibilityChange_Internal() override;
-
     virtual void UpdateMeshData_Internal() override;
 
     virtual bool Repaint_Internal() override;

@@ -16,6 +16,8 @@ class Object;
 class Assembly;
 } // namespace dotnet
 
+class ManagedObjectResource;
+
 enum class ScriptComponentFlags : uint32
 {
     NONE                = 0x0,
@@ -37,8 +39,8 @@ struct ScriptComponent
     HYP_FIELD()
     RC<dotnet::Assembly>            assembly;
 
-    HYP_FIELD()
-    UniquePtr<dotnet::Object>       object;
+    HYP_FIELD(Transient=true)
+    ManagedObjectResource           *resource = nullptr;
 
     HYP_FIELD()
     EnumFlags<ScriptComponentFlags> flags = ScriptComponentFlags::NONE;

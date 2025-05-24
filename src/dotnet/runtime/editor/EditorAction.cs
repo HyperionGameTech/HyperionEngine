@@ -3,6 +3,15 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name="EditorActionStackState")]
+    [Flags]
+    public enum EditorActionStackState : uint
+    {
+        None = 0,
+        CanUndo = 0x1,
+        CanRedo = 0x2
+    }
+
     [HypClassBinding(Name="IEditorAction")]
     public abstract class IEditorAction : HypObject
     {
@@ -13,6 +22,28 @@ namespace Hyperion
         public abstract Name GetName();
         public abstract void Execute();
         public abstract void Revert();
+    }
+
+    /// <summary>
+    /// C++ only - Use EditorAction instead
+    /// </summary>
+    [HypClassBinding(Name="FunctionalEditorAction")]
+    public class FunctionalEditorAction : IEditorAction
+    {
+        public override Name GetName()
+        {
+            return InvokeNativeMethod<Name>(new Name("GetName", weak: true));
+        }
+
+        public override void Execute()
+        {
+            InvokeNativeMethod(new Name("Execute", weak: true));
+        }
+
+        public override void Revert()
+        {
+            InvokeNativeMethod(new Name("Revert", weak: true));
+        }
     }
 
     public class EditorAction : IEditorAction

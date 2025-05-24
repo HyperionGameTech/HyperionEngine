@@ -57,13 +57,16 @@ namespace Hyperion
                     NativeInterop_AddObjectToCache(objectWrapperPtr, out classObjectPtr, objectReferencePtr, isWeak: true);
 
 #if DEBUG
+                    if (classObjectPtr == IntPtr.Zero)
+                    {
+                        gcHandle.Free();
+                        throw new Exception("Failed to add object to cache -- classObjectPtr is null");
+                    }
+
                     if (!objectReference.IsValid)
                     {
-                        Console.WriteLine("Failed to add object to cache");
-                        Console.Out.Flush();
-
                         gcHandle.Free();
-                        throw new Exception("Failed to add object to cache");
+                        throw new Exception("Failed to add object to cache -- objectReference is invalid");
                     }
 #endif
 
@@ -209,6 +212,33 @@ namespace Hyperion
             }
 
             return new HypMethod(methodPtr);
+        }
+
+        public T? InvokeNativeMethod<T>(Name name, object[]? args = null)
+        {
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                throw new Exception("HypClass pointer is null");
+            }
+
+            HypMethod method = GetMethod(name);
+
+            using (HypDataBuffer resultData = method.InvokeNativeWithThis(this, args))
+            {
+                return (T?)resultData.GetValue();
+            }
+        }
+
+        public void InvokeNativeMethod(Name name, object[]? args = null)
+        {
+            if (_hypClassPtr == IntPtr.Zero)
+            {
+                throw new Exception("HypClass pointer is null");
+            }
+
+            HypMethod method = GetMethod(name);
+
+            method.InvokeNativeWithThis(this, args);
         }
 
         public uint RefCount

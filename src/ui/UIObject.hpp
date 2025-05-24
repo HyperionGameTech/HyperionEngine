@@ -820,6 +820,18 @@ public:
     HYP_FORCE_INLINE bool GetComputedVisibility() const
         { return m_computed_visibility; }
 
+    /*! \brief Check if the UI object is set to enabled or not. Subclasses can use this state to provide custom behavior.
+     *  \details The enabled state of the UI object is used to determine if the object is currently enabled.
+     *  \return True if the object is enabled, false otherwise. */
+    HYP_METHOD(Property="IsEnabled")
+    bool IsEnabled() const;
+
+    /*! \brief Set the enabled state of the UI object.
+     *  \details The enabled state of the UI object is used to determine if the object is currently enabled.
+     *  \param is_enabled Whether to set the object as enabled or not. */
+    HYP_METHOD(Property="IsEnabled")
+    void SetIsEnabled(bool is_enabled);
+
     /*! \brief Check if the UI object has focus. If \ref{include_children} is true, also return true if any child objects have focus.
      *  \details The focus state of the UI object is used to determine if the object is currently focused.
      *  \param include_children If true, check if any child objects have focus.
@@ -1193,6 +1205,15 @@ public:
     HYP_FIELD()
     ScriptableDelegate<UIEventHandlerResult>                        OnSizeChange;
 
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnComputedVisibilityChange;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnEnabled;
+
+    HYP_FIELD()
+    ScriptableDelegate<UIEventHandlerResult>                        OnDisabled;
+
 protected:
     HYP_FORCE_INLINE void AssertOnOwnerThread() const
     {
@@ -1221,7 +1242,6 @@ protected:
 
     /*! \brief Check if the object has been computed as visible or not. E.g scrolled out of view in a parent container */
     virtual void UpdateComputedVisibility(bool update_children = true);
-    virtual void OnComputedVisibilityChange_Internal() { }
 
     void UpdateComputedDepth(bool update_children = true);
 
@@ -1398,6 +1418,8 @@ private:
 
     bool                                    m_is_visible;
     bool                                    m_computed_visibility;
+
+    bool                                    m_is_enabled;
 
     int                                     m_computed_depth;
 

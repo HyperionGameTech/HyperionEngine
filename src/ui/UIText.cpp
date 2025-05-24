@@ -194,6 +194,29 @@ UIText::UIText()
     : UIObject(UIObjectType::TEXT)
 {
     m_text_color = Color(Vec4f::One());
+
+    OnComputedVisibilityChange.Bind([this]()
+    {
+        if (GetComputedVisibility()) {
+            SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
+        }
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    OnEnabled.Bind([this]()
+    {
+        UpdateMaterial(false);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
+
+    OnDisabled.Bind([this]()
+    {
+        UpdateMaterial(false);
+
+        return UIEventHandlerResult::OK;
+    }).Detach();
 }
 
 UIText::~UIText()
@@ -419,8 +442,14 @@ MaterialAttributes UIText::GetMaterialAttributes() const
 
 Material::ParameterTable UIText::GetMaterialParameters() const
 {
+    Color color = GetTextColor();
+
+    if (!IsEnabled()) {
+        color.a *= 0.5f;
+    }
+
     return {
-        { Material::MATERIAL_KEY_ALBEDO, Vec4f(GetTextColor()) }
+        { Material::MATERIAL_KEY_ALBEDO, Vec4f(color) }
     };
 }
 
@@ -465,17 +494,6 @@ void UIText::UpdateSize_Internal(bool update_children)
 BoundingBox UIText::CalculateInnerAABB_Internal() const
 {
     return m_text_aabb_without_bearing * Vec3f(Vec2f(GetTextSize()), 1.0f);
-}
-
-void UIText::OnComputedVisibilityChange_Internal()
-{
-    HYP_SCOPE;
-
-    UIObject::OnComputedVisibilityChange_Internal();
-
-    if (GetComputedVisibility()) {
-        SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
-    }
 }
 
 void UIText::OnFontAtlasUpdate_Internal()

@@ -261,10 +261,6 @@ public:
         { return m_scene; }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE EditorActionStack *GetActionStack() const
-        { return m_action_stack.Get(); }
-
-    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<EditorProject> &GetCurrentProject() const
         { return m_current_project; }
 
@@ -292,10 +288,14 @@ public:
     HYP_FORCE_INLINE EditorDelegates *GetEditorDelegates()
         { return m_editor_delegates; }
 
-    Delegate<void, const Handle<Node> &, const Handle<Node> &, bool>    OnFocusedNodeChanged;
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<Node> &, const Handle<Node> &, bool>  OnFocusedNodeChanged;
 
-    Delegate<void, const Handle<EditorProject> &>                       OnProjectClosing;
-    Delegate<void, const Handle<EditorProject> &>                       OnProjectOpened;
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<EditorProject> &>                     OnProjectClosing;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<EditorProject> &>                     OnProjectOpened;
 
 private:
     void LoadEditorUIDefinitions();
@@ -334,15 +334,13 @@ private:
     Handle<Scene>                                                       m_scene;
     Handle<Camera>                                                      m_camera;
 
-    OwningRC<EditorActionStack>                                         m_action_stack;
-
     Handle<EditorProject>                                               m_current_project;
 
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX>   m_tasks_by_thread_type;
 
     EditorManipulationWidgetHolder                                      m_manipulation_widget_holder;
     Weak<EditorManipulationWidgetBase>                                  m_hovered_manipulation_widget;
-    WeakHandle<Node>                                                          m_hovered_manipulation_widget_node;
+    WeakHandle<Node>                                                    m_hovered_manipulation_widget_node;
 
     Handle<Texture>                                                     m_scene_texture;
     RC<UIObject>                                                        m_main_panel;

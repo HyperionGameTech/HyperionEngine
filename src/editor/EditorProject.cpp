@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <editor/EditorProject.hpp>
+#include <editor/EditorActionStack.hpp>
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
@@ -40,6 +41,7 @@ EditorProject::EditorProject(Name name)
 {
     m_asset_registry = CreateObject<AssetRegistry>();
     m_scene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND);
+    m_action_stack = CreateObject<EditorActionStack>();
 
     Handle<Camera> camera = CreateObject<Camera>();
     camera->SetName(Name::Unique("EditorDefaultCamera"));
@@ -72,6 +74,7 @@ void EditorProject::Init()
 
     InitObject(m_asset_registry);
     InitObject(m_scene);
+    InitObject(m_action_stack);
 }
 
 void EditorProject::SetScene(const Handle<Scene> &scene)
