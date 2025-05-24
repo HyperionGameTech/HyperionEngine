@@ -60,16 +60,16 @@ public:
     virtual ~UIElementFactoryBase()  = default;
 
     HYP_METHOD(Scriptable)
-    RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const;
+    RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, const HypData &context) const;
 
     HYP_METHOD(Scriptable)
-    void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const;
+    void UpdateUIObject(UIObject *ui_object, const HypData &value, const HypData &context) const;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, AnyRef context) const
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, const HypData &context) const
         { HYP_PURE_VIRTUAL(); }
 
-    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, AnyRef context) const
+    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, const HypData &context) const
         { HYP_PURE_VIRTUAL(); }
 };
 
@@ -80,36 +80,30 @@ public:
     virtual ~UIElementFactory() = default;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, AnyRef context) const override final
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject *parent, const HypData &value, const HypData &context) const override final
     {
         HYP_MT_CHECK_RW(m_context_data_race_detector);
 
-        m_context = context;
-
-        HYP_DEFER({
-            m_context = AnyRef();
-        });
+        m_context = context.ToRef();
+        HYP_DEFER({ m_context = AnyRef(); });
 
         RC<UIObject> result;
 
-        if constexpr (std::is_same_v<HypData, T>) {
+        if constexpr (is_hypdata_v<T>) {
             return GetDerived().Create(parent, value);
         } else {
             return GetDerived().Create(parent, value.Get<T>());
         }
     }
 
-    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, AnyRef context) const override final
+    virtual void UpdateUIObject_Impl(UIObject *ui_object, const HypData &value, const HypData &context) const override final
     {
         HYP_MT_CHECK_RW(m_context_data_race_detector);
 
-        m_context = context;
+        m_context = context.ToRef();
+        HYP_DEFER({ m_context = AnyRef(); });
 
-        HYP_DEFER({
-            m_context = AnyRef();
-        });
-
-        if constexpr (std::is_same_v<HypData, T>) {
+        if constexpr (is_hypdata_v<T>) {
             return GetDerived().Update(ui_object, value);
         } else {
             return GetDerived().Update(ui_object, value.Get<T>());
@@ -138,7 +132,7 @@ private:
 class HYP_API UIDataSourceElement
 {
 public:
-    template <class T, typename = std::enable_if_t<!std::is_same_v<T, HypData>>>
+    template <class T, typename = std::enable_if_t<!is_hypdata_v<T>>>
     UIDataSourceElement(UUID uuid, T &&value)
         : m_uuid(uuid),
           m_value(HypData(std::forward<T>(value)))
@@ -218,8 +212,8 @@ public:
     virtual bool Remove(const UUID &uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement *)> predicate) = 0;
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const = 0;
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, const HypData &context) const = 0;
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, const HypData &context) const = 0;
 
     virtual UIDataSourceElement *FindWithPredicate(ProcRef<bool(const UIDataSourceElement *)> predicate) = 0;
 
@@ -282,11 +276,11 @@ public:
     UIDataSource(TypeWrapper<T>, CreateUIObjectFunction &&create_ui_object, UpdateUIObjectFunction &&update_ui_object)
         : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
           m_element_type_id(TypeID::ForType<T>()),
-          m_create_ui_object_proc([func = std::forward<CreateUIObjectFunction>(create_ui_object)](UIObject *parent, const HypData &value, AnyRef context) mutable
+          m_create_ui_object_proc([func = std::forward<CreateUIObjectFunction>(create_ui_object)](UIObject *parent, const HypData &value, const HypData &context) mutable
           {
               return func(parent, value.Get<T>(), context);
           }),
-          m_update_ui_object_proc([func = std::forward<UpdateUIObjectFunction>(update_ui_object)](UIObject *ui_object, const HypData &value, AnyRef context) mutable
+          m_update_ui_object_proc([func = std::forward<UpdateUIObjectFunction>(update_ui_object)](UIObject *ui_object, const HypData &value, const HypData &context) mutable
           {
               func(ui_object, value.Get<T>(), context);
           })
@@ -441,7 +435,7 @@ public:
     }
 
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, AnyRef context) const override
+    virtual RC<UIObject> CreateUIObject(UIObject *parent, const HypData &value, const HypData &context) const override
     {
         if (m_create_ui_object_proc.IsValid()) {
             return m_create_ui_object_proc(parent, value, context);
@@ -456,7 +450,7 @@ public:
         return nullptr;
     }
 
-    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, AnyRef context) const override
+    virtual void UpdateUIObject(UIObject *ui_object, const HypData &value, const HypData &context) const override
     {
         if (m_update_ui_object_proc.IsValid()) {
             m_update_ui_object_proc(ui_object, value, context);
@@ -510,11 +504,11 @@ public:
     }
 
 private:
-    TypeID                                                  m_element_type_id;
-    Forest<UIDataSourceElement>                             m_values;
+    TypeID                                                              m_element_type_id;
+    Forest<UIDataSourceElement>                                         m_values;
 
-    Proc<RC<UIObject>(UIObject *, const HypData &, AnyRef)> m_create_ui_object_proc;
-    Proc<void(UIObject *, const HypData &, AnyRef)>         m_update_ui_object_proc;
+    Proc<RC<UIObject>(UIObject *, const HypData &, const HypData &)>    m_create_ui_object_proc;
+    Proc<void(UIObject *, const HypData &, const HypData &)>            m_update_ui_object_proc;
 };
 
 namespace detail {

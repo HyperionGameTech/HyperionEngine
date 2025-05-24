@@ -391,9 +391,9 @@ public:
         String node_name = "Invalid";
         UUID node_uuid = UUID::Invalid();
 
-        if (Handle<Node> node_rc = value.Lock()) {
-            node_name = node_rc->GetName();
-            node_uuid = node_rc->GetUUID();
+        if (Handle<Node> node = value.Lock()) {
+            node_name = node->GetName();
+            node_uuid = node->GetUUID();
         } else {
             node_uuid = UUID();
         }
@@ -409,8 +409,8 @@ public:
         static const String invalid_node_name = "<Invalid>";
 
         if (UIText *text = dynamic_cast<UIText *>(ui_object)) {
-            if (Handle<Node> node_rc = value.Lock()) {
-                text->SetText(node_rc->GetName());
+            if (Handle<Node> node = value.Lock()) {
+                text->SetText(node->GetName());
             } else {
                 text->SetText(invalid_node_name);
             }
@@ -778,9 +778,9 @@ class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef,
 public:
     RC<UIObject> Create(UIObject *parent, const EditorNodePropertyRef &value) const
     {
-        Handle<Node> node_rc = value.node.Lock();
+        Handle<Node> node = value.node.Lock();
         
-        if (!node_rc) {
+        if (!node) {
             HYP_LOG(Editor, Error, "Node reference is invalid, cannot create UI element for property \"{}\"", value.title);
 
             return nullptr;
@@ -829,7 +829,7 @@ public:
         {
             RC<UIPanel> content = parent->CreateUIObject<UIPanel>(NAME("PropertyPanel_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef &>(value)))) {
+            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node)), HypData(AnyRef(const_cast<EditorNodePropertyRef &>(value))))) {
                 content->AddChildUIObject(element);
             }
 

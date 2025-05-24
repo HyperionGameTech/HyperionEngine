@@ -238,7 +238,8 @@ namespace Hyperion
 
             HypMethod method = GetMethod(name);
 
-            method.InvokeNativeWithThis(this, args);
+            HypDataBuffer resultData = method.InvokeNativeWithThis(this, args);
+            resultData.Dispose();
         }
 
         public uint RefCount

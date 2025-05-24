@@ -119,9 +119,9 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
         for (SizeType i = 0; i < hyp_class.members.Size(); ++i) {
             const HypMemberDefinition &member = hyp_class.members[i];
 
-            if (member.type == HypMemberType::TYPE_METHOD && member.HasAttribute("Scriptable")) {
-                continue;
-            }
+            // if (member.type == HypMemberType::TYPE_METHOD && member.HasAttribute("Scriptable")) {
+            //     continue;
+            // }
 
             String attributes_string;
 

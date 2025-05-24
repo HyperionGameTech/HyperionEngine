@@ -155,7 +155,7 @@ void ConsoleUI::Init()
 
     RC<UIDataSource> data_source = MakeRefCountedPtr<UIDataSource>(
         TypeWrapper<ConsoleHistoryEntry> { },
-        [this](UIObject *parent, ConsoleHistoryEntry &value, AnyRef context) -> RC<UIObject>
+        [this](UIObject *parent, ConsoleHistoryEntry &value, const HypData &context) -> RC<UIObject>
         {
             RC<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             text->SetText(value.text);
@@ -178,7 +178,7 @@ void ConsoleUI::Init()
             
             return text;
         },
-        [](UIObject *ui_object, ConsoleHistoryEntry &value, AnyRef context) -> void
+        [](UIObject *ui_object, ConsoleHistoryEntry &value, const HypData &context) -> void
         {
         }
     );

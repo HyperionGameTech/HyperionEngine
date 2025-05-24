@@ -158,16 +158,6 @@ struct HypData
 
         HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
     }
-    
-    // template <class T, typename = std::enable_if_t< !std::is_same_v< T, HypData > > >
-    // HypData &operator=(T &&value)
-    // {
-    //     HYP_NAMED_SCOPE("Assign HypData from T");
-
-    //     HypDataHelper<NormalizedType<T>>{}.Set(*this, std::forward<T>(value));
-
-    //     return *this;
-    // }
 
     HypData(const HypData &other)                   = delete;
     HypData &operator=(const HypData &other)        = delete;
@@ -241,93 +231,103 @@ struct HypData
     {
         HYP_SCOPE;
 
-        static_assert(!std::is_same_v<T, HypData>);
-
-        if (!value.IsValid()) {
-            return false;
+        if constexpr (std::is_same_v<T, HypData>) {
+            return true;
+        } else {
+            if (!value.IsValid()) {
+                return false;
+            }
+            
+            if (strict) {
+                return detail::HypDataTypeChecker_Tuple<T, Tuple<>>{}(value);
+            }
+            
+            return detail::HypDataTypeChecker_Tuple<T, typename HypDataHelper<T>::ConvertibleFrom>{}(value);
         }
-        
-        if (strict) {
-            return detail::HypDataTypeChecker_Tuple<T, Tuple<>>{}(value);
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE auto Get() -> std::conditional_t<std::is_same_v<T, HypData>, HypData &, typename detail::HypDataGetReturnTypeHelper<T, false>::Type>
+    {
+        HYP_SCOPE;
+
+        if constexpr (std::is_same_v<T, HypData>) {
+            return *this;
+        } else {
+            using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
+
+            Optional<ReturnType> result_value;
+
+            detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
+
+            AssertThrowMsg(getter_instance(value, result_value),
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
+                TypeName<T>().Data(),
+                GetTypeID().Value());
+
+            return *result_value;
         }
-        
-        return detail::HypDataTypeChecker_Tuple<T, typename HypDataHelper<T>::ConvertibleFrom>{}(value);
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get() -> typename detail::HypDataGetReturnTypeHelper<T, false>::Type
+    HYP_FORCE_INLINE auto Get() const -> std::conditional_t<std::is_same_v<T, HypData>, const HypData &, typename detail::HypDataGetReturnTypeHelper<T, true>::Type>
     {
-        static_assert(!std::is_same_v<T, HypData>);
-
         HYP_SCOPE;
 
-        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
+        if constexpr (std::is_same_v<T, HypData>) {
+            return *this;
+        } else {
+            using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
 
-        Optional<ReturnType> result_value;
+            Optional<ReturnType> result_value;
 
-        detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
+            detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
 
-        AssertThrowMsg(getter_instance(value, result_value),
-            "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
-            TypeName<T>().Data(),
-            GetTypeID().Value());
+            AssertThrowMsg(getter_instance(value, result_value),
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
+                TypeName<T>().Data(),
+                GetTypeID().Value());
 
-        return *result_value;
+            return *result_value;
+        }
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto Get() const -> typename detail::HypDataGetReturnTypeHelper<T, true>::Type
+    HYP_FORCE_INLINE auto TryGet() -> Optional<std::conditional_t<std::is_same_v<T, HypData>, HypData &, typename detail::HypDataGetReturnTypeHelper<T, false>::Type>>
     {
-        static_assert(!std::is_same_v<T, HypData>);
-
         HYP_SCOPE;
 
-        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
+        if constexpr (std::is_same_v<T, HypData>) {
+            return *this;
+        } else {
+            using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
 
-        Optional<ReturnType> result_value;
+            Optional<ReturnType> result_value;
 
-        detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
+            detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
+            getter_instance(value, result_value);
 
-        AssertThrowMsg(getter_instance(value, result_value),
-            "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
-            TypeName<T>().Data(),
-            GetTypeID().Value());
-
-        return *result_value;
+            return result_value;
+        }
     }
 
     template <class T>
-    HYP_FORCE_INLINE auto TryGet() -> Optional<typename detail::HypDataGetReturnTypeHelper<T, false>::Type>
+    HYP_FORCE_INLINE auto TryGet() const -> Optional<std::conditional_t<std::is_same_v<T, HypData>, const HypData &, typename detail::HypDataGetReturnTypeHelper<T, true>::Type>>
     {
-        static_assert(!std::is_same_v<T, HypData>);
-
         HYP_SCOPE;
 
-        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, false>::Type;
+        if constexpr (std::is_same_v<T, HypData>) {
+            return *this;
+        } else {
+            using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
 
-        Optional<ReturnType> result_value;
+            Optional<ReturnType> result_value;
 
-        detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
-        getter_instance(value, result_value);
+            detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
+            getter_instance(value, result_value);
 
-        return result_value;
-    }
-
-    template <class T>
-    HYP_FORCE_INLINE auto TryGet() const -> Optional<typename detail::HypDataGetReturnTypeHelper<T, true>::Type>
-    {
-        static_assert(!std::is_same_v<T, HypData>);
-
-        HYP_SCOPE;
-
-        using ReturnType = typename detail::HypDataGetReturnTypeHelper<T, true>::Type;
-
-        Optional<ReturnType> result_value;
-
-        detail::HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance { };
-        getter_instance(value, result_value);
-
-        return result_value;
+            return result_value;
+        }
     }
 
     /*! \brief Serialize this instance to an FBOMData object.
