@@ -8,9 +8,10 @@
 
 #include <core/Name.hpp>
 
-#include <dotnet/Object.hpp>
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
 
-#include <core/serialization/fbom/FBOM.hpp>
+#include <dotnet/Object.hpp>
 
 #include <Types.hpp>
 

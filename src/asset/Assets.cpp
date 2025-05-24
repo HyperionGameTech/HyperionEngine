@@ -229,7 +229,7 @@ void AssetManager::RegisterDefaultLoaders()
         "ttf", "otf", "ttc", "dfont"
     );
     Register<FontAtlasLoader, RC<FontAtlas>>();
-    Register<UILoader, RC<UIObject>>();
+    Register<UILoader, UIObject>();
 }
 
 const AssetLoaderDefinition *AssetManager::GetLoaderDefinition(const FilePath &path, TypeID desired_type_id)

@@ -10,9 +10,10 @@ namespace Hyperion
     public delegate void InvokeGetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
     public delegate void InvokeSetterDelegate(Guid propertyGuid, IntPtr thisObjectReferencePtr, IntPtr argsHypDataPtr, IntPtr outReturnHypDataPtr);
     public delegate void InitializeObjectCallbackDelegate(IntPtr contextPtr, IntPtr objectPtr, uint objectSize);
-    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
+    public delegate void AddObjectToCacheDelegate(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak);
     public delegate bool SetKeepAliveDelegate(IntPtr objectReferencePtr, bool keepAlive);
     public delegate void TriggerGCDelegate();
+    public delegate bool GetAssemblyPointerDelegate(IntPtr assemblyObjectReferencePtr, IntPtr outAssemblyPtr);
 
     internal enum LoadAssemblyResult : int
     {
@@ -38,7 +39,7 @@ namespace Hyperion
             return NativeInterop_VerifyEngineVersion(assemblyEngineVersion, major, minor, patch);
         }
 
-        private static void InitializeAssemblyTypes(Assembly assembly)
+        private static void InitializeAssemblyTypes(Assembly assembly, bool isCoreAssembly)
         {
             Type[] types = assembly.GetExportedTypes();
 
@@ -51,12 +52,12 @@ namespace Hyperion
                 }
 
                 if (type.IsClass || type.IsValueType || type.IsEnum)
-                    InitManagedClass(type);
+                    InitManagedClass(type, isCoreAssembly);
             }
         }
 
         [UnmanagedCallersOnly]
-        public static int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
+        public static unsafe int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
             // AppDomain currentDomain = AppDomain.CurrentDomain;
             // currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
@@ -111,10 +112,11 @@ namespace Hyperion
                 NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
 
                 NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
-                NativeInterop_SetSetKeepAliveFunction(Marshal.GetFunctionPointerForDelegate<SetKeepAliveDelegate>(SetKeepAlive));
-                NativeInterop_SetTriggerGCFunction(Marshal.GetFunctionPointerForDelegate<TriggerGCDelegate>(TriggerGC));
+                NativeInterop_SetSetKeepAliveFunction((delegate* unmanaged<IntPtr, int*, void>)&SetKeepAlive);
+                NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
+                NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
 
-                InitializeAssemblyTypes(assembly);
+                InitializeAssemblyTypes(assembly, isCoreAssembly != 0);
             }
             catch (Exception ex)
             {
@@ -187,7 +189,7 @@ namespace Hyperion
 
                 Type attributeType = attribute.GetType();
 
-                IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType);
+                IntPtr attributeManagedClassObjectPtr = InitManagedClass(attributeType, isCoreAssembly: false);
 
                 ObjectReference attributeObjectReference = new ObjectReference {
                     weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(attribute, GCHandleType.Weak)),
@@ -268,7 +270,20 @@ namespace Hyperion
             }
         }
 
-        private static unsafe IntPtr InitManagedClass(Type type)
+        private static object? TryGetHypClassBindingAttribute(Type type)
+        {
+            foreach (var attr in type.GetCustomAttributes(false))
+            {
+                if (attr.GetType().Name == "HypClassBinding")
+                {
+                    return attr;
+                }
+            }
+
+            return null;
+        }
+
+        private static unsafe IntPtr InitManagedClass(Type type, bool isCoreAssembly)
         {
             // Skip classes with the NoManagedClass attribute
             if (type.GetCustomAttribute(typeof(NoManagedClass)) != null)
@@ -297,7 +312,7 @@ namespace Hyperion
             Type? baseType = type.BaseType;
 
             if (baseType != null)
-                parentClassObjectPtr = InitManagedClass(baseType);
+                parentClassObjectPtr = InitManagedClass(baseType, isCoreAssembly);
 
             // Check if initializing parent class has caused this class to be initialized
             if (ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out foundClassObjectPtr))
@@ -310,35 +325,72 @@ namespace Hyperion
             string typeName = type.Name;
             IntPtr typeNamePtr = Marshal.StringToHGlobalAnsi(typeName);
 
+            string? hypClassName = null;
             IntPtr hypClassPtr = IntPtr.Zero;
 
-            foreach (var attr in type.GetCustomAttributes(false))
+            TypeID typeId = TypeID.ForType(type);
+
+            // Use dynamic since we don't know the actual type - it is loaded from another assembly
+            dynamic hypClassBindingAttribute = TryGetHypClassBindingAttribute(type);
+
+            if (hypClassBindingAttribute != null)
             {
-                if (attr.GetType().Name == "HypClassBinding")
+                hypClassName = hypClassBindingAttribute.Name;
+
+                if (hypClassName == null || hypClassName.Length == 0)
+                    hypClassName = typeName;
+
+                bool isDynamic = hypClassBindingAttribute.IsDynamic;
+
+                if (isDynamic)
                 {
-                    bool isDynamic = (bool)attr.GetType().GetProperty("IsDynamic").GetValue(attr);
-
-                    if (isDynamic)
-                        // Skip dynamic classes
-                        continue;
-
-                    string? hypClassName = (string?)attr.GetType().GetProperty("Name").GetValue(attr);
-
-                    if (hypClassName == null || hypClassName.Length == 0)
+                    // We only register dynamic classes in core assemblies, otherwise they would be constantly invalidated on assembly reload.
+                    // No need to use GetClass() in C++ to fetch non-core assembly classes, as it would be totally context dependent, anyway.
+                    if (isCoreAssembly)
                     {
-                        hypClassName = typeName;
-                    }
+                        // Find closest parent class with HypClassBinding attribute
+                        Type? parentType = type.BaseType;
+                        IntPtr parentHypClassPtr = IntPtr.Zero;
 
+                        while (parentType != null)
+                        {
+                            dynamic parentHypClassBindingAttribute = TryGetHypClassBindingAttribute(parentType);
+
+                            if (parentHypClassBindingAttribute != null)
+                            {
+                                // Call the GetClass method
+                                dynamic parentHypClass = parentHypClassBindingAttribute.GetClass(parentType);
+                                parentHypClassPtr = parentHypClass?.Address ?? IntPtr.Zero;
+
+                                if (parentHypClassPtr != IntPtr.Zero)
+                                    break;
+                            }
+
+                            parentType = parentType.BaseType;
+                        }
+
+                        if (parentHypClassPtr == IntPtr.Zero)
+                            throw new Exception(string.Format("To create a dynamic HypClass, a parent class must exist with a valid HypClassBinding attribute!"));
+
+                        // @FIXME: Allocated but never deleted. Need to implement deletion and removal from global array on assembly unload.
+                        hypClassPtr = HypClass_CreateDynamicHypClass(ref typeId, (string)hypClassName, parentHypClassPtr);
+
+                        if (hypClassPtr == IntPtr.Zero)
+                            throw new Exception(string.Format("Failed to create a dynamic HypClass for type \"{0}\" (TypeID: {1})", type.Name, typeId));
+                    }
+                    else
+                    {
+                        // throw new Exception(string.Format("Dynamic HypClass creation is only supported in core assemblies! Cannot create dynamic HypClass for type \"{0}\" (TypeID: {1})", type.Name, typeId));
+                    }
+                }
+                else
+                {
                     hypClassPtr = HypClass_GetClassByName((string)hypClassName);
 
                     if (hypClassPtr == IntPtr.Zero)
-                    {
                         throw new Exception(string.Format("No HypClass found for \"{0}\"", hypClassName));
-                    }
 
                     Logger.Log(LogType.Debug, "Found HypClass for type: {0}, Name: {1}", typeName, hypClassName);
-
-                    break;
                 }
             }
 
@@ -369,8 +421,6 @@ namespace Hyperion
             {
                 managedClassFlags |= ManagedClassFlags.Abstract;
             }
-
-            TypeID typeId = TypeID.ForType(type);
 
             ManagedClass_Create(ref assemblyGuid, assemblyPtr, hypClassPtr, type.GetHashCode(), typeNamePtr, typeSize, typeId, parentClassObjectPtr, (uint)managedClassFlags, out managedClass);
 
@@ -647,7 +697,7 @@ namespace Hyperion
             propertyInfo.SetValue((object)thisObject, value);
         }
 
-        public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, out IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak)
+        public static unsafe void AddObjectToCache(IntPtr objectWrapperPtr, IntPtr outClassObjectPtr, IntPtr outObjectReferencePtr, bool weak)
         {
             ref ObjectWrapper objectWrapperRef = ref Unsafe.AsRef<ObjectWrapper>((void*)objectWrapperPtr);
             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)outObjectReferencePtr);
@@ -670,18 +720,19 @@ namespace Hyperion
             IntPtr assemblyPtr = assemblyInstance.AssemblyPtr;
 
             // ManagedClass must be registered for the given object's type.
-            if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out outClassObjectPtr))
+            IntPtr classObjectPtr;
+            if (!ManagedClass_FindByTypeHash(assemblyPtr, type.GetHashCode(), out classObjectPtr))
             {
                 throw new Exception("ManagedClass not found for Type " + type.Name + " from assembly: " + type.Assembly.FullName + ", has the assembly been registered? Ensure the class or struct is public.");
             }
+
+            Marshal.WriteIntPtr(outClassObjectPtr, classObjectPtr);
 
             GCHandle gcHandleWeak = GCHandle.Alloc(obj, GCHandleType.Weak);
             GCHandle? gcHandleStrong = null;
 
             if (!weak)
-            {
                 gcHandleStrong = GCHandle.Alloc(obj, GCHandleType.Normal);
-            }
 
             // @NOTE: reassign ref
             objectReferenceRef = new ObjectReference 
@@ -690,20 +741,45 @@ namespace Hyperion
                 strongHandle = gcHandleStrong.HasValue ? GCHandle.ToIntPtr(gcHandleStrong.Value) : IntPtr.Zero
             };
         }
-
-        public static unsafe bool SetKeepAlive(IntPtr objectReferencePtr, bool keepAlive)
+        
+        [UnmanagedCallersOnly]
+        public static unsafe void SetKeepAlive(IntPtr objectReferencePtr, int* inOutKeepAlive)
         {
             ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)objectReferencePtr);
 
-            if (keepAlive)
-                return objectReference.MakeStrong();
+            if (*inOutKeepAlive != 0)
+            {
+                *inOutKeepAlive = objectReference.MakeStrong() ? 1 : 0;
+                return;
+            }
 
-            return objectReference.MakeWeak();
+            *inOutKeepAlive = objectReference.MakeWeak() ? 1 : 0;
         }
 
+        [UnmanagedCallersOnly]
         public static unsafe void TriggerGC()
         {
             GC.Collect();
+        }
+
+        [UnmanagedCallersOnly]
+        public static unsafe void GetAssemblyPointer(IntPtr assemblyObjectReferencePtr, IntPtr outAssemblyPtr)
+        {
+            Marshal.WriteIntPtr(outAssemblyPtr, IntPtr.Zero);
+
+            ref ObjectReference objectReference = ref Unsafe.AsRef<ObjectReference>((void*)assemblyObjectReferencePtr);
+
+            Assembly? assembly = (Assembly?)objectReference.LoadObject();
+
+            if (assembly == null)
+                return;
+
+            AssemblyInstance? assemblyInstance = AssemblyCache.Instance.Get(assembly);
+
+            if (assemblyInstance == null)
+                return;
+
+            Marshal.WriteIntPtr(outAssemblyPtr, assemblyInstance.AssemblyPtr);
         }
 
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -721,6 +797,15 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
+        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeID")]
+        private static extern IntPtr HypClass_GetClassByTypeID([In] ref TypeID typeId);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetClassForManagedClass")]
+        private static extern IntPtr HypClass_GetClassForManagedClass([In] IntPtr classObjectPtr);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_CreateDynamicHypClass")]
+        private static extern IntPtr HypClass_CreateDynamicHypClass([In] ref TypeID typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentHypClassClassPtr);
+
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         [return: MarshalAs(UnmanagedType.I1)]
         private static extern bool NativeInterop_VerifyEngineVersion(uint assemblyEngineVersion, bool major, bool minor, bool patch);
@@ -735,9 +820,12 @@ namespace Hyperion
         private static extern void NativeInterop_SetAddObjectToCacheFunction(IntPtr addObjectToCachePtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetSetKeepAliveFunction")]
-        private static extern void NativeInterop_SetSetKeepAliveFunction(IntPtr setKeepAlivePtr);
+        private static extern unsafe void NativeInterop_SetSetKeepAliveFunction(void* setKeepAlivePtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_SetTriggerGCFunction")]
-        private static extern void NativeInterop_SetTriggerGCFunction(IntPtr setTriggerGCFunctionPtr);
+        private static extern unsafe void NativeInterop_SetTriggerGCFunction(void* setTriggerGCFunctionPtr);
+
+        [DllImport("hyperion", EntryPoint = "NativeInterop_SetGetAssemblyPointerFunction")]
+        private static extern unsafe void NativeInterop_SetGetAssemblyPointerFunction(void* getAssemblyPointerFunctionPtr);
     }
 }

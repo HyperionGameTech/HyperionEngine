@@ -53,7 +53,7 @@ namespace Hyperion
                 throw new InvalidOperationException("Failed to invoke getter");
             }
 
-            return new HypData(resultBuffer);
+            return HypData.FromBuffer(resultBuffer);
         }
 
         public void Set(HypObject hypObject, HypData value)

@@ -52,10 +52,12 @@ namespace Hyperion
                 throw new Exception("Type " + typeof(T).Name + " does not have a registered HypClass");
             }
 
-            using (HypData hypData = new HypData((T)value))
-            {
-                ManagedHandleNativeBindings.Handle_Set(ref hypData.Buffer, out ptr);
-            }
+            HypDataBuffer hypDataBuffer = new HypDataBuffer();
+            hypDataBuffer.SetValue((T)value);
+
+            ManagedHandleNativeBindings.Handle_Set(ref hypDataBuffer, out ptr);
+
+            hypDataBuffer.Dispose();
         }
 
         public void Dispose()

@@ -26,8 +26,6 @@ struct HypObjectInitializerContext
 
 thread_local Stack<EnumFlags<HypObjectInitializerFlags>> g_hyp_object_initializer_flags_stack = { };
 
-void InitHypObjectInitializer(HypObjectPtr ptr);
-
 HYP_API void PushHypObjectInitializerFlags(EnumFlags<HypObjectInitializerFlags> flags)
 {
     g_hyp_object_initializer_flags_stack.Push(flags);
@@ -54,6 +52,8 @@ static EnumFlags<HypObjectInitializerFlags> GetCurrentHypObjectInitializerFlags(
 HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
     : ptr(ptr)
 {
+    AssertThrow(ptr.IsValid());
+
 #ifdef HYP_DEBUG_MODE
     initializer_thread_id = Threads::CurrentThreadID();
 #else
@@ -72,16 +72,13 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
         return;
     }
 
-    IHypObjectInitializer *initializer = ptr.GetObjectInitializer();
-    AssertThrow(initializer != nullptr);
-
     if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !ptr.GetClass()->IsAbstract()) {
-        if (dotnet::Class *managed_class = ptr.GetClass()->GetManagedClass()) {
-            initializer->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr));
+        if (ptr.GetClass()->GetManagedClass() != nullptr) {
+            ptr.GetObjectInitializer()->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr));
         }
     }
 
-    InitHypObjectInitializer(ptr);
+    FixupObjectInitializerPointer(ptr.GetPointer(), ptr.GetObjectInitializer());
 }
 
 #pragma endregion HypObjectInitializerGuardBase
@@ -178,57 +175,61 @@ HYP_API const HypClass *HypObjectPtr::GetHypClass(TypeID type_id) const
 
 #pragma endregion HypObjectPtr
 
-HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address)
+#pragma region DynamicHypObjectInitializer
+
+DynamicHypObjectInitializer::DynamicHypObjectInitializer(const HypClass *hyp_class, IHypObjectInitializer *parent_initializer)
+    : m_hyp_class(hyp_class),
+      m_parent_initializer(parent_initializer)
 {
-#ifdef HYP_DEBUG_MODE
-    AssertThrow(initializer != nullptr);
     AssertThrow(hyp_class != nullptr);
-    AssertThrow(address != nullptr);
-#endif
+    AssertThrow(hyp_class->IsDynamic());
 
-    // If allocation method is NONE we don't require the guard; skip this check.
-    if (hyp_class->GetAllocationMethod() == HypClassAllocationMethod::NONE) {
-        return;
-    }
-}
+    AssertThrowMsg(hyp_class->IsReferenceCounted(),
+        "DynamicHypObjectInitializer: HypClass is not reference counted. Class: %s"
+        "\n\tDynamic HypClass types must be reference counted to ensure proper cleanup and deletion of allocations.",
+        *hyp_class->GetName());
 
-void InitHypObjectInitializer(HypObjectPtr ptr)
-{
-    AssertThrow(ptr.IsValid());
-
-    if (ptr.GetClass()->GetAllocationMethod() == HypClassAllocationMethod::REF_COUNTED_PTR) {
-        // Hack to make EnableRefCountedPtr<Base> internally have TypeID of most derived class for a given instance.
-        static_cast<EnableRefCountedPtrFromThisBase<> *>(ptr.GetPointer())->weak_this.GetRefCountData_Internal()->type_id = ptr.GetClass()->GetTypeID();
-    }
-
-    // Fixup the pointers on objects up the chain - all should point to the HypObjectInitializer for the most derived class.
-    IHypObjectInitializer *parent_initializer = ptr.GetObjectInitializer();
     AssertThrow(parent_initializer != nullptr);
 
-    do {
-        if (const HypClass *parent_hyp_class = parent_initializer->GetClass()->GetParent()) {
-            parent_initializer = parent_hyp_class->GetObjectInitializer(ptr.GetPointer());
-            AssertThrow(parent_initializer != nullptr);
+    AssertThrowMsg(parent_initializer->GetClass() == hyp_class->GetParent(),
+        "DynamicHypObjectInitializer: Parent initializer class does not match hyp_class parent class. Parent initializer class: %s, hyp_class parent class: %s",
+        *parent_initializer->GetClass()->GetName(), *hyp_class->GetParent()->GetName());
+}
 
-            parent_initializer->FixupPointer(ptr.GetPointer(), ptr.GetObjectInitializer());
-        } else {
-            parent_initializer = nullptr;
+DynamicHypObjectInitializer::~DynamicHypObjectInitializer()
+{
+    // delete up the chain, if the parent is also dynamic.
+    if (m_parent_initializer->GetClass()->IsDynamic()) {
+        delete m_parent_initializer;
+    }
+}
+
+TypeID DynamicHypObjectInitializer::GetTypeID() const
+{
+    return m_hyp_class->GetTypeID();
+}
+
+#pragma endregion DynamicHypObjectInitializer
+
+HYP_API void FixupObjectInitializerPointer(void *target, IHypObjectInitializer *initializer)
+{
+    const HypClass *hyp_class = initializer->GetClass();
+
+    while (hyp_class != nullptr) {
+        hyp_class->FixupPointer(target, initializer);
+
+        const HypClass *parent_hyp_class = hyp_class->GetParent();
+
+        // Check to ensure no non-dynamic initializers are in the chain after the first dynamic one found.
+        // This ensures we can properly delete the dynamic initializers up the chain, when the reference count goes to 0.
+        if (parent_hyp_class && parent_hyp_class->IsDynamic()) {
+            AssertThrowMsg(hyp_class->IsDynamic(),
+                "Found a dynamic initializer in the chain, but the current initializer is not dynamic. Only dynamic initializers are allowed proceeding a dynamic initializer.\n\tCurrent initializer class: %s, next initializer class: %s",
+                *hyp_class->GetName(), *parent_hyp_class->GetName());
         }
-    } while (parent_initializer != nullptr);
-}
 
-HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class)
-{
-    AssertThrow(hyp_class != nullptr);
-    
-    return hyp_class->GetAllocationMethod();
-}
-
-HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class)
-{
-    AssertThrow(hyp_class != nullptr);
-
-    return hyp_class->GetManagedClass();
+        hyp_class = parent_hyp_class;
+    }
 }
 
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
@@ -244,11 +245,16 @@ HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
 
 HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
 {
-    if (const IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
+    if (IHypObjectInitializer *initializer = ptr.GetObjectInitializer()) {
         if (count >= 1) {
             if (ManagedObjectResource *managed_object_resource = initializer->GetManagedObjectResource()) {
                 managed_object_resource->Unclaim();
             }
+        } else if (initializer->GetClass()->IsDynamic()) {
+            // Dynamic HypClass initializers need to be deleted manually, as they are not stored inline on the class and are heap allocated.
+            // They will delete up the chain if the parent is also dynamic.
+            // We don't allow any non-dynamic initializers in the chain after a dynamic one is added.
+            delete initializer;
         }
     }
 }

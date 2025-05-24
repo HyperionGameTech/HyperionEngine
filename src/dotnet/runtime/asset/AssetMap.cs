@@ -35,9 +35,7 @@ namespace Hyperion
         {
             get
             {
-                IntPtr assetPtr = AssetMap_GetAsset(ptr, key);
-
-                return new Asset(assetPtr);
+                return new Asset(AssetMap_GetAsset(ptr, key));
             }
         }
 

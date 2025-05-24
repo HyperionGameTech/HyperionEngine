@@ -308,7 +308,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE T &Get()
+    HYP_FORCE_INLINE T &Get() &
     {
         AssertThrowMsg(Is<NormalizedType<T>>(), "Held type differs from requested type!");
 
@@ -316,7 +316,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE const T &Get() const
+    HYP_FORCE_INLINE const T &Get() const &
     {
         AssertThrowMsg(Is<NormalizedType<T>>(), "Held type differs from requested type!");
 
@@ -324,15 +324,29 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE T &GetUnchecked()
+    HYP_FORCE_INLINE T Get() &&
+    {
+        AssertThrowMsg(Is<NormalizedType<T>>(), "Held type differs from requested type!");
+
+        return std::move(*static_cast<NormalizedType<T> *>(m_storage.GetPointer()));
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE T &GetUnchecked() &
     {
         return *static_cast<NormalizedType<T> *>(m_storage.GetPointer());
     }
 
     template <class T>
-    HYP_FORCE_INLINE const T &GetUnchecked() const
+    HYP_FORCE_INLINE const T &GetUnchecked() const &
     {
         return *static_cast<const NormalizedType<T> *>(m_storage.GetPointer());
+    }
+
+    template <class T>
+    HYP_FORCE_INLINE T GetUnchecked() &&
+    {
+        return std::move(*static_cast<NormalizedType<T> *>(m_storage.GetPointer()));
     }
 
     template <class T>
@@ -451,29 +465,29 @@ protected:
 };
 
 template <bool IsCopyable, class... Types>
-struct Variant : public VariantBase<Types...> { };
+struct VariantHolder : public VariantBase<Types...> { };
 
 template <class... Types>
-struct Variant<true, Types...> : public VariantBase<Types...>
+struct VariantHolder<true, Types...> : public VariantBase<Types...>
 {
 private:
     using Base = VariantBase<Types...>;
 
 public:
-    Variant() = default;
-    Variant(Variant &&other) noexcept
+VariantHolder() = default;
+    VariantHolder(VariantHolder &&other) noexcept
         : Base(std::move(other))
     {
     }
 
-    Variant &operator=(Variant &&other) noexcept
+    VariantHolder &operator=(VariantHolder &&other) noexcept
     {
         Base::operator=(std::move(other));
 
         return *this;
     }
 
-    Variant(const Variant &other)
+    VariantHolder(const VariantHolder &other)
         : Base()
     {
         if (other.IsValid()) {
@@ -484,7 +498,7 @@ public:
         }
     }
 
-    Variant &operator=(const Variant &other)
+    VariantHolder &operator=(const VariantHolder &other)
     {
         if (std::addressof(other) == this) {
             return *this;
@@ -518,57 +532,57 @@ public:
         return *this;
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
-    explicit Variant(const T &value)
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder> && std::is_copy_constructible_v<T>>>
+    explicit VariantHolder(const T &value)
         : Base(value)
     {
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
-    explicit Variant(T &&value) noexcept
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder>>>
+    explicit VariantHolder(T &&value) noexcept
         : Base(std::forward<T>(value))
     {
     }
 
-    ~Variant() = default;
+    ~VariantHolder() = default;
 };
 
 template <class... Types>
-struct Variant<false, Types...> : public VariantBase<Types...>
+struct VariantHolder<false, Types...> : public VariantBase<Types...>
 {
 private:
     using Base = VariantBase<Types...>;
 
 public:
-    Variant() = default;
-    Variant(Variant &&other) noexcept
+    VariantHolder() = default;
+    VariantHolder(VariantHolder &&other) noexcept
         : Base(std::move(other))
     {
     }
 
-    Variant &operator=(Variant &&other) noexcept
+    VariantHolder &operator=(VariantHolder &&other) noexcept
     {
         Base::operator=(std::move(other));
 
         return *this;
     }
 
-    Variant(const Variant &other)               = delete;
-    Variant &operator=(const Variant &other)    = delete;
+    VariantHolder(const VariantHolder &other)               = delete;
+    VariantHolder &operator=(const VariantHolder &other)    = delete;
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant> && std::is_copy_constructible_v<T>>>
-    explicit Variant(const T &value)
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder> && std::is_copy_constructible_v<T>>>
+    explicit VariantHolder(const T &value)
         : Base(value)
     {
     }
 
-    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, Variant>>>
-    explicit Variant(T &&value) noexcept
+    template <class T, typename = typename std::enable_if_t<!std::is_same_v<T, VariantHolder>>>
+    explicit VariantHolder(T &&value) noexcept
         : Base(std::forward<T>(value))
     {
     }
 
-    ~Variant() = default;
+    ~VariantHolder() = default;
 };
 
 } // namespace detail
@@ -660,12 +674,20 @@ struct Variant
         { return m_holder.template Get<T>(); }
 
     template <class T>
+    HYP_FORCE_INLINE T Get() &&
+        { return std::move(m_holder).template Get<T>(); }
+
+    template <class T>
     HYP_FORCE_INLINE T &GetUnchecked() &
         { return m_holder.template GetUnchecked<T>(); }
 
     template <class T>
     HYP_FORCE_INLINE const T &GetUnchecked() const &
         { return m_holder.template GetUnchecked<T>(); }
+
+    template <class T>
+    HYP_FORCE_INLINE T GetUnchecked() &&
+        { return std::move(m_holder).template GetUnchecked<T>(); }
 
     template <class T>
     HYP_FORCE_INLINE T *TryGet() &
@@ -762,7 +784,7 @@ struct Variant
     }
 
 private:
-    utilities::detail::Variant<
+    utilities::detail::VariantHolder<
         utilities::detail::VariantHelper<Types...>::copy_constructible,
         Types...
     > m_holder;

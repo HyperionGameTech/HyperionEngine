@@ -421,31 +421,64 @@ namespace Hyperion
         public static HypClass? TryGetClass(Type type)
         {
             if (hypClassTypeObjectCache.TryGetValue(type, out HypClass foundHypClass))
-            {
                 return foundHypClass;
-            }
 
-            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(type);
+            Type? currentType = type;
 
-            if (hypClassBindingAttribute == null)
+            while (true)
             {
-                return null;
+                Attribute? attribute = Attribute.GetCustomAttribute((Type)currentType, typeof(HypClassBinding));
+
+                if (attribute != null)
+                    break;
+
+                currentType = ((Type)currentType).BaseType;
+
+                if (currentType == null)
+                    return null;
             }
+            
+            Assembly assembly = currentType.Assembly;
 
-            HypClass? hypClass = hypClassBindingAttribute.GetClass(type);
-
-            if (hypClass == null)
+            ObjectReference assemblyObjectReference = new ObjectReference
             {
-                return null;
+                weakHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Weak)),
+                strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(assembly, GCHandleType.Normal))
+            };
+
+            IntPtr hypClassPtr = IntPtr.Zero;
+
+            unsafe
+            {
+                void* assemblyPtr;
+                NativeInterop_GetAssemblyPointer(&assemblyObjectReference, &assemblyPtr);
+
+                assemblyObjectReference.Dispose();
+
+                if (assemblyPtr == null)
+                    return null;
+
+                hypClassPtr = HypClass_GetClassByTypeHash((IntPtr)assemblyPtr, currentType.GetHashCode());
             }
 
-            hypClassTypeObjectCache[type] = (HypClass)hypClass;
+            if (hypClassPtr == IntPtr.Zero)
+                return null;
+
+            HypClass hypClass = new HypClass(hypClassPtr);
+
+            hypClassTypeObjectCache[type] = hypClass;
 
             return hypClass;
         }
 
+        [DllImport("hyperion", EntryPoint = "NativeInterop_GetAssemblyPointer")]
+        private static extern unsafe void NativeInterop_GetAssemblyPointer([In] void* assemblyObjectReferencePtr, [Out] void* outAssemblyPtr);
+
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
+
+        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeHash")]
+        private static extern IntPtr HypClass_GetClassByTypeHash([In] IntPtr assemblyPtr, int typeHash);
         
         [DllImport("hyperion", EntryPoint = "HypClass_GetName")]
         private static extern void HypClass_GetName([In] IntPtr hypClassPtr, [Out] out Name name);

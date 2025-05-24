@@ -212,7 +212,11 @@ namespace Hyperion
                 if (!obj.HypClass.IsReferenceCounted)
                     throw new Exception("Cannot use HypData_SetHypObject with non reference counted HypClass type from managed code");
 
-                HypData_SetHypObject(ref this, obj.HypClass.Address, obj.NativeAddress);
+                if (!HypData_SetHypObject(ref this, obj.HypClass.Address, obj.NativeAddress))
+                {
+                    throw new InvalidOperationException("Failed to set HypData to HypObject instance for HypClass: " + obj.HypClass.Name);
+                }
+
                 return;
             }
 
@@ -790,7 +794,7 @@ namespace Hyperion
             }
         }
 
-        internal static HypData FromBuffer(HypDataBuffer data)
+        public static HypData FromBuffer(HypDataBuffer data)
         {
             HypData hypData = new HypData();
             hypData._data = data;

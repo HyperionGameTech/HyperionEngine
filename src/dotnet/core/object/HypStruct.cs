@@ -30,7 +30,7 @@ namespace Hyperion
 
     public delegate void DestructDynamicHypStructDelegate(IntPtr ptr);
 
-    public class DynamicHypStruct
+    public class DynamicHypStruct : IDisposable
     {
         private static readonly Dictionary<Type, DynamicHypStruct> cache = new Dictionary<Type, DynamicHypStruct>();
         private static readonly object cacheLock = new object();
@@ -39,7 +39,8 @@ namespace Hyperion
 
         private HypClass hypClass;
         private Type type;
-        private GCHandle destructFunctionHandle;
+        private GCHandle? destructFunctionHandle;
+        private bool ownsHypClass;
 
         // Must be a blittable type
         internal DynamicHypStruct(Type type)
@@ -53,8 +54,10 @@ namespace Hyperion
                 if (typeIdCache.ContainsKey(typeId))
                 {
                     DynamicHypStruct existingDynamicHypStruct = typeIdCache[typeId];
+                    Assert.Throw(existingDynamicHypStruct.type == type, "TypeID already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicHypStruct.type.Name + " (hashcode: " + existingDynamicHypStruct.type.GetHashCode() + ")");
 
                     hypClass = existingDynamicHypStruct.hypClass;
+                    ownsHypClass = false;
 
                     return;
                 }
@@ -66,6 +69,8 @@ namespace Hyperion
             DestructDynamicHypStructDelegate destructFunction = GetDestructFunction(type);
             destructFunctionHandle = GCHandle.Alloc(destructFunction);
 
+            Logger.Log(LogType.Debug, "Creating dynamic HypStruct for type: " + type.Name);
+
             IntPtr hypClassPtr = HypStruct_CreateDynamicHypStruct(ref typeId, type.Name, (uint)Marshal.SizeOf(type), Marshal.GetFunctionPointerForDelegate(destructFunction));
 
             if (hypClassPtr == IntPtr.Zero)
@@ -74,6 +79,7 @@ namespace Hyperion
             }
 
             hypClass = new HypClass(hypClassPtr);
+            ownsHypClass = true;
 
             lock (cacheLock)
             {
@@ -83,9 +89,25 @@ namespace Hyperion
 
         ~DynamicHypStruct()
         {
-            HypStruct_DestroyDynamicHypStruct(hypClass.Address);
+            if (ownsHypClass)
+                HypStruct_DestroyDynamicHypStruct(hypClass.Address);
 
-            destructFunctionHandle.Free();
+            destructFunctionHandle?.Free();
+        }
+
+        public void Dispose()
+        {
+            if (ownsHypClass)
+            {
+                HypStruct_DestroyDynamicHypStruct(hypClass.Address);
+
+                ownsHypClass = false;
+            }
+
+            destructFunctionHandle?.Free();
+            destructFunctionHandle = null;
+
+            GC.SuppressFinalize(this);
         }
 
         public HypClass HypClass
@@ -128,11 +150,11 @@ namespace Hyperion
         {
             lock (cacheLock)
             {
-                if (!cache.TryGetValue(type, out DynamicHypStruct dynamicHypStruct))
+                DynamicHypStruct? dynamicHypStruct;
+
+                if (!cache.TryGetValue(type, out dynamicHypStruct))
                 {
                     dynamicHypStruct = new DynamicHypStruct(type);
-
-                    cache[type] = dynamicHypStruct;
                 }
 
                 return dynamicHypStruct;

@@ -379,13 +379,15 @@ HYP_EXPORT int8 HypData_GetHypStruct(const HypData *hyp_data, dotnet::ObjectRefe
         return false;
     }
 
-    dotnet::Class *managed_class = hyp_class->GetManagedClass();
-    AssertThrow(managed_class != nullptr);
-    AssertThrow(managed_class->GetMarshalObjectFunction() != nullptr);
+    if (RC<dotnet::Class> managed_class = hyp_class->GetManagedClass()) {
+        AssertThrow(managed_class->GetMarshalObjectFunction() != nullptr);
 
-    *out_object_reference = managed_class->GetMarshalObjectFunction()(ref.GetPointer(), uint32(hyp_class->GetSize()));
+        *out_object_reference = managed_class->GetMarshalObjectFunction()(ref.GetPointer(), uint32(hyp_class->GetSize()));
 
-    return true;
+        return true;
+    }
+
+    return false;
 }
 
 HYP_EXPORT int8 HypData_SetHypStruct(HypData *hyp_data, const HypClass *hyp_class, uint32 size, void *object_ptr)

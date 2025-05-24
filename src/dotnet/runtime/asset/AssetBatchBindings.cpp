@@ -21,7 +21,7 @@ HYP_EXPORT void AssetBatch_Destroy(AssetBatch *batch)
     delete batch;
 }
 
-HYP_EXPORT void AssetBatch_LoadAsync(AssetBatch *batch, void(*callback)(void *), void *user_data)
+HYP_EXPORT void AssetBatch_LoadAsync(AssetBatch *batch, void(*callback)(void *))
 {
     batch->LoadAsync();
 

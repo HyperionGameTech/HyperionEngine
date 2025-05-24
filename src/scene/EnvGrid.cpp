@@ -145,6 +145,8 @@ void EnvGrid::Init()
     m_camera->SetTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
 
+    m_render_resource = AllocateResource<EnvGridRenderResource>(this);
+
     m_view = CreateObject<View>(ViewDesc {
         .viewport                   = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
         .scene                      = m_parent_scene,
@@ -161,7 +163,6 @@ void EnvGrid::Init()
     
     InitObject(m_view);
 
-    m_render_resource = AllocateResource<EnvGridRenderResource>(this);
     m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
     m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
     m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));

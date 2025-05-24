@@ -1,5 +1,6 @@
 #include <core/object/managed/ManagedObjectResource.hpp>
 #include <core/object/HypClass.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -11,26 +12,6 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Resource);
 HYP_DECLARE_LOG_CHANNEL(Object);
 
-static dotnet::Class *GetManagedClassForHypClass(const HypClass *hyp_class)
-{
-    dotnet::Class *managed_class = nullptr;
-
-    while (managed_class == nullptr && hyp_class != nullptr) {
-        if ((managed_class = hyp_class->GetManagedClass()) != nullptr) {
-            // Cannot create an instance of an abstract class, return null
-            if (managed_class->GetFlags() & ManagedClassFlags::ABSTRACT) {
-                return nullptr;
-            }
-
-            break;
-        }
-
-        hyp_class = hyp_class->GetParent();
-    }
-
-    return managed_class;
-}
-
 ManagedObjectResource::ManagedObjectResource(dotnet::Object *object_ptr)
     : m_object_ptr(object_ptr)
 {
@@ -41,18 +22,20 @@ ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr)
 {
 }
 
+ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, dotnet::Object *object_ptr)
+    : m_ptr(ptr),
+      m_object_ptr(object_ptr)
+{
+}
+
 ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const dotnet::ObjectReference &object_reference, EnumFlags<ObjectFlags> object_flags)
     : m_ptr(ptr),
       m_object_ptr(nullptr)
 {
     if (m_ptr) {
-        IHypObjectInitializer *initializer = m_ptr.GetObjectInitializer();
-        AssertDebug(initializer != nullptr);
+        const HypClass *hyp_class = m_ptr.GetClass();
 
-        const HypClass *hyp_class = initializer->GetClass();
-        dotnet::Class *managed_class = initializer->GetManagedClass();
-
-        if (managed_class) {
+        if (RC<dotnet::Class> managed_class = hyp_class->GetManagedClass()) {
             void *address = m_ptr.GetPointer();
 
             if (object_flags & ObjectFlags::CREATED_FROM_MANAGED) {
@@ -61,7 +44,7 @@ ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const dotnet::Obj
                 if (hyp_class->IsReferenceCounted()) {
                     // Increment reference count for the managed object (creating from managed does this already via HypObject_Initialize())
                     // The managed object is responsible for decrementing the ref count using HypObject_DecRef() in finalizer and Dispose().
-                    initializer->IncRef(hyp_class->GetAllocationMethod(), address, /* weak */ false);
+                    m_ptr.IncRef();
                 }
 
                 m_object_ptr = managed_class->NewObject(hyp_class, address);
@@ -95,12 +78,6 @@ dotnet::Class *ManagedObjectResource::GetManagedClass() const
         return m_object_ptr->GetClass();
     }
 
-    if (m_ptr.IsValid()) {
-        if (const HypClass *hyp_class = m_ptr.GetClass()) {
-            return hyp_class->GetManagedClass();
-        }
-    }
-
     return nullptr;
 }
 
@@ -129,7 +106,7 @@ void ManagedObjectResource::Initialize()
         Threads::CurrentThreadID().GetName(),
         hyp_class->GetName(), m_ptr.GetPointer());
 
-    if (dotnet::Class *managed_class = hyp_class->GetManagedClass()) {
+    if (RC<dotnet::Class> managed_class = hyp_class->GetManagedClass()) {
         if (hyp_class->IsReferenceCounted()) {
             m_ptr.IncRef(false);
         }

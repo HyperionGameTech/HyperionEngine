@@ -61,8 +61,6 @@ public:
     virtual TypeID GetObjectTypeID() const = 0;
     virtual const HypClass *GetObjectClass() const = 0;
 
-    virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) = 0;
-
     virtual void *ConstructAtIndex(uint32 index) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
 };
@@ -385,16 +383,6 @@ public:
         static const HypClass *hyp_class = GetClass(TypeID::ForType<T>());
 
         return hyp_class;
-    }
-
-    virtual const IHypObjectInitializer *GetObjectInitializer(uint32 index) override
-    {
-        // check is temporary for now
-        if constexpr (IsHypObject<T>::value) {
-            return m_pool.GetElement(index).Get().GetObjectInitializer();
-        }
-
-        return nullptr;
     }
     
     virtual void *ConstructAtIndex(uint32 index) override

@@ -20,19 +20,7 @@ struct SerializationWrapper
         Handle<T>,
         T
     >;
-
-    template <class Ty> // use template param to disambiguate const v.s non-const ref
-    static auto &&Unwrap(Ty &&value)
-    {
-        if constexpr (has_handle_definition<T>) {
-            AssertThrow(value.IsValid());
-
-            return *value;
-        } else {
-            return value;
-        }
-    }
-
+    
     static void OnPostLoad(const Type &value) { }
 };
 
@@ -47,13 +35,6 @@ struct SerializationWrapper<RC<T>>
 {
     using Type = RC<T>;
 
-    static const T &Unwrap(const Type &value)
-    {
-        AssertThrow(value != nullptr);
-
-        return *value;
-    }
-
     static void OnPostLoad(const Type &value) { }
 };
 
@@ -64,8 +45,6 @@ template <>
 struct SerializationWrapper<Node>
 {
     using Type = Handle<Node>;
-
-    HYP_API static Node &Unwrap(const Type &value);
 
     HYP_API static void OnPostLoad(const Type &value);
 };

@@ -61,11 +61,6 @@ constexpr SizeType offset_of()
 }
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
-extern HYP_API HypClassAllocationMethod GetHypClassAllocationMethod(const HypClass *hyp_class);
-extern HYP_API dotnet::Class *GetHypClassManagedClass(const HypClass *hyp_class);
-
-// Ensure the current HypObjectInitializer being constructed is the same as the one passed
-extern HYP_API void CheckHypObjectInitializer(const IHypObjectInitializer *initializer, TypeID type_id, const HypClass *hyp_class, const void *address);
 
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID type_id);
 extern HYP_API bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hyp_class);
@@ -124,22 +119,70 @@ bool IsInstanceOfHypClass(const InstanceType &instance)
     return IsInstanceOfHypClass<ExpectedType, InstanceType>(&instance);
 }
 
+class HYP_API DynamicHypObjectInitializer final : public IHypObjectInitializer
+{
+public:
+    DynamicHypObjectInitializer(const HypClass *hyp_class, IHypObjectInitializer *parent_initializer);
+    virtual ~DynamicHypObjectInitializer() override;
+
+    virtual TypeID GetTypeID() const override;
+
+    virtual const HypClass *GetClass() const override
+    {
+        return m_hyp_class;
+    }
+
+    virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) override
+    {
+        m_parent_initializer->SetManagedObjectResource(managed_object_resource);
+    }
+
+    virtual ManagedObjectResource *GetManagedObjectResource() const override
+    {
+        return m_parent_initializer->GetManagedObjectResource();
+    }
+
+    virtual dotnet::Object *GetManagedObject() const override
+    {
+        return m_parent_initializer->GetManagedObject();
+    }
+
+    virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const override
+    {
+        m_parent_initializer->IncRef(allocation_method, _this, weak);
+    }
+
+    virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const override
+    {
+        m_parent_initializer->DecRef(allocation_method, _this, weak);
+    }
+
+    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void *_this) const override
+    {
+        return m_parent_initializer->GetRefCount_Strong(allocation_method, _this);
+    }
+
+    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void *_this) const override
+    {
+        return m_parent_initializer->GetRefCount_Weak(allocation_method, _this);
+    }
+
+private:
+    const HypClass          *m_hyp_class;
+    IHypObjectInitializer   *m_parent_initializer;
+};
+
 template <class T>
 class HypObjectInitializer final : public IHypObjectInitializer
 {
-    // static const void (*s_fixup_fptr)(void *_this, IHypObjectInitializer *ptr);
-
 public:
     HypObjectInitializer(T *_this)
         : m_managed_object_resource(nullptr)
     {
-        CheckHypObjectInitializer(this, GetTypeID_Static(), GetClass_Static(), _this);
     }
 
     virtual ~HypObjectInitializer() override
     {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
         if (m_managed_object_resource) {
             FreeResource(m_managed_object_resource);
             m_managed_object_resource = nullptr;
@@ -156,11 +199,6 @@ public:
         return GetClass_Static();
     }
 
-    virtual dotnet::Class *GetManagedClass() const override
-    {
-        return GetHypClassManagedClass(GetClass_Static());
-    }
-
     virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) override
     {
         AssertThrow(m_managed_object_resource == nullptr);
@@ -175,11 +213,6 @@ public:
     virtual dotnet::Object *GetManagedObject() const override
     {
         return m_managed_object_resource ? m_managed_object_resource->GetManagedObject() : nullptr;
-    }
-
-    virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) override
-    {
-        static_cast<T *>(_this)->m_hyp_object_initializer_ptr = ptr;
     }
 
     virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const override
@@ -347,8 +380,6 @@ public:
 
 private:
     ManagedObjectResource   *m_managed_object_resource;
-
-    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 #define HYP_OBJECT_BODY(T, ...) \

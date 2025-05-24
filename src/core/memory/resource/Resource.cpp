@@ -78,6 +78,10 @@ int ResourceBase::ClaimWithoutInitialize()
 
 int ResourceBase::Claim(int count)
 {
+    if (count <= 0) {
+        return 0;
+    }
+
     IThread *owner_thread = GetOwnerThread();
 
     auto Impl = [this]()
@@ -122,8 +126,10 @@ int ResourceBase::Claim(int count)
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &Impl, &should_release](bool)
+    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &Impl, &should_release](bool state)
     {
+        AssertDebug(!state);
+
         should_release = false;
 
         if (!CanExecuteInline()) {
@@ -164,6 +170,10 @@ int ResourceBase::Unclaim()
         // Unset the initialized bit
         m_initialization_mask.BitAnd(~g_initialization_mask_initialized_bit, MemoryOrder::RELEASE);
 
+        // DEBUGGING
+        state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Unclaim() called on a resource that is still initialized");
+
         HYP_MT_CHECK_RW(m_data_race_detector);
         
         Destroy();
@@ -179,8 +189,10 @@ int ResourceBase::Unclaim()
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Release(1, [this, &Impl, &should_release](bool)
+    int result = m_claimed_semaphore.Release(1, [this, &Impl, &should_release](bool state)
     {
+        AssertDebug(state);
+        
         // Must be put into non-initialized state to destroy
         should_release = false;
 

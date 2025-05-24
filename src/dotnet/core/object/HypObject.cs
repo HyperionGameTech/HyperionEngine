@@ -18,17 +18,7 @@ namespace Hyperion
             {
                 Type type = this.GetType();
 
-                // Read the HypClassBinding attribute
-                // allow inheritance, so we can get the closest HypClassBinding attribute, allowing
-                // for other HypObject types that bind to native C++ classes to be overridden.
-                HypClassBinding? attribute = HypClassBinding.ForType(type, inheritance: true);
-
-                if (attribute == null)
-                {
-                    throw new Exception("Failed to get HypClassBinding attribute for type " + type.Name);
-                }
-
-                HypClass hypClass = attribute.GetClass(type);
+                HypClass hypClass = HypClass.GetClass(type);
 
                 if (hypClass == HypClass.Invalid)
                 {
@@ -74,9 +64,6 @@ namespace Hyperion
                     
                     HypObject_Initialize(_hypClassPtr, classObjectPtr, ref objectReference, out _nativeAddress);
                 }
-
-                Console.WriteLine("Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
-                Console.Out.Flush();
 
                 gcHandle.Free();
             }
@@ -129,7 +116,7 @@ namespace Hyperion
                     HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
                 }
 
-                // GC.SuppressFinalize(this);
+                GC.SuppressFinalize(this);
             }
 
             _hypClassPtr = IntPtr.Zero;

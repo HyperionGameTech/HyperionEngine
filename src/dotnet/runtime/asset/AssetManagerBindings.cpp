@@ -31,4 +31,9 @@ HYP_EXPORT LoadedAsset *AssetManager_Load(AssetManager *asset_manager, AssetLoad
     return nullptr;
 }
 
+HYP_EXPORT void AssetManager_LoadAsync(AssetManager *asset_manager, AssetLoaderDefinition *loader_definition, const char *path, void(*callback)(void *))
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
 } // extern "C"

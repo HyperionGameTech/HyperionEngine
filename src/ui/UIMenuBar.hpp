@@ -81,6 +81,8 @@ protected:
 
     virtual void OnFontAtlasUpdate_Internal() override;
 
+    virtual void SetStage_Internal(UIStage *stage) override;
+
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
 private:
@@ -140,7 +142,7 @@ public:
      * 
      * \return The menu items in the menu bar.
      */
-    HYP_FORCE_INLINE const Array<RC<UIMenuItem>> &GetMenuItems() const
+    HYP_FORCE_INLINE const Array<UIMenuItem *> &GetMenuItems() const
         { return m_menu_items; }
 
     /*! \brief Adds a menu item to the menu bar. Returns the menu item that was added.
@@ -158,7 +160,7 @@ public:
      * \return The menu item, or nullptr if the menu item was not found.
      */
     HYP_METHOD()
-    RC<UIMenuItem> GetMenuItem(Name name) const;
+    UIMenuItem *GetMenuItem(Name name) const;
 
     /*! \brief Gets the index of a menu item by name. Returns ~0u if the menu item was not found.
      * 
@@ -183,6 +185,8 @@ public:
 protected:
     virtual void UpdateSize_Internal(bool update_children) override;
 
+    virtual void SetStage_Internal(UIStage *stage) override;
+
     virtual void OnRemoved_Internal() override;
 
 private:
@@ -192,7 +196,7 @@ private:
 
     UIMenuBarDropDirection  m_drop_direction;
 
-    Array<RC<UIMenuItem>>   m_menu_items;
+    Array<UIMenuItem *>     m_menu_items;
 
     RC<UIPanel>             m_container;
 

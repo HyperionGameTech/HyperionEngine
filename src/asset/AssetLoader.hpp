@@ -37,11 +37,11 @@ struct AssetLoaderWrapper;
 template <class T>
 struct Asset;
 
+HYP_API extern void OnPostLoad_Impl(const HypClass *hyp_class, void *object_ptr);
+
 struct LoadedAsset
 {
-    HypData                     value;
-
-    Proc<void(LoadedAsset *)>   OnPostLoadProc;
+    HypData value;
 
     LoadedAsset() = default;
 
@@ -83,14 +83,7 @@ struct LoadedAsset
         return static_cast<Asset<T> *>(this)->Result();
     }
 
-    HYP_FORCE_INLINE void OnPostLoad()
-    {
-        if (!OnPostLoadProc.IsValid()) {
-            return;
-        }
-
-        OnPostLoadProc(this);
-    }
+    HYP_API void OnPostLoad();
 };
 
 using AssetLoadResult = TResult<LoadedAsset, AssetLoadError>;
@@ -98,11 +91,8 @@ using AssetLoadResult = TResult<LoadedAsset, AssetLoadError>;
 template <class T>
 struct Asset final : LoadedAsset
 {
-    using Type = typename SerializationWrapper<T>::Type;
-
     Asset()
     {
-        InitCallbacks();
     }
 
     Asset(const Asset &other)                   = delete;
@@ -123,34 +113,26 @@ struct Asset final : LoadedAsset
     Asset(LoadedAsset &&other) noexcept
         : LoadedAsset(std::move(other))
     {
-        InitCallbacks();
     }
     
     Asset &operator=(LoadedAsset &&other) noexcept
     {
         static_cast<LoadedAsset &>(*this) = std::move(other);
 
-        InitCallbacks();
-
         return *this;
     }
 
     virtual ~Asset() override                   = default;
 
-    HYP_FORCE_INLINE auto &Result()
+    auto &&Result()
     {
-        AssertThrowMsg(value.Is<typename SerializationWrapper<Type>::Type>(), "Expected value of type %s", TypeNameWithoutNamespace<Type>().Data());
-
-        return value.Get<typename SerializationWrapper<Type>::Type>();
-    }
-
-private:
-    void InitCallbacks()
-    {
-        OnPostLoadProc = [](LoadedAsset *asset)
-        {
-            SerializationWrapper<T>::OnPostLoad(static_cast<Asset *>(asset)->Result());
-        };
+        if constexpr (has_handle_definition<T>) {
+            return value.Get<Handle<T>>();
+        } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+            return value.Get<RC<T>>();
+        } else {
+            return value.Get<T>();
+        }
     }
 };
 

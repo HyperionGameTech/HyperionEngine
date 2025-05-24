@@ -73,10 +73,11 @@ void UIMenuItem::Init()
 
 void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
 {
-    auto it = m_menu_items.FindIf([ui_object](const RC<UIObject> &item)
-    {
-        return item.Get() == ui_object;
-    });
+    if (!ui_object) {
+        return;
+    }
+
+    auto it = m_menu_items.Find(ui_object);
 
     if (it != m_menu_items.End()) {
         HYP_LOG(UI, Warning, "UIMenuItem::AddChildUIObject() called with a UIMenuItem that is already in the menu item");
@@ -137,6 +138,22 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
 
 bool UIMenuItem::RemoveChildUIObject(UIObject *ui_object)
 {
+    if (!ui_object) {
+        return false;
+    }
+
+    if (ui_object->IsInstanceOf<UIMenuItem>()) {
+        auto it = m_menu_items.FindAs(ui_object);
+
+        if (it != m_menu_items.End()) {
+            m_menu_items.Erase(it);
+        }
+
+        UpdateDropDownMenu();
+
+        return true;
+    }
+
     return m_drop_down_menu->RemoveChildUIObject(ui_object);
 
     // auto it = m_menu_items.FindIf([ui_object](const RC<UIObject> &item)
@@ -260,7 +277,9 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
         return UIEventHandlerResult::STOP_BUBBLING;
     }).Detach();
 
-    GetStage()->AddChildUIObject(m_sub_items_drop_down_menu);
+    if (m_stage != nullptr) {
+        m_stage->AddChildUIObject(m_sub_items_drop_down_menu);
+    }
 }
 
 void UIMenuItem::SetSelectedSubItem(const RC<UIMenuItem> &selected_sub_item)
@@ -294,6 +313,19 @@ void UIMenuItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_stat
 void UIMenuItem::OnFontAtlasUpdate_Internal()
 {
     UpdateDropDownMenu();
+}
+
+void UIMenuItem::SetStage_Internal(UIStage *stage)
+{
+    UIObject::SetStage_Internal(stage);
+
+    if (m_sub_items_drop_down_menu != nullptr) {
+        m_sub_items_drop_down_menu->RemoveFromParent();
+
+        if (m_stage != nullptr) {
+            m_stage->AddChildUIObject(m_sub_items_drop_down_menu);
+        }
+    }
 }
 
 Material::ParameterTable UIMenuItem::GetMaterialParameters() const
@@ -365,9 +397,24 @@ void UIMenuBar::Init()
     //     return UIEventHandlerResult::STOP_BUBBLING;
     // }).Detach();
 
-    GetStage()->AddChildUIObject(m_container);
+    if (m_stage != nullptr) {
+        m_stage->AddChildUIObject(m_container);
+    }
 
     // AddChildUIObject(m_container);
+}
+
+void UIMenuBar::SetStage_Internal(UIStage *stage)
+{
+    UIPanel::SetStage_Internal(stage);
+
+    if (m_container != nullptr) {
+        m_container->RemoveFromParent();
+
+        if (m_stage != nullptr) {
+            m_stage->AddChildUIObject(m_container);
+        }
+    }
 }
 
 void UIMenuBar::OnRemoved_Internal()
@@ -391,10 +438,10 @@ void UIMenuBar::SetDropDirection(UIMenuBarDropDirection drop_direction)
         }
 
         if (m_selected_menu_item_index != ~0u) {
-            const RC<UIMenuItem> &selected_menu_item = m_menu_items[m_selected_menu_item_index];
+            UIMenuItem *selected_menu_item = m_menu_items[m_selected_menu_item_index];
             AssertThrow(selected_menu_item != nullptr);
 
-            const Vec2i drop_down_menu_position = GetDropDownMenuPosition(selected_menu_item.Get());
+            const Vec2i drop_down_menu_position = GetDropDownMenuPosition(selected_menu_item);
 
             m_container->SetPosition(drop_down_menu_position);
         }
@@ -419,7 +466,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
             continue;
         }
 
-        const RC<UIMenuItem> &menu_item = m_menu_items[i];
+        UIMenuItem *menu_item = m_menu_items[i];
 
         if (!menu_item) {
             continue;
@@ -434,7 +481,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
         return;
     }
 
-    const RC<UIMenuItem> &menu_item = m_menu_items[m_selected_menu_item_index];
+    UIMenuItem *menu_item = m_menu_items[m_selected_menu_item_index];
 
     if (!menu_item || !menu_item->GetDropDownMenuElement()) {
         return;
@@ -444,23 +491,20 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
     m_container->AddChildUIObject(menu_item->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menu_item->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
-    m_container->SetPosition(GetDropDownMenuPosition(menu_item.Get()));
+    m_container->SetPosition(GetDropDownMenuPosition(menu_item));
     m_container->SetIsVisible(true);
     m_container->Focus();
 }
 
 void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 {
-    if (ui_object->GetType() != UIObjectType::MENU_ITEM) {
+    if (!ui_object->IsInstanceOf<UIMenuItem>()) {
         HYP_LOG(UI, Warning, "UIMenuBar::AddChildUIObject() called with a UIObject that is not a UIMenuItem");
 
         return;
     }
 
-    auto it = m_menu_items.FindIf([ui_object](const RC<UIMenuItem> &item)
-    {
-        return item.Get() == ui_object;
-    });
+    auto it = m_menu_items.FindAs(ui_object.Get());
 
     if (it != m_menu_items.End()) {
         HYP_LOG(UI, Warning, "UIMenuBar::AddChildUIObject() called with a UIMenuItem that is already in the menu bar");
@@ -530,10 +574,11 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 
 bool UIMenuBar::RemoveChildUIObject(UIObject *ui_object)
 {
-    auto menu_items_it = m_menu_items.FindIf([ui_object](const RC<UIMenuItem> &menu_item)
-    {
-        return menu_item.Get() == ui_object;
-    });
+    if (!ui_object) {
+        return false;
+    }
+
+    auto menu_items_it = m_menu_items.FindAs(ui_object);
 
     if (menu_items_it == m_menu_items.End()) {
         return UIPanel::RemoveChildUIObject(ui_object);
@@ -577,11 +622,11 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     return menu_item;
 }
 
-RC<UIMenuItem> UIMenuBar::GetMenuItem(Name name) const
+UIMenuItem *UIMenuBar::GetMenuItem(Name name) const
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (const RC<UIMenuItem> &menu_item : m_menu_items) {
+    for (UIMenuItem *menu_item : m_menu_items) {
         if (menu_item->GetName() == name) {
             return menu_item;
         }
@@ -607,7 +652,7 @@ bool UIMenuBar::RemoveMenuItem(Name name)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    const auto it = m_menu_items.FindIf([name](const RC<UIMenuItem> &menu_item)
+    const auto it = m_menu_items.FindIf([name](UIMenuItem *menu_item)
     {
         return menu_item->GetName() == name;
     });
@@ -616,7 +661,7 @@ bool UIMenuBar::RemoveMenuItem(Name name)
         return false;
     }
 
-    return RemoveChildUIObject(it->Get());
+    return RemoveChildUIObject(*it);
 }
 
 void UIMenuBar::UpdateMenuItemSizes()

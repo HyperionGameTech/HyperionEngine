@@ -13,6 +13,8 @@ namespace Hyperion
         Renamed = 3
     }
 
+    internal delegate void HandleAssetResultDelegate(IntPtr assetPtr);
+
     [HypClassBinding(Name="AssetCollector")]
     public class AssetCollector : HypObject
     {
@@ -93,29 +95,21 @@ namespace Hyperion
 
         private void OnFileChanged(object source, FileSystemEventArgs e)
         {
-            Logger.Log(logChannel, LogType.Debug, "File changed: {0} {1}", e.FullPath, e.ChangeType);
-
             this.NotifyAssetChanged(e.FullPath, AssetChangeType.Changed);
         }
 
         private void OnFileCreated(object source, FileSystemEventArgs e)
         {
-            Logger.Log(logChannel, LogType.Debug, "File created: {0} {1}", e.FullPath, e.ChangeType);
-
             this.NotifyAssetChanged(e.FullPath, AssetChangeType.Created);
         }
 
         private void OnFileDeleted(object source, FileSystemEventArgs e)
         {
-            Logger.Log(logChannel, LogType.Debug, "File deleted: {0} {1}", e.FullPath, e.ChangeType);
-
             this.NotifyAssetChanged(e.FullPath, AssetChangeType.Deleted);
         }
 
         private void OnFileRenamed(object source, RenamedEventArgs e)
         {
-            Logger.Log(logChannel, LogType.Debug, "File renamed: {0} {1}", e.OldFullPath, e.FullPath);
-
             this.NotifyAssetChanged(e.OldFullPath, AssetChangeType.Renamed);
         }
     }
@@ -123,6 +117,24 @@ namespace Hyperion
     [HypClassBinding(Name="AssetManager")]
     public class AssetManager : HypObject
     {
+        private static AssetManager? instance = null;
+        
+        public static AssetManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass(typeof(AssetManager)), new Name("GetInstance", weak: true)).InvokeNative())
+                    {
+                        instance = (AssetManager)resultData.GetValue();
+                    }
+                }
+
+                return (AssetManager)instance;
+            }
+        }
+
         public AssetManager()
         {
         }
@@ -137,27 +149,55 @@ namespace Hyperion
             }
         }
 
-        public ManagedAsset<T> Load<T>(string path)
+        public Asset<T> Load<T>(string path)
         {
             HypClass? hypClass = HypClass.TryGetClass<T>();
 
             if (hypClass == null)
-            {
                 throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
-            }
 
             IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeID);
 
             if (loaderDefinitionPtr == IntPtr.Zero)
-            {
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
-            }
 
-            return new ManagedAsset<T>(AssetManager_Load(NativeAddress, loaderDefinitionPtr, path));
+            return new Asset<T>(AssetManager_Load(NativeAddress, loaderDefinitionPtr, path));
+        }
+
+        public async Task<Asset<T>> LoadAsync<T>(string path)
+        {
+            HypClass? hypClass = HypClass.TryGetClass<T>();
+
+            if (hypClass == null)
+                throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
+
+            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeID);
+
+            if (loaderDefinitionPtr == IntPtr.Zero)
+                throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
+
+            var completionSource = new TaskCompletionSource<Asset<T>>();
+            
+            AssetManager_LoadAsync(NativeAddress, Marshal.GetFunctionPointerForDelegate(new HandleAssetResultDelegate((assetPtr) =>
+            {
+                if (assetPtr == IntPtr.Zero)
+                {
+                    completionSource.SetException(new Exception("Failed to load asset"));
+
+                    return;
+                }
+
+                completionSource.SetResult(new Asset<T>(assetPtr));
+            })));
+
+            return await completionSource.Task;
         }
 
         [DllImport("hyperion", EntryPoint = "AssetManager_GetLoaderDefinition")]
         private static extern IntPtr AssetManager_GetLoaderDefinition([In] IntPtr assetManagerPtr, [MarshalAs(UnmanagedType.LPStr)] string path, TypeID desiredTypeID);
+
+        [DllImport("hyperion", EntryPoint = "AssetManager_LoadAsync")]
+        private static extern void AssetManager_LoadAsync(IntPtr assetManagerPtr, IntPtr handleAssetResultPtr);
 
         [DllImport("hyperion", EntryPoint = "AssetManager_Load")]
         private static extern IntPtr AssetManager_Load([In] IntPtr assetManagerPtr, [In] IntPtr loaderDefinitionPtr, [MarshalAs(UnmanagedType.LPStr)] string path);

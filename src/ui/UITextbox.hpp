@@ -60,7 +60,7 @@ protected:
     void UpdateCursor();
     void UpdateTextColor();
 
-    RC<UIText>      m_text_element;
+    UIText          *m_text_element;
     RC<UIObject>    m_cursor_element;
 
     uint32          m_character_index;

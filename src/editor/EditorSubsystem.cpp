@@ -230,6 +230,11 @@ void EditorManipulationWidgetBase::OnDragEnd(const Handle<Camera> &camera, const
     m_is_dragging = false;
 }
 
+Handle<EditorProject> EditorManipulationWidgetBase::GetCurrentProject() const
+{
+    return m_current_project.Lock();
+}
+
 #pragma endregion EditorManipulationWidgetBase
 
 #pragma region TranslateEditorManipulationWidget
@@ -310,6 +315,50 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera> &camera
 void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera> &camera, const MouseEvent &mouse_event, const Handle<Node> &node)
 {
     EditorManipulationWidgetBase::OnDragEnd(camera, mouse_event, node);
+
+    // Commit editor transaction
+    if (Handle<EditorProject> project = GetCurrentProject()) {
+        if (Handle<Node> focused_node = m_focused_node.Lock()) {
+            project->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
+                NAME("Translate"),
+                [editor_subsystem_weak = GetEditorSubsystem()->WeakRefCountedPtrFromThis(), manipulation_mode = GetManipulationMode(), focused_node, node = m_node, final_position = focused_node->GetWorldTranslation(), origin = m_drag_data->node_origin]() -> EditorActionFunctions
+                {
+                    return {
+                        [&]()
+                        {
+                            NodeUnlockTransformScope unlock_transform_scope(*focused_node);
+                            focused_node->SetWorldTranslation(final_position);
+
+                            if (Node *parent = node->FindParentWithName("TranslateWidget")) {
+                                parent->SetWorldTranslation(final_position);
+                            }
+
+                            if (RC<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().CastUnsafe<EditorSubsystem>()) {
+                                editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
+                                
+                                editor_subsystem->SetFocusedNode(focused_node, true);
+                            }
+                        },
+                        [&]()
+                        {
+                            NodeUnlockTransformScope unlock_transform_scope(*focused_node);
+                            focused_node->SetWorldTranslation(origin);
+
+                            if (Node *parent = node->FindParentWithName("TranslateWidget")) {
+                                parent->SetWorldTranslation(origin);
+                            }
+
+                            if (RC<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().CastUnsafe<EditorSubsystem>()) {
+                                editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
+
+                                editor_subsystem->SetFocusedNode(focused_node, true);
+                            }
+                        }
+                    };
+                }
+            ));
+        }
+    }
 
     m_drag_data.Unset();
 }
@@ -411,9 +460,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera> &camera
     NodeUnlockTransformScope unlock_transform_scope(*focused_node);
     focused_node->SetWorldTranslation(translation);
 
-    Node *parent = node->FindParentWithName("TranslateWidget");
-
-    if (parent) {
+    if (Node *parent = node->FindParentWithName("TranslateWidget")) {
         parent->SetWorldTranslation(translation);
     }
 
@@ -528,8 +575,9 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
 #pragma region EditorManipulationWidgetHolder
 
-EditorManipulationWidgetHolder::EditorManipulationWidgetHolder()
-    : m_selected_manipulation_mode(EditorManipulationMode::NONE)
+EditorManipulationWidgetHolder::EditorManipulationWidgetHolder(EditorSubsystem *editor_subsystem)
+    : m_editor_subsystem(editor_subsystem),
+      m_selected_manipulation_mode(EditorManipulationMode::NONE)
 {
     m_manipulation_widgets.Insert(MakeRefCountedPtr<NullEditorManipulationWidget>());
     m_manipulation_widgets.Insert(MakeRefCountedPtr<TranslateEditorManipulationWidget>());
@@ -565,11 +613,25 @@ EditorManipulationWidgetBase &EditorManipulationWidgetHolder::GetSelectedManipul
     return *m_manipulation_widgets.At(m_selected_manipulation_mode);
 }
 
+void EditorManipulationWidgetHolder::SetCurrentProject(const WeakHandle<EditorProject> &project)
+{
+    Threads::AssertOnThread(g_game_thread);
+
+    m_current_project = project;
+
+    for (auto &it : m_manipulation_widgets) {
+        it->SetCurrentProject(project);
+    }
+}
+
 void EditorManipulationWidgetHolder::Initialize()
 {
     Threads::AssertOnThread(g_game_thread);
 
     for (auto &it : m_manipulation_widgets) {
+        it->SetEditorSubsystem(m_editor_subsystem);
+        it->SetCurrentProject(m_current_project);
+
         it->Initialize();
     }
 }
@@ -601,7 +663,8 @@ void EditorManipulationWidgetHolder::Shutdown()
 EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
     : m_app_context(app_context),
       m_editor_camera_enabled(false),
-      m_should_cancel_next_click(false)
+      m_should_cancel_next_click(false),
+      m_manipulation_widget_holder(this)
 {
     m_editor_delegates = new EditorDelegates();
 
@@ -663,6 +726,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContext> &app_context)
         InitSceneOutline();
 
         m_manipulation_widget_holder.Initialize();
+        m_manipulation_widget_holder.SetCurrentProject(project);
 
         m_delegate_handlers.Remove("OnRootNodeChanged");
         m_delegate_handlers.Add(NAME("OnRootNodeChanged"), m_scene->OnRootNodeChanged.Bind([this](const Handle<Node> &new_root, const Handle<Node> &prev_root)
@@ -774,15 +838,15 @@ void EditorSubsystem::Initialize()
 
     InitContentBrowser();
 
-    // NewProject();
+    NewProject();
 
-    auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject3");
+    // auto result = EditorProject::Load(g_asset_manager->GetBasePath() / "projects" / "UntitledProject3");
 
-    if (!result) {
-        HYP_BREAKPOINT;
-    }
+    // if (!result) {
+    //     HYP_BREAKPOINT;
+    // }
 
-    OpenProject(*result);
+    // OpenProject(*result);
 
     InitDetailView();
 
@@ -877,7 +941,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     RC<FontAtlas> font_atlas = CreateFontAtlas();
     ui_subsystem->GetUIStage()->SetDefaultFontAtlas(font_atlas);
 
-    auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/Editor.Main.ui.xml");
+    auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/Editor.Main.ui.xml");
     AssertThrowMsg(loaded_ui_asset.HasValue(), "Failed to load editor UI definitions!");
     
     RC<UIStage> loaded_ui = loaded_ui_asset->Result().Cast<UIStage>();
@@ -1223,26 +1287,6 @@ void EditorSubsystem::InitViewport()
                             break;
                         }
                     }
-
-                    // temp; debug.
-                    auto action = MakeRefCountedPtr<FunctionalEditorAction>(
-                        NAME("TranslateNode"),
-                        [node]() mutable -> EditorActionFunctions
-                        {
-                            return {
-                                [&]()
-                                {
-                                    HYP_LOG(Editor, Debug, "Translate node action executed");
-                                },
-                                [&]()
-                                {
-                                    HYP_LOG(Editor, Debug, "Translate node action reverted");
-                                }
-                            };
-                        }
-                    );
-                    AssertThrow(action->GetManagedObjectResource() != nullptr);
-                    m_current_project->GetActionStack()->Push(action);
 
                     manipulation_widget->OnDragStart(m_camera, event, node, hitpoint);
                 }
@@ -1825,10 +1869,10 @@ void EditorSubsystem::InitContentBrowser()
     m_delegate_handlers.Add(NAME("ImportClicked"), import_button->OnClick.Bind([this, stage_weak = ui_subsystem->GetUIStage().ToWeak()](...)
     {
         if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
-            auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/FileBrowserDialog.ui.xml");
+            auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
                     
             if (loaded_ui_asset.HasValue()) {
-                auto loaded_ui = loaded_ui_asset->Result();
+                RC<UIObject> loaded_ui = loaded_ui_asset->Result();
 
                 if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog")) {
                     stage->AddChildUIObject(file_browser_dialog);

@@ -470,9 +470,7 @@ bool World::RemoveScene(const Handle<Scene> &scene)
                 it.second->OnSceneDetached(scene);
             }
 
-            Task<void> task = m_render_resource->RemoveViewsForScene(scene.ToWeak());
-
-            task.Await();
+            m_render_resource->RemoveViewsForScene(scene.ToWeak());
         }
     }
 

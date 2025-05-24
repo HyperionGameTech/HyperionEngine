@@ -42,6 +42,8 @@ struct ProcessAssetFunctor;
 
 using AssetLoadFlags = uint32;
 
+extern HYP_API const HypClass *GetClass(TypeID type_id);
+
 enum AssetLoadFlagBits : AssetLoadFlags
 {
     ASSET_LOAD_FLAGS_NONE           = 0x0,
@@ -55,12 +57,14 @@ struct AssetLoaderDefinition
     const StringView<StringType::ANSI>  name;
     TypeID                              loader_type_id;
     TypeID                              result_type_id;
+    const HypClass                      *result_hyp_class = nullptr;
     FlatSet<String>                     extensions;
     UniquePtr<AssetLoaderBase>          loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeID type_id) const
     {
-        return result_type_id == type_id;
+        return result_type_id == type_id
+            || (result_hyp_class != nullptr && IsInstanceOfHypClass(result_hyp_class, GetClass(type_id)));
     }
 
     HYP_FORCE_INLINE bool HandlesExtension(const String &filepath) const
@@ -151,6 +155,7 @@ public:
 
     static constexpr bool asset_cache_enabled = false;
 
+    HYP_METHOD()
     HYP_API static const Handle<AssetManager> &GetInstance();
 
     HYP_API AssetManager();
@@ -197,6 +202,7 @@ public:
             loader_type_name,
             TypeID::ForType<Loader>(),
             TypeID::ForType<ResultType>(),
+            GetClass(TypeID::ForType<ResultType>()),
             FlatSet<String>(format_strings.Begin(), format_strings.End()),
             MakeUnique<Loader>()
         });

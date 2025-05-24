@@ -1,4 +1,5 @@
 #include <editor/ui/EditorUI.hpp>
+#include <editor/ui/EditorPropertyPanel.hpp>
 #include <editor/EditorAction.hpp>
 #include <editor/EditorSubsystem.hpp>
 #include <editor/EditorProject.hpp>
@@ -437,23 +438,22 @@ public:
             RC<UIButton> add_entity_button = parent->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             add_entity_button->SetText("Add Entity");
 
-            #if 0
             add_entity_button->OnClick.Bind([world = Handle<World>(parent->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
             {
                 HYP_LOG(Editor, Debug, "Add Entity clicked");
 
-                if (Handle<Node> node_rc = node_weak.Lock()) {
-                    world->GetSubsystem<EditorSubsystem>()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
-                        NAME("NodeSetEntity"),
-                        [node_rc, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
+                if (Handle<Node> node = node_weak.Lock()) {
+                    world->GetSubsystem<EditorSubsystem>()->GetCurrentProject()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
+                        NAME("AddEntity"),
+                        [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
                         {
                             return {
                                 [&]()
                                 {
-                                    Scene *scene = node_rc->GetScene();
+                                    Scene *scene = node->GetScene();
 
                                     if (!scene) {
-                                        HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node_rc->GetName());
+                                        HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node->GetName());
 
                                         return;
                                     }
@@ -462,11 +462,11 @@ public:
                                         entity = scene->GetEntityManager()->AddEntity();
                                     }
 
-                                    node_rc->SetEntity(entity);
+                                    node->SetEntity(entity);
                                 },
                                 [&]()
                                 {
-                                    node_rc->SetEntity(Handle<Entity>::empty);
+                                    node->SetEntity(Handle<Entity>::empty);
                                 }
                             };
                         }
@@ -479,7 +479,6 @@ public:
 
                 return UIEventHandlerResult::ERR;
             }).Detach();
-            #endif
 
             column->AddChildUIObject(add_entity_button);
 
@@ -504,7 +503,7 @@ public:
                 return nullptr;
             }
 
-            RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Name::Unique("EditorComponentsGrid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
             for (const auto &it : *all_components) {
                 const TypeID component_type_id = it.first;
@@ -517,19 +516,6 @@ public:
                     continue;
                 }
 
-                if (component_interface->GetClass() && !component_interface->GetClass()->GetAttribute("editor", true)) {
-                    // Skip components that are not meant to be edited in the editor
-                    continue;
-                }
-
-                UIElementFactoryBase *factory = GetEditorUIElementFactory(component_type_id);
-
-                if (!factory) {
-                    HYP_LOG(Editor, Error, "No editor UI component factory registered for component of type \"{}\"", component_interface->GetTypeName());
-
-                    continue;
-                }
-
                 ComponentContainerBase *component_container = entity_manager->TryGetContainer(component_type_id);
                 AssertThrow(component_container != nullptr);
 
@@ -537,6 +523,82 @@ public:
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data)) {
                     HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity->GetID().Value());
+
+                    continue;
+                }
+
+                const HypClass *property_panel_class = nullptr;
+
+                if (component_interface->GetClass()) {
+                    if (!component_interface->GetClass()->GetAttribute("editor", true)) {
+                        // Skip components that are not meant to be edited in the editor
+                        continue;
+                    }
+
+                    const HypClassAttributeValue &attr = component_interface->GetClass()->GetAttribute("editorpropertypanelclass");
+
+                    if (attr.IsValid()) {
+                        property_panel_class = GetClass(CreateNameFromDynamicString(attr.GetString()));
+
+                        if (!property_panel_class) {
+                            HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
+
+                            continue;
+                        }
+                    }
+                }
+
+                RC<UIObject> element;
+
+                if (property_panel_class) {
+                    if (!property_panel_class->HasParent(EditorPropertyPanelBase::Class())) {
+                        HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", property_panel_class->GetName());
+
+                        continue;
+                    }
+
+                    // HypData property_panel_instance;
+                    // property_panel_class->CreateInstance(property_panel_instance);
+
+                    // if (!property_panel_instance.IsValid()) {
+                    //     HYP_LOG(Editor, Error, "Failed to create instance of editor property panel class \"{}\"", property_panel_class->GetName());
+
+                    //     continue;
+                    // }
+
+                    RC<UIObject> property_panel = parent->CreateUIObject(property_panel_class, Name::Unique(property_panel_class->GetName().LookupString()), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+
+                    if (!property_panel) {
+                        HYP_LOG(Editor, Error, "Failed to create editor property panel instance of class \"{}\"", property_panel_class->GetName());
+
+                        continue;
+                    }
+
+                    RC<EditorPropertyPanelBase> property_panel_casted = std::move(property_panel).Cast<EditorPropertyPanelBase>();
+
+                    if (!property_panel_casted) {
+                        HYP_LOG(Editor, Error, "Failed to cast editor property panel instance to EditorPropertyPanelBase");
+
+                        continue;
+                    }
+
+                    property_panel_casted->Build(component_hyp_data);
+
+                    element = std::move(property_panel_casted);
+                } else {
+                    UIElementFactoryBase *factory = GetEditorUIElementFactory(component_type_id);
+
+                    if (!factory) {
+                        HYP_LOG(Editor, Error, "No editor UI component factory registered for component of type \"{}\"", component_interface->GetTypeName());
+
+                        continue;
+                    }
+
+                    element = factory->CreateUIObject(parent, component_hyp_data, { });
+                }
+
+                if (!element) {
+                    HYP_LOG(Editor, Error, "Failed to create UI object for component of type \"{}\"", component_interface->GetTypeName());
 
                     continue;
                 }
@@ -583,9 +645,6 @@ public:
 
                 RC<UIPanel> component_content = parent->CreateUIObject<UIPanel>(Vec2i { 0, 30 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                RC<UIObject> element = factory->CreateUIObject(parent, component_hyp_data, { });
-                AssertThrow(element != nullptr);
-
                 component_content->AddChildUIObject(element);
 
                 content_column->AddChildUIObject(component_content);
@@ -618,10 +677,10 @@ public:
                 add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
                 {
                     if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>()) {
-                        auto loaded_ui_asset = AssetManager::GetInstance()->Load<RC<UIObject>>("ui/dialog/Component.Add.ui.xml");
+                        auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/Component.Add.ui.xml");
                         
                         if (loaded_ui_asset.HasValue()) {
-                            auto loaded_ui = loaded_ui_asset->Result();
+                            RC<UIObject> loaded_ui = loaded_ui_asset->Result();
 
                             if (RC<UIObject> add_component_window = loaded_ui->FindChildUIObject("Add_Component_Window")) {
                                 stage->AddChildUIObject(add_component_window);
@@ -752,10 +811,7 @@ public:
         } else {
             HYP_NAMED_SCOPE("Awaiting async component UI element creation");
 
-            Task<RC<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([&CreateComponentsGrid]()
-            {
-                return CreateComponentsGrid();
-            });
+            Task<RC<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(CreateComponentsGrid);
 
             components_grid_container_content_column->AddChildUIObject(task.Await());
         }

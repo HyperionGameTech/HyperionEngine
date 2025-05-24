@@ -227,8 +227,6 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState &state) const
 
             return;
         }
-
-        HYP_LOG(Assets, Warning, "OBJ material loader: Unable to parse mtl material line: {}", trimmed);
     });
 
     Handle<MaterialGroup> material_group_handle = CreateObject<MaterialGroup>();

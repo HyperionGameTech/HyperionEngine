@@ -5,6 +5,9 @@
 #include <dotnet/Assembly.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion::dotnet {
 
 Object::Object()
@@ -115,7 +118,11 @@ bool Object::SetKeepAlive(bool keep_alive)
         return true;
     }
 
-    if (DotNetSystem::GetInstance().GetGlobalFunctions().set_keep_alive_function(&m_object_reference, keep_alive)) {
+    // used as result (inout parameter)
+    int param_result = int(keep_alive);
+    DotNetSystem::GetInstance().GetGlobalFunctions().set_keep_alive_function(&m_object_reference, &param_result);
+
+    if (param_result) {
         m_keep_alive.Set(keep_alive, MemoryOrder::RELEASE);
 
         return true;

@@ -73,6 +73,7 @@ public:
     static const int min_depth = -10000;
     static const int max_depth = 10000;
 
+    UIStage();
     UIStage(ThreadID owner_thread_id);
     UIStage(const UIStage &other)               = delete;
     UIStage &operator=(const UIStage &other)    = delete;

@@ -6,14 +6,21 @@ namespace Hyperion
     [HypClassBinding(Name="Engine")]
     public class Engine : HypObject
     {
+        private static Engine? instance = null;
+        
         public static Engine Instance
         {
             get
             {
-                using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass(typeof(Engine)), new Name("GetInstance", weak: true)).InvokeNative())
+                if (instance == null)
                 {
-                    return (Engine)resultData.GetValue();
+                    using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass(typeof(Engine)), new Name("GetInstance", weak: true)).InvokeNative())
+                    {
+                        instance = (Engine)resultData.GetValue();
+                    }
                 }
+
+                return (Engine)instance;
             }
         }
 

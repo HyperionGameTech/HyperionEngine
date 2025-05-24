@@ -10,11 +10,4 @@ void SerializationWrapper<Node>::OnPostLoad(const Type &value)
     value->SetScene(nullptr);
 }
 
-Node &SerializationWrapper<Node>::Unwrap(const Type &value)
-{
-    AssertThrow(value.IsValid());
-
-    return *value;
-}
-
 } // namespace hyperion

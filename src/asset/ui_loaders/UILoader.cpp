@@ -64,6 +64,7 @@ HYP_DECLARE_LOG_CHANNEL(Assets);
     }
 
 static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass *>(UIObject *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
+    UI_OBJECT_CREATE_FUNCTION(Stage),
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
     UI_OBJECT_CREATE_FUNCTION(Panel),
@@ -756,6 +757,8 @@ public:
             } else {
                 HYP_LOG(Assets, Warning, "Script node missing assembly or class attribute");
             }
+        } else {
+            HYP_LOG(Assets, Warning, "Unknown UI node: {}", name);
         }
     }
 

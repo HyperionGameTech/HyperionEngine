@@ -43,23 +43,25 @@ public:
     virtual SizeType GetSize() const override = 0;
     virtual SizeType GetAlignment() const override = 0;
 
-    virtual SizeType GetObjectInitializerOffset() const override final
-    {
-        return 0;
-    }
-
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
 
     virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override = 0;
 
-    virtual void PostLoad(void *object_ptr) const override { }
-
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef value, fbom::FBOMObject &out) const = 0;
     virtual fbom::FBOMResult DeserializeStruct(fbom::FBOMLoadContext &context, const fbom::FBOMObject &in, HypData &out) const = 0;
 
 protected:
+    virtual void FixupPointer(void *target, IHypObjectInitializer *new_initializer) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
+    virtual void PostLoad_Internal(void *object_ptr) const override
+    {
+    }
+
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
     {
         return nullptr;
@@ -147,20 +149,6 @@ public:
         }
     }
 
-    virtual void PostLoad(void *object_ptr) const override
-    {
-        const IHypClassCallbackWrapper *callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
-
-        if (!callback_wrapper) {
-            return;
-        }
-
-        const HypClassCallbackWrapper<PostLoadCallback> *callback_wrapper_casted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback> *>(callback_wrapper);
-        AssertThrow(callback_wrapper_casted != nullptr);
-
-        callback_wrapper_casted->GetCallback()(*static_cast<T *>(object_ptr));
-    }
-
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override
     {
         HYP_SCOPE;
@@ -237,6 +225,24 @@ public:
     }
 
 protected:
+    virtual void PostLoad_Internal(void *object_ptr) const override
+    {
+        if (!object_ptr) {
+            return;
+        }
+
+        const IHypClassCallbackWrapper *callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
+
+        if (!callback_wrapper) {
+            return;
+        }
+
+        const HypClassCallbackWrapper<PostLoadCallback> *callback_wrapper_casted = dynamic_cast<const HypClassCallbackWrapper<PostLoadCallback> *>(callback_wrapper);
+        AssertThrow(callback_wrapper_casted != nullptr);
+
+        callback_wrapper_casted->GetCallback()(*static_cast<T *>(object_ptr));
+    }
+
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         if constexpr (std::is_default_constructible_v<T>) {

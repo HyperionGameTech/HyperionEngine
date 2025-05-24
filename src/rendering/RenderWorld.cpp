@@ -401,23 +401,16 @@ void WorldRenderResource::RemoveView(ViewRenderResource *view_render_resource)
     }, /* force_owner_thread */ true);
 }
 
-Task<void> WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &scene_weak)
+void WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &scene_weak)
 {
     HYP_SCOPE;
 
-    Task<void> task;
-    auto task_executor = task.Initialize();
-
     if (!scene_weak.IsValid()) {
-        task_executor->Fulfill();
-
-        return task;
+        return;
     }
 
-    Execute([this, scene_weak, task_executor]()
+    Execute([this, scene_weak]()
     {
-        const ID<Scene> scene_id = scene_weak.GetID();
-
         for (auto it = m_view_render_resource_handles.Begin(); it != m_view_render_resource_handles.End();) {
             if (!(*it)->GetScene()) {
                 ++it;
@@ -425,7 +418,7 @@ Task<void> WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &sce
                 continue;
             }
 
-            if ((*it)->GetScene()->GetScene()->GetID() == scene_id) {
+            if ((*it)->GetScene()->GetScene() == scene_weak.GetUnsafe()) {
                 ViewRenderResource *view_render_resource = it->Get();
 
                 it->Reset();
@@ -435,11 +428,7 @@ Task<void> WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene> &sce
                 ++it;
             }
         }
-
-        task_executor->Fulfill();
     }, /* force_owner_thread */ true);
-
-    return task;
 }
 
 void WorldRenderResource::AddScene(TResourceHandle<SceneRenderResource> &&scene_render_resource_handle)

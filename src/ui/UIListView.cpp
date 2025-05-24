@@ -21,6 +21,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIListViewItem::UIListViewItem()
     : UIObject(UIObjectType::LIST_VIEW_ITEM),
+      m_expanded_element(nullptr),
       m_is_selected_item(false),
       m_is_expanded(false)
 {
@@ -54,10 +55,12 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject> &ui_object)
     
     if (ui_object->IsInstanceOf<UIListViewItem>()) {
         if (!m_expanded_element) {
-            m_expanded_element = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
-            m_expanded_element->SetIsVisible(m_is_expanded);
+            RC<UIListView> expanded_element = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+            expanded_element->SetIsVisible(m_is_expanded);
 
-            UIObject::AddChildUIObject(m_expanded_element);
+            UIObject::AddChildUIObject(expanded_element);
+
+            m_expanded_element = expanded_element.Get();
         }
 
         m_expanded_element->AddChildUIObject(ui_object);
@@ -83,8 +86,9 @@ bool UIListViewItem::RemoveChildUIObject(UIObject *ui_object)
 
         if (m_expanded_element->RemoveChildUIObject(ui_object)) {
             if (!HasSubItems()) {
-                m_expanded_element->RemoveFromParent();
-                m_expanded_element.Reset();
+                AssertThrow(UIObject::RemoveChildUIObject(m_expanded_element));
+
+                m_expanded_element = nullptr;
             }
 
             return true;
@@ -182,8 +186,6 @@ void UIListView::Init()
     Threads::AssertOnThread(g_game_thread);
 
     UIPanel::Init();
-
-    AssertThrow(GetStage() != nullptr);
 }
 
 void UIListView::SetOrientation(UIListViewOrientation orientation)
@@ -196,7 +198,7 @@ void UIListView::SetOrientation(UIListViewOrientation orientation)
 
     m_orientation = orientation;
     
-    for (const RC<UIListViewItem> &list_view_item : m_list_view_items) {
+    for (UIListViewItem *list_view_item : m_list_view_items) {
         UILockedUpdatesScope scope(*list_view_item, UIObjectUpdateType::UPDATE_SIZE);
 
         if (m_orientation == UIListViewOrientation::VERTICAL) {
@@ -252,34 +254,13 @@ bool UIListView::RemoveChildUIObject(UIObject *ui_object)
     if (!ui_object) {
         return false;
     }
-    
-    if (ui_object->GetClosestParentUIObject(UIObjectType::LIST_VIEW) == this) {
-        bool removed = false;
 
-        {
-            UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+    if (ui_object->IsInstanceOf<UIListViewItem>()) {
+        auto it = m_list_view_items.FindAs(ui_object);
 
-            for (auto it = m_list_view_items.Begin(); it != m_list_view_items.End();) {
-                if (ui_object->IsOrHasParent(*it)) {
-                    it = m_list_view_items.Erase(it);
-                    
-                    AssertThrow(UIObject::RemoveChildUIObject(ui_object));
-
-                    removed = true;
-                } else {
-                    ++it;
-                }
-            }
+        if (it != m_list_view_items.End()) {
+            m_list_view_items.Erase(it);
         }
-
-        if (removed) {
-            // Updates layout as well
-            UpdateSize(false);
-
-            return true;
-        }
-
-        HYP_LOG(UI, Warning, "Failed to directly remove UIObject {} from ListView {}", ui_object->GetName(), GetName());
     }
 
     return UIObject::RemoveChildUIObject(ui_object);
@@ -475,9 +456,9 @@ void UIListView::SetSelectedItemIndex(int index)
         return;
     }
 
-    RC<UIListViewItem> list_view_item = m_list_view_items[index];
+    UIListViewItem *list_view_item = m_list_view_items[index];
 
-    if (m_selected_item == list_view_item) {
+    if (m_selected_item.GetUnsafe() == list_view_item) {
         return;
     }
 
@@ -487,7 +468,7 @@ void UIListView::SetSelectedItemIndex(int index)
 
     list_view_item->SetIsSelectedItem(true);
 
-    m_selected_item = list_view_item;
+    m_selected_item = list_view_item->WeakRefCountedPtrFromThis().CastUnsafe<UIListViewItem>();
 
     OnSelectedItemChange(list_view_item);
 }

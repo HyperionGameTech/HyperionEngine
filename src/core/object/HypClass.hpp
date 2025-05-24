@@ -341,13 +341,14 @@ public:
 
     virtual SizeType GetSize() const = 0;
     virtual SizeType GetAlignment() const = 0;
-    virtual SizeType GetObjectInitializerOffset() const = 0;
 
     HYP_FORCE_INLINE IHypObjectInitializer *GetObjectInitializer(void *object_ptr) const
         { return GetObjectInitializer_Internal(object_ptr); }
 
     HYP_FORCE_INLINE const IHypObjectInitializer *GetObjectInitializer(const void *object_ptr) const
         { return GetObjectInitializer_Internal(const_cast<void *>(object_ptr)); }
+
+    virtual void FixupPointer(void *target, IHypObjectInitializer *new_initializer) const = 0;    
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
@@ -423,7 +424,7 @@ public:
 
     Array<HypConstant *> GetConstantsInherited() const;
 
-    dotnet::Class *GetManagedClass() const;
+    virtual RC<dotnet::Class> GetManagedClass() const;
 
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const = 0;
 
@@ -451,9 +452,25 @@ public:
         return GetInstanceHashCode_Internal(ref);
     }
 
-    virtual void PostLoad(void *object_ptr) const { }
+    void PostLoad(void *object_ptr) const
+    {
+        if (!object_ptr) {
+            return;
+        }
+
+        const HypClass *hyp_class = this;
+
+        while (hyp_class) {
+            hyp_class->PostLoad_Internal(object_ptr);
+
+            hyp_class = hyp_class->GetParent();
+        }
+    }
 
 protected:
+    virtual void PostLoad_Internal(void *object_ptr) const
+        { }
+
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const = 0;
 
     virtual void CreateInstance_Internal(HypData &out) const = 0;
@@ -536,11 +553,6 @@ public:
         return alignof(T);
     }
 
-    virtual SizeType GetObjectInitializerOffset() const override
-    {
-        return offsetof(T, m_hyp_object_initializer);
-    }
-
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override
     {
         return GetManagedObjectFromObjectInitializer(HypClass::GetObjectInitializer(object_ptr), out_object_reference);
@@ -597,9 +609,26 @@ public:
 
         return false;
     }
-
-    virtual void PostLoad(void *object_ptr) const override
+    
+protected:
+    virtual void FixupPointer(void *target, IHypObjectInitializer *new_initializer) const override
     {
+        AssertThrow(target != nullptr);
+        
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+            // hack to update the TypeID of the weak_this pointer to be the same as the new initializer
+            static_cast<EnableRefCountedPtrFromThisBase<> *>(static_cast<T *>(target))->weak_this.GetRefCountData_Internal()->type_id = new_initializer->GetTypeID();
+        }
+
+        static_cast<T *>(target)->m_hyp_object_initializer_ptr = new_initializer;
+    }
+
+    virtual void PostLoad_Internal(void *object_ptr) const override
+    {
+        if (!object_ptr) {
+            return;
+        }
+
         const IHypClassCallbackWrapper *callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
 
         if (!callback_wrapper) {
@@ -611,8 +640,7 @@ public:
 
         callback_wrapper_casted->GetCallback()(*static_cast<T *>(object_ptr));
     }
-    
-protected:
+
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
     {
         if (!object_ptr) {
@@ -645,6 +673,38 @@ protected:
             HYP_NOT_IMPLEMENTED();
         }
     }
+};
+
+class DynamicHypClassInstance final : public HypClass
+{
+public:
+    DynamicHypClassInstance(TypeID type_id, Name name, const HypClass *parent_class, dotnet::Class *class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    virtual ~DynamicHypClassInstance() override;
+
+    virtual bool IsValid() const override;
+    
+    virtual HypClassAllocationMethod GetAllocationMethod() const override;
+
+    virtual SizeType GetSize() const override;
+    virtual SizeType GetAlignment() const override;
+
+    virtual RC<dotnet::Class> GetManagedClass() const override;
+    void SetManagedClass(const RC<dotnet::Class> &class_ptr);
+
+    virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override;
+    
+    virtual bool CanCreateInstance() const override;
+
+    virtual bool ToHypData(ByteView memory, HypData &out_hyp_data) const override;
+
+protected:
+    virtual void FixupPointer(void *target, IHypObjectInitializer *new_initializer) const override;
+    virtual void PostLoad_Internal(void *object_ptr) const override;
+    virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override;
+    virtual void CreateInstance_Internal(HypData &out) const override;
+    virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
+    
+    RC<dotnet::Class>   m_class_ptr;
 };
 
 } // namespace hyperion

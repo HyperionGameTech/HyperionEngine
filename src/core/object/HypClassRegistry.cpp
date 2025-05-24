@@ -35,6 +35,18 @@ const HypClass *HypClassRegistry::GetClass(TypeID type_id) const
 {
     AssertThrowMsg(m_is_initialized, "Cannot use GetClass() - HypClassRegistry instance not yet initialized");
 
+    if (type_id.IsDynamicType()) {
+        Mutex::Guard guard(m_dynamic_classes_mutex);
+
+        auto dynamic_it = m_dynamic_classes.Find(type_id);
+
+        if (dynamic_it != m_dynamic_classes.End()) {
+            return dynamic_it->second;
+        }
+
+        return nullptr;
+    }
+
     const auto it = m_registered_classes.Find(type_id);
 
     if (it == m_registered_classes.End()) {
@@ -54,6 +66,17 @@ const HypClass *HypClassRegistry::GetClass(WeakName type_name) const
     });
 
     if (it == m_registered_classes.End()) {
+        Mutex::Guard guard(m_dynamic_classes_mutex);
+
+        auto dynamic_it = m_dynamic_classes.FindIf([type_name](const Pair<TypeID, HypClass *> &item)
+        {
+            return item.second->GetName() == type_name;
+        });
+
+        if (dynamic_it != m_dynamic_classes.End()) {
+            return dynamic_it->second;
+        }
+
         return nullptr;
     }
 
@@ -87,9 +110,13 @@ void HypClassRegistry::RegisterClass(TypeID type_id, HypClass *hyp_class)
     AssertThrow(hyp_class != nullptr);
 
     if (type_id.IsDynamicType()) {
+        AssertThrowMsg(hyp_class->IsDynamic(), "TypeID %u is dynamic but HypClass %s is not dynamic", type_id.Value(), hyp_class->GetName().LookupString());
+        
         Mutex::Guard guard(m_dynamic_classes_mutex);
 
         HYP_LOG(Object, Info, "Register dynamic class {}", hyp_class->GetName());
+
+        AssertThrowMsg(!m_dynamic_classes.Contains(type_id), "Dynamic class already registered for type: %s", *hyp_class->GetName());
 
         m_dynamic_classes.Set(type_id, hyp_class);
 
@@ -149,12 +176,12 @@ void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass
     }
 }
 
-void HypClassRegistry::RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class)
+void HypClassRegistry::RegisterManagedClass(const RC<dotnet::Class> &managed_class, const HypClass *hyp_class)
 {
     AssertThrow(managed_class != nullptr);
     AssertThrow(hyp_class != nullptr);
 
-    HYP_LOG(Object, Info, "Register managed class for {} on thread {}", hyp_class->GetName(), ThreadID::Current().GetName());
+    HYP_LOG(Object, Info, "Register managed class for {} (TypeID: {}) on thread {}", hyp_class->GetName(), hyp_class->GetTypeID().Value(), ThreadID::Current().GetName());
 
     Mutex::Guard guard(m_managed_classes_mutex);
 
@@ -176,6 +203,7 @@ void HypClassRegistry::RegisterManagedClass(dotnet::Class *managed_class, const 
     }
 
     m_managed_classes.Insert(const_cast<HypClass *>(hyp_class), managed_class);
+    m_managed_classes_reverse_mapping.Set(managed_class, const_cast<HypClass *>(hyp_class));
 }
 
 void HypClassRegistry::UnregisterManagedClass(dotnet::Class *managed_class)
@@ -193,9 +221,14 @@ void HypClassRegistry::UnregisterManagedClass(dotnet::Class *managed_class)
             ++it;
         }
     }
+
+    auto it = m_managed_classes_reverse_mapping.Find(managed_class);
+    if (it != m_managed_classes_reverse_mapping.End()) {
+        m_managed_classes_reverse_mapping.Erase(it);
+    }
 }
 
-dotnet::Class *HypClassRegistry::GetManagedClass(const HypClass *hyp_class) const
+RC<dotnet::Class> HypClassRegistry::GetManagedClass(const HypClass *hyp_class) const
 {
     if (!hyp_class) {
         return nullptr;

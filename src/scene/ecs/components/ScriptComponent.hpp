@@ -20,12 +20,13 @@ class ManagedObjectResource;
 
 enum class ScriptComponentFlags : uint32
 {
-    NONE                = 0x0,
-    INITIALIZED         = 0x1,
-    RELOADING           = 0x2,
+    NONE                    = 0x0,
+    INITIALIZED             = 0x1,
+    RELOADING               = 0x2,
+    INITIALIZATION_STARTED  = 0x4,
 
-    BEFORE_INIT_CALLED  = 0x4,
-    INIT_CALLED         = 0x8 // the script has already been compiled once, with Init() and BeforeInit() called. don't call them again.
+    BEFORE_INIT_CALLED      = 0x10,
+    INIT_CALLED             = 0x20 // the script has already been compiled once, with Init() and BeforeInit() called. don't call them again.
 };
 
 HYP_MAKE_ENUM_FLAGS(ScriptComponentFlags);

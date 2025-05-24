@@ -12,11 +12,12 @@ namespace Hyperion
 
         public void Push(UUID uuid, object value, UUID? parentUuid = null)
         {
-            HypData hypData = new HypData(value);
+            HypDataBuffer hypDataBuffer = new HypDataBuffer();
+            hypDataBuffer.SetValue(value);
 
-            Push(uuid, ref hypData.Buffer, parentUuid);
+            Push(uuid, ref hypDataBuffer, parentUuid);
 
-            hypData.Dispose();
+            hypDataBuffer.Dispose();
         }
 
         public void Push(UUID uuid, ref HypDataBuffer buffer, UUID? parentUuid = null)

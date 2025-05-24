@@ -90,6 +90,11 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
         return;
     }
 
+    if (visible == (*scrollbar != nullptr && (*scrollbar)->IsVisible())) {
+        // If scrollbar UIObject already exists and we are disabling scroll then return early
+        return;
+    }
+
     if (visible) {
         // If scrollbar UIObject already exists and we are enabling scroll then return early
         if (!*scrollbar) {
@@ -109,11 +114,15 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
 
         UpdateScrollbarSize(orientation);
         UpdateScrollbarThumbPosition(orientation);
+        
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
     } else {
         if (*scrollbar) {
             UIObject::RemoveChildUIObject(scrollbar->Get());
             scrollbar->Reset();
         }
+        
+        SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
     }
 }
 
@@ -201,7 +210,7 @@ void UIPanel::UpdateScrollbarSizes()
                 UpdateScrollbarSize(UIObjectScrollbarOrientation::HORIZONTAL);
                 UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::HORIZONTAL);
             }
-        } else {
+        } else if (m_horizontal_scrollbar != nullptr && m_horizontal_scrollbar->IsVisible()) {
             SetScrollbarVisible(UIObjectScrollbarOrientation::HORIZONTAL, false);
         }
     }
@@ -214,7 +223,7 @@ void UIPanel::UpdateScrollbarSizes()
                 UpdateScrollbarSize(UIObjectScrollbarOrientation::VERTICAL);
                 UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation::VERTICAL);
             }
-        } else {
+        } else if (m_vertical_scrollbar != nullptr && m_vertical_scrollbar->IsVisible()) {
             SetScrollbarVisible(UIObjectScrollbarOrientation::VERTICAL, false);
         }
     }

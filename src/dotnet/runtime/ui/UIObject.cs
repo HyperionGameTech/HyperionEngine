@@ -322,11 +322,27 @@ namespace Hyperion
 
         public T Spawn<T>(Name name, Vec2i position, UIObjectSize size) where T : UIObject
         {
-            HypData hypData = new HypData(null);
+            HypDataBuffer hypDataBuffer;
+            UIObject_Spawn(NativeAddress, HypClass.GetClass(typeof(T)).Address, ref name, ref position, ref size, out hypDataBuffer);
 
-            UIObject_Spawn(NativeAddress, HypClass.GetClass(typeof(T)).Address, ref name, ref position, ref size, out hypData.Buffer);
+            UIObject? result = (UIObject?)hypDataBuffer.GetValue();
 
-            return (T)hypData.GetValue();
+            hypDataBuffer.Dispose();
+
+            if (result == null)
+            {
+                throw new InvalidOperationException("Failed to spawn UIObject");
+            }
+            
+            // cast to T
+            T? castedResult = result as T;
+
+            if (castedResult == null)
+            {
+                throw new InvalidCastException($"Failed to cast UIObject to {typeof(T).Name}");
+            }
+
+            return castedResult;
         }
 
         public UIObject? Find(Name name)

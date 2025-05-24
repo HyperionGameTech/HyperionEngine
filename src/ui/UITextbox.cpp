@@ -16,6 +16,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 UITextbox::UITextbox()
     : UIPanel(UIObjectType::TEXTBOX),
+      m_text_element(nullptr),
       m_character_index(0)
 {
     SetBorderRadius(2);
@@ -109,14 +110,16 @@ void UITextbox::Init()
     SetInnerSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
     // SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
-    m_text_element = CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
-    m_text_element->SetTextSize(12.0f);
+    RC<UIText> text_element = CreateUIObject<UIText>(NAME("TextboxText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    text_element->SetTextSize(12.0f);
 
     UpdateTextColor();
 
     // m_text_element->SetAffectsParentSize(false);
 
-    UIObject::AddChildUIObject(m_text_element);
+    UIObject::AddChildUIObject(text_element);
+
+    m_text_element = text_element;
 }
 
 void UITextbox::SetTextColor(const Color &text_color)

@@ -115,6 +115,21 @@ HYP_EXPORT void NativeInterop_SetTriggerGCFunction(TriggerGCFunction trigger_gc_
     DotNetSystem::GetInstance().GetGlobalFunctions().trigger_gc_function = trigger_gc_function;
 }
 
+HYP_EXPORT void NativeInterop_SetGetAssemblyPointerFunction(GetAssemblyPointerFunction get_assembly_pointer_function)
+{
+    DotNetSystem::GetInstance().GetGlobalFunctions().get_assembly_pointer_function = get_assembly_pointer_function;
+}
+
+HYP_EXPORT void NativeInterop_GetAssemblyPointer(ObjectReference *assembly_object_reference, Assembly **out_assembly_ptr)
+{
+    AssertThrow(assembly_object_reference != nullptr);
+    AssertThrow(out_assembly_ptr != nullptr);
+
+    *out_assembly_ptr = nullptr;
+
+    DotNetSystem::GetInstance().GetGlobalFunctions().get_assembly_pointer_function(assembly_object_reference, out_assembly_ptr);
+}
+
 HYP_EXPORT void NativeInterop_AddObjectToCache(void *ptr, Class **out_class_object_ptr, ObjectReference *out_object_reference, int8 weak)
 {
     AssertThrow(ptr != nullptr);
@@ -132,6 +147,22 @@ HYP_EXPORT void ManagedClass_Create(ManagedGuid *assembly_guid, Assembly *assemb
     HYP_LOG(DotNET, Info, "Registering .NET managed class {}", type_name);
 
     RC<Class> class_object = assembly_ptr->NewClass(hyp_class, type_hash, type_name, type_size, type_id, parent_class, flags);
+
+    if (hyp_class != nullptr && hyp_class->IsDynamic()) {
+        const DynamicHypClassInstance *dynamic_hyp_class = dynamic_cast<const DynamicHypClassInstance *>(hyp_class);
+        AssertThrowMsg(dynamic_hyp_class != nullptr, "Dynamic hyp class is not of type DynamicHypClassInstance!");
+
+        if ((class_object->GetFlags() & ManagedClassFlags::ABSTRACT) && !dynamic_hyp_class->IsAbstract()) {
+            HYP_LOG(DotNET, Error, "Dynamic HypClass {} is not abstract but the managed class {} is abstract!",
+                dynamic_hyp_class->GetName(), class_object->GetName());
+        }
+
+        DynamicHypClassInstance *dynamic_hyp_class_non_const = const_cast<DynamicHypClassInstance *>(dynamic_hyp_class);
+        dynamic_hyp_class_non_const->SetManagedClass(class_object);
+
+        // @TODO Implement unregistering of dynamic hyp classes
+        HypClassRegistry::GetInstance().RegisterClass(type_id, dynamic_hyp_class_non_const);
+    }
 
     ManagedClass &managed_class = *out_managed_class;
     managed_class = { };

@@ -346,8 +346,6 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState &state, OBJModel &model)
             }
         } else {
             /* mesh does not have faces defined */
-            HYP_LOG(Assets, Warning, "Obj model loader: Mesh does not have any faces defined; skipping.");
-
             continue;
         }
 

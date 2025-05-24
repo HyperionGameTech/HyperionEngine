@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <core/Handle.hpp>
+#include <core/object/HypClass.hpp>
 
 namespace hyperion {
 
@@ -28,11 +29,24 @@ namespace hyperion {
 const AnyHandle AnyHandle::empty = { };
 
 AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
-    : type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void()),
-      ptr(hyp_object_ptr)
+    : ptr(hyp_object_ptr),
+      type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void())
 {
     if (IsValid()) {
         ptr->GetObjectHeader_Internal()->IncRefStrong();
+    }
+}
+
+AnyHandle::AnyHandle(const HypClass *hyp_class, HypObjectBase *ptr)
+    : ptr(ptr),
+      type_id(hyp_class ? hyp_class->GetTypeID() : TypeID::Void())
+{
+    if (IsValid()) {
+        AssertThrowMsg(IsInstanceOfHypClass(hyp_class, ptr->InstanceClass()),
+            "HypClass %s does not match the type of the object %s",
+            *hyp_class->GetName(), *ptr->InstanceClass()->GetName());
+            
+        this->ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
@@ -110,6 +124,11 @@ AnyHandle::IDType AnyHandle::GetID() const
     }
 
     return IDType { ptr->GetObjectHeader_Internal()->index + 1 };
+}
+
+TypeID AnyHandle::GetTypeID() const
+{
+    return type_id;
 }
 
 AnyRef AnyHandle::ToRef() const

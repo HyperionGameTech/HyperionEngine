@@ -36,6 +36,11 @@
 
 namespace hyperion {
 
+HYP_API void Node_OnPostLoad(Node &node)
+{
+    node.SetScene(nullptr);
+}
+
 #pragma region NodeTag
 
 String NodeTag::ToString() const

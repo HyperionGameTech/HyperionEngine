@@ -88,6 +88,8 @@ namespace Hyperion
 
     public class AssemblyInstance
     {
+        public static Guid thisAssemblyGuid;
+
         private string basePath;
         private Guid guid;
         private AssemblyName? assemblyName;
@@ -308,6 +310,8 @@ namespace Hyperion
 
                 referencedAssembly.Unload();
             }
+
+            // @TODO Remove DynamicHypStruct instances for the assembly
 
             int numMethodsRemoved = ManagedMethodCache.Instance.RemoveForAssembly(guid);
             int numDelegatesRemoved = DelegateCache.Instance.RemoveForAssembly(guid);

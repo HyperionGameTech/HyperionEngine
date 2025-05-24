@@ -12,16 +12,14 @@ namespace Hyperion
 
         public T? GetSubsystem<T>() where T : Subsystem
         {
-            HypClassBinding? hypClassBindingAttribute = HypClassBinding.ForType(typeof(T));
+            HypClass? hypClass = HypClass.TryGetClass<T>();
 
-            if (hypClassBindingAttribute == null)
+            if (hypClass == null)
             {
-                throw new InvalidOperationException($"Type {typeof(T).Name} is not a HypObject");
+                throw new InvalidOperationException($"Type {typeof(T).Name} has no associated HypClass.");
             }
 
-            Name name = new Name(hypClassBindingAttribute.Name, weak: true);
-
-            return this.GetSubsystemByName(name) as T;
+            return this.GetSubsystemByName(hypClass.Value.Name) as T;
         }
     }
 }

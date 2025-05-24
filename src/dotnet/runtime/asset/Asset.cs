@@ -3,22 +3,42 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public struct Asset
+    internal struct AssetNativeFunctions
     {
-        public static readonly Asset Invalid = new Asset(IntPtr.Zero);
+        [DllImport("hyperion", EntryPoint = "Asset_Destroy")]
+        internal static extern void Asset_Destroy([In] IntPtr assetPtr);
 
-        private IntPtr ptr;
+        [DllImport("hyperion", EntryPoint = "Asset_GetHypData")]
+        internal static extern void Asset_GetHypData([In] IntPtr assetPtr, [Out] out HypDataBuffer outHypDataBuffer);
+    }
 
-        public Asset(IntPtr ptr)
+    public class Asset : IDisposable
+    {
+        private HypData? hypData = null;
+
+        public Asset(IntPtr assetPtr)
         {
-            this.ptr = ptr;
+            if (assetPtr != IntPtr.Zero)
+            {
+                HypDataBuffer hypDataBuffer;
+                AssetNativeFunctions.Asset_GetHypData(assetPtr, out hypDataBuffer);
+
+                if (hypDataBuffer.IsNull)
+                {
+                    hypDataBuffer.Dispose();
+                    return;
+                }
+
+                hypData = HypData.FromBuffer(hypDataBuffer);
+            }
         }
 
-        public IntPtr Handle
+        public void Dispose()
         {
-            get
+            if (hypData != null)
             {
-                return ptr;
+                ((HypData)hypData).Dispose();
+                hypData = null;
             }
         }
 
@@ -26,63 +46,72 @@ namespace Hyperion
         {
             get
             {
-                return ptr != IntPtr.Zero;
+                return hypData != null && !((HypData)hypData).IsNull;
             }
         }
 
-        public Node GetNode()
+        public object? Value
         {
-            throw new NotImplementedException();
-        }
-
-        public Texture GetTexture()
-        {
-            throw new NotImplementedException();
-        }
-
-        internal void Destroy()
-        {
-            if (IsValid)
+            get
             {
-                Asset_Destroy(ptr);
-                ptr = IntPtr.Zero;
+                if (hypData == null)
+                {
+                    return null;
+                }
+
+                return ((HypData)hypData).GetValue();
             }
         }
-
-        [DllImport("hyperion", EntryPoint = "Asset_Destroy")]
-        private static extern void Asset_Destroy(IntPtr assetPtr);
     }
 
-    public class ManagedAsset<T> : IDisposable
+    public class Asset<T> : IDisposable
     {
-        private Asset asset;
+        private HypData? hypData = null;
 
-        public ManagedAsset(Asset asset)
+        public Asset(IntPtr assetPtr)
         {
-            this.asset = asset;
-        }
+            if (assetPtr != IntPtr.Zero)
+            {
+                HypDataBuffer hypDataBuffer;
+                AssetNativeFunctions.Asset_GetHypData(assetPtr, out hypDataBuffer);
 
-        public ManagedAsset(IntPtr assetPtr)
-        {
-            this.asset = new Asset(assetPtr);
-        }
+                if (hypDataBuffer.IsNull)
+                {
+                    hypDataBuffer.Dispose();
+                    return;
+                }
 
-        ~ManagedAsset()
-        {
-            asset.Destroy();
+                hypData = HypData.FromBuffer(hypDataBuffer);
+            }
         }
 
         public void Dispose()
         {
-            asset.Destroy();
-            GC.SuppressFinalize(this);
+            if (hypData != null)
+            {
+                ((HypData)hypData).Dispose();
+                hypData = null;
+            }
         }
 
-        public Asset Asset
+        public bool IsValid
         {
             get
             {
-                return asset;
+                return hypData != null && !((HypData)hypData).IsNull;
+            }
+        }
+
+        public T? Value
+        {
+            get
+            {
+                if (hypData == null)
+                {
+                    return default(T);
+                }
+
+                return (T?)((HypData)hypData).GetValue();
             }
         }
     }

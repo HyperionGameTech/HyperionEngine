@@ -897,6 +897,15 @@ public:
      *  \returns The number of child UIObjects removed. */
     virtual int RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate);
 
+    /*! \brief Remove all child UIObjects from this object, including all descendents from their parents.
+     *  \details This will remove all child UIObjects from this object, including all descendents from their parents.
+        Use this primarily when the entire UIObject and all descendants should be freed from memory, and will not be used again.
+     *  This is a deep removal, meaning that all child UIObjects and their children will be removed.
+     *  \note This does not remove the UIObject itself, only its children. To remove the UIObject itself, use \ref{RemoveFromParent}.
+     *  \returns The number of child UIObjects removed. */
+    HYP_METHOD()
+    virtual void ClearDeep();
+
     /*! \brief Remove this object from its parent UI object, if applicable.
      *  \note It is possible that you are removing the last strong reference to `this` by calling this method,
      *  invalidating the pointer. Proper care must be taken to ensure `this` is not reused after calling this method.

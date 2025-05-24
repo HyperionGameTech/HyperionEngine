@@ -162,7 +162,9 @@ struct NodeTag
 
 struct NodeUnlockTransformScope;
 
-HYP_CLASS()
+HYP_API extern void Node_OnPostLoad(Node &node);
+
+HYP_CLASS(PostLoad="Node_OnPostLoad")
 class HYP_API Node : public HypObject<Node>
 {
     friend class Scene;

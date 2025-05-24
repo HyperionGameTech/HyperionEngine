@@ -208,7 +208,10 @@ void HypClass::Initialize()
     }
 
     if (m_parent_name.IsValid()) {
-        m_parent = GetClass(m_parent_name);
+        if (!m_parent) {
+            m_parent = GetClass(m_parent_name);
+        }
+
         AssertThrowMsg(m_parent != nullptr, "Invalid parent class: %s", m_parent_name.LookupString());
     }
 
@@ -453,7 +456,7 @@ Array<HypConstant *> HypClass::GetConstantsInherited() const
     return m_constants;
 }
 
-dotnet::Class *HypClass::GetManagedClass() const
+RC<dotnet::Class> HypClass::GetManagedClass() const
 {
     return HypClassRegistry::GetInstance().GetManagedClass(this);
 }

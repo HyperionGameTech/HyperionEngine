@@ -133,10 +133,10 @@ public:
 
     void ForEachClass(const ProcRef<IterationResult(const HypClass *)> &callback, bool include_dynamic_classes = true) const;
 
-    void RegisterManagedClass(dotnet::Class *managed_class, const HypClass *hyp_class);
+    void RegisterManagedClass(const RC<dotnet::Class> &managed_class, const HypClass *hyp_class);
     void UnregisterManagedClass(dotnet::Class *managed_class);
 
-    dotnet::Class *GetManagedClass(const HypClass *hyp_class) const;
+    RC<dotnet::Class> GetManagedClass(const HypClass *hyp_class) const;
 
     void Initialize();
 
@@ -148,7 +148,8 @@ private:
 
     bool                                    m_is_initialized;
 
-    HashMap<HypClass *, dotnet::Class *>    m_managed_classes;
+    HashMap<HypClass *, RC<dotnet::Class>>  m_managed_classes;
+    HashMap<dotnet::Class *, HypClass *>    m_managed_classes_reverse_mapping;
     mutable Mutex                           m_managed_classes_mutex;
 };
 

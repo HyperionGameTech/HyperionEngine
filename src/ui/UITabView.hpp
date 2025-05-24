@@ -78,7 +78,7 @@ public:
      */
     void SetSelectedTabIndex(uint32 index);
 
-    HYP_FORCE_INLINE const Array<RC<UITab>> &GetTabs() const
+    HYP_FORCE_INLINE const Array<UITab *> &GetTabs() const
         { return m_tabs; }
 
     /*! \brief Add a tab to the tab view.
@@ -94,7 +94,7 @@ public:
      * \param name The name of the tab.
      * \return A reference counted pointer to tab, or nullptr if the tab does not exist.
      */
-    RC<UITab> GetTab(Name name) const;
+    UITab *GetTab(Name name) const;
 
     /*! \brief Get the tab index by name. Returns ~0u if the tab does not exist.
      * 
@@ -118,11 +118,11 @@ private:
 
     void UpdateTabSizes();
 
-    RC<UIPanel>         m_container;
+    RC<UIPanel>     m_container;
 
-    Array<RC<UITab>>    m_tabs;
+    Array<UITab *>  m_tabs;
 
-    uint32              m_selected_tab_index;
+    uint32          m_selected_tab_index;
 };
 
 #pragma endregion UITabView

@@ -21,6 +21,9 @@
 
 namespace hyperion {
 
+class EditorSubsystem;
+class EditorProject;
+
 HYP_CLASS(Abstract)
 class IEditorAction : public EnableRefCountedPtrFromThis<IEditorAction>
 {

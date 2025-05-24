@@ -3,6 +3,8 @@
 #include <asset/AssetLoader.hpp>
 #include <asset/Assets.hpp>
 
+#include <core/object/HypClass.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -10,6 +12,33 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
+
+HYP_API void OnPostLoad_Impl(const HypClass *hyp_class, void *object_ptr)
+{
+    hyp_class->PostLoad(object_ptr);
+}
+
+#pragma region LoadedAsset
+
+HYP_API void LoadedAsset::OnPostLoad()
+{
+    if (!value.IsValid()) {
+        return;
+    }
+
+    // @TODO: Change to use T::InstanceClass() from Asset<T>, as types might not be an exact match
+    const HypClass *hyp_class = GetClass(value.GetTypeID());
+
+    if (!hyp_class) {
+        return;
+    }
+
+    hyp_class->PostLoad(value.ToRef().GetPointer());
+}
+
+#pragma endregion LoadedAsset
+
+#pragma region AssetLoader
 
 FilePath AssetLoader::GetRebasedFilepath(const FilePath &base_path, const FilePath &filepath)
 {
@@ -105,5 +134,7 @@ AssetLoadResult AssetLoader::Load(AssetManager &asset_manager, const String &pat
 
     return default_error;
 }
+
+#pragma endregion AssetLoader
 
 } // namespace hyperion

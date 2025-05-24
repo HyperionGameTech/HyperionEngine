@@ -468,13 +468,15 @@ struct AnyHandle final
 public:
     static const AnyHandle empty;
 
-    HYP_API explicit AnyHandle(HypObjectBase *hyp_object_ptr);
-
+    
     AnyHandle()
         : ptr(nullptr),
           type_id(TypeID::Void())
     {
     }
+    
+    HYP_API explicit AnyHandle(HypObjectBase *hyp_object_ptr);
+    HYP_API AnyHandle(const HypClass *hyp_class, HypObjectBase *ptr);
 
     template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T> && !std::is_same_v<HypObjectBase, T>>>
     explicit AnyHandle(T *ptr)
@@ -558,6 +560,9 @@ public:
     
     HYP_FORCE_INLINE bool IsValid() const
         { return ptr != nullptr; }
+
+    HYP_FORCE_INLINE HypObjectBase *Get() const
+        { return ptr; }
     
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
@@ -565,8 +570,7 @@ public:
     
     /*! \brief Get the TypeID for this handle type
      *  \return The TypeID for the handle */
-    HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return type_id; }
+    HYP_API TypeID GetTypeID() const;
 
     template <class T>
     HYP_FORCE_INLINE bool Is() const

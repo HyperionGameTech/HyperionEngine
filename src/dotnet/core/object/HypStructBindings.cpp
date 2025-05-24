@@ -68,11 +68,6 @@ public:
         return true;
     }
 
-    virtual void PostLoad(void *object_ptr) const override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
-
     virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject &out) const override
     {
         HYP_NOT_IMPLEMENTED();
@@ -84,6 +79,10 @@ public:
     }
 
 protected:
+    virtual void PostLoad_Internal(void *object_ptr) const override
+    {
+    }
+
     virtual void CreateInstance_Internal(HypData &out) const override
     {
         HYP_NOT_IMPLEMENTED_VOID();

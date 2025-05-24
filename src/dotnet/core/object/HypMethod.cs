@@ -204,7 +204,7 @@ namespace Hyperion
             {
                 int argIndex = 0;
 
-                if (isMemberFunction)
+                if (thisObject != null)
                 {
                     HypDataBuffer.HypData_Construct(ref hypDataArgsBuffers[argIndex]);
                     hypDataArgsBuffers[argIndex].SetValue(thisObject);

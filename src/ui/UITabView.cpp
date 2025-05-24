@@ -128,10 +128,7 @@ void UITabView::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    auto it = m_tabs.FindIf([ui_object](const RC<UITab> &item)
-    {
-        return item.Get() == ui_object;
-    });
+    auto it = m_tabs.FindAs(ui_object);
 
     if (it != m_tabs.End()) {
         HYP_LOG(UI, Warning, "UITabView::AddChildUIObject() called with a UITab that is already in the tab view");
@@ -171,16 +168,13 @@ void UITabView::AddChildUIObject(const RC<UIObject> &ui_object)
 
 bool UITabView::RemoveChildUIObject(UIObject *ui_object)
 {
-    auto it = m_tabs.FindIf([ui_object](const RC<UITab> &item)
-    {
-        return item.Get() == ui_object;
-    });
+    auto it = m_tabs.FindAs(ui_object);
 
     if (it == m_tabs.End()) {
         return UIPanel::RemoveChildUIObject(ui_object);
     }
 
-    return RemoveTab(it->Get()->GetName());
+    return RemoveTab((*it)->GetName());
 }
 
 void UITabView::UpdateSize_Internal(bool update_children)
@@ -209,7 +203,7 @@ void UITabView::SetSelectedTabIndex(uint32 index)
             continue;
         }
 
-        const RC<UITab> &tab = m_tabs[i];
+        UITab *tab = m_tabs[i];
 
         if (!tab) {
             continue;
@@ -228,7 +222,7 @@ void UITabView::SetSelectedTabIndex(uint32 index)
         return;
     }
 
-    const RC<UITab> &tab = m_tabs[m_selected_tab_index];
+    UITab *tab = m_tabs[m_selected_tab_index];
 
     if (!tab || !tab->GetContents()) {
         return;
@@ -275,11 +269,11 @@ RC<UITab> UITabView::AddTab(Name name, const String &title)
     return tab;
 }
 
-RC<UITab> UITabView::GetTab(Name name) const
+UITab *UITabView::GetTab(Name name) const
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (const RC<UITab> &tab : m_tabs) {
+    for (UITab *tab : m_tabs) {
         if (tab->GetName() == name) {
             return tab;
         }
@@ -305,7 +299,7 @@ bool UITabView::RemoveTab(Name name)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    const auto it = m_tabs.FindIf([name](const RC<UITab> &tab)
+    const auto it = m_tabs.FindIf([name](UITab *tab)
     {
         return tab->GetName() == name;
     });
@@ -314,7 +308,7 @@ bool UITabView::RemoveTab(Name name)
         return false;
     }
 
-    const bool removed = RemoveChildUIObject(it->Get());
+    const bool removed = RemoveChildUIObject(*it);
 
     if (!removed) {
         return false;

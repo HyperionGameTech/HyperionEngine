@@ -120,7 +120,7 @@ public:
     void AddView(TResourceHandle<ViewRenderResource> &&view_render_resource_handle);
     void RemoveView(ViewRenderResource *view_render_resource);
 
-    Task<void> RemoveViewsForScene(const WeakHandle<Scene> &scene_weak);
+    void RemoveViewsForScene(const WeakHandle<Scene> &scene_weak);
 
     void AddScene(TResourceHandle<SceneRenderResource> &&scene_render_resource_handle);
     void RemoveScene(SceneRenderResource *scene_render_resource);

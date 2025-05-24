@@ -106,7 +106,7 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-    return;
+    // return;
 
     auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
         .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
@@ -276,8 +276,8 @@ void HyperionEditor::Init()
 #if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
-    // batch->Add("test_model", "models/sponza/sponza.obj");
-    batch->Add("test_model", "models/pica_pica/pica_pica.obj");
+    batch->Add("test_model", "models/sponza/sponza.obj");
+    // batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     //batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
     batch->Add("house", "models/house.obj");
@@ -298,8 +298,8 @@ void HyperionEditor::Init()
 #if 1
         Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
-        node->Scale(3.0f);
-        // node->Scale(0.03f);
+        // node->Scale(3.0f);
+        node->Scale(0.03f);
         node->SetName("test_model");
         node->LockTransform();
 

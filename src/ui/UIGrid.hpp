@@ -61,8 +61,8 @@ public:
 
     /*! \brief Gets the columns in the row.
      * 
-     * \return A array of reference counted pointers to the columns in the row. */
-    HYP_FORCE_INLINE const Array<RC<UIGridColumn>> &GetColumns() const
+     * \return A array of the UIGridColumn objects in the row. */
+    HYP_FORCE_INLINE const Array<UIGridColumn *> &GetColumns() const
         { return m_columns; }
 
     int GetNumColumns() const;
@@ -78,14 +78,14 @@ public:
      * \param index The index of the column to retrieve.
      * \return A reference counted pointer to the column at the specified index.
      *  If the index is out of bounds, a null pointer is returned. */
-    HYP_FORCE_INLINE RC<UIGridColumn> GetColumn(SizeType index) const
+    HYP_FORCE_INLINE UIGridColumn *GetColumn(SizeType index) const
         { return index < m_columns.Size() ? m_columns[index] : nullptr; }
 
     /*! \brief Finds the first empty column in the row.
         * 
-        * \return A reference counted pointer to the first empty column in the row.
+        * \return The first empty column in the row.
         *  If no empty column is found, a null pointer is returned. */
-    RC<UIGridColumn> FindEmptyColumn() const;
+    UIGridColumn *FindEmptyColumn() const;
 
     void UpdateColumnSizes();
     void UpdateColumnOffsets();
@@ -100,7 +100,7 @@ private:
 
     int                     m_num_columns;
 
-    Array<RC<UIGridColumn>> m_columns;
+    Array<UIGridColumn *>   m_columns;
 };
 
 #pragma endregion UIGridRow
@@ -161,11 +161,9 @@ protected:
 private:
     void UpdateLayout();
 
-    int                     m_num_columns;
+    int                 m_num_columns;
 
-    RC<UIPanel>             m_container;
-
-    Array<RC<UIGridRow>>    m_rows;
+    Array<UIGridRow *>  m_rows;
 };
 
 #pragma endregion UIGrid

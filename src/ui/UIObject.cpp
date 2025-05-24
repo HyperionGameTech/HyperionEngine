@@ -170,24 +170,26 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
+    HYP_LOG(UI, Debug, "Destroying UIObject {} (address: {}) on thread {} ({})", GetName(), (void*)this, Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
+
+    for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
+        if (child_ui_object) {
+            HYP_LOG(UI, Debug, "\t\tHas child UIObject {} (address: {}, refs: {}) on thread {} ({})", child_ui_object->GetName(), (void*)child_ui_object.Get(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong(), Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
+        }
+    }
+
+    m_child_ui_objects.Clear();
+
     static const auto Impl = [](Scene *scene, Handle<Entity> entity, Handle<Node> node)
     {
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
-
-        HYP_LOG(UI, Debug, "Destroying UIObject on thread {} (node UUID: {})", Threads::CurrentThreadID().GetName(), node->GetUUID().ToString());
 
         if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
             ui_component->ui_object = nullptr;
 
             scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
         }
-
-        AssertThrow(node.IsValid());
-        AssertThrow(node->GetEntity() == entity);
-
-        node->SetEntity(Handle<Entity>::empty); // remove the entity from the node
-        node->Remove(); // remove from the scene
     };
 
     if (Handle<Entity> entity = GetEntity()) {
@@ -209,10 +211,8 @@ UIObject::~UIObject()
         }
     }
 
-    m_child_ui_objects.Clear();
     m_vertical_scrollbar.Reset();
     m_horizontal_scrollbar.Reset();
-    m_spawn_parent.Reset();
 
     OnInit.RemoveAllDetached();
     OnAttached.RemoveAllDetached();
@@ -231,15 +231,14 @@ UIObject::~UIObject()
     OnClick.RemoveAllDetached();
     OnKeyDown.RemoveAllDetached();
     OnKeyUp.RemoveAllDetached();
+    OnComputedVisibilityChange.RemoveAllDetached();
+    OnEnabled.RemoveAllDetached();
+    OnDisabled.RemoveAllDetached();
 }
 
 void UIObject::Init()
 {
     HYP_SCOPE;
-
-    if (m_type != UIObjectType::STAGE) {
-        AssertThrowMsg(m_stage != nullptr, "Invalid UIStage pointer provided to UIObject!");
-    }
 
     AssertThrowMsg(m_node.IsValid(), "Invalid Handle<Node> provided to UIObject!");
 
@@ -396,9 +395,9 @@ UIStage *UIObject::GetStage() const
         return m_stage;
     }
 
-    if (IsInstanceOf<UIStage>()) {
-        return const_cast<UIStage *>(static_cast<const UIStage *>(this));
-    }
+    // if (IsInstanceOf<UIStage>()) {
+    //     return const_cast<UIStage *>(static_cast<const UIStage *>(this));
+    // }
 
     return nullptr;
 }
@@ -894,11 +893,11 @@ void UIObject::Focus()
         return;
     }
 
+    SetFocusState(GetFocusState() | UIObjectFocusState::FOCUSED);
+
     if (m_stage == nullptr) {
         return;
     }
-
-    SetFocusState(GetFocusState() | UIObjectFocusState::FOCUSED);
 
     // Note: Calling `SetFocusedObject` between `SetFocusState` and `OnGainFocus` is intentional
     // as `SetFocusedObject` calls `Blur()` on any previously focused object (which may include a parent of this object)
@@ -930,7 +929,7 @@ void UIObject::Blur(bool blur_children)
         return;
     }
 
-    if (m_stage->GetFocusedObject().IsValid() && m_stage->GetFocusedObject().GetUnsafe() == this) {
+    if (m_stage->GetFocusedObject().GetUnsafe() == this) {
         return;
     }
 
@@ -1370,46 +1369,38 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
         return false;
     }
 
-    const Handle<Node> &node = GetNode();
-
-    if (!node) {
+    UIObject *parent_ui_object = ui_object->GetParentUIObject();
+    
+    if (!parent_ui_object) {
         return false;
     }
 
-    if (Handle<Node> child_node = ui_object->GetNode()) {
-        if (child_node->IsOrHasParent(node.Get())) {
-            UIObject *parent_ui_object = ui_object->GetParentUIObject();
-            AssertThrow(parent_ui_object != nullptr);
+    if (parent_ui_object == this) {
+        Handle<Node> child_node = ui_object->GetNode();
 
-            if (parent_ui_object == this) {
-                {
-                    // Ensure a reference to the UIObject is held
-                    RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
-                    AssertThrow(ui_object_rc != nullptr);
+        {
+            ui_object->OnRemoved_Internal();
 
-                    ui_object->OnRemoved_Internal();
+            OnChildRemoved(ui_object);
 
-                    OnChildRemoved(ui_object);
+            auto it = m_child_ui_objects.Find(ui_object);
+            AssertThrow(it != m_child_ui_objects.End());
 
-                    auto it = m_child_ui_objects.FindAs(ui_object);
-
-                    if (it != m_child_ui_objects.End()) {
-                        m_child_ui_objects.Erase(it);
-                    }
-                }
-
-                child_node->Remove();
-                child_node.Reset();
-                
-                if (UseAutoSizing()) {
-                    UpdateSize();
-                }
-
-                return true;
-            } else {
-                return parent_ui_object->RemoveChildUIObject(ui_object);
-            }
+            m_child_ui_objects.Erase(it);
         }
+
+        if (child_node) {
+            child_node->Remove();
+            child_node.Reset();
+        }
+        
+        if (UseAutoSizing()) {
+            UpdateSize();
+        }
+
+        return true;
+    } else {
+        return parent_ui_object->RemoveChildUIObject(ui_object);
     }
 
     HYP_LOG(UI, Error, "Failed to remove UIObject {} from parent!", ui_object->GetName());
@@ -1431,6 +1422,8 @@ int UIObject::RemoveAllChildUIObjects()
         for (UIObject *child : children) {
             if (RemoveChildUIObject(child)) {
                 ++num_removed;
+            } else {
+                HYP_LOG(UI, Error, "Failed to remove UIObject {} from parent {}!", child->GetName(), GetName());
             }
         }
     }
@@ -1465,6 +1458,27 @@ int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate)
     }
 
     return num_removed;
+}
+
+void UIObject::ClearDeep()
+{
+    HYP_SCOPE;
+
+    {
+        UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
+
+        Array<UIObject *> children = GetChildUIObjects(false);
+
+        for (UIObject *child : children) {
+            child->ClearDeep();
+        }
+
+        RemoveAllChildUIObjects();
+    }
+
+    if (UseAutoSizing()) {
+        UpdateSize();
+    }
 }
 
 bool UIObject::RemoveFromParent()
@@ -2401,14 +2415,14 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
 {
     HYP_SCOPE;
 
-    UIObject *child_object_ptr = nullptr;
+    RC<UIObject> found_object;
 
     int current_index = 0;
 
-    ForEachChildUIObject([&child_object_ptr, &current_index, index](UIObject *child)
+    ForEachChildUIObject([&found_object, &current_index, index](UIObject *child)
     {
         if (current_index == index) {
-            child_object_ptr = child;
+            found_object = child ? child->RefCountedPtrFromThis() : nullptr;
 
             return IterationResult::STOP;
         }
@@ -2418,7 +2432,7 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
         return IterationResult::CONTINUE;
     }, /* deep */ false);
 
-    return child_object_ptr ? child_object_ptr->RefCountedPtrFromThis() : nullptr;
+    return found_object;
 }
 
 void UIObject::SetNodeProxy(Handle<Node> node)
@@ -2823,7 +2837,11 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
     HypData ui_object_hyp_data;
     hyp_class->CreateInstance(ui_object_hyp_data);
 
-    RC<UIObject> ui_object = std::move(ui_object_hyp_data.Get<RC<UIObject>>());
+    if (!ui_object_hyp_data.IsValid()) {
+        return nullptr;
+    }
+
+    RC<UIObject> ui_object = std::move(ui_object_hyp_data).Get<RC<UIObject>>();
     AssertThrow(ui_object != nullptr);
 
     // AssertThrow(IsInit());

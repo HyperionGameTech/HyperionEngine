@@ -123,6 +123,12 @@ public:
     HYP_FORCE_INLINE bool IsDragging() const
         { return m_is_dragging; }
 
+    HYP_FORCE_INLINE void SetCurrentProject(const WeakHandle<EditorProject> &project)
+        { m_current_project = project; }
+
+    HYP_FORCE_INLINE void SetEditorSubsystem(EditorSubsystem *editor_subsystem)
+        { m_editor_subsystem = editor_subsystem; }
+
     void Initialize();
     void Shutdown();
 
@@ -148,11 +154,19 @@ public:
 protected:
     virtual Handle<Node> Load_Internal() const = 0;
 
-    WeakHandle<Node>    m_focused_node;
-    Handle<Node>        m_node;
+    Handle<EditorProject> GetCurrentProject() const;
 
+    HYP_FORCE_INLINE EditorSubsystem *GetEditorSubsystem() const
+        { return m_editor_subsystem; }
+    
+    WeakHandle<Node>            m_focused_node;
+    Handle<Node>                m_node;
+    
 private:
-    bool                m_is_dragging;
+    EditorSubsystem             *m_editor_subsystem;
+    WeakHandle<EditorProject>   m_current_project;
+
+    bool                        m_is_dragging;
 };
 
 HYP_CLASS()
@@ -217,7 +231,7 @@ class HYP_API EditorManipulationWidgetHolder
 public:
     using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase &, EditorManipulationWidgetBase &>;
 
-    EditorManipulationWidgetHolder();
+    EditorManipulationWidgetHolder(EditorSubsystem *editor_subsystem);
 
     HYP_FORCE_INLINE const EditorManipulationWidgetSet &GetManipulationWidgets() const
         { return m_manipulation_widgets; }
@@ -227,12 +241,17 @@ public:
 
     EditorManipulationWidgetBase &GetSelectedManipulationWidget() const;
 
+    void SetCurrentProject(const WeakHandle<EditorProject> &project);
+
     void Initialize();
     void Shutdown();
 
     OnSelectedManipulationWidgetChangeDelegate  OnSelectedManipulationWidgetChange;
 
 private:
+    EditorSubsystem                             *m_editor_subsystem;
+    WeakHandle<EditorProject>                   m_current_project;
+
     EditorManipulationMode                      m_selected_manipulation_mode;
     EditorManipulationWidgetSet                 m_manipulation_widgets;
 };
@@ -263,6 +282,12 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<EditorProject> &GetCurrentProject() const
         { return m_current_project; }
+
+    HYP_FORCE_INLINE EditorManipulationWidgetHolder &GetManipulationWidgetHolder()
+        { return m_manipulation_widget_holder; }
+
+    HYP_FORCE_INLINE const EditorManipulationWidgetHolder &GetManipulationWidgetHolder() const
+        { return m_manipulation_widget_holder; }
 
     HYP_METHOD()
     void NewProject();
@@ -339,6 +364,7 @@ private:
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX>   m_tasks_by_thread_type;
 
     EditorManipulationWidgetHolder                                      m_manipulation_widget_holder;
+
     Weak<EditorManipulationWidgetBase>                                  m_hovered_manipulation_widget;
     WeakHandle<Node>                                                    m_hovered_manipulation_widget_node;
 

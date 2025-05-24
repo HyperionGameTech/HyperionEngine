@@ -45,11 +45,6 @@ public:
     virtual SizeType GetSize() const override = 0;
     virtual SizeType GetAlignment() const override = 0;
 
-    virtual SizeType GetObjectInitializerOffset() const override final
-    {
-        return 0;
-    }
-
     virtual bool GetManagedObject(const void *object_ptr, dotnet::ObjectReference &out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
@@ -57,6 +52,11 @@ public:
     virtual TypeID GetUnderlyingTypeID() const = 0;
 
 protected:
+    virtual void FixupPointer(void *target, IHypObjectInitializer *new_initializer) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
+
     virtual IHypObjectInitializer *GetObjectInitializer_Internal(void *object_ptr) const override
     {
         return nullptr;

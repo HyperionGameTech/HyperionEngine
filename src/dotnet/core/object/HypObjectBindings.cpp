@@ -47,20 +47,12 @@ HYP_EXPORT void HypObject_Initialize(const HypClass *hyp_class, dotnet::Class *c
         // allowing the managed class to override methods of an abstract class
         hyp_class->CreateInstance(value, /* allow_abstract */ true);
 
+        ptr = HypObjectPtr(hyp_class, value.ToRef().GetPointer());
+
         // Ref counts are kept as 1 for Handle<T> and RC<T>, managed side is responsible for decrementing the ref count
-        if (hyp_class->UseHandles()) {
-            AnyHandle handle = std::move(value.Get<AnyHandle>());
-            AssertThrow(handle.IsValid());
+        ptr.IncRef();
 
-            ptr = HypObjectPtr(hyp_class, handle.Release());
-        } else if (hyp_class->UseRefCountedPtr()) {
-            RC<void> rc = std::move(value.Get<RC<void>>());
-            AssertThrow(rc != nullptr);
-
-            ptr = HypObjectPtr(hyp_class, rc.Release());
-        } else {
-            HYP_FAIL("Unsupported allocation method for HypClass %s", *hyp_class->GetName());
-        }
+        value.Reset();
     }
 
     *out_instance_ptr = ptr.GetPointer();

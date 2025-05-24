@@ -930,11 +930,27 @@ public:
         no cast is performed and a null RefCountedPtr is returned. Otherwise, a new RefCountedPtr is returned,
         with the currently held pointer casted to Ty as the held value. */
     template <class Ty>
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<Ty, CountType> Cast() const
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<Ty, CountType> Cast() const &
     {
         if (Is<Ty>()) {
             RefCountedPtr<Ty, CountType> rc;
             rc.SetRefCountData_Internal(static_cast<Ty *>(Get()), Base::m_ref, /* inc_ref */ true);
+
+            return rc;
+        }
+
+        return RefCountedPtr<Ty, CountType>();
+    }
+
+    template <class Ty>
+    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<Ty, CountType> Cast() &&
+    {
+        if (Is<Ty>()) {
+            RefCountedPtr<Ty, CountType> rc;
+            rc.SetRefCountData_Internal(static_cast<Ty *>(Get()), Base::m_ref, /* inc_ref */ false);
+
+            Base::m_ref = nullptr;
+            Base::m_ptr = nullptr;
 
             return rc;
         }

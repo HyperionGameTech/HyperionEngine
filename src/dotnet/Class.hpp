@@ -76,11 +76,12 @@ public:
     using NewObjectFunction = ObjectReference(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr, void *context_ptr, InitializeObjectCallbackFunction callback);
     using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
 
-    Class(const Weak<Assembly> &assembly, String name, uint32 size, TypeID type_id, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
+    Class(const Weak<Assembly> &assembly, String name, uint32 size, TypeID type_id, const HypClass *hyp_class, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
           m_name(std::move(name)),
           m_size(size),
           m_type_id(type_id),
+          m_hyp_class(hyp_class),
           m_parent_class(parent_class),
           m_flags(flags),
           m_new_object_fptr(nullptr),
@@ -102,6 +103,9 @@ public:
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
         { return m_type_id; }
+
+    HYP_FORCE_INLINE const HypClass *GetHypClass() const
+        { return m_hyp_class; }
 
     HYP_FORCE_INLINE Class *GetParentClass() const
         { return m_parent_class; }
@@ -363,6 +367,7 @@ private:
     String                          m_name;
     uint32                          m_size;
     TypeID                          m_type_id;
+    const HypClass                  *m_hyp_class;
     Class                           *m_parent_class;
     EnumFlags<ManagedClassFlags>    m_flags;
     HashMap<String, Method>         m_methods;

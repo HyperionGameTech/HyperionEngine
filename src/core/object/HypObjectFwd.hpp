@@ -70,6 +70,8 @@ private:
     HypObjectHeader *m_header;
 };
 
+HYP_API extern void FixupObjectInitializerPointer(void *target, IHypObjectInitializer *initializer);
+
 class IHypObjectInitializer
 {
 public:
@@ -79,14 +81,10 @@ public:
 
     virtual const HypClass *GetClass() const = 0;
 
-    virtual dotnet::Class *GetManagedClass() const = 0;
-
     virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) = 0;
     virtual ManagedObjectResource *GetManagedObjectResource() const = 0;
     
     virtual dotnet::Object *GetManagedObject() const = 0;
-
-    virtual void FixupPointer(void *_this, IHypObjectInitializer *ptr) = 0;
 
     virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
     virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
@@ -227,12 +225,12 @@ struct HypObjectInitializerGuardBase
     HYP_API HypObjectInitializerGuardBase(HypObjectPtr ptr);
     HYP_API ~HypObjectInitializerGuardBase();
 
-    HypObjectPtr    ptr;
+    HypObjectPtr                ptr;
 
 #ifdef HYP_DEBUG_MODE
-    ThreadID        initializer_thread_id;
+    ThreadID                    initializer_thread_id;
 #else
-    uint32          count;
+    uint32                      count;
 #endif
 };
 

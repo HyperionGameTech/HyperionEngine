@@ -31,6 +31,7 @@ class HYP_API ManagedObjectResource final : public ResourceBase
 public:
     ManagedObjectResource(dotnet::Object *object_ptr);
     ManagedObjectResource(HypObjectPtr ptr);
+    ManagedObjectResource(HypObjectPtr ptr, dotnet::Object *object_ptr);
     ManagedObjectResource(HypObjectPtr ptr, const dotnet::ObjectReference &object_reference, EnumFlags<ObjectFlags> object_flags);
 
     ManagedObjectResource(const ManagedObjectResource &other)                   = delete;
@@ -47,7 +48,6 @@ public:
     dotnet::Class *GetManagedClass() const;
 
 protected:
-
     virtual void Initialize() override final;
     virtual void Destroy() override final;
     virtual void Update() override final;

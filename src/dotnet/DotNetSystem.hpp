@@ -26,8 +26,9 @@ class DotNetImpl;
 } // namespace detail
 
 using AddObjectToCacheFunction = void(*)(void *ptr, Class **out_class_object_ptr, ObjectReference *out_object_reference, int8 is_weak);
-using SetKeepAliveFunction = int8(*)(ObjectReference *object_reference, int8 keep_alive);
+using SetKeepAliveFunction = void(*)(ObjectReference *object_reference, int32* keep_alive);
 using TriggerGCFunction = void(*)();
+using GetAssemblyPointerFunction = void(*)(ObjectReference *assembly_object_reference, Assembly **out_assembly_ptr);
 
 class DotNetSystem
 {
@@ -37,6 +38,7 @@ public:
         AddObjectToCacheFunction    add_object_to_cache_function = nullptr;
         SetKeepAliveFunction        set_keep_alive_function = nullptr;
         TriggerGCFunction           trigger_gc_function = nullptr;
+        GetAssemblyPointerFunction  get_assembly_pointer_function = nullptr;
     };
 
     static DotNetSystem &GetInstance();

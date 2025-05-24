@@ -57,10 +57,10 @@ protected:
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
 private:
-    RC<UIObject>    m_expanded_element;
-    bool            m_is_selected_item;
-    bool            m_is_expanded;
-    Color           m_initial_background_color;
+    UIObject    *m_expanded_element;
+    bool        m_is_selected_item;
+    bool        m_is_expanded;
+    Color       m_initial_background_color;
 };
 
 #pragma endregion UIListViewItem
@@ -91,10 +91,11 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE int GetSelectedItemIndex() const
     {
-        auto it = m_list_view_items.FindIf([this](const RC<UIListViewItem> &item)
-        {
-            return item == m_selected_item;
-        });
+        if (!m_selected_item.IsValid()) {
+            return -1;
+        }
+
+        auto it = m_list_view_items.FindAs(m_selected_item.GetUnsafe());
 
         if (it != m_list_view_items.End()) {
             return int(it - m_list_view_items.Begin());
@@ -106,7 +107,7 @@ public:
     HYP_METHOD()
     void SetSelectedItemIndex(int index);
 
-    HYP_FORCE_INLINE const Array<RC<UIListViewItem>> &GetListViewItems() const
+    HYP_FORCE_INLINE const Array<UIListViewItem *> &GetListViewItems() const
         { return m_list_view_items; }
 
     HYP_METHOD(Property="Orientation")
@@ -137,10 +138,10 @@ private:
 
     void AddDataSourceElement(UIDataSourceBase *data_source, UIDataSourceElement *element, UIDataSourceElement *parent);
 
-    Array<RC<UIListViewItem>>           m_list_view_items;
-    Weak<UIListViewItem>                m_selected_item;
+    Array<UIListViewItem *> m_list_view_items;
+    Weak<UIListViewItem>    m_selected_item;
 
-    UIListViewOrientation               m_orientation;
+    UIListViewOrientation   m_orientation;
 };
 
 #pragma endregion UIListView

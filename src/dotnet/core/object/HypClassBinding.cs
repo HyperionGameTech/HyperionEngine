@@ -12,18 +12,15 @@ namespace Hyperion
 
         public HypClass GetClass(Type type)
         {
-            HypClass? hypClass;
+            // @TODO Needs to deal with DynamicHypStruct.
 
-            if (IsDynamic)
+            // temp; refactor
+            if (type.IsValueType && IsDynamic)
             {
-                hypClass = DynamicHypStruct.GetOrCreate(type).HypClass;
+                return DynamicHypStruct.GetOrCreate(type).HypClass;
             }
-            else
-            {
-                string typeName = Name ?? type.Name;
 
-                hypClass = HypClass.GetClass(typeName);
-            }
+            HypClass? hypClass = HypClass.TryGetClass(type);
 
             if (hypClass == null || !((HypClass)hypClass).IsValid)
             {
@@ -33,7 +30,7 @@ namespace Hyperion
             return (HypClass)hypClass;
         }
 
-        public static HypClassBinding? ForType(Type type, bool inheritance = false) 
+        public static HypClassBinding? ForType(Type type) 
         {
             Type? currentType = type;
 
@@ -47,7 +44,7 @@ namespace Hyperion
                 }
 
                 currentType = ((Type)currentType).BaseType;
-            } while (currentType != null && inheritance);
+            } while (currentType != null);
 
             return null;
         }

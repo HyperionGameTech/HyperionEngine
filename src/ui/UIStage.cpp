@@ -46,6 +46,11 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
+UIStage::UIStage()
+    : UIStage(ThreadID::Current())
+{
+}
+
 UIStage::UIStage(ThreadID owner_thread_id)
     : UIObject(UIObjectType::STAGE, owner_thread_id),
       m_surface_size { 1000, 1000 }

@@ -36,4 +36,44 @@ namespace Hyperion
             }
         }
     }
+
+    [HypClassBinding(IsDynamic = true)]
+    public class LightComponentEditorPropertyPanel : EditorPropertyPanelBase
+    {
+        public LightComponentEditorPropertyPanel()
+        {
+        }
+
+        ~LightComponentEditorPropertyPanel()
+        {
+            Logger.Log(LogType.Debug, "LightComponentEditorPropertyPanel destructor called");
+        }
+
+        public override void Build(object target)
+        {
+            UIObject? uiObject = null;
+            
+            try
+            {
+                using (Asset<UIObject> asset = AssetManager.Instance.Load<UIObject>("ui/property_panel/LightComponent.PropertyPanel.ui.xml"))
+                {
+                    if (!asset.IsValid)
+                        throw new Exception("Failed to load UIObject! Asset result is not valid");
+
+                    uiObject = asset.Value;
+
+                    if (uiObject == null)
+                        throw new Exception("Failed to load UIObject! Result was null");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log(LogType.Error, "Failed to load LightComponent.PropertyPanel.ui.xml: " + e.Message);
+
+                return;
+            }
+
+            this.AddChildUIObject(uiObject);
+        }
+    }
 }

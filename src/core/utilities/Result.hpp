@@ -107,7 +107,7 @@ public:
     TResult(const TResult &other)                   = default;
     TResult &operator=(const TResult &other)        = default;
 
-    template <class OtherT>
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<T, OtherT> && std::is_constructible_v<T, const OtherT &>>>
     TResult(const TResult<OtherT, ErrorType> &other)
     {
         if (other.HasValue()) {
@@ -117,7 +117,7 @@ public:
         }
     }
 
-    template <class OtherT>
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<T, OtherT> && std::is_constructible_v<T, const OtherT &>>>
     TResult &operator=(const TResult<OtherT, ErrorType> &other)
     {
         if (this == &other) {
@@ -138,7 +138,7 @@ public:
     TResult(TResult &&other) noexcept               = default;
     TResult &operator=(TResult &&other) noexcept    = default;
 
-    template <class OtherT>
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<T, OtherT> && std::is_constructible_v<T, OtherT &&>>>
     TResult(TResult<OtherT, ErrorType> &&other) noexcept
     {
         if (other.HasValue()) {
@@ -148,7 +148,7 @@ public:
         }
     }
 
-    template <class OtherT>
+    template <class OtherT, typename = std::enable_if_t<!std::is_same_v<T, OtherT> && std::is_constructible_v<T, OtherT &&>>>
     TResult &operator=(TResult<OtherT, ErrorType> &&other) noexcept
     {
         if (this == &other) {
@@ -198,7 +198,7 @@ public:
     {
         AssertThrowMsg(HasValue(), "Result does not contain a value");
 
-        return std::move(m_value.template GetUnchecked<T>());
+        return std::move(m_value).template GetUnchecked<T>();
     }
 
     HYP_FORCE_INLINE T GetValueOr(T &&default_value) const &
@@ -213,7 +213,7 @@ public:
     HYP_FORCE_INLINE T GetValueOr(T &&default_value) &&
     {
         if (HasValue()) {
-            return std::move(m_value.template GetUnchecked<T>());
+            return std::move(m_value).template GetUnchecked<T>();
         } else {
             return std::forward<T>(default_value);
         }
