@@ -13,15 +13,17 @@ namespace hyperion {
 namespace algorithm {
 
 template <class Container, class Predicate>
-bool Every(const Container &container, Predicate &&predicate)
+bool Every(const Container& container, Predicate&& predicate)
 {
     FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
 
     const auto _begin = container.Begin();
     const auto _end = container.End();
 
-    for (auto it = _begin; it != _end; ++it) {
-        if (!fn(*it)) {
+    for (auto it = _begin; it != _end; ++it)
+    {
+        if (!fn(*it))
+        {
             return false;
         }
     }

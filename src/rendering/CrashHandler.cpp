@@ -11,14 +11,14 @@
 #include <core/io/ByteWriter.hpp>
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
-#include <Aftermath/GFSDK_Aftermath.h>
-#include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
-#include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
-#include <Aftermath/GFSDK_Aftermath_Defines.h>
+    #include <Aftermath/GFSDK_Aftermath.h>
+    #include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
+    #include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
+    #include <Aftermath/GFSDK_Aftermath_Defines.h>
 
-#include <chrono>
-#include <thread>
-#include <iomanip>
+    #include <chrono>
+    #include <thread>
+    #include <iomanip>
 #endif
 
 namespace hyperion {
@@ -34,7 +34,8 @@ HYP_DISABLE_OPTIMIZATION;
 
 void CrashHandler::Initialize()
 {
-    if (m_is_initialized) {
+    if (m_is_initialized)
+    {
         return;
     }
 
@@ -45,7 +46,7 @@ void CrashHandler::Initialize()
         GFSDK_Aftermath_Version_API,
         GFSDK_Aftermath_GpuCrashDumpWatchedApiFlags_Vulkan,
         GFSDK_Aftermath_GpuCrashDumpFeatureFlags_DeferDebugInfoCallbacks,
-        [](const void *dump, const uint32 size, void *)
+        [](const void* dump, const uint32 size, void*)
         {
             GFSDK_Aftermath_CrashDump_Status status = GFSDK_Aftermath_CrashDump_Status_Unknown;
             AssertThrow(GFSDK_Aftermath_GetCrashDumpStatus(&status) == GFSDK_Aftermath_Result_Success);
@@ -55,9 +56,7 @@ void CrashHandler::Initialize()
 
             // Loop while Aftermath crash dump data collection has not finished or
             // the application is still processing the crash dump data.
-            while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed &&
-                   status != GFSDK_Aftermath_CrashDump_Status_Finished &&
-                   elapsed.count() < 1000)
+            while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed && status != GFSDK_Aftermath_CrashDump_Status_Finished && elapsed.count() < 1000)
             {
                 // Sleep a couple of milliseconds and poll the status again.
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -65,13 +64,14 @@ void CrashHandler::Initialize()
 
                 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
             }
-            
+
             GFSDK_Aftermath_GpuCrashDump_Decoder decoder = {};
             AssertThrow(GFSDK_Aftermath_GpuCrashDump_CreateDecoder(
-                GFSDK_Aftermath_Version_API,
-                dump,
-                size,
-                &decoder) == GFSDK_Aftermath_Result_Success);
+                            GFSDK_Aftermath_Version_API,
+                            dump,
+                            size,
+                            &decoder)
+                == GFSDK_Aftermath_Result_Success);
 
             // Query GPU page fault information.
             GFSDK_Aftermath_GpuCrashDump_PageFaultInfo fault_info = {};
@@ -137,7 +137,7 @@ void CrashHandler::Initialize()
                     if (GFSDK_Aftermath_SUCCEED(result))
                     {
                         // Print information for each active shader
-                        for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo &info : infos)
+                        for (const GFSDK_Aftermath_GpuCrashDump_ShaderInfo& info : infos)
                         {
                             HYP_LOG(Rendering, Error, "Active shader: ShaderHash = {} ShaderInstance = {} Shadertype = {}",
                                 info.shaderHash,
@@ -157,7 +157,7 @@ void CrashHandler::Initialize()
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
         },
-        [](const void *info, const uint32 size, void *)
+        [](const void* info, const uint32 size, void*)
         {
             GFSDK_Aftermath_ShaderDebugInfoIdentifier identifier = {};
             AssertThrow(GFSDK_Aftermath_GetShaderDebugInfoIdentifier(GFSDK_Aftermath_Version_API, info, size, &identifier) == GFSDK_Aftermath_Result_Success);
@@ -168,9 +168,10 @@ void CrashHandler::Initialize()
             ss << std::hex << std::setfill('0') << std::setw(2 * sizeof(uint64)) << identifier.id[1];
             std::string str = ss.str();
 
-            std::transform(str.begin(), str.end(), str.begin(), [](char ch) {
-                return std::toupper(ch);
-            });
+            std::transform(str.begin(), str.end(), str.begin(), [](char ch)
+                {
+                    return std::toupper(ch);
+                });
 
             std::vector<char> bytes;
             bytes.resize(size);
@@ -181,14 +182,13 @@ void CrashHandler::Initialize()
             writer.Write(bytes.data(), bytes.size());
             writer.Close();
         },
-        [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription, void *)
+        [](PFN_GFSDK_Aftermath_AddGpuCrashDumpDescription, void*)
         {
         },
-        [](const void *, void *, void **, uint32 *)
+        [](const void*, void*, void**, uint32*)
         {
         },
-        nullptr
-    );
+        nullptr);
 
     AssertThrow(res == GFSDK_Aftermath_Result_Success);
 #endif
@@ -198,7 +198,8 @@ HYP_ENABLE_OPTIMIZATION;
 
 void CrashHandler::HandleGPUCrash(RendererResult result)
 {
-    if (result) {
+    if (result)
+    {
         return;
     }
 
@@ -211,9 +212,7 @@ void CrashHandler::HandleGPUCrash(RendererResult result)
 
     // Loop while Aftermath crash dump data collection has not finished or
     // the application is still processing the crash dump data.
-    while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed &&
-           status != GFSDK_Aftermath_CrashDump_Status_Finished &&
-           elapsed.count() < 1000000)
+    while (status != GFSDK_Aftermath_CrashDump_Status_CollectingDataFailed && status != GFSDK_Aftermath_CrashDump_Status_Finished && elapsed.count() < 1000000)
     {
         // Sleep a couple of milliseconds and poll the status again.
         std::this_thread::sleep_for(std::chrono::milliseconds(50));

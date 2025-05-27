@@ -38,31 +38,35 @@ class HYP_API SchedulerBase
 public:
     using SemaphoreType = TaskSemaphore;
 
-    SchedulerBase()                                             = delete;
-    SchedulerBase(const SchedulerBase &other)                   = delete;
-    SchedulerBase &operator=(const SchedulerBase &other)        = delete;
-    SchedulerBase(SchedulerBase &&other) noexcept               = delete;
-    SchedulerBase &operator=(SchedulerBase &&other) noexcept    = delete;
-    virtual ~SchedulerBase()                                    = default;
+    SchedulerBase() = delete;
+    SchedulerBase(const SchedulerBase& other) = delete;
+    SchedulerBase& operator=(const SchedulerBase& other) = delete;
+    SchedulerBase(SchedulerBase&& other) noexcept = delete;
+    SchedulerBase& operator=(SchedulerBase&& other) noexcept = delete;
+    virtual ~SchedulerBase() = default;
 
     HYP_FORCE_INLINE ThreadID GetOwnerThread() const
-        { return m_owner_thread; }
+    {
+        return m_owner_thread;
+    }
 
     /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
      *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
      */
     HYP_FORCE_INLINE void SetOwnerThread(ThreadID owner_thread)
-        { m_owner_thread = owner_thread; }
+    {
+        m_owner_thread = owner_thread;
+    }
 
     void RequestStop();
 
     virtual void Await(TaskID id) = 0;
 
-    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase *executor_ptr, SemaphoreType *semaphore, OnTaskCompletedCallback &&callback = nullptr, const StaticMessage &debug_name = StaticMessage()) = 0;
+    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, SemaphoreType* semaphore, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) = 0;
 
     virtual bool Dequeue(TaskID id) = 0;
-    
-    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor *executor) = 0;
+
+    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor* executor) = 0;
 
     /*! \brief Has \ref{thread_id} given us work to complete?
      *  Returns true if \ref{thread_id} might be waiting on us to complete some work for them. */
@@ -79,17 +83,17 @@ protected:
         m_has_tasks.notify_all();
     }
 
-    bool WaitForTasks(std::unique_lock<std::mutex> &lock);
+    bool WaitForTasks(std::unique_lock<std::mutex>& lock);
 
-    uint32                  m_id_counter = 0;
-    AtomicVar<uint32>       m_num_enqueued { 0 };
-    AtomicVar<bool>         m_stop_requested { false };
+    uint32 m_id_counter = 0;
+    AtomicVar<uint32> m_num_enqueued { 0 };
+    AtomicVar<bool> m_stop_requested { false };
 
-    mutable std::mutex      m_mutex;
+    mutable std::mutex m_mutex;
     std::condition_variable m_has_tasks;
     std::condition_variable m_task_executed;
 
-    ThreadID                m_owner_thread;
+    ThreadID m_owner_thread;
 };
 
 class Scheduler final : public SchedulerBase
@@ -98,28 +102,28 @@ public:
     struct ScheduledTask
     {
         // The executor/task memory
-        TaskExecutorBase            *executor = nullptr;
+        TaskExecutorBase* executor = nullptr;
 
         // If the executor is owned by the scheduler, it will be deleted when this object is destroyed
-        bool                        owns_executor = false;
+        bool owns_executor = false;
 
         // Atomic counter to increment when the task is completed (used for batch tasks)
-        SemaphoreType               *semaphore = nullptr;
+        SemaphoreType* semaphore = nullptr;
 
         // Condition variable to notify when the task has been executed (owned by the scheduler)
-        std::condition_variable     *task_executed = nullptr;
+        std::condition_variable* task_executed = nullptr;
 
         // Callback to be executed after the task is completed
-        OnTaskCompletedCallback     callback;
+        OnTaskCompletedCallback callback;
 
-        StaticMessage               debug_name;
+        StaticMessage debug_name;
 
-        ScheduledTask()                                         = default;
+        ScheduledTask() = default;
 
-        ScheduledTask(const ScheduledTask &other)               = delete;
-        ScheduledTask &operator=(const ScheduledTask &other)    = delete;
+        ScheduledTask(const ScheduledTask& other) = delete;
+        ScheduledTask& operator=(const ScheduledTask& other) = delete;
 
-        ScheduledTask(ScheduledTask &&other) noexcept
+        ScheduledTask(ScheduledTask&& other) noexcept
             : executor(other.executor),
               owns_executor(other.owns_executor),
               semaphore(other.semaphore),
@@ -133,13 +137,15 @@ public:
             other.task_executed = nullptr;
         }
 
-        ScheduledTask &operator=(ScheduledTask &&other) noexcept
+        ScheduledTask& operator=(ScheduledTask&& other) noexcept
         {
-            if (this == &other) {
+            if (this == &other)
+            {
                 return *this;
             }
 
-            if (owns_executor) {
+            if (owns_executor)
+            {
                 delete executor;
             }
 
@@ -160,21 +166,25 @@ public:
 
         ~ScheduledTask()
         {
-            if (owns_executor) {
+            if (owns_executor)
+            {
                 delete executor;
             }
         }
 
         template <class Lambda>
-        void ExecuteWithLambda(Lambda &&lambda)
+        void ExecuteWithLambda(Lambda&& lambda)
         {
             lambda(*executor);
 
             int counter_value = 0;
 
-            if (semaphore != nullptr) {
+            if (semaphore != nullptr)
+            {
                 counter_value = semaphore->Release(1, callback);
-            } else if (callback.IsValid()) {
+            }
+            else if (callback.IsValid())
+            {
                 callback();
             }
 
@@ -187,39 +197,46 @@ public:
 
             int counter_value = 0;
 
-            if (semaphore != nullptr) {
+            if (semaphore != nullptr)
+            {
                 counter_value = semaphore->Release(1, callback);
-            } else if (callback.IsValid()) {
+            }
+            else if (callback.IsValid())
+            {
                 callback();
             }
 
             task_executed->notify_all();
         }
     };
-    
+
     Scheduler(ThreadID owner_thread_id = Threads::CurrentThreadID())
         : SchedulerBase(owner_thread_id)
     {
     }
 
-    Scheduler(const Scheduler &other)                   = delete;
-    Scheduler &operator=(const Scheduler &other)        = delete;
-    Scheduler(Scheduler &&other) noexcept               = delete;
-    Scheduler &operator=(Scheduler &&other) noexcept    = delete;
-    virtual ~Scheduler() override                       = default;
+    Scheduler(const Scheduler& other) = delete;
+    Scheduler& operator=(const Scheduler& other) = delete;
+    Scheduler(Scheduler&& other) noexcept = delete;
+    Scheduler& operator=(Scheduler&& other) noexcept = delete;
+    virtual ~Scheduler() override = default;
 
     HYP_FORCE_INLINE uint32 NumEnqueued() const
-        { return m_num_enqueued.Get(MemoryOrder::ACQUIRE); }
+    {
+        return m_num_enqueued.Get(MemoryOrder::ACQUIRE);
+    }
 
-    HYP_FORCE_INLINE const Array<ScheduledTask> &GetEnqueuedTasks() const
-        { return m_queue; }
+    HYP_FORCE_INLINE const Array<ScheduledTask>& GetEnqueuedTasks() const
+    {
+        return m_queue;
+    }
 
     /*! \brief Enqueue a function to be executed on the owner thread. This is to be
      *  called from a non-owner thread.
      *  \param fn The function to execute
      *  \param flags Flags to control the behavior of the task - see TaskEnqueueFlags */
     template <class Function>
-    auto Enqueue(Function &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
+    auto Enqueue(Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         return Enqueue(HYP_STATIC_MESSAGE("<no debug name>"), std::forward<Function>(fn), flags);
     }
@@ -230,13 +247,13 @@ public:
      *  \param fn The function to execute
      *  \param flags Flags to control the behavior of the task - see TaskEnqueueFlags */
     template <class Function>
-    auto Enqueue(const StaticMessage &debug_name, Function &&fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
+    auto Enqueue(const StaticMessage& debug_name, Function&& fn, EnumFlags<TaskEnqueueFlags> flags = TaskEnqueueFlags::NONE) -> Task<typename FunctionTraits<Function>::ReturnType>
     {
         using ReturnType = typename FunctionTraits<Function>::ReturnType;
 
         std::unique_lock lock(m_mutex);
 
-        TaskExecutorInstance<ReturnType> *executor = new TaskExecutorInstance<ReturnType>(std::forward<Function>(fn));
+        TaskExecutorInstance<ReturnType>* executor = new TaskExecutorInstance<ReturnType>(std::forward<Function>(fn));
 
         ScheduledTask scheduled_task;
         scheduled_task.executor = executor;
@@ -256,8 +273,7 @@ public:
             executor->GetTaskID(),
             this,
             executor,
-            !(flags & TaskEnqueueFlags::FIRE_AND_FORGET)
-        );
+            !(flags & TaskEnqueueFlags::FIRE_AND_FORGET));
     }
 
     /*! \brief Enqueue a task to be executed on the owner thread. This is to be
@@ -267,7 +283,7 @@ public:
      *  \param atomic_counter A pointer to an atomic uint32 variable that is incremented upon completion.
      *  \param callback A callback to be executed after the task is completed.
      *  \param debug_name A StaticMessage instance containing the name of the task (for debugging) */
-    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase *executor_ptr, SemaphoreType *semaphore, OnTaskCompletedCallback &&callback = nullptr, const StaticMessage &debug_name = StaticMessage()) override
+    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, SemaphoreType* semaphore, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) override
     {
         std::unique_lock lock(m_mutex);
 
@@ -297,60 +313,72 @@ public:
 
         std::unique_lock lock(m_mutex);
 
-        if (m_queue.Empty()) {
+        if (m_queue.Empty())
+        {
             return;
         }
 
-        if (!AnyOf(m_queue, [id](const auto &item) { return item.executor->GetTaskID() == id; })) {
+        if (!AnyOf(m_queue, [id](const auto& item)
+                {
+                    return item.executor->GetTaskID() == id;
+                }))
+        {
             return;
         }
 
         m_task_executed.wait(lock, [this, id]
-        {
-            if (m_queue.Empty()) {
-                return true;
-            }
+            {
+                if (m_queue.Empty())
+                {
+                    return true;
+                }
 
-            return !AnyOf(m_queue, [id](const auto &item) { return item.executor->GetTaskID() == id; });
-        });
+                return !AnyOf(m_queue, [id](const auto& item)
+                    {
+                        return item.executor->GetTaskID() == id;
+                    });
+            });
     }
-    
+
     /*! \brief Remove a function from the owner thread's queue, if it exists
      * @returns a boolean value indicating whether or not the function was successfully dequeued */
     virtual bool Dequeue(TaskID id) override
     {
-        if (!id) {
+        if (!id)
+        {
             return false;
         }
 
         std::unique_lock lock(m_mutex);
 
-        if (Dequeue_Internal(id)) {
+        if (Dequeue_Internal(id))
+        {
             return true;
         }
 
         return false;
     }
 
-    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor *executor) override
+    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor* executor) override
     {
         AssertThrow(!Threads::IsOnThread(m_owner_thread));
 
         AssertThrow(id.IsValid());
         AssertThrow(executor != nullptr);
 
-        TaskExecutorBase *executor_casted = static_cast<TaskExecutorBase *>(executor);
+        TaskExecutorBase* executor_casted = static_cast<TaskExecutorBase*>(executor);
 
         std::unique_lock lock(m_mutex);
 
-        const auto it = m_queue.FindIf([id](const ScheduledTask &item)
-        {
-            if (!item.executor) {
-                return false;
-            }
+        const auto it = m_queue.FindIf([id](const ScheduledTask& item)
+            {
+                if (!item.executor)
+                {
+                    return false;
+                }
 
-            return item.executor->GetTaskID() == id;
-        });
+                return item.executor->GetTaskID() == id;
+            });
 
         AssertThrow(it != m_queue.End());
 
@@ -358,9 +386,10 @@ public:
         //     return false;
         // }
 
-        ScheduledTask &scheduled_task = *it;
+        ScheduledTask& scheduled_task = *it;
 
-        if (scheduled_task.owns_executor) {
+        if (scheduled_task.owns_executor)
+        {
             AssertThrow(scheduled_task.executor != nullptr);
             AssertThrow(scheduled_task.executor != executor_casted);
 
@@ -380,10 +409,10 @@ public:
     {
         std::unique_lock lock(m_mutex);
 
-        return AnyOf(m_queue, [thread_id](const ScheduledTask &item)
-        {
-            return item.executor->GetInitiatorThreadID() == thread_id;
-        });
+        return AnyOf(m_queue, [thread_id](const ScheduledTask& item)
+            {
+                return item.executor->GetInitiatorThreadID() == thread_id;
+            });
     }
 
     // /* Move all the next pending task in the queue to an external container. */
@@ -391,7 +420,7 @@ public:
     // void AcceptNext(Container &out_container)
     // {
     //     AssertThrow(Threads::IsOnThread(m_owner_thread));
-        
+
     //     std::unique_lock lock(m_mutex);
 
     //     if (m_queue.Any()) {
@@ -402,16 +431,17 @@ public:
     //         m_num_enqueued.Decrement(1u, MemoryOrder::RELEASE);
     //     }
     // }
-    
+
     /* Move all tasks in the queue to an external container. */
     template <class Container>
-    void AcceptAll(Container &out_container)
+    void AcceptAll(Container& out_container)
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
         std::unique_lock lock(m_mutex);
 
-        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it) {
+        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+        {
             out_container.Push(std::move(*it));
             m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
         }
@@ -422,28 +452,31 @@ public:
 
         WakeUpOwnerThread();
     }
-    
+
     /*! \brief Move all tasks in the queue to an external container. Blocks the current thread until there are tasks to execute, or the scheduler is stopped.
-        * @returns a boolean value indicating whether or not the scheduler was stopped.
-    */
+     * @returns a boolean value indicating whether or not the scheduler was stopped.
+     */
     template <class Container>
-    bool WaitForTasks(Container &out_container)
+    bool WaitForTasks(Container& out_container)
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
 #ifdef HYP_DEBUG_MODE
-        if (!out_container.Empty()) {
+        if (!out_container.Empty())
+        {
             DebugLog(LogType::Warn, "Warning: Container is not empty when calling WaitForTasks().");
         }
 #endif
 
         std::unique_lock lock(m_mutex);
 
-        if (!SchedulerBase::WaitForTasks(lock)) {
+        if (!SchedulerBase::WaitForTasks(lock))
+        {
             return false;
         }
 
-        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it) {
+        for (auto it = m_queue.Begin(); it != m_queue.End(); ++it)
+        {
             out_container.Push(std::move(*it));
             m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
         }
@@ -459,20 +492,20 @@ public:
 
     /*! \brief Execute all scheduled tasks. May only be called from the creation thread. */
     template <class Lambda>
-    void Flush(Lambda &&lambda)
+    void Flush(Lambda&& lambda)
     {
         AssertThrow(Threads::IsOnThread(m_owner_thread));
 
         AssertThrowMsg(
             !m_stop_requested.Get(MemoryOrder::RELAXED),
-            "Scheduler::Flush() called after stop requested"
-        );
+            "Scheduler::Flush() called after stop requested");
 
         std::unique_lock lock(m_mutex);
 
-        while (m_queue.Any()) {
-            ScheduledTask &front = m_queue.Front();
-            
+        while (m_queue.Any())
+        {
+            ScheduledTask& front = m_queue.Front();
+
             front.ExecuteWithLambda(lambda);
 
             m_num_enqueued.Decrement(1, MemoryOrder::RELEASE);
@@ -483,9 +516,9 @@ public:
 
         WakeUpOwnerThread();
     }
-    
+
 private:
-    void Enqueue_Internal(ScheduledTask &&scheduled_task)
+    void Enqueue_Internal(ScheduledTask&& scheduled_task)
     {
         const TaskID task_id { ++m_id_counter };
 
@@ -499,12 +532,14 @@ private:
 
     bool Dequeue_Internal(TaskID id)
     {
-        const auto it = m_queue.FindIf([&id](const auto &item)
-        {
-            return item.executor->GetTaskID() == id;
-        });;
+        const auto it = m_queue.FindIf([&id](const auto& item)
+            {
+                return item.executor->GetTaskID() == id;
+            });
+        ;
 
-        if (it == m_queue.End()) {
+        if (it == m_queue.End())
+        {
             return false;
         }
 
@@ -515,7 +550,7 @@ private:
         return true;
     }
 
-    Array<ScheduledTask>    m_queue;
+    Array<ScheduledTask> m_queue;
 };
 } // namespace threading
 

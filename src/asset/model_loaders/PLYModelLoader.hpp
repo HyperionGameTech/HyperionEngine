@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-class PLYModelLoader : public AssetLoader
+class PLYModelLoader : public AssetLoaderBase
 {
 public:
     enum PLYType
@@ -27,7 +27,8 @@ public:
         PLY_TYPE_MAX
     };
 
-    struct PLYPropertyDefinition {
+    struct PLYPropertyDefinition
+    {
         PLYType type;
         SizeType offset;
     };
@@ -40,21 +41,21 @@ public:
         SizeType header_length = 0;
     };
 
-    static PLYType StringToPLYType(const String &str);
+    static PLYType StringToPLYType(const String& str);
 
     static SizeType PLYTypeSize(PLYType);
 
     virtual ~PLYModelLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override
     {
         PLYModel model = LoadModel(state);
 
         return BuildModel(state, model);
     }
-    
-    static PLYModel LoadModel(LoaderState &state);
-    static LoadedAsset BuildModel(LoaderState &state, PLYModel &model);
+
+    static PLYModel LoadModel(LoaderState& state);
+    static LoadedAsset BuildModel(LoaderState& state, PLYModel& model);
 };
 
 } // namespace hyperion

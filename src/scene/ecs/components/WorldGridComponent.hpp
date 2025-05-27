@@ -13,13 +13,16 @@
 namespace hyperion {
 
 HYP_STRUCT(Component)
+
 struct WorldGridPatchComponent
 {
-    HYP_FIELD(Serialize, Property="PatchInfo")
-    WorldGridPatchInfo  patch_info;
+    HYP_FIELD(Serialize, Property = "PatchInfo")
+    WorldGridPatchInfo patch_info;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
-        { return Vec2f(patch_info.coord) - 0.5f; }
+    {
+        return Vec2f(patch_info.coord) - 0.5f;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

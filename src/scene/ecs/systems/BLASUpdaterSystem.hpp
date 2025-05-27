@@ -10,21 +10,17 @@
 
 namespace hyperion {
 
-class BLASUpdaterSystem : public System<
-    BLASUpdaterSystem,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+class BLASUpdaterSystem : public System<BLASUpdaterSystem, ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BLAS>, COMPONENT_RW_FLAGS_READ, false>
->
+                              ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BLAS>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    BLASUpdaterSystem(EntityManager &entity_manager);
+    BLASUpdaterSystem(EntityManager& entity_manager);
     virtual ~BLASUpdaterSystem() override = default;
-    
-    virtual bool ShouldCreateForScene(Scene *scene) const override;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual bool ShouldCreateForScene(Scene* scene) const override;
+
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

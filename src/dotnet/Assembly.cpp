@@ -21,33 +21,38 @@ Assembly::Assembly()
 
 Assembly::~Assembly()
 {
-    if (!Unload()) {
+    if (!Unload())
+    {
         HYP_LOG(DotNET, Warning, "Failed to unload assembly");
     }
 }
 
 bool Assembly::Unload()
 {
-    if (!IsLoaded()) {
+    if (!IsLoaded())
+    {
         return true;
     }
 
-    for (auto &it : m_class_objects) {
-        if (!it.second) {
+    for (auto& it : m_class_objects)
+    {
+        if (!it.second)
+        {
             continue;
         }
 
         HypClassRegistry::GetInstance().UnregisterManagedClass(it.second.Get());
     }
 
-    return DotNetSystem::GetInstance().UnloadAssembly(m_guid);   
+    return DotNetSystem::GetInstance().UnloadAssembly(m_guid);
 }
 
-RC<Class> Assembly::NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, TypeID type_id, Class *parent_class, uint32 flags)
+RC<Class> Assembly::NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags)
 {
     auto it = m_class_objects.Find(type_hash);
 
-    if (it != m_class_objects.End()) {
+    if (it != m_class_objects.End())
+    {
         HYP_LOG(DotNET, Warning, "Class {} (type hash: {}) already exists in assembly with GUID {}!", type_name, type_hash, m_guid);
 
         return it->second;
@@ -55,17 +60,20 @@ RC<Class> Assembly::NewClass(const HypClass *hyp_class, int32 type_hash, const c
 
     it = m_class_objects.Insert(type_hash, MakeRefCountedPtr<Class>(WeakRefCountedPtrFromThis(), type_name, type_size, type_id, hyp_class, parent_class, EnumFlags<ManagedClassFlags>(flags))).first;
 
-    if (hyp_class != nullptr) {
+    if (hyp_class != nullptr)
+    {
         HypClassRegistry::GetInstance().RegisterManagedClass(it->second, hyp_class);
     }
 
     return it->second;
 }
 
-RC<Class> Assembly::FindClassByName(const char *type_name)
+RC<Class> Assembly::FindClassByName(const char* type_name)
 {
-    for (auto &pair : m_class_objects) {
-        if (pair.second->GetName() == type_name) {
+    for (auto& pair : m_class_objects)
+    {
+        if (pair.second->GetName() == type_name)
+        {
             return pair.second;
         }
     }
@@ -77,7 +85,8 @@ RC<Class> Assembly::FindClassByTypeHash(int32 type_hash)
 {
     auto it = m_class_objects.Find(type_hash);
 
-    if (it != m_class_objects.End()) {
+    if (it != m_class_objects.End())
+    {
         return it->second;
     }
 

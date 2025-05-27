@@ -19,18 +19,18 @@ class HypProperty;
 
 struct EditorNodePropertyRef
 {
-    String              title;
-    Optional<String>    description;
-    WeakHandle<Node>    node;
-    HypProperty         *property = nullptr;
+    String title;
+    Optional<String> description;
+    WeakHandle<Node> node;
+    HypProperty* property = nullptr;
 };
 
 class UIElementFactoryBase;
 
-HYP_API UIElementFactoryBase *GetEditorUIElementFactory(TypeID type_id);
+HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeID type_id);
 
 template <class T>
-static UIElementFactoryBase *GetEditorUIElementFactory()
+static UIElementFactoryBase* GetEditorUIElementFactory()
 {
     return GetEditorUIElementFactory(TypeID::ForType<T>());
 }

@@ -9,21 +9,17 @@
 
 namespace hyperion {
 
-class AudioSystem : public System<
-    AudioSystem,
-    ComponentDescriptor<AudioComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>
->
+class AudioSystem : public System<AudioSystem, ComponentDescriptor<AudioComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>>
 {
 public:
-    AudioSystem(EntityManager &entity_manager)
+    AudioSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
 
     virtual ~AudioSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
 };

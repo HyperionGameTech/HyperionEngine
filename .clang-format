@@ -1,0 +1,59 @@
+
+Language: Cpp
+BasedOnStyle: LLVM
+
+AccessModifierOffset: -4
+AlignAfterOpenBracket: DontAlign
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+BraceWrapping:
+  AfterControlStatement: true
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  IndentBraces: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+BreakInheritanceList: AfterColon
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakStringLiterals: false
+ColumnLimit: 0
+PackConstructorInitializers: Never
+Cpp11BracedListStyle: false
+EmptyLineBeforeAccessModifier: LogicalBlock
+IndentCaseBlocks: false
+IndentCaseLabels: false
+IndentPPDirectives: BeforeHash
+IndentWidth: 4
+SpaceInEmptyBlock: true
+SpaceBeforeCpp11BracedList: true
+NamespaceIndentation: None
+PointerAlignment: Left
+ReferenceAlignment: Left
+SortIncludes: false
+SpaceBeforeCaseColon: false
+UseTab: Never
+MaxEmptyLinesToKeep: 1
+SeparateDefinitionBlocks: Always
+SpaceAfterTemplateKeyword: true
+
+StatementMacros: ['HYP_OBJECT_BODY', 'HYP_CLASS', 'HYP_STRUCT', 'HYP_ENUM', 'HYP_FIELD', 'HYP_PROPERTY', 'HYP_METHOD']
+AttributeMacros: ['HYP_DEPRECATED', 'HYP_NODISCARD', 'HYP_FORCE_INLINE']
+Macros: ['HYP_FORCE_INLINE=inline']

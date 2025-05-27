@@ -23,47 +23,61 @@ class Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {
 public:
     Assembly();
-    Assembly(const Assembly &)                  = delete;
-    Assembly &operator=(const Assembly &)       = delete;
-    Assembly(Assembly &&) noexcept              = delete;
-    Assembly &operator=(Assembly &&) noexcept   = delete;
+    Assembly(const Assembly&) = delete;
+    Assembly& operator=(const Assembly&) = delete;
+    Assembly(Assembly&&) noexcept = delete;
+    Assembly& operator=(Assembly&&) noexcept = delete;
     ~Assembly();
 
-    HYP_FORCE_INLINE ManagedGuid &GetGuid()
-        { return m_guid; }
+    HYP_FORCE_INLINE ManagedGuid& GetGuid()
+    {
+        return m_guid;
+    }
 
-    HYP_FORCE_INLINE const ManagedGuid &GetGuid() const
-        { return m_guid; }
+    HYP_FORCE_INLINE const ManagedGuid& GetGuid() const
+    {
+        return m_guid;
+    }
 
-    RC<Class> NewClass(const HypClass *hyp_class, int32 type_hash, const char *type_name, uint32 type_size, TypeID type_id, Class *parent_class, uint32 flags);
-    RC<Class> FindClassByName(const char *type_name);
+    RC<Class> NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags);
+    RC<Class> FindClassByName(const char* type_name);
     RC<Class> FindClassByTypeHash(int32 type_hash);
 
     HYP_FORCE_INLINE InvokeGetterFunction GetInvokeGetterFunction() const
-        { return m_invoke_getter_fptr; }
+    {
+        return m_invoke_getter_fptr;
+    }
 
     HYP_FORCE_INLINE void SetInvokeGetterFunction(InvokeGetterFunction invoke_getter_fptr)
-        { m_invoke_getter_fptr = invoke_getter_fptr; }
+    {
+        m_invoke_getter_fptr = invoke_getter_fptr;
+    }
 
     HYP_FORCE_INLINE InvokeSetterFunction GetInvokeSetterFunction() const
-        { return m_invoke_setter_fptr; }
+    {
+        return m_invoke_setter_fptr;
+    }
 
     HYP_FORCE_INLINE void SetInvokeSetterFunction(InvokeSetterFunction invoke_setter_fptr)
-        { m_invoke_setter_fptr = invoke_setter_fptr; }
+    {
+        m_invoke_setter_fptr = invoke_setter_fptr;
+    }
 
     HYP_FORCE_INLINE bool IsLoaded() const
-        { return m_guid.IsValid(); }
+    {
+        return m_guid.IsValid();
+    }
 
     bool Unload();
 
 private:
-    ManagedGuid                 m_guid;
+    ManagedGuid m_guid;
 
-    HashMap<int32, RC<Class>>   m_class_objects;
+    HashMap<int32, RC<Class>> m_class_objects;
 
     // Function pointer to invoke a managed method
-    InvokeGetterFunction        m_invoke_getter_fptr;
-    InvokeSetterFunction        m_invoke_setter_fptr;
+    InvokeGetterFunction m_invoke_getter_fptr;
+    InvokeSetterFunction m_invoke_setter_fptr;
 };
 
 } // namespace dotnet

@@ -11,14 +11,14 @@ namespace hyperion {
 static RC<StreamingThread> g_global_streaming_thread;
 static Mutex g_global_streaming_thread_mutex;
 
-HYP_API void SetGlobalStreamingThread(const RC<StreamingThread> &streaming_thread)
+HYP_API void SetGlobalStreamingThread(const RC<StreamingThread>& streaming_thread)
 {
     Mutex::Guard guard(g_global_streaming_thread_mutex);
 
     g_global_streaming_thread = streaming_thread;
 }
 
-HYP_API const RC<StreamingThread> &GetGlobalStreamingThread()
+HYP_API const RC<StreamingThread>& GetGlobalStreamingThread()
 {
     Mutex::Guard guard(g_global_streaming_thread_mutex);
 

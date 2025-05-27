@@ -8,18 +8,20 @@
 
 namespace hyperion {
 
-void PhysicsSystem::OnEntityAdded(const Handle<Entity> &entity)
+void PhysicsSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    if (!GetEntityManager().GetScene()->GetWorld()) {
+    if (!GetEntityManager().GetScene()->GetWorld())
+    {
         return;
     }
 
-    RigidBodyComponent &rigid_body_component = GetEntityManager().GetComponent<RigidBodyComponent>(entity);
-    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
+    RigidBodyComponent& rigid_body_component = GetEntityManager().GetComponent<RigidBodyComponent>(entity);
+    TransformComponent& transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
-    if (rigid_body_component.rigid_body) {
+    if (rigid_body_component.rigid_body)
+    {
         InitObject(rigid_body_component.rigid_body);
 
         rigid_body_component.rigid_body->SetTransform(transform_component.transform);
@@ -35,24 +37,28 @@ void PhysicsSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    if (!GetEntityManager().GetScene()->GetWorld()) {
+    if (!GetEntityManager().GetScene()->GetWorld())
+    {
         return;
     }
 
-    RigidBodyComponent &rigid_body_component = GetEntityManager().GetComponent<RigidBodyComponent>(entity);
+    RigidBodyComponent& rigid_body_component = GetEntityManager().GetComponent<RigidBodyComponent>(entity);
 
-    if (rigid_body_component.rigid_body) {
+    if (rigid_body_component.rigid_body)
+    {
         GetEntityManager().GetScene()->GetWorld()->GetPhysicsWorld().RemoveRigidBody(rigid_body_component.rigid_body);
     }
 }
 
 void PhysicsSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
-        Handle<physics::RigidBody> &rigid_body = rigid_body_component.rigid_body;
-        Transform &transform = transform_component.transform;
+    for (auto [entity_id, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    {
+        Handle<physics::RigidBody>& rigid_body = rigid_body_component.rigid_body;
+        Transform& transform = transform_component.transform;
 
-        if (!rigid_body) {
+        if (!rigid_body)
+        {
             continue;
         }
 

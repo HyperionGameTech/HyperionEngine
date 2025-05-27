@@ -38,6 +38,7 @@ enum class PhysicsShapeType : uint32
 };
 
 HYP_CLASS(Abstract)
+
 class PhysicsShape : public EnableRefCountedPtrFromThis<PhysicsShape>
 {
     HYP_OBJECT_BODY(PhysicsShape);
@@ -57,30 +58,37 @@ public:
     ~PhysicsShape() = default;
 
     HYP_FORCE_INLINE PhysicsShapeType GetType() const
-        { return m_type; }
+    {
+        return m_type;
+    }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_FORCE_INLINE void *GetHandle() const
-        { return m_handle.Get(); }
+    HYP_FORCE_INLINE void* GetHandle() const
+    {
+        return m_handle.Get();
+    }
 
     /*! \brief Set the internal handle of the PhysicsShape. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(UniquePtr<void> &&handle)
-        { m_handle = std::move(handle); }
+    HYP_FORCE_INLINE void SetHandle(UniquePtr<void>&& handle)
+    {
+        m_handle = std::move(handle);
+    }
 
 protected:
-    PhysicsShapeType    m_type;
+    PhysicsShapeType m_type;
 
-    UniquePtr<void>     m_handle;
+    UniquePtr<void> m_handle;
 };
 
 HYP_CLASS()
+
 class BoxPhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(BoxPhysicsShape);
 
 public:
-    BoxPhysicsShape(const BoundingBox &aabb)
+    BoxPhysicsShape(const BoundingBox& aabb)
         : PhysicsShape(PhysicsShapeType::BOX),
           m_aabb(aabb)
     {
@@ -88,20 +96,23 @@ public:
 
     ~BoxPhysicsShape() = default;
 
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
+    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
 
 protected:
     BoundingBox m_aabb;
 };
 
 HYP_CLASS()
+
 class SpherePhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(SpherePhysicsShape);
 
 public:
-    SpherePhysicsShape(const BoundingSphere &sphere)
+    SpherePhysicsShape(const BoundingSphere& sphere)
         : PhysicsShape(PhysicsShapeType::SPHERE),
           m_sphere(sphere)
     {
@@ -109,20 +120,23 @@ public:
 
     ~SpherePhysicsShape() = default;
 
-    HYP_FORCE_INLINE const BoundingSphere &GetSphere() const
-        { return m_sphere; }
+    HYP_FORCE_INLINE const BoundingSphere& GetSphere() const
+    {
+        return m_sphere;
+    }
 
 protected:
-    BoundingSphere  m_sphere;
+    BoundingSphere m_sphere;
 };
 
 HYP_CLASS()
+
 class PlanePhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(PlanePhysicsShape);
 
 public:
-    PlanePhysicsShape(const Vec4f &plane)
+    PlanePhysicsShape(const Vec4f& plane)
         : PhysicsShape(PhysicsShapeType::PLANE),
           m_plane(plane)
     {
@@ -130,25 +144,29 @@ public:
 
     ~PlanePhysicsShape() = default;
 
-    HYP_FORCE_INLINE const Vec4f &GetPlane() const
-        { return m_plane; }
+    HYP_FORCE_INLINE const Vec4f& GetPlane() const
+    {
+        return m_plane;
+    }
 
 protected:
-    Vec4f   m_plane;
+    Vec4f m_plane;
 };
 
 HYP_CLASS()
+
 class ConvexHullPhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(ConvexHullPhysicsShape);
 
 public:
-    ConvexHullPhysicsShape(const Array<Vec3f> &vertices)
+    ConvexHullPhysicsShape(const Array<Vec3f>& vertices)
         : PhysicsShape(PhysicsShapeType::CONVEX_HULL)
     {
         m_vertices.Resize(vertices.Size() * 3);
 
-        for (SizeType index = 0; index < vertices.Size(); index++) {
+        for (SizeType index = 0; index < vertices.Size(); index++)
+        {
             m_vertices[index * 3] = vertices[index].x;
             m_vertices[index * 3 + 1] = vertices[index].y;
             m_vertices[index * 3 + 2] = vertices[index].z;
@@ -157,93 +175,116 @@ public:
 
     ~ConvexHullPhysicsShape() = default;
 
-    HYP_FORCE_INLINE const float *GetVertexData() const
-        { return m_vertices.Data(); }
+    HYP_FORCE_INLINE const float* GetVertexData() const
+    {
+        return m_vertices.Data();
+    }
 
     HYP_FORCE_INLINE SizeType NumVertices() const
-        { return m_vertices.Size() / 3; }
+    {
+        return m_vertices.Size() / 3;
+    }
 
 protected:
-    Array<float>    m_vertices;
+    Array<float> m_vertices;
 };
 
 HYP_CLASS()
+
 class HYP_API RigidBody : public HypObject<RigidBody>
 {
     HYP_OBJECT_BODY(RigidBody);
 
 public:
     RigidBody();
-    RigidBody(const PhysicsMaterial &physics_material);
-    RigidBody(const RC<PhysicsShape> &shape, const PhysicsMaterial &physics_material);
+    RigidBody(const PhysicsMaterial& physics_material);
+    RigidBody(const RC<PhysicsShape>& shape, const PhysicsMaterial& physics_material);
 
-    RigidBody(const RigidBody &other)               = delete;
-    RigidBody &operator=(const RigidBody &other)    = delete;
+    RigidBody(const RigidBody& other) = delete;
+    RigidBody& operator=(const RigidBody& other) = delete;
     ~RigidBody();
 
     void Init();
 
     /*! \brief Get the world-space transform of this RigidBody. */
-    HYP_METHOD(Serialize, Property="Transform")
-    HYP_FORCE_INLINE const Transform &GetTransform() const
-        { return m_transform; }
-    
-    HYP_METHOD(Serialize, Property="Transform")
-    HYP_FORCE_INLINE void SetTransform(const Transform &transform)
-        { m_transform = transform; }
+    HYP_METHOD(Serialize, Property = "Transform")
+    HYP_FORCE_INLINE const Transform& GetTransform() const
+    {
+        return m_transform;
+    }
 
-    HYP_METHOD(Serialize, Property="Shape")
-    HYP_FORCE_INLINE const RC<PhysicsShape> &GetShape() const
-        { return m_shape; }
+    HYP_METHOD(Serialize, Property = "Transform")
+    HYP_FORCE_INLINE void SetTransform(const Transform& transform)
+    {
+        m_transform = transform;
+    }
 
-    HYP_METHOD(Serialize, Property="Shape")
-    void SetShape(const RC<PhysicsShape> &shape);
+    HYP_METHOD(Serialize, Property = "Shape")
+    HYP_FORCE_INLINE const RC<PhysicsShape>& GetShape() const
+    {
+        return m_shape;
+    }
 
-    HYP_FORCE_INLINE PhysicsMaterial &GetPhysicsMaterial()
-        { return m_physics_material; }
+    HYP_METHOD(Serialize, Property = "Shape")
+    void SetShape(const RC<PhysicsShape>& shape);
 
-    HYP_FORCE_INLINE const PhysicsMaterial &GetPhysicsMaterial() const
-        { return m_physics_material; }
+    HYP_FORCE_INLINE PhysicsMaterial& GetPhysicsMaterial()
+    {
+        return m_physics_material;
+    }
 
-    void SetPhysicsMaterial(const PhysicsMaterial &physics_material);
+    HYP_FORCE_INLINE const PhysicsMaterial& GetPhysicsMaterial() const
+    {
+        return m_physics_material;
+    }
 
-    HYP_METHOD(Serialize, Property="IsKinematic")
+    void SetPhysicsMaterial(const PhysicsMaterial& physics_material);
+
+    HYP_METHOD(Serialize, Property = "IsKinematic")
     HYP_FORCE_INLINE bool IsKinematic() const
-        { return m_is_kinematic; }
+    {
+        return m_is_kinematic;
+    }
 
-    HYP_METHOD(Serialize, Property="IsKinematic")
+    HYP_METHOD(Serialize, Property = "IsKinematic")
     HYP_FORCE_INLINE void SetIsKinematic(bool is_kinematic)
-        { m_is_kinematic = is_kinematic; }
+    {
+        m_is_kinematic = is_kinematic;
+    }
 
     /*! \brief Return the handle specific to the physics engine in use */
-    HYP_FORCE_INLINE void *GetHandle() const
-        { return m_handle.Get(); }
+    HYP_FORCE_INLINE void* GetHandle() const
+    {
+        return m_handle.Get();
+    }
 
     /*! \brief Set the internal handle of the RigidBody. Only to be used
         by a PhysicsAdapter. */
-    HYP_FORCE_INLINE void SetHandle(UniquePtr<void> &&handle)
-        { m_handle = std::move(handle); }
+    HYP_FORCE_INLINE void SetHandle(UniquePtr<void>&& handle)
+    {
+        m_handle = std::move(handle);
+    }
 
     HYP_METHOD()
-    void ApplyForce(const Vec3f &force);
+    void ApplyForce(const Vec3f& force);
 
 private:
-    Transform           m_transform;
-    RC<PhysicsShape>    m_shape;
-    PhysicsMaterial     m_physics_material;
-    bool                m_is_kinematic;
+    Transform m_transform;
+    RC<PhysicsShape> m_shape;
+    PhysicsMaterial m_physics_material;
+    bool m_is_kinematic;
 
-    UniquePtr<void>     m_handle;
+    UniquePtr<void> m_handle;
 };
 
 } // namespace physics
 
-using physics::PhysicsShape;
 using physics::BoxPhysicsShape;
-using physics::SpherePhysicsShape;
-using physics::PlanePhysicsShape;
 using physics::ConvexHullPhysicsShape;
+using physics::PhysicsShape;
+using physics::PlanePhysicsShape;
 using physics::RigidBody;
+using physics::SpherePhysicsShape;
 
 } // namespace hyperion
 

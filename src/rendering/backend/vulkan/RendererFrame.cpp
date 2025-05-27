@@ -10,13 +10,13 @@
 
 namespace hyperion {
 
-extern IRenderingAPI *g_rendering_api;
+extern IRenderingAPI* g_rendering_api;
 
 namespace renderer {
 
-static inline VulkanRenderingAPI *GetRenderingAPI()
+static inline VulkanRenderingAPI* GetRenderingAPI()
 {
-    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
 VulkanFrame::VulkanFrame()
@@ -29,8 +29,7 @@ VulkanFrame::VulkanFrame(uint32 frame_index)
     : FrameBase(frame_index),
       m_present_semaphores(
           { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT },
-          { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }
-      )
+          { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT })
 {
     FrameBase::m_frame_index = frame_index;
 }
@@ -63,7 +62,8 @@ RendererResult VulkanFrame::Destroy()
 
 RendererResult VulkanFrame::RecreateFence()
 {
-    if (m_queue_submit_fence.IsValid()) {
+    if (m_queue_submit_fence.IsValid())
+    {
         SafeRelease(std::move(m_queue_submit_fence));
     }
 

@@ -43,7 +43,7 @@ public:
         HYP_DECL_FN(vkGetRayTracingShaderGroupHandlesKHR);
         HYP_DECL_FN(vkCreateRayTracingPipelinesKHR);
 
-        //debugging
+        // debugging
         HYP_DECL_FN(vkCmdDebugMarkerBeginEXT);
         HYP_DECL_FN(vkCmdDebugMarkerEndEXT);
         HYP_DECL_FN(vkCmdDebugMarkerInsertEXT);
@@ -62,53 +62,81 @@ public:
     Features();
     Features(VkPhysicalDevice);
 
-    Features(const Features &other) = delete;
-    Features &operator=(const Features &other) = delete;
+    Features(const Features& other) = delete;
+    Features& operator=(const Features& other) = delete;
     ~Features() = default;
 
     void SetPhysicalDevice(VkPhysicalDevice);
 
     VkPhysicalDevice GetPhysicalDevice() const
-        { return m_physical_device; }
+    {
+        return m_physical_device;
+    }
 
     bool IsDiscreteGpu() const
-        { return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; }
+    {
+        return m_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+    }
 
-    const char *GetDeviceName() const
-        { return m_properties.deviceName; }
+    const char* GetDeviceName() const
+    {
+        return m_properties.deviceName;
+    }
 
-    const VkPhysicalDeviceProperties &GetPhysicalDeviceProperties() const
-        { return m_properties; }
+    const VkPhysicalDeviceProperties& GetPhysicalDeviceProperties() const
+    {
+        return m_properties;
+    }
 
-    const VkPhysicalDeviceFeatures &GetPhysicalDeviceFeatures() const
-        { return m_features; }
+    const VkPhysicalDeviceFeatures& GetPhysicalDeviceFeatures() const
+    {
+        return m_features;
+    }
 
-    const VkPhysicalDeviceFeatures2 &GetPhysicalDeviceFeatures2() const
-        { return m_features2; }
+    const VkPhysicalDeviceFeatures2& GetPhysicalDeviceFeatures2() const
+    {
+        return m_features2;
+    }
 
-    const VkPhysicalDeviceDescriptorIndexingFeatures &GetPhysicalDeviceIndexingFeatures() const
-        { return m_indexing_features; }
+    const VkPhysicalDeviceDescriptorIndexingFeatures& GetPhysicalDeviceIndexingFeatures() const
+    {
+        return m_indexing_features;
+    }
 
-    const VkPhysicalDeviceMemoryProperties &GetPhysicalDeviceMemoryProperties() const
-        { return m_memory_properties; }
+    const VkPhysicalDeviceMemoryProperties& GetPhysicalDeviceMemoryProperties() const
+    {
+        return m_memory_properties;
+    }
 
-    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR &GetRaytracingPipelineFeatures() const
-        { return m_raytracing_pipeline_features; }
+    const VkPhysicalDeviceRayTracingPipelineFeaturesKHR& GetRaytracingPipelineFeatures() const
+    {
+        return m_raytracing_pipeline_features;
+    }
 
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &GetRaytracingPipelineProperties() const
-        { return m_raytracing_pipeline_properties; }
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR& GetRaytracingPipelineProperties() const
+    {
+        return m_raytracing_pipeline_properties;
+    }
 
-    const VkPhysicalDeviceBufferDeviceAddressFeatures &GetBufferDeviceAddressFeatures() const
-        { return m_buffer_device_address_features; }
+    const VkPhysicalDeviceBufferDeviceAddressFeatures& GetBufferDeviceAddressFeatures() const
+    {
+        return m_buffer_device_address_features;
+    }
 
-    const VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT &GetSamplerMinMaxProperties() const
-        { return m_sampler_minmax_properties; }
+    const VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT& GetSamplerMinMaxProperties() const
+    {
+        return m_sampler_minmax_properties;
+    }
 
-    const VkPhysicalDeviceAccelerationStructureFeaturesKHR &GetAccelerationStructureFeatures() const
-        { return m_acceleration_structure_features; }
+    const VkPhysicalDeviceAccelerationStructureFeaturesKHR& GetAccelerationStructureFeatures() const
+    {
+        return m_acceleration_structure_features;
+    }
 
-    const VkPhysicalDeviceAccelerationStructurePropertiesKHR &GetAccelerationStructureProperties() const
-        { return m_acceleration_structure_properties; }
+    const VkPhysicalDeviceAccelerationStructurePropertiesKHR& GetAccelerationStructureProperties() const
+    {
+        return m_acceleration_structure_properties;
+    }
 
     struct DeviceRequirementsResult
     {
@@ -118,28 +146,45 @@ public:
             DEVICE_REQUIREMENTS_ERR = 1
         } result;
 
-        const char *message;
+        const char* message;
 
-        DeviceRequirementsResult(decltype(result) result, const char *message = "")
-            : result(result), message(message) {}
-        DeviceRequirementsResult(const DeviceRequirementsResult &other)
-            : result(other.result), message(other.message) {}
-        operator bool() const { return result == DEVICE_REQUIREMENTS_OK; }
+        DeviceRequirementsResult(decltype(result) result, const char* message = "")
+            : result(result),
+              message(message)
+        {
+        }
+
+        DeviceRequirementsResult(const DeviceRequirementsResult& other)
+            : result(other.result),
+              message(other.message)
+        {
+        }
+
+        operator bool() const
+        {
+            return result == DEVICE_REQUIREMENTS_OK;
+        }
     };
 
-#define REQUIRES_VK_FEATURE_MSG(cond, feature) \
-    do { \
-        if (!(cond)) { \
+#define REQUIRES_VK_FEATURE_MSG(cond, feature)                                                                                                      \
+    do                                                                                                                                              \
+    {                                                                                                                                               \
+        if (!(cond))                                                                                                                                \
+        {                                                                                                                                           \
             return DeviceRequirementsResult(DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "Feature constraint '" #feature "' not satisfied."); \
-        } \
-    } while (0)
+        }                                                                                                                                           \
+    }                                                                                                                                               \
+    while (0)
 
-#define REQUIRES_VK_FEATURE(cond) \
-    do { \
-        if (!(cond)) { \
+#define REQUIRES_VK_FEATURE(cond)                                                                                                                \
+    do                                                                                                                                           \
+    {                                                                                                                                            \
+        if (!(cond))                                                                                                                             \
+        {                                                                                                                                        \
             return DeviceRequirementsResult(DeviceRequirementsResult::DEVICE_REQUIREMENTS_ERR, "Feature constraint '" #cond "' not satisfied."); \
-        } \
-    } while (0)
+        }                                                                                                                                        \
+    }                                                                                                                                            \
+    while (0)
 
     DeviceRequirementsResult SatisfiesMinimumRequirements()
     {
@@ -171,20 +216,21 @@ public:
             && m_indexing_properties.maxPerStageDescriptorUpdateAfterBindSampledImages >= 4096;
 #endif
     }
-    
+
     bool SupportsDynamicDescriptorIndexing() const
     {
         return m_features.shaderSampledImageArrayDynamicIndexing;
     }
 
-    void LoadDynamicFunctions(Device *device);
-    void SetDeviceFeatures(Device *device);
+    void LoadDynamicFunctions(Device* device);
+    void SetDeviceFeatures(Device* device);
 
     SwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR _surface) const
     {
-        SwapchainSupportDetails details { };
+        SwapchainSupportDetails details {};
 
-        if (m_physical_device == nullptr) {
+        if (m_physical_device == nullptr)
+        {
             DebugLog(LogType::Debug, "No physical device set -- cannot query swapchain support!\n");
             return details;
         }
@@ -207,7 +253,8 @@ public:
 
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, _surface, &num_surface_formats, surface_formats.Data());
 
-        if (surface_formats.Empty()) {
+        if (surface_formats.Empty())
+        {
             DebugLog(LogType::Warn, "No surface formats available!\n");
         }
 
@@ -219,7 +266,8 @@ public:
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, _surface, &num_present_modes, present_modes.Data());
 
-        if (present_modes.Empty()) {
+        if (present_modes.Empty())
+        {
             DebugLog(LogType::Warn, "No present modes available!\n");
         }
 
@@ -232,10 +280,10 @@ public:
 
     bool IsSupportedFormat(
         InternalFormat format,
-        ImageSupportType support_type
-    ) const
+        ImageSupportType support_type) const
     {
-        if (m_physical_device == nullptr) {
+        if (m_physical_device == nullptr)
+        {
             return false;
         }
 
@@ -243,14 +291,14 @@ public:
             LogType::Debug,
             "Checking support for format %d with support_type %d.\n",
             int(format),
-            int(support_type)
-        );
+            int(support_type));
 
         const VkFormat vulkan_format = helpers::ToVkFormat(format);
 
         VkFormatFeatureFlags feature_flags = 0;
 
-        switch (support_type) {
+        switch (support_type)
+        {
         case ImageSupportType::SRV:
             feature_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
             break;
@@ -264,8 +312,7 @@ public:
             DebugLog(
                 LogType::RenError,
                 "Unknown image support type %d.\n",
-                int(support_type)
-            );
+                int(support_type));
 
             return false;
         }
@@ -277,16 +324,17 @@ public:
 
         const VkFormatFeatureFlags flags = (tiling == VK_IMAGE_TILING_LINEAR)
             ? props.linearTilingFeatures
-            : (tiling == VK_IMAGE_TILING_OPTIMAL) ? props.optimalTilingFeatures : 0;
+            : (tiling == VK_IMAGE_TILING_OPTIMAL) ? props.optimalTilingFeatures
+                                                  : 0;
 
-        if ((flags & feature_flags) == feature_flags) {
+        if ((flags & feature_flags) == feature_flags)
+        {
             DebugLog(
                 LogType::Debug,
                 "Vulkan format %d with tiling mode %d and feature flags %d support found!\n",
                 format,
                 tiling,
-                feature_flags
-            );
+                feature_flags);
 
             return true;
         }
@@ -296,8 +344,7 @@ public:
             "Vulkan format %d with tiling mode %d and feature flags %d not supported.\n",
             format,
             tiling,
-            feature_flags
-        );
+            feature_flags);
 
         return false;
     }
@@ -311,17 +358,19 @@ public:
             LogType::Debug,
             "Looking for format to use with support type %d. First choice: %d\n",
             int(support_type),
-            int(possible_formats[0])
-        );
+            int(possible_formats[0]));
 
-        if (m_physical_device == nullptr) {
+        if (m_physical_device == nullptr)
+        {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-            
+
             return InternalFormat::NONE;
         }
 
-        for (SizeType i = 0; i < possible_formats.Size(); i++) {
-            if (IsSupportedFormat(possible_formats[i], support_type) != VK_FORMAT_UNDEFINED) {
+        for (SizeType i = 0; i < possible_formats.Size(); i++)
+        {
+            if (IsSupportedFormat(possible_formats[i], support_type) != VK_FORMAT_UNDEFINED)
+            {
                 return possible_formats[i];
             }
         }
@@ -331,34 +380,37 @@ public:
 
     /* get the first supported format out of the provided list of format choices. */
     template <class Predicate>
-    InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails &details, Span<InternalFormat> possible_formats, Predicate &&predicate) const
+    InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails& details, Span<InternalFormat> possible_formats, Predicate&& predicate) const
     {
         AssertThrowMsg(possible_formats.Size() != 0, "Size must be greater than zero!");
 
-        for (const VkSurfaceFormatKHR &surface_format : details.formats) {
+        for (const VkSurfaceFormatKHR& surface_format : details.formats)
+        {
             DebugLog(
                 LogType::Debug,
                 "\tFormat: %d\tColor space: %d\n",
                 surface_format.format,
-                surface_format.colorSpace
-            );
+                surface_format.colorSpace);
         }
 
-        for (InternalFormat format : possible_formats) {
+        for (InternalFormat format : possible_formats)
+        {
             DebugLog(
                 LogType::Debug,
                 "Try format: %d\n",
-                format
-            );
+                format);
 
             const VkFormat vk_format = helpers::ToVkFormat(format);
 
-            if (AnyOf(details.formats, [&](auto &&surface_format) { return surface_format.format == vk_format && predicate(surface_format); })) {
+            if (AnyOf(details.formats, [&](auto&& surface_format)
+                    {
+                        return surface_format.format == vk_format && predicate(surface_format);
+                    }))
+            {
                 DebugLog(
                     LogType::Debug,
                     "Found surface format: %d\n",
-                    format
-                );
+                    format);
 
                 return format;
             }
@@ -366,8 +418,7 @@ public:
 
         DebugLog(
             LogType::Debug,
-            "No surface format found out of the selected options!\n"
-        );
+            "No surface format found out of the selected options!\n");
 
         return InternalFormat::NONE;
     }
@@ -378,16 +429,17 @@ public:
         VkImageTiling tiling,
         VkImageUsageFlags usage,
         VkImageCreateFlags flags,
-        VkImageFormatProperties *out_properties
-    ) const
+        VkImageFormatProperties* out_properties) const
     {
-        if (m_physical_device == nullptr) {
+        if (m_physical_device == nullptr)
+        {
             return HYP_MAKE_ERROR(RendererError, "Cannot find supported format; physical device is not initialized.");
         }
 
         VkResult vk_result;
 
-        if ((vk_result = vkGetPhysicalDeviceImageFormatProperties(m_physical_device, format, type, tiling, usage, flags, out_properties)) != VK_SUCCESS) {
+        if ((vk_result = vkGetPhysicalDeviceImageFormatProperties(m_physical_device, format, type, tiling, usage, flags, out_properties)) != VK_SUCCESS)
+        {
             return HYP_MAKE_ERROR(RendererError, "Failed to get image format properties", vk_result);
         }
 
@@ -405,7 +457,7 @@ public:
     {
         return PaddedSize(uint32(sizeof(StructType)), alignment);
     }
-    
+
     constexpr uint32 PaddedSize(uint32 size, uint32 alignment) const
     {
         return alignment
@@ -413,12 +465,25 @@ public:
             : size;
     }
 
-    bool SupportsGeometryShaders() const { return m_features.geometryShader; }
+    bool SupportsGeometryShaders() const
+    {
+        return m_features.geometryShader;
+    }
 
-    bool IsRaytracingDisabled() const { return !IsRaytracingSupported() || m_is_raytracing_disabled; }
-    void SetIsRaytracingDisabled(bool is_raytracing_disabled) { m_is_raytracing_disabled = is_raytracing_disabled; }
+    bool IsRaytracingDisabled() const
+    {
+        return !IsRaytracingSupported() || m_is_raytracing_disabled;
+    }
 
-    bool IsRaytracingEnabled() const { return IsRaytracingSupported() && !m_is_raytracing_disabled; }
+    void SetIsRaytracingDisabled(bool is_raytracing_disabled)
+    {
+        m_is_raytracing_disabled = is_raytracing_disabled;
+    }
+
+    bool IsRaytracingEnabled() const
+    {
+        return IsRaytracingSupported() && !m_is_raytracing_disabled;
+    }
 
     bool IsRaytracingSupported() const
     {
@@ -441,7 +506,8 @@ private:
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_raytracing_pipeline_properties;
     VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT m_sampler_minmax_properties;
     VkPhysicalDeviceAccelerationStructureFeaturesKHR m_acceleration_structure_features;
-    VkPhysicalDeviceAccelerationStructurePropertiesKHR m_acceleration_structure_properties;;
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR m_acceleration_structure_properties;
+    ;
     VkPhysicalDeviceDescriptorIndexingFeatures m_indexing_features;
     VkPhysicalDeviceDescriptorIndexingProperties m_indexing_properties;
     VkPhysicalDeviceMultiviewFeatures m_multiview_features;

@@ -17,9 +17,11 @@ NoiseGenerator::NoiseGenerator(NoiseGenerationType type, Seed seed)
 Bitmap<1> NoiseGenerator::CreateBitmap(uint32 width, uint32 height, float scale)
 {
     Bitmap<1> bitmap(width, height);
-    
-    for (uint32 x = 0; x < width; x++) {
-        for (uint32 y = 0; y < height; y++) {
+
+    for (uint32 x = 0; x < width; x++)
+    {
+        for (uint32 y = 0; y < height; y++)
+        {
             const auto noise_value = GetNoise(Vector2(static_cast<float>(x), static_cast<float>(y)) * scale);
             bitmap.GetPixel(x, y).SetR(static_cast<float>(noise_value) * 0.5f + 0.5f);
         }
@@ -33,7 +35,8 @@ Bitmap<1> NoiseGenerator::CreateBitmap(uint32 width, uint32 height, float scale)
 SimplexNoiseGenerator::SimplexNoiseGenerator(Seed seed)
     : NoiseGenerator(NoiseGenerationType::SIMPLEX_NOISE, seed)
 {
-    for (int i = 0; i < OSN_OCTAVE_COUNT; i++) {
+    for (int i = 0; i < OSN_OCTAVE_COUNT; i++)
+    {
         open_simplex_noise(seed, &m_simplex_noise.octaves[i]);
         m_simplex_noise.frequencies[i] = pow(2.0, double(i));
         m_simplex_noise.amplitudes[i] = pow(0.5, OSN_OCTAVE_COUNT - i);
@@ -42,7 +45,8 @@ SimplexNoiseGenerator::SimplexNoiseGenerator(Seed seed)
 
 SimplexNoiseGenerator::~SimplexNoiseGenerator()
 {
-    for (int i = 0; i < OSN_OCTAVE_COUNT; i++) {
+    for (int i = 0; i < OSN_OCTAVE_COUNT; i++)
+    {
         open_simplex_noise_free(m_simplex_noise.octaves[i]);
     }
 }
@@ -51,10 +55,11 @@ double SimplexNoiseGenerator::GetNoise(double x, double z) const
 {
     double result = 0.0;
 
-    for (int i = 0; i < OSN_OCTAVE_COUNT; i++) {
+    for (int i = 0; i < OSN_OCTAVE_COUNT; i++)
+    {
         result += open_simplex_noise2(m_simplex_noise.octaves[i], x / m_simplex_noise.frequencies[i], z / m_simplex_noise.frequencies[i]) * m_simplex_noise.amplitudes[i];
     }
-    
+
     return result;
 }
 
@@ -62,10 +67,11 @@ double SimplexNoiseGenerator::GetNoise(double x, double y, double z) const
 {
     double result = 0.0;
 
-    for (int i = 0; i < OSN_OCTAVE_COUNT; i++) {
+    for (int i = 0; i < OSN_OCTAVE_COUNT; i++)
+    {
         result += open_simplex_noise3(m_simplex_noise.octaves[i], x / m_simplex_noise.frequencies[i], y / m_simplex_noise.frequencies[i], z / m_simplex_noise.frequencies[i]) * m_simplex_noise.amplitudes[i];
     }
-    
+
     return result;
 }
 
@@ -94,26 +100,29 @@ double WorleyNoiseGenerator::GetNoise(double x, double y, double z) const
 
 // factory
 
-NoiseFactory *NoiseFactory::instance = nullptr;
+NoiseFactory* NoiseFactory::s_instance = nullptr;
 
-NoiseFactory *NoiseFactory::GetInstance()
+NoiseFactory* NoiseFactory::GetInstance()
 {
-    if (instance == nullptr) {
-        instance = new NoiseFactory();
+    if (s_instance == nullptr)
+    {
+        s_instance = new NoiseFactory();
     }
 
-    return instance;
+    return s_instance;
 }
 
-NoiseGenerator *NoiseFactory::Capture(NoiseGenerationType type, Seed seed)
+NoiseGenerator* NoiseFactory::Capture(NoiseGenerationType type, Seed seed)
 {
     const auto type_and_seed = std::make_pair(type, seed);
     auto it = m_noise_generators.find(type_and_seed);
 
-    if (it == m_noise_generators.end()) {
+    if (it == m_noise_generators.end())
+    {
         NoiseGeneratorRefCounter ref;
 
-        switch (type) {
+        switch (type)
+        {
         case SIMPLEX_NOISE:
             ref.noise = new SimplexNoiseGenerator(seed);
             break;
@@ -136,7 +145,7 @@ NoiseGenerator *NoiseFactory::Capture(NoiseGenerationType type, Seed seed)
     return it->second.noise;
 }
 
-void NoiseFactory::Release(NoiseGenerator *noise)
+void NoiseFactory::Release(NoiseGenerator* noise)
 {
     AssertThrow(noise != nullptr);
 
@@ -149,12 +158,12 @@ void NoiseFactory::Release(NoiseGenerationType type, Seed seed)
 
     AssertThrow(it != m_noise_generators.end());
 
-    if (!--it->second.uses) {
+    if (!--it->second.uses)
+    {
         delete it->second.noise;
 
         m_noise_generators.erase(it);
     }
 }
-
 
 } // namespace hyperion

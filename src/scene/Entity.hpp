@@ -12,6 +12,7 @@ namespace hyperion {
 class EntityManager;
 
 HYP_CLASS()
+
 class Entity final : public HypObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);

@@ -9,8 +9,7 @@ OrthoCameraController::OrthoCameraController()
     : OrthoCameraController(
           -100.0f, 100.0f,
           -100.0f, 100.0f,
-          -100.0f, 100.0f
-      )
+          -100.0f, 100.0f)
 {
 }
 
@@ -34,14 +33,13 @@ void OrthoCameraController::OnActivated()
     m_camera->SetToOrthographicProjection(
         m_left, m_right,
         m_bottom, m_top,
-        m_near, m_far
-    );
+        m_near, m_far);
 }
 
 void OrthoCameraController::OnDeactivated()
 {
     HYP_SCOPE;
-    
+
     CameraController::OnDeactivated();
 }
 
@@ -53,22 +51,20 @@ void OrthoCameraController::UpdateLogic(double dt)
 void OrthoCameraController::UpdateViewMatrix()
 {
     HYP_SCOPE;
-    
+
     m_camera->m_view_mat = Matrix4::LookAt(
         m_camera->m_translation,
         m_camera->GetTarget(),
-        m_camera->m_up
-    );
+        m_camera->m_up);
 }
 
 void OrthoCameraController::UpdateProjectionMatrix()
 {
     HYP_SCOPE;
-    
+
     m_camera->SetToOrthographicProjection(
-        m_camera->m_left,   m_camera->m_right,
+        m_camera->m_left, m_camera->m_right,
         m_camera->m_bottom, m_camera->m_top,
-        m_camera->m_near,   m_camera->m_far
-    );
+        m_camera->m_near, m_camera->m_far);
 }
 } // namespace hyperion

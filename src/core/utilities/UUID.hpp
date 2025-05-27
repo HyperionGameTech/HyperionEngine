@@ -12,18 +12,19 @@ namespace utilities {
 
 enum class UUIDVersion
 {
-    UUIDv3  = 3,
-    UUIDv4  = 4
+    UUIDv3 = 3,
+    UUIDv4 = 4
 };
 
-HYP_STRUCT(Serialize="bitwise")
+HYP_STRUCT(Serialize = "bitwise")
+
 struct alignas(16) UUID
 {
-    HYP_FIELD(Serialize, Property="Data0")
-    uint64  data0;
+    HYP_FIELD(Serialize, Property = "Data0")
+    uint64 data0;
 
-    HYP_FIELD(Serialize, Property="Data1")
-    uint64  data1;
+    HYP_FIELD(Serialize, Property = "Data1")
+    uint64 data1;
 
     constexpr UUID(uint64 data0, uint64 data1)
         : data0 { data0 },
@@ -33,23 +34,35 @@ struct alignas(16) UUID
 
     UUID(UUIDVersion version = UUIDVersion::UUIDv4);
 
-    HYP_FORCE_INLINE constexpr bool operator==(const UUID &other) const
-        { return data0 == other.data0 && data1 == other.data1; }
+    HYP_FORCE_INLINE constexpr bool operator==(const UUID& other) const
+    {
+        return data0 == other.data0 && data1 == other.data1;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const UUID &other) const
-        { return data0 != other.data0 || data1 != other.data1; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const UUID& other) const
+    {
+        return data0 != other.data0 || data1 != other.data1;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator<(const UUID &other) const
-        { return data0 < other.data0 || (data0 == other.data0 && data1 < other.data1); }
+    HYP_FORCE_INLINE constexpr bool operator<(const UUID& other) const
+    {
+        return data0 < other.data0 || (data0 == other.data0 && data1 < other.data1);
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator>(const UUID &other) const
-        { return data0 > other.data0 || (data0 == other.data0 && data1 > other.data1); }
+    HYP_FORCE_INLINE constexpr bool operator>(const UUID& other) const
+    {
+        return data0 > other.data0 || (data0 == other.data0 && data1 > other.data1);
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator<=(const UUID &other) const
-        { return data0 < other.data0 || (data0 == other.data0 && data1 <= other.data1); }
+    HYP_FORCE_INLINE constexpr bool operator<=(const UUID& other) const
+    {
+        return data0 < other.data0 || (data0 == other.data0 && data1 <= other.data1);
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator>=(const UUID &other) const
-        { return data0 > other.data0 || (data0 == other.data0 && data1 >= other.data1); }
+    HYP_FORCE_INLINE constexpr bool operator>=(const UUID& other) const
+    {
+        return data0 > other.data0 || (data0 == other.data0 && data1 >= other.data1);
+    }
 
     ANSIString ToString() const;
 
@@ -60,7 +73,9 @@ struct alignas(16) UUID
     }
 
     HYP_FORCE_INLINE constexpr static UUID Invalid()
-        { return { 0, 0 }; }
+    {
+        return { 0, 0 };
+    }
 };
 
 } // namespace utilities
@@ -73,7 +88,7 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, UUID>
 {
-    constexpr auto operator()(const UUID &value) const
+    constexpr auto operator()(const UUID& value) const
     {
         return StringType(value.ToString());
     }

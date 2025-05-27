@@ -38,8 +38,8 @@ public:
 
     T m_values[Sz > 1 ? Sz : 1];
 
-    using Iterator = T *;
-    using ConstIterator = const T *;
+    using Iterator = T*;
+    using ConstIterator = const T*;
 
     using KeyType = SizeType;
     using ValueType = T;
@@ -47,13 +47,15 @@ public:
     static constexpr SizeType size = Sz;
 
     template <class OtherType, SizeType OtherSize>
-    HYP_FORCE_INLINE bool operator==(const FixedArray<OtherType, OtherSize> &other) const
+    HYP_FORCE_INLINE bool operator==(const FixedArray<OtherType, OtherSize>& other) const
     {
-        if constexpr (Sz != OtherSize) {
+        if constexpr (Sz != OtherSize)
+        {
             return false;
         }
 
-        if (this == &other) {
+        if (this == &other)
+        {
             return true;
         }
 
@@ -61,8 +63,10 @@ public:
         auto other_it = other.Begin();
         const auto _end = End();
 
-        for (; it != _end; ++it, ++other_it) {
-            if (!(*it == *other_it)) {
+        for (; it != _end; ++it, ++other_it)
+        {
+            if (!(*it == *other_it))
+            {
                 return false;
             }
         }
@@ -71,13 +75,15 @@ public:
     }
 
     template <class OtherType, SizeType OtherSize>
-    HYP_FORCE_INLINE bool operator!=(const FixedArray<OtherType, OtherSize> &other) const
+    HYP_FORCE_INLINE bool operator!=(const FixedArray<OtherType, OtherSize>& other) const
     {
-        if constexpr (Sz != OtherSize) {
+        if constexpr (Sz != OtherSize)
+        {
             return true;
         }
 
-        if (this == &other) {
+        if (this == &other)
+        {
             return false;
         }
 
@@ -85,8 +91,10 @@ public:
         auto other_it = other.Begin();
         const auto _end = End();
 
-        for (; it != _end; ++it, ++other_it) {
-            if (!(*it == *other_it)) {
+        for (; it != _end; ++it, ++other_it)
+        {
+            if (!(*it == *other_it))
+            {
                 return true;
             }
         }
@@ -94,35 +102,50 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE bool Contains(const T &value) const
+    HYP_FORCE_INLINE bool Contains(const T& value) const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Contains(value);
     }
 
-    HYP_FORCE_INLINE T &operator[](KeyType index)
-        { return m_values[index]; }
+    HYP_FORCE_INLINE T& operator[](KeyType index)
+    {
+        return m_values[index];
+    }
 
-    HYP_FORCE_INLINE const T &operator[](KeyType index) const
-        { return m_values[index]; }
+    HYP_FORCE_INLINE const T& operator[](KeyType index) const
+    {
+        return m_values[index];
+    }
 
     HYP_FORCE_INLINE constexpr SizeType Size() const
-        { return Sz; }
+    {
+        return Sz;
+    }
 
     HYP_FORCE_INLINE constexpr SizeType ByteSize() const
-        { return Sz * sizeof(T); }
+    {
+        return Sz * sizeof(T);
+    }
 
     HYP_FORCE_INLINE constexpr bool Empty() const
-        { return Sz == 0; }
+    {
+        return Sz == 0;
+    }
 
     HYP_FORCE_INLINE constexpr bool Any() const
-        { return Sz != 0; }
+    {
+        return Sz != 0;
+    }
 
     HYP_FORCE_INLINE auto Sum() const
     {
-        if constexpr (Sz == 0) {
+        if constexpr (Sz == 0)
+        {
             return T();
-        } else {
+        }
+        else
+        {
             const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
 
             return impl.Sum();
@@ -131,9 +154,12 @@ public:
 
     HYP_FORCE_INLINE auto Avg() const
     {
-        if constexpr (Sz == 0) {
+        if constexpr (Sz == 0)
+        {
             return T();
-        } else {
+        }
+        else
+        {
             const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.Avg();
         }
@@ -142,54 +168,75 @@ public:
     template <class ConstIterator>
     HYP_FORCE_INLINE KeyType IndexOf(ConstIterator iter) const
     {
-        if constexpr (Sz == 0) {
+        if constexpr (Sz == 0)
+        {
             return KeyType(-1);
-        } else {
+        }
+        else
+        {
             const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.IndexOf(iter);
         }
     }
 
     template <class OtherContainer>
-    HYP_FORCE_INLINE bool CompareBitwise(const OtherContainer &other) const
+    HYP_FORCE_INLINE bool CompareBitwise(const OtherContainer& other) const
     {
-        if constexpr (Sz != OtherContainer::size) {
+        if constexpr (Sz != OtherContainer::size)
+        {
             return false;
-        } else {
+        }
+        else
+        {
             const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.CompareBitwise(other);
         }
     }
 
-    HYP_FORCE_INLINE T *Data()
-        { return static_cast<T *>(m_values); }
+    HYP_FORCE_INLINE T* Data()
+    {
+        return static_cast<T*>(m_values);
+    }
 
-    HYP_FORCE_INLINE const T *Data() const
-        { return static_cast<const T *>(m_values); }
+    HYP_FORCE_INLINE const T* Data() const
+    {
+        return static_cast<const T*>(m_values);
+    }
 
-    HYP_FORCE_INLINE T &Front()
-        { return m_values[0]; }
+    HYP_FORCE_INLINE T& Front()
+    {
+        return m_values[0];
+    }
 
-    HYP_FORCE_INLINE const T &Front() const
-        { return m_values[0]; }
+    HYP_FORCE_INLINE const T& Front() const
+    {
+        return m_values[0];
+    }
 
-    HYP_FORCE_INLINE T &Back()
-        { return m_values[Sz - 1]; }
+    HYP_FORCE_INLINE T& Back()
+    {
+        return m_values[Sz - 1];
+    }
 
-    HYP_FORCE_INLINE const T &Back() const
-        { return m_values[Sz - 1]; }
-
+    HYP_FORCE_INLINE const T& Back() const
+    {
+        return m_values[Sz - 1];
+    }
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
      *  \return A Span<T> of the FixedArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
-        { return Span<T>(Data(), Size()); }
+    {
+        return Span<T>(Data(), Size());
+    }
 
     /*! \brief Creates a Span<const T> from the FixedArray's data.
      *  \return A Span<const T> of the FixedArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
-        { return Span<const T>(Data(), Size()); }
-    
+    {
+        return Span<const T>(Data(), Size());
+    }
+
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
@@ -244,28 +291,28 @@ public:
 // template <class T, SizeType Sz>
 // FixedArray<T, Sz>::~FixedArray() = default;
 
-
 namespace detail {
 
 template <class T, SizeType Sz>
 class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint32>
 {
 public:
-    T *ptr;
+    T* ptr;
 
     static constexpr bool is_contiguous = true;
 
-    using Iterator      = T *;
-    using ConstIterator = const T *;
+    using Iterator = T*;
+    using ConstIterator = const T*;
 
-    FixedArrayImpl(T *ptr)
+    FixedArrayImpl(T* ptr)
         : ptr(ptr)
     {
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    constexpr SizeType Size() const
-        { return Sz; }
+    HYP_NODISCARD HYP_FORCE_INLINE constexpr SizeType Size() const
+    {
+        return Sz;
+    }
 
     HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)
 };
@@ -273,7 +320,7 @@ public:
 } // namespace detail
 
 // deduction guide
-template <typename Tp, typename ...Args>
+template <typename Tp, typename... Args>
 FixedArray(Tp, Args...) -> FixedArray<std::enable_if_t<(std::is_same_v<Tp, Args> && ...), Tp>, 1 + sizeof...(Args)>;
 
 } // namespace containers
@@ -282,7 +329,7 @@ template <class T, SizeType N>
 using FixedArray = containers::FixedArray<T, N>;
 
 template <class T, SizeType N>
-constexpr uint32 ArraySize(const FixedArray<T, N> &)
+constexpr uint32 ArraySize(const FixedArray<T, N>&)
 {
     return N;
 }
@@ -292,7 +339,8 @@ constexpr inline FixedArray<T, N> MakeFixedArray(const T (&values)[N])
 {
     FixedArray<T, N> result;
 
-    for (SizeType i = 0; i < N; i++) {
+    for (SizeType i = 0; i < N; i++)
+    {
         result[i] = values[i];
     }
 
@@ -300,11 +348,12 @@ constexpr inline FixedArray<T, N> MakeFixedArray(const T (&values)[N])
 }
 
 template <class T, SizeType N>
-constexpr inline FixedArray<T, N> MakeFixedArray(T *_begin, T *_end)
+constexpr inline FixedArray<T, N> MakeFixedArray(T* _begin, T* _end)
 {
     FixedArray<T, N> result;
 
-    for (SizeType i = 0; i < N && _begin != _end; i++, ++_begin) {
+    for (SizeType i = 0; i < N && _begin != _end; i++, ++_begin)
+    {
         result[i] = *_begin;
     }
 

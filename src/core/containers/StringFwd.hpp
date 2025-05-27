@@ -12,23 +12,25 @@ namespace containers {
 
 enum StringType : int
 {
-    NONE        = 0,
+    NONE = 0,
 
-    ANSI        = 1,
-    UTF8        = 2,
-    UTF16       = 3,
-    UTF32       = 4,
-    WIDE_CHAR   = 5,
+    ANSI = 1,
+    UTF8 = 2,
+    UTF16 = 3,
+    UTF32 = 4,
+    WIDE_CHAR = 5,
 
     MAX
 };
 
 namespace detail {
-    
+
 using namespace utf;
 
 template <int StringType>
-struct StringTypeImpl { };
+struct StringTypeImpl
+{
+};
 
 template <>
 struct StringTypeImpl<ANSI>
@@ -91,7 +93,7 @@ using UTF16String = containers::detail::String<StringType::UTF16>;
 using PlatformString = containers::detail::String<std::is_same_v<TChar, wchar_t> ? StringType::WIDE_CHAR : StringType::UTF8>;
 
 template <int string_type>
-using StringView = utilities::detail::StringView< string_type >;
+using StringView = utilities::detail::StringView<string_type>;
 
 using ANSIStringView = StringView<StringType::ANSI>;
 using UTF8StringView = StringView<StringType::UTF8>;
@@ -101,10 +103,16 @@ using WideStringView = StringView<StringType::WIDE_CHAR>;
 
 // traits
 template <class T>
-struct IsString { static constexpr bool value = false; };
+struct IsString
+{
+    static constexpr bool value = false;
+};
 
 template <int string_type>
-struct IsString<containers::detail::String<string_type>> { static constexpr bool value = true; };
+struct IsString<containers::detail::String<string_type>>
+{
+    static constexpr bool value = true;
+};
 
 } // namespace hyperion
 

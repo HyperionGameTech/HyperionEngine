@@ -14,6 +14,7 @@ class UIStage;
 #pragma region UIPanel
 
 HYP_CLASS()
+
 class HYP_API UIPanel : public UIObject
 {
     HYP_OBJECT_BODY(UIPanel);
@@ -23,19 +24,23 @@ protected:
 
 public:
     UIPanel();
-    UIPanel(const UIPanel &other)                   = delete;
-    UIPanel &operator=(const UIPanel &other)        = delete;
-    UIPanel(UIPanel &&other) noexcept               = delete;
-    UIPanel &operator=(UIPanel &&other) noexcept    = delete;
-    virtual ~UIPanel() override                     = default;
+    UIPanel(const UIPanel& other) = delete;
+    UIPanel& operator=(const UIPanel& other) = delete;
+    UIPanel(UIPanel&& other) noexcept = delete;
+    UIPanel& operator=(UIPanel&& other) noexcept = delete;
+    virtual ~UIPanel() override = default;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsHorizontalScrollEnabled() const
-        { return m_is_scroll_enabled & UIObjectScrollbarOrientation::HORIZONTAL; }
+    {
+        return m_is_scroll_enabled & UIObjectScrollbarOrientation::HORIZONTAL;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsVerticalScrollEnabled() const
-        { return m_is_scroll_enabled & UIObjectScrollbarOrientation::VERTICAL; }
+    {
+        return m_is_scroll_enabled & UIObjectScrollbarOrientation::VERTICAL;
+    }
 
     HYP_METHOD()
     void SetIsScrollEnabled(UIObjectScrollbarOrientation orientation, bool is_scroll_enabled);
@@ -44,7 +49,7 @@ public:
     {
         const int orientation_index = UIObjectScrollbarOrientationToIndex(orientation);
         AssertThrow(orientation_index != -1);
-        
+
         return (m_is_scroll_enabled & orientation)
             && GetActualInnerSize()[orientation_index] > GetActualSize()[orientation_index];
     }
@@ -52,7 +57,7 @@ public:
     virtual void Init() override;
 
 protected:
-    virtual void OnAttached_Internal(UIObject *parent) override;
+    virtual void OnAttached_Internal(UIObject* parent) override;
 
     virtual void UpdateSize_Internal(bool update_children) override;
 
@@ -69,12 +74,12 @@ private:
     void UpdateScrollbarSize(UIObjectScrollbarOrientation orientation);
     void UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientation);
 
-    UIEventHandlerResult HandleScroll(const MouseEvent &event_data);
+    UIEventHandlerResult HandleScroll(const MouseEvent& event_data);
 
     EnumFlags<UIObjectScrollbarOrientation> m_is_scroll_enabled;
-    DelegateHandler                         m_on_scroll_handler;
+    DelegateHandler m_on_scroll_handler;
 
-    FixedArray<Vec2i, 2>                    m_initial_drag_position;
+    FixedArray<Vec2i, 2> m_initial_drag_position;
 };
 
 #pragma endregion UIPanel

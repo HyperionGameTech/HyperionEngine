@@ -33,8 +33,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
         InternalFormat::R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
         FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        FilterMode::TEXTURE_FILTER_LINEAR
-    });
+        FilterMode::TEXTURE_FILTER_LINEAR });
 
     InitObject(m_cubemap);
 
@@ -45,17 +44,16 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(m_dimensions.x), int(m_dimensions.y),
-        0.1f, 10000.0f
-    );
+        0.1f, 10000.0f);
 
     m_camera->SetName(Name::Unique("SkydomeRendererCamera"));
     m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
-    
+
     InitObject(m_camera);
 
     Handle<Node> camera_node = m_virtual_scene->GetRoot()->AddChild();
     camera_node->SetName("SkydomeRendererCamera");
-    
+
     Handle<Entity> camera_entity = m_virtual_scene->GetEntityManager()->AddEntity();
     m_virtual_scene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(camera_entity);
     m_virtual_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { m_camera });
@@ -66,8 +64,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
         m_virtual_scene,
         BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)),
         m_dimensions,
-        ENV_PROBE_TYPE_SKY
-    );
+        ENV_PROBE_TYPE_SKY);
 }
 
 void SkydomeRenderer::Init()
@@ -77,7 +74,7 @@ void SkydomeRenderer::Init()
 void SkydomeRenderer::InitGame()
 {
     m_virtual_scene->SetOwnerThreadID(g_game_thread);
-    
+
     g_engine->GetWorld()->AddScene(m_virtual_scene);
 
     InitObject(m_env_probe);
@@ -85,7 +82,8 @@ void SkydomeRenderer::InitGame()
 
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
-    if (dome_node_asset.HasValue()) {
+    if (dome_node_asset.HasValue())
+    {
         Handle<Node> dome_node = dome_node_asset->Result();
         dome_node->Scale(Vec3f(10.0f));
         dome_node->LockTransform();
@@ -96,7 +94,8 @@ void SkydomeRenderer::InitGame()
 
 void SkydomeRenderer::OnRemoved()
 {
-    if (m_env_probe) {
+    if (m_env_probe)
+    {
         m_env_probe->EnqueueUnbind();
         m_env_probe.Reset();
     }
@@ -104,14 +103,11 @@ void SkydomeRenderer::OnRemoved()
     m_camera.Reset();
     m_cubemap.Reset();
 
-    Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(
-        HYP_STATIC_MESSAGE("Remove skydome scene from world"),
-        [scene = m_virtual_scene]()
+    Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Remove skydome scene from world"), [scene = m_virtual_scene]()
         {
             g_engine->GetWorld()->RemoveScene(scene);
         },
-        TaskEnqueueFlags::FIRE_AND_FORGET
-    );
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -119,36 +115,40 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void SkydomeRenderer::OnRender(FrameBase *frame)
+void SkydomeRenderer::OnRender(FrameBase* frame)
 {
     AssertThrow(m_env_probe.IsValid());
 
-    if (!m_env_probe->IsReady()) {
+    if (!m_env_probe->IsReady())
+    {
         return;
     }
 
     // @FIXME
-    if (!m_cubemap->GetRenderResource().GetImage()->IsCreated()) {
+    if (!m_cubemap->GetRenderResource().GetImage()->IsCreated())
+    {
         return;
     }
 
-    if (!m_env_probe->NeedsRender()) {
+    if (!m_env_probe->NeedsRender())
+    {
         return;
     }
 
     m_env_probe->GetRenderResource().Render(frame);
 
     // Copy cubemap from env probe to cubemap texture
-    const ImageRef &src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();
+    const ImageRef& src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();
     AssertThrow(src_image.IsValid());
     // AssertThrow(src_image->IsCreated());
 
-    if (!src_image->IsCreated()) {
+    if (!src_image->IsCreated())
+    {
         // hack to avoid crash
         return;
     }
 
-    const ImageRef &dst_image = m_cubemap->GetRenderResource().GetImage();
+    const ImageRef& dst_image = m_cubemap->GetRenderResource().GetImage();
 
     frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
     frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);

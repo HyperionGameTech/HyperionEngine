@@ -6,7 +6,7 @@
 
 namespace hyperion {
 
-FollowCameraController::FollowCameraController(const Vector3 &target, const Vector3 &offset)
+FollowCameraController::FollowCameraController(const Vector3& target, const Vector3& offset)
     : PerspectiveCameraController(),
       m_target(target),
       m_offset(offset),
@@ -43,15 +43,16 @@ void FollowCameraController::UpdateLogic(double dt)
 
     const Vector3 origin = m_camera->GetTarget();
     const Vector3 normalized_offset_direction = (origin - (origin + m_real_offset)).Normalized();
-    
+
     m_camera->SetTranslation(origin + normalized_offset_direction * m_desired_distance);
 }
 
-void FollowCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
+void FollowCameraController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
 {
     HYP_SCOPE;
 
-    switch (command.command) {
+    switch (command.command)
+    {
     case CameraCommand::CAMERA_COMMAND_MAG:
     {
         m_mx = command.mag_data.mx;
@@ -67,15 +68,14 @@ void FollowCameraController::RespondToCommand(const CameraCommand &command, Game
         m_offset = Vector3(
             -MathUtil::Sin(m_mag.x * 4.0f) * mouse_speed,
             -MathUtil::Sin(m_mag.y * 4.0f) * mouse_speed,
-            MathUtil::Cos(m_mag.x  * 4.0f) * mouse_speed
-        );
-    
+            MathUtil::Cos(m_mag.x * 4.0f) * mouse_speed);
+
         break;
     }
     case CameraCommand::CAMERA_COMMAND_SCROLL:
     {
         constexpr float scroll_speed = 150.0f;
-        
+
         m_desired_distance -= float(command.scroll_data.wheel_y) * scroll_speed * dt;
 
         break;
@@ -87,7 +87,8 @@ void FollowCameraController::RespondToCommand(const CameraCommand &command, Game
 
         const Vector3 dir_cross_y = Vector3(m_camera->m_direction).Cross(m_camera->m_up);
 
-        switch (command.movement_data.movement_type) {
+        switch (command.movement_data.movement_type)
+        {
         case CameraCommand::CAMERA_MOVEMENT_FORWARD:
             m_offset -= m_camera->m_up * speed;
 

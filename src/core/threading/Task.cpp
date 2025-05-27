@@ -8,7 +8,7 @@ namespace threading {
 
 #pragma region TaskCallbackChain
 
-TaskCallbackChain::TaskCallbackChain(TaskCallbackChain &&other) noexcept
+TaskCallbackChain::TaskCallbackChain(TaskCallbackChain&& other) noexcept
 {
     Mutex::Guard guard(other.m_mutex);
 
@@ -16,9 +16,10 @@ TaskCallbackChain::TaskCallbackChain(TaskCallbackChain &&other) noexcept
     m_num_callbacks.Set(other.m_num_callbacks.Exchange(0, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
 }
 
-TaskCallbackChain &TaskCallbackChain::operator=(TaskCallbackChain &&other) noexcept
+TaskCallbackChain& TaskCallbackChain::operator=(TaskCallbackChain&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -31,7 +32,7 @@ TaskCallbackChain &TaskCallbackChain::operator=(TaskCallbackChain &&other) noexc
     return *this;
 }
 
-void TaskCallbackChain::Add(Proc<void()> &&callback)
+void TaskCallbackChain::Add(Proc<void()>&& callback)
 {
     // @TODO: Smarter implementation possibly using semaphores that are set up with a value when task is first initialized,
     // need a way to tell if the added callback will never be executed because the task completed.
@@ -44,10 +45,12 @@ void TaskCallbackChain::Add(Proc<void()> &&callback)
 
 void TaskCallbackChain::operator()()
 {
-    if (m_num_callbacks.Get(MemoryOrder::ACQUIRE)) {
+    if (m_num_callbacks.Get(MemoryOrder::ACQUIRE))
+    {
         Mutex::Guard guard(m_mutex);
 
-        for (Proc<void()> &proc : m_callbacks) {
+        for (Proc<void()>& proc : m_callbacks)
+        {
             proc();
         }
     }
@@ -59,12 +62,14 @@ void TaskCallbackChain::operator()()
 
 bool TaskBase::Cancel()
 {
-    if (!m_id.IsValid() || !m_assigned_scheduler) {
+    if (!m_id.IsValid() || !m_assigned_scheduler)
+    {
         return false;
     }
 
-    if (m_assigned_scheduler->Dequeue(m_id)) {
-        m_id = { };
+    if (m_assigned_scheduler->Dequeue(m_id))
+    {
+        m_id = {};
         m_assigned_scheduler = nullptr;
 
         return true;
@@ -77,7 +82,8 @@ void TaskBase::Await_Internal() const
 {
     AssertThrow(IsValid());
 
-    while (!IsCompleted()) {
+    while (!IsCompleted())
+    {
         HYP_WAIT_IDLE();
     }
 

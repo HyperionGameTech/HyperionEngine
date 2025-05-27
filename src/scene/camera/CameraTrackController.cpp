@@ -18,7 +18,8 @@ CameraTrackController::CameraTrackController(RC<CameraTrack> camera_track)
 
 void CameraTrackController::UpdateLogic(double dt)
 {
-    if (!m_camera_track) {
+    if (!m_camera_track)
+    {
         return;
     }
 
@@ -36,7 +37,7 @@ void CameraTrackController::UpdateLogic(double dt)
     m_camera->SetDirection(view_vector);
 }
 
-void CameraTrackController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
+void CameraTrackController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
 {
 }
 

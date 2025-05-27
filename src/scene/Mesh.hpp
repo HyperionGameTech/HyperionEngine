@@ -29,6 +29,7 @@ class BVHNode;
 class MeshRenderResource;
 
 HYP_CLASS()
+
 class HYP_API Mesh final : public HypObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);
@@ -36,80 +37,88 @@ class HYP_API Mesh final : public HypObject<Mesh>
 public:
     using Index = uint32;
 
-    static Pair<Array<Vertex>, Array<uint32>> CalculateIndices(const Array<Vertex> &vertices);
+    static Pair<Array<Vertex>, Array<uint32>> CalculateIndices(const Array<Vertex>& vertices);
 
     Mesh();
 
     Mesh(
         RC<StreamedMeshData> streamed_mesh_data,
         Topology topology,
-        const VertexAttributeSet &vertex_attributes
-    );
+        const VertexAttributeSet& vertex_attributes);
 
     Mesh(
         RC<StreamedMeshData> streamed_mesh_data,
-        Topology topology = Topology::TRIANGLES
-    );
+        Topology topology = Topology::TRIANGLES);
 
     Mesh(
         Array<Vertex> vertices,
         Array<uint32> indices,
         Topology topology,
-        const VertexAttributeSet &vertex_attributes
-    );
+        const VertexAttributeSet& vertex_attributes);
 
     Mesh(
         Array<Vertex> vertices,
         Array<uint32> indices,
-        Topology topology = Topology::TRIANGLES
-    );
+        Topology topology = Topology::TRIANGLES);
 
-    Mesh(const Mesh &other)             = delete;
-    Mesh &operator=(const Mesh &other)  = delete;
+    Mesh(const Mesh& other) = delete;
+    Mesh& operator=(const Mesh& other) = delete;
 
-    Mesh(Mesh &&other) noexcept;
-    Mesh &operator=(Mesh &&other) noexcept;
+    Mesh(Mesh&& other) noexcept;
+    Mesh& operator=(Mesh&& other) noexcept;
 
     ~Mesh();
 
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
     HYP_FORCE_INLINE Name GetName() const
-        { return m_name; }
+    {
+        return m_name;
+    }
 
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
+    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
     HYP_FORCE_INLINE void SetName(Name name)
-        { m_name = name; }
+    {
+        m_name = name;
+    }
 
-    HYP_FORCE_INLINE MeshRenderResource &GetRenderResource() const
-        { return *m_render_resource; }
+    HYP_FORCE_INLINE MeshRenderResource& GetRenderResource() const
+    {
+        return *m_render_resource;
+    }
 
     void SetVertices(Span<const Vertex> vertices);
     void SetVertices(Span<const Vertex> vertices, Span<const uint32> indices);
 
-    HYP_METHOD(Property="StreamedMeshData")
-    const RC<StreamedMeshData> &GetStreamedMeshData() const;
+    HYP_METHOD(Property = "StreamedMeshData")
+    const RC<StreamedMeshData>& GetStreamedMeshData() const;
 
-    HYP_METHOD(Property="StreamedMeshData")
+    HYP_METHOD(Property = "StreamedMeshData")
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
 
     HYP_METHOD()
     uint32 NumIndices() const;
 
-    HYP_METHOD(Property="VertexAttributes")
-    HYP_FORCE_INLINE const VertexAttributeSet &GetVertexAttributes() const
-        { return m_mesh_attributes.vertex_attributes; }
+    HYP_METHOD(Property = "VertexAttributes")
+    HYP_FORCE_INLINE const VertexAttributeSet& GetVertexAttributes() const
+    {
+        return m_mesh_attributes.vertex_attributes;
+    }
 
-    HYP_METHOD(Property="VertexAttributes")
-    void SetVertexAttributes(const VertexAttributeSet &attributes);
+    HYP_METHOD(Property = "VertexAttributes")
+    void SetVertexAttributes(const VertexAttributeSet& vertex_attributes);
 
-    HYP_FORCE_INLINE const MeshAttributes &GetMeshAttributes() const
-        { return m_mesh_attributes; }
+    HYP_FORCE_INLINE const MeshAttributes& GetMeshAttributes() const
+    {
+        return m_mesh_attributes;
+    }
 
-    void SetMeshAttributes(const MeshAttributes &attributes);
+    void SetMeshAttributes(const MeshAttributes& attributes);
 
-    HYP_METHOD(Property="Topology")
+    HYP_METHOD(Property = "Topology")
     HYP_FORCE_INLINE Topology GetTopology() const
-        { return m_mesh_attributes.topology; }
+    {
+        return m_mesh_attributes.topology;
+    }
 
     void CalculateNormals(bool weighted = false);
     void CalculateTangents();
@@ -120,15 +129,19 @@ public:
     /*! \brief Get the axis-aligned bounding box for the mesh.
         If the mesh has not been initialized, the AABB will be invalid, unless SetAABB() has been called.
         Otherwise, the AABB will be calculated from the mesh vertices. */
-    HYP_METHOD(Property="AABB", Serialize=true, Editor=true)
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
+    HYP_METHOD(Property = "AABB", Serialize = true, Editor = true)
+    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
 
     /*! \brief Manually set the AABB for the mesh. If CalculateAABB is called after this, or the mesh data is changed, the
         manually set AABB will be overwritten. */
-    HYP_METHOD(Property="AABB", Serialize=true, Editor=true)
-    HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; }
+    HYP_METHOD(Property = "AABB", Serialize = true, Editor = true)
+    HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
+    {
+        m_aabb = aabb;
+    }
 
     void Init();
 
@@ -136,27 +149,27 @@ public:
      *  \note Init() must be called before this method. */
     void SetPersistentRenderResourceEnabled(bool enabled);
 
-    bool BuildBVH(BVHNode &out_bvh_node, int max_depth = 3);
+    bool BuildBVH(BVHNode& out_bvh_node, int max_depth = 3);
 
 private:
     void CalculateAABB();
 
-    Name                    m_name;
+    Name m_name;
 
-    MeshAttributes          m_mesh_attributes;
+    MeshAttributes m_mesh_attributes;
 
     // Must be before m_streamed_mesh_data, needs to get constructed first to use as out parameter to construct StreamedMeshData.
-    mutable ResourceHandle  m_streamed_mesh_data_resource_handle;
-    RC<StreamedMeshData>    m_streamed_mesh_data;
+    mutable ResourceHandle m_streamed_mesh_data_resource_handle;
+    RC<StreamedMeshData> m_streamed_mesh_data;
 
-    mutable BoundingBox     m_aabb;
+    mutable BoundingBox m_aabb;
 
-    MeshRenderResource      *m_render_resource;
-    ResourceHandle          m_persistent_render_resource_handle;
-    
+    MeshRenderResource* m_render_resource;
+    ResourceHandle m_persistent_render_resource_handle;
+
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion
 
-#endif //HYPERION_MESH_HPP
+#endif // HYPERION_MESH_HPP

@@ -12,24 +12,23 @@
 
 namespace hyperion {
 
-extern IRenderingAPI *g_rendering_api;
+extern IRenderingAPI* g_rendering_api;
 
 namespace renderer {
 
-static inline VulkanRenderingAPI *GetRenderingAPI()
+static inline VulkanRenderingAPI* GetRenderingAPI()
 {
-    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
 static const bool use_srgb = true;
 static const VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 static RendererResult HandleNextFrame(
-    VulkanSwapchain *swapchain,
-    VulkanFrame *frame,
-    uint32 *index,
-    bool &out_needs_recreate
-)
+    VulkanSwapchain* swapchain,
+    VulkanFrame* frame,
+    uint32* index,
+    bool& out_needs_recreate)
 {
     VkResult vk_result = vkAcquireNextImageKHR(
         GetRenderingAPI()->GetDevice()->GetDevice(),
@@ -37,18 +36,20 @@ static RendererResult HandleNextFrame(
         UINT64_MAX,
         frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetVulkanHandle(),
         VK_NULL_HANDLE,
-        index
-    );
+        index);
 
-    if (vk_result == VK_ERROR_OUT_OF_DATE_KHR) {
+    if (vk_result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
         out_needs_recreate = true;
 
-        return { };
-    } else if (vk_result != VK_SUCCESS && vk_result != VK_SUBOPTIMAL_KHR) {
+        return {};
+    }
+    else if (vk_result != VK_SUCCESS && vk_result != VK_SUBOPTIMAL_KHR)
+    {
         return HYP_MAKE_ERROR(RendererError, "Failed to acquire next image", int(vk_result));
     }
 
-    return { };
+    return {};
 }
 
 #pragma region Swapchain
@@ -72,11 +73,12 @@ void VulkanSwapchain::NextFrame()
     m_current_frame_index = (m_current_frame_index + 1) % max_frames_in_flight;
 }
 
-RendererResult VulkanSwapchain::PrepareFrame(bool &out_needs_recreate)
+RendererResult VulkanSwapchain::PrepareFrame(bool& out_needs_recreate)
 {
-    static const auto HandleFrameResult = [](VkResult result, bool &out_needs_recreate) -> RendererResult
+    static const auto handle_frame_result = [](VkResult result, bool& out_needs_recreate) -> RendererResult
     {
-        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
+        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
             out_needs_recreate = true;
 
             HYPERION_RETURN_OK;
@@ -87,13 +89,14 @@ RendererResult VulkanSwapchain::PrepareFrame(bool &out_needs_recreate)
         HYPERION_RETURN_OK;
     };
 
-    const VulkanFrameRef &frame = GetCurrentFrame();
+    const VulkanFrameRef& frame = GetCurrentFrame();
 
     HYPERION_BUBBLE_ERRORS(frame->GetFence()->WaitForGPU(true));
 
-    HYPERION_BUBBLE_ERRORS(HandleFrameResult(frame->GetFence()->GetLastFrameResult(), out_needs_recreate));
+    HYPERION_BUBBLE_ERRORS(handle_frame_result(frame->GetFence()->GetLastFrameResult(), out_needs_recreate));
 
-    if (frame->OnFrameEnd.AnyBound()) {
+    if (frame->OnFrameEnd.AnyBound())
+    {
         DebugLog(LogType::Debug, "Frame %u: OnFrameEnd", frame->GetFrameIndex());
         frame->OnFrameEnd(frame.Get());
         frame->OnFrameEnd.RemoveAllDetached();
@@ -106,11 +109,11 @@ RendererResult VulkanSwapchain::PrepareFrame(bool &out_needs_recreate)
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue *queue) const
+RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
-    const VulkanFrameRef &frame = GetCurrentFrame();
+    const VulkanFrameRef& frame = GetCurrentFrame();
 
-    const auto &signal_semaphores = frame->GetPresentSemaphores().GetSignalSemaphoresView();
+    const auto& signal_semaphores = frame->GetPresentSemaphores().GetSignalSemaphoresView();
 
     VkPresentInfoKHR present_info { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     present_info.waitSemaphoreCount = uint32(signal_semaphores.size());
@@ -127,7 +130,8 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue *queue) const
 
 RendererResult VulkanSwapchain::Create()
 {
-    if (m_surface == VK_NULL_HANDLE) {
+    if (m_surface == VK_NULL_HANDLE)
+    {
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
@@ -140,41 +144,46 @@ RendererResult VulkanSwapchain::Create()
         m_support_details.capabilities.currentExtent.height
     };
 
-    if (m_extent.x * m_extent.y == 0) {
+    if (m_extent.x * m_extent.y == 0)
+    {
         return HYP_MAKE_ERROR(RendererError, "Failed to retrieve swapchain resolution!");
     }
 
     uint32 image_count = m_support_details.capabilities.minImageCount + 1;
 
-    if (m_support_details.capabilities.maxImageCount > 0 && image_count > m_support_details.capabilities.maxImageCount) {
+    if (m_support_details.capabilities.maxImageCount > 0 && image_count > m_support_details.capabilities.maxImageCount)
+    {
         image_count = m_support_details.capabilities.maxImageCount;
     }
 
-    VkSwapchainCreateInfoKHR create_info{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-    create_info.surface             = m_surface;
-    create_info.minImageCount       = image_count;
-    create_info.imageFormat         = m_surface_format.format;
-    create_info.imageColorSpace     = m_surface_format.colorSpace;
-    create_info.imageExtent         = { m_extent.x, m_extent.y };
-    create_info.imageArrayLayers    = 1; /* This is always 1 unless we make a stereoscopic/VR application */
-    create_info.imageUsage          = image_usage_flags;
+    VkSwapchainCreateInfoKHR create_info { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+    create_info.surface = m_surface;
+    create_info.minImageCount = image_count;
+    create_info.imageFormat = m_surface_format.format;
+    create_info.imageColorSpace = m_surface_format.colorSpace;
+    create_info.imageExtent = { m_extent.x, m_extent.y };
+    create_info.imageArrayLayers = 1; /* This is always 1 unless we make a stereoscopic/VR application */
+    create_info.imageUsage = image_usage_flags;
 
     /* Graphics computations and presentation are done on separate hardware */
-    const QueueFamilyIndices &qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
 
     const uint32 concurrent_families[] = {
         qf_indices.graphics_family.Get(),
         qf_indices.present_family.Get()
     };
 
-    if (qf_indices.graphics_family.Get() != qf_indices.present_family.Get()) {
+    if (qf_indices.graphics_family.Get() != qf_indices.present_family.Get())
+    {
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = uint32(std::size(concurrent_families)); /* Two family indices(one for each process) */
         create_info.pQueueFamilyIndices = concurrent_families;
-    } else {
+    }
+    else
+    {
         /* Computations and presentation are done on same hardware(most scenarios) */
         create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        create_info.queueFamilyIndexCount = 0;       /* Optional */
+        create_info.queueFamilyIndexCount = 0;     /* Optional */
         create_info.pQueueFamilyIndices = nullptr; /* Optional */
     }
 
@@ -189,32 +198,32 @@ RendererResult VulkanSwapchain::Create()
 
     HYPERION_VK_CHECK_MSG(
         vkCreateSwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &m_handle),
-        "Failed to create Vulkan swapchain!"
-    );
+        "Failed to create Vulkan swapchain!");
 
     RetrieveImageHandles();
 
-    for (const ImageRef &image : m_images) {
+    for (const ImageRef& image : m_images)
+    {
         VulkanFramebufferRef framebuffer = MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT);
-        
+
         framebuffer->AddAttachment(
             0,
             VulkanImageRef(image),
             LoadOperation::CLEAR,
-            StoreOperation::STORE
-        );
+            StoreOperation::STORE);
 
         HYPERION_BUBBLE_ERRORS(framebuffer->Create());
 
         m_framebuffers.PushBack(std::move(framebuffer));
     }
 
-    VulkanDeviceQueue *queue = &GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
-    
-    for (uint32 i = 0; i < m_frames.Size(); i++) {
+    VulkanDeviceQueue* queue = &GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
+
+    for (uint32 i = 0; i < m_frames.Size(); i++)
+    {
         VkCommandPool pool = queue->command_pools[0];
         AssertThrow(pool != VK_NULL_HANDLE);
-        
+
         VulkanCommandBufferRef command_buffer = MakeRenderObject<VulkanCommandBuffer>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
         HYPERION_BUBBLE_ERRORS(command_buffer->Create(pool));
         m_command_buffers[i] = std::move(command_buffer);
@@ -229,7 +238,8 @@ RendererResult VulkanSwapchain::Create()
 
 RendererResult VulkanSwapchain::Destroy()
 {
-    if (m_handle == VK_NULL_HANDLE) {
+    if (m_handle == VK_NULL_HANDLE)
+    {
         return HYP_MAKE_ERROR(RendererError, "Swapchain already destroyed");
     }
 
@@ -246,26 +256,28 @@ RendererResult VulkanSwapchain::Destroy()
 
 RendererResult VulkanSwapchain::ChooseSurfaceFormat()
 {
-    m_surface_format = { };
+    m_surface_format = {};
 
-    if (use_srgb) {
+    if (use_srgb)
+    {
         /* look for srgb format */
         m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_support_details,
             { { InternalFormat::RGBA8_SRGB, InternalFormat::BGRA8_SRGB } },
-            [this](auto &&format)
+            [this](auto&& format)
             {
-                if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+                if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                {
                     return false;
                 }
 
                 m_surface_format = format;
 
                 return true;
-            }
-        );
+            });
 
-        if (m_image_format != InternalFormat::NONE) {
+        if (m_image_format != InternalFormat::NONE)
+        {
             HYPERION_RETURN_OK;
         }
     }
@@ -274,15 +286,15 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_support_details,
         { { InternalFormat::R11G11B10F, InternalFormat::RGBA16F, InternalFormat::RGBA8 } },
-        [this](auto &&format)
+        [this](auto&& format)
         {
             m_surface_format = format;
 
             return true;
-        }
-    );
+        });
 
-    if (m_image_format == InternalFormat::NONE) {
+    if (m_image_format == InternalFormat::NONE)
+    {
         return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format");
     }
 
@@ -317,14 +329,13 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     m_images.Resize(image_count);
 
-    for (uint32 i = 0; i < image_count; i++) {
+    for (uint32 i = 0; i < image_count; i++)
+    {
         VulkanImageRef image = MakeRenderObject<VulkanImage>(
             TextureDesc {
                 ImageType::TEXTURE_TYPE_2D,
                 m_image_format,
-                Vec3u { m_extent.x, m_extent.y, 1 }
-            }
-        );
+                Vec3u { m_extent.x, m_extent.y, 1 } });
 
         image->m_handle = vk_images[i];
         image->m_is_handle_owned = false;

@@ -18,34 +18,41 @@
 
 namespace hyperion {
 
-bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONObject &out_json)
+bool ObjectToJSON(const HypClass* hyp_class, const HypData& target, json::JSONObject& out_json)
 {
-    for (const IHypMember &member : hyp_class->GetMembers()) {
-        if (const HypClassAttributeValue &attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool()) {
+    for (const IHypMember& member : hyp_class->GetMembers())
+    {
+        if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+        {
             continue;
         }
 
-        switch (member.GetMemberType()) {
+        switch (member.GetMemberType())
+        {
         case HypMemberType::TYPE_PROPERTY:
         {
-            const HypProperty *property = static_cast<const HypProperty *>(&member);
+            const HypProperty* property = static_cast<const HypProperty*>(&member);
 
             json::JSONValue json_value;
 
-            if (!HypDataToJSON(property->Get(target), json_value)) {
+            if (!HypDataToJSON(property->Get(target), json_value))
+            {
                 return false;
             }
 
             String path = property->GetName().LookupString();
 
-            if (const HypClassAttributeValue &path_attribute = property->GetAttribute("jsonpath"); path_attribute.IsValid()) {
+            if (const HypClassAttributeValue& path_attribute = property->GetAttribute("jsonpath"); path_attribute.IsValid())
+            {
                 path = path_attribute.GetString();
 
                 json::JSONValue temp(std::move(out_json));
                 temp.Set(path, json_value);
 
                 out_json = std::move(temp).AsObject();
-            } else {
+            }
+            else
+            {
                 out_json[path] = std::move(json_value);
             }
 
@@ -53,23 +60,27 @@ bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONOb
         }
         case HypMemberType::TYPE_FIELD:
         {
-            const HypField *field = static_cast<const HypField *>(&member);
+            const HypField* field = static_cast<const HypField*>(&member);
 
             json::JSONValue json_value;
 
-            if (!HypDataToJSON(field->Get(target), json_value)) {
+            if (!HypDataToJSON(field->Get(target), json_value))
+            {
                 return false;
             }
             String path = field->GetName().LookupString();
 
-            if (const HypClassAttributeValue &path_attribute = field->GetAttribute("jsonpath"); path_attribute.IsValid()) {
+            if (const HypClassAttributeValue& path_attribute = field->GetAttribute("jsonpath"); path_attribute.IsValid())
+            {
                 path = path_attribute.GetString();
 
                 json::JSONValue temp(std::move(out_json));
                 temp.Set(path, json_value);
-                
+
                 out_json = std::move(temp).AsObject();
-            } else {
+            }
+            else
+            {
                 out_json[path] = std::move(json_value);
             }
 
@@ -77,24 +88,28 @@ bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONOb
         }
         case HypMemberType::TYPE_CONSTANT:
         {
-            const HypConstant *constant = static_cast<const HypConstant *>(&member);
+            const HypConstant* constant = static_cast<const HypConstant*>(&member);
 
             json::JSONValue json_value;
 
-            if (!HypDataToJSON(constant->Get(), json_value)) {
+            if (!HypDataToJSON(constant->Get(), json_value))
+            {
                 return false;
             }
 
             String path = constant->GetName().LookupString();
 
-            if (const HypClassAttributeValue &path_attribute = constant->GetAttribute("jsonpath"); path_attribute.IsValid()) {
+            if (const HypClassAttributeValue& path_attribute = constant->GetAttribute("jsonpath"); path_attribute.IsValid())
+            {
                 path = path_attribute.GetString();
 
                 json::JSONValue temp(std::move(out_json));
                 temp.Set(path, json_value);
 
                 out_json = std::move(temp).AsObject();
-            } else {
+            }
+            else
+            {
                 out_json[path] = std::move(json_value);
             }
 
@@ -108,22 +123,24 @@ bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONOb
     return true;
 }
 
-bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class, HypData &target)
+bool JSONToObject(const json::JSONObject& json_object, const HypClass* hyp_class, HypData& target)
 {
-    Array<const IHypMember *> members_to_resolve;
+    Array<const IHypMember*> members_to_resolve;
 
-    auto ResolveMember = [hyp_class, &target](const IHypMember &member, const json::JSONValue &value) -> bool
+    auto resolve_member = [hyp_class, &target](const IHypMember& member, const json::JSONValue& value) -> bool
     {
-        switch (member.GetMemberType()) {
+        switch (member.GetMemberType())
+        {
         case HypMemberType::TYPE_PROPERTY:
         {
-            const HypProperty &property = static_cast<const HypProperty &>(member);
+            const HypProperty& property = static_cast<const HypProperty&>(member);
 
             const TypeID type_id = property.Get(target).ToRef().GetTypeID();
 
             HypData hyp_data;
 
-            if (!JSONToHypData(value, type_id, hyp_data)) {
+            if (!JSONToHypData(value, type_id, hyp_data))
+            {
                 HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
                     member.GetName(), hyp_class->GetName());
 
@@ -136,13 +153,14 @@ bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class
         }
         case HypMemberType::TYPE_FIELD:
         {
-            const HypField &field = static_cast<const HypField &>(member);
+            const HypField& field = static_cast<const HypField&>(member);
 
             const TypeID type_id = field.Get(target).ToRef().GetTypeID();
 
             HypData hyp_data;
 
-            if (!JSONToHypData(value, type_id, hyp_data)) {
+            if (!JSONToHypData(value, type_id, hyp_data))
+            {
                 HYP_LOG(Config, Warning, "Failed to deserialize field \"{}\" of HypClass \"{}\" from json",
                     member.GetName(), hyp_class->GetName());
 
@@ -162,25 +180,30 @@ bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class
 
     json::JSONValue json_object_value(json_object);
 
-    for (const IHypMember &member : hyp_class->GetMembers()) {
-        if (const HypClassAttributeValue &attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool()) {
+    for (const IHypMember& member : hyp_class->GetMembers())
+    {
+        if (const HypClassAttributeValue& attribute = member.GetAttribute("jsonignore"); attribute.IsValid() && attribute.GetBool())
+        {
             continue;
         }
 
-        if (const HypClassAttributeValue &path_attribute = member.GetAttribute("jsonpath"); path_attribute.IsValid()) {
+        if (const HypClassAttributeValue& path_attribute = member.GetAttribute("jsonpath"); path_attribute.IsValid())
+        {
             const String path = path_attribute.GetString();
 
             HYP_LOG(Config, Debug, "Deserializing JSON property \"{}\" for HypClass \"{}\"", path, hyp_class->GetName());
 
             auto value = json_object_value.Get(path);
 
-            if (!value.value) {
+            if (!value.value)
+            {
                 HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", path, hyp_class->GetName());
 
                 continue;
             }
 
-            if (!ResolveMember(member, value.Get())) {
+            if (!resolve_member(member, value.Get()))
+            {
                 HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
                     path, hyp_class->GetName());
 
@@ -193,13 +216,15 @@ bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class
         // try to resolve the member by name
         auto value = json_object_value.Get(member.GetName().LookupString());
 
-        if (!value.value) {
+        if (!value.value)
+        {
             HYP_LOG(Config, Warning, "Failed to resolve JSON property \"{}\" for HypClass \"{}\"", member.GetName(), hyp_class->GetName());
 
             continue;
         }
 
-        if (!ResolveMember(member, value.Get())) {
+        if (!resolve_member(member, value.Get()))
+        {
             HYP_LOG(Config, Warning, "Failed to deserialize property \"{}\" of HypClass \"{}\" from json",
                 member.GetName(), hyp_class->GetName());
 
@@ -210,194 +235,258 @@ bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class
     return true;
 }
 
-bool JSONToHypData(const json::JSONValue &json_value, TypeID type_id, HypData &out_hyp_data)
+bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& out_hyp_data)
 {
-    if (type_id == TypeID::ForType<int8>()) {
+    if (type_id == TypeID::ForType<int8>())
+    {
         out_hyp_data = HypData(int8(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<int16>()) {
+    }
+    else if (type_id == TypeID::ForType<int16>())
+    {
         out_hyp_data = HypData(int16(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<int32>()) {
+    }
+    else if (type_id == TypeID::ForType<int32>())
+    {
         out_hyp_data = HypData(int32(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<int64>()) {
+    }
+    else if (type_id == TypeID::ForType<int64>())
+    {
         out_hyp_data = HypData(int64(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<uint8>()) {
+    }
+    else if (type_id == TypeID::ForType<uint8>())
+    {
         out_hyp_data = HypData(uint8(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<uint16>()) {
+    }
+    else if (type_id == TypeID::ForType<uint16>())
+    {
         out_hyp_data = HypData(uint16(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<uint32>()) {
+    }
+    else if (type_id == TypeID::ForType<uint32>())
+    {
         out_hyp_data = HypData(uint32(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<uint64>()) {
+    }
+    else if (type_id == TypeID::ForType<uint64>())
+    {
         out_hyp_data = HypData(uint64(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<float>()) {
+    }
+    else if (type_id == TypeID::ForType<float>())
+    {
         out_hyp_data = HypData(float(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<double>()) {
+    }
+    else if (type_id == TypeID::ForType<double>())
+    {
         out_hyp_data = HypData(double(json_value.ToNumber()));
 
         return true;
-    } else if (type_id == TypeID::ForType<bool>()) {
+    }
+    else if (type_id == TypeID::ForType<bool>())
+    {
         out_hyp_data = HypData(json_value.ToBool());
 
         return true;
-    } else if (type_id == TypeID::ForType<String>()) {
+    }
+    else if (type_id == TypeID::ForType<String>())
+    {
         out_hyp_data = HypData(json_value.ToString());
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec2i>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec2i>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 2) {
+        if (json_array.Size() != 2)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec2i(json_array[0].ToInt32(), json_array[1].ToInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec3i>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec3i>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 3) {
+        if (json_array.Size() != 3)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec3i(json_array[0].ToInt32(), json_array[1].ToInt32(), json_array[2].ToInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec4i>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec4i>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 4) {
+        if (json_array.Size() != 4)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec4i(json_array[0].ToInt32(), json_array[1].ToInt32(), json_array[2].ToInt32(), json_array[3].ToInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec2u>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec2u>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 2) {
+        if (json_array.Size() != 2)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec2u(json_array[0].ToUInt32(), json_array[1].ToUInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec3u>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec3u>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 3) {
+        if (json_array.Size() != 3)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec3u(json_array[0].ToUInt32(), json_array[1].ToUInt32(), json_array[2].ToUInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec4u>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec4u>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 4) {
+        if (json_array.Size() != 4)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec4u(json_array[0].ToUInt32(), json_array[1].ToUInt32(), json_array[2].ToUInt32(), json_array[3].ToUInt32()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec2f>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec2f>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 2) {
+        if (json_array.Size() != 2)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec2f(json_array[0].ToFloat(), json_array[1].ToFloat()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec3f>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec3f>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 3) {
+        if (json_array.Size() != 3)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec3f(json_array[0].ToFloat(), json_array[1].ToFloat(), json_array[2].ToFloat()));
 
         return true;
-    } else if (type_id == TypeID::ForType<Vec4f>()) {
-        if (!json_value.IsArray()) {
+    }
+    else if (type_id == TypeID::ForType<Vec4f>())
+    {
+        if (!json_value.IsArray())
+        {
             return false;
         }
 
-        const json::JSONArray &json_array = json_value.AsArray();
+        const json::JSONArray& json_array = json_value.AsArray();
 
-        if (json_array.Size() != 4) {
+        if (json_array.Size() != 4)
+        {
             return false;
         }
 
         out_hyp_data = HypData(Vec4f(json_array[0].ToFloat(), json_array[1].ToFloat(), json_array[2].ToFloat(), json_array[3].ToFloat()));
 
         return true;
-    } else {
-        if (!json_value.IsObject()) {
+    }
+    else
+    {
+        if (!json_value.IsObject())
+        {
             return false;
         }
 
-        const HypClass *hyp_class = GetClass(type_id);
+        const HypClass* hyp_class = GetClass(type_id);
 
-        if (hyp_class) {
+        if (hyp_class)
+        {
             HypData property_value_hyp_data;
             hyp_class->CreateInstance(property_value_hyp_data);
 
-            if (!JSONToObject(json_value.AsObject(), hyp_class, property_value_hyp_data)) {
+            if (!JSONToObject(json_value.AsObject(), hyp_class, property_value_hyp_data))
+            {
                 return false;
             }
 
@@ -410,34 +499,39 @@ bool JSONToHypData(const json::JSONValue &json_value, TypeID type_id, HypData &o
     return false;
 }
 
-bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
+bool HypDataToJSON(const HypData& value, json::JSONValue& out_json)
 {
-    if (value.IsNull()) {
+    if (value.IsNull())
+    {
         out_json = json::JSONNull();
 
         return true;
     }
 
-    if (value.Is<bool>(/* strict */ true)) {
+    if (value.Is<bool>(/* strict */ true))
+    {
         out_json = json::JSONBool(value.Get<bool>());
 
         return true;
     }
 
-    if (value.Is<double>(/* strict */ false)) {
+    if (value.Is<double>(/* strict */ false))
+    {
         out_json = json::JSONNumber(value.Get<double>());
 
         return true;
     }
 
-    if (value.Is<String>()) {
+    if (value.Is<String>())
+    {
         out_json = json::JSONString(value.Get<String>());
 
         return true;
     }
 
-    if (value.Is<Vec2i>()) {
-        const Vec2i &vec = value.Get<Vec2i>();
+    if (value.Is<Vec2i>())
+    {
+        const Vec2i& vec = value.Get<Vec2i>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -448,47 +542,9 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    if (value.Is<Vec3i>()) {
-        const Vec3i &vec = value.Get<Vec3i>();
-
-        json::JSONArray json_array;
-        json_array.PushBack(json::JSONNumber(vec.x));
-        json_array.PushBack(json::JSONNumber(vec.y));
-        json_array.PushBack(json::JSONNumber(vec.z));
-
-        out_json = std::move(json_array);
-
-        return true;
-    }
-
-    if (value.Is<Vec4i>()) {
-        const Vec4i &vec = value.Get<Vec4i>();
-
-        json::JSONArray json_array;
-        json_array.PushBack(json::JSONNumber(vec.x));
-        json_array.PushBack(json::JSONNumber(vec.y));
-        json_array.PushBack(json::JSONNumber(vec.z));
-        json_array.PushBack(json::JSONNumber(vec.w));
-
-        out_json = std::move(json_array);
-
-        return true;
-    }
-
-    if (value.Is<Vec2u>()) {
-        const Vec2u &vec = value.Get<Vec2u>();
-
-        json::JSONArray json_array;
-        json_array.PushBack(json::JSONNumber(vec.x));
-        json_array.PushBack(json::JSONNumber(vec.y));
-
-        out_json = std::move(json_array);
-
-        return true;
-    }
-
-    if (value.Is<Vec3u>()) {
-        const Vec3u &vec = value.Get<Vec3u>();
+    if (value.Is<Vec3i>())
+    {
+        const Vec3i& vec = value.Get<Vec3i>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -500,8 +556,9 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    if (value.Is<Vec4u>()) {
-        const Vec4u &vec = value.Get<Vec4u>();
+    if (value.Is<Vec4i>())
+    {
+        const Vec4i& vec = value.Get<Vec4i>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -514,8 +571,9 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    if (value.Is<Vec2f>()) {
-        const Vec2f &vec = value.Get<Vec2f>();
+    if (value.Is<Vec2u>())
+    {
+        const Vec2u& vec = value.Get<Vec2u>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -526,8 +584,9 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    if (value.Is<Vec3f>()) {
-        const Vec3f &vec = value.Get<Vec3f>();
+    if (value.Is<Vec3u>())
+    {
+        const Vec3u& vec = value.Get<Vec3u>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -539,8 +598,9 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    if (value.Is<Vec4f>()) {
-        const Vec4f &vec = value.Get<Vec4f>();
+    if (value.Is<Vec4u>())
+    {
+        const Vec4u& vec = value.Get<Vec4u>();
 
         json::JSONArray json_array;
         json_array.PushBack(json::JSONNumber(vec.x));
@@ -553,12 +613,56 @@ bool HypDataToJSON(const HypData &value, json::JSONValue &out_json)
         return true;
     }
 
-    const HypClass *hyp_class = GetClass(value.GetTypeID());
+    if (value.Is<Vec2f>())
+    {
+        const Vec2f& vec = value.Get<Vec2f>();
 
-    if (hyp_class) {
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec3f>())
+    {
+        const Vec3f& vec = value.Get<Vec3f>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    if (value.Is<Vec4f>())
+    {
+        const Vec4f& vec = value.Get<Vec4f>();
+
+        json::JSONArray json_array;
+        json_array.PushBack(json::JSONNumber(vec.x));
+        json_array.PushBack(json::JSONNumber(vec.y));
+        json_array.PushBack(json::JSONNumber(vec.z));
+        json_array.PushBack(json::JSONNumber(vec.w));
+
+        out_json = std::move(json_array);
+
+        return true;
+    }
+
+    const HypClass* hyp_class = GetClass(value.GetTypeID());
+
+    if (hyp_class)
+    {
         json::JSONObject json_object;
 
-        if (!ObjectToJSON(hyp_class, value, json_object)) {
+        if (!ObjectToJSON(hyp_class, value, json_object))
+        {
             return false;
         }
 

@@ -9,21 +9,17 @@
 
 namespace hyperion {
 
-class PhysicsSystem : public System<
-    PhysicsSystem,
-    ComponentDescriptor<RigidBodyComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE>
->
+class PhysicsSystem : public System<PhysicsSystem, ComponentDescriptor<RigidBodyComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE>>
 {
 public:
-    PhysicsSystem(EntityManager &entity_manager)
+    PhysicsSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
 
     virtual ~PhysicsSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

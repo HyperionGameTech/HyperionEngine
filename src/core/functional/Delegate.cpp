@@ -7,7 +7,6 @@ namespace hyperion {
 namespace functional {
 namespace detail {
 
-
 } // namespace detail
 } // namespace functional
 

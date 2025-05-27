@@ -12,7 +12,8 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdl_button)
 {
     EnumFlags<MouseButtonState> mouse_button_state = MouseButtonState::NONE;
 
-    switch (sdl_button) {
+    switch (sdl_button)
+    {
     case SDL_BUTTON_LEFT:
         mouse_button_state |= MouseButtonState::LEFT;
         break;
@@ -57,19 +58,19 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdl_button)
 
 #pragma region SystemEvent
 
-SDL_Event *SystemEvent::GetInternalEvent()
+SDL_Event* SystemEvent::GetInternalEvent()
 {
-    return &(this->sdl_event);
+    return &m_sdl_event;
 }
 
 KeyCode SystemEvent::GetKeyCode() const
 {
-    return KeyCode(sdl_event.key.keysym.sym);
+    return KeyCode(m_sdl_event.key.keysym.sym);
 }
 
 EnumFlags<MouseButtonState> SystemEvent::GetMouseButtons() const
 {
-    return GetMouseButtonState(sdl_event.button.button);
+    return GetMouseButtonState(m_sdl_event.button.button);
 }
 
 #pragma endregion SystemEvent

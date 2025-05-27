@@ -19,12 +19,12 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region ShadowMapRenderResource
 
-ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement &atlas_element, const ImageViewRef &image_view)
+ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view)
     : m_type(type),
       m_filter_mode(filter_mode),
       m_atlas_element(atlas_element),
       m_image_view(image_view),
-      m_buffer_data { }
+      m_buffer_data {}
 {
     HYP_LOG(Rendering, Debug, "Creating shadow map for atlas element, (atlas: {}, offset: {}, dimensions: {}, scale: {})",
         atlas_element.atlas_index,
@@ -33,8 +33,8 @@ ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFi
         atlas_element.scale);
 }
 
-ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapRenderResource &&other) noexcept
-    : RenderResourceBase(static_cast<RenderResourceBase &&>(other)),
+ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapRenderResource&& other) noexcept
+    : RenderResourceBase(static_cast<RenderResourceBase&&>(other)),
       m_type(other.m_type),
       m_filter_mode(other.m_filter_mode),
       m_atlas_element(other.m_atlas_element),
@@ -51,7 +51,7 @@ ShadowMapRenderResource::~ShadowMapRenderResource()
 void ShadowMapRenderResource::Initialize_Internal()
 {
     HYP_SCOPE;
-    
+
     UpdateBufferData();
 }
 
@@ -65,7 +65,7 @@ void ShadowMapRenderResource::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *ShadowMapRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* ShadowMapRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->shadow_map_data;
 }
@@ -81,7 +81,8 @@ void ShadowMapRenderResource::UpdateBufferData()
     m_buffer_data.layer_index = m_type == ShadowMapType::POINT_SHADOW_MAP ? m_atlas_element.point_light_index : m_atlas_element.atlas_index;
     m_buffer_data.flags = uint32(ShadowFlags::NONE);
 
-    switch (m_filter_mode) {
+    switch (m_filter_mode)
+    {
     case ShadowMapFilterMode::VSM:
         m_buffer_data.flags |= uint32(ShadowFlags::VSM);
         break;
@@ -95,22 +96,23 @@ void ShadowMapRenderResource::UpdateBufferData()
         break;
     }
 
-    *static_cast<ShadowMapShaderData *>(m_buffer_address) = m_buffer_data;
+    *static_cast<ShadowMapShaderData*>(m_buffer_address) = m_buffer_data;
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData &buffer_data)
+void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData& buffer_data)
 {
     HYP_SCOPE;
 
     Execute([this, buffer_data]()
-    {
-        m_buffer_data = buffer_data;
+        {
+            m_buffer_data = buffer_data;
 
-        if (IsInitialized()) {
-            UpdateBufferData();
-        }
-    });
+            if (IsInitialized())
+            {
+                UpdateBufferData();
+            }
+        });
 }
 
 #pragma endregion ShadowMapRenderResource

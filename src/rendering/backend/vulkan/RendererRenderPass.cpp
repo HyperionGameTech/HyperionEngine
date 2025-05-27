@@ -9,13 +9,13 @@
 
 namespace hyperion {
 
-extern IRenderingAPI *g_rendering_api;
+extern IRenderingAPI* g_rendering_api;
 
 namespace renderer {
 
-static inline VulkanRenderingAPI *GetRenderingAPI()
+static inline VulkanRenderingAPI* GetRenderingAPI()
 {
-    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
 VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
@@ -41,41 +41,37 @@ VulkanRenderPass::~VulkanRenderPass()
 
 void VulkanRenderPass::CreateDependencies()
 {
-    switch (m_stage) {
+    switch (m_stage)
+    {
     case RenderPassStage::PRESENT:
-        AddDependency(VkSubpassDependency{
+        AddDependency(VkSubpassDependency {
             .srcSubpass = VK_SUBPASS_EXTERNAL,
             .dstSubpass = 0,
             .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
             .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
             .srcAccessMask = 0,
             .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-        });
+            .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT });
 
         break;
     case RenderPassStage::SHADER:
-        AddDependency({
-            .srcSubpass = VK_SUBPASS_EXTERNAL,
-		    .dstSubpass = 0,
-		    .srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		    .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-		    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-                           | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		    .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-        });
+        AddDependency({ .srcSubpass = VK_SUBPASS_EXTERNAL,
+            .dstSubpass = 0,
+            .srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT });
 
-        AddDependency({
-            .srcSubpass = 0,
-		    .dstSubpass = VK_SUBPASS_EXTERNAL,
-		    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		    .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-                           | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-		    .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-        });
+        AddDependency({ .srcSubpass = 0,
+            .dstSubpass = VK_SUBPASS_EXTERNAL,
+            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+                | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+            .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT });
 
         break;
     default:
@@ -88,11 +84,12 @@ void VulkanRenderPass::AddAttachment(VulkanAttachmentRef attachment)
     m_render_pass_attachments.PushBack(std::move(attachment));
 }
 
-bool VulkanRenderPass::RemoveAttachment(const VulkanAttachment *attachment)
+bool VulkanRenderPass::RemoveAttachment(const VulkanAttachment* attachment)
 {
     const auto it = m_render_pass_attachments.FindAs(attachment);
 
-    if (it == m_render_pass_attachments.End()) {
+    if (it == m_render_pass_attachments.End())
+    {
         return false;
     }
 
@@ -110,22 +107,25 @@ RendererResult VulkanRenderPass::Create()
     Array<VkAttachmentDescription> attachment_descriptions;
     attachment_descriptions.Reserve(m_render_pass_attachments.Size());
 
-    VkAttachmentReference depth_attachment_reference { };
+    VkAttachmentReference depth_attachment_reference {};
     Array<VkAttachmentReference> color_attachment_references;
 
-    VkSubpassDescription subpass_description { };
+    VkSubpassDescription subpass_description {};
     subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass_description.pDepthStencilAttachment = nullptr;
 
     uint32 next_binding = 0;
     HashSet<uint32> used_bindings;
 
-    for (const VulkanAttachmentRef &attachment : m_render_pass_attachments) {
-        if (!attachment->HasBinding()) { // no binding has manually been set so we make one
+    for (const VulkanAttachmentRef& attachment : m_render_pass_attachments)
+    {
+        if (!attachment->HasBinding())
+        { // no binding has manually been set so we make one
             attachment->SetBinding(next_binding);
         }
 
-        if (used_bindings.Contains(attachment->GetBinding())) {
+        if (used_bindings.Contains(attachment->GetBinding()))
+        {
             return HYP_MAKE_ERROR(RendererError, "Render pass attachment binding cannot be reused");
         }
 
@@ -135,14 +135,16 @@ RendererResult VulkanRenderPass::Create()
 
         attachment_descriptions.PushBack(attachment->GetVulkanAttachmentDescription());
 
-        if (attachment->IsDepthAttachment()) {
+        if (attachment->IsDepthAttachment())
+        {
             depth_attachment_reference = attachment->GetVulkanHandle();
             subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
 
             m_vk_clear_values.PushBack(VkClearValue {
-                .depthStencil = { 1.0f, 0 }
-            });
-        } else {
+                .depthStencil = { 1.0f, 0 } });
+        }
+        else
+        {
             color_attachment_references.PushBack(attachment->GetVulkanHandle());
 
             m_vk_clear_values.PushBack(VkClearValue {
@@ -151,10 +153,7 @@ RendererResult VulkanRenderPass::Create()
                         attachment->GetClearColor().x,
                         attachment->GetClearColor().y,
                         attachment->GetClearColor().z,
-                        attachment->GetClearColor().w
-                    }
-                }
-            });
+                        attachment->GetClearColor().w } } });
         }
     }
 
@@ -179,12 +178,14 @@ RendererResult VulkanRenderPass::Create()
     multiview_info.pCorrelationMasks = &multiview_correlation_mask;
     multiview_info.correlationMaskCount = 1;
 
-    if (IsMultiview()) {
-        for (uint32 i = 0; i < m_num_multiview_layers; i++) {
+    if (IsMultiview())
+    {
+        for (uint32 i = 0; i < m_num_multiview_layers; i++)
+        {
             multiview_view_mask |= 1 << i;
             multiview_correlation_mask |= 1 << i;
         }
-        
+
         render_pass_info.pNext = &multiview_info;
     }
 
@@ -205,7 +206,7 @@ RendererResult VulkanRenderPass::Destroy()
     return result;
 }
 
-void VulkanRenderPass::Begin(VulkanCommandBuffer *cmd, VulkanFramebuffer *framebuffer, uint32 frame_index)
+void VulkanRenderPass::Begin(VulkanCommandBuffer* cmd, VulkanFramebuffer* framebuffer, uint32 frame_index)
 {
     AssertThrow(framebuffer != nullptr);
 
@@ -219,7 +220,8 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer *cmd, VulkanFramebuffer *frameb
 
     VkSubpassContents contents = VK_SUBPASS_CONTENTS_INLINE;
 
-    switch (m_mode) {
+    switch (m_mode)
+    {
     case RENDER_PASS_INLINE:
         contents = VK_SUBPASS_CONTENTS_INLINE;
         break;
@@ -231,7 +233,7 @@ void VulkanRenderPass::Begin(VulkanCommandBuffer *cmd, VulkanFramebuffer *frameb
     vkCmdBeginRenderPass(cmd->GetVulkanHandle(), &render_pass_info, contents);
 }
 
-void VulkanRenderPass::End(VulkanCommandBuffer *cmd)
+void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
 {
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
 }

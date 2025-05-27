@@ -6,4 +6,3 @@
 #include <core/object/HypObject.hpp>
 
 #endif // !HYPERION_COMPONENTS_BASE_HPP
-

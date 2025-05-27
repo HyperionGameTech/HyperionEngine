@@ -21,11 +21,11 @@ namespace hyperion {
 
 enum class ImageFormatCapabilities : uint32
 {
-    NONE        = 0x0,
-    SAMPLED     = 0x1,
-    STORAGE     = 0x2,
-    ATTACHMENT  = 0x4,
-    BLENDED     = 0x8
+    NONE = 0x0,
+    SAMPLED = 0x1,
+    STORAGE = 0x2,
+    ATTACHMENT = 0x4,
+    BLENDED = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(ImageFormatCapabilities);
@@ -70,7 +70,7 @@ enum class BaseFormat : uint32
     TEXTURE_FORMAT_RG,
     TEXTURE_FORMAT_RGB,
     TEXTURE_FORMAT_RGBA,
-    
+
     TEXTURE_FORMAT_BGR,
     TEXTURE_FORMAT_BGRA,
 
@@ -85,7 +85,7 @@ enum class InternalFormat : uint32
     RG8,
     RGB8,
     RGBA8,
-    
+
     B8,
     BG8,
     BGR8,
@@ -122,12 +122,12 @@ enum class InternalFormat : uint32
     RG8_SRGB,
     RGB8_SRGB,
     RGBA8_SRGB,
-    
+
     B8_SRGB,
     BG8_SRGB,
     BGR8_SRGB,
     BGRA8_SRGB,
-    
+
     DEPTH, /* begin depth */
 
     DEPTH_16 = DEPTH,
@@ -183,7 +183,8 @@ enum class ResourceState : uint32
 
 static inline constexpr BaseFormat GetBaseFormat(InternalFormat fmt)
 {
-    switch (fmt) {
+    switch (fmt)
+    {
     case InternalFormat::R8:
     case InternalFormat::R8_SRGB:
     case InternalFormat::R32_:
@@ -233,16 +234,26 @@ static inline constexpr BaseFormat GetBaseFormat(InternalFormat fmt)
 
 static inline constexpr uint32 NumComponents(BaseFormat format)
 {
-    switch (format) {
-    case BaseFormat::TEXTURE_FORMAT_NONE: return 0;
-    case BaseFormat::TEXTURE_FORMAT_R: return 1;
-    case BaseFormat::TEXTURE_FORMAT_RG: return 2;
-    case BaseFormat::TEXTURE_FORMAT_RGB: return 3;
-    case BaseFormat::TEXTURE_FORMAT_BGR: return 3;
-    case BaseFormat::TEXTURE_FORMAT_RGBA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_BGRA: return 4;
-    case BaseFormat::TEXTURE_FORMAT_DEPTH: return 1;
-    default: return 0; // undefined result
+    switch (format)
+    {
+    case BaseFormat::TEXTURE_FORMAT_NONE:
+        return 0;
+    case BaseFormat::TEXTURE_FORMAT_R:
+        return 1;
+    case BaseFormat::TEXTURE_FORMAT_RG:
+        return 2;
+    case BaseFormat::TEXTURE_FORMAT_RGB:
+        return 3;
+    case BaseFormat::TEXTURE_FORMAT_BGR:
+        return 3;
+    case BaseFormat::TEXTURE_FORMAT_RGBA:
+        return 4;
+    case BaseFormat::TEXTURE_FORMAT_BGRA:
+        return 4;
+    case BaseFormat::TEXTURE_FORMAT_DEPTH:
+        return 1;
+    default:
+        return 0; // undefined result
     }
 }
 
@@ -253,7 +264,8 @@ static inline constexpr uint32 NumComponents(InternalFormat format)
 
 static inline constexpr uint32 NumBytes(InternalFormat format)
 {
-    switch (format) {
+    switch (format)
+    {
     case InternalFormat::R8:
     case InternalFormat::R8_SRGB:
     case InternalFormat::RG8:
@@ -302,7 +314,8 @@ static inline constexpr uint32 NumBytes(InternalFormat format)
  * e.g calling with RGB16 and num components = 4 --> RGBA16 */
 static inline constexpr InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
 {
-    if (new_num_components == 0) {
+    if (new_num_components == 0)
+    {
         return InternalFormat::NONE;
     }
 
@@ -329,33 +342,34 @@ static inline constexpr bool IsSRGBFormat(InternalFormat fmt)
 }
 
 HYP_STRUCT()
+
 struct TextureDesc
 {
-    HYP_FIELD(Serialize, Property="Type")
-    ImageType                           type = ImageType::TEXTURE_TYPE_2D;
+    HYP_FIELD(Serialize, Property = "Type")
+    ImageType type = ImageType::TEXTURE_TYPE_2D;
 
-    HYP_FIELD(Serialize, Property="Format")
-    InternalFormat                      format = InternalFormat::RGBA8;
+    HYP_FIELD(Serialize, Property = "Format")
+    InternalFormat format = InternalFormat::RGBA8;
 
-    HYP_FIELD(Serialize, Property="Extent")
-    Vec3u                               extent = Vec3u::One();
+    HYP_FIELD(Serialize, Property = "Extent")
+    Vec3u extent = Vec3u::One();
 
-    HYP_FIELD(Serialize, Property="MinFilterMode")
-    FilterMode                          filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
+    HYP_FIELD(Serialize, Property = "MinFilterMode")
+    FilterMode filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
 
-    HYP_FIELD(Serialize, Property="MagFilterMode")
-    FilterMode                          filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
+    HYP_FIELD(Serialize, Property = "MagFilterMode")
+    FilterMode filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
 
-    HYP_FIELD(Serialize, Property="WrapMode")
-    WrapMode                            wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    HYP_FIELD(Serialize, Property = "WrapMode")
+    WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
 
-    HYP_FIELD(Serialize, Property="NumLayers")
-    uint32                              num_layers = 1;
+    HYP_FIELD(Serialize, Property = "NumLayers")
+    uint32 num_layers = 1;
 
-    HYP_FIELD(Serialize, Property="ImageFormatCapabilities")
-    EnumFlags<ImageFormatCapabilities>  image_format_capabilities = ImageFormatCapabilities::SAMPLED;
+    HYP_FIELD(Serialize, Property = "ImageFormatCapabilities")
+    EnumFlags<ImageFormatCapabilities> image_format_capabilities = ImageFormatCapabilities::SAMPLED;
 
-    HYP_FORCE_INLINE bool operator==(const TextureDesc &other) const
+    HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const
     {
         return type == other.type
             && format == other.format
@@ -367,7 +381,7 @@ struct TextureDesc
             && image_format_capabilities == other.image_format_capabilities;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const TextureDesc &other) const
+    HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const
     {
         return type != other.type
             || format != other.format
@@ -394,16 +408,24 @@ struct TextureDesc
     }
 
     HYP_FORCE_INLINE bool IsDepthStencil() const
-        { return IsDepthFormat(format); }
+    {
+        return IsDepthFormat(format);
+    }
 
     HYP_FORCE_INLINE bool IsSRGB() const
-        { return IsSRGBFormat(format); }
+    {
+        return IsSRGBFormat(format);
+    }
 
     HYP_FORCE_INLINE bool IsBlended() const
-        { return image_format_capabilities[ImageFormatCapabilities::BLENDED]; }
+    {
+        return image_format_capabilities[ImageFormatCapabilities::BLENDED];
+    }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
-        { return type == ImageType::TEXTURE_TYPE_CUBEMAP; }
+    {
+        return type == ImageType::TEXTURE_TYPE_CUBEMAP;
+    }
 
     HYP_FORCE_INLINE bool IsPanorama() const
     {
@@ -413,22 +435,31 @@ struct TextureDesc
     }
 
     HYP_FORCE_INLINE bool IsTexture2DArray() const
-        { return type == ImageType::TEXTURE_TYPE_2D_ARRAY; }
+    {
+        return type == ImageType::TEXTURE_TYPE_2D_ARRAY;
+    }
 
     HYP_FORCE_INLINE bool IsTextureCubeArray() const
-        { return type == ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY; }
+    {
+        return type == ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY;
+    }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
-        { return type == ImageType::TEXTURE_TYPE_3D; }
+    {
+        return type == ImageType::TEXTURE_TYPE_3D;
+    }
 
     HYP_FORCE_INLINE bool IsTexture2D() const
-        { return type == ImageType::TEXTURE_TYPE_2D; }
+    {
+        return type == ImageType::TEXTURE_TYPE_2D;
+    }
 
     HYP_FORCE_INLINE uint32 NumFaces() const
     {
         const uint32 num_array_layers = num_layers;
 
-        if (IsTextureCube() || IsTextureCubeArray()) {
+        if (IsTextureCube() || IsTextureCubeArray())
+        {
             return 6 * num_array_layers;
         }
 
@@ -461,10 +492,12 @@ struct TextureDesc
 struct TextureData
 {
     TextureDesc desc;
-    ByteBuffer  buffer;
+    ByteBuffer buffer;
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return buffer.Any(); }
+    {
+        return buffer.Any();
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -478,14 +511,14 @@ struct TextureData
 
 struct alignas(16) PackedVertex
 {
-    float   position_x,
-            position_y,
-            position_z,
-            normal_x,
-            normal_y,
-            normal_z,
-            texcoord0_x,
-            texcoord0_y;
+    float position_x,
+        position_y,
+        position_z,
+        normal_x,
+        normal_y,
+        normal_z,
+        texcoord0_x,
+        texcoord0_y;
 };
 
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
@@ -554,7 +587,7 @@ static_assert(uint32(BlendModeFactor::MAX) <= 15, "BlendModeFactor enum too larg
 
 struct BlendFunction
 {
-    uint32  value;
+    uint32 value;
 
     BlendFunction()
         : BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO)
@@ -571,59 +604,91 @@ struct BlendFunction
     {
     }
 
-    BlendFunction(const BlendFunction &other)                   = default;
-    BlendFunction &operator=(const BlendFunction &other)        = default;
-    BlendFunction(BlendFunction &&other) noexcept               = default;
-    BlendFunction &operator=(BlendFunction &&other) noexcept    = default;
-    ~BlendFunction()                                            = default;
+    BlendFunction(const BlendFunction& other) = default;
+    BlendFunction& operator=(const BlendFunction& other) = default;
+    BlendFunction(BlendFunction&& other) noexcept = default;
+    BlendFunction& operator=(BlendFunction&& other) noexcept = default;
+    ~BlendFunction() = default;
 
     HYP_FORCE_INLINE BlendModeFactor GetSrcColor() const
-        { return BlendModeFactor(value & 0xF); }
+    {
+        return BlendModeFactor(value & 0xF);
+    }
 
     HYP_FORCE_INLINE void SetSrcColor(BlendModeFactor src)
-        { value |= uint32(src); }
+    {
+        value |= uint32(src);
+    }
 
     HYP_FORCE_INLINE BlendModeFactor GetDstColor() const
-        { return BlendModeFactor((value >> 4) & 0xF); }
+    {
+        return BlendModeFactor((value >> 4) & 0xF);
+    }
 
     HYP_FORCE_INLINE void SetDstColor(BlendModeFactor dst)
-        { value |= uint32(dst) << 4; }
+    {
+        value |= uint32(dst) << 4;
+    }
 
     HYP_FORCE_INLINE BlendModeFactor GetSrcAlpha() const
-        { return BlendModeFactor((value >> 8) & 0xF); }
+    {
+        return BlendModeFactor((value >> 8) & 0xF);
+    }
 
     HYP_FORCE_INLINE void SetSrcAlpha(BlendModeFactor src)
-        { value |= uint32(src) << 8; }
+    {
+        value |= uint32(src) << 8;
+    }
 
     HYP_FORCE_INLINE BlendModeFactor GetDstAlpha() const
-        { return BlendModeFactor((value >> 12) & 0xF); }
+    {
+        return BlendModeFactor((value >> 12) & 0xF);
+    }
 
     HYP_FORCE_INLINE void SetDstAlpha(BlendModeFactor dst)
-        { value |= uint32(dst) << 12; }
+    {
+        value |= uint32(dst) << 12;
+    }
 
-    HYP_FORCE_INLINE bool operator==(const BlendFunction &other) const
-        { return value == other.value; }
+    HYP_FORCE_INLINE bool operator==(const BlendFunction& other) const
+    {
+        return value == other.value;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const BlendFunction &other) const
-        { return value != other.value; }
+    HYP_FORCE_INLINE bool operator!=(const BlendFunction& other) const
+    {
+        return value != other.value;
+    }
 
-    HYP_FORCE_INLINE bool operator<(const BlendFunction &other) const
-        { return value < other.value; }
+    HYP_FORCE_INLINE bool operator<(const BlendFunction& other) const
+    {
+        return value < other.value;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return HashCode::GetHashCode(value); }
+    {
+        return HashCode::GetHashCode(value);
+    }
 
     HYP_FORCE_INLINE static BlendFunction None()
-        { return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE); }
+    {
+        return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE);
+    }
 
     HYP_FORCE_INLINE static BlendFunction Default()
-        { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO); }
+    {
+        return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO);
+    }
 
     HYP_FORCE_INLINE static BlendFunction AlphaBlending()
-        { return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO); }
+    {
+        return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO);
+    }
 
     HYP_FORCE_INLINE static BlendFunction Additive()
-        { return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE); }
+    {
+        return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE);
+    }
 };
 
 enum class StencilCompareOp : uint8
@@ -644,43 +709,50 @@ enum class StencilOp : uint8
 };
 
 HYP_STRUCT()
+
 struct StencilFunction
 {
     HYP_FIELD()
-    StencilOp           pass_op = StencilOp::KEEP;
+    StencilOp pass_op = StencilOp::KEEP;
 
     HYP_FIELD()
-    StencilOp           fail_op = StencilOp::REPLACE;
+    StencilOp fail_op = StencilOp::REPLACE;
 
     HYP_FIELD()
-    StencilOp           depth_fail_op = StencilOp::REPLACE;
+    StencilOp depth_fail_op = StencilOp::REPLACE;
 
     HYP_FIELD()
-    StencilCompareOp    compare_op = StencilCompareOp::ALWAYS;
+    StencilCompareOp compare_op = StencilCompareOp::ALWAYS;
 
     HYP_FIELD()
-    uint8               mask = 0x0;
+    uint8 mask = 0x0;
 
     HYP_FIELD()
-    uint8               value = 0x1;
+    uint8 value = 0x1;
 
-    HYP_FORCE_INLINE bool operator==(const StencilFunction &other) const = default;
-    HYP_FORCE_INLINE bool operator!=(const StencilFunction &other) const = default;
+    HYP_FORCE_INLINE bool operator==(const StencilFunction& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const StencilFunction& other) const = default;
 
-    HYP_FORCE_INLINE bool operator<(const StencilFunction &other) const
-        { return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0; }
+    HYP_FORCE_INLINE bool operator<(const StencilFunction& other) const
+    {
+        return Memory::MemCmp(this, &other, sizeof(StencilFunction)) < 0;
+    }
 
     HYP_FORCE_INLINE bool IsSet() const
-        { return mask != 0x0; }
+    {
+        return mask != 0x0;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return HashCode::GetHashCode(value); }
+    {
+        return HashCode::GetHashCode(value);
+    }
 };
 
 struct PushConstantData
 {
-    ubyte   data[128];
-    uint32  size;
+    ubyte data[128];
+    uint32 size;
 
     PushConstantData()
         : data { 0 },
@@ -688,7 +760,7 @@ struct PushConstantData
     {
     }
 
-    PushConstantData(const void *ptr, uint32 size)
+    PushConstantData(const void* ptr, uint32 size)
         : size(size)
     {
         AssertThrowMsg(size <= 128, "Push constant data size exceeds 128 bytes");
@@ -697,7 +769,7 @@ struct PushConstantData
     }
 
     template <class T>
-    PushConstantData(const T *value)
+    PushConstantData(const T* value)
         : size(uint32(sizeof(T)))
     {
         static_assert(sizeof(T) <= 128, "Push constant data size exceeds 128 bytes");
@@ -707,36 +779,39 @@ struct PushConstantData
         Memory::MemCpy(&data[0], value, sizeof(T));
     }
 
-    PushConstantData(const PushConstantData &other)                 = default;
-    PushConstantData &operator=(const PushConstantData &other)      = default;
-    PushConstantData(PushConstantData &&other) noexcept             = default;
-    PushConstantData &operator=(PushConstantData &&other) noexcept  = default;
-    ~PushConstantData()                                             = default;
+    PushConstantData(const PushConstantData& other) = default;
+    PushConstantData& operator=(const PushConstantData& other) = default;
+    PushConstantData(PushConstantData&& other) noexcept = default;
+    PushConstantData& operator=(PushConstantData&& other) noexcept = default;
+    ~PushConstantData() = default;
 
-    HYP_FORCE_INLINE const void *Data() const
-        { return data; }
+    HYP_FORCE_INLINE const void* Data() const
+    {
+        return data;
+    }
 
     HYP_FORCE_INLINE uint32 Size() const
-        { return size; }
+    {
+        return size;
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return size != 0; }
+    {
+        return size != 0;
+    }
 };
 
 } // namespace hyperion::renderer
 
 #if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererStructs.hpp>
+    #include <rendering/backend/vulkan/RendererStructs.hpp>
 #else
-#error Unsupported rendering backend
+    #error Unsupported rendering backend
 #endif
 
-#include <core/math/Vector2.hpp>
 #include <core/math/Vector3.hpp>
 #include <core/math/Vector4.hpp>
 #include <core/math/Matrix4.hpp>
-
-#include <Types.hpp>
 
 namespace hyperion {
 namespace renderer {
@@ -756,9 +831,9 @@ using ImageSubResourceFlagBits = uint32;
 
 enum ImageSubResourceFlags : ImageSubResourceFlagBits
 {
-    IMAGE_SUB_RESOURCE_FLAGS_NONE    = 0,
-    IMAGE_SUB_RESOURCE_FLAGS_COLOR   = 1 << 0,
-    IMAGE_SUB_RESOURCE_FLAGS_DEPTH   = 1 << 1,
+    IMAGE_SUB_RESOURCE_FLAGS_NONE = 0,
+    IMAGE_SUB_RESOURCE_FLAGS_COLOR = 1 << 0,
+    IMAGE_SUB_RESOURCE_FLAGS_DEPTH = 1 << 1,
     IMAGE_SUB_RESOURCE_FLAGS_STENCIL = 1 << 2
 };
 
@@ -776,7 +851,7 @@ struct ImageSubResource
     uint32 num_layers = 1;
     uint32 num_levels = 1;
 
-    bool operator==(const ImageSubResource &other) const
+    bool operator==(const ImageSubResource& other) const
     {
         return flags == other.flags
             && base_array_layer == other.base_array_layer
@@ -805,35 +880,43 @@ struct ImageSubResource
 
 struct Viewport
 {
-    Vec2i   extent;
-    Vec2i   position;
+    Vec2i extent;
+    Vec2i position;
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return position != Vec2i::Zero() || extent != Vec2i::Zero(); }
+    {
+        return position != Vec2i::Zero() || extent != Vec2i::Zero();
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return position == Vec2i::Zero() && extent == Vec2i::Zero(); }
+    {
+        return position == Vec2i::Zero() && extent == Vec2i::Zero();
+    }
 
-    HYP_FORCE_INLINE bool operator==(const Viewport &other) const
-        { return position == other.position && extent == other.extent; }
+    HYP_FORCE_INLINE bool operator==(const Viewport& other) const
+    {
+        return position == other.position && extent == other.extent;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const Viewport &other) const
-        { return position != other.position || extent != other.extent; }
+    HYP_FORCE_INLINE bool operator!=(const Viewport& other) const
+    {
+        return position != other.position || extent != other.extent;
+    }
 };
 
 } // namespace renderer
 
-using renderer::ImageType;
 using renderer::BaseFormat;
-using renderer::InternalFormat;
 using renderer::FilterMode;
-using renderer::WrapMode;
-using renderer::TextureMode;
-using renderer::TextureData;
-using renderer::TextureDesc;
+using renderer::ImageType;
+using renderer::InternalFormat;
 using renderer::ResourceState;
 using renderer::StencilFunction;
+using renderer::TextureData;
+using renderer::TextureDesc;
+using renderer::TextureMode;
 using renderer::Viewport;
+using renderer::WrapMode;
 
 } // namespace hyperion
 

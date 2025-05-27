@@ -14,16 +14,17 @@ namespace hyperion {
 class LightmapVolume;
 
 HYP_STRUCT(Component)
+
 struct LightmapElementComponent
 {
-    HYP_FIELD(Property="ElementIndex", Serialize=true)
-    uint32                      element_index = ~0u;
+    HYP_FIELD(Property = "ElementIndex", Serialize = true)
+    uint32 element_index = ~0u;
 
-    HYP_FIELD(Property="VolumeUUID", Serialize=true)
-    UUID                        volume_uuid = UUID::Invalid();
+    HYP_FIELD(Property = "VolumeUUID", Serialize = true)
+    UUID volume_uuid = UUID::Invalid();
 
-    HYP_FIELD(Property="Volume", Serialize=false)
-    WeakHandle<LightmapVolume>  volume;
+    HYP_FIELD(Property = "Volume", Serialize = false)
+    WeakHandle<LightmapVolume> volume;
 };
 
 } // namespace hyperion

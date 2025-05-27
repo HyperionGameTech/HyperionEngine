@@ -26,12 +26,14 @@ enum class IterationResult : uint8
  *  \param callback The function to call for each item.
  */
 template <class Container, class Callback>
-static inline void ForEach(Container &&container, Callback &&callback)
+static inline void ForEach(Container&& container, Callback&& callback)
 {
-    for (auto it = container.Begin(); it != container.End(); ++it) {
+    for (auto it = container.Begin(); it != container.End(); ++it)
+    {
         IterationResult result = callback(*it);
 
-        if (result == IterationResult::STOP) {
+        if (result == IterationResult::STOP)
+        {
             break;
         }
     }
@@ -45,14 +47,16 @@ static inline void ForEach(Container &&container, Callback &&callback)
  *  \param callback The function to call for each item.
  */
 template <class Container, class Mutex, class Callback>
-static inline void ForEach(Container &&container, Mutex &mutex, Callback &&callback)
+static inline void ForEach(Container&& container, Mutex& mutex, Callback&& callback)
 {
     typename Mutex::Guard guard(mutex);
 
-    for (auto it = container.Begin(); it != container.End(); ++it) {
+    for (auto it = container.Begin(); it != container.End(); ++it)
+    {
         IterationResult result = callback(*it);
 
-        if (result == IterationResult::STOP) {
+        if (result == IterationResult::STOP)
+        {
             break;
         }
     }
@@ -67,23 +71,26 @@ static inline void ForEach(Container &&container, Mutex &mutex, Callback &&callb
  *  \param callback The function to call for each item.
  */
 template <class Container, class Callback>
-static inline void ForEachInBatches(Container &&container, uint32 num_batches, Callback &&callback)
+static inline void ForEachInBatches(Container&& container, uint32 num_batches, Callback&& callback)
 {
     static_assert(NormalizedType<Container>::is_contiguous, "Container must be contiguous to use ForEachInBatches");
 
     const uint32 num_items = container.Size();
     const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
-    auto *data_ptr = container.Data();
+    auto* data_ptr = container.Data();
 
-    for (uint32 batch_index = 0; batch_index < num_batches; batch_index++) {
+    for (uint32 batch_index = 0; batch_index < num_batches; batch_index++)
+    {
         const uint32 offset_index = batch_index * items_per_batch;
         const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
 
-        for (uint32 i = offset_index; i < max_index; ++i) {
+        for (uint32 i = offset_index; i < max_index; ++i)
+        {
             IterationResult result = callback(*(data_ptr + i), i, batch_index);
 
-            if (result == IterationResult::STOP) {
+            if (result == IterationResult::STOP)
+            {
                 break;
             }
         }

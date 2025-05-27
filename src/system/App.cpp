@@ -23,7 +23,7 @@ App::~App()
 {
 }
 
-void App::Launch(Game *game, const CommandLineArguments &arguments)
+void App::Launch(Game* game, const CommandLineArguments& arguments)
 {
     hyperion::InitializeEngine(FilePath(arguments.GetCommand()).BasePath());
 
@@ -32,11 +32,11 @@ void App::Launch(Game *game, const CommandLineArguments &arguments)
     hyperion::DestroyEngine();
 }
 
-RC<AppContext> App::InitAppContext(Game *game, const CommandLineArguments &arguments)
+RC<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& arguments)
 {
     AssertThrow(game != nullptr);
 
-    RC<AppContext> app_context;
+    RC<AppContextBase> app_context;
 
 #ifdef HYP_SDL
     app_context = MakeRefCountedPtr<SDLAppContext>("Hyperion", arguments);
@@ -46,35 +46,39 @@ RC<AppContext> App::InitAppContext(Game *game, const CommandLineArguments &argum
 
     app_context->SetGame(game);
 
-    const CommandLineArguments &app_context_arguments = app_context->GetArguments();
+    const CommandLineArguments& app_context_arguments = app_context->GetArguments();
 
     Vec2i resolution = { 1280, 720 };
 
     EnumFlags<WindowFlags> window_flags = WindowFlags::HIGH_DPI;
 
-    if (app_context_arguments["Headless"].ToBool()) {
+    if (app_context_arguments["Headless"].ToBool())
+    {
         window_flags |= WindowFlags::HEADLESS;
 
         HYP_BREAKPOINT;
     }
 
-    if (app_context_arguments["ResX"].IsNumber()) {
+    if (app_context_arguments["ResX"].IsNumber())
+    {
         resolution.x = app_context_arguments["ResX"].ToInt32();
     }
 
-    if (app_context_arguments["ResY"].IsNumber()) {
+    if (app_context_arguments["ResY"].IsNumber())
+    {
         resolution.y = app_context_arguments["ResY"].ToInt32();
     }
 
-    if (!(window_flags & WindowFlags::HEADLESS)) {
+    if (!(window_flags & WindowFlags::HEADLESS))
+    {
         HYP_LOG(Core, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
-        app_context->SetMainWindow(app_context->CreateSystemWindow({
-            "Hyperion Engine",
+        app_context->SetMainWindow(app_context->CreateSystemWindow({ "Hyperion Engine",
             resolution,
-            window_flags
-        }));
-    } else {
+            window_flags }));
+    }
+    else
+    {
         HYP_LOG(Core, Info, "Running in headless mode");
     }
 

@@ -21,16 +21,17 @@ namespace hyperion {
 class EnvProbe;
 class ReflectionProbeRenderer;
 
-HYP_STRUCT(Component, Size=32, Label="Reflection Probe Component", Description="Handles cubemap reflection calculations for a single EnvProbe source", Editor=true)
+HYP_STRUCT(Component, Size = 32, Label = "Reflection Probe Component", Description = "Handles cubemap reflection calculations for a single EnvProbe source", Editor = true)
+
 struct ReflectionProbeComponent
 {
-    HYP_FIELD(Property="Dimensions", Serialize=true, Editor=true, Label="Dimensions")
-    Vec2u                       dimensions = Vec2u { 256, 256 };
+    HYP_FIELD(Property = "Dimensions", Serialize = true, Editor = true, Label = "Dimensions")
+    Vec2u dimensions = Vec2u { 256, 256 };
 
-    HYP_FIELD(Property="EnvProbe", Serialize=true, Editor=true, Label="EnvProbe")
-    Handle<EnvProbe>            env_probe;
+    HYP_FIELD(Property = "EnvProbe", Serialize = true, Editor = true, Label = "EnvProbe")
+    Handle<EnvProbe> env_probe;
 
-    HYP_FIELD(Property="ReflectionProbeRenderer", Serialize=false, Editor=false)
+    HYP_FIELD(Property = "ReflectionProbeRenderer", Serialize = false, Editor = false)
     RC<ReflectionProbeRenderer> reflection_probe_renderer;
 };
 

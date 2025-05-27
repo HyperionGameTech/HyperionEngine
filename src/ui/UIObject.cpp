@@ -49,10 +49,10 @@ namespace hyperion {
 
 enum class UIObjectFlags : uint32
 {
-    NONE                = 0x0,
-    BORDER_TOP_LEFT     = 0x1,
-    BORDER_TOP_RIGHT    = 0x2,
-    BORDER_BOTTOM_LEFT  = 0x4,
+    NONE = 0x0,
+    BORDER_TOP_LEFT = 0x1,
+    BORDER_TOP_RIGHT = 0x2,
+    BORDER_BOTTOM_LEFT = 0x4,
     BORDER_BOTTOM_RIGHT = 0x8
 };
 
@@ -60,17 +60,17 @@ HYP_MAKE_ENUM_FLAGS(UIObjectFlags)
 
 struct alignas(16) UIObjectMeshData
 {
-    uint32  flags = 0u;
-    uint32  _pad0;
-    Vec2u   size;
-    Vec4f   clamped_aabb;
+    uint32 flags = 0u;
+    uint32 _pad0;
+    Vec2u size;
+    Vec4f clamped_aabb;
 };
 
 static_assert(sizeof(UIObjectMeshData) == sizeof(MeshComponentUserData), "UIObjectMeshData size must match sizeof(MeshComponentUserData)");
 
 #pragma region UIObjectQuadMeshHelper
 
-const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
+const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
 {
     static struct QuadMeshInitializer
     {
@@ -83,9 +83,10 @@ const Handle<Mesh> &UIObjectQuadMeshHelper::GetQuadMesh()
             TResourceHandle<StreamedMeshData> resource_handle(*quad->GetStreamedMeshData());
 
             Array<Vertex> vertices = resource_handle->GetMeshData().vertices;
-            const Array<uint32> &indices = resource_handle->GetMeshData().indices;
+            const Array<uint32>& indices = resource_handle->GetMeshData().indices;
 
-            for (Vertex &vert : vertices) {
+            for (Vertex& vert : vertices)
+            {
                 vert.position.x = (vert.position.x + 1.0f) * 0.5f;
                 vert.position.y = (vert.position.y + 1.0f) * 0.5f;
             }
@@ -113,7 +114,7 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return UIObjectQuadMeshHelper::GetQuadMesh();
 }
 
-UIObject::UIObject(UIObjectType type, const ThreadID &owner_thread_id)
+UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
     : m_type(type),
       m_stage(nullptr),
       m_is_init(false),
@@ -172,38 +173,45 @@ UIObject::~UIObject()
 {
     HYP_LOG(UI, Debug, "Destroying UIObject {} (address: {}) on thread {} ({})", GetName(), (void*)this, Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
 
-    for (const RC<UIObject> &child_ui_object : m_child_ui_objects) {
-        if (child_ui_object) {
+    for (const RC<UIObject>& child_ui_object : m_child_ui_objects)
+    {
+        if (child_ui_object)
+        {
             HYP_LOG(UI, Debug, "\t\tHas child UIObject {} (address: {}, refs: {}) on thread {} ({})", child_ui_object->GetName(), (void*)child_ui_object.Get(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong(), Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
         }
     }
 
     m_child_ui_objects.Clear();
 
-    static const auto Impl = [](Scene *scene, Handle<Entity> entity, Handle<Node> node)
+    static const auto remove_ui_component = [](Scene* scene, Handle<Entity> entity, Handle<Node> node)
     {
         AssertThrow(scene != nullptr);
         AssertThrow(scene->GetEntityManager() != nullptr);
 
-        if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
+        if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
+        {
             ui_component->ui_object = nullptr;
 
             scene->GetEntityManager()->RemoveComponent<UIComponent>(entity);
         }
     };
 
-    if (Handle<Entity> entity = GetEntity()) {
-        Scene *scene = GetScene();
+    if (Handle<Entity> entity = GetEntity())
+    {
+        Scene* scene = GetScene();
         AssertThrow(scene != nullptr);
 
-        if (Threads::IsOnThread(scene->GetOwnerThreadID())) {
-            Impl(GetScene(), std::move(entity), std::move(m_node));
-        } else {
+        if (Threads::IsOnThread(scene->GetOwnerThreadID()))
+        {
+            remove_ui_component(GetScene(), std::move(entity), std::move(m_node));
+        }
+        else
+        {
             // Keep node alive until it can be destroyed on the owner thread
             Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node), entity = std::move(entity)]() mutable
-            {
-                Impl(scene.Get(), std::move(entity), std::move(node));
-            });
+                {
+                    remove_ui_component(scene.Get(), std::move(entity), std::move(node));
+                });
 
             // wait for task completion before finishing destruction,
             // to ensure that the UIObject is set to nullptr on the UIComponent
@@ -242,17 +250,17 @@ void UIObject::Init()
 
     AssertThrowMsg(m_node.IsValid(), "Invalid Handle<Node> provided to UIObject!");
 
-    const Scene *scene = GetScene();
+    const Scene* scene = GetScene();
     AssertThrow(scene != nullptr);
 
     MeshComponent mesh_component;
     mesh_component.mesh = GetQuadMesh();
     mesh_component.material = CreateMaterial();
-    mesh_component.user_data = MeshComponentUserData { };
+    mesh_component.user_data = MeshComponentUserData {};
 
     scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(mesh_component));
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent { });
-    
+    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent {});
+
     m_is_init = true;
 
     OnInit();
@@ -264,19 +272,22 @@ void UIObject::Update(GameCounter::TickUnit delta)
 
     AssertThrow(m_is_init);
 
-    if (ReceivesUpdate()) {
+    if (ReceivesUpdate())
+    {
         Update_Internal(delta);
     }
 
     // update in breadth-first order
-    ForEachChildUIObject([this, delta](UIObject *child)
-    {
-        if (child->ReceivesUpdate()) {
-            child->Update_Internal(delta);
-        }
+    ForEachChildUIObject([this, delta](UIObject* child)
+        {
+            if (child->ReceivesUpdate())
+            {
+                child->Update_Internal(delta);
+            }
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ true);
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ true);
 }
 
 void UIObject::Update_Internal(GameCounter::TickUnit delta)
@@ -285,60 +296,70 @@ void UIObject::Update_Internal(GameCounter::TickUnit delta)
 
     // If the scroll offset has changed, recalculate the position
     Vec2f scroll_offset_delta;
-    if (m_scroll_offset.Advance(delta, scroll_offset_delta)) {
+    if (m_scroll_offset.Advance(delta, scroll_offset_delta))
+    {
         OnScrollOffsetUpdate(scroll_offset_delta);
     }
 
-    if (m_deferred_updates) {
+    if (m_deferred_updates)
+    {
         bool updated_position_or_size = false;
 
         { // lock updates within scope; process clamped size at end
             UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
 
-            if (m_deferred_updates & (UIObjectUpdateType::UPDATE_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_SIZE)) {
+            if (m_deferred_updates & (UIObjectUpdateType::UPDATE_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_SIZE))
+            {
                 UpdateSize(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_SIZE);
                 updated_position_or_size = true;
             }
 
-            if (m_deferred_updates & (UIObjectUpdateType::UPDATE_POSITION | UIObjectUpdateType::UPDATE_CHILDREN_POSITION)) {
+            if (m_deferred_updates & (UIObjectUpdateType::UPDATE_POSITION | UIObjectUpdateType::UPDATE_CHILDREN_POSITION))
+            {
                 UpdatePosition(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_POSITION);
                 updated_position_or_size = true;
             }
         }
-            
-        if (updated_position_or_size || (m_deferred_updates & (UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE))) {
+
+        if (updated_position_or_size || (m_deferred_updates & (UIObjectUpdateType::UPDATE_CLAMPED_SIZE | UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE)))
+        {
             UpdateClampedSize(updated_position_or_size || (m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_CLAMPED_SIZE));
         }
 
-        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_MATERIAL | UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL)) {
+        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_MATERIAL | UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL))
+        {
             UpdateMaterial(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL);
         }
 
-        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY)) {
+        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY | UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY))
+        {
             UpdateComputedVisibility(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_COMPUTED_VISIBILITY);
         }
 
-        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_MESH_DATA | UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA)) {
+        if (m_deferred_updates & (UIObjectUpdateType::UPDATE_MESH_DATA | UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA))
+        {
             UpdateMeshData(m_deferred_updates & UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA);
         }
     }
 
-    if (m_computed_visibility && NeedsRepaint()) {
+    if (m_computed_visibility && NeedsRepaint())
+    {
         Repaint();
     }
 }
 
-void UIObject::OnAttached_Internal(UIObject *parent)
+void UIObject::OnAttached_Internal(UIObject* parent)
 {
     HYP_SCOPE;
 
     AssertThrow(parent != nullptr);
-    
+
     SetStage_Internal(parent->GetStage());
 
-    if (IsInit()) {
+    if (IsInit())
+    {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
-        
+
         UpdateSize();
         UpdatePosition();
 
@@ -351,7 +372,8 @@ void UIObject::OnAttached_Internal(UIObject *parent)
         SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     }
 
-    if (m_is_enabled && !parent->IsEnabled()) {
+    if (m_is_enabled && !parent->IsEnabled())
+    {
         OnDisabled();
     }
 
@@ -362,20 +384,24 @@ void UIObject::OnRemoved_Internal()
 {
     HYP_SCOPE;
 
-    if (m_text_size <= 0.0f) {
+    if (m_text_size <= 0.0f)
+    {
         // invalidate computed text size
         m_computed_text_size = -1.0f;
     }
 
     SetStage_Internal(nullptr);
 
-    if (UIObject *parent = GetParentUIObject()) {
-        if (m_is_enabled && !parent->IsEnabled()) {
+    if (UIObject* parent = GetParentUIObject())
+    {
+        if (m_is_enabled && !parent->IsEnabled())
+        {
             OnEnabled();
         }
     }
 
-    if (IsInit()) {
+    if (IsInit())
+    {
         UpdateSize();
         UpdatePosition();
 
@@ -389,9 +415,10 @@ void UIObject::OnRemoved_Internal()
     OnRemoved();
 }
 
-UIStage *UIObject::GetStage() const
+UIStage* UIObject::GetStage() const
 {
-    if (m_stage != nullptr) {
+    if (m_stage != nullptr)
+    {
         return m_stage;
     }
 
@@ -402,11 +429,12 @@ UIStage *UIObject::GetStage() const
     return nullptr;
 }
 
-void UIObject::SetStage(UIStage *stage)
+void UIObject::SetStage(UIStage* stage)
 {
     HYP_SCOPE;
 
-    if (stage != m_stage) {
+    if (stage != m_stage)
+    {
         SetStage_Internal(stage);
     }
 }
@@ -444,7 +472,8 @@ Vec2f UIObject::GetAbsolutePosition() const
 {
     HYP_SCOPE;
 
-    if (const Handle<Node> &node = GetNode()) {
+    if (const Handle<Node>& node = GetNode())
+    {
         const Vec3f world_translation = node->GetWorldTranslation();
 
         return { world_translation.x, world_translation.y };
@@ -457,7 +486,8 @@ void UIObject::SetIsPositionAbsolute(bool is_position_absolute)
 {
     HYP_SCOPE;
 
-    if (m_is_position_absolute == is_position_absolute) {
+    if (m_is_position_absolute == is_position_absolute)
+    {
         return;
     }
 
@@ -470,19 +500,22 @@ void UIObject::UpdatePosition(bool update_children)
 {
     HYP_SCOPE;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_POSITION) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_POSITION)
+    {
         return;
     }
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_POSITION | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_POSITION : UIObjectUpdateType::NONE));
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         return;
     }
 
@@ -490,13 +523,15 @@ void UIObject::UpdatePosition(bool update_children)
 
     UpdateNodeTransform();
 
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            child->UpdatePosition(true);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                child->UpdatePosition(true);
 
-            return IterationResult::CONTINUE;
-        }, /* deep */ false);
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ false);
     }
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
@@ -515,7 +550,8 @@ void UIObject::SetSize(UIObjectSize size)
 
     m_size = size;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -533,7 +569,8 @@ void UIObject::SetInnerSize(UIObjectSize size)
 
     m_inner_size = size;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -551,7 +588,8 @@ void UIObject::SetMaxSize(UIObjectSize size)
 
     m_max_size = size;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -562,31 +600,36 @@ void UIObject::UpdateSize(bool update_children)
 {
     HYP_SCOPE;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_SIZE) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_SIZE)
+    {
         return;
     }
 
     UpdateSize_Internal(update_children);
 
-    if (AffectsParentSize()) {
-        ForEachParentUIObject([](UIObject *parent)
-        {
-            if (!parent->UseAutoSizing()) {
-                return IterationResult::STOP;
-            }
+    if (AffectsParentSize())
+    {
+        ForEachParentUIObject([](UIObject* parent)
+            {
+                if (!parent->UseAutoSizing())
+                {
+                    return IterationResult::STOP;
+                }
 
-            parent->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, /* update_children */ false);
+                parent->SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, /* update_children */ false);
 
-            if (!parent->AffectsParentSize()) {
-                return IterationResult::STOP;
-            }
+                if (!parent->AffectsParentSize())
+                {
+                    return IterationResult::STOP;
+                }
 
-            return IterationResult::CONTINUE;
-        });
+                return IterationResult::CONTINUE;
+            });
     }
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
@@ -595,7 +638,8 @@ void UIObject::UpdateSize(bool update_children)
 
 void UIObject::UpdateSize_Internal(bool update_children)
 {
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_SIZE) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_SIZE)
+    {
         return;
     }
 
@@ -604,28 +648,32 @@ void UIObject::UpdateSize_Internal(bool update_children)
     UpdateActualSizes(UpdateSizePhase::BEFORE_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
     SetEntityAABB(CalculateAABB());
 
-    Array<UIObject *> deferred_children;
+    Array<UIObject*> deferred_children;
 
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        ForEachChildUIObject([update_children, &deferred_children](UIObject *child)
-        {
-            if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT)) {
-                // Even if update_children is false, these objects will need to be updated anyway
-                // as they are dependent on the size of this object
-                // child->SetAffectsParentSize(false);
-                deferred_children.PushBack(child);
-            } else if (update_children) {
-                child->UpdateSize_Internal(/* update_children */ true);
-            }
+        ForEachChildUIObject([update_children, &deferred_children](UIObject* child)
+            {
+                if (child->GetSize().GetAllFlags() & (UIObjectSize::FILL | UIObjectSize::PERCENT))
+                {
+                    // Even if update_children is false, these objects will need to be updated anyway
+                    // as they are dependent on the size of this object
+                    // child->SetAffectsParentSize(false);
+                    deferred_children.PushBack(child);
+                }
+                else if (update_children)
+                {
+                    child->UpdateSize_Internal(/* update_children */ true);
+                }
 
-            return IterationResult::CONTINUE;
-        }, false);
+                return IterationResult::CONTINUE;
+            },
+            false);
     }
 
     // auto needs recalculation
-    const bool needs_update_after_children = true;//UseAutoSizing();
+    const bool needs_update_after_children = true; // UseAutoSizing();
 
     // // FILL needs to update the size of the children
     // // after the parent has updated its size
@@ -636,29 +684,34 @@ void UIObject::UpdateSize_Internal(bool update_children)
     //     }
     // }
 
-    if (needs_update_after_children) {
+    if (needs_update_after_children)
+    {
         UpdateActualSizes(UpdateSizePhase::AFTER_CHILDREN, UIObjectUpdateSizeFlags::DEFAULT);
         SetEntityAABB(CalculateAABB());
     }
 
     // FILL needs to update the size of the children
     // after the parent has updated its size
-    for (UIObject *child : deferred_children) {
+    for (UIObject* child : deferred_children)
+    {
         child->UpdateSize_Internal(/* update_children */ true);
     }
 
-    if (IsPositionDependentOnSize()) {
+    if (IsPositionDependentOnSize())
+    {
         UpdatePosition(false);
     }
 
-    ForEachChildUIObject([](UIObject *child)
-    {
-        if (child->IsPositionDependentOnParentSize()) {
-            child->UpdatePosition(false);
-        }
+    ForEachChildUIObject([](UIObject* child)
+        {
+            if (child->IsPositionDependentOnParentSize())
+            {
+                child->UpdatePosition(false);
+            }
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ false);
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ false);
 
     OnSizeChange();
 
@@ -667,7 +720,8 @@ void UIObject::UpdateSize_Internal(bool update_children)
 
 void UIObject::UpdateClampedSize(bool update_children)
 {
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_CLAMPED_SIZE) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_CLAMPED_SIZE)
+    {
         return;
     }
 
@@ -680,7 +734,8 @@ void UIObject::UpdateClampedSize(bool update_children)
 
     m_aabb_clamped = { Vec3f { float(position.x), float(position.y), 0.0f }, Vec3f { float(position.x) + float(size.x), float(position.y) + float(size.y), 0.0f } };
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (UIObject* parent = GetParentUIObject())
+    {
         parent_aabb_clamped = parent->m_aabb_clamped;
         m_aabb_clamped = m_aabb_clamped.Intersection(parent->m_aabb_clamped);
     }
@@ -692,49 +747,54 @@ void UIObject::UpdateClampedSize(bool update_children)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
 
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            child->UpdateClampedSize(true);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                child->UpdateClampedSize(true);
 
-            return IterationResult::CONTINUE;
-        }, /* deep */ false);
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ false);
     }
 }
 
 void UIObject::UpdateNodeTransform()
 {
-    if (!m_node.IsValid()) {
+    if (!m_node.IsValid())
+    {
         return;
     }
 
     const Vec3f aabb_extent = m_aabb.GetExtent();
     const Vec3f aabb_clamped_extent = m_aabb_clamped.GetExtent();
-    
+
     float z_value = float(GetComputedDepth());
 
-    if (Node *parent_node = m_node->GetParent()) {
+    if (Node* parent_node = m_node->GetParent())
+    {
         z_value -= parent_node->GetWorldTranslation().z;
     }
 
     const Vec2f parent_scroll_offset = Vec2f(GetParentScrollOffset());
 
-    Node *parent_node = m_node->GetParent();
+    Node* parent_node = m_node->GetParent();
 
     Transform world_transform = m_node->GetWorldTransform();
 
-    if (m_is_position_absolute) {
+    if (m_is_position_absolute)
+    {
         m_node->SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offset_position.x,
             float(m_position.y) + m_offset_position.y,
-            z_value
-        });
-    } else {
+            z_value });
+    }
+    else
+    {
         m_node->SetLocalTranslation(Vec3f {
             float(m_position.x) + m_offset_position.x - parent_scroll_offset.x,
             float(m_position.y) + m_offset_position.y - parent_scroll_offset.y,
-            z_value
-        });
+            z_value });
     }
 }
 
@@ -760,33 +820,38 @@ void UIObject::SetScrollOffset(Vec2i scroll_offset, bool smooth)
 
     m_scroll_offset.SetTarget(Vec2f(scroll_offset));
 
-    if (!smooth) {
+    if (!smooth)
+    {
         m_scroll_offset.SetValue(Vec2f(scroll_offset));
     }
 
     OnScrollOffsetUpdate(m_scroll_offset.GetValue());
 }
 
-void UIObject::ScrollToChild(UIObject *child)
+void UIObject::ScrollToChild(UIObject* child)
 {
     HYP_SCOPE;
-    
-    if (!child || child == this) {
+
+    if (!child || child == this)
+    {
         return;
     }
 
     // Check if the child is a descendant of this object
-    if (!child->IsOrHasParent(this)) {
+    if (!child->IsOrHasParent(this))
+    {
         return;
     }
 
     // Already in view of this object
-    if (m_aabb_clamped.Contains(child->m_aabb_clamped)) {
+    if (m_aabb_clamped.Contains(child->m_aabb_clamped))
+    {
         return;
     }
 
     // Child is set to not visible
-    if (!child->IsVisible()) {
+    if (!child->IsVisible())
+    {
         return;
     }
 
@@ -798,19 +863,26 @@ void UIObject::ScrollToChild(UIObject *child)
     Vec2i new_scroll_offset = scroll_offset;
     Vec2i child_size = child->GetActualSize();
 
-    if (child_position.x < 0) {
+    if (child_position.x < 0)
+    {
         new_scroll_offset.x = MathUtil::Clamp(int(scroll_offset.x + child_position.x), 0, m_actual_inner_size.x - m_actual_size.x);
-    } else if (child_position.x + child_size.x > m_actual_size.x) {
+    }
+    else if (child_position.x + child_size.x > m_actual_size.x)
+    {
         new_scroll_offset.x = MathUtil::Clamp(int(scroll_offset.x + child_position.x) + child_size.x - m_actual_size.x, 0, m_actual_inner_size.x - m_actual_size.x);
     }
 
-    if (child_position.y < 0) {
+    if (child_position.y < 0)
+    {
         new_scroll_offset.y = MathUtil::Clamp(int(scroll_offset.y + child_position.y), 0, m_actual_inner_size.y - m_actual_size.y);
-    } else if (child_position.y + child_size.y > m_actual_size.y) {
+    }
+    else if (child_position.y + child_size.y > m_actual_size.y)
+    {
         new_scroll_offset.y = MathUtil::Clamp(int(scroll_offset.y + child_position.y) + child_size.y - m_actual_size.y, 0, m_actual_inner_size.y - m_actual_size.y);
     }
 
-    if (new_scroll_offset != scroll_offset) {
+    if (new_scroll_offset != scroll_offset)
+    {
         SetScrollOffset(new_scroll_offset, /* smooth */ false);
     }
 }
@@ -818,8 +890,9 @@ void UIObject::ScrollToChild(UIObject *child)
 void UIObject::SetFocusState(EnumFlags<UIObjectFocusState> focus_state)
 {
     HYP_SCOPE;
-    
-    if (focus_state != m_focus_state) {
+
+    if (focus_state != m_focus_state)
+    {
         SetFocusState_Internal(focus_state);
     }
 }
@@ -840,19 +913,22 @@ void UIObject::UpdateComputedDepth(bool update_children)
 
     int computed_depth = m_depth;
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (UIObject* parent = GetParentUIObject())
+    {
         computed_depth += parent->GetComputedDepth() + 1;
     }
 
     m_computed_depth = computed_depth;
 
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *ui_object)
-        {
-            ui_object->UpdateComputedDepth(/* update_children */ true);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* ui_object)
+            {
+                ui_object->UpdateComputedDepth(/* update_children */ true);
 
-            return IterationResult::CONTINUE;
-        }, false);
+                return IterationResult::CONTINUE;
+            },
+            false);
     }
 }
 
@@ -865,7 +941,7 @@ void UIObject::SetDepth(int depth)
 {
     HYP_SCOPE;
 
-    m_depth = MathUtil::Clamp(depth, UIStage::min_depth, UIStage::max_depth + 1);
+    m_depth = MathUtil::Clamp(depth, UIStage::g_min_depth, UIStage::g_max_depth + 1);
 
     UpdateComputedDepth();
 }
@@ -876,7 +952,8 @@ void UIObject::SetAcceptsFocus(bool accepts_focus)
 
     m_accepts_focus = accepts_focus;
 
-    if (!accepts_focus && HasFocus(true)) {
+    if (!accepts_focus && HasFocus(true))
+    {
         Blur();
     }
 }
@@ -884,18 +961,21 @@ void UIObject::SetAcceptsFocus(bool accepts_focus)
 void UIObject::Focus()
 {
     HYP_SCOPE;
-    
-    if (!AcceptsFocus()) {
+
+    if (!AcceptsFocus())
+    {
         return;
     }
 
-    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
+    if (GetFocusState() & UIObjectFocusState::FOCUSED)
+    {
         return;
     }
 
     SetFocusState(GetFocusState() | UIObjectFocusState::FOCUSED);
 
-    if (m_stage == nullptr) {
+    if (m_stage == nullptr)
+    {
         return;
     }
 
@@ -904,32 +984,36 @@ void UIObject::Focus()
     // Some UI object types may need to know if any child object is focused when handling `OnLoseFocus`
     m_stage->SetFocusedObject(RefCountedPtrFromThis());
 
-    OnGainFocus(MouseEvent { });
+    OnGainFocus(MouseEvent {});
 }
 
 void UIObject::Blur(bool blur_children)
 {
     HYP_SCOPE;
 
-    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
+    if (GetFocusState() & UIObjectFocusState::FOCUSED)
+    {
         SetFocusState(GetFocusState() & ~UIObjectFocusState::FOCUSED);
-        OnLoseFocus(MouseEvent { });
+        OnLoseFocus(MouseEvent {});
     }
 
-    if (blur_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            child->Blur(false);
+    if (blur_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                child->Blur(false);
 
-            return IterationResult::CONTINUE;
-        });
+                return IterationResult::CONTINUE;
+            });
     }
 
-    if (m_stage == nullptr) {
+    if (m_stage == nullptr)
+    {
         return;
     }
 
-    if (m_stage->GetFocusedObject().GetUnsafe() == this) {
+    if (m_stage->GetFocusedObject().GetUnsafe() == this)
+    {
         return;
     }
 
@@ -988,7 +1072,8 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
 
     m_aspect_ratio = aspect_ratio;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -1002,7 +1087,8 @@ void UIObject::SetPadding(Vec2i padding)
 
     m_padding = padding;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -1010,18 +1096,19 @@ void UIObject::SetPadding(Vec2i padding)
     UpdatePosition(/* update_children */ false);
 }
 
-void UIObject::SetBackgroundColor(const Color &background_color)
+void UIObject::SetBackgroundColor(const Color& background_color)
 {
     HYP_SCOPE;
 
-    if (m_background_color == background_color) {
+    if (m_background_color == background_color)
+    {
         return;
     }
 
     m_background_color = background_color;
 
-    // UpdateMaterial(false);
-    SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
+    UpdateMaterial(false);
+    // SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
 Color UIObject::ComputeBlendedBackgroundColor() const
@@ -1030,8 +1117,9 @@ Color UIObject::ComputeBlendedBackgroundColor() const
 
     Vec4f blended_color = Vec4f(m_background_color);
 
-    if (m_background_color.GetAlpha() < 1.0f) {
-        const UIObject *parent_ui_object = GetParentUIObject();
+    if (m_background_color.GetAlpha() < 1.0f)
+    {
+        const UIObject* parent_ui_object = GetParentUIObject();
 
         blended_color = blended_color * m_background_color.GetAlpha()
             + (parent_ui_object ? Vec4f(parent_ui_object->ComputeBlendedBackgroundColor()) : Vec4f::Zero()) * (1.0f - m_background_color.GetAlpha());
@@ -1044,13 +1132,15 @@ Color UIObject::GetTextColor() const
 {
     HYP_SCOPE;
 
-    if (uint32(m_text_color) == 0) {
-        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
-        {
-            return uint32(parent->m_text_color) != 0;
-        });
+    if (uint32(m_text_color) == 0)
+    {
+        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
+            {
+                return uint32(parent->m_text_color) != 0;
+            });
 
-        if (spawn_parent != nullptr) {
+        if (spawn_parent != nullptr)
+        {
             return spawn_parent->m_text_color;
         }
     }
@@ -1058,11 +1148,12 @@ Color UIObject::GetTextColor() const
     return m_text_color;
 }
 
-void UIObject::SetTextColor(const Color &text_color)
+void UIObject::SetTextColor(const Color& text_color)
 {
     HYP_SCOPE;
 
-    if (text_color == GetTextColor()) {
+    if (text_color == GetTextColor())
+    {
         return;
     }
 
@@ -1072,11 +1163,12 @@ void UIObject::SetTextColor(const Color &text_color)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MATERIAL, false);
 }
 
-void UIObject::SetText(const String &text)
+void UIObject::SetText(const String& text)
 {
     HYP_SCOPE;
 
-    if (m_text == text) {
+    if (m_text == text)
+    {
         return;
     }
 
@@ -1096,7 +1188,8 @@ void UIObject::SetTextSize(float text_size)
 {
     HYP_SCOPE;
 
-    if (m_text_size == text_size || (m_text_size <= 0.0f && text_size <= 0.0f)) {
+    if (m_text_size == text_size || (m_text_size <= 0.0f && text_size <= 0.0f))
+    {
         return;
     }
 
@@ -1104,7 +1197,8 @@ void UIObject::SetTextSize(float text_size)
 
     m_computed_text_size = -1.0f;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -1120,23 +1214,30 @@ void UIObject::SetIsVisible(bool is_visible)
 {
     HYP_SCOPE;
 
-    if (is_visible == m_is_visible) {
+    if (is_visible == m_is_visible)
+    {
         return;
     }
 
     m_is_visible = is_visible;
 
-    if (const Handle<Node> &node = GetNode()) {
-        if (m_is_visible) {
-            if (m_affects_parent_size) {
+    if (const Handle<Node>& node = GetNode())
+    {
+        if (m_is_visible)
+        {
+            if (m_affects_parent_size)
+            {
                 node->SetFlags(node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
             }
-        } else {
+        }
+        else
+        {
             node->SetFlags(node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 
-    if (IsInit()) {
+    if (IsInit())
+    {
         // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
 
         UpdateSize();
@@ -1148,7 +1249,8 @@ void UIObject::UpdateComputedVisibility(bool update_children)
 {
     HYP_SCOPE;
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY)
+    {
         return;
     }
 
@@ -1159,25 +1261,36 @@ void UIObject::UpdateComputedVisibility(bool update_children)
     // If the object is visible and has a stage (or if this is a UIStage), consider it
     const bool has_stage = m_stage != nullptr || IsInstanceOf<UIStage>();
 
-    if (IsVisible() && has_stage) {
-        if (UIObject *parent_ui_object = GetParentUIObject()) {
+    if (IsVisible() && has_stage)
+    {
+        if (UIObject* parent_ui_object = GetParentUIObject())
+        {
             computed_visibility = parent_ui_object->GetComputedVisibility()
                 && m_aabb_clamped.IsValid()
                 && parent_ui_object->m_aabb_clamped.Overlaps(m_aabb_clamped);
-        } else {
+        }
+        else
+        {
             computed_visibility = true;
         }
-    } else {
+    }
+    else
+    {
         computed_visibility = false;
     }
 
-    if (m_computed_visibility != computed_visibility) {
+    if (m_computed_visibility != computed_visibility)
+    {
         m_computed_visibility = computed_visibility;
 
-        if (const Scene *scene = GetScene()) {
-            if (m_computed_visibility) {
+        if (const Scene* scene = GetScene())
+        {
+            if (m_computed_visibility)
+            {
                 scene->GetEntityManager()->AddTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
-            } else {
+            }
+            else
+            {
                 scene->GetEntityManager()->RemoveTag<EntityTag::UI_OBJECT_VISIBLE>(GetEntity());
             }
         }
@@ -1185,34 +1298,38 @@ void UIObject::UpdateComputedVisibility(bool update_children)
         OnComputedVisibilityChange();
     }
 
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            child->UpdateComputedVisibility(true);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                child->UpdateComputedVisibility(true);
 
-            return IterationResult::CONTINUE;
-        }, /* deep */ false);
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ false);
     }
 }
 
 bool UIObject::IsEnabled() const
 {
-    if (!m_is_enabled) {
+    if (!m_is_enabled)
+    {
         return false;
     }
 
     bool is_enabled = true;
 
-    ForEachParentUIObject([&is_enabled](UIObject *parent)
-    {
-        if (!parent->m_is_enabled) {
-            is_enabled = false;
+    ForEachParentUIObject([&is_enabled](UIObject* parent)
+        {
+            if (!parent->m_is_enabled)
+            {
+                is_enabled = false;
 
-            return IterationResult::STOP;
-        }
+                return IterationResult::STOP;
+            }
 
-        return IterationResult::CONTINUE;
-    });
+            return IterationResult::CONTINUE;
+        });
 
     return is_enabled;
 }
@@ -1221,51 +1338,67 @@ void UIObject::SetIsEnabled(bool is_enabled)
 {
     HYP_SCOPE;
 
-    if (is_enabled == m_is_enabled) {
+    if (is_enabled == m_is_enabled)
+    {
         return;
     }
 
     m_is_enabled = is_enabled;
 
-    if (is_enabled) {
+    if (is_enabled)
+    {
         OnEnabled();
-    } else {
+    }
+    else
+    {
         OnDisabled();
     }
 
-    ForEachChildUIObject([is_enabled](UIObject *child)
-    {
-        if (child->m_is_enabled) {
-            if (is_enabled) {
-                child->OnEnabled();
-            } else {
-                child->OnDisabled();
+    ForEachChildUIObject([is_enabled](UIObject* child)
+        {
+            if (child->m_is_enabled)
+            {
+                if (is_enabled)
+                {
+                    child->OnEnabled();
+                }
+                else
+                {
+                    child->OnDisabled();
+                }
             }
-        }
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ true);
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ true);
 }
 
 void UIObject::UpdateComputedTextSize()
 {
-    if (m_computed_text_size > 0.0f) {
+    if (m_computed_text_size > 0.0f)
+    {
         // Already computed. Needs to be invalidated by being set to -1.0f to be recomputed.
         return;
     }
 
-    if (m_text_size <= 0.0f) {
-        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject *parent)
-        {
-            return parent->m_text_size > 0.0f;
-        });
+    if (m_text_size <= 0.0f)
+    {
+        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
+            {
+                return parent->m_text_size > 0.0f;
+            });
 
-        if (spawn_parent != nullptr) {
+        if (spawn_parent != nullptr)
+        {
             m_computed_text_size = spawn_parent->m_text_size;
-        } else {
+        }
+        else
+        {
             m_computed_text_size = 16.0f; // default font size
         }
-    } else {
+    }
+    else
+    {
         m_computed_text_size = m_text_size;
     }
 
@@ -1279,75 +1412,86 @@ bool UIObject::HasFocus(bool include_children) const
 {
     HYP_SCOPE;
 
-    if (GetFocusState() & UIObjectFocusState::FOCUSED) {
+    if (GetFocusState() & UIObjectFocusState::FOCUSED)
+    {
         return true;
     }
 
-    if (!include_children) {
+    if (!include_children)
+    {
         return false;
     }
 
     bool has_focus = false;
 
     // check if any child has focus
-    ForEachChildUIObject([&has_focus](UIObject *child)
-    {
-        // Don't include children in the `HasFocus` check as we're already iterating over them
-        if (child->HasFocus(false)) {
-            has_focus = true;
+    ForEachChildUIObject([&has_focus](UIObject* child)
+        {
+            // Don't include children in the `HasFocus` check as we're already iterating over them
+            if (child->HasFocus(false))
+            {
+                has_focus = true;
 
-            return IterationResult::STOP;
-        }
+                return IterationResult::STOP;
+            }
 
-        return IterationResult::CONTINUE;
-    });
+            return IterationResult::CONTINUE;
+        });
 
     return has_focus;
 }
 
-bool UIObject::IsOrHasParent(const UIObject *other) const
+bool UIObject::IsOrHasParent(const UIObject* other) const
 {
     HYP_SCOPE;
 
-    if (!other) {
+    if (!other)
+    {
         return false;
     }
 
-    if (this == other) {
+    if (this == other)
+    {
         return true;
     }
 
-    const Handle<Node> &this_node = GetNode();
-    const Handle<Node> &other_node = other->GetNode();
+    const Handle<Node>& this_node = GetNode();
+    const Handle<Node>& other_node = other->GetNode();
 
-    if (!this_node.IsValid() || !other_node.IsValid()) {
+    if (!this_node.IsValid() || !other_node.IsValid())
+    {
         return false;
     }
 
     return this_node->IsOrHasParent(other_node.Get());
 }
 
-void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIObject::AddChildUIObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return;
     }
 
     AssertThrow(!ui_object->IsOrHasParent(this));
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         HYP_LOG(UI, Error, "Parent UI object has no attachable node: {}", GetName());
 
         return;
     }
 
-    if (Handle<Node> child_node = ui_object->GetNode()) {
+    if (Handle<Node> child_node = ui_object->GetNode())
+    {
         node->AddChild(child_node);
-    } else {
+    }
+    else
+    {
         HYP_LOG(UI, Error, "Child UI object '{}' has no attachable node", ui_object->GetName());
 
         return;
@@ -1361,21 +1505,24 @@ void UIObject::AddChildUIObject(const RC<UIObject> &ui_object)
     OnChildAttached(ui_object.Get());
 }
 
-bool UIObject::RemoveChildUIObject(UIObject *ui_object)
+bool UIObject::RemoveChildUIObject(UIObject* ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
-    UIObject *parent_ui_object = ui_object->GetParentUIObject();
-    
-    if (!parent_ui_object) {
+    UIObject* parent_ui_object = ui_object->GetParentUIObject();
+
+    if (!parent_ui_object)
+    {
         return false;
     }
 
-    if (parent_ui_object == this) {
+    if (parent_ui_object == this)
+    {
         Handle<Node> child_node = ui_object->GetNode();
 
         {
@@ -1389,17 +1536,21 @@ bool UIObject::RemoveChildUIObject(UIObject *ui_object)
             m_child_ui_objects.Erase(it);
         }
 
-        if (child_node) {
+        if (child_node)
+        {
             child_node->Remove();
             child_node.Reset();
         }
-        
-        if (UseAutoSizing()) {
+
+        if (UseAutoSizing())
+        {
             UpdateSize();
         }
 
         return true;
-    } else {
+    }
+    else
+    {
         return parent_ui_object->RemoveChildUIObject(ui_object);
     }
 
@@ -1417,25 +1568,30 @@ int UIObject::RemoveAllChildUIObjects()
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        Array<UIObject *> children = GetChildUIObjects(false);
+        Array<UIObject*> children = GetChildUIObjects(false);
 
-        for (UIObject *child : children) {
-            if (RemoveChildUIObject(child)) {
+        for (UIObject* child : children)
+        {
+            if (RemoveChildUIObject(child))
+            {
                 ++num_removed;
-            } else {
+            }
+            else
+            {
                 HYP_LOG(UI, Error, "Failed to remove UIObject {} from parent {}!", child->GetName(), GetName());
             }
         }
     }
 
-    if (num_removed > 0 && UseAutoSizing()) {
+    if (num_removed > 0 && UseAutoSizing())
+    {
         UpdateSize();
     }
 
     return num_removed;
 }
 
-int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate)
+int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject*)> predicate)
 {
     HYP_SCOPE;
 
@@ -1444,16 +1600,19 @@ int UIObject::RemoveAllChildUIObjects(ProcRef<bool(UIObject *)> predicate)
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        Array<UIObject *> children = FilterChildUIObjects(predicate, false);
+        Array<UIObject*> children = FilterChildUIObjects(predicate, false);
 
-        for (UIObject *child : children) {
-            if (RemoveChildUIObject(child)) {
+        for (UIObject* child : children)
+        {
+            if (RemoveChildUIObject(child))
+            {
                 ++num_removed;
             }
         }
     }
 
-    if (num_removed > 0 && UseAutoSizing()) {
+    if (num_removed > 0 && UseAutoSizing())
+    {
         UpdateSize();
     }
 
@@ -1467,16 +1626,18 @@ void UIObject::ClearDeep()
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-        Array<UIObject *> children = GetChildUIObjects(false);
+        Array<UIObject*> children = GetChildUIObjects(false);
 
-        for (UIObject *child : children) {
+        for (UIObject* child : children)
+        {
             child->ClearDeep();
         }
 
         RemoveAllChildUIObjects();
     }
 
-    if (UseAutoSizing()) {
+    if (UseAutoSizing())
+    {
         UpdateSize();
     }
 }
@@ -1484,8 +1645,9 @@ void UIObject::ClearDeep()
 bool UIObject::RemoveFromParent()
 {
     HYP_SCOPE;
-    
-    if (UIObject *parent = GetParentUIObject()) {
+
+    if (UIObject* parent = GetParentUIObject())
+    {
         return parent->RemoveChildUIObject(this);
     }
 
@@ -1495,10 +1657,11 @@ bool UIObject::RemoveFromParent()
 RC<UIObject> UIObject::DetachFromParent()
 {
     HYP_SCOPE;
-    
+
     RC<UIObject> this_ref_counted = RefCountedPtrFromThis();
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (UIObject* parent = GetParentUIObject())
+    {
         parent->RemoveChildUIObject(this);
     }
 
@@ -1511,48 +1674,53 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
 
     RC<UIObject> found_object;
 
-    ForEachChildUIObject([name, &found_object](UIObject *child)
-    {
-        if (child->GetName() == name) {
-            found_object = child->RefCountedPtrFromThis();
+    ForEachChildUIObject([name, &found_object](UIObject* child)
+        {
+            if (child->GetName() == name)
+            {
+                found_object = child->RefCountedPtrFromThis();
 
-            return IterationResult::STOP;
-        }
+                return IterationResult::STOP;
+            }
 
-        return IterationResult::CONTINUE;
-    }, deep);
+            return IterationResult::CONTINUE;
+        },
+        deep);
 
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject *)> predicate, bool deep) const
+RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
     HYP_SCOPE;
-    
+
     RC<UIObject> found_object;
 
-    ForEachChildUIObject([&found_object, &predicate](UIObject *child)
-    {
-        if (predicate(child)) {
-            found_object = child->RefCountedPtrFromThis();
+    ForEachChildUIObject([&found_object, &predicate](UIObject* child)
+        {
+            if (predicate(child))
+            {
+                found_object = child->RefCountedPtrFromThis();
 
-            return IterationResult::STOP;
-        }
+                return IterationResult::STOP;
+            }
 
-        return IterationResult::CONTINUE;
-    }, deep);
+            return IterationResult::CONTINUE;
+        },
+        deep);
 
     return found_object;
 }
 
-const Handle<Node> &UIObject::GetNode() const
+const Handle<Node>& UIObject::GetNode() const
 {
     return m_node;
 }
 
-World *UIObject::GetWorld() const
+World* UIObject::GetWorld() const
 {
-    if (m_node.IsValid()) {
+    if (m_node.IsValid())
+    {
         return m_node->GetWorld();
     }
 
@@ -1563,7 +1731,8 @@ BoundingBox UIObject::GetWorldAABB() const
 {
     HYP_SCOPE;
 
-    if (const Handle<Node> &node = GetNode()) {
+    if (const Handle<Node>& node = GetNode())
+    {
         return node->GetWorldAABB();
     }
 
@@ -1573,25 +1742,28 @@ BoundingBox UIObject::GetWorldAABB() const
 BoundingBox UIObject::GetLocalAABB() const
 {
     HYP_SCOPE;
-    
-    if (const Handle<Node> &node = GetNode()) {
+
+    if (const Handle<Node>& node = GetNode())
+    {
         return node->GetLocalAABB();
     }
 
     return BoundingBox::Empty();
 }
 
-void UIObject::SetEntityAABB(const BoundingBox &aabb)
+void UIObject::SetEntityAABB(const BoundingBox& aabb)
 {
     HYP_SCOPE;
 
     Transform transform;
 
-    if (Scene *scene = GetScene()) {
-        BoundingBoxComponent &bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
+    if (Scene* scene = GetScene())
+    {
+        BoundingBoxComponent& bounding_box_component = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
         bounding_box_component.local_aabb = aabb;
 
-        if (const Handle<Node> &node = GetNode()) {
+        if (const Handle<Node>& node = GetNode())
+        {
             node->SetEntityAABB(aabb);
 
             transform = node->GetWorldTransform();
@@ -1619,10 +1791,12 @@ BoundingBox UIObject::CalculateInnerAABB_Internal() const
 {
     HYP_SCOPE;
 
-    if (const Handle<Node> &node = GetNode()) {
+    if (const Handle<Node>& node = GetNode())
+    {
         const BoundingBox aabb = node->GetLocalAABB();
 
-        if (aabb.IsFinite() && aabb.IsValid()) {
+        if (aabb.IsFinite() && aabb.IsValid())
+        {
             return aabb;
         }
     }
@@ -1634,20 +1808,26 @@ void UIObject::SetAffectsParentSize(bool affects_parent_size)
 {
     HYP_SCOPE;
 
-    if (m_affects_parent_size == affects_parent_size) {
+    if (m_affects_parent_size == affects_parent_size)
+    {
         return;
     }
 
     m_affects_parent_size = affects_parent_size;
 
-    if (!m_is_visible) {
+    if (!m_is_visible)
+    {
         return;
     }
 
-    if (m_node.IsValid()) {
-        if (m_affects_parent_size) {
+    if (m_node.IsValid())
+    {
+        if (m_affects_parent_size)
+        {
             m_node->SetFlags(m_node->GetFlags() & ~NodeFlags::EXCLUDE_FROM_PARENT_AABB);
-        } else {
+        }
+        else
+        {
             m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
@@ -1658,12 +1838,12 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
     HYP_SCOPE;
 
     return MaterialAttributes {
-        .shader_definition  = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
-        .blend_function     = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces         = FaceCullMode::BACK,
-        .flags              = MaterialAttributeFlags::NONE
-    };   
+        .shader_definition = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
+        .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
+            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+        .cull_faces = FaceCullMode::BACK,
+        .flags = MaterialAttributeFlags::NONE
+    };
 }
 
 Material::ParameterTable UIObject::GetMaterialParameters() const
@@ -1679,7 +1859,7 @@ Material::TextureSet UIObject::GetMaterialTextures() const
 {
     HYP_SCOPE;
 
-    return Material::TextureSet { };
+    return Material::TextureSet {};
 }
 
 Handle<Material> UIObject::CreateMaterial() const
@@ -1687,88 +1867,99 @@ Handle<Material> UIObject::CreateMaterial() const
     HYP_SCOPE;
 
     Material::TextureSet material_textures = GetMaterialTextures();
-    
-    if (AllowMaterialUpdate()) {
+
+    if (AllowMaterialUpdate())
+    {
         Handle<Material> material = CreateObject<Material>(
             Name::Unique("UIObjectMaterial_Dynamic"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
-            material_textures
-        );
+            material_textures);
 
         material->SetIsDynamic(true);
 
         InitObject(material);
 
         return material;
-    } else {
+    }
+    else
+    {
         return MaterialCache::GetInstance()->GetOrCreate(
             Name::Unique("UIObjectMaterial_Static"),
             GetMaterialAttributes(),
             GetMaterialParameters(),
-            material_textures
-        );
+            material_textures);
     }
 }
 
-const Handle<Material> &UIObject::GetMaterial() const
+const Handle<Material>& UIObject::GetMaterial() const
 {
     HYP_SCOPE;
 
-    const Scene *scene = GetScene();
-    const Handle<Entity> &entity = GetEntity();
+    const Scene* scene = GetScene();
+    const Handle<Entity>& entity = GetEntity();
 
-    if (!entity.IsValid() || !scene) {
+    if (!entity.IsValid() || !scene)
+    {
         return Handle<Material>::empty;
     }
 
-    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity)) {
+    if (const MeshComponent* mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity))
+    {
         return mesh_component->material;
     }
 
     return Handle<Material>::empty;
 }
 
-const Handle<Mesh> &UIObject::GetMesh() const
+const Handle<Mesh>& UIObject::GetMesh() const
 {
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
-    const Handle<Entity> &entity = GetEntity();
 
-    if (!entity.IsValid() || !scene) {
+    const Scene* scene = GetScene();
+    const Handle<Entity>& entity = GetEntity();
+
+    if (!entity.IsValid() || !scene)
+    {
         return Handle<Mesh>::empty;
     }
 
-    if (const MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity)) {
+    if (const MeshComponent* mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity))
+    {
         return mesh_component->mesh;
     }
 
     return Handle<Mesh>::empty;
 }
 
-UIObject *UIObject::GetParentUIObject() const
+UIObject* UIObject::GetParentUIObject() const
 {
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
 
-    if (!scene) {
+    const Scene* scene = GetScene();
+
+    if (!scene)
+    {
         return nullptr;
     }
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         return nullptr;
     }
 
-    Node *parent_node = node->GetParent();
+    Node* parent_node = node->GetParent();
 
-    while (parent_node != nullptr) {
-        if (parent_node->GetEntity().IsValid()) {
-            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
+    while (parent_node != nullptr)
+    {
+        if (parent_node->GetEntity().IsValid())
+        {
+            if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity()))
+            {
+                if (ui_component->ui_object != nullptr)
+                {
                     return ui_component->ui_object;
                 }
             }
@@ -1780,29 +1971,36 @@ UIObject *UIObject::GetParentUIObject() const
     return nullptr;
 }
 
-UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
+UIObject* UIObject::GetClosestParentUIObject(UIObjectType type) const
 {
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
 
-    if (!scene) {
+    const Scene* scene = GetScene();
+
+    if (!scene)
+    {
         return nullptr;
     }
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         return nullptr;
     }
 
-    Node *parent_node = node->GetParent();
+    Node* parent_node = node->GetParent();
 
-    while (parent_node) {
-        if (parent_node->GetEntity().IsValid()) {
-            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
-                    if (ui_component->ui_object->GetType() == type) {
+    while (parent_node)
+    {
+        if (parent_node->GetEntity().IsValid())
+        {
+            if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity()))
+            {
+                if (ui_component->ui_object != nullptr)
+                {
+                    if (ui_component->ui_object->GetType() == type)
+                    {
                         return ui_component->ui_object;
                     }
                 }
@@ -1815,29 +2013,36 @@ UIObject *UIObject::GetClosestParentUIObject(UIObjectType type) const
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject *)> &proc) const
+RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
 
-    if (!scene) {
+    const Scene* scene = GetScene();
+
+    if (!scene)
+    {
         return nullptr;
     }
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         return nullptr;
     }
 
-    Node *parent_node = node->GetParent();
+    Node* parent_node = node->GetParent();
 
-    while (parent_node) {
-        if (parent_node->GetEntity().IsValid()) {
-            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
-                    if (proc(ui_component->ui_object)) {
+    while (parent_node)
+    {
+        if (parent_node->GetEntity().IsValid())
+        {
+            if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity()))
+            {
+                if (ui_component->ui_object != nullptr)
+                {
+                    if (proc(ui_component->ui_object))
+                    {
                         return ui_component->ui_object->RefCountedPtrFromThis();
                     }
                 }
@@ -1850,14 +2055,16 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject *)> &proc) const
+RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
 
     RC<UIObject> parent_ui_object = m_spawn_parent.Lock();
 
-    while (parent_ui_object != nullptr) {
-        if (proc(parent_ui_object.Get())) {
+    while (parent_ui_object != nullptr)
+    {
+        if (proc(parent_ui_object.Get()))
+        {
             return parent_ui_object;
         }
 
@@ -1870,19 +2077,21 @@ RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject *)
 Vec2i UIObject::GetParentScrollOffset() const
 {
     HYP_SCOPE;
-    
-    if (UIObject *parent_ui_object = GetParentUIObject()) {
+
+    if (UIObject* parent_ui_object = GetParentUIObject())
+    {
         return parent_ui_object->GetScrollOffset();
     }
 
     return Vec2i::Zero();
 }
 
-Scene *UIObject::GetScene() const
+Scene* UIObject::GetScene() const
 {
     HYP_SCOPE;
-    
-    if (const Handle<Node> &node = GetNode()) {
+
+    if (const Handle<Node>& node = GetNode())
+    {
         return node->GetScene();
     }
 
@@ -1892,33 +2101,38 @@ Scene *UIObject::GetScene() const
 void UIObject::UpdateActualSizes(UpdateSizePhase phase, EnumFlags<UIObjectUpdateSizeFlags> flags)
 {
     HYP_SCOPE;
-    
-    if (flags & UIObjectUpdateSizeFlags::MAX_SIZE) {
-        if (m_max_size.GetValue().x != 0 || m_max_size.GetValue().y != 0) {
+
+    if (flags & UIObjectUpdateSizeFlags::MAX_SIZE)
+    {
+        if (m_max_size.GetValue().x != 0 || m_max_size.GetValue().y != 0)
+        {
             ComputeActualSize(m_max_size, m_actual_max_size, phase);
         }
     }
 
-    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE) {
+    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE)
+    {
         ComputeActualSize(m_size, m_actual_size, phase, false);
     }
 
-    if (flags & UIObjectUpdateSizeFlags::INNER_SIZE) {
+    if (flags & UIObjectUpdateSizeFlags::INNER_SIZE)
+    {
         ComputeActualSize(m_inner_size, m_actual_inner_size, phase, true);
     }
 
-    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE) {
+    if (flags & UIObjectUpdateSizeFlags::OUTER_SIZE)
+    {
         m_actual_size.x = m_actual_max_size.x != 0 ? MathUtil::Min(m_actual_size.x, m_actual_max_size.x) : m_actual_size.x;
         m_actual_size.y = m_actual_max_size.y != 0 ? MathUtil::Min(m_actual_size.y, m_actual_max_size.y) : m_actual_size.y;
     }
 }
 
-void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size, UpdateSizePhase phase, bool is_inner)
+void UIObject::ComputeActualSize(const UIObjectSize& in_size, Vec2i& actual_size, UpdateSizePhase phase, bool is_inner)
 {
     HYP_SCOPE;
 
     actual_size = Vec2i { 0, 0 };
-    
+
     Vec2i self_padding { 0, 0 };
     Vec2i parent_size { 0, 0 };
     Vec2i parent_padding { 0, 0 };
@@ -1926,36 +2140,46 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
     Vec2i horizontal_scrollbar_size { 0, 0 };
     Vec2i vertical_scrollbar_size { 0, 0 };
 
-    UIObject *parent_ui_object = GetParentUIObject();
+    UIObject* parent_ui_object = GetParentUIObject();
 
-    if (is_inner) {
+    if (is_inner)
+    {
         parent_size = GetActualSize();
         parent_padding = GetPadding();
 
         horizontal_scrollbar_size[1] = m_horizontal_scrollbar != nullptr && m_horizontal_scrollbar->IsVisible() ? scrollbar_size : 0;
         vertical_scrollbar_size[0] = m_vertical_scrollbar != nullptr && m_vertical_scrollbar->IsVisible() ? scrollbar_size : 0;
-    } else if (parent_ui_object != nullptr) {
+    }
+    else if (parent_ui_object != nullptr)
+    {
         self_padding = GetPadding();
         parent_size = parent_ui_object->GetActualSize();
         parent_padding = parent_ui_object->GetPadding();
 
         horizontal_scrollbar_size[1] = parent_ui_object->m_horizontal_scrollbar != nullptr && parent_ui_object->m_horizontal_scrollbar->IsVisible() ? scrollbar_size : 0;
         vertical_scrollbar_size[0] = parent_ui_object->m_vertical_scrollbar != nullptr && parent_ui_object->m_vertical_scrollbar->IsVisible() ? scrollbar_size : 0;
-    } else if (m_stage != nullptr) {
+    }
+    else if (m_stage != nullptr)
+    {
         self_padding = GetPadding();
         parent_size = m_stage->GetSurfaceSize();
-    } else if (IsInstanceOf<UIStage>()) {
-        actual_size = static_cast<UIStage *>(this)->GetSurfaceSize();
-    } else {
+    }
+    else if (IsInstanceOf<UIStage>())
+    {
+        actual_size = static_cast<UIStage*>(this)->GetSurfaceSize();
+    }
+    else
+    {
         return;
     }
 
     const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
 
-    const auto UpdateSizeComponent = [&](uint32 flags, int component_index)
+    const auto update_size_component = [&](uint32 flags, int component_index)
     {
         // percentage based size of parent ui object / surface
-        switch (flags) {
+        switch (flags)
+        {
         case UIObjectSize::PIXEL:
             actual_size[component_index] = in_size.GetValue()[component_index];
 
@@ -1971,13 +2195,15 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
 
             break;
         case UIObjectSize::FILL:
-            if (!is_inner) {
+            if (!is_inner)
+            {
                 actual_size[component_index] = MathUtil::Max(parent_size[component_index] - m_position[component_index] - parent_padding[component_index] * 2 - horizontal_scrollbar_size[component_index] - vertical_scrollbar_size[component_index], 0);
             }
 
             break;
         case UIObjectSize::AUTO:
-            if (phase == UpdateSizePhase::AFTER_CHILDREN) {
+            if (phase == UpdateSizePhase::AFTER_CHILDREN)
+            {
                 actual_size[component_index] = MathUtil::Floor(inner_extent[component_index]);
                 actual_size[component_index] += self_padding[component_index] * 2;
                 actual_size[component_index] += horizontal_scrollbar_size[component_index];
@@ -1990,26 +2216,29 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
         }
     };
 
-    UpdateSizeComponent(in_size.GetFlagsX(), 0);
-    UpdateSizeComponent(in_size.GetFlagsY(), 1);
+    update_size_component(in_size.GetFlagsX(), 0);
+    update_size_component(in_size.GetFlagsY(), 1);
 
-    if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
-        if (phase != UpdateSizePhase::AFTER_CHILDREN) {
+    if (in_size.GetAllFlags() & UIObjectSize::AUTO)
+    {
+        if (phase != UpdateSizePhase::AFTER_CHILDREN)
+        {
             // fix child object's offsets:
             // - when resizing, the node just sees objects offset by X where X is some number based on the previous size
             //   which is then included in the GetLocalAABB() calculation.
             // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
-            ForEachChildUIObject([](UIObject *child)
-            {
-                if (child->IsPositionDependentOnParentSize()) {
-                    child->UpdatePosition(/* update_children */ false);
-                }
+            ForEachChildUIObject([](UIObject* child)
+                {
+                    if (child->IsPositionDependentOnParentSize())
+                    {
+                        child->UpdatePosition(/* update_children */ false);
+                    }
 
-                return IterationResult::CONTINUE;
-            }, false);
+                    return IterationResult::CONTINUE;
+                },
+                false);
         }
     }
-
 
     // actual_size = Vec2i { 0, 0 };
 
@@ -2092,7 +2321,6 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
     //     }
     // }
 
-
     // make sure the actual size is at least 0
     actual_size = MathUtil::Max(actual_size, Vec2i { 0, 0 });
 }
@@ -2100,10 +2328,11 @@ void UIObject::ComputeActualSize(const UIObjectSize &in_size, Vec2i &actual_size
 void UIObject::ComputeOffsetPosition()
 {
     HYP_SCOPE;
-    
+
     Vec2f offset_position { 0.0f, 0.0f };
 
-    switch (m_origin_alignment) {
+    switch (m_origin_alignment)
+    {
     case UIObjectAlignment::TOP_LEFT:
         // no offset
         break;
@@ -2126,11 +2355,13 @@ void UIObject::ComputeOffsetPosition()
     }
 
     // where to position the object relative to its parent
-    if (UIObject *parent_ui_object = GetParentUIObject()) {
+    if (UIObject* parent_ui_object = GetParentUIObject())
+    {
         const Vec2f parent_padding(parent_ui_object->GetPadding());
         const Vec2i parent_actual_size(parent_ui_object->GetActualSize());
 
-        switch (m_parent_alignment) {
+        switch (m_parent_alignment)
+        {
         case UIObjectAlignment::TOP_LEFT:
             offset_position += parent_padding;
 
@@ -2138,28 +2369,28 @@ void UIObject::ComputeOffsetPosition()
         case UIObjectAlignment::TOP_RIGHT:
             // // auto layout breaks with this alignment
             // if (!(parent_ui_object->GetSize().GetFlagsX() & UIObjectSize::AUTO)) {
-                offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, parent_padding.y);
             // }
 
             break;
         case UIObjectAlignment::CENTER:
             // // auto layout breaks with this alignment
             // if (!(parent_ui_object->GetSize().GetAllFlags() & UIObjectSize::AUTO)) {
-                offset_position += Vec2f(float(parent_actual_size.x) * 0.5f, float(parent_actual_size.y) * 0.5f);
+            offset_position += Vec2f(float(parent_actual_size.x) * 0.5f, float(parent_actual_size.y) * 0.5f);
             // }
 
             break;
         case UIObjectAlignment::BOTTOM_LEFT:
             // // auto layout breaks with this alignment
             // if (!(parent_ui_object->GetSize().GetFlagsY() & UIObjectSize::AUTO)) {
-                offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
+            offset_position += Vec2f(parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
             // }
 
             break;
         case UIObjectAlignment::BOTTOM_RIGHT:
             // // auto layout breaks with this alignment
             // if (!(parent_ui_object->GetSize().GetAllFlags() & UIObjectSize::AUTO)) {
-                offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
+            offset_position += Vec2f(float(parent_actual_size.x) - parent_padding.x, float(parent_actual_size.y) - parent_padding.y);
             // }
 
             break;
@@ -2173,20 +2404,23 @@ void UIObject::UpdateMeshData(bool update_children)
 {
     HYP_SCOPE;
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_MESH_DATA) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_MESH_DATA)
+    {
         return;
     }
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MESH_DATA | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MESH_DATA : UIObjectUpdateType::NONE));
-    
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            // Do not update children in the next call; ForEachChildUIObject runs for all descendants
-            child->UpdateMeshData(true);
 
-            return IterationResult::CONTINUE;
-        }, /* deep */ false);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                // Do not update children in the next call; ForEachChildUIObject runs for all descendants
+                child->UpdateMeshData(true);
+
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ false);
     }
 
     UpdateMeshData_Internal();
@@ -2196,27 +2430,28 @@ void UIObject::UpdateMeshData_Internal()
 {
     HYP_SCOPE;
 
-    const Scene *scene = GetScene();
+    const Scene* scene = GetScene();
 
-    if (!scene) {
+    if (!scene)
+    {
         return;
     }
 
-    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
+    MeshComponent* mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
 
-    if (!mesh_component) {
+    if (!mesh_component)
+    {
         return;
     }
 
-    UIObjectMeshData ui_object_mesh_data { };
+    UIObjectMeshData ui_object_mesh_data {};
     ui_object_mesh_data.size = Vec2u(m_actual_size);
 
     ui_object_mesh_data.clamped_aabb = Vec4f(
         m_aabb_clamped.min.x,
         m_aabb_clamped.min.y,
         m_aabb_clamped.max.x,
-        m_aabb_clamped.max.y
-    );
+        m_aabb_clamped.max.y);
 
     ui_object_mesh_data.flags = (m_border_radius & 0xFFu)
         | ((uint32(m_border_flags) & 0xFu) << 8u)
@@ -2250,45 +2485,51 @@ void UIObject::UpdateMaterial(bool update_children)
 {
     HYP_SCOPE;
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_MATERIAL) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_MATERIAL)
+    {
         return;
     }
 
     m_deferred_updates &= ~(UIObjectUpdateType::UPDATE_MATERIAL | (update_children ? UIObjectUpdateType::UPDATE_CHILDREN_MATERIAL : UIObjectUpdateType::NONE));
-    
-    if (update_children) {
-        ForEachChildUIObject([](UIObject *child)
-        {
-            child->UpdateMaterial(true);
 
-            return IterationResult::CONTINUE;
-        }, /* deep */ false);
+    if (update_children)
+    {
+        ForEachChildUIObject([](UIObject* child)
+            {
+                child->UpdateMaterial(true);
+
+                return IterationResult::CONTINUE;
+            },
+            /* deep */ false);
     }
 
-    const Scene *scene = GetScene();
+    const Scene* scene = GetScene();
 
-    if (!scene) {
+    if (!scene)
+    {
         return;
     }
 
-    MeshComponent *mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
+    MeshComponent* mesh_component = scene->GetEntityManager()->TryGetComponent<MeshComponent>(GetEntity());
 
-    if (!mesh_component) {
+    if (!mesh_component)
+    {
         return;
     }
 
-    const Handle<Material> &current_material = mesh_component->material;
+    const Handle<Material>& current_material = mesh_component->material;
 
     MaterialAttributes material_attributes = GetMaterialAttributes();
     Material::ParameterTable material_parameters = GetMaterialParameters();
     Material::TextureSet material_textures = GetMaterialTextures();
 
-    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters) {
+    if (!current_material.IsValid() || current_material->GetRenderAttributes() != material_attributes || current_material->GetTextures() != material_textures || current_material->GetParameters() != material_parameters)
+    {
         // need to get a new Material if attributes have changed
         Handle<Material> new_material = CreateMaterial();
 
         mesh_component->material = std::move(new_material);
-        
+
         scene->GetEntityManager()->AddTag<EntityTag::UPDATE_RENDER_PROXY>(GetEntity());
 
         return;
@@ -2296,13 +2537,17 @@ void UIObject::UpdateMaterial(bool update_children)
 
     bool parameters_changed = material_parameters != current_material->GetParameters();
     bool textures_changed = material_textures != current_material->GetTextures();
-    
-    if (parameters_changed || textures_changed) {
+
+    if (parameters_changed || textures_changed)
+    {
         Handle<Material> new_material;
-        
-        if (current_material->IsDynamic()) {
+
+        if (current_material->IsDynamic())
+        {
             new_material = current_material;
-        } else {
+        }
+        else
+        {
             new_material = current_material->Clone();
 
             mesh_component->material = new_material;
@@ -2312,11 +2557,13 @@ void UIObject::UpdateMaterial(bool update_children)
 
         AssertThrow(new_material->IsDynamic());
 
-        if (parameters_changed) {
+        if (parameters_changed)
+        {
             new_material->SetParameters(material_parameters);
         }
 
-        if (textures_changed) {
+        if (textures_changed)
+        {
             new_material->SetTextures(material_textures);
         }
 
@@ -2333,28 +2580,33 @@ bool UIObject::HasChildUIObjects() const
     return m_child_ui_objects.Any();
 }
 
-ScriptComponent *UIObject::GetScriptComponent(bool deep) const
+ScriptComponent* UIObject::GetScriptComponent(bool deep) const
 {
     HYP_SCOPE;
 
-    const UIObject *current_ui_object = this;
+    const UIObject* current_ui_object = this;
     RC<UIObject> parent_ui_object;
 
-    while (current_ui_object != nullptr) {
-        Node *node = current_ui_object->GetNode().Get();
+    while (current_ui_object != nullptr)
+    {
+        Node* node = current_ui_object->GetNode().Get();
 
-        if (node != nullptr) {
-            Scene *scene = node->GetScene();
-            const Handle<Entity> &entity = node->GetEntity();
+        if (node != nullptr)
+        {
+            Scene* scene = node->GetScene();
+            const Handle<Entity>& entity = node->GetEntity();
 
-            if (entity.IsValid() && scene != nullptr) {
-                if (ScriptComponent *script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity)) {
+            if (entity.IsValid() && scene != nullptr)
+            {
+                if (ScriptComponent* script_component = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity))
+                {
                     return script_component;
                 }
             }
         }
 
-        if (!deep) {
+        if (!deep)
+        {
             return nullptr;
         }
 
@@ -2365,26 +2617,29 @@ ScriptComponent *UIObject::GetScriptComponent(bool deep) const
     return nullptr;
 }
 
-void UIObject::SetScriptComponent(ScriptComponent &&script_component)
-{  
+void UIObject::SetScriptComponent(ScriptComponent&& script_component)
+{
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
 
-    if (!scene) {
+    const Scene* scene = GetScene();
+
+    if (!scene)
+    {
         return;
     }
 
-    const Handle<Entity> &entity = GetEntity();
+    const Handle<Entity>& entity = GetEntity();
 
-    if (!entity.IsValid()) {
+    if (!entity.IsValid())
+    {
         return;
     }
 
-    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(entity)) {
+    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(entity))
+    {
         scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
     }
-    
+
     scene->GetEntityManager()->AddComponent<ScriptComponent>(entity, std::move(script_component));
 }
 
@@ -2392,19 +2647,22 @@ void UIObject::RemoveScriptComponent()
 {
     HYP_SCOPE;
 
-    const Scene *scene = GetScene();
+    const Scene* scene = GetScene();
 
-    if (!scene) {
+    if (!scene)
+    {
         return;
     }
 
-    const Handle<Entity> &entity = GetEntity();
+    const Handle<Entity>& entity = GetEntity();
 
-    if (!entity.IsValid()) {
+    if (!entity.IsValid())
+    {
         return;
     }
 
-    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(entity)) {
+    if (!scene->GetEntityManager()->HasComponent<ScriptComponent>(entity))
+    {
         return;
     }
 
@@ -2419,41 +2677,48 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
 
     int current_index = 0;
 
-    ForEachChildUIObject([&found_object, &current_index, index](UIObject *child)
-    {
-        if (current_index == index) {
-            found_object = child ? child->RefCountedPtrFromThis() : nullptr;
+    ForEachChildUIObject([&found_object, &current_index, index](UIObject* child)
+        {
+            if (current_index == index)
+            {
+                found_object = child ? child->RefCountedPtrFromThis() : nullptr;
 
-            return IterationResult::STOP;
-        }
+                return IterationResult::STOP;
+            }
 
-        ++current_index;
+            ++current_index;
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ false);
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ false);
 
     return found_object;
 }
 
 void UIObject::SetNodeProxy(Handle<Node> node)
 {
-    if (m_node == node) {
+    if (m_node == node)
+    {
         return;
     }
 
-    if (m_node.IsValid() && m_node->GetEntity().IsValid() && m_node->GetScene() != nullptr) {
-        const Handle<Entity> &entity = m_node->GetEntity();
-        const RC<EntityManager> &entity_manager = m_node->GetScene()->GetEntityManager();
+    if (m_node.IsValid() && m_node->GetEntity().IsValid() && m_node->GetScene() != nullptr)
+    {
+        const Handle<Entity>& entity = m_node->GetEntity();
+        const RC<EntityManager>& entity_manager = m_node->GetScene()->GetEntityManager();
 
-        if (entity_manager->HasComponent<UIComponent>(entity)) {
+        if (entity_manager->HasComponent<UIComponent>(entity))
+        {
             entity_manager->RemoveComponent<UIComponent>(entity);
         }
     }
 
     m_node = std::move(node);
 
-    if (m_node.IsValid()) {
-        if (!m_node->GetEntity().IsValid()) {
+    if (m_node.IsValid())
+    {
+        if (!m_node->GetEntity().IsValid())
+        {
             AssertThrow(m_node->GetScene() != nullptr);
 
             m_node->SetEntity(m_node->GetScene()->GetEntityManager()->AddEntity());
@@ -2461,33 +2726,37 @@ void UIObject::SetNodeProxy(Handle<Node> node)
 
         m_node->GetScene()->GetEntityManager()->AddComponent<UIComponent>(m_node->GetEntity(), UIComponent { this });
 
-        if (!m_affects_parent_size || !m_is_visible) {
+        if (!m_affects_parent_size || !m_is_visible)
+        {
             m_node->SetFlags(m_node->GetFlags() | NodeFlags::EXCLUDE_FROM_PARENT_AABB);
         }
     }
 }
 
-const NodeTag &UIObject::GetNodeTag(WeakName key) const
+const NodeTag& UIObject::GetNodeTag(WeakName key) const
 {
-    static const NodeTag empty_tag { };
+    static const NodeTag empty_tag {};
 
-    if (m_node.IsValid()) {
+    if (m_node.IsValid())
+    {
         return m_node->GetTag(key);
     }
 
     return empty_tag;
 }
 
-void UIObject::SetNodeTag(NodeTag &&tag)
+void UIObject::SetNodeTag(NodeTag&& tag)
 {
-    if (m_node.IsValid()) {
+    if (m_node.IsValid())
+    {
         m_node->AddTag(std::move(tag));
     }
 }
 
 bool UIObject::HasNodeTag(WeakName key) const
 {
-    if (m_node.IsValid()) {
+    if (m_node.IsValid())
+    {
         return m_node->HasTag(key);
     }
 
@@ -2496,34 +2765,43 @@ bool UIObject::HasNodeTag(WeakName key) const
 
 bool UIObject::RemoveNodeTag(WeakName key)
 {
-    if (m_node.IsValid()) {
+    if (m_node.IsValid())
+    {
         return m_node->RemoveTag(key);
     }
 
     return false;
 }
 
-void UIObject::CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible) const
+void UIObject::CollectObjects(ProcRef<void(UIObject*)> proc, bool only_visible) const
 {
     HYP_SCOPE;
 
-    Scene *scene = GetScene();
+    Scene* scene = GetScene();
 
-    if (!scene) {
+    if (!scene)
+    {
         return;
     }
 
-    if (only_visible) {
-        for (auto [entity, ui_component, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-            if (!ui_component.ui_object) {
+    if (only_visible)
+    {
+        for (auto [entity, ui_component, _] : scene->GetEntityManager()->GetEntitySet<UIComponent, EntityTagComponent<EntityTag::UI_OBJECT_VISIBLE>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!ui_component.ui_object)
+            {
                 continue;
             }
 
             proc(ui_component.ui_object);
         }
-    } else {
-        for (auto [entity, ui_component] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-            if (!ui_component.ui_object) {
+    }
+    else
+    {
+        for (auto [entity, ui_component] : scene->GetEntityManager()->GetEntitySet<UIComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!ui_component.ui_object)
+            {
                 continue;
             }
 
@@ -2550,7 +2828,6 @@ void UIObject::CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible)
     //         ? scene->GetEntityManager()->TryGetComponent<UIComponent>(it->GetEntity())
     //         : nullptr;
 
-
     //     if (!ui_component) {
     //         continue;
     //     }
@@ -2575,74 +2852,82 @@ void UIObject::CollectObjects(ProcRef<void(UIObject *)> proc, bool only_visible)
     // }
 }
 
-void UIObject::CollectObjects(Array<UIObject *> &out_objects, bool only_visible) const
+void UIObject::CollectObjects(Array<UIObject*>& out_objects, bool only_visible) const
 {
-    CollectObjects([&out_objects](UIObject *ui_object)
-    {
-        out_objects.PushBack(ui_object);
-    }, only_visible);
+    CollectObjects([&out_objects](UIObject* ui_object)
+        {
+            out_objects.PushBack(ui_object);
+        },
+        only_visible);
 }
 
 Vec2f UIObject::TransformScreenCoordsToRelative(Vec2i coords) const
 {
     HYP_SCOPE;
-    
+
     const Vec2i actual_size = GetActualSize();
     const Vec2f absolute_position = GetAbsolutePosition();
-    
+
     return (Vec2f(coords) - absolute_position) / Vec2f(actual_size);
 }
 
-Array<UIObject *> UIObject::GetChildUIObjects(bool deep) const
+Array<UIObject*> UIObject::GetChildUIObjects(bool deep) const
 {
     HYP_SCOPE;
-    
-    Array<UIObject *> child_objects;
 
-    ForEachChildUIObject([&child_objects](UIObject *child)
-    {
-        child_objects.PushBack(child);
+    Array<UIObject*> child_objects;
 
-        return IterationResult::CONTINUE;
-    }, deep);
+    ForEachChildUIObject([&child_objects](UIObject* child)
+        {
+            child_objects.PushBack(child);
+
+            return IterationResult::CONTINUE;
+        },
+        deep);
 
     return child_objects;
 }
 
-Array<UIObject *> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject *)> predicate, bool deep) const
+Array<UIObject*> UIObject::FilterChildUIObjects(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
     HYP_SCOPE;
-    
-    Array<UIObject *> child_objects;
 
-    ForEachChildUIObject([&child_objects, &predicate](UIObject *child)
-    {
-        if (predicate(child)) {
-            child_objects.PushBack(child);
-        }
+    Array<UIObject*> child_objects;
 
-        return IterationResult::CONTINUE;
-    }, deep);
+    ForEachChildUIObject([&child_objects, &predicate](UIObject* child)
+        {
+            if (predicate(child))
+            {
+                child_objects.PushBack(child);
+            }
+
+            return IterationResult::CONTINUE;
+        },
+        deep);
 
     return child_objects;
 }
 
 template <class Lambda>
-void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
+void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
 {
     HYP_SCOPE;
-    
-    if (!deep) {
+
+    if (!deep)
+    {
         // If not deep, iterate using the child UI objects list - more efficient this way
-        for (const RC<UIObject> &child : m_child_ui_objects) {
-            if (!child) {
+        for (const RC<UIObject>& child : m_child_ui_objects)
+        {
+            if (!child)
+            {
                 continue;
             }
 
             const IterationResult iteration_result = lambda(child.Get());
 
             // stop iterating if stop was set to true
-            if (iteration_result == IterationResult::STOP) {
+            if (iteration_result == IterationResult::STOP)
+            {
                 return;
             }
         }
@@ -2650,17 +2935,20 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
         return;
     }
 
-    Queue<const UIObject *> queue;
+    Queue<const UIObject*> queue;
     queue.Push(this);
 
-    while (queue.Any()) {
-        const UIObject *parent = queue.Pop();
+    while (queue.Any())
+    {
+        const UIObject* parent = queue.Pop();
 
-        for (const RC<UIObject> &child : parent->m_child_ui_objects) {
+        for (const RC<UIObject>& child : parent->m_child_ui_objects)
+        {
             const IterationResult iteration_result = lambda(child.Get());
 
             // stop iterating if stop was set to true
-            if (iteration_result == IterationResult::STOP) {
+            if (iteration_result == IterationResult::STOP)
+            {
                 return;
             }
 
@@ -2669,38 +2957,45 @@ void UIObject::ForEachChildUIObject(Lambda &&lambda, bool deep) const
     }
 }
 
-void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject *)> proc, bool deep) const
+void UIObject::ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> proc, bool deep) const
 {
     ForEachChildUIObject(proc, deep);
 }
 
 template <class Lambda>
-void UIObject::ForEachParentUIObject(Lambda &&lambda) const
+void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 {
     HYP_SCOPE;
-    
-    const Scene *scene = GetScene();
 
-    if (!scene) {
+    const Scene* scene = GetScene();
+
+    if (!scene)
+    {
         return;
     }
 
-    const Handle<Node> &node = GetNode();
+    const Handle<Node>& node = GetNode();
 
-    if (!node) {
+    if (!node)
+    {
         return;
     }
 
-    Node *parent_node = node->GetParent();
+    Node* parent_node = node->GetParent();
 
-    while (parent_node != nullptr) {
-        if (parent_node->GetEntity().IsValid()) {
-            if (UIComponent *ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity())) {
-                if (ui_component->ui_object != nullptr) {
+    while (parent_node != nullptr)
+    {
+        if (parent_node->GetEntity().IsValid())
+        {
+            if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity()))
+            {
+                if (ui_component->ui_object != nullptr)
+                {
                     const IterationResult iteration_result = lambda(ui_component->ui_object);
 
                     // stop iterating if stop was set to true
-                    if (iteration_result == IterationResult::STOP) {
+                    if (iteration_result == IterationResult::STOP)
+                    {
                         return;
                     }
                 }
@@ -2711,7 +3006,7 @@ void UIObject::ForEachParentUIObject(Lambda &&lambda) const
     }
 }
 
-void UIObject::SetStage_Internal(UIStage *stage)
+void UIObject::SetStage_Internal(UIStage* stage)
 {
     HYP_SCOPE;
 
@@ -2719,63 +3014,67 @@ void UIObject::SetStage_Internal(UIStage *stage)
 
     OnFontAtlasUpdate_Internal();
     OnTextSizeUpdate_Internal();
-    
-    ForEachChildUIObject([this, stage](UIObject *ui_object)
-    {
-        if (ui_object == this) {
+
+    ForEachChildUIObject([this, stage](UIObject* ui_object)
+        {
+            if (ui_object == this)
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            ui_object->SetStage_Internal(stage);
+
             return IterationResult::CONTINUE;
-        }
-
-        ui_object->SetStage_Internal(stage);
-
-        return IterationResult::CONTINUE;
-    }, /* deep */ false);
+        },
+        /* deep */ false);
 }
 
 void UIObject::OnFontAtlasUpdate()
 {
     HYP_SCOPE;
-    
-    // Update font atlas for all children
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->OnFontAtlasUpdate_Internal();
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ true);
+    // Update font atlas for all children
+    ForEachChildUIObject([](UIObject* child)
+        {
+            child->OnFontAtlasUpdate_Internal();
+
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ true);
 }
 
 void UIObject::OnTextSizeUpdate()
 {
     HYP_SCOPE;
-    
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->OnTextSizeUpdate_Internal();
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ true);
+    ForEachChildUIObject([](UIObject* child)
+        {
+            child->OnTextSizeUpdate_Internal();
+
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ true);
 }
 
 void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 {
     HYP_SCOPE;
-    
+
     // Update child element's offset positions - they are dependent on parent scroll offset
-    ForEachChildUIObject([](UIObject *child)
-    {
-        child->UpdatePosition(/* update_children */ false);
+    ForEachChildUIObject([](UIObject* child)
+        {
+            child->UpdatePosition(/* update_children */ false);
 
-        return IterationResult::CONTINUE;
-    }, /* deep */ false);
-
+            return IterationResult::CONTINUE;
+        },
+        /* deep */ false);
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_CLAMPED_SIZE, true);
 
     OnScrollOffsetUpdate_Internal(delta);
 }
 
-void UIObject::SetDataSource(const RC<UIDataSourceBase> &data_source)
+void UIObject::SetDataSource(const RC<UIDataSourceBase>& data_source)
 {
     HYP_SCOPE;
 
@@ -2789,11 +3088,12 @@ void UIObject::SetDataSource(const RC<UIDataSourceBase> &data_source)
     SetDataSource_Internal(m_data_source.Get());
 }
 
-void UIObject::SetDataSource_Internal(UIDataSourceBase *data_source)
+void UIObject::SetDataSource_Internal(UIDataSourceBase* data_source)
 {
     HYP_SCOPE;
 
-    if (!data_source) {
+    if (!data_source)
+    {
         return;
     }
 }
@@ -2804,15 +3104,16 @@ bool UIObject::NeedsRepaint() const
 }
 
 void UIObject::SetNeedsRepaintFlag(bool needs_repaint)
-{ 
+{
     m_needs_repaint.Set(needs_repaint, MemoryOrder::RELEASE);
 }
 
 void UIObject::Repaint()
 {
     HYP_SCOPE;
-    
-    if (Repaint_Internal()) {
+
+    if (Repaint_Internal())
+    {
         SetNeedsRepaintFlag(false);
     }
 }
@@ -2822,11 +3123,12 @@ bool UIObject::Repaint_Internal()
     return true;
 }
 
-RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2i position, UIObjectSize size)
+RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2i position, UIObjectSize size)
 {
     HYP_SCOPE;
-    
-    if (!hyp_class) {
+
+    if (!hyp_class)
+    {
         return nullptr;
     }
 
@@ -2837,7 +3139,8 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
     HypData ui_object_hyp_data;
     hyp_class->CreateInstance(ui_object_hyp_data);
 
-    if (!ui_object_hyp_data.IsValid()) {
+    if (!ui_object_hyp_data.IsValid())
+    {
         return nullptr;
     }
 
@@ -2847,7 +3150,8 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
     // AssertThrow(IsInit());
     AssertThrow(GetNode().IsValid());
 
-    if (!name.IsValid()) {
+    if (!name.IsValid())
+    {
         name = Name::Unique(ANSIString("Unnamed_") + hyp_class->GetName().LookupString());
     }
 
@@ -2855,7 +3159,7 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass *hyp_class, Name name, Vec2
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
     node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
-    UIStage *stage = GetStage();
+    UIStage* stage = GetStage();
 
     ui_object->m_spawn_parent = WeakRefCountedPtrFromThis();
     ui_object->m_stage = stage;

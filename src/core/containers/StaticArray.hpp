@@ -23,8 +23,8 @@ struct StaticArray
 
     using Iterator = typename std::array<T, Size>::iterator;
     using ConstIterator = typename std::array<T, Size>::const_iterator;
-    
-    constexpr const T &operator[](SizeType index) const
+
+    constexpr const T& operator[](SizeType index) const
     {
         return items[index];
     }
@@ -34,34 +34,70 @@ struct StaticArray
     {
         static_assert(std::is_same_v<typename decltype(OtherStaticArray)::HeldType, HeldType>, "Held types differ, cannot concat static arrays");
 
-        if constexpr (Size == 0 && decltype(OtherStaticArray)::size == 0) {
-            return StaticArray<T, 0> { };
-        } else if constexpr (Size == 0) {
+        if constexpr (Size == 0 && decltype(OtherStaticArray)::size == 0)
+        {
+            return StaticArray<T, 0> {};
+        }
+        else if constexpr (Size == 0)
+        {
             return OtherStaticArray;
-        } else if constexpr (decltype(OtherStaticArray)::size == 0) {
+        }
+        else if constexpr (decltype(OtherStaticArray)::size == 0)
+        {
             return StaticArray<T, Size> { items };
-        } else {
+        }
+        else
+        {
             return ConcatImpl<OtherStaticArray>(std::make_index_sequence<Size + decltype(OtherStaticArray)::size>());
         }
     }
 
-    constexpr Iterator Begin() { return items.begin(); }
-    constexpr Iterator End() { return items.end(); }
-    constexpr ConstIterator Begin() const { return items.begin(); }
-    constexpr ConstIterator End() const { return items.end(); }
-    constexpr Iterator begin() { return items.begin(); }
-    constexpr Iterator end() { return items.end(); }
-    constexpr ConstIterator begin() const  { return items.begin(); }
-    constexpr ConstIterator end() const { return items.end(); }
+    constexpr Iterator Begin()
+    {
+        return items.begin();
+    }
+
+    constexpr Iterator End()
+    {
+        return items.end();
+    }
+
+    constexpr ConstIterator Begin() const
+    {
+        return items.begin();
+    }
+
+    constexpr ConstIterator End() const
+    {
+        return items.end();
+    }
+
+    constexpr Iterator begin()
+    {
+        return items.begin();
+    }
+
+    constexpr Iterator end()
+    {
+        return items.end();
+    }
+
+    constexpr ConstIterator begin() const
+    {
+        return items.begin();
+    }
+
+    constexpr ConstIterator end() const
+    {
+        return items.end();
+    }
 
     /// impl
-    template <auto OtherStaticArray, SizeType ... Indices>
+    template <auto OtherStaticArray, SizeType... Indices>
     constexpr auto ConcatImpl(std::index_sequence<Indices...>) const -> StaticArray<T, Size + decltype(OtherStaticArray)::size>
     {
         return {
-            {
-                (Indices < Size ? items[Indices] : OtherStaticArray.items[Indices - Size])...
-            }
+            { (Indices < Size ? items[Indices] : OtherStaticArray.items[Indices - Size])... }
         };
     }
 };

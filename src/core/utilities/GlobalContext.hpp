@@ -19,7 +19,7 @@ namespace utilities {
 
 class GlobalContextRegistry;
 
-HYP_API GlobalContextRegistry *GetGlobalContextRegistryForCurrentThread();
+HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread();
 
 class IGlobalContextHolder
 {
@@ -37,43 +37,44 @@ class GlobalContextRegistry
 {
 public:
     HYP_API GlobalContextRegistry();
-    GlobalContextRegistry(const GlobalContextRegistry &other)                   = delete;
-    GlobalContextRegistry &operator=(const GlobalContextRegistry &other)        = delete;
-    GlobalContextRegistry(GlobalContextRegistry &&other) noexcept               = delete;
-    GlobalContextRegistry &operator=(GlobalContextRegistry &&other) noexcept    = delete;
+    GlobalContextRegistry(const GlobalContextRegistry& other) = delete;
+    GlobalContextRegistry& operator=(const GlobalContextRegistry& other) = delete;
+    GlobalContextRegistry(GlobalContextRegistry&& other) noexcept = delete;
+    GlobalContextRegistry& operator=(GlobalContextRegistry&& other) noexcept = delete;
     HYP_API ~GlobalContextRegistry();
 
     template <class T>
-    HYP_FORCE_INLINE GlobalContextHolder<T> &GetContextHolder()
+    HYP_FORCE_INLINE GlobalContextHolder<T>& GetContextHolder()
     {
         auto it = m_context_holders.Find<T>();
 
-        if (it == m_context_holders.End()) {
+        if (it == m_context_holders.End())
+        {
             it = m_context_holders.Set<T>(MakeUnique<GlobalContextHolder<T>>()).first;
         }
 
-        return *static_cast<GlobalContextHolder<T> *>(it->second.Get());
+        return *static_cast<GlobalContextHolder<T>*>(it->second.Get());
     }
 
 private:
-    ThreadID                                    m_owner_thread_id;
-    TypeMap<UniquePtr<IGlobalContextHolder>>    m_context_holders;
+    ThreadID m_owner_thread_id;
+    TypeMap<UniquePtr<IGlobalContextHolder>> m_context_holders;
 };
 
 template <class ContextType>
 class GlobalContextHolder final : public IGlobalContextHolder
 {
 public:
-    GlobalContextHolder()                                                   = default;
-    GlobalContextHolder(const GlobalContextHolder &other)                   = delete;
-    GlobalContextHolder &operator=(const GlobalContextHolder &other)        = delete;
-    GlobalContextHolder(GlobalContextHolder &&other) noexcept               = delete;
-    GlobalContextHolder &operator=(GlobalContextHolder &&other) noexcept    = delete;
-    ~GlobalContextHolder()                                                  = default;
+    GlobalContextHolder() = default;
+    GlobalContextHolder(const GlobalContextHolder& other) = delete;
+    GlobalContextHolder& operator=(const GlobalContextHolder& other) = delete;
+    GlobalContextHolder(GlobalContextHolder&& other) noexcept = delete;
+    GlobalContextHolder& operator=(GlobalContextHolder&& other) noexcept = delete;
+    ~GlobalContextHolder() = default;
 
-    static GlobalContextHolder &GetInstance()
+    static GlobalContextHolder& GetInstance()
     {
-        thread_local GlobalContextHolder<ContextType> &result = GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
+        thread_local GlobalContextHolder<ContextType>& result = GetGlobalContextRegistryForCurrentThread()->GetContextHolder<ContextType>();
 
         return result;
     }
@@ -83,7 +84,7 @@ public:
         return m_contexts.Size();
     }
 
-    void Push(ContextType &&context)
+    void Push(ContextType&& context)
     {
         m_contexts.Push(std::move(context));
     }
@@ -93,7 +94,7 @@ public:
         m_contexts.Pop();
     }
 
-    ContextType &Current()
+    ContextType& Current()
     {
         return m_contexts.Top();
     }
@@ -104,20 +105,20 @@ private:
 
 struct GlobalContextScope
 {
-    IGlobalContextHolder    *holder;
+    IGlobalContextHolder* holder;
 
     template <class ContextType>
-    GlobalContextScope(ContextType &&context)
+    GlobalContextScope(ContextType&& context)
         : holder(&GlobalContextHolder<NormalizedType<ContextType>>::GetInstance())
     {
-        static_cast<GlobalContextHolder<NormalizedType<ContextType>> *>(holder)->Push(std::forward<ContextType>(context));
+        static_cast<GlobalContextHolder<NormalizedType<ContextType>>*>(holder)->Push(std::forward<ContextType>(context));
     }
 
-    GlobalContextScope(const GlobalContextScope &other)                 = delete;
-    GlobalContextScope &operator=(const GlobalContextScope &other)      = delete;
+    GlobalContextScope(const GlobalContextScope& other) = delete;
+    GlobalContextScope& operator=(const GlobalContextScope& other) = delete;
 
-    GlobalContextScope(GlobalContextScope &&other) noexcept             = delete;
-    GlobalContextScope &operator=(GlobalContextScope &&other) noexcept  = delete;
+    GlobalContextScope(GlobalContextScope&& other) noexcept = delete;
+    GlobalContextScope& operator=(GlobalContextScope&& other) noexcept = delete;
 
     ~GlobalContextScope()
     {
@@ -128,17 +129,18 @@ struct GlobalContextScope
 template <class ContextType>
 static inline bool IsGlobalContextActive()
 {
-    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+    GlobalContextHolder<ContextType>& holder = GlobalContextHolder<ContextType>::GetInstance();
 
     return holder.Size() != 0;
 }
 
 template <class ContextType>
-static inline ContextType *GetGlobalContext()
+static inline ContextType* GetGlobalContext()
 {
-    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+    GlobalContextHolder<ContextType>& holder = GlobalContextHolder<ContextType>::GetInstance();
 
-    if (holder.Size() != 0) {
+    if (holder.Size() != 0)
+    {
         return &holder.Current();
     }
 
@@ -146,9 +148,9 @@ static inline ContextType *GetGlobalContext()
 }
 
 template <class ContextType>
-static inline void PushGlobalContext(ContextType &&context)
+static inline void PushGlobalContext(ContextType&& context)
 {
-    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+    GlobalContextHolder<ContextType>& holder = GlobalContextHolder<ContextType>::GetInstance();
 
     holder.Push(std::forward<ContextType>(context));
 }
@@ -156,7 +158,7 @@ static inline void PushGlobalContext(ContextType &&context)
 template <class ContextType>
 static inline ContextType PopGlobalContext()
 {
-    GlobalContextHolder<ContextType> &holder = GlobalContextHolder<ContextType>::GetInstance();
+    GlobalContextHolder<ContextType>& holder = GlobalContextHolder<ContextType>::GetInstance();
 
     ContextType current = std::move(holder.Current());
     holder.Pop();
@@ -166,11 +168,11 @@ static inline ContextType PopGlobalContext()
 
 } // namespace utilities
 
+using utilities::GetGlobalContext;
 using utilities::GlobalContextScope;
 using utilities::IsGlobalContextActive;
-using utilities::GetGlobalContext;
-using utilities::PushGlobalContext;
 using utilities::PopGlobalContext;
+using utilities::PushGlobalContext;
 
 } // namespace hyperion
 

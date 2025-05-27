@@ -214,9 +214,9 @@ if(NOT IOS)
     link_directories(/usr/local/lib ${VCPKG_INSTALLED_DIR}/x64-windows/lib "Z:/gstreamer/1.0/msvc_x86_64/lib")
 
     find_package(PkgConfig)
-    pkg_check_modules(GST gstreamer-1.0=1.24.5
-                        gstreamer-video-1.0=1.24.5
-                        gstreamer-app-1.0=1.24.5)
+    pkg_check_modules(GST gstreamer-1.0
+                        gstreamer-video-1.0
+                        gstreamer-app-1.0)
 endif()
 
 find_package(Threads REQUIRED)
@@ -517,7 +517,6 @@ if(NOT IOS)
         # target_link_libraries(${BUILD_NAME} PRIVATE ${GST_LIBRARIES})
 
         message(STATUS "GStreamer found, linking to it: ${GST_LIBRARIES}\nInclude directories: ${GST_INCLUDE_DIRS}")
-
 
         set(COMMON_LIBRARIES
             ${COMMON_LIBRARIES}

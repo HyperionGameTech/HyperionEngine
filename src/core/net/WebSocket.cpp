@@ -2,25 +2,25 @@
 #if 0
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/net/WebSocket.hpp>
+    #include <core/net/WebSocket.hpp>
 
-#include <core/threading/TaskSystem.hpp>
-#include <core/threading/Threads.hpp>
+    #include <core/threading/TaskSystem.hpp>
+    #include <core/threading/Threads.hpp>
 
-#include <core/logging/Logger.hpp>
-#include <core/logging/LogChannels.hpp>
+    #include <core/logging/Logger.hpp>
+    #include <core/logging/LogChannels.hpp>
 
-#include <core/profiling/ProfileScope.hpp>
+    #include <core/profiling/ProfileScope.hpp>
 
-#if defined(HYP_CURL) && HYP_CURL
-#include <curl/curl.h>
-#endif
+    #if defined(HYP_CURL) && HYP_CURL
+        #include <curl/curl.h>
+    #endif
 
 namespace hyperion {
 
 namespace net {
 
-#pragma region WebSocketThread
+    #pragma region WebSocketThread
 
 WebSocketThread::WebSocketThread()
     : Thread(Name::Unique("WebSocketThread"))
@@ -55,15 +55,15 @@ void WebSocketThread::operator()(WebSocket *websocket)
     });
 }
 
-#pragma endregion WebSocketThread
+    #pragma endregion WebSocketThread
 
-#pragma region WebSocket
+    #pragma region WebSocket
 
 WebSocket::WebSocket(const String &url)
     : m_url(url),
       m_thread(MakeUnique<WebSocketThread>())
 {
-#if defined(HYP_CURL) && HYP_CURL
+    #if defined(HYP_CURL) && HYP_CURL
     m_thread->Start(this);
 
     m_thread->GetScheduler().Enqueue([this]()
@@ -74,9 +74,9 @@ WebSocket::WebSocket(const String &url)
 
         WebSocketThreadProc();
     }, TaskEnqueueFlags::FIRE_AND_FORGET);
-#else
+    #else
     HYP_LOG(Net, Error, "cURL is not enabled in this build");
-#endif
+    #endif
 }
 
 WebSocket::WebSocket(WebSocket &&other) noexcept
@@ -207,7 +207,7 @@ void WebSocket::WebSocketThreadProc()
     }
 }
 
-#pragma endregion WebSocket
+    #pragma endregion WebSocket
 
 } // namespace net
 } // namespace hyperion

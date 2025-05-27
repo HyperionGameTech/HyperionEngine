@@ -16,12 +16,15 @@ CameraTrackPivot CameraTrack::GetPivotAt(double timestamp) const
 
     int first = 0, second = -1;
 
-    if (m_pivots.Empty()) {
+    if (m_pivots.Empty())
+    {
         return CameraTrackPivot { fraction };
     }
 
-    for (int i = 0; i < int(m_pivots.Size() - 1); i++) {
-        if (MathUtil::InRange(fraction, { m_pivots[i].fraction, m_pivots[i + 1].fraction })) {
+    for (int i = 0; i < int(m_pivots.Size() - 1); i++)
+    {
+        if (MathUtil::InRange(fraction, { m_pivots[i].fraction, m_pivots[i + 1].fraction }))
+        {
             first = i;
             second = i + 1;
 
@@ -29,12 +32,13 @@ CameraTrackPivot CameraTrack::GetPivotAt(double timestamp) const
         }
     }
 
-    const CameraTrackPivot &current = m_pivots[first];
+    const CameraTrackPivot& current = m_pivots[first];
 
     Transform transform = current.transform;
 
-    if (second > first) {
-        const CameraTrackPivot &next = m_pivots[second];
+    if (second > first)
+    {
+        const CameraTrackPivot& next = m_pivots[second];
 
         const double delta = (fraction - current.fraction) / (next.fraction - current.fraction);
 
@@ -46,7 +50,7 @@ CameraTrackPivot CameraTrack::GetPivotAt(double timestamp) const
     return { fraction, transform };
 }
 
-void CameraTrack::AddPivot(const CameraTrackPivot &pivot)
+void CameraTrack::AddPivot(const CameraTrackPivot& pivot)
 {
     m_pivots.Insert(pivot);
 }

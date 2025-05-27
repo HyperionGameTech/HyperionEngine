@@ -41,96 +41,121 @@ public:
     using InsertResult = std::pair<Iterator, bool>; // iterator, was inserted
 
     ArrayMap();
+
     ArrayMap(std::initializer_list<KeyValuePairType> initializer_list)
         : m_vector(initializer_list)
     {
     }
 
-    ArrayMap(const ArrayMap &other);
-    ArrayMap &operator=(const ArrayMap &other);
-    ArrayMap(ArrayMap &&other) noexcept;
-    ArrayMap &operator=(ArrayMap &&other) noexcept;
+    ArrayMap(const ArrayMap& other);
+    ArrayMap& operator=(const ArrayMap& other);
+    ArrayMap(ArrayMap&& other) noexcept;
+    ArrayMap& operator=(ArrayMap&& other) noexcept;
     ~ArrayMap();
-    
-    [[nodiscard]] Iterator Find(const Key &key);
-    [[nodiscard]] ConstIterator Find(const Key &key) const;
 
-    [[nodiscard]] bool Contains(const Key &key) const;
+    [[nodiscard]] Iterator Find(const Key& key);
+    [[nodiscard]] ConstIterator Find(const Key& key) const;
 
-    InsertResult Insert(const Key &key, const Value &value);
-    InsertResult Insert(const Key &key, Value &&value);
-    InsertResult Insert(Pair<Key, Value> &&pair);
+    [[nodiscard]] bool Contains(const Key& key) const;
 
-    InsertResult Set(const Key &key, const Value &value);
-    InsertResult Set(const Key &key, Value &&value);
-    InsertResult Set(Iterator iter, const Value &value);
-    InsertResult Set(Iterator iter, Value &&value);
+    InsertResult Insert(const Key& key, const Value& value);
+    InsertResult Insert(const Key& key, Value&& value);
+    InsertResult Insert(Pair<Key, Value>&& pair);
 
-    template <class ...Args>
-    InsertResult Emplace(const Key &key, Args &&... args)
-        { return Insert(key, Value(std::forward<Args>(args)...)); }
+    InsertResult Set(const Key& key, const Value& value);
+    InsertResult Set(const Key& key, Value&& value);
+    InsertResult Set(Iterator iter, const Value& value);
+    InsertResult Set(Iterator iter, Value&& value);
+
+    template <class... Args>
+    InsertResult Emplace(const Key& key, Args&&... args)
+    {
+        return Insert(key, Value(std::forward<Args>(args)...));
+    }
 
     Iterator Erase(ConstIterator it);
-    bool Erase(const Key &key);
+    bool Erase(const Key& key);
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return m_vector.Size(); }
+    {
+        return m_vector.Size();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType *Data()
-        { return m_vector.Data(); }
+    HYP_FORCE_INLINE KeyValuePairType* Data()
+    {
+        return m_vector.Data();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType * const Data() const
-        { return m_vector.Data(); }
+    HYP_FORCE_INLINE KeyValuePairType* const Data() const
+    {
+        return m_vector.Data();
+    }
 
     HYP_FORCE_INLINE bool Any() const
-        { return m_vector.Any(); }
+    {
+        return m_vector.Any();
+    }
 
     HYP_FORCE_INLINE bool Empty() const
-        { return m_vector.Empty(); }
+    {
+        return m_vector.Empty();
+    }
 
     HYP_FORCE_INLINE void Clear()
-        { m_vector.Clear(); }
-    
-    HYP_FORCE_INLINE KeyValuePairType &Front()
-        { return m_vector.Front(); }
+    {
+        m_vector.Clear();
+    }
 
-    HYP_FORCE_INLINE const KeyValuePairType &Front() const
-        { return m_vector.Front(); }
+    HYP_FORCE_INLINE KeyValuePairType& Front()
+    {
+        return m_vector.Front();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType &Back()
-        { return m_vector.Back(); }
+    HYP_FORCE_INLINE const KeyValuePairType& Front() const
+    {
+        return m_vector.Front();
+    }
 
-    HYP_FORCE_INLINE const KeyValuePairType &Back() const
-        { return m_vector.Back(); }
+    HYP_FORCE_INLINE KeyValuePairType& Back()
+    {
+        return m_vector.Back();
+    }
 
-    HYP_FORCE_INLINE Value &operator[](const Key &key)
+    HYP_FORCE_INLINE const KeyValuePairType& Back() const
+    {
+        return m_vector.Back();
+    }
+
+    HYP_FORCE_INLINE Value& operator[](const Key& key)
     {
         const auto it = Find(key);
 
-        if (it != End()) {
+        if (it != End())
+        {
             return it->second;
         }
 
-        return Insert(key, Value { }).first->second;
+        return Insert(key, Value {}).first->second;
     }
 
     HYP_DEF_STL_BEGIN_END(
         m_vector.Begin(),
-        m_vector.End()
-    )
+        m_vector.End())
 };
 
 template <class Key, class Value>
-ArrayMap<Key, Value>::ArrayMap() {}
+ArrayMap<Key, Value>::ArrayMap()
+{
+}
 
 template <class Key, class Value>
-ArrayMap<Key, Value>::ArrayMap(const ArrayMap &other)
+ArrayMap<Key, Value>::ArrayMap(const ArrayMap& other)
     : m_vector(other.m_vector)
 {
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::operator=(const ArrayMap &other) -> ArrayMap &
+auto ArrayMap<Key, Value>::operator=(const ArrayMap& other) -> ArrayMap&
 {
     m_vector = other.m_vector;
 
@@ -138,13 +163,13 @@ auto ArrayMap<Key, Value>::operator=(const ArrayMap &other) -> ArrayMap &
 }
 
 template <class Key, class Value>
-ArrayMap<Key, Value>::ArrayMap(ArrayMap &&other) noexcept
+ArrayMap<Key, Value>::ArrayMap(ArrayMap&& other) noexcept
     : m_vector(std::move(other.m_vector))
 {
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::operator=(ArrayMap &&other) noexcept -> ArrayMap &
+auto ArrayMap<Key, Value>::operator=(ArrayMap&& other) noexcept -> ArrayMap&
 {
     m_vector = std::move(other.m_vector);
 
@@ -155,10 +180,12 @@ template <class Key, class Value>
 ArrayMap<Key, Value>::~ArrayMap() = default;
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Find(const Key &key) -> Iterator
+auto ArrayMap<Key, Value>::Find(const Key& key) -> Iterator
 {
-    for (auto it = Begin(); it != End(); ++it) {
-        if (it->first == key) {
+    for (auto it = Begin(); it != End(); ++it)
+    {
+        if (it->first == key)
+        {
             return it;
         }
     }
@@ -167,10 +194,12 @@ auto ArrayMap<Key, Value>::Find(const Key &key) -> Iterator
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Find(const Key &key) const -> ConstIterator
+auto ArrayMap<Key, Value>::Find(const Key& key) const -> ConstIterator
 {
-    for (auto it = Begin(); it != End(); ++it) {
-        if (it->first == key) {
+    for (auto it = Begin(); it != End(); ++it)
+    {
+        if (it->first == key)
+        {
             return it;
         }
     }
@@ -179,17 +208,18 @@ auto ArrayMap<Key, Value>::Find(const Key &key) const -> ConstIterator
 }
 
 template <class Key, class Value>
-bool ArrayMap<Key, Value>::Contains(const Key &key) const
+bool ArrayMap<Key, Value>::Contains(const Key& key) const
 {
     return Find(key) != End();
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Insert(const Key &key, const Value &value) -> InsertResult
+auto ArrayMap<Key, Value>::Insert(const Key& key, const Value& value) -> InsertResult
 {
     auto it = Find(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         m_vector.PushBack({ key, value });
 
         return { m_vector.Begin() + (m_vector.Size() - 1), true };
@@ -199,11 +229,12 @@ auto ArrayMap<Key, Value>::Insert(const Key &key, const Value &value) -> InsertR
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
+auto ArrayMap<Key, Value>::Insert(const Key& key, Value&& value) -> InsertResult
 {
     auto it = Find(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         m_vector.PushBack({ key, std::move(value) });
 
         return { m_vector.Begin() + (m_vector.Size() - 1), true };
@@ -213,11 +244,12 @@ auto ArrayMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
+auto ArrayMap<Key, Value>::Insert(Pair<Key, Value>&& pair) -> InsertResult
 {
     auto it = Find(pair.first);
 
-    if (it == End()) {
+    if (it == End())
+    {
         m_vector.PushBack(std::move(pair));
 
         return { m_vector.Begin() + (m_vector.Size() - 1), true };
@@ -227,11 +259,12 @@ auto ArrayMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResult
+auto ArrayMap<Key, Value>::Set(const Key& key, const Value& value) -> InsertResult
 {
     auto it = Find(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         m_vector.PushBack({ key, value });
 
         return { m_vector.Begin() + (m_vector.Size() - 1), true };
@@ -243,11 +276,12 @@ auto ArrayMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResu
 }
 
 template <class Key, class Value>
-auto ArrayMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
+auto ArrayMap<Key, Value>::Set(const Key& key, Value&& value) -> InsertResult
 {
     auto it = Find(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         m_vector.PushBack({ key, std::move(value) });
 
         return { m_vector.Begin() + (m_vector.Size() - 1), true };
@@ -261,7 +295,8 @@ auto ArrayMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
 template <class Key, class Value>
 auto ArrayMap<Key, Value>::Erase(ConstIterator it) -> Iterator
 {
-    if (it == End()) {
+    if (it == End())
+    {
         return End();
     }
 
@@ -269,7 +304,7 @@ auto ArrayMap<Key, Value>::Erase(ConstIterator it) -> Iterator
 }
 
 template <class Key, class Value>
-bool ArrayMap<Key, Value>::Erase(const Key &value)
+bool ArrayMap<Key, Value>::Erase(const Key& value)
 {
     return Erase(Find(value)) != End();
 }

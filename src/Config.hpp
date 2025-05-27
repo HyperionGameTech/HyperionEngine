@@ -34,7 +34,7 @@ enum OptionName
     CONFIG_ENV_GRID_GI,
     CONFIG_ENV_GRID_GI_MODE,
     CONFIG_ENV_GRID_REFLECTIONS,
-    
+
     CONFIG_HBAO,
     CONFIG_HBIL,
 
@@ -57,8 +57,8 @@ enum OptionName
 
 enum class OptionFlags : uint32
 {
-    NONE    = 0x0,
-    SAVE    = 0x1,
+    NONE = 0x0,
+    SAVE = 0x1,
 };
 
 HYP_MAKE_ENUM_FLAGS(OptionFlags)
@@ -67,7 +67,7 @@ class HYP_API Option : public Variant<bool, float, int, String>
 {
     using Base = Variant<bool, float, int, String>;
 
-    EnumFlags<OptionFlags>  m_flags;
+    EnumFlags<OptionFlags> m_flags;
 
 public:
     Option()
@@ -94,49 +94,69 @@ public:
     {
     }
 
-    Option(const String &string_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
+    Option(const String& string_value, EnumFlags<OptionFlags> flags = OptionFlags::SAVE)
         : Base(string_value),
           m_flags(flags)
     {
     }
 
-    Option(const Option &other) = default;
-    Option(Option &&other) noexcept = default;
+    Option(const Option& other) = default;
+    Option(Option&& other) noexcept = default;
 
     ~Option() = default;
 
-    Option &operator=(const Option &other)
-        { Base::operator=(other); return *this; }
-
-    Option &operator=(Option &&other) noexcept
-        { Base::operator=(std::move(other)); return *this; }
-
-    Option operator|(const Option &other) const
-        { return Option(GetInt() | other.GetInt()); }
-
-    Option &operator|=(const Option &other)
+    Option& operator=(const Option& other)
     {
-        if (auto *ptr = TryGet<int>()) {
+        Base::operator=(other);
+        return *this;
+    }
+
+    Option& operator=(Option&& other) noexcept
+    {
+        Base::operator=(std::move(other));
+        return *this;
+    }
+
+    Option operator|(const Option& other) const
+    {
+        return Option(GetInt() | other.GetInt());
+    }
+
+    Option& operator|=(const Option& other)
+    {
+        if (auto* ptr = TryGet<int>())
+        {
             Base::Set(*ptr | other.GetInt());
-        } else if (auto *ptr = TryGet<float>()) {
+        }
+        else if (auto* ptr = TryGet<float>())
+        {
             Base::Set(static_cast<int>(*ptr) | other.GetInt());
-        } else {
+        }
+        else
+        {
             Base::Set(GetBool() | other.GetBool());
         }
 
         return *this;
     }
 
-    Option operator&(const Option &other) const
-        { return Option(GetInt() & other.GetInt()); }
-
-    Option &operator&=(const Option &other)
+    Option operator&(const Option& other) const
     {
-        if (auto *ptr = TryGet<int>()) {
+        return Option(GetInt() & other.GetInt());
+    }
+
+    Option& operator&=(const Option& other)
+    {
+        if (auto* ptr = TryGet<int>())
+        {
             Base::Set(*ptr & other.GetInt());
-        } else if (auto *ptr = TryGet<float>()) {
+        }
+        else if (auto* ptr = TryGet<float>())
+        {
             Base::Set(static_cast<int>(*ptr) & other.GetInt());
-        } else {
+        }
+        else
+        {
             Base::Set(GetBool() & other.GetBool());
         }
 
@@ -145,7 +165,8 @@ public:
 
     HYP_FORCE_INLINE Option operator~() const
     {
-        if (auto *ptr = TryGet<bool>()) {
+        if (auto* ptr = TryGet<bool>())
+        {
             return Option(!*ptr);
         }
 
@@ -153,19 +174,29 @@ public:
     }
 
     HYP_FORCE_INLINE Option operator!() const
-        { return Option(!GetBool()); }
+    {
+        return Option(!GetBool());
+    }
 
     HYP_FORCE_INLINE EnumFlags<OptionFlags> GetFlags() const
-        { return m_flags; }
+    {
+        return m_flags;
+    }
 
     explicit operator bool() const
-        { return GetBool(); }
+    {
+        return GetBool();
+    }
 
-    HYP_FORCE_INLINE bool operator==(const Option &other) const
-        { return Base::operator==(other); }
+    HYP_FORCE_INLINE bool operator==(const Option& other) const
+    {
+        return Base::operator==(other);
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const Option &other) const
-        { return Base::operator!=(other); }
+    HYP_FORCE_INLINE bool operator!=(const Option& other) const
+    {
+        return Base::operator!=(other);
+    }
 
     int GetInt() const;
     float GetFloat() const;
@@ -179,12 +210,12 @@ public:
     Configuration();
     ~Configuration() = default;
 
-    HYP_FORCE_INLINE HYP_DEPRECATED Option &Get(OptionName option)
+    HYP_FORCE_INLINE HYP_DEPRECATED Option& Get(OptionName option)
     {
         return m_variables[uint32(option)];
     }
 
-    HYP_FORCE_INLINE HYP_DEPRECATED const Option &Get(OptionName option) const
+    HYP_FORCE_INLINE HYP_DEPRECATED const Option& Get(OptionName option) const
     {
         return m_variables[uint32(option)];
     }
@@ -194,11 +225,11 @@ public:
 
     void SetToDefaultConfiguration();
 
-    static OptionName StringToOptionName(const String &str);
+    static OptionName StringToOptionName(const String& str);
     static String OptionNameToString(OptionName option);
 
 private:
-    FixedArray<Option, CONFIG_MAX>  m_variables;
+    FixedArray<Option, CONFIG_MAX> m_variables;
 };
 
 } // namespace hyperion

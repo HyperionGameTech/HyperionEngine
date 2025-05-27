@@ -21,16 +21,16 @@ namespace hyperion {
 
 class HypClass;
 
-extern HYP_API const HypClass *GetClass(TypeID);
+extern HYP_API const HypClass* GetClass(TypeID);
 
 enum class FBOMTypeFlags : uint8
 {
-    NONE        = 0x0,
-    CONTAINER   = 0x2, // uses marshal class to serialize/deserialize after reading the object
+    NONE = 0x0,
+    CONTAINER = 0x2,   // uses marshal class to serialize/deserialize after reading the object
     PLACEHOLDER = 0x4, // a placeholder type that is used to represent an unknown type
-    NUMERIC     = 0x8, // a numeric type, able to be converted between different numeric types
+    NUMERIC = 0x8,     // a numeric type, able to be converted between different numeric types
 
-    DEFAULT     = 0x0
+    DEFAULT = 0x0
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMTypeFlags)
@@ -40,48 +40,58 @@ namespace fbom {
 class HYP_API FBOMType : public FBOMSerializableBase
 {
 public:
-    ANSIString                  name;
-    SizeType                    size;
-    TypeID                      type_id;
-    EnumFlags<FBOMTypeFlags>    flags;
-    FBOMType                    *extends;
+    ANSIString name;
+    SizeType size;
+    TypeID type_id;
+    EnumFlags<FBOMTypeFlags> flags;
+    FBOMType* extends;
 
     FBOMType();
-    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id);
-    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, const FBOMType &extends);
-    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags);
-    FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends);
-    FBOMType(const FBOMType &other);
-    FBOMType &operator=(const FBOMType &other);
-    FBOMType(FBOMType &&other) noexcept;
-    FBOMType &operator=(FBOMType &&other) noexcept;
+    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, const FBOMType& extends);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends);
+    FBOMType(const FBOMType& other);
+    FBOMType& operator=(const FBOMType& other);
+    FBOMType(FBOMType&& other) noexcept;
+    FBOMType& operator=(FBOMType&& other) noexcept;
     virtual ~FBOMType() override;
 
-    FBOMType Extend(const FBOMType &object) const;
+    FBOMType Extend(const FBOMType& object) const;
 
     bool HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents = true) const;
 
-    bool Is(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
-    bool IsOrExtends(const ANSIStringView &name, bool allow_unbounded = true, bool allow_void_type_id = true) const;
-    bool IsOrExtends(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
-    bool Extends(const FBOMType &other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool Is(const FBOMType& other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool IsOrExtends(const ANSIStringView& name, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool IsOrExtends(const FBOMType& other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
+    bool Extends(const FBOMType& other, bool allow_unbounded = true, bool allow_void_type_id = true) const;
 
     HYP_FORCE_INLINE bool IsUnbounded() const
-        { return size == SizeType(-1); }
+    {
+        return size == SizeType(-1);
+    }
 
     HYP_FORCE_INLINE bool IsUnset() const
-        { return name == "UNSET"; }
+    {
+        return name == "UNSET";
+    }
 
     HYP_FORCE_INLINE bool IsPlaceholder() const
-        { return HasAnyFlagsSet(FBOMTypeFlags::PLACEHOLDER, false); }
+    {
+        return HasAnyFlagsSet(FBOMTypeFlags::PLACEHOLDER, false);
+    }
 
     HYP_FORCE_INLINE bool UsesMarshal() const
-        { return HasAnyFlagsSet(FBOMTypeFlags::CONTAINER, false); }
+    {
+        return HasAnyFlagsSet(FBOMTypeFlags::CONTAINER, false);
+    }
 
     HYP_FORCE_INLINE bool IsNumeric() const
-        { return HasAnyFlagsSet(FBOMTypeFlags::NUMERIC, false); }
+    {
+        return HasAnyFlagsSet(FBOMTypeFlags::NUMERIC, false);
+    }
 
-    HYP_FORCE_INLINE bool operator==(const FBOMType &other) const
+    HYP_FORCE_INLINE bool operator==(const FBOMType& other) const
     {
         return name == other.name
             && size == other.size
@@ -90,7 +100,7 @@ public:
             && extends == other.extends;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const FBOMType &other) const
+    HYP_FORCE_INLINE bool operator!=(const FBOMType& other) const
     {
         return name != other.name
             || size != other.size
@@ -103,33 +113,42 @@ public:
      *  \note Not all types will give a valid TypeID, which is OK - not all types correspond
      *  directly to a C++ type. */
     HYP_FORCE_INLINE TypeID GetNativeTypeID() const
-        { return type_id; }
+    {
+        return type_id;
+    }
 
     HYP_FORCE_INLINE bool HasNativeTypeID() const
-        { return type_id != TypeID::Void(); }
+    {
+        return type_id != TypeID::Void();
+    }
 
     /*! \brief Gets a pointer to the HypClass that corresponds to the native TypeID for this type.
      *  If there is no valid TypeID for this object, or the native type corresponding to the native TypeID for this object
      *  does not have a corresponding HypClass, nullptr will be returned. */
-    HYP_FORCE_INLINE const HypClass *GetHypClass() const
+    HYP_FORCE_INLINE const HypClass* GetHypClass() const
     {
-        if (!type_id) {
+        if (!type_id)
+        {
             return nullptr;
         }
 
         return GetClass(type_id);
     }
 
-    FBOMResult Visit(FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
-        { return Visit(GetUniqueID(), writer, out, attributes); }
+    FBOMResult Visit(FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const
+    {
+        return Visit(GetUniqueID(), writer, out, attributes);
+    }
 
-    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const override;
 
     virtual String ToString(bool deep = true) const override;
 
     virtual UniqueID GetUniqueID() const override
-        { return UniqueID(GetHashCode()); }
-    
+    {
+        return UniqueID(GetHashCode());
+    }
+
     virtual HashCode GetHashCode() const override
     {
         HashCode hc;
@@ -138,7 +157,8 @@ public:
         hc.Add(size);
         hc.Add(type_id);
 
-        if (extends != nullptr) {
+        if (extends != nullptr)
+        {
             hc.Add(extends->GetHashCode());
         }
 

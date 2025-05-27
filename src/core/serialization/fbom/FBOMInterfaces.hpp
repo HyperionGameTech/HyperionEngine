@@ -19,6 +19,7 @@
 
 namespace hyperion {
 class ByteWriter;
+
 namespace fbom {
 
 class FBOMWriter;
@@ -31,15 +32,15 @@ public:
     friend class FBOMReader;
     friend class FBOMWriter;
 
-    FBOMSerializableBase()                                              = default;
-    FBOMSerializableBase(const FBOMSerializableBase &)                  = default;
-    FBOMSerializableBase &operator=(const FBOMSerializableBase &)       = default;
-    FBOMSerializableBase(FBOMSerializableBase &&) noexcept              = default;
-    FBOMSerializableBase &operator=(FBOMSerializableBase &&) noexcept   = default;
-    virtual ~FBOMSerializableBase()                                     = default;
+    FBOMSerializableBase() = default;
+    FBOMSerializableBase(const FBOMSerializableBase&) = default;
+    FBOMSerializableBase& operator=(const FBOMSerializableBase&) = default;
+    FBOMSerializableBase(FBOMSerializableBase&&) noexcept = default;
+    FBOMSerializableBase& operator=(FBOMSerializableBase&&) noexcept = default;
+    virtual ~FBOMSerializableBase() = default;
 
-    virtual FBOMResult Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const = 0;
-    
+    virtual FBOMResult Visit(UniqueID id, FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes = FBOMDataAttributes::NONE) const = 0;
+
     virtual UniqueID GetUniqueID() const = 0;
     virtual HashCode GetHashCode() const = 0;
     virtual String ToString(bool deep = true) const = 0;

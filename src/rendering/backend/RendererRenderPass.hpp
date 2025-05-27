@@ -10,7 +10,7 @@
 
 namespace hyperion {
 namespace renderer {
-    
+
 } // namespace renderer
 } // namespace hyperion
 

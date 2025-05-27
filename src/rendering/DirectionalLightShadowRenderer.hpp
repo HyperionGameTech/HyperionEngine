@@ -39,8 +39,8 @@ class View;
 
 struct ShadowMapCameraData
 {
-    Matrix4     view;
-    Matrix4     projection;
+    Matrix4 view;
+    Matrix4 projection;
     BoundingBox aabb;
 };
 
@@ -48,55 +48,62 @@ class ShadowPass final : public FullScreenPass
 {
 public:
     ShadowPass(
-        const Handle<Scene> &parent_scene,
-        const TResourceHandle<WorldRenderResource> &world_resource_handle,
-        const TResourceHandle<CameraRenderResource> &camera_resource_handle,
-        const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle,
-        const TResourceHandle<ViewRenderResource> &view_statics_resource_handle,
-        const TResourceHandle<ViewRenderResource> &view_dynamics_resource_handle,
-        const ShaderRef &shader,
-        RerenderShadowsSemaphore *rerender_semaphore
-    );
-    ShadowPass(const ShadowPass &other)             = delete;
-    ShadowPass &operator=(const ShadowPass &other)  = delete;
+        const Handle<Scene>& parent_scene,
+        const TResourceHandle<WorldRenderResource>& world_resource_handle,
+        const TResourceHandle<CameraRenderResource>& camera_resource_handle,
+        const TResourceHandle<ShadowMapRenderResource>& shadow_map_resource_handle,
+        const TResourceHandle<ViewRenderResource>& view_statics_resource_handle,
+        const TResourceHandle<ViewRenderResource>& view_dynamics_resource_handle,
+        const ShaderRef& shader,
+        RerenderShadowsSemaphore* rerender_semaphore);
+    ShadowPass(const ShadowPass& other) = delete;
+    ShadowPass& operator=(const ShadowPass& other) = delete;
     virtual ~ShadowPass() override;
 
-    HYP_FORCE_INLINE const Vec3f &GetOrigin() const
-        { return m_origin; }
+    HYP_FORCE_INLINE const Vec3f& GetOrigin() const
+    {
+        return m_origin;
+    }
 
-    HYP_FORCE_INLINE void SetOrigin(const Vec3f &origin)
-        { m_origin = origin; }
+    HYP_FORCE_INLINE void SetOrigin(const Vec3f& origin)
+    {
+        m_origin = origin;
+    }
 
     virtual void CreateFramebuffer() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
-        { HYP_NOT_IMPLEMENTED(); }
+    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+
+    virtual void RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer) override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
 
 private:
     void CreateShadowMap();
     void CreateCombineShadowMapsPass();
     void CreateComputePipelines();
 
-    Handle<Scene>                               m_parent_scene;
-    TResourceHandle<WorldRenderResource>        m_world_resource_handle;
-    TResourceHandle<CameraRenderResource>       m_camera_resource_handle;
-    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
-    TResourceHandle<ViewRenderResource>         m_view_statics_resource_handle;
-    TResourceHandle<ViewRenderResource>         m_view_dynamics_resource_handle;
+    Handle<Scene> m_parent_scene;
+    TResourceHandle<WorldRenderResource> m_world_resource_handle;
+    TResourceHandle<CameraRenderResource> m_camera_resource_handle;
+    TResourceHandle<ShadowMapRenderResource> m_shadow_map_resource_handle;
+    TResourceHandle<ViewRenderResource> m_view_statics_resource_handle;
+    TResourceHandle<ViewRenderResource> m_view_dynamics_resource_handle;
 
-    Vec3f                                       m_origin;
-    RerenderShadowsSemaphore                    *m_rerender_semaphore;
-    
-    Handle<Texture>                             m_shadow_map_statics;
-    Handle<Texture>                             m_shadow_map_dynamics;
+    Vec3f m_origin;
+    RerenderShadowsSemaphore* m_rerender_semaphore;
 
-    UniquePtr<FullScreenPass>                   m_combine_shadow_maps_pass;
-    ComputePipelineRef                          m_blur_shadow_map_pipeline;
+    Handle<Texture> m_shadow_map_statics;
+    Handle<Texture> m_shadow_map_dynamics;
+
+    UniquePtr<FullScreenPass> m_combine_shadow_maps_pass;
+    ComputePipelineRef m_blur_shadow_map_pipeline;
 };
 
 HYP_CLASS()
+
 class DirectionalLightShadowRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);
@@ -104,60 +111,69 @@ class DirectionalLightShadowRenderer : public RenderSubsystem
 public:
     DirectionalLightShadowRenderer(
         Name name,
-        const Handle<Scene> &parent_scene,
-        const TResourceHandle<LightRenderResource> &light_render_resource_handle,
+        const Handle<Scene>& parent_scene,
+        const TResourceHandle<LightRenderResource>& light_render_resource_handle,
         Vec2u resolution,
-        ShadowMapFilterMode filter_mode
-    );
+        ShadowMapFilterMode filter_mode);
 
-    DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer &other) = delete;
-    DirectionalLightShadowRenderer &operator=(const DirectionalLightShadowRenderer &other) = delete;
+    DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer& other) = delete;
+    DirectionalLightShadowRenderer& operator=(const DirectionalLightShadowRenderer& other) = delete;
     virtual ~DirectionalLightShadowRenderer() override;
 
-    HYP_FORCE_INLINE ShadowPass *GetPass() const
-        { return m_shadow_pass.Get(); }
+    HYP_FORCE_INLINE ShadowPass* GetPass() const
+    {
+        return m_shadow_pass.Get();
+    }
 
-    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
-        { return m_camera; }
+    HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
+    {
+        return m_camera;
+    }
 
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
+    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
 
-    HYP_FORCE_INLINE void SetAABB(const BoundingBox &aabb)
-        { m_aabb = aabb; }
+    HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
+    {
+        m_aabb = aabb;
+    }
 
-    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource> &GetShadowMapResourceHandle() const
-        { return m_shadow_map_resource_handle; }
+    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource>& GetShadowMapResourceHandle() const
+    {
+        return m_shadow_map_resource_handle;
+    }
 
 private:
     virtual void Init() override;     // init on render thread
     virtual void InitGame() override; // init on game thread
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRender(FrameBase* frame) override;
     virtual void OnRemoved() override;
 
     void CreateShader();
 
-    Handle<Scene>                               m_parent_scene;
-    Handle<View>                                m_view_statics;
-    Handle<View>                                m_view_dynamics;
+    Handle<Scene> m_parent_scene;
+    Handle<View> m_view_statics;
+    Handle<View> m_view_dynamics;
 
-    TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
+    TResourceHandle<LightRenderResource> m_light_render_resource_handle;
 
-    UniquePtr<ShadowPass>                       m_shadow_pass;
-    Vec2u                                       m_resolution;
-    ShadowMapFilterMode                         m_filter_mode;
+    UniquePtr<ShadowPass> m_shadow_pass;
+    Vec2u m_resolution;
+    ShadowMapFilterMode m_filter_mode;
 
-    RerenderShadowsSemaphore                    m_rerender_semaphore;
-    
-    ShaderRef                                   m_shader;
-    Handle<Camera>                              m_camera;
-    BoundingBox                                 m_aabb;
+    RerenderShadowsSemaphore m_rerender_semaphore;
 
-    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_resource_handle;
+    ShaderRef m_shader;
+    Handle<Camera> m_camera;
+    BoundingBox m_aabb;
 
-    HashCode                                    m_cached_octant_hash_code_statics;
-    Matrix4                                     m_cached_view_matrix;
+    TResourceHandle<ShadowMapRenderResource> m_shadow_map_resource_handle;
+
+    HashCode m_cached_octant_hash_code_statics;
+    Matrix4 m_cached_view_matrix;
 };
 
 } // namespace hyperion

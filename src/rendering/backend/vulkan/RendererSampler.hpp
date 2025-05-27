@@ -16,13 +16,14 @@ public:
     HYP_API VulkanSampler(
         FilterMode min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
         FilterMode mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-    );
+        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE);
 
     HYP_API virtual ~VulkanSampler() override;
-    
+
     HYP_FORCE_INLINE VkSampler GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
     HYP_API virtual bool IsCreated() const override;
 
@@ -30,7 +31,7 @@ public:
     HYP_API virtual RendererResult Destroy() override;
 
 private:
-    VkSampler   m_handle;
+    VkSampler m_handle;
 };
 
 } // namespace renderer

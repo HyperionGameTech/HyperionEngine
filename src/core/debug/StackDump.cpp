@@ -6,11 +6,11 @@
 #include <core/logging/LogChannels.hpp>
 
 #ifdef HYP_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#include <DbgHelp.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <Windows.h>
+    #include <DbgHelp.h>
 #elif defined(HYP_UNIX)
-#include <execinfo.h>
+    #include <execinfo.h>
 #endif
 
 namespace hyperion {
@@ -42,21 +42,12 @@ static Array<String> CreatePlatformStackTrace(uint32 depth, uint32 offset)
 
     DWORD machine_type = IMAGE_FILE_MACHINE_AMD64; // Use IMAGE_FILE_MACHINE_I386 for x86
     uint32 index = 0;
-    
-    while (index < depth && StackWalk64(
-        machine_type,
-        process,
-        GetCurrentThread(),
-        &stack_frame,
-        &context,
-        NULL,
-        SymFunctionTableAccess64,
-        SymGetModuleBase64,
-        NULL
-    ))
+
+    while (index < depth && StackWalk64(machine_type, process, GetCurrentThread(), &stack_frame, &context, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL))
     {
         DWORD64 address = stack_frame.AddrPC.Offset;
-        if (address == 0) {
+        if (address == 0)
+        {
             break;
         }
 
@@ -66,11 +57,14 @@ static Array<String> CreatePlatformStackTrace(uint32 depth, uint32 offset)
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         symbol->MaxNameLen = MAX_SYM_NAME;
 
-        if (SymFromAddr(process, address, &displacementSym, symbol)) {
+        if (SymFromAddr(process, address, &displacementSym, symbol))
+        {
             char line[2000];
             sprintf_s(line, "%s - 0x%0llX", symbol->Name, symbol->Address);
             stack_trace.PushBack(line);
-        } else {
+        }
+        else
+        {
             stack_trace.PushBack("(unknown)");
         }
 
@@ -81,20 +75,23 @@ static Array<String> CreatePlatformStackTrace(uint32 depth, uint32 offset)
 #elif defined(HYP_UNIX)
     offset += 2;
 
-    void **stack = (void **)malloc((depth + offset) * sizeof(void *));
+    void** stack = (void**)malloc((depth + offset) * sizeof(void*));
     const int frames = backtrace(stack, depth + offset);
-    
-    if (frames - int(offset) > 0) {
+
+    if (frames - int(offset) > 0)
+    {
         Array<String> symbols;
         symbols.Resize(frames - offset);
 
-        char **strings = backtrace_symbols(stack, frames);
+        char** strings = backtrace_symbols(stack, frames);
 
-        for (int i = offset; i < frames; ++i) {
+        for (int i = offset; i < frames; ++i)
+        {
             symbols[i - offset] = strings[i];
         }
 
-        for (int i = 0; i < frames - offset; ++i) {
+        for (int i = 0; i < frames - offset; ++i)
+        {
             stack_trace.PushBack(symbols[i]);
         }
 

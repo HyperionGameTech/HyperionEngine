@@ -8,10 +8,10 @@
 
 #ifdef HYP_LIBDATACHANNEL
 
-#include <rtc/configuration.hpp>
-#include <rtc/peerconnection.hpp>
+    #include <rtc/configuration.hpp>
+    #include <rtc/peerconnection.hpp>
 
-#include <variant>
+    #include <variant>
 #endif // HYP_LIBDATACHANNEL
 
 namespace hyperion {
@@ -20,16 +20,18 @@ Optional<RC<RTCDataChannel>> RTCClient::GetDataChannel(Name name) const
 {
     const auto it = m_data_channels.Find(name);
 
-    if (it == m_data_channels.End()) {
-        return { };
+    if (it == m_data_channels.End())
+    {
+        return {};
     }
 
     return it->second;
 }
 
-void RTCClient::AddTrack(RC<RTCTrack> track)
+void RTCClient::AddTrack(RC<RTCTrackBase> track)
 {
-    if (m_state == RTC_CLIENT_STATE_CONNECTED || m_state == RTC_CLIENT_STATE_CONNECTING) {
+    if (m_state == RTC_CLIENT_STATE_CONNECTED || m_state == RTC_CLIENT_STATE_CONNECTING)
+    {
         // Already connected/connecting, prepare the track immediately
         track->PrepareTrack(this);
     }
@@ -39,13 +41,13 @@ void RTCClient::AddTrack(RC<RTCTrack> track)
 
 void RTCClient::PrepareTracks()
 {
-    for (const RC<RTCTrack> &track : m_tracks) {
+    for (const RC<RTCTrackBase>& track : m_tracks)
+    {
         track->PrepareTrack(this);
     }
 }
 
-
-NullRTCClient::NullRTCClient(String id, RTCServer *server)
+NullRTCClient::NullRTCClient(String id, RTCServer* server)
     : RTCClient(std::move(id), server)
 {
 }
@@ -67,13 +69,13 @@ void NullRTCClient::Disconnect()
 {
 }
 
-void NullRTCClient::SetRemoteDescription(const String &type, const String &sdp)
+void NullRTCClient::SetRemoteDescription(const String& type, const String& sdp)
 {
 }
 
 #ifdef HYP_LIBDATACHANNEL
 
-LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer *server)
+LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
     : RTCClient(std::move(id), server)
 {
     const char stun_server[] = "stun:stun.l.google.com:19302";
@@ -85,80 +87,80 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer *server)
     RC<rtc::PeerConnection> peer_connection = MakeRefCountedPtr<rtc::PeerConnection>(rtc_configuration);
 
     peer_connection->onStateChange([this, id = m_id](rtc::PeerConnection::State state)
-    {
-        DebugLog(LogType::Debug, "State changed for Client with ID %s: %d\n", id.Data(), int(state));
+        {
+            DebugLog(LogType::Debug, "State changed for Client with ID %s: %d\n", id.Data(), int(state));
 
-        switch (state) {
-        case rtc::PeerConnection::State::Disconnected:
-            DebugLog(LogType::Debug, "Client with ID %s disconnected\n", id.Data());
-            
-            m_state = RTC_CLIENT_STATE_DISCONNECTED;
+            switch (state)
+            {
+            case rtc::PeerConnection::State::Disconnected:
+                DebugLog(LogType::Debug, "Client with ID %s disconnected\n", id.Data());
 
-            m_callbacks.OnDisconnected(RTCClientCallbackData { });
+                m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
-            m_server->EnqueueClientRemoval(id);
+                m_callbacks.OnDisconnected(RTCClientCallbackData {});
 
-            break;
-        case rtc::PeerConnection::State::Failed:
-            DebugLog(LogType::Debug, "Client with ID %s connection failed\n", id.Data());
-            
-            m_state = RTC_CLIENT_STATE_DISCONNECTED;
+                m_server->EnqueueClientRemoval(id);
 
-            m_callbacks.OnError(RTCClientCallbackData {
-                Optional<ByteBuffer>(),
-                Optional<RTCClientError>({ "Connection failed" })
-            });
+                break;
+            case rtc::PeerConnection::State::Failed:
+                DebugLog(LogType::Debug, "Client with ID %s connection failed\n", id.Data());
 
-            m_server->EnqueueClientRemoval(id);
+                m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
-            break;
-        case rtc::PeerConnection::State::Closed:
-            DebugLog(LogType::Debug, "Client with ID %s connection closed\n", id.Data());
-            
-            m_state = RTC_CLIENT_STATE_DISCONNECTED;
+                m_callbacks.OnError(RTCClientCallbackData {
+                    Optional<ByteBuffer>(),
+                    Optional<RTCClientError>({ "Connection failed" }) });
 
-            m_server->EnqueueClientRemoval(id);
+                m_server->EnqueueClientRemoval(id);
 
-            break;
-        case rtc::PeerConnection::State::Connecting:
-            m_state = RTC_CLIENT_STATE_CONNECTING;
+                break;
+            case rtc::PeerConnection::State::Closed:
+                DebugLog(LogType::Debug, "Client with ID %s connection closed\n", id.Data());
 
-            break;
-        case rtc::PeerConnection::State::Connected:
-            m_state = RTC_CLIENT_STATE_CONNECTED;
+                m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
-            m_callbacks.OnConnected(RTCClientCallbackData { });
+                m_server->EnqueueClientRemoval(id);
 
-            break;
-        default:
-            break;
-        }
-    });
+                break;
+            case rtc::PeerConnection::State::Connecting:
+                m_state = RTC_CLIENT_STATE_CONNECTING;
+
+                break;
+            case rtc::PeerConnection::State::Connected:
+                m_state = RTC_CLIENT_STATE_CONNECTED;
+
+                m_callbacks.OnConnected(RTCClientCallbackData {});
+
+                break;
+            default:
+                break;
+            }
+        });
 
     peer_connection->onGatheringStateChange([this, id = m_id, pc_weak = Weak<rtc::PeerConnection>(peer_connection)](rtc::PeerConnection::GatheringState state)
-    {
-        DebugLog(LogType::Debug, "Gathering state changed for Client with ID %s: %d\n", id.Data(), int(state));
+        {
+            DebugLog(LogType::Debug, "Gathering state changed for Client with ID %s: %d\n", id.Data(), int(state));
 
-        if (state != rtc::PeerConnection::GatheringState::Complete) {
-            return;
-        }
+            if (state != rtc::PeerConnection::GatheringState::Complete)
+            {
+                return;
+            }
 
-        if (auto peer_connection = pc_weak.Lock()) {
-            auto description = peer_connection->localDescription();
+            if (auto peer_connection = pc_weak.Lock())
+            {
+                auto description = peer_connection->localDescription();
 
-            const json::JSONValue message_json(json::JSONObject({
-                { "id", id },
-                { "type", description->typeString().c_str() },
-                { "sdp", String(std::string(description.value()).c_str()) }
-            }));
+                const json::JSONValue message_json(json::JSONObject({ { "id", id },
+                    { "type", description->typeString().c_str() },
+                    { "sdp", String(std::string(description.value()).c_str()) } }));
 
-            const String message_string = message_json.ToString();
+                const String message_string = message_json.ToString();
 
-            DebugLog(LogType::Debug, " <- %s\n", message_string.Data());
-            
-            m_server->SendToSignallingServer(ByteBuffer(message_string.Size(), message_string.Data()));
-        }
-    });
+                DebugLog(LogType::Debug, " <- %s\n", message_string.Data());
+
+                m_server->SendToSignallingServer(ByteBuffer(message_string.Size(), message_string.Data()));
+            }
+        });
 
     m_peer_connection = peer_connection;
 }
@@ -167,7 +169,8 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
 {
     AssertThrow(m_peer_connection != nullptr);
 
-    if (name == Name::Invalid()) {
+    if (name == Name::Invalid())
+    {
         name = CreateNameFromDynamicString(ANSIString("dc_") + ANSIString::ToString(m_data_channels.Size()));
     }
 
@@ -176,32 +179,34 @@ RC<RTCDataChannel> LibDataChannelRTCClient::CreateDataChannel(Name name)
     data_channel->m_data_channel = m_peer_connection->createDataChannel(name.LookupString());
 
     data_channel->m_data_channel->onOpen([data_channel_weak = Weak<LibDataChannelRTCDataChannel>(data_channel)](...) mutable
-    {
-        if (auto data_channel = data_channel_weak.Lock()) {
-            data_channel->Send("Ping");
-        } else {
-            AssertThrow(false);
-        }
-    });
+        {
+            if (auto data_channel = data_channel_weak.Lock())
+            {
+                data_channel->Send("Ping");
+            }
+            else
+            {
+                AssertThrow(false);
+            }
+        });
 
     data_channel->m_data_channel->onMessage([this](rtc::message_variant data)
-    {
-        if (std::holds_alternative<rtc::binary>(data)) {
-            const rtc::binary &bytes = std::get<rtc::binary>(data);
+        {
+            if (std::holds_alternative<rtc::binary>(data))
+            {
+                const rtc::binary& bytes = std::get<rtc::binary>(data);
 
-            m_callbacks.OnMessage({
-                Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
-                Optional<RTCClientError>()
-            });
-        } else {
-            const std::string &str = std::get<std::string>(data);
+                m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(bytes.size(), bytes.data())),
+                    Optional<RTCClientError>() });
+            }
+            else
+            {
+                const std::string& str = std::get<std::string>(data);
 
-            m_callbacks.OnMessage({
-                Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
-                Optional<RTCClientError>()
-            });
-        }
-    });
+                m_callbacks.OnMessage({ Optional<ByteBuffer>(ByteBuffer(str.size(), str.data())),
+                    Optional<RTCClientError>() });
+            }
+        });
 
     m_data_channels.Insert(name, data_channel);
 
@@ -219,7 +224,8 @@ void LibDataChannelRTCClient::Connect()
 
 void LibDataChannelRTCClient::Disconnect()
 {
-    if (!m_peer_connection || m_peer_connection->state() == rtc::PeerConnection::State::Closed) {
+    if (!m_peer_connection || m_peer_connection->state() == rtc::PeerConnection::State::Closed)
+    {
         return;
     }
 
@@ -228,7 +234,7 @@ void LibDataChannelRTCClient::Disconnect()
     m_state = RTC_CLIENT_STATE_DISCONNECTED;
 }
 
-void LibDataChannelRTCClient::SetRemoteDescription(const String &type, const String &sdp)
+void LibDataChannelRTCClient::SetRemoteDescription(const String& type, const String& sdp)
 {
     AssertThrow(m_peer_connection != nullptr);
 
@@ -237,4 +243,4 @@ void LibDataChannelRTCClient::SetRemoteDescription(const String &type, const Str
 
 #endif // HYP_LIBDATACHANNEL
 
-}  // namespace hyperion
+} // namespace hyperion

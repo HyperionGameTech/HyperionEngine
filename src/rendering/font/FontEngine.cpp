@@ -10,14 +10,14 @@
 
 #ifdef HYP_FREETYPE
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+    #include <ft2build.h>
+    #include FT_FREETYPE_H
 
 #endif
 
 namespace hyperion {
 
-FontEngine &FontEngine::GetInstance()
+FontEngine& FontEngine::GetInstance()
 {
     static FontEngine instance;
 
@@ -25,10 +25,11 @@ FontEngine &FontEngine::GetInstance()
 }
 
 FontEngine::FontEngine()
-        : m_backend(nullptr)
+    : m_backend(nullptr)
 {
 #ifdef HYP_FREETYPE
-    if (FT_Init_FreeType(&m_backend)) {
+    if (FT_Init_FreeType(&m_backend))
+    {
         HYP_LOG(Font, Error, "Error! Cannot start FreeType engine.");
         m_backend = nullptr;
         return;
@@ -39,7 +40,8 @@ FontEngine::FontEngine()
 FontEngine::~FontEngine()
 {
 #ifdef HYP_FREETYPE
-    if (m_backend != nullptr) {
+    if (m_backend != nullptr)
+    {
         FT_Done_FreeType(m_backend);
         m_backend = nullptr;
     }
@@ -51,9 +53,10 @@ FontEngine::Backend FontEngine::GetFontBackend()
     return m_backend;
 }
 
-hyperion::FontFace FontEngine::LoadFont(const FilePath &path)
+hyperion::FontFace FontEngine::LoadFont(const FilePath& path)
 {
-    if (m_backend == nullptr) {
+    if (m_backend == nullptr)
+    {
         HYP_LOG(Font, Error, "Font backend system not initialized!");
     }
 

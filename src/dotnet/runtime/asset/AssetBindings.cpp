@@ -6,25 +6,28 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void Asset_Destroy(LoadedAsset *loaded_asset)
+extern "C"
 {
-    if (!loaded_asset) {
-        return;
+
+    HYP_EXPORT void Asset_Destroy(LoadedAsset* loaded_asset)
+    {
+        if (!loaded_asset)
+        {
+            return;
+        }
+
+        delete loaded_asset;
     }
 
-    delete loaded_asset;
-}
+    HYP_EXPORT void Asset_GetHypData(LoadedAsset* loaded_asset, HypData* out_hyp_data)
+    {
+        if (!loaded_asset || !out_hyp_data)
+        {
+            return;
+        }
 
-HYP_EXPORT void Asset_GetHypData(LoadedAsset *loaded_asset, HypData *out_hyp_data)
-{
-    if (!loaded_asset || !out_hyp_data) {
-        return;
+        *out_hyp_data = std::move(loaded_asset->value);
+        loaded_asset->value.Reset();
     }
-
-    *out_hyp_data = std::move(loaded_asset->value);
-    loaded_asset->value.Reset();
-}
 
 } // extern "C"

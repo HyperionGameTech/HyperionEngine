@@ -11,16 +11,16 @@
 namespace hyperion::physics {
 
 RigidBody::RigidBody()
-    : RigidBody(nullptr, { })
+    : RigidBody(nullptr, {})
 {
 }
 
-RigidBody::RigidBody(const PhysicsMaterial &physics_material)
+RigidBody::RigidBody(const PhysicsMaterial& physics_material)
     : RigidBody(nullptr, physics_material)
 {
 }
 
-RigidBody::RigidBody(const RC<PhysicsShape> &shape, const PhysicsMaterial &physics_material)
+RigidBody::RigidBody(const RC<PhysicsShape>& shape, const PhysicsMaterial& physics_material)
     : HypObject(),
       m_shape(shape),
       m_physics_material(physics_material),
@@ -34,32 +34,35 @@ RigidBody::~RigidBody()
 
 void RigidBody::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 }
 
-void RigidBody::SetShape(const RC<PhysicsShape> &shape)
+void RigidBody::SetShape(const RC<PhysicsShape>& shape)
 {
     m_shape = shape;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         g_engine->GetWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsShape(this);
     }
 }
 
-void RigidBody::SetPhysicsMaterial(const PhysicsMaterial &physics_material)
+void RigidBody::SetPhysicsMaterial(const PhysicsMaterial& physics_material)
 {
     m_physics_material = physics_material;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         g_engine->GetWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsMaterial(this);
     }
 }
 
-void RigidBody::ApplyForce(const Vector3 &force)
+void RigidBody::ApplyForce(const Vector3& force)
 {
     g_engine->GetWorld()->GetPhysicsWorld().GetAdapter().ApplyForceToBody(this, force);
 }

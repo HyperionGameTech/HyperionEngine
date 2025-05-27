@@ -16,27 +16,35 @@ class HYP_API PhysicsWorldBase
 public:
     static constexpr Vec3f earth_gravity = Vec3f { 0.0f, -9.81f, 0.0f };
 
-    PhysicsWorldBase()                                          = default;
-    PhysicsWorldBase(const PhysicsWorldBase &other)             = delete;
-    PhysicsWorldBase &operator=(const PhysicsWorldBase &other)  = delete;
-    ~PhysicsWorldBase()                                         = default;
+    PhysicsWorldBase() = default;
+    PhysicsWorldBase(const PhysicsWorldBase& other) = delete;
+    PhysicsWorldBase& operator=(const PhysicsWorldBase& other) = delete;
+    ~PhysicsWorldBase() = default;
 
-    HYP_FORCE_INLINE const Vec3f &GetGravity() const
-        { return m_gravity; }
+    HYP_FORCE_INLINE const Vec3f& GetGravity() const
+    {
+        return m_gravity;
+    }
 
-    HYP_FORCE_INLINE void SetGravity(const Vec3f &gravity)
-        { m_gravity = gravity; }
+    HYP_FORCE_INLINE void SetGravity(const Vec3f& gravity)
+    {
+        m_gravity = gravity;
+    }
 
-    HYP_FORCE_INLINE Array<Handle<RigidBody>> &GetRigidBodies()
-        { return m_rigid_bodies; }
-    
-    HYP_FORCE_INLINE const Array<Handle<RigidBody>> &GetRigidBodies() const
-        { return m_rigid_bodies; }
+    HYP_FORCE_INLINE Array<Handle<RigidBody>>& GetRigidBodies()
+    {
+        return m_rigid_bodies;
+    }
+
+    HYP_FORCE_INLINE const Array<Handle<RigidBody>>& GetRigidBodies() const
+    {
+        return m_rigid_bodies;
+    }
 
 protected:
-    Vec3f                       m_gravity = earth_gravity;
+    Vec3f m_gravity = earth_gravity;
 
-    FlatSet<Handle<RigidBody>>  m_rigid_bodies;
+    FlatSet<Handle<RigidBody>> m_rigid_bodies;
 };
 
 template <class Adapter>
@@ -52,28 +60,35 @@ public:
     {
     }
 
-    HYP_FORCE_INLINE Adapter &GetAdapter()
-        { return m_adapter; }
-
-    HYP_FORCE_INLINE const Adapter &GetAdapter() const
-        { return m_adapter; }
-
-    void AddRigidBody(const Handle<RigidBody> &rigid_body)
+    HYP_FORCE_INLINE Adapter& GetAdapter()
     {
-        if (!rigid_body) {
+        return m_adapter;
+    }
+
+    HYP_FORCE_INLINE const Adapter& GetAdapter() const
+    {
+        return m_adapter;
+    }
+
+    void AddRigidBody(const Handle<RigidBody>& rigid_body)
+    {
+        if (!rigid_body)
+        {
             return;
         }
 
         const auto insert_result = m_rigid_bodies.Insert(rigid_body);
 
-        if (insert_result.second) {
+        if (insert_result.second)
+        {
             m_adapter.OnRigidBodyAdded(rigid_body);
         }
     }
 
-    void RemoveRigidBody(const Handle<RigidBody> &rigid_body)
+    void RemoveRigidBody(const Handle<RigidBody>& rigid_body)
     {
-        if (!rigid_body) {
+        if (!rigid_body)
+        {
             return;
         }
 
@@ -82,13 +97,19 @@ public:
     }
 
     void Init()
-        { m_adapter.Init(this); }
+    {
+        m_adapter.Init(this);
+    }
 
     void Teardown()
-        { m_adapter.Teardown(this); }
+    {
+        m_adapter.Teardown(this);
+    }
 
     void Tick(GameCounter::TickUnitHighPrec delta)
-        { m_adapter.Tick(this, delta); }
+    {
+        m_adapter.Tick(this, delta);
+    }
 
 private:
     Adapter m_adapter;
@@ -99,7 +120,7 @@ private:
 
 #ifdef HYP_BULLET_PHYSICS
 
-#include <physics/bullet/Adapter.hpp>
+    #include <physics/bullet/Adapter.hpp>
 
 namespace hyperion {
 using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
@@ -107,11 +128,11 @@ using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
 
 #else
 
-#include <physics/null/Adapter.hpp>
+    #include <physics/null/Adapter.hpp>
 
 namespace hyperion {
 using PhysicsWorld = physics::PhysicsWorld<physics::NullPhysicsAdapter>;
-} // na
+} // namespace hyperion
 
 #endif
 

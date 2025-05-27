@@ -17,14 +17,14 @@ public:
     virtual ~NetRequestThread() override;
 };
 
-HYP_API void SetGlobalNetRequestThread(const RC<NetRequestThread> &net_request_thread);
-HYP_API const RC<NetRequestThread> &GetGlobalNetRequestThread();
+HYP_API void SetGlobalNetRequestThread(const RC<NetRequestThread>& net_request_thread);
+HYP_API const RC<NetRequestThread>& GetGlobalNetRequestThread();
 
 } // namespace net
 
+using net::GetGlobalNetRequestThread;
 using net::NetRequestThread;
 using net::SetGlobalNetRequestThread;
-using net::GetGlobalNetRequestThread;
 
 } // namespace hyperion
 

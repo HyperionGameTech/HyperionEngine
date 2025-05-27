@@ -38,7 +38,7 @@ void GameThread::Stop()
     m_stop_requested.Set(true, MemoryOrder::RELAXED);
 }
 
-void GameThread::operator()(Game *game)
+void GameThread::operator()(Game* game)
 {
     uint32 num_frames = 0;
     float delta_time_accum = 0.0f;
@@ -52,16 +52,18 @@ void GameThread::operator()(Game *game)
     m_is_running.Set(true, MemoryOrder::RELAXED);
 
     g_engine->GetDebugDrawer()->Initialize();
-    
+
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    while (!m_stop_requested.Get(MemoryOrder::RELAXED))
+    {
 #if HYP_GAME_THREAD_LOCKED
-        if (counter.Waiting()) {
+        if (counter.Waiting())
+        {
             continue;
         }
 #endif
-        
+
         HYP_PROFILE_BEGIN;
 
         counter.NextTick();
@@ -69,7 +71,8 @@ void GameThread::operator()(Game *game)
         delta_time_accum += counter.delta;
         num_frames++;
 
-        if (delta_time_accum >= 1.0f) {
+        if (delta_time_accum >= 1.0f)
+        {
             HYP_LOG(GameThread, Debug, "Game thread ticks per second: {}", 1.0f / (delta_time_accum / float(num_frames)));
 
             delta_time_accum = 0.0f;
@@ -80,22 +83,24 @@ void GameThread::operator()(Game *game)
 
         AssetManager::GetInstance()->Update(counter.delta);
 
-        if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
+        if (uint32 num_enqueued = m_scheduler.NumEnqueued())
+        {
             m_scheduler.AcceptAll(tasks);
 
-            while (tasks.Any()) {
+            while (tasks.Any())
+            {
                 tasks.Pop().Execute();
             }
         }
-        
+
         game->Update(counter.delta);
     }
 
     // flush scheduler
-    m_scheduler.Flush([](auto &operation)
-    {
-        operation.Execute();
-    });
+    m_scheduler.Flush([](auto& operation)
+        {
+            operation.Execute();
+        });
 
     game->Teardown();
 

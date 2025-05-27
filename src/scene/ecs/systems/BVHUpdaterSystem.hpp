@@ -12,24 +12,19 @@
 
 namespace hyperion {
 
-class BVHUpdaterSystem : public System<
-    BVHUpdaterSystem,
-    ComponentDescriptor<BVHComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+class BVHUpdaterSystem : public System<BVHUpdaterSystem, ComponentDescriptor<BVHComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BVH>, COMPONENT_RW_FLAGS_READ, false>
->
+                             ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_BVH>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    BVHUpdaterSystem(EntityManager &entity_manager)
+    BVHUpdaterSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
 
     virtual ~BVHUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

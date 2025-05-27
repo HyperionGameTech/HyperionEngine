@@ -16,6 +16,7 @@ namespace hyperion {
 namespace memory {
 
 HYP_STRUCT()
+
 class ByteBuffer
 {
     using InternalArray = Array<ubyte, InlineAllocator<1024>>;
@@ -28,29 +29,30 @@ public:
         SetSize(count);
     }
 
-    explicit ByteBuffer(SizeType count, const void *data)
+    explicit ByteBuffer(SizeType count, const void* data)
     {
         SetData(count, data);
     }
 
-    explicit ByteBuffer(const ByteView &view)
+    explicit ByteBuffer(const ByteView& view)
     {
         SetData(view.Size(), view.Data());
     }
 
-    explicit ByteBuffer(const ConstByteView &view)
+    explicit ByteBuffer(const ConstByteView& view)
     {
         SetData(view.Size(), view.Data());
     }
 
-    ByteBuffer(const ByteBuffer &other)
+    ByteBuffer(const ByteBuffer& other)
         : m_internal(other.m_internal)
     {
     }
 
-    ByteBuffer &operator=(const ByteBuffer &other)
+    ByteBuffer& operator=(const ByteBuffer& other)
     {
-        if (&other == this) {
+        if (&other == this)
+        {
             return *this;
         }
 
@@ -59,14 +61,15 @@ public:
         return *this;
     }
 
-    ByteBuffer(ByteBuffer &&other) noexcept
+    ByteBuffer(ByteBuffer&& other) noexcept
         : m_internal(std::move(other.m_internal))
     {
     }
 
-    ByteBuffer &operator=(ByteBuffer &&other) noexcept
+    ByteBuffer& operator=(ByteBuffer&& other) noexcept
     {
-        if (&other == this) {
+        if (&other == this)
+        {
             return *this;
         }
 
@@ -77,9 +80,10 @@ public:
 
     ~ByteBuffer() = default;
 
-    void Write(SizeType count, SizeType offset, const void *data)
+    void Write(SizeType count, SizeType offset, const void* data)
     {
-        if (count == 0) {
+        if (count == 0)
+        {
             return;
         }
 
@@ -89,18 +93,22 @@ public:
     }
 
     /*! \brief Returns a reference to the ByteBuffer's internal array. */
-    HYP_FORCE_INLINE InternalArray &GetInternalArray()
-        { return m_internal; }
+    HYP_FORCE_INLINE InternalArray& GetInternalArray()
+    {
+        return m_internal;
+    }
 
     /*! \brief Returns a const reference to the ByteBuffer's internal array. */
-    HYP_FORCE_INLINE const InternalArray &GetInternalArray() const
-        { return const_cast<ByteBuffer *>(this)->GetInternalArray(); }
+    HYP_FORCE_INLINE const InternalArray& GetInternalArray() const
+    {
+        return const_cast<ByteBuffer*>(this)->GetInternalArray();
+    }
 
     /*! \brief Returns a copy of the ByteBuffer's data. */
     Array<ubyte> ToArray() const
     {
         const SizeType size = GetInternalArray().Size();
-        const ubyte *data = GetInternalArray().Data();
+        const ubyte* data = GetInternalArray().Data();
 
         Array<ubyte> byte_array;
         byte_array.Resize(size);
@@ -112,7 +120,8 @@ public:
     /*! \brief Returns a ByteView of the ByteBuffer's data. */
     ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
     {
-        if (size > Size()) {
+        if (size > Size())
+        {
             size = Size();
         }
 
@@ -122,37 +131,46 @@ public:
     /*! \brief Returns a ConstByteView of the ByteBuffer's data. */
     ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
     {
-        if (size > Size()) {
+        if (size > Size())
+        {
             size = Size();
         }
 
         return ConstByteView(Data() + offset, size);
     }
-    
-    HYP_FORCE_INLINE ubyte *Data()
-        { return GetInternalArray().Data(); }
-    
-    HYP_FORCE_INLINE const ubyte *Data() const
-        { return GetInternalArray().Data(); }
+
+    HYP_FORCE_INLINE ubyte* Data()
+    {
+        return GetInternalArray().Data();
+    }
+
+    HYP_FORCE_INLINE const ubyte* Data() const
+    {
+        return GetInternalArray().Data();
+    }
 
     /*! \brief Updates the ByteBuffer's data with the given data. */
-    void SetData(SizeType count, const void *data)
+    void SetData(SizeType count, const void* data)
     {
         m_internal.Resize(count);
 
-        if (count == 0) {
+        if (count == 0)
+        {
             return;
         }
 
         Memory::MemCpy(m_internal.Data(), data, count);
     }
-    
+
     HYP_FORCE_INLINE SizeType Size() const
-        { return GetInternalArray().Size(); }
-    
+    {
+        return GetInternalArray().Size();
+    }
+
     HYP_FORCE_INLINE void SetSize(SizeType count)
     {
-        if (count == Size()) {
+        if (count == Size())
+        {
             return;
         }
 
@@ -160,19 +178,21 @@ public:
     }
 
     /*! \brief Reads a value from the ByteBuffer at the given offset. */
-    bool Read(SizeType offset, SizeType count, ubyte *out_values) const
+    bool Read(SizeType offset, SizeType count, ubyte* out_values) const
     {
         AssertThrow(out_values != nullptr);
 
         const SizeType size = Size();
 
-        if (offset >= size || offset + count > size) {
+        if (offset >= size || offset + count > size)
+        {
             return false;
         }
 
-        const ubyte *data = Data();
+        const ubyte* data = Data();
 
-        for (SizeType index = offset; index < offset + count; index++) {
+        for (SizeType index = offset; index < offset + count; index++)
+        {
             out_values[index - offset] = data[index];
         }
 
@@ -181,24 +201,26 @@ public:
 
     /*! \brief Reads a value from the ByteBuffer at the given offset. */
     template <class T>
-    bool Read(SizeType offset, T *out) const
+    bool Read(SizeType offset, T* out) const
     {
-        static_assert(IsPODType<T>, "Must be POD type");
+        static_assert(is_pod_type<T>, "Must be POD type");
 
         AssertThrow(out != nullptr);
 
         constexpr SizeType count = sizeof(T);
         const SizeType size = Size();
 
-        if (offset >= size || offset + count > size) {
+        if (offset >= size || offset + count > size)
+        {
             return false;
         }
 
-        const ubyte *data = Data();
+        const ubyte* data = Data();
 
         alignas(T) ubyte bytes[sizeof(T)];
 
-        for (SizeType index = offset; index < offset + count; index++) {
+        for (SizeType index = offset; index < offset + count; index++)
+        {
             bytes[index - offset] = data[index];
         }
 
@@ -209,33 +231,49 @@ public:
 
     /*! \brief Returns true if the ByteBuffer has any elements. */
     HYP_FORCE_INLINE bool Any() const
-        { return Size() != 0; }
+    {
+        return Size() != 0;
+    }
 
     /*! \brief Returns true if the ByteBuffer has no elements. */
     HYP_FORCE_INLINE bool Empty() const
-        { return Size() == 0; }
+    {
+        return Size() == 0;
+    }
 
-    HYP_FORCE_INLINE ubyte &operator[](SizeType index)
-        { return GetInternalArray()[index]; }
-    
+    HYP_FORCE_INLINE ubyte& operator[](SizeType index)
+    {
+        return GetInternalArray()[index];
+    }
+
     HYP_FORCE_INLINE ubyte operator[](SizeType index) const
-        { return GetInternalArray()[index]; }
-    
-    HYP_FORCE_INLINE bool operator==(const ByteBuffer &other) const
-        { return m_internal == other.m_internal; }
-    
-    HYP_FORCE_INLINE bool operator!=(const ByteBuffer &other) const
-        { return m_internal != other.m_internal; }
+    {
+        return GetInternalArray()[index];
+    }
+
+    HYP_FORCE_INLINE bool operator==(const ByteBuffer& other) const
+    {
+        return m_internal == other.m_internal;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const ByteBuffer& other) const
+    {
+        return m_internal != other.m_internal;
+    }
 
     /*! \brief Returns a copy of the ByteBuffer. */
     HYP_NODISCARD HYP_FORCE_INLINE ByteBuffer Copy() const
-        { return ByteBuffer(Size(), Data()); }
+    {
+        return ByteBuffer(Size(), Data());
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
-        { return GetInternalArray().GetHashCode(); }
+    {
+        return GetInternalArray().GetHashCode();
+    }
 
 private:
-    InternalArray   m_internal;
+    InternalArray m_internal;
 };
 
 } // namespace memory

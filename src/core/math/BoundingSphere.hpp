@@ -11,7 +11,8 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Size=32)
+HYP_STRUCT(Size = 32)
+
 struct HYP_API BoundingSphere
 {
 public:
@@ -19,36 +20,50 @@ public:
     static const BoundingSphere infinity;
 
     BoundingSphere();
-    BoundingSphere(const Vec3f &center, float radius);
-    BoundingSphere(const BoundingSphere &other);
-    BoundingSphere &operator=(const BoundingSphere &other);
-    BoundingSphere(BoundingSphere &&other) noexcept;
-    BoundingSphere &operator=(BoundingSphere &&other) noexcept;
-    BoundingSphere(const BoundingBox &box);
+    BoundingSphere(const Vec3f& center, float radius);
+    BoundingSphere(const BoundingSphere& other);
+    BoundingSphere& operator=(const BoundingSphere& other);
+    BoundingSphere(BoundingSphere&& other) noexcept;
+    BoundingSphere& operator=(BoundingSphere&& other) noexcept;
+    BoundingSphere(const BoundingBox& box);
 
-    HYP_FORCE_INLINE const Vec3f &GetCenter() const
-        { return center; }
+    HYP_FORCE_INLINE const Vec3f& GetCenter() const
+    {
+        return center;
+    }
 
-    HYP_FORCE_INLINE void SetCenter(const Vec3f &center)
-        { this->center = center; }
+    HYP_FORCE_INLINE void SetCenter(const Vec3f& center)
+    {
+        this->center = center;
+    }
 
     HYP_FORCE_INLINE float GetRadius() const
-        { return radius; }
+    {
+        return radius;
+    }
 
     HYP_FORCE_INLINE void SetRadius(float radius)
-        { this->radius = radius; }
+    {
+        this->radius = radius;
+    }
 
-    HYP_FORCE_INLINE bool operator==(const BoundingSphere &other) const
-        { return center == other.center && radius == other.radius; }
+    HYP_FORCE_INLINE bool operator==(const BoundingSphere& other) const
+    {
+        return center == other.center && radius == other.radius;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const BoundingSphere &other) const
-        { return !operator==(other); }
+    HYP_FORCE_INLINE bool operator!=(const BoundingSphere& other) const
+    {
+        return !operator==(other);
+    }
 
-    BoundingSphere &Extend(const BoundingBox &box);
+    BoundingSphere& Extend(const BoundingBox& box);
 
     /*! \brief Convert the BoundingSphere to an AABB. */
     HYP_FORCE_INLINE operator BoundingBox() const
-        { return BoundingBox(center - Vec3f(radius), center + Vec3f(radius)); }
+    {
+        return BoundingBox(center - Vec3f(radius), center + Vec3f(radius));
+    }
 
     /*! \brief Store the BoundingSphere in a Vector4.
         x,y,z components will be the center of the sphere,
@@ -65,11 +80,11 @@ public:
         return hc;
     }
 
-    HYP_FIELD(Property="Center", Serialize=true)
-    Vec3f   center;
+    HYP_FIELD(Property = "Center", Serialize = true)
+    Vec3f center;
 
-    HYP_FIELD(Property="Radius", Serialize=true)
-    float   radius;
+    HYP_FIELD(Property = "Radius", Serialize = true)
+    float radius;
 };
 
 } // namespace hyperion

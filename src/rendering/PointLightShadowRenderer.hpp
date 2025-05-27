@@ -26,6 +26,7 @@ class ShadowMapRenderResource;
 class LightRenderResource;
 
 HYP_CLASS()
+
 class HYP_API PointLightShadowRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(PointLightShadowRenderer);
@@ -33,13 +34,12 @@ class HYP_API PointLightShadowRenderer : public RenderSubsystem
 public:
     PointLightShadowRenderer(
         Name name,
-        const Handle<Scene> &parent_scene,
-        const TResourceHandle<LightRenderResource> &light_render_resource_handle,
-        const Vec2u &extent
-    );
+        const Handle<Scene>& parent_scene,
+        const TResourceHandle<LightRenderResource>& light_render_resource_handle,
+        const Vec2u& extent);
 
-    PointLightShadowRenderer(const PointLightShadowRenderer &other) = delete;
-    PointLightShadowRenderer &operator=(const PointLightShadowRenderer &other) = delete;
+    PointLightShadowRenderer(const PointLightShadowRenderer& other) = delete;
+    PointLightShadowRenderer& operator=(const PointLightShadowRenderer& other) = delete;
     virtual ~PointLightShadowRenderer() override;
 
 private:
@@ -47,21 +47,20 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRender(FrameBase* frame) override;
 
-    Handle<Scene>                               m_parent_scene;
-    TResourceHandle<LightRenderResource>        m_light_render_resource_handle;
-    Vec2u                                       m_extent;
-    BoundingBox                                 m_aabb;
-    Handle<EnvProbe>                            m_env_probe;
+    Handle<Scene> m_parent_scene;
+    TResourceHandle<LightRenderResource> m_light_render_resource_handle;
+    Vec2u m_extent;
+    BoundingBox m_aabb;
+    Handle<EnvProbe> m_env_probe;
 
-    TResourceHandle<SceneRenderResource>        m_scene_render_resource_handle;
+    TResourceHandle<SceneRenderResource> m_scene_render_resource_handle;
 
-    TResourceHandle<ShadowMapRenderResource>    m_shadow_map_render_resource_handle;
+    TResourceHandle<ShadowMapRenderResource> m_shadow_map_render_resource_handle;
 
-    bool                                        m_last_visibility_state = false;
+    bool m_last_visibility_state = false;
 };
-
 
 } // namespace hyperion
 

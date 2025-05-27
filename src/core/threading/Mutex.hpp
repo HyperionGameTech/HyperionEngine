@@ -4,7 +4,7 @@
 #define HYPERION_MUTEX_HPP
 
 #ifdef HYP_UNIX
-#include <pthread.h>
+    #include <pthread.h>
 #endif
 
 #include <mutex>
@@ -19,31 +19,31 @@ class Mutex
 public:
     struct Guard
     {
-        Guard(Mutex &mutex)
+        Guard(Mutex& mutex)
             : mutex(mutex)
         {
             mutex.Lock();
         }
 
-        Guard(const Guard &other)                   = delete;
-        Guard &operator=(const Guard &other)        = delete;
-        Guard(Guard &&other) noexcept               = delete;
-        Guard &operator=(Guard &&other) noexcept    = delete;
+        Guard(const Guard& other) = delete;
+        Guard& operator=(const Guard& other) = delete;
+        Guard(Guard&& other) noexcept = delete;
+        Guard& operator=(Guard&& other) noexcept = delete;
 
         ~Guard()
         {
             mutex.Unlock();
         }
 
-        Mutex &mutex;
+        Mutex& mutex;
     };
 
-    Mutex()                                     = default;
-    Mutex(const Mutex &other)                   = delete;
-    Mutex &operator=(const Mutex &other)        = delete;
-    Mutex(Mutex &&other) noexcept               = delete;
-    Mutex &operator=(Mutex &&other) noexcept    = delete;
-    ~Mutex()                                    = default;
+    Mutex() = default;
+    Mutex(const Mutex& other) = delete;
+    Mutex& operator=(const Mutex& other) = delete;
+    Mutex(Mutex&& other) noexcept = delete;
+    Mutex& operator=(Mutex&& other) noexcept = delete;
+    ~Mutex() = default;
 
     void Lock()
     {

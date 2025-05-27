@@ -15,25 +15,26 @@ using RigidBodyComponentFlags = uint32;
 
 enum RigidBodyComponentFlagBits : RigidBodyComponentFlags
 {
-    RIGID_BODY_COMPONENT_FLAG_NONE   = 0x0,
-    RIGID_BODY_COMPONENT_FLAG_INIT   = 0x1,
-    RIGID_BODY_COMPONENT_FLAG_DIRTY  = 0x2
+    RIGID_BODY_COMPONENT_FLAG_NONE = 0x0,
+    RIGID_BODY_COMPONENT_FLAG_INIT = 0x1,
+    RIGID_BODY_COMPONENT_FLAG_DIRTY = 0x2
 };
 
-HYP_STRUCT(Component, Label="Rigid Body Component", Description="Controls the properties of an object with rigid body physics.", Editor=true)
+HYP_STRUCT(Component, Label = "Rigid Body Component", Description = "Controls the properties of an object with rigid body physics.", Editor = true)
+
 struct RigidBodyComponent
 {
-    HYP_FIELD(Serialize, Property="RigidBody")
-    Handle<physics::RigidBody>  rigid_body;
+    HYP_FIELD(Serialize, Property = "RigidBody")
+    Handle<physics::RigidBody> rigid_body;
 
-    HYP_FIELD(Serialize, Property="PhysicsMaterial")
-    physics::PhysicsMaterial    physics_material;
-
-    HYP_FIELD()
-    RigidBodyComponentFlags     flags = RIGID_BODY_COMPONENT_FLAG_NONE;
+    HYP_FIELD(Serialize, Property = "PhysicsMaterial")
+    physics::PhysicsMaterial physics_material;
 
     HYP_FIELD()
-    HashCode                    transform_hash_code;
+    RigidBodyComponentFlags flags = RIGID_BODY_COMPONENT_FLAG_NONE;
+
+    HYP_FIELD()
+    HashCode transform_hash_code;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

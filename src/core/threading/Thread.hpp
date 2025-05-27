@@ -20,7 +20,7 @@
 
 namespace hyperion {
 namespace threading {
-    
+
 class SchedulerBase;
 class Scheduler;
 
@@ -39,40 +39,46 @@ public:
     virtual ~IThread() = default;
 
     /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
-    virtual const ThreadID &GetID() const = 0;
+    virtual const ThreadID& GetID() const = 0;
 
     /*! \brief Get the scheduler that this thread is associated with. */
-    virtual Scheduler &GetScheduler() = 0;
+    virtual Scheduler& GetScheduler() = 0;
 
     /*! \brief Get the priority of this thread. */
     virtual ThreadPriorityValue GetPriority() const = 0;
 };
 
-extern HYP_API void RegisterThread(const ThreadID &id, IThread *thread);
-extern HYP_API void UnregisterThread(const ThreadID &id);
+extern HYP_API void RegisterThread(const ThreadID& id, IThread* thread);
+extern HYP_API void UnregisterThread(const ThreadID& id);
 
-extern HYP_API void SetCurrentThreadObject(IThread *);
+extern HYP_API void SetCurrentThreadObject(IThread*);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class Scheduler, class... Args>
 class Thread : public IThread
 {
 public:
-    Thread(const ThreadID &id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
-    Thread(const Thread &other)                 = delete;
-    Thread &operator=(const Thread &other)      = delete;
-    Thread(Thread &&other) noexcept             = delete;
-    Thread &operator=(Thread &&other) noexcept  = delete;
+    Thread(const ThreadID& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    Thread(const Thread& other) = delete;
+    Thread& operator=(const Thread& other) = delete;
+    Thread(Thread&& other) noexcept = delete;
+    Thread& operator=(Thread&& other) noexcept = delete;
     virtual ~Thread() override;
 
-    virtual const ThreadID &GetID() const override final
-        { return m_id; }
+    virtual const ThreadID& GetID() const override final
+    {
+        return m_id;
+    }
 
     virtual ThreadPriorityValue GetPriority() const override final
-        { return m_priority; }
+    {
+        return m_priority;
+    }
 
-    virtual Scheduler &GetScheduler() override final
-        { return m_scheduler; }
+    virtual Scheduler& GetScheduler() override final
+    {
+        return m_scheduler;
+    }
 
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);
@@ -89,17 +95,17 @@ public:
 protected:
     virtual void operator()(Args... args) = 0;
 
-    const ThreadID              m_id;
-    const ThreadPriorityValue   m_priority;
+    const ThreadID m_id;
+    const ThreadPriorityValue m_priority;
 
-    Scheduler                   m_scheduler;
+    Scheduler m_scheduler;
 
 private:
-    std::thread                 *m_thread;
+    std::thread* m_thread;
 };
 
 template <class Scheduler, class... Args>
-Thread<Scheduler, Args...>::Thread(const ThreadID &id, ThreadPriorityValue priority)
+Thread<Scheduler, Args...>::Thread(const ThreadID& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
       m_thread(nullptr)
@@ -107,11 +113,13 @@ Thread<Scheduler, Args...>::Thread(const ThreadID &id, ThreadPriorityValue prior
     RegisterThread(m_id, this);
 }
 
-template <class Scheduler, class ...Args>
+template <class Scheduler, class... Args>
 Thread<Scheduler, Args...>::~Thread()
 {
-    if (m_thread != nullptr) {
-        if (m_thread->joinable()) {
+    if (m_thread != nullptr)
+    {
+        if (m_thread->joinable())
+        {
             m_thread->join();
         }
 
@@ -123,50 +131,54 @@ Thread<Scheduler, Args...>::~Thread()
 }
 
 template <class Scheduler, class... Args>
-bool Thread<Scheduler, Args...>::Start(Args ... args)
+bool Thread<Scheduler, Args...>::Start(Args... args)
 {
-    if (m_thread != nullptr) {
+    if (m_thread != nullptr)
+    {
         return false;
     }
 
     m_thread = new std::thread([this, tuple_args = MakeTuple(args...)](...) -> void
-    {
-        SetCurrentThreadObject(this);
+        {
+            SetCurrentThreadObject(this);
 
-        m_scheduler.SetOwnerThread(GetID());
+            m_scheduler.SetOwnerThread(GetID());
 
-        (*this)((tuple_args.template GetElement<Args>())...);
-    });
+            (*this)((tuple_args.template GetElement<Args>())...);
+        });
 
     return true;
 }
 
-template <class Scheduler, class ...Args>
+template <class Scheduler, class... Args>
 void Thread<Scheduler, Args...>::Detach()
 {
-    if (m_thread == nullptr) {
+    if (m_thread == nullptr)
+    {
         return;
     }
 
     m_thread->detach();
 }
 
-template <class Scheduler, class ...Args>
+template <class Scheduler, class... Args>
 bool Thread<Scheduler, Args...>::Join()
 {
-    if (!CanJoin()) {
+    if (!CanJoin())
+    {
         return false;
     }
-    
+
     m_thread->join();
 
     return true;
 }
 
-template <class Scheduler, class ...Args>
+template <class Scheduler, class... Args>
 bool Thread<Scheduler, Args...>::CanJoin() const
 {
-    if (m_thread == nullptr) {
+    if (m_thread == nullptr)
+    {
         return false;
     }
 

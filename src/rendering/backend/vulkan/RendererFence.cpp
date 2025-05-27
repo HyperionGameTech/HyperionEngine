@@ -9,13 +9,13 @@
 
 namespace hyperion {
 
-extern IRenderingAPI *g_rendering_api;
+extern IRenderingAPI* g_rendering_api;
 
 namespace renderer {
 
-static inline VulkanRenderingAPI *GetRenderingAPI()
+static inline VulkanRenderingAPI* GetRenderingAPI()
 {
-    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
 VulkanFence::VulkanFence()
@@ -36,7 +36,7 @@ RendererResult VulkanFence::Create()
     // Create fence to ensure that the command buffer has finished executing
     VkFenceCreateInfo fence_create_info { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
     fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    
+
     HYPERION_VK_CHECK(vkCreateFence(GetRenderingAPI()->GetDevice()->GetDevice(), &fence_create_info, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
@@ -44,7 +44,8 @@ RendererResult VulkanFence::Create()
 
 RendererResult VulkanFence::Destroy()
 {
-    if (m_handle != VK_NULL_HANDLE) {
+    if (m_handle != VK_NULL_HANDLE)
+    {
         vkDestroyFence(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
@@ -58,9 +59,11 @@ RendererResult VulkanFence::WaitForGPU(bool timeout_loop)
 
     VkResult vk_result;
 
-    do {
+    do
+    {
         vk_result = vkWaitForFences(GetRenderingAPI()->GetDevice()->GetDevice(), 1, &m_handle, VK_TRUE, DEFAULT_FENCE_TIMEOUT);
-    } while (vk_result == VK_TIMEOUT && timeout_loop);
+    }
+    while (vk_result == VK_TIMEOUT && timeout_loop);
 
     HYPERION_VK_CHECK(vk_result);
 

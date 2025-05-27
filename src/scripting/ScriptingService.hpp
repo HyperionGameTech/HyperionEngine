@@ -28,21 +28,20 @@ enum class ScriptEventType : uint32
 struct ScriptEvent
 {
     ScriptEventType type;
-    ManagedScript   *script;
+    ManagedScript* script;
 };
 
 class HYP_API ScriptingService
 {
 public:
     ScriptingService(
-        const FilePath &watch_directory,
-        const FilePath &intermediate_directory,
-        const FilePath &binary_output_directory
-    );
-    ScriptingService(const ScriptingService &other)                 = delete;
-    ScriptingService &operator=(const ScriptingService &other)      = delete;
-    ScriptingService(ScriptingService &&other) noexcept             = delete;
-    ScriptingService &operator=(ScriptingService &&other) noexcept  = delete;
+        const FilePath& watch_directory,
+        const FilePath& intermediate_directory,
+        const FilePath& binary_output_directory);
+    ScriptingService(const ScriptingService& other) = delete;
+    ScriptingService& operator=(const ScriptingService& other) = delete;
+    ScriptingService(ScriptingService&& other) noexcept = delete;
+    ScriptingService& operator=(ScriptingService&& other) noexcept = delete;
     ~ScriptingService();
 
     void Start();
@@ -52,18 +51,18 @@ public:
     void Update();
 
     /*! \brief To be called from ScriptingService thread only */
-    void PushScriptEvent(const ScriptEvent &event);
+    void PushScriptEvent(const ScriptEvent& event);
 
-    Delegate<void, const ManagedScript &>   OnScriptStateChanged;
+    Delegate<void, const ManagedScript&> OnScriptStateChanged;
 
 private:
     bool HasEvents() const;
 
-    UniquePtr<ScriptingServiceThread>       m_thread;
+    UniquePtr<ScriptingServiceThread> m_thread;
 
-    Queue<ScriptEvent>                      m_script_event_queue;
-    Mutex                                   m_script_event_queue_mutex;
-    AtomicVar<uint32>                       m_script_event_queue_count;
+    Queue<ScriptEvent> m_script_event_queue;
+    Mutex m_script_event_queue_mutex;
+    AtomicVar<uint32> m_script_event_queue_count;
 };
 
 } // namespace hyperion

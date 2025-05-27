@@ -3,16 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="StreamedData")]
-    public class StreamedData : HypObject
+    [HypClassBinding(Name="StreamedDataBase")]
+    public class StreamedDataBase : HypObject
     {
-        public StreamedData() : base()
+        public StreamedDataBase() : base()
         {
         }
     }
 
     [HypClassBinding(Name="NullStreamedData")]
-    public class NullStreamedData : StreamedData
+    public class NullStreamedData : StreamedDataBase
     {
         public NullStreamedData() : base()
         {
@@ -20,7 +20,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="MemoryStreamedData")]
-    public class MemoryStreamedData : StreamedData
+    public class MemoryStreamedData : StreamedDataBase
     {
         public MemoryStreamedData() : base()
         {

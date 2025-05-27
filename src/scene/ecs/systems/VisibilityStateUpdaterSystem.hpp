@@ -12,23 +12,19 @@
 
 namespace hyperion {
 
-class VisibilityStateUpdaterSystem : public System<
-    VisibilityStateUpdaterSystem,
-    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
+class VisibilityStateUpdaterSystem : public System<VisibilityStateUpdaterSystem, ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, COMPONENT_RW_FLAGS_READ, false>
->
+                                         ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    VisibilityStateUpdaterSystem(EntityManager &entity_manager)
+    VisibilityStateUpdaterSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
 
     virtual ~VisibilityStateUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

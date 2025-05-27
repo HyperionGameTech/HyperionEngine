@@ -30,10 +30,10 @@ using ComponentRWFlags = uint32;
 
 enum ComponentRWFlagBits : ComponentRWFlags
 {
-    COMPONENT_RW_FLAGS_NONE         = 0,
-    COMPONENT_RW_FLAGS_READ         = 0x1,
-    COMPONENT_RW_FLAGS_WRITE        = 0x2,
-    COMPONENT_RW_FLAGS_READ_WRITE   = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
+    COMPONENT_RW_FLAGS_NONE = 0,
+    COMPONENT_RW_FLAGS_READ = 0x1,
+    COMPONENT_RW_FLAGS_WRITE = 0x2,
+    COMPONENT_RW_FLAGS_READ_WRITE = COMPONENT_RW_FLAGS_READ | COMPONENT_RW_FLAGS_WRITE
 };
 
 template <class T, ComponentRWFlags RWFlags = COMPONENT_RW_FLAGS_READ_WRITE, bool ReceivesEvents = true>
@@ -47,12 +47,12 @@ struct ComponentDescriptor
 
 struct ComponentInfo
 {
-    TypeID              type_id;
-    ComponentRWFlags    rw_flags;
-    bool                receives_events;
+    TypeID type_id;
+    ComponentRWFlags rw_flags;
+    bool receives_events;
 
     template <class ComponentDescriptorType>
-    ComponentInfo(ComponentDescriptorType &&)
+    ComponentInfo(ComponentDescriptorType&&)
         : type_id(TypeID::ForType<typename ComponentDescriptorType::Type>()),
           rw_flags(ComponentDescriptorType::rw_flags),
           receives_events(ComponentDescriptorType::receives_events)
@@ -65,27 +65,33 @@ class ComponentContainerFactoryBase;
 class HYP_API ComponentContainerBase
 {
 public:
-    ComponentContainerBase(ComponentContainerFactoryBase *factory)
+    ComponentContainerBase(ComponentContainerFactoryBase* factory)
         : m_factory(factory)
     {
     }
 
-    ComponentContainerBase(const ComponentContainerBase &)                  = delete;
-    ComponentContainerBase &operator=(const ComponentContainerBase &)       = delete;
-    ComponentContainerBase(ComponentContainerBase &&) noexcept              = delete;
-    ComponentContainerBase &operator=(ComponentContainerBase &&) noexcept   = delete;
+    ComponentContainerBase(const ComponentContainerBase&) = delete;
+    ComponentContainerBase& operator=(const ComponentContainerBase&) = delete;
+    ComponentContainerBase(ComponentContainerBase&&) noexcept = delete;
+    ComponentContainerBase& operator=(ComponentContainerBase&&) noexcept = delete;
 
-    virtual ~ComponentContainerBase()                                       = default;
+    virtual ~ComponentContainerBase() = default;
 
-    HYP_FORCE_INLINE ComponentContainerFactoryBase *GetFactory() const
-        { return m_factory; }
+    HYP_FORCE_INLINE ComponentContainerFactoryBase* GetFactory() const
+    {
+        return m_factory;
+    }
 
 #ifdef HYP_ENABLE_MT_CHECK
-    HYP_FORCE_INLINE DataRaceDetector &GetDataRaceDetector()
-        { return m_data_race_detector; }
+    HYP_FORCE_INLINE DataRaceDetector& GetDataRaceDetector()
+    {
+        return m_data_race_detector;
+    }
 
-    HYP_FORCE_INLINE const DataRaceDetector &GetDataRaceDetector() const
-        { return m_data_race_detector; }
+    HYP_FORCE_INLINE const DataRaceDetector& GetDataRaceDetector() const
+    {
+        return m_data_race_detector;
+    }
 #endif
 
     /*! \brief Gets the type ID of the component type that this component container holds.
@@ -99,7 +105,7 @@ public:
      *  \param id The ID of the component to get.
      *
      *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
-    */
+     */
     virtual AnyRef TryGetComponent(ComponentID id) = 0;
 
     /*! \brief Tries to get the component with the given ID from the component container.
@@ -107,7 +113,7 @@ public:
      *  \param id The ID of the component to get.
      *
      *  \return A pointer to the component if the component container has a component with the given ID, nullptr otherwise.
-    */
+     */
     virtual ConstAnyRef TryGetComponent(ComponentID id) const = 0;
 
     /*! \brief Tries to get the component with the given ID from the component container.
@@ -116,8 +122,8 @@ public:
      *  \param out_hyp_data The value to store a reference to the component in
      *
      *  \return True if the component was found, false otherwise
-    */
-    virtual bool TryGetComponent(ComponentID id, HypData &out_hyp_data) = 0;
+     */
+    virtual bool TryGetComponent(ComponentID id, HypData& out_hyp_data) = 0;
 
     /*! \brief Checks if the component container has a component with the given ID.
      *
@@ -151,13 +157,13 @@ public:
      *
      *  \return An optional containing the ID of the component in the given component container if the component was moved, an empty optional otherwise.
      */
-    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) = 0;
+    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase& other) = 0;
 
 protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 
 private:
-    ComponentContainerFactoryBase   *m_factory;
+    ComponentContainerFactoryBase* m_factory;
 };
 
 class ComponentContainerFactoryBase
@@ -182,26 +188,30 @@ class ComponentContainer final : public ComponentContainerBase
         virtual ~Factory() override = default;
 
         virtual UniquePtr<ComponentContainerBase> Create() const override
-            { return m_create(); }
+        {
+            return m_create();
+        }
 
     private:
         UniquePtr<ComponentContainerBase> (*m_create)();
-    } factory;
+    } s_factory;
 
 public:
-    static Factory *GetFactory()
-        { return &factory; }
+    static Factory* GetFactory()
+    {
+        return &s_factory;
+    }
 
     ComponentContainer()
-        : ComponentContainerBase(&factory)
+        : ComponentContainerBase(&s_factory)
     {
     }
 
-    ComponentContainer(const ComponentContainer &)                  = delete;
-    ComponentContainer &operator=(const ComponentContainer &)       = delete;
-    ComponentContainer(ComponentContainer &&) noexcept              = delete;
-    ComponentContainer &operator=(ComponentContainer &&) noexcept   = delete;
-    virtual ~ComponentContainer() override                          = default;
+    ComponentContainer(const ComponentContainer&) = delete;
+    ComponentContainer& operator=(const ComponentContainer&) = delete;
+    ComponentContainer(ComponentContainer&&) noexcept = delete;
+    ComponentContainer& operator=(ComponentContainer&&) noexcept = delete;
+    virtual ~ComponentContainer() override = default;
 
     virtual TypeID GetComponentTypeID() const override
     {
@@ -223,7 +233,8 @@ public:
 
         auto it = m_components.Find(id);
 
-        if (it == m_components.End()) {
+        if (it == m_components.End())
+        {
             return AnyRef::Empty();
         }
 
@@ -236,20 +247,22 @@ public:
 
         auto it = m_components.Find(id);
 
-        if (it == m_components.End()) {
+        if (it == m_components.End())
+        {
             return ConstAnyRef::Empty();
         }
 
         return ConstAnyRef(&it->second);
     }
 
-    virtual bool TryGetComponent(ComponentID id, HypData &out_hyp_data) override
+    virtual bool TryGetComponent(ComponentID id, HypData& out_hyp_data) override
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         auto it = m_components.Find(id);
 
-        if (it == m_components.End()) {
+        if (it == m_components.End())
+        {
             return false;
         }
 
@@ -258,25 +271,25 @@ public:
         return true;
     }
 
-    HYP_FORCE_INLINE Component &GetComponent(ComponentID id)
+    HYP_FORCE_INLINE Component& GetComponent(ComponentID id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
-        
+
         return m_components.At(id);
     }
 
-    HYP_FORCE_INLINE const Component &GetComponent(ComponentID id) const
+    HYP_FORCE_INLINE const Component& GetComponent(ComponentID id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         AssertThrowMsg(HasComponent(id), "Component of type `%s` with ID %u does not exist", TypeNameWithoutNamespace<Component>().Data(), id);
-        
+
         return m_components.At(id);
     }
 
-    HYP_FORCE_INLINE Pair<ComponentID, Component &> AddComponent(Component &&component)
+    HYP_FORCE_INLINE Pair<ComponentID, Component&> AddComponent(Component&& component)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -284,7 +297,7 @@ public:
 
         auto insert_result = m_components.Set(id, std::move(component));
 
-        return Pair<ComponentID, Component &> { id, insert_result.first->second };
+        return Pair<ComponentID, Component&> { id, insert_result.first->second };
     }
 
     virtual ComponentID AddComponent(AnyRef ref) override
@@ -300,7 +313,8 @@ public:
 
         auto it = m_components.Find(id);
 
-        if (it != m_components.End()) {
+        if (it != m_components.End())
+        {
             m_components.Erase(it);
 
             return true;
@@ -309,7 +323,7 @@ public:
         return false;
     }
 
-    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase &other) override
+    virtual Optional<ComponentID> MoveComponent(ComponentID id, ComponentContainerBase& other) override
     {
         AssertThrowMsg(other.GetComponentTypeID() == GetComponentTypeID(), "Component container is not of the same type");
 
@@ -317,17 +331,18 @@ public:
 
         auto it = m_components.Find(id);
 
-        if (it != m_components.End()) {
-            Component &component = it->second;
-            
-            const ComponentID new_component_id = static_cast<ComponentContainer<Component> &>(other).AddComponent(std::move(component)).first;
+        if (it != m_components.End())
+        {
+            Component& component = it->second;
+
+            const ComponentID new_component_id = static_cast<ComponentContainer<Component>&>(other).AddComponent(std::move(component)).first;
 
             m_components.Erase(it);
 
             return new_component_id;
         }
 
-        return { };
+        return {};
     }
 
     HYP_FORCE_INLINE SizeType Size() const
@@ -338,12 +353,12 @@ public:
     }
 
 private:
-    ComponentID                     m_component_id_counter = 0;
+    ComponentID m_component_id_counter = 0;
     HashMap<ComponentID, Component> m_components;
 };
 
 template <class Component>
-typename ComponentContainer<Component>::Factory ComponentContainer<Component>::factory {
+typename ComponentContainer<Component>::Factory ComponentContainer<Component>::s_factory {
     []() -> UniquePtr<ComponentContainerBase>
     {
         return MakeUnique<ComponentContainer<Component>>();

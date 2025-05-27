@@ -11,7 +11,7 @@
 #include <core/ID.hpp>
 
 #ifdef HYP_DEBUG_MODE
-#include <core/threading/Threads.hpp>
+    #include <core/threading/Threads.hpp>
 #endif
 
 #include <type_traits>
@@ -42,7 +42,7 @@ class ManagedObjectResource;
 
 enum class HypClassFlags : uint32;
 
-extern HYP_API const HypClass *GetClass(TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeID type_id);
 
 /*! \brief A base class for all HypObject classes that use memory pooling. */
 class HYP_API HypObjectBase
@@ -54,23 +54,27 @@ public:
     virtual ~HypObjectBase() = default;
 
     TypeID GetTypeID() const;
-    const HypClass *InstanceClass() const;
+    const HypClass* InstanceClass() const;
 
-    HYP_FORCE_INLINE HypObjectHeader *GetObjectHeader_Internal() const
-        { return m_header; }
+    HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
+    {
+        return m_header;
+    }
 
 protected:
     HYP_FORCE_INLINE IDBase GetID() const
-        { return GetID_Internal(); }
+    {
+        return GetID_Internal();
+    }
 
 private:
     IDBase GetID_Internal() const;
 
     // Pointer to the header of the object, holding container, index and ref counts
-    HypObjectHeader *m_header;
+    HypObjectHeader* m_header;
 };
 
-HYP_API extern void FixupObjectInitializerPointer(void *target, IHypObjectInitializer *initializer);
+HYP_API extern void FixupObjectInitializerPointer(void* target, IHypObjectInitializer* initializer);
 
 class IHypObjectInitializer
 {
@@ -79,18 +83,18 @@ public:
 
     virtual TypeID GetTypeID() const = 0;
 
-    virtual const HypClass *GetClass() const = 0;
+    virtual const HypClass* GetClass() const = 0;
 
-    virtual void SetManagedObjectResource(ManagedObjectResource *managed_object_resource) = 0;
-    virtual ManagedObjectResource *GetManagedObjectResource() const = 0;
-    
-    virtual dotnet::Object *GetManagedObject() const = 0;
+    virtual void SetManagedObjectResource(ManagedObjectResource* managed_object_resource) = 0;
+    virtual ManagedObjectResource* GetManagedObjectResource() const = 0;
 
-    virtual void IncRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
-    virtual void DecRef(HypClassAllocationMethod allocation_method, void *_this, bool weak) const = 0;
+    virtual dotnet::Object* GetManagedObject() const = 0;
 
-    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void *_this) const = 0;
-    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void *_this) const = 0;
+    virtual void IncRef(HypClassAllocationMethod allocation_method, void* _this, bool weak) const = 0;
+    virtual void DecRef(HypClassAllocationMethod allocation_method, void* _this, bool weak) const = 0;
+
+    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void* _this) const = 0;
+    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void* _this) const = 0;
 };
 
 template <class T, class T2 = void>
@@ -112,8 +116,8 @@ struct IsHypObject<T, std::enable_if_t<!std::is_same_v<HypObjectBase, T> && std:
 
 enum class HypObjectInitializerFlags : uint32
 {
-    NONE                                = 0x0,
-    SUPPRESS_MANAGED_OBJECT_CREATION    = 0x1
+    NONE = 0x0,
+    SUPPRESS_MANAGED_OBJECT_CREATION = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
@@ -128,10 +132,10 @@ struct HypObjectInitializerFlagsGuard
         PushHypObjectInitializerFlags(flags);
     }
 
-    HypObjectInitializerFlagsGuard(const HypObjectInitializerFlagsGuard &other)                 = delete;
-    HypObjectInitializerFlagsGuard &operator=(const HypObjectInitializerFlagsGuard &other)      = delete;
-    HypObjectInitializerFlagsGuard(HypObjectInitializerFlagsGuard &&other) noexcept             = delete;
-    HypObjectInitializerFlagsGuard &operator=(HypObjectInitializerFlagsGuard &&other) noexcept  = delete;
+    HypObjectInitializerFlagsGuard(const HypObjectInitializerFlagsGuard& other) = delete;
+    HypObjectInitializerFlagsGuard& operator=(const HypObjectInitializerFlagsGuard& other) = delete;
+    HypObjectInitializerFlagsGuard(HypObjectInitializerFlagsGuard&& other) noexcept = delete;
+    HypObjectInitializerFlagsGuard& operator=(HypObjectInitializerFlagsGuard&& other) noexcept = delete;
 
     ~HypObjectInitializerFlagsGuard()
     {
@@ -154,53 +158,71 @@ public:
     {
     }
 
-    HypObjectPtr(const HypClass *hyp_class, void *ptr)
+    HypObjectPtr(const HypClass* hyp_class, void* ptr)
         : m_ptr(ptr),
           m_hyp_class(hyp_class)
     {
     }
 
-    template <class T, typename = std::enable_if_t< IsHypObject<T>::value > >
-    HypObjectPtr(T *ptr)
+    template <class T, typename = std::enable_if_t<IsHypObject<T>::value>>
+    HypObjectPtr(T* ptr)
         : m_ptr(ptr),
           m_hyp_class(GetHypClass(TypeID::ForType<typename IsHypObject<T>::Type>()))
     {
     }
 
-    HypObjectPtr(const HypObjectPtr &other)                 = default;
-    HypObjectPtr &operator=(const HypObjectPtr &other)      = default;
-    HypObjectPtr(HypObjectPtr &&other) noexcept             = default;
-    HypObjectPtr &operator=(HypObjectPtr &&other) noexcept  = default;
-    ~HypObjectPtr()                                         = default;
+    HypObjectPtr(const HypObjectPtr& other) = default;
+    HypObjectPtr& operator=(const HypObjectPtr& other) = default;
+    HypObjectPtr(HypObjectPtr&& other) noexcept = default;
+    HypObjectPtr& operator=(HypObjectPtr&& other) noexcept = default;
+    ~HypObjectPtr() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return m_ptr != nullptr && m_hyp_class != nullptr; }
+    {
+        return m_ptr != nullptr && m_hyp_class != nullptr;
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return !m_ptr || !m_hyp_class; }
+    {
+        return !m_ptr || !m_hyp_class;
+    }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
-        { return m_ptr == nullptr; }
+    {
+        return m_ptr == nullptr;
+    }
 
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
-        { return m_ptr != nullptr; }
+    {
+        return m_ptr != nullptr;
+    }
 
-    HYP_FORCE_INLINE bool operator==(const HypObjectPtr &other) const
-        { return m_ptr == other.m_ptr; }
+    HYP_FORCE_INLINE bool operator==(const HypObjectPtr& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const HypObjectPtr &other) const
-        { return m_ptr != other.m_ptr; }
+    HYP_FORCE_INLINE bool operator!=(const HypObjectPtr& other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return m_ptr != nullptr && m_hyp_class != nullptr; }
+    {
+        return m_ptr != nullptr && m_hyp_class != nullptr;
+    }
 
-    HYP_FORCE_INLINE const HypClass *GetClass() const
-        { return m_hyp_class; }
+    HYP_FORCE_INLINE const HypClass* GetClass() const
+    {
+        return m_hyp_class;
+    }
 
-    HYP_FORCE_INLINE void *GetPointer() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE void* GetPointer() const
+    {
+        return m_ptr;
+    }
 
-    HYP_API IHypObjectInitializer *GetObjectInitializer() const;
+    HYP_API IHypObjectInitializer* GetObjectInitializer() const;
 
     HYP_API uint32 GetRefCount_Strong() const;
     HYP_API uint32 GetRefCount_Weak() const;
@@ -209,10 +231,10 @@ public:
     HYP_API void DecRef(bool weak = false);
 
 private:
-    HYP_API const HypClass *GetHypClass(TypeID type_id) const;
+    HYP_API const HypClass* GetHypClass(TypeID type_id) const;
 
-    void            *m_ptr;
-    const HypClass  *m_hyp_class;
+    void* m_ptr;
+    const HypClass* m_hyp_class;
 };
 
 HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count);
@@ -225,33 +247,34 @@ struct HypObjectInitializerGuardBase
     HYP_API HypObjectInitializerGuardBase(HypObjectPtr ptr);
     HYP_API ~HypObjectInitializerGuardBase();
 
-    HypObjectPtr                ptr;
+    HypObjectPtr ptr;
 
 #ifdef HYP_DEBUG_MODE
-    ThreadID                    initializer_thread_id;
+    ThreadID initializer_thread_id;
 #else
-    uint32                      count;
+    uint32 count;
 #endif
 };
 
 template <class T>
 struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
 {
-    HypObjectInitializerGuard(void *ptr)
+    HypObjectInitializerGuard(void* ptr)
         : HypObjectInitializerGuardBase(HypObjectPtr(GetClassAndEnsureValid(), ptr))
     {
     }
 
-    static const HypClass *GetClassAndEnsureValid()
+    static const HypClass* GetClassAndEnsureValid()
     {
         using HypObjectType = typename IsHypObject<T>::Type;
-        static const HypClass *hyp_class = GetClass(TypeID::ForType<HypObjectType>());
+        static const HypClass* hyp_class = GetClass(TypeID::ForType<HypObjectType>());
 
         AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<HypObjectType>().Data());
 
         return hyp_class;
     }
 };
+
 namespace detail {
 
 template <class T, class T2>
@@ -272,7 +295,7 @@ struct HypClassRegistration;
 } // namespace detail
 
 template <class T>
-using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant< IsHypObject<T>::value > >::Type;
+using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant<IsHypObject<T>::value>>::Type;
 
 } // namespace hyperion
 

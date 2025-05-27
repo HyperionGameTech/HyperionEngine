@@ -60,8 +60,7 @@ Game::~Game()
 {
     AssertThrowMsg(
         !m_is_init,
-        "Expected Game to have called Teardown() before destructor call"
-    );
+        "Expected Game to have called Teardown() before destructor call");
 
     delete m_managed_game_object;
 }
@@ -79,7 +78,8 @@ void Game::Init_Internal()
 
     Vec2i window_size;
 
-    if (m_app_context->GetMainWindow()) {
+    if (m_app_context->GetMainWindow())
+    {
         window_size = m_app_context->GetMainWindow()->GetDimensions();
     }
 
@@ -87,9 +87,12 @@ void Game::Init_Internal()
         HYP_STATIC_MESSAGE("Initialize game"),
         [this, window_size]() -> void
         {
-            if (m_managed_game_info.HasValue()) {
-                if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data())) {
-                    if (RC<dotnet::Class> class_ptr = managed_assembly->FindClassByName(m_managed_game_info->class_name.Data())) {
+            if (m_managed_game_info.HasValue())
+            {
+                if (RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly(m_managed_game_info->assembly_name.Data()))
+                {
+                    if (RC<dotnet::Class> class_ptr = managed_assembly->FindClassByName(m_managed_game_info->class_name.Data()))
+                    {
                         m_managed_game_object = class_ptr->NewObject();
                     }
 
@@ -101,20 +104,19 @@ void Game::Init_Internal()
             m_scene->SetName(NAME("Scene_Main"));
             m_scene->SetIsAudioListener(true);
 
-            const Handle<World> &world = g_engine->GetWorld();
+            const Handle<World>& world = g_engine->GetWorld();
             AssertThrow(world.IsValid());
 
             world->AddScene(m_scene);
             InitObject(m_scene);
-            
+
             RC<UIStage> ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
             m_ui_subsystem = world->AddSubsystem<UISubsystem>(ui_stage);
 
             // Call Init method (overridden)
             Init();
         },
-        TaskEnqueueFlags::FIRE_AND_FORGET
-    );
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_game_thread->Start(this);
 
@@ -125,12 +127,13 @@ void Game::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    struct RENDER_COMMAND(UpdateGameSceneRenderResource) : public renderer::RenderCommand
+    struct RENDER_COMMAND(UpdateGameSceneRenderResource)
+        : public renderer::RenderCommand
     {
-        Game                                    &game;
-        TResourceHandle<SceneRenderResource>    render_resource_handle;
+        Game& game;
+        TResourceHandle<SceneRenderResource> render_resource_handle;
 
-        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game &game, const TResourceHandle<SceneRenderResource> &render_resource_handle)
+        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game& game, const TResourceHandle<SceneRenderResource>& render_resource_handle)
             : game(game),
               render_resource_handle(render_resource_handle)
         {
@@ -146,11 +149,14 @@ void Game::Update(GameCounter::TickUnit delta)
         }
     };
 
-    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_scene_render_resource) {
+    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_scene_render_resource)
+    {
         PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>(m_scene->GetRenderResource()));
 
         m_scene_render_resource = &m_scene->GetRenderResource();
-    } else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_scene_render_resource != nullptr) {
+    }
+    else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_scene_render_resource != nullptr)
+    {
         PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>());
 
         m_scene_render_resource = nullptr;
@@ -160,7 +166,8 @@ void Game::Update(GameCounter::TickUnit delta)
 
     Logic(delta);
 
-    if (m_managed_game_object && m_managed_game_object->IsValid()) {
+    if (m_managed_game_object && m_managed_game_object->IsValid())
+    {
         m_managed_game_object->InvokeMethodByName<void, float>("Update", float(delta));
     }
 
@@ -173,14 +180,14 @@ void Game::Init()
 
     Threads::AssertOnThread(g_game_thread);
 
-    if (m_managed_game_object && m_managed_game_object->IsValid()) {
+    if (m_managed_game_object && m_managed_game_object->IsValid())
+    {
         m_managed_game_object->InvokeMethodByName<void>(
             "BeforeInit",
             m_scene,
             m_app_context->GetInputManager(),
             AssetManager::GetInstance(),
-            m_ui_subsystem->GetUIStage()
-        );
+            m_ui_subsystem->GetUIStage());
 
         m_managed_game_object->InvokeMethodByName<void>("Init");
     }
@@ -192,7 +199,8 @@ void Game::Teardown()
 
     HYP_SYNC_RENDER(); // prevent dangling references to this
 
-    if (m_scene) {
+    if (m_scene)
+    {
         g_engine->GetWorld()->RemoveScene(m_scene);
         m_scene.Reset();
     }
@@ -207,12 +215,14 @@ void Game::RequestStop()
     Threads::AssertOnThread(~g_game_thread);
 
     // Stop game thread and wait for it to finish
-    if (m_game_thread != nullptr) {
+    if (m_game_thread != nullptr)
+    {
         HYP_LOG(GameThread, Debug, "Stopping game thread");
 
         m_game_thread->Stop();
 
-        while (m_game_thread->IsRunning()) {
+        while (m_game_thread->IsRunning())
+        {
             HYP_LOG(GameThread, Debug, "Waiting for game thread to stop");
 
             Threads::Sleep(1);
@@ -224,13 +234,14 @@ void Game::RequestStop()
     g_engine->RequestStop();
 }
 
-void Game::HandleEvent(SystemEvent &&event)
+void Game::HandleEvent(SystemEvent&& event)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
 
-    if (!m_app_context->GetInputManager().IsValid()) {
+    if (!m_app_context->GetInputManager().IsValid())
+    {
         return;
     }
 
@@ -239,62 +250,66 @@ void Game::HandleEvent(SystemEvent &&event)
     OnInputEvent(std::move(event));
 }
 
-void Game::PushEvent(SystemEvent &&event)
+void Game::PushEvent(SystemEvent&& event)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_main_thread);
 
-    if (event.GetType() == SystemEventType::EVENT_SHUTDOWN) {
+    if (event.GetType() == SystemEventType::EVENT_SHUTDOWN)
+    {
         RequestStop();
 
         return;
     }
 
-    if (m_game_thread->IsRunning()) {
+    if (m_game_thread->IsRunning())
+    {
         m_game_thread->GetScheduler().Enqueue(
             HYP_STATIC_MESSAGE("HandleEvent"),
             [this, event = std::move(event)]() mutable -> void
             {
                 HandleEvent(std::move(event));
             },
-            TaskEnqueueFlags::FIRE_AND_FORGET
-        );
+            TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 
-void Game::OnInputEvent(const SystemEvent &event)
+void Game::OnInputEvent(const SystemEvent& event)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread);
-    
+
     // forward to UI
-    if (m_ui_subsystem->GetUIStage()->OnInputEvent(m_app_context->GetInputManager().Get(), event) & UIEventHandlerResult::STOP_BUBBLING) {
+    if (m_ui_subsystem->GetUIStage()->OnInputEvent(m_app_context->GetInputManager().Get(), event) & UIEventHandlerResult::STOP_BUBBLING)
+    {
         // ui handled the event
         return;
     }
 
     return; // temp
 
-    switch (event.GetType()) {
+    switch (event.GetType())
+    {
     case SystemEventType::EVENT_MOUSESCROLL:
     {
-        if (m_scene.IsValid()) {
-            if (const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera()) {
+        if (m_scene.IsValid())
+        {
+            if (const Handle<Camera>& primary_camera = m_scene->GetPrimaryCamera())
+            {
                 int wheel_x;
                 int wheel_y;
 
                 event.GetMouseWheel(&wheel_x, &wheel_y);
 
-                if (const RC<CameraController> &controller = primary_camera->GetCameraController()) {
+                if (const RC<CameraController>& controller = primary_camera->GetCameraController())
+                {
                     controller->PushCommand(CameraCommand {
                         .command = CameraCommand::CAMERA_COMMAND_SCROLL,
                         .scroll_data = {
                             .wheel_x = wheel_x,
-                            .wheel_y = wheel_y
-                        }
-                    });
+                            .wheel_y = wheel_y } });
                 }
             }
         }
@@ -303,27 +318,30 @@ void Game::OnInputEvent(const SystemEvent &event)
     }
     case SystemEventType::EVENT_MOUSEMOTION:
     {
-        if (m_app_context->GetInputManager()->GetWindow()->HasMouseFocus()) {
+        if (m_app_context->GetInputManager()->GetWindow()->HasMouseFocus())
+        {
             const Vec2i mouse_position = m_app_context->GetInputManager()->GetMousePosition();
             const Vec2i window_size = m_app_context->GetInputManager()->GetWindow()->GetDimensions();
 
             const float mx = (float(mouse_position.x) - float(window_size.x) * 0.5f) / (float(window_size.x));
             const float my = (float(mouse_position.y) - float(window_size.y) * 0.5f) / (float(window_size.y));
-            
-            if (m_scene.IsValid()) {
-                if (const Handle<Camera> &primary_camera = m_scene->GetPrimaryCamera()) {
-                    if (const RC<CameraController> &controller = primary_camera->GetCameraController()) {
+
+            if (m_scene.IsValid())
+            {
+                if (const Handle<Camera>& primary_camera = m_scene->GetPrimaryCamera())
+                {
+                    if (const RC<CameraController>& controller = primary_camera->GetCameraController())
+                    {
                         controller->PushCommand(CameraCommand {
                             .command = CameraCommand::CAMERA_COMMAND_MAG,
                             .mag_data = {
-                                .mouse_x    = mouse_position.x,
-                                .mouse_y    = mouse_position.y,
-                                .mx         = mx,
-                                .my         = my
-                            }
-                        });
+                                .mouse_x = mouse_position.x,
+                                .mouse_y = mouse_position.y,
+                                .mx = mx,
+                                .my = my } });
 
-                        if (controller->IsMouseLockRequested()) {
+                        if (controller->IsMouseLockRequested())
+                        {
                             m_app_context->GetInputManager()->SetMousePosition(Vec2i { int(window_size.x / 2), int(window_size.y / 2) });
                         }
                     }

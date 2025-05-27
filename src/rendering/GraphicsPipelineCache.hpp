@@ -17,39 +17,37 @@
 #include <Constants.hpp>
 
 namespace hyperion {
-    
+
 class RenderableAttributeSet;
 
 class GraphicsPipelineCache
 {
 public:
     GraphicsPipelineCache();
-    GraphicsPipelineCache(const GraphicsPipelineCache &)            = delete;
-    GraphicsPipelineCache &operator=(const GraphicsPipelineCache &) = delete;
-    GraphicsPipelineCache(GraphicsPipelineCache &&)                 = delete;
-    GraphicsPipelineCache &operator=(GraphicsPipelineCache &&)      = delete;
+    GraphicsPipelineCache(const GraphicsPipelineCache&) = delete;
+    GraphicsPipelineCache& operator=(const GraphicsPipelineCache&) = delete;
+    GraphicsPipelineCache(GraphicsPipelineCache&&) = delete;
+    GraphicsPipelineCache& operator=(GraphicsPipelineCache&&) = delete;
     ~GraphicsPipelineCache();
 
     void Initialize();
     void Destroy();
 
     GraphicsPipelineRef GetOrCreate(
-        const ShaderRef &shader,
-        const DescriptorTableRef &descriptor_table,
-        const Array<FramebufferRef> &framebuffers,
-        const RenderableAttributeSet &attributes
-    );
+        const ShaderRef& shader,
+        const DescriptorTableRef& descriptor_table,
+        const Array<FramebufferRef>& framebuffers,
+        const RenderableAttributeSet& attributes);
 
 private:
     GraphicsPipelineRef FindGraphicsPipeline(
-        const ShaderRef &shader,
-        const DescriptorTableRef &descriptor_table,
-        const Array<FramebufferRef> &framebuffers,
-        const RenderableAttributeSet &attributes
-    );
+        const ShaderRef& shader,
+        const DescriptorTableRef& descriptor_table,
+        const Array<FramebufferRef>& framebuffers,
+        const RenderableAttributeSet& attributes);
 
     HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef>> m_cached_pipelines;
-    Mutex                                                       m_mutex;
+    Mutex m_mutex;
 };
 
 } // namespace hyperion

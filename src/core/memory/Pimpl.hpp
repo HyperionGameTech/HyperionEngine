@@ -32,16 +32,16 @@ public:
     }
 
     /*! \brief Takes ownership of ptr.
-    
+
         Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>().
-    
+
         Do not delete the pointer passed to this,
         as it will be automatically deleted when this object or any object that takes ownership
         over from this object is destroyed. */
 
     template <class Ty>
-    explicit Pimpl(Ty *ptr)
+    explicit Pimpl(Ty* ptr)
         : m_ptr(nullptr),
           m_dtor(nullptr)
     {
@@ -51,12 +51,12 @@ public:
         Reset<Ty>(ptr);
     }
 
-    Pimpl(const Pimpl &other)               = delete;
-    Pimpl &operator=(const Pimpl &other)    = delete;
+    Pimpl(const Pimpl& other) = delete;
+    Pimpl& operator=(const Pimpl& other) = delete;
 
     /*! \brief Allows construction from a Pimpl of a convertible type. */
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    Pimpl(Pimpl<Ty> &&other) noexcept
+    Pimpl(Pimpl<Ty>&& other) noexcept
         : m_ptr(nullptr),
           m_dtor(nullptr)
     {
@@ -65,18 +65,19 @@ public:
 
     /*! \brief Allows assign from a Pimpl of a convertible type. */
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, int> = 0>
-    Pimpl &operator=(Pimpl<Ty> &&other) noexcept
+    Pimpl& operator=(Pimpl<Ty>&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
-        
+
         Reset<Ty>(other.Release());
 
         return *this;
     }
 
-    Pimpl(Pimpl &&other) noexcept
+    Pimpl(Pimpl&& other) noexcept
         : m_ptr(other.m_ptr),
           m_dtor(other.m_dtor)
     {
@@ -84,13 +85,15 @@ public:
         other.m_dtor = nullptr;
     }
 
-    Pimpl &operator=(Pimpl &&other) noexcept
+    Pimpl& operator=(Pimpl&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
-        if (m_ptr) {
+        if (m_ptr)
+        {
             m_dtor(m_ptr);
         }
 
@@ -109,44 +112,65 @@ public:
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return m_ptr != nullptr; }
+    {
+        return m_ptr != nullptr;
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return m_ptr == nullptr; }
+    {
+        return m_ptr == nullptr;
+    }
 
-    HYP_FORCE_INLINE bool operator==(const Pimpl &other) const
-        { return m_ptr == other.m_ptr; }
+    HYP_FORCE_INLINE bool operator==(const Pimpl& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
-        { return m_ptr == nullptr; }
+    {
+        return m_ptr == nullptr;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const Pimpl &other) const
-        { return m_ptr != other.m_ptr; }
+    HYP_FORCE_INLINE bool operator!=(const Pimpl& other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
 
     HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
-        { return m_ptr != nullptr; }
+    {
+        return m_ptr != nullptr;
+    }
 
-    HYP_FORCE_INLINE T *Get() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE T* Get() const
+    {
+        return m_ptr;
+    }
 
-    HYP_FORCE_INLINE T *operator->() const
-        { return Get(); }
+    HYP_FORCE_INLINE T* operator->() const
+    {
+        return Get();
+    }
 
-    HYP_FORCE_INLINE T &operator*() const
-        { return *Get(); }
-    
-    HYP_FORCE_INLINE bool operator<(const Pimpl &other) const
-        { return uintptr_t(m_ptr) < uintptr_t(other.m_ptr); }
-    
+    HYP_FORCE_INLINE T& operator*() const
+    {
+        return *Get();
+    }
+
+    HYP_FORCE_INLINE bool operator<(const Pimpl& other) const
+    {
+        return uintptr_t(m_ptr) < uintptr_t(other.m_ptr);
+    }
+
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any. */
     template <class Ty>
-    HYP_FORCE_INLINE void Reset(Ty *ptr)
+    HYP_FORCE_INLINE void Reset(Ty* ptr)
     {
         using TyN = NormalizedType<Ty>;
         static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
-        if (m_ptr) {
+        if (m_ptr)
+        {
             m_dtor(m_ptr);
         }
 
@@ -155,12 +179,15 @@ public:
     }
 
     HYP_FORCE_INLINE void Reset(std::nullptr_t)
-        { Reset(); }
+    {
+        Reset();
+    }
 
     /*! \brief Destroys any currently held object.  */
     HYP_FORCE_INLINE void Reset()
     {
-        if (m_ptr) {
+        if (m_ptr)
+        {
             m_dtor(m_ptr);
 
             m_ptr = nullptr;
@@ -170,14 +197,14 @@ public:
 
     /*! \brief Like Reset(), but constructs the object in-place. */
     template <class... Args>
-    HYP_FORCE_INLINE Pimpl &Emplace(Args &&... args)
+    HYP_FORCE_INLINE Pimpl& Emplace(Args&&... args)
     {
         return (*this = Construct(std::forward<Args>(args)...));
     }
 
     /*! \brief Like Emplace() but the first template parameter is specified as the type to construct. */
     template <class Ty, class... Args>
-    HYP_FORCE_INLINE Pimpl &EmplaceAs(Args &&... args)
+    HYP_FORCE_INLINE Pimpl& EmplaceAs(Args&&... args)
     {
         static_assert(std::is_convertible_v<std::add_pointer_t<Ty>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
 
@@ -185,9 +212,9 @@ public:
     }
 
     /*! \brief Releases the ptr to be managed externally. */
-    HYP_NODISCARD HYP_FORCE_INLINE T *Release()
+    HYP_NODISCARD HYP_FORCE_INLINE T* Release()
     {
-        T *ptr = m_ptr;
+        T* ptr = m_ptr;
         m_ptr = nullptr;
         m_dtor = nullptr;
 
@@ -196,27 +223,27 @@ public:
 
     /*! \brief Constructs a Pimpl<T> from the given arguments. */
     template <class... Args>
-    HYP_NODISCARD HYP_FORCE_INLINE static Pimpl Construct(Args &&... args)
+    HYP_NODISCARD HYP_FORCE_INLINE static Pimpl Construct(Args&&... args)
     {
         static_assert(std::is_constructible_v<T, Args...>, "T must be constructible using the given args");
-    
+
         Pimpl pimpl;
         pimpl.m_ptr = Memory::AllocateAndConstruct<T>(std::forward<Args>(args)...);
         pimpl.m_dtor = &Memory::DestructAndFree<T>;
-        
+
         return pimpl;
     }
 
 private:
-    T       *m_ptr;
-    void    (*m_dtor)(void *);
+    T* m_ptr;
+    void (*m_dtor)(void*);
 };
 
 template <class T>
 struct MakePimplHelper
 {
     template <class... Args>
-    static Pimpl<T> MakePimpl(Args &&... args)
+    static Pimpl<T> MakePimpl(Args&&... args)
     {
         return Pimpl<T>::Construct(std::forward<Args>(args)...);
     }
@@ -228,9 +255,9 @@ template <class T>
 using Pimpl = memory::Pimpl<T>;
 
 template <class T, class... Args>
-HYP_FORCE_INLINE Pimpl<T> MakePimpl(Args &&... args)
+HYP_FORCE_INLINE Pimpl<T> MakePimpl(Args&&... args)
 {
-    return memory::MakePimplHelper<T>::template MakePimpl(std::forward<Args>(args)...);
+    return memory::MakePimplHelper<T>::MakePimpl(std::forward<Args>(args)...);
 }
 
 } // namespace hyperion

@@ -13,13 +13,13 @@ HYP_ENUM()
 enum class EntityTag : uint32
 {
     NONE,
-    
+
     STATIC,
     DYNAMIC,
-    
+
     LIGHT, /* associated with a LightComponent */
 
-    UI,    /* associated with a UIObject */
+    UI, /* associated with a UIObject */
 
     CAMERA,
     CAMERA_PRIMARY,
@@ -40,13 +40,13 @@ enum class EntityTag : uint32
     UPDATE_ENV_GRID_TRANSFORM,
     UPDATE_ENV_GRID,
     UPDATE_ENV_PROBE_TRANSFORM,
-    //UPDATE_NODE_TRANSFORM,  /* Node transform needs sync after updating TransformComponent */
+    // UPDATE_NODE_TRANSFORM,  /* Node transform needs sync after updating TransformComponent */
 
     MAX
 };
 
 /*! \brief An EntityTag is a special component that is used to tag an entity with a specific flag.
- * 
+ *
  *  \tparam tag The flag value
  */
 template <EntityTag Tag>

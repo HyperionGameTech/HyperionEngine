@@ -14,7 +14,7 @@ AnimationTrack::AnimationTrack()
 {
 }
 
-AnimationTrack::AnimationTrack(const AnimationTrackDesc &desc)
+AnimationTrack::AnimationTrack(const AnimationTrackDesc& desc)
     : m_bone(nullptr),
       m_desc(desc)
 {
@@ -22,7 +22,8 @@ AnimationTrack::AnimationTrack(const AnimationTrackDesc &desc)
 
 float AnimationTrack::GetLength() const
 {
-    if (m_desc.keyframes.Empty()) {
+    if (m_desc.keyframes.Empty())
+    {
         return 0.0f;
     }
 
@@ -33,12 +34,15 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 {
     int first = 0, second = -1;
 
-    if (m_desc.keyframes.Empty()) {
+    if (m_desc.keyframes.Empty())
+    {
         return { time, Transform() };
     }
 
-    for (int i = 0; i < int(m_desc.keyframes.Size() - 1); i++) {
-        if (MathUtil::InRange(time, { m_desc.keyframes[i].GetTime(), m_desc.keyframes[i + 1].GetTime() })) {
+    for (int i = 0; i < int(m_desc.keyframes.Size() - 1); i++)
+    {
+        if (MathUtil::InRange(time, { m_desc.keyframes[i].GetTime(), m_desc.keyframes[i + 1].GetTime() }))
+        {
             first = i;
             second = i + 1;
 
@@ -46,12 +50,13 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
         }
     }
 
-    const Keyframe &current = m_desc.keyframes[first];
+    const Keyframe& current = m_desc.keyframes[first];
 
     Transform transform = current.GetTransform();
 
-    if (second > first) {
-        const Keyframe &next = m_desc.keyframes[second];
+    if (second > first)
+    {
+        const Keyframe& next = m_desc.keyframes[second];
 
         const float delta = (time - current.GetTime()) / (next.GetTime() - current.GetTime());
 
@@ -69,15 +74,17 @@ Keyframe AnimationTrack::GetKeyframe(float time) const
 
 Animation::Animation() = default;
 
-Animation::Animation(const String &name)
+Animation::Animation(const String& name)
     : m_name(name)
 {
 }
 
 void Animation::Apply(float time)
 {
-    for (const Handle<AnimationTrack> &track : m_tracks) {
-        if (track->m_bone == nullptr) {
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        if (track->m_bone == nullptr)
+        {
             continue;
         }
 
@@ -88,20 +95,22 @@ void Animation::Apply(float time)
 
 void Animation::ApplyBlended(float time, float blend)
 {
-    for (const Handle<AnimationTrack> &track : m_tracks) {
-        if (track->m_bone == nullptr) {
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        if (track->m_bone == nullptr)
+        {
             continue;
         }
 
-        if (blend <= MathUtil::epsilon_f) {
+        if (blend <= MathUtil::epsilon_f)
+        {
             track->m_bone->ClearPose();
         }
 
         Keyframe frame = track->GetKeyframe(time);
         Keyframe blended = track->m_bone->GetKeyframe().Blend(
-            frame, 
-            MathUtil::Clamp(blend, 0.0f, 1.0f)
-        );
+            frame,
+            MathUtil::Clamp(blend, 0.0f, 1.0f));
 
         track->m_bone->SetKeyframe(blended);
     }

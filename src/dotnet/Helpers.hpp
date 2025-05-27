@@ -43,13 +43,35 @@ struct DefaultTransformArgument
     }
 };
 
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_arithmetic_v<T> > > : DefaultTransformArgument<T> { };
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_class_v<T> && IsPODType<T> > > : DefaultTransformArgument<T> { };
-template <class T> struct TransformArgument<T, std::enable_if_t< std::is_enum_v<T> > > : DefaultTransformArgument<T> { };
+template <class T>
+struct TransformArgument<T, std::enable_if_t<std::is_arithmetic_v<T>>> : DefaultTransformArgument<T>
+{
+};
 
-template <> struct TransformArgument<void *> : DefaultTransformArgument<void *> { };
-template <> struct TransformArgument<char *> : DefaultTransformArgument<char *> { };
-template <> struct TransformArgument<const char *> : DefaultTransformArgument<const char *> { };
+template <class T>
+struct TransformArgument<T, std::enable_if_t<std::is_class_v<T> && is_pod_type<T>>> : DefaultTransformArgument<T>
+{
+};
+
+template <class T>
+struct TransformArgument<T, std::enable_if_t<std::is_enum_v<T>>> : DefaultTransformArgument<T>
+{
+};
+
+template <>
+struct TransformArgument<void*> : DefaultTransformArgument<void*>
+{
+};
+
+template <>
+struct TransformArgument<char*> : DefaultTransformArgument<char*>
+{
+};
+
+template <>
+struct TransformArgument<const char*> : DefaultTransformArgument<const char*>
+{
+};
 
 template <class T>
 struct TransformArgument<ID<T>>
@@ -108,7 +130,7 @@ struct TransformArgument<ID<T>>
 template <>
 struct TransformArgument<String>
 {
-    HYP_API const char *operator()(const String &value) const
+    HYP_API const char* operator()(const String& value) const
     {
         return value.Data();
     }
@@ -117,7 +139,7 @@ struct TransformArgument<String>
 template <>
 struct TransformArgument<UTF8StringView>
 {
-    HYP_API const char *operator()(UTF8StringView value) const
+    HYP_API const char* operator()(UTF8StringView value) const
     {
         return value.Data();
     }
@@ -126,7 +148,7 @@ struct TransformArgument<UTF8StringView>
 template <>
 struct TransformArgument<ANSIString>
 {
-    HYP_API const char *operator()(const ANSIString &value) const
+    HYP_API const char* operator()(const ANSIString& value) const
     {
         return value.Data();
     }
@@ -135,7 +157,7 @@ struct TransformArgument<ANSIString>
 template <>
 struct TransformArgument<ANSIStringView>
 {
-    HYP_API const char *operator()(ANSIStringView value) const
+    HYP_API const char* operator()(ANSIStringView value) const
     {
         return value.Data();
     }
@@ -144,7 +166,7 @@ struct TransformArgument<ANSIStringView>
 template <>
 struct TransformArgument<FilePath>
 {
-    HYP_API const char *operator()(const FilePath &value) const;
+    HYP_API const char* operator()(const FilePath& value) const;
 };
 
 } // namespace detail

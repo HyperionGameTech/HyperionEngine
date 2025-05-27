@@ -40,57 +40,68 @@ void LightmapperSubsystem::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (auto it = m_tasks.Begin(); it != m_tasks.End();) {
-        if (it->IsCompleted()) {
+    for (auto it = m_tasks.Begin(); it != m_tasks.End();)
+    {
+        if (it->IsCompleted())
+        {
             it = m_tasks.Erase(it);
-        } else {
+        }
+        else
+        {
             ++it;
         }
     }
 
     Array<ID<Scene>> lightmappers_to_remove;
 
-    for (auto &it : m_lightmappers) {
+    for (auto& it : m_lightmappers)
+    {
         it.second->Update(delta);
 
-        if (it.second->IsComplete()) {
+        if (it.second->IsComplete())
+        {
             lightmappers_to_remove.PushBack(it.first);
         }
     }
 
-    for (ID<Scene> scene_id : lightmappers_to_remove) {
+    for (ID<Scene> scene_id : lightmappers_to_remove)
+    {
         m_lightmappers.Erase(scene_id);
     }
 }
 
-Task<void> *LightmapperSubsystem::GenerateLightmaps(const Handle<Scene> &scene)
+Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    if (!scene.IsValid()) {
+    if (!scene.IsValid())
+    {
         return nullptr;
     }
 
-    if (!scene->IsForegroundScene()) {
+    if (!scene->IsForegroundScene())
+    {
         return nullptr;
     }
 
     auto it = m_lightmappers.Find(scene.GetID());
 
-    if (it != m_lightmappers.End()) {
+    if (it != m_lightmappers.End())
+    {
         // already running
-        
+
         return nullptr;
     }
 
     UniquePtr<Lightmapper> lightmapper = MakeUnique<Lightmapper>(LightmapperConfig::FromConfig(), scene);
 
-    Task<void> &task = m_tasks.EmplaceBack();
+    Task<void>& task = m_tasks.EmplaceBack();
 
     lightmapper->OnComplete.Bind([executor = task.Initialize()]()
-    {
-        executor->Fulfill();
-    }).Detach();
+                               {
+                                   executor->Fulfill();
+                               })
+        .Detach();
 
     lightmapper->PerformLightmapping();
 

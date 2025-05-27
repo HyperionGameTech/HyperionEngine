@@ -28,6 +28,7 @@ namespace hyperion {
 class RenderEnvironment;
 
 HYP_CLASS(Abstract)
+
 class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
 {
     HYP_OBJECT_BODY(RenderSubsystem);
@@ -45,25 +46,32 @@ public:
     {
     }
 
-    RenderSubsystem(const RenderSubsystem &other)               = delete;
-    RenderSubsystem &operator=(const RenderSubsystem &other)    = delete;
-    virtual ~RenderSubsystem()                                  = default;
+    RenderSubsystem(const RenderSubsystem& other) = delete;
+    RenderSubsystem& operator=(const RenderSubsystem& other) = delete;
+    virtual ~RenderSubsystem() = default;
 
     HYP_FORCE_INLINE Name GetName() const
-        { return m_name; }
+    {
+        return m_name;
+    }
 
-    HYP_FORCE_INLINE bool IsInitialized(const StaticThreadID &thread_id = g_render_thread) const
-        { return m_is_initialized.Get(MemoryOrder::ACQUIRE) & thread_id; }
-    
+    HYP_FORCE_INLINE bool IsInitialized(const StaticThreadID& thread_id = g_render_thread) const
+    {
+        return m_is_initialized.Get(MemoryOrder::ACQUIRE) & thread_id;
+    }
+
     /*! \brief Init the component. Called on the RENDER thread when the RenderSubsystem is added to the RenderEnvironment */
     void ComponentInit();
     /*! \brief Update data for the component. Called from GAME thread. */
     void ComponentUpdate(GameCounter::TickUnit delta);
     /*! \brief Perform rendering. Called from RENDER thread. */
-    void ComponentRender(FrameBase *frame);
+    void ComponentRender(FrameBase* frame);
 
     /*! \brief Called on the RENDER thread when the component is removed. */
-    void ComponentRemoved() { OnRemoved(); }
+    void ComponentRemoved()
+    {
+        OnRemoved();
+    }
 
     /*! \brief Thread-safe way to remove the RenderSubsystem from the RenderEnvironment, if applicable.
      *  A render command will be issued to remove the RenderSubsystem from the RenderEnvironment. */
@@ -73,20 +81,23 @@ protected:
     virtual void Init() { };
     virtual void InitGame() { };
     virtual void OnUpdate(GameCounter::TickUnit delta) { };
-    virtual void OnRender(FrameBase *frame) = 0;
-    virtual void OnRemoved() { }
+    virtual void OnRender(FrameBase* frame) = 0;
 
-    RenderEnvironment *GetParent() const;
+    virtual void OnRemoved()
+    {
+    }
 
-    Name                    m_name;
-    const uint32            m_render_frame_slicing; // amount of frames to wait between render calls
-    uint32                  m_render_frame_slicing_counter;
+    RenderEnvironment* GetParent() const;
+
+    Name m_name;
+    const uint32 m_render_frame_slicing; // amount of frames to wait between render calls
+    uint32 m_render_frame_slicing_counter;
 
 private:
-    void SetParent(RenderEnvironment *parent);
-    
-    RenderEnvironment       *m_parent;
-    AtomicVar<ThreadMask>   m_is_initialized;
+    void SetParent(RenderEnvironment* parent);
+
+    RenderEnvironment* m_parent;
+    AtomicVar<ThreadMask> m_is_initialized;
 };
 
 } // namespace hyperion

@@ -20,12 +20,12 @@ class ComponentContainerBase;
 class EntitySetBase
 {
 public:
-    EntitySetBase()                                             = default;
-    EntitySetBase(const EntitySetBase &other)                   = delete;
-    EntitySetBase &operator=(const EntitySetBase &other)        = delete;
-    EntitySetBase(EntitySetBase &&other) noexcept               = delete;
-    EntitySetBase &operator=(EntitySetBase &&other) noexcept    = delete;
-    virtual ~EntitySetBase()                                    = default;
+    EntitySetBase() = default;
+    EntitySetBase(const EntitySetBase& other) = delete;
+    EntitySetBase& operator=(const EntitySetBase& other) = delete;
+    EntitySetBase(EntitySetBase&& other) noexcept = delete;
+    EntitySetBase& operator=(EntitySetBase&& other) noexcept = delete;
+    virtual ~EntitySetBase() = default;
 
     virtual SizeType Size() const = 0;
 

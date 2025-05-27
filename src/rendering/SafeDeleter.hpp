@@ -23,12 +23,12 @@ using renderer::Device;
 class DeletionEntryBase
 {
 public:
-    DeletionEntryBase()                                                 = default;
-    DeletionEntryBase(const DeletionEntryBase &other)                   = delete;
-    DeletionEntryBase &operator=(const DeletionEntryBase &other)        = delete;
-    DeletionEntryBase(DeletionEntryBase &&other) noexcept               = delete;
-    DeletionEntryBase &operator=(DeletionEntryBase &&other) noexcept    = delete;
-    virtual ~DeletionEntryBase()                                        = default;
+    DeletionEntryBase() = default;
+    DeletionEntryBase(const DeletionEntryBase& other) = delete;
+    DeletionEntryBase& operator=(const DeletionEntryBase& other) = delete;
+    DeletionEntryBase(DeletionEntryBase&& other) noexcept = delete;
+    DeletionEntryBase& operator=(DeletionEntryBase&& other) noexcept = delete;
+    virtual ~DeletionEntryBase() = default;
 
     /*! \brief Decrement the cycle count
      *  \return true if the cycle is zero, false otherwise */
@@ -41,42 +41,30 @@ public:
 protected:
     virtual void PerformDeletion_Internal() = 0;
 
-    uint8   m_cycles_remaining = 0;
+    uint8 m_cycles_remaining = 0;
 };
 
 template <class Derived>
-class DeletionEntry : public DeletionEntryBase
-{
-public:
-    DeletionEntry()                                                 = default;
-    DeletionEntry(const DeletionEntry &other)                       = delete;
-    DeletionEntry &operator=(const DeletionEntry &other)            = delete;
-    DeletionEntry(DeletionEntry &&other) noexcept                   = delete;
-    DeletionEntry &operator=(DeletionEntry &&other) noexcept        = delete;
-    virtual ~DeletionEntry() override                               = default;
-
-protected:
-    virtual void PerformDeletion_Internal() override = 0;
-};
+class DeletionEntry;
 
 template <class T>
 class DeletionEntry<Handle<T>> : public DeletionEntryBase
 {
 public:
-    DeletionEntry(Handle<T> &&handle)
+    DeletionEntry(Handle<T>&& handle)
         : m_handle(std::move(handle))
     {
     }
 
-    DeletionEntry(const DeletionEntry &other)               = delete;
-    DeletionEntry &operator=(const DeletionEntry &other)    = delete;
+    DeletionEntry(const DeletionEntry& other) = delete;
+    DeletionEntry& operator=(const DeletionEntry& other) = delete;
 
-    DeletionEntry(DeletionEntry &&other) noexcept
+    DeletionEntry(DeletionEntry&& other) noexcept
         : m_handle(std::move(other.m_handle))
     {
     }
 
-    DeletionEntry &operator=(DeletionEntry &&other) noexcept
+    DeletionEntry& operator=(DeletionEntry&& other) noexcept
     {
         m_handle = std::move(other.m_handle);
 
@@ -91,27 +79,27 @@ private:
         m_handle.Reset();
     }
 
-    Handle<T>   m_handle;
+    Handle<T> m_handle;
 };
 
 template <class T>
 class DeletionEntry<renderer::RenderObjectHandle_Strong<T>> : public DeletionEntryBase
 {
 public:
-    DeletionEntry(renderer::RenderObjectHandle_Strong<T> &&handle)
+    DeletionEntry(renderer::RenderObjectHandle_Strong<T>&& handle)
         : m_handle(std::move(handle))
     {
     }
 
-    DeletionEntry(const DeletionEntry &other)               = delete;
-    DeletionEntry &operator=(const DeletionEntry &other)    = delete;
+    DeletionEntry(const DeletionEntry& other) = delete;
+    DeletionEntry& operator=(const DeletionEntry& other) = delete;
 
-    DeletionEntry(DeletionEntry &&other) noexcept
+    DeletionEntry(DeletionEntry&& other) noexcept
         : m_handle(std::move(other.m_handle))
     {
     }
 
-    DeletionEntry &operator=(DeletionEntry &&other) noexcept
+    DeletionEntry& operator=(DeletionEntry&& other) noexcept
     {
         m_handle = std::move(other.m_handle);
 
@@ -126,7 +114,7 @@ private:
         m_handle.Reset();
     }
 
-    renderer::RenderObjectHandle_Strong<T>  m_handle;
+    renderer::RenderObjectHandle_Strong<T> m_handle;
 };
 
 class SafeDeleter
@@ -136,16 +124,16 @@ public:
     static constexpr uint8 initial_cycles_remaining = uint8(max_frames_in_flight + 1);
 
     template <class T>
-    void SafeRelease(T &&resource)
+    void SafeRelease(T&& resource)
     {
         Mutex::Guard guard(m_render_resource_deletion_mutex);
-        
+
         m_deletion_entries.PushBack(MakeUnique<DeletionEntry<T>>(std::move(resource)));
 
         m_num_deletion_entries.Increment(1, MemoryOrder::RELEASE);
     }
 
-    void SafeRelease(RenderProxy &&proxy)
+    void SafeRelease(RenderProxy&& proxy)
     {
         SafeRelease(std::move(proxy.mesh));
         SafeRelease(std::move(proxy.material));
@@ -156,15 +144,17 @@ public:
     void ForceDeleteAll();
 
     HYP_FORCE_INLINE int32 NumEnqueuedDeletions() const
-        { return m_num_deletion_entries.Get(MemoryOrder::ACQUIRE); }
+    {
+        return m_num_deletion_entries.Get(MemoryOrder::ACQUIRE);
+    }
 
 private:
-    bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries);
+    bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>>& out_entries);
 
-    Mutex                                       m_render_resource_deletion_mutex;
-    AtomicVar<int32>                            m_num_deletion_entries { 0 };
+    Mutex m_render_resource_deletion_mutex;
+    AtomicVar<int32> m_num_deletion_entries { 0 };
 
-    LinkedList<UniquePtr<DeletionEntryBase>>    m_deletion_entries;
+    LinkedList<UniquePtr<DeletionEntryBase>> m_deletion_entries;
 };
 
 } // namespace hyperion

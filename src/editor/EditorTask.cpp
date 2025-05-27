@@ -21,34 +21,41 @@ TickableEditorTask::TickableEditorTask()
 
 void TickableEditorTask::Commit()
 {
-    IThread *game_thread = Threads::GetThread(g_game_thread);
+    IThread* game_thread = Threads::GetThread(g_game_thread);
     AssertThrow(game_thread != nullptr);
 
     m_task = game_thread->GetScheduler().Enqueue([weak_this = WeakRefCountedPtrFromThis()]()
-    {
-        if (RC<TickableEditorTask> task = weak_this.Lock().CastUnsafe<TickableEditorTask>()) {
-            task->m_is_committed.Set(true, MemoryOrder::RELEASE);
+        {
+            if (RC<TickableEditorTask> task = weak_this.Lock().CastUnsafe<TickableEditorTask>())
+            {
+                task->m_is_committed.Set(true, MemoryOrder::RELEASE);
 
-            task->Process();
-        } else {
-            HYP_LOG(Editor, Warning, "EditorTask was destroyed before it could be processed");
-        }
-    });
+                task->Process();
+            }
+            else
+            {
+                HYP_LOG(Editor, Warning, "EditorTask was destroyed before it could be processed");
+            }
+        });
 }
 
 void TickableEditorTask::Cancel_Impl()
 {
-    if (m_task.IsValid() && !m_task.IsCompleted()) {
-        if (!Threads::IsOnThread(g_game_thread)) {
+    if (m_task.IsValid() && !m_task.IsCompleted())
+    {
+        if (!Threads::IsOnThread(g_game_thread))
+        {
             HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion before destructing");
 
             m_task.Await();
-        } else {
+        }
+        else
+        {
             HYP_LOG(Editor, Info, "Executing TickableEditorTask inline before destructing");
 
             AssertThrow(m_task.Cancel());
 
-            auto *executor = m_task.Initialize();
+            auto* executor = m_task.Initialize();
             AssertThrow(executor != nullptr);
 
             executor->Fulfill();
@@ -75,17 +82,20 @@ LongRunningEditorTask::LongRunningEditorTask()
 void LongRunningEditorTask::Commit()
 {
     m_task = TaskSystem::GetInstance().Enqueue([this]()
-    {
-        m_is_committed.Set(true, MemoryOrder::RELEASE);
+        {
+            m_is_committed.Set(true, MemoryOrder::RELEASE);
 
-        Process();
-    }, TaskThreadPoolName::THREAD_POOL_BACKGROUND);
+            Process();
+        },
+        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
 }
 
 void LongRunningEditorTask::Cancel_Impl()
 {
-    if (m_task.IsValid() && !m_task.IsCompleted()) {
-        if (!m_task.Cancel()) {
+    if (m_task.IsValid() && !m_task.IsCompleted())
+    {
+        if (!m_task.Cancel())
+        {
             HYP_LOG(Editor, Warning, "Failed to cancel task, awaiting...");
 
             m_task.Await();

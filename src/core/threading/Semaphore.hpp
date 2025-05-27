@@ -22,8 +22,8 @@ namespace threading {
 
 enum class SemaphoreDirection : uint8
 {
-    WAIT_FOR_ZERO_OR_NEGATIVE   = 0,
-    WAIT_FOR_POSITIVE           = 1
+    WAIT_FOR_ZERO_OR_NEGATIVE = 0,
+    WAIT_FOR_POSITIVE = 1
 };
 
 namespace detail {
@@ -31,9 +31,12 @@ namespace detail {
 template <class T, SemaphoreDirection Direction>
 static inline constexpr bool ShouldSignal(T value)
 {
-    if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
+    if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE)
+    {
         return value <= 0;
-    } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
+    }
+    else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE)
+    {
         return value > 0;
     }
 
@@ -45,36 +48,43 @@ struct AtomicSemaphoreImpl
 {
     using CounterType = T;
 
-    mutable AtomicVar<CounterType>  value;
+    mutable AtomicVar<CounterType> value;
 
     AtomicSemaphoreImpl(CounterType initial_value)
         : value(initial_value)
     {
     }
 
-    AtomicSemaphoreImpl(const AtomicSemaphoreImpl &other)                   = delete;
-    AtomicSemaphoreImpl &operator=(const AtomicSemaphoreImpl &other)        = delete;
+    AtomicSemaphoreImpl(const AtomicSemaphoreImpl& other) = delete;
+    AtomicSemaphoreImpl& operator=(const AtomicSemaphoreImpl& other) = delete;
 
-    AtomicSemaphoreImpl(AtomicSemaphoreImpl &&other) noexcept
+    AtomicSemaphoreImpl(AtomicSemaphoreImpl&& other) noexcept
         : value(other.value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
     {
     }
-    
-    AtomicSemaphoreImpl &operator=(AtomicSemaphoreImpl &&other) noexcept    = delete;
 
-    ~AtomicSemaphoreImpl()                                                  = default;
+    AtomicSemaphoreImpl& operator=(AtomicSemaphoreImpl&& other) noexcept = delete;
+
+    ~AtomicSemaphoreImpl() = default;
 
     void Acquire() const
     {
-        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) > 0) {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) > 0)
+            {
                 HYP_WAIT_IDLE();
             }
-        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) <= 0) {
+        }
+        else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) <= 0)
+            {
                 HYP_WAIT_IDLE();
             }
-        } else {
+        }
+        else
+        {
             HYP_NOT_IMPLEMENTED_VOID();
         }
     }
@@ -83,12 +93,16 @@ struct AtomicSemaphoreImpl
     {
         // Call `callback` when the semaphore is acquired using Compare-Exchange
         // When the callback has been called, we can revert back to the previous state
-        while (true) {
+        while (true)
+        {
             CounterType current_value = value.Get(MemoryOrder::ACQUIRE);
 
-            if (ShouldSignal<CounterType, Direction>(current_value)) {
-                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE)) {
-                    if (callback.IsValid()) {
+            if (ShouldSignal<CounterType, Direction>(current_value))
+            {
+                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE))
+                {
+                    if (callback.IsValid())
+                    {
                         callback();
                     }
 
@@ -106,11 +120,13 @@ struct AtomicSemaphoreImpl
         CounterType previous_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value - delta;
 
-        if (if_signal_state_changed_proc.IsValid()) {
+        if (if_signal_state_changed_proc.IsValid())
+        {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
             const bool should_signal_after = ShouldSignal<CounterType, Direction>(current_value);
-            
-            if (should_signal_before != should_signal_after) {
+
+            if (should_signal_before != should_signal_after)
+            {
                 if_signal_state_changed_proc(should_signal_after);
             }
         }
@@ -123,7 +139,8 @@ struct AtomicSemaphoreImpl
         CounterType previous_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value - delta;
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(current_value)) {
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(current_value))
+        {
             if_signalled_proc();
         }
 
@@ -135,11 +152,13 @@ struct AtomicSemaphoreImpl
         CounterType previous_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value + delta;
 
-        if (if_signal_state_changed_proc.IsValid()) {
+        if (if_signal_state_changed_proc.IsValid())
+        {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
             const bool should_signal_after = ShouldSignal<CounterType, Direction>(current_value);
-            
-            if (should_signal_before != should_signal_after) {
+
+            if (should_signal_before != should_signal_after)
+            {
                 if_signal_state_changed_proc(should_signal_after);
             }
         }
@@ -152,7 +171,8 @@ struct AtomicSemaphoreImpl
         CounterType previous_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE);
         CounterType current_value = previous_value + delta;
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(current_value)) {
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(current_value))
+        {
             if_signalled_proc();
         }
 
@@ -161,15 +181,22 @@ struct AtomicSemaphoreImpl
 
     void WaitForValue(T target_value) const
     {
-        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) >= target_value) {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) >= target_value)
+            {
                 HYP_WAIT_IDLE();
             }
-        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) <= target_value) {
+        }
+        else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) <= target_value)
+            {
                 HYP_WAIT_IDLE();
             }
-        } else {
+        }
+        else
+        {
             HYP_NOT_IMPLEMENTED_VOID();
         }
     }
@@ -195,40 +222,47 @@ struct ConditionVarSemaphoreImpl
 {
     using CounterType = T;
 
-    mutable std::mutex              mutex;
+    mutable std::mutex mutex;
     mutable std::condition_variable cv;
-    mutable AtomicVar<CounterType>  value;
+    mutable AtomicVar<CounterType> value;
 
     ConditionVarSemaphoreImpl(CounterType initial_value)
         : value(initial_value)
     {
     }
 
-    ConditionVarSemaphoreImpl(const ConditionVarSemaphoreImpl &other)                   = delete;
-    ConditionVarSemaphoreImpl &operator=(const ConditionVarSemaphoreImpl &other)        = delete;
+    ConditionVarSemaphoreImpl(const ConditionVarSemaphoreImpl& other) = delete;
+    ConditionVarSemaphoreImpl& operator=(const ConditionVarSemaphoreImpl& other) = delete;
 
-    ConditionVarSemaphoreImpl(ConditionVarSemaphoreImpl &&other) noexcept
+    ConditionVarSemaphoreImpl(ConditionVarSemaphoreImpl&& other) noexcept
         : value(other.value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
     {
     }
-    
-    ConditionVarSemaphoreImpl &operator=(ConditionVarSemaphoreImpl &&other) noexcept    = delete;
 
-    ~ConditionVarSemaphoreImpl()                                                        = default;
+    ConditionVarSemaphoreImpl& operator=(ConditionVarSemaphoreImpl&& other) noexcept = delete;
+
+    ~ConditionVarSemaphoreImpl() = default;
 
     void Acquire() const
     {
         std::unique_lock<std::mutex> lock(mutex);
 
-        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) > 0) {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) > 0)
+            {
                 cv.wait(lock);
             }
-        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) <= 0) {
+        }
+        else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) <= 0)
+            {
                 cv.wait(lock);
             }
-        } else {
+        }
+        else
+        {
             HYP_NOT_IMPLEMENTED_VOID();
         }
     }
@@ -237,12 +271,16 @@ struct ConditionVarSemaphoreImpl
     {
         std::unique_lock<std::mutex> lock(mutex);
 
-        while (true) {
+        while (true)
+        {
             const CounterType current_value = value.Get(MemoryOrder::ACQUIRE);
 
-            if (ShouldSignal<CounterType, Direction>(current_value)) {
-                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE)) {
-                    if (callback.IsValid()) {
+            if (ShouldSignal<CounterType, Direction>(current_value))
+            {
+                if (value.CompareExchangeWeak(current_value, current_value + (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE ? 1 : -1), MemoryOrder::ACQUIRE_RELEASE))
+                {
+                    if (callback.IsValid())
+                    {
                         callback();
                     }
 
@@ -263,11 +301,13 @@ struct ConditionVarSemaphoreImpl
         const CounterType previous_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE);
         const CounterType new_value = previous_value - delta;
 
-        if (if_signal_state_changed_proc.IsValid()) {
+        if (if_signal_state_changed_proc.IsValid())
+        {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
             const bool should_signal_after = ShouldSignal<CounterType, Direction>(new_value);
 
-            if (should_signal_before != should_signal_after) {
+            if (should_signal_before != should_signal_after)
+            {
                 if_signal_state_changed_proc(should_signal_after);
             }
         }
@@ -283,7 +323,8 @@ struct ConditionVarSemaphoreImpl
 
         const CounterType new_value = value.Decrement(delta, MemoryOrder::ACQUIRE_RELEASE) - delta;
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value)) {
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value))
+        {
             if_signalled_proc();
         }
 
@@ -299,11 +340,13 @@ struct ConditionVarSemaphoreImpl
         const CounterType previous_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE);
         const CounterType new_value = previous_value + delta;
 
-        if (if_signal_state_changed_proc.IsValid()) {
+        if (if_signal_state_changed_proc.IsValid())
+        {
             const bool should_signal_before = ShouldSignal<CounterType, Direction>(previous_value);
             const bool should_signal_after = ShouldSignal<CounterType, Direction>(new_value);
 
-            if (should_signal_before != should_signal_after) {
+            if (should_signal_before != should_signal_after)
+            {
                 if_signal_state_changed_proc(should_signal_after);
             }
         }
@@ -319,7 +362,8 @@ struct ConditionVarSemaphoreImpl
 
         const CounterType new_value = value.Increment(delta, MemoryOrder::ACQUIRE_RELEASE) + delta;
 
-        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value)) {
+        if (if_signalled_proc.IsValid() && ShouldSignal<CounterType, Direction>(new_value))
+        {
             if_signalled_proc();
         }
 
@@ -332,15 +376,22 @@ struct ConditionVarSemaphoreImpl
     {
         std::unique_lock<std::mutex> lock(mutex);
 
-        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) >= target_value) {
+        if constexpr (Direction == SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) >= target_value)
+            {
                 cv.wait(lock);
             }
-        } else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE) {
-            while (value.Get(MemoryOrder::ACQUIRE) <= target_value) {
+        }
+        else if constexpr (Direction == SemaphoreDirection::WAIT_FOR_POSITIVE)
+        {
+            while (value.Get(MemoryOrder::ACQUIRE) <= target_value)
+            {
                 cv.wait(lock);
             }
-        } else {
+        }
+        else
+        {
             HYP_NOT_IMPLEMENTED_VOID();
         }
     }
@@ -376,19 +427,19 @@ class Semaphore : public SemaphoreBase
 public:
     struct Guard
     {
-        Semaphore   &m_semaphore;
+        Semaphore& m_semaphore;
 
-        Guard(Semaphore &semaphore)
+        Guard(Semaphore& semaphore)
             : m_semaphore(semaphore)
         {
             m_semaphore.Produce();
         }
 
-        Guard(const Guard &)                        = delete;
-        Guard &operator=(const Guard &)             = delete;
+        Guard(const Guard&) = delete;
+        Guard& operator=(const Guard&) = delete;
 
-        Guard(Guard &&other) noexcept               = delete;
-        Guard &operator=(Guard &&other) noexcept    = delete;
+        Guard(Guard&& other) noexcept = delete;
+        Guard& operator=(Guard&& other) noexcept = delete;
 
         ~Guard()
         {
@@ -401,56 +452,80 @@ public:
     {
     }
 
-    Semaphore(const Semaphore &other)                   = delete;
-    Semaphore &operator=(const Semaphore &other)        = delete;
+    Semaphore(const Semaphore& other) = delete;
+    Semaphore& operator=(const Semaphore& other) = delete;
 
-    Semaphore(Semaphore &&other) noexcept
+    Semaphore(Semaphore&& other) noexcept
         : m_impl(std::move(other.m_impl))
     {
     }
 
-    Semaphore &operator=(Semaphore &&other) noexcept    = delete;
-    ~Semaphore()                                        = default;
+    Semaphore& operator=(Semaphore&& other) noexcept = delete;
+    ~Semaphore() = default;
 
     HYP_FORCE_INLINE void Acquire() const
-        { m_impl.Acquire(); }
+    {
+        m_impl.Acquire();
+    }
 
     // Do something when the semaphore is acquired
     HYP_FORCE_INLINE void Acquire(ProcRef<void()> callback) const
-        { m_impl.Acquire(callback); }
+    {
+        m_impl.Acquire(callback);
+    }
 
     HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void(bool)> if_signal_state_changed_proc)
-        { return m_impl.Release(delta, if_signal_state_changed_proc); }
+    {
+        return m_impl.Release(delta, if_signal_state_changed_proc);
+    }
 
     HYP_FORCE_INLINE CounterType Release(CounterType delta, ProcRef<void()> if_signalled_proc)
-        { return m_impl.Release(delta, if_signalled_proc); }
+    {
+        return m_impl.Release(delta, if_signalled_proc);
+    }
 
     HYP_FORCE_INLINE CounterType Release(CounterType delta = 1)
-        { return m_impl.Release(delta, ProcRef<void()>(nullptr)); }
+    {
+        return m_impl.Release(delta, ProcRef<void()>(nullptr));
+    }
 
     HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void(bool)> if_signal_state_changed_proc)
-        { return m_impl.Produce(increment, if_signal_state_changed_proc); }
+    {
+        return m_impl.Produce(increment, if_signal_state_changed_proc);
+    }
 
     HYP_FORCE_INLINE CounterType Produce(CounterType increment, ProcRef<void()> if_signalled_proc)
-        { return m_impl.Produce(increment, if_signalled_proc); }
+    {
+        return m_impl.Produce(increment, if_signalled_proc);
+    }
 
     HYP_FORCE_INLINE CounterType Produce(CounterType increment = 1)
-        { return m_impl.Produce(increment, ProcRef<void()>(nullptr)); }
+    {
+        return m_impl.Produce(increment, ProcRef<void()>(nullptr));
+    }
 
     void WaitForValue(CounterType target_value) const
-        { m_impl.WaitForValue(target_value); }
+    {
+        m_impl.WaitForValue(target_value);
+    }
 
     HYP_FORCE_INLINE CounterType GetValue() const
-        { return m_impl.GetValue(); }
+    {
+        return m_impl.GetValue();
+    }
 
     HYP_FORCE_INLINE void SetValue(CounterType value)
-        { m_impl.SetValue(value); }
+    {
+        m_impl.SetValue(value);
+    }
 
     HYP_FORCE_INLINE bool IsInSignalState() const
-        { return m_impl.IsInSignalState(); }
+    {
+        return m_impl.IsInSignalState();
+    }
 
 private:
-    Impl    m_impl;
+    Impl m_impl;
 };
 
 } // namespace threading

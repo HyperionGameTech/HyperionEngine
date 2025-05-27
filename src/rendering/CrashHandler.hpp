@@ -18,7 +18,7 @@ public:
     void HandleGPUCrash(RendererResult result);
 
 private:
-    bool    m_is_initialized;
+    bool m_is_initialized;
 };
 
 } // namespace hyperion

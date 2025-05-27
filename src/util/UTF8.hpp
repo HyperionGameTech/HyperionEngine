@@ -18,12 +18,12 @@
 // #endif
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX // do not allow windows.h to define 'max' and 'min'
-#include <windows.h>
-#include <fcntl.h>
-#include <io.h>
-#include <cwchar>
+    #define WIN32_LEAN_AND_MEAN
+    #define NOMINMAX // do not allow windows.h to define 'max' and 'min'
+    #include <windows.h>
+    #include <fcntl.h>
+    #include <io.h>
+    #include <cwchar>
 #endif
 
 namespace hyperion {
@@ -31,7 +31,7 @@ namespace utf {
 
 #ifdef _WIN32
 
-inline std::vector<wchar_t> ToWide(const char *str)
+inline std::vector<wchar_t> ToWide(const char* str)
 {
     std::vector<wchar_t> buffer;
     buffer.resize(MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0));
@@ -39,7 +39,7 @@ inline std::vector<wchar_t> ToWide(const char *str)
     return buffer;
 }
 
-inline std::vector<char> ToMultiByte(const wchar_t *wstr)
+inline std::vector<char> ToMultiByte(const wchar_t* wstr)
 {
     int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
     std::vector<char> buffer(size_needed, 0);
@@ -47,13 +47,13 @@ inline std::vector<char> ToMultiByte(const wchar_t *wstr)
     return buffer;
 }
 
-#define HYP_UTF8_WIDE
-#define HYP_UTF8_TOWIDE(str) utf::ToWide(str).data()
-#define HYP_UTF8_TOMULTIBYTE(str) utf::ToMultiByte(str).data()
+    #define HYP_UTF8_WIDE
+    #define HYP_UTF8_TOWIDE(str) utf::ToWide(str).data()
+    #define HYP_UTF8_TOMULTIBYTE(str) utf::ToMultiByte(str).data()
 
 #else
-#define HYP_UTF8_TOWIDE(str) (str)
-#define HYP_UTF8_TOMULTIBYTE(str) (str)
+    #define HYP_UTF8_TOWIDE(str) (str)
+    #define HYP_UTF8_TOMULTIBYTE(str) (str)
 #endif
 
 using u32char = uint32;
@@ -61,21 +61,25 @@ using u16char = uint16;
 using u8char = uint8;
 
 #define HYP_UTF8_CHECK_BOUNDS(idx, max) \
-    do { if ((idx) == (max)) { return -1; } } while (0)
+    do                                  \
+    {                                   \
+        if ((idx) == (max))             \
+        {                               \
+            return -1;                  \
+        }                               \
+    }                                   \
+    while (0)
 
-inline void init()
+inline void Init()
 {
 #ifdef _WIN32
-    _setmode(_fileno(stdout), 0x00020000/*_O_U16TEXT*/);
+    _setmode(_fileno(stdout), 0x00020000 /*_O_U16TEXT*/);
 #endif
 }
 
 constexpr inline bool utf32_isspace(u32char ch)
 {
-    return ch == u32char(' ')  ||
-           ch == u32char('\n') ||
-           ch == u32char('\t') ||
-           ch == u32char('\r');
+    return ch == u32char(' ') || ch == u32char('\n') || ch == u32char('\t') || ch == u32char('\r');
 }
 
 constexpr inline bool utf32_isdigit(u32char ch)
@@ -92,51 +96,64 @@ constexpr inline bool utf32_isxdigit(u32char ch)
 
 constexpr inline bool utf32_isalpha(u32char ch)
 {
-    return (ch >= 0xC0) || ((ch >= u32char('A') && ch <= u32char('Z')) ||
-                            (ch >= u32char('a') && ch <= u32char('z')));
+    return (ch >= 0xC0) || ((ch >= u32char('A') && ch <= u32char('Z')) || (ch >= u32char('a') && ch <= u32char('z')));
 }
 
-constexpr inline SizeType utf8_strlen(const char *first, const char *last)
+constexpr inline SizeType utf8_strlen(const char* first, const char* last)
 {
-    if (first == last) {
+    if (first == last)
+    {
         return 0;
     }
 
     SizeType count = 0;
     SizeType codepoints = 0;
 
-    for (; first[codepoints] != '\0' && (first + codepoints) != last; count++) {
+    for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
+    {
         const char c = first[codepoints];
 
-        if (c >= 0 && c <= 127) codepoints += 1;
-        else if ((c & 0xE0) == 0xC0) codepoints += 2;
-        else if ((c & 0xF0) == 0xE0) codepoints += 3;
-        else if ((c & 0xF8) == 0xF0) codepoints += 4;
-        else return -1;//invalid utf8
+        if (c >= 0 && c <= 127)
+            codepoints += 1;
+        else if ((c & 0xE0) == 0xC0)
+            codepoints += 2;
+        else if ((c & 0xF0) == 0xE0)
+            codepoints += 3;
+        else if ((c & 0xF8) == 0xF0)
+            codepoints += 4;
+        else
+            return -1; // invalid utf8
     }
 
     return count;
 }
 
-constexpr inline SizeType utf8_strlen(const char *first, const char *last, SizeType &out_codepoints)
+constexpr inline SizeType utf8_strlen(const char* first, const char* last, SizeType& out_codepoints)
 {
-    if (first == last) {
+    if (first == last)
+    {
         out_codepoints = 0;
-        
+
         return 0;
     }
 
     SizeType count = 0;
     SizeType codepoints = 0;
 
-    for (; first[codepoints] != '\0' && (first + codepoints) != last; count++) {
+    for (; first[codepoints] != '\0' && (first + codepoints) != last; count++)
+    {
         const char c = first[codepoints];
 
-        if (c >= 0 && c <= 127) codepoints += 1;
-        else if ((c & 0xE0) == 0xC0) codepoints += 2;
-        else if ((c & 0xF0) == 0xE0) codepoints += 3;
-        else if ((c & 0xF8) == 0xF0) codepoints += 4;
-        else return -1;//invalid utf8
+        if (c >= 0 && c <= 127)
+            codepoints += 1;
+        else if ((c & 0xE0) == 0xC0)
+            codepoints += 2;
+        else if ((c & 0xF0) == 0xE0)
+            codepoints += 3;
+        else if ((c & 0xF8) == 0xF0)
+            codepoints += 4;
+        else
+            return -1; // invalid utf8
     }
 
     out_codepoints = codepoints;
@@ -144,19 +161,25 @@ constexpr inline SizeType utf8_strlen(const char *first, const char *last, SizeT
     return count;
 }
 
-constexpr inline SizeType utf8_strlen(const char *str, SizeType &out_codepoints)
+constexpr inline SizeType utf8_strlen(const char* str, SizeType& out_codepoints)
 {
     SizeType count = 0;
     SizeType codepoints = 0;
 
-    for (; str[codepoints] != '\0'; count++) {
+    for (; str[codepoints] != '\0'; count++)
+    {
         const char c = str[codepoints];
 
-        if (c >= 0 && c <= 127) codepoints += 1;
-        else if ((c & 0xE0) == 0xC0) codepoints += 2;
-        else if ((c & 0xF0) == 0xE0) codepoints += 3;
-        else if ((c & 0xF8) == 0xF0) codepoints += 4;
-        else return -1;//invalid utf8
+        if (c >= 0 && c <= 127)
+            codepoints += 1;
+        else if ((c & 0xE0) == 0xC0)
+            codepoints += 2;
+        else if ((c & 0xF0) == 0xE0)
+            codepoints += 3;
+        else if ((c & 0xF8) == 0xF0)
+            codepoints += 4;
+        else
+            return -1; // invalid utf8
     }
 
     out_codepoints = codepoints;
@@ -164,68 +187,88 @@ constexpr inline SizeType utf8_strlen(const char *str, SizeType &out_codepoints)
     return count;
 }
 
-constexpr inline SizeType utf8_strlen(const char *str)
+constexpr inline SizeType utf8_strlen(const char* str)
 {
     SizeType codepoints = 0;
     return utf8_strlen(str, codepoints);
 }
 
 template <class T, bool is_utf8>
-constexpr SizeType utf_strlen(const T *str)
+constexpr SizeType utf_strlen(const T* str)
 {
-    if constexpr (is_utf8) {
+    if constexpr (is_utf8)
+    {
         return utf8_strlen(str);
-    } else if constexpr (sizeof(T) == sizeof(char)) {
+    }
+    else if constexpr (sizeof(T) == sizeof(char))
+    {
         return std::strlen(str);
-    } else {
+    }
+    else
+    {
         SizeType count = 0;
-        const T *pos = str;
-        for (; *pos; ++pos, count++);
+        const T* pos = str;
+        for (; *pos; ++pos, count++)
+            ;
 
         return count;
     }
 }
 
 template <class T, bool is_utf8>
-constexpr SizeType utf_strlen(const T *str, SizeType &out_codepoints)
+constexpr SizeType utf_strlen(const T* str, SizeType& out_codepoints)
 {
-    if constexpr (is_utf8) {
+    if constexpr (is_utf8)
+    {
         return utf8_strlen(str, out_codepoints);
-    } else if constexpr (sizeof(T) == sizeof(char)) {
+    }
+    else if constexpr (sizeof(T) == sizeof(char))
+    {
         return (out_codepoints = std::strlen(str));
-    } else {
+    }
+    else
+    {
         SizeType cp = 0;
-        const T *pos = str;
-        for (; *pos; ++pos, cp++);
+        const T* pos = str;
+        for (; *pos; ++pos, cp++)
+            ;
 
         return (out_codepoints = cp);
     }
 }
 
-inline int utf8_strncmp(const char *s1, const char *s2, SizeType count)
+inline int utf8_strncmp(const char* s1, const char* s2, SizeType count)
 {
-    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); i++) {
+    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); i++)
+    {
         unsigned char c;
 
         u32char c1 = 0;
-        char *c1_bytes = reinterpret_cast<char*>(&c1);
+        char* c1_bytes = reinterpret_cast<char*>(&c1);
 
         u32char c2 = 0;
-        char *c2_bytes = reinterpret_cast<char*>(&c2);
+        char* c2_bytes = reinterpret_cast<char*>(&c2);
 
         // get the character for s1
         c = (unsigned char)*s1;
 
-        if (c >= 0 && c <= 127) {
+        if (c >= 0 && c <= 127)
+        {
             c1_bytes[0] = *(s1++);
-        } else if ((c & 0xE0) == 0xC0) {
+        }
+        else if ((c & 0xE0) == 0xC0)
+        {
             c1_bytes[0] = *(s1++);
             c1_bytes[1] = *(s1++);
-        } else if ((c & 0xF0) == 0xE0) {
+        }
+        else if ((c & 0xF0) == 0xE0)
+        {
             c1_bytes[0] = *(s1++);
             c1_bytes[1] = *(s1++);
             c1_bytes[2] = *(s1++);
-        } else if ((c & 0xF8) == 0xF0) {
+        }
+        else if ((c & 0xF8) == 0xF0)
+        {
             c1_bytes[0] = *(s1++);
             c1_bytes[1] = *(s1++);
             c1_bytes[2] = *(s1++);
@@ -235,25 +278,35 @@ inline int utf8_strncmp(const char *s1, const char *s2, SizeType count)
         // get the character for s2
         c = (unsigned char)*s2;
 
-        if (c >= 0 && c <= 127) {
+        if (c >= 0 && c <= 127)
+        {
             c2_bytes[0] = *(s2++);
-        } else if ((c & 0xE0) == 0xC0) {
+        }
+        else if ((c & 0xE0) == 0xC0)
+        {
             c2_bytes[0] = *(s2++);
             c2_bytes[1] = *(s2++);
-        } else if ((c & 0xF0) == 0xE0) {
+        }
+        else if ((c & 0xF0) == 0xE0)
+        {
             c2_bytes[0] = *(s2++);
             c2_bytes[1] = *(s2++);
             c2_bytes[2] = *(s2++);
-        } else if ((c & 0xF8) == 0xF0) {
+        }
+        else if ((c & 0xF8) == 0xF0)
+        {
             c2_bytes[0] = *(s2++);
             c2_bytes[1] = *(s2++);
             c2_bytes[2] = *(s2++);
             c2_bytes[3] = *(s2++);
         }
 
-        if (c1 < c2) {
+        if (c1 < c2)
+        {
             return -1;
-        } else if (c1 > c2) {
+        }
+        else if (c1 > c2)
+        {
             return 1;
         }
     }
@@ -262,19 +315,24 @@ inline int utf8_strncmp(const char *s1, const char *s2, SizeType count)
 }
 
 template <class T, bool IsUtf8>
-int utf_strncmp(const T *lhs, const T *rhs, SizeType count)
+int utf_strncmp(const T* lhs, const T* rhs, SizeType count)
 {
-    if constexpr (IsUtf8) {
+    if constexpr (IsUtf8)
+    {
         return utf8_strncmp(lhs, rhs, count);
     }
 
-    const T *s1 = lhs;
-    const T *s2 = rhs;
+    const T* s1 = lhs;
+    const T* s2 = rhs;
 
-    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); s1++, s2++, i++) {
-        if (*s1 < *s2) {
+    for (SizeType i = 0; (*s1 || *s2) && (i < count || count == 0); s1++, s2++, i++)
+    {
+        if (*s1 < *s2)
+        {
             return -1;
-        } else if (*s1 > *s2) {
+        }
+        else if (*s1 > *s2)
+        {
             return 1;
         }
     }
@@ -283,21 +341,23 @@ int utf_strncmp(const T *lhs, const T *rhs, SizeType count)
 }
 
 template <class T, bool IsUtf8>
-int utf_strcmp(const T *lhs, const T *rhs)
+int utf_strcmp(const T* lhs, const T* rhs)
 {
     return utf_strncmp<T, IsUtf8>(lhs, rhs, 0);
 }
 
-inline char *utf8_strcpy(char *dst, const char *src)
+inline char* utf8_strcpy(char* dst, const char* src)
 {
     // copy all raw bytes
-    for (int i = 0; (dst[i] = src[i]) != '\0'; i++);
+    for (int i = 0; (dst[i] = src[i]) != '\0'; i++)
+        ;
     return dst;
 }
 
-inline u32char *utf32_strcpy(u32char *dst, const u32char *src)
+inline u32char* utf32_strcpy(u32char* dst, const u32char* src)
 {
-    for (int i = 0; (dst[i] = src[i]) != '\0'; i++);
+    for (int i = 0; (dst[i] = src[i]) != '\0'; i++)
+        ;
     return dst;
 }
 
@@ -376,28 +436,40 @@ inline u32char *utf32_strcat(u32char *dst, const u32char *src)
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char char8to32(const char *str, SizeType max = sizeof(u32char))
+inline u32char Char8to32(const char* str, SizeType max = sizeof(u32char))
 {
-    union { u32char ret; char ret_bytes[sizeof(u32char)]; };
+    union
+    {
+        u32char ret;
+        char ret_bytes[sizeof(u32char)];
+    };
+
     ret = 0;
 
     hyperion::uint32 i = 0;
 
     const unsigned char ch = (unsigned char)str[0];
 
-    if (ch <= 0x7F) {
+    if (ch <= 0x7F)
+    {
         ret_bytes[0] = str[i];
-    } else if ((ch & 0xE0) == 0xC0) {
+    }
+    else if ((ch & 0xE0) == 0xC0)
+    {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i];
-    } else if ((ch & 0xF0) == 0xE0) {
+    }
+    else if ((ch & 0xF0) == 0xE0)
+    {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[2] = str[i];
-    } else if ((ch & 0xF8) == 0xF0) {
+    }
+    else if ((ch & 0xF8) == 0xF0)
+    {
         ret_bytes[0] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[1] = str[i++];
@@ -405,7 +477,9 @@ inline u32char char8to32(const char *str, SizeType max = sizeof(u32char))
         ret_bytes[2] = str[i++];
         HYP_UTF8_CHECK_BOUNDS(i, max);
         ret_bytes[3] = str[i];
-    } else {
+    }
+    else
+    {
         // invalid utf-8
         return -1;
     }
@@ -416,28 +490,40 @@ inline u32char char8to32(const char *str, SizeType max = sizeof(u32char))
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char char8to32(const char *str, SizeType max, SizeType &out_codepoints)
+inline u32char Char8to32(const char* str, SizeType max, SizeType& out_codepoints)
 {
-    union { u32char ret; char ret_bytes[sizeof(u32char)]; };
+    union
+    {
+        u32char ret;
+        char ret_bytes[sizeof(u32char)];
+    };
+
     ret = 0;
 
     out_codepoints = 0;
 
     const unsigned char ch = (unsigned char)str[0];
 
-    if (ch <= 0x7F) {
+    if (ch <= 0x7F)
+    {
         ret_bytes[0] = str[out_codepoints++];
-    } else if ((ch & 0xE0) == 0xC0) {
+    }
+    else if ((ch & 0xE0) == 0xC0)
+    {
         ret_bytes[0] = str[out_codepoints++];
         HYP_UTF8_CHECK_BOUNDS(out_codepoints, max);
         ret_bytes[1] = str[out_codepoints++];
-    } else if ((ch & 0xF0) == 0xE0) {
+    }
+    else if ((ch & 0xF0) == 0xE0)
+    {
         ret_bytes[0] = str[out_codepoints++];
         HYP_UTF8_CHECK_BOUNDS(out_codepoints, max);
         ret_bytes[1] = str[out_codepoints++];
         HYP_UTF8_CHECK_BOUNDS(out_codepoints, max);
         ret_bytes[2] = str[out_codepoints++];
-    } else if ((ch & 0xF8) == 0xF0) {
+    }
+    else if ((ch & 0xF8) == 0xF0)
+    {
         ret_bytes[0] = str[out_codepoints++];
         HYP_UTF8_CHECK_BOUNDS(out_codepoints, max);
         ret_bytes[1] = str[out_codepoints++];
@@ -445,7 +531,9 @@ inline u32char char8to32(const char *str, SizeType max, SizeType &out_codepoints
         ret_bytes[2] = str[out_codepoints++];
         HYP_UTF8_CHECK_BOUNDS(out_codepoints, max);
         ret_bytes[3] = str[out_codepoints++];
-    } else {
+    }
+    else
+    {
         // invalid utf-8
         return -1;
     }
@@ -456,17 +544,19 @@ inline u32char char8to32(const char *str, SizeType max, SizeType &out_codepoints
 /*! \brief Convert a single UTF-32 char to UTF-8 array of code points.
  *  The array at \ref{dst} MUST have a sizeof u32char (4 bytes)
  */
-inline void char32to8(u32char src, u8char *dst, SizeType &out_codepoints)
+inline void Char32to8(u32char src, u8char* dst, SizeType& out_codepoints)
 {
     out_codepoints = 0;
 
     // set all bytes to 0
     std::memset(dst, 0, sizeof(u32char));
 
-    const char *src_bytes = reinterpret_cast<char *>(&src);
+    const char* src_bytes = reinterpret_cast<char*>(&src);
 
-    for (int i = 0; i < sizeof(u32char); i++) {
-        if (src_bytes[i] == '\0') {
+    for (int i = 0; i < sizeof(u32char); i++)
+    {
+        if (src_bytes[i] == '\0')
+        {
             // stop reading
             break;
         }
@@ -476,35 +566,48 @@ inline void char32to8(u32char src, u8char *dst, SizeType &out_codepoints)
     }
 }
 
-inline void char32to8(u32char src, u8char *dst)
+inline void Char32to8(u32char src, u8char* dst)
 {
     SizeType codepoints = 0;
-    char32to8(src, dst, codepoints);
+    Char32to8(src, dst, codepoints);
 }
 
-inline u32char utf8_charat(const utf::u8char *str, SizeType max, SizeType index)
+inline u32char utf8_charat(const utf::u8char* str, SizeType max, SizeType index)
 {
     SizeType character_index = 0;
 
-    for (SizeType i = 0; i < max; character_index++) {
+    for (SizeType i = 0; i < max; character_index++)
+    {
         u8char c(str[i]);
 
-        union { u32char ret; char ret_bytes[sizeof(u32char)]; };
+        union
+        {
+            u32char ret;
+            char ret_bytes[sizeof(u32char)];
+        };
+
         ret = 0;
 
-        if (c <= 0x7F) {
+        if (c <= 0x7F)
+        {
             ret_bytes[0] = str[i++];
-        } else if ((c & 0xE0) == 0xC0) {
+        }
+        else if ((c & 0xE0) == 0xC0)
+        {
             ret_bytes[0] = str[i++];
             HYP_UTF8_CHECK_BOUNDS(i, max);
             ret_bytes[1] = str[i++];
-        } else if ((c & 0xF0) == 0xE0) {
+        }
+        else if ((c & 0xF0) == 0xE0)
+        {
             ret_bytes[0] = str[i++];
             HYP_UTF8_CHECK_BOUNDS(i, max);
             ret_bytes[1] = str[i++];
             HYP_UTF8_CHECK_BOUNDS(i, max);
             ret_bytes[2] = str[i++];
-        } else if ((c & 0xF8) == 0xF0) {
+        }
+        else if ((c & 0xF8) == 0xF0)
+        {
             ret_bytes[0] = str[i++];
             HYP_UTF8_CHECK_BOUNDS(i, max);
             ret_bytes[1] = str[i++];
@@ -512,18 +615,22 @@ inline u32char utf8_charat(const utf::u8char *str, SizeType max, SizeType index)
             ret_bytes[2] = str[i++];
             HYP_UTF8_CHECK_BOUNDS(i, max);
             ret_bytes[3] = str[i++];
-        } else {
+        }
+        else
+        {
             // invalid utf-8
             return -1;
         }
 
-        if (character_index == index) {
+        if (character_index == index)
+        {
             // reached index
             return ret;
         }
 
         // end reached
-        if (c == u8char('\0')) {
+        if (c == u8char('\0'))
+        {
             return -1;
         }
     }
@@ -535,63 +642,84 @@ inline u32char utf8_charat(const utf::u8char *str, SizeType max, SizeType index)
 /*! \brief Get the UTF-8 char (array of code points) at the specific index of the string.
  *  \ref{dst} MUST have a size of at least the sizeof u32char, so 4 bytes.
  */
-inline void utf8_charat(const u8char *str, u8char *dst, SizeType max, SizeType index)
-    { char32to8(utf8_charat(str, max, index), dst); }
-
-#define HYP_UTF_MASK16(ch)             ((uint16_t)(0xffff & (ch)))
-#define HYP_UTF_IS_LEAD_SURROGATE(ch)  ((ch) >= 0xd800u && (ch) <= 0xdbffu)
-#define HYP_UTF_IS_TRAIL_SURROGATE(ch) ((ch) >= 0xdc00u && (ch) <= 0xdfffu)
-#define HYP_UTF_SURROGATE_OFFSET       (0x10000u - (0xd800u << 10) - 0xdc00u)
-
-inline SizeType utf8_append(uint32_t cp, u8char *result)
+inline void utf8_charat(const u8char* str, u8char* dst, SizeType max, SizeType index)
 {
-    if (result) {
+    Char32to8(utf8_charat(str, max, index), dst);
+}
+
+#define HYP_UTF_MASK16(ch) ((uint16_t)(0xffff & (ch)))
+#define HYP_UTF_IS_LEAD_SURROGATE(ch) ((ch) >= 0xd800u && (ch) <= 0xdbffu)
+#define HYP_UTF_IS_TRAIL_SURROGATE(ch) ((ch) >= 0xdc00u && (ch) <= 0xdfffu)
+#define HYP_UTF_SURROGATE_OFFSET (0x10000u - (0xd800u << 10) - 0xdc00u)
+
+inline SizeType utf8_append(uint32_t cp, u8char* result)
+{
+    if (result)
+    {
         SizeType len = 0;
 
-        if (cp < 0x80) {
+        if (cp < 0x80)
+        {
             result[len++] = u8char(cp);
-        } else if (cp < 0x800) {
-            result[len++] = u8char((cp >> 6)            | 0xc0);
-            result[len++] = u8char((cp & 0x3f)          | 0x80);
-        } else if (cp < 0x10000) {
-            result[len++] = u8char((cp >> 12)           | 0xe0);
-            result[len++] = u8char(((cp >> 6) & 0x3f)   | 0x80);
-            result[len++] = u8char((cp & 0x3f)          | 0x80);
-        } else {
-            result[len++] = u8char((cp >> 18)           | 0xf0);
-            result[len++] = u8char(((cp >> 12) & 0x3f)  | 0x80);
-            result[len++] = u8char(((cp >> 6) & 0x3f)   | 0x80);
-            result[len++] = u8char((cp & 0x3f)          | 0x80);
+        }
+        else if (cp < 0x800)
+        {
+            result[len++] = u8char((cp >> 6) | 0xc0);
+            result[len++] = u8char((cp & 0x3f) | 0x80);
+        }
+        else if (cp < 0x10000)
+        {
+            result[len++] = u8char((cp >> 12) | 0xe0);
+            result[len++] = u8char(((cp >> 6) & 0x3f) | 0x80);
+            result[len++] = u8char((cp & 0x3f) | 0x80);
+        }
+        else
+        {
+            result[len++] = u8char((cp >> 18) | 0xf0);
+            result[len++] = u8char(((cp >> 12) & 0x3f) | 0x80);
+            result[len++] = u8char(((cp >> 6) & 0x3f) | 0x80);
+            result[len++] = u8char((cp & 0x3f) | 0x80);
         }
 
         return len;
     }
 
-    if (cp < 0x80) {
+    if (cp < 0x80)
+    {
         return 1;
-    } else if (cp < 0x800) {
+    }
+    else if (cp < 0x800)
+    {
         return 2;
-    } else if (cp < 0x10000) {
+    }
+    else if (cp < 0x10000)
+    {
         return 3;
-    } else {
+    }
+    else
+    {
         return 4;
     }
 }
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline SizeType utf16_to_utf8(const u16char *start, const u16char *end, u8char *result)
+inline SizeType utf16_to_utf8(const u16char* start, const u16char* end, u8char* result)
 {
     SizeType len = 0;
 
-    while (start != end) {
+    while (start != end)
+    {
         uint32 cp = HYP_UTF_MASK16(*start++);
         // Take care of surrogate pairs first
-        if (HYP_UTF_IS_LEAD_SURROGATE(cp)) {
+        if (HYP_UTF_IS_LEAD_SURROGATE(cp))
+        {
             const uint32 trail_surrogate = HYP_UTF_MASK16(*start++);
             AssertThrow(HYP_UTF_IS_TRAIL_SURROGATE(trail_surrogate));
             cp = (cp << 10) + trail_surrogate + HYP_UTF_SURROGATE_OFFSET;
-        } else {
+        }
+        else
+        {
             // Lone trail surrogate
             AssertThrow(!HYP_UTF_IS_TRAIL_SURROGATE(cp));
         }
@@ -604,11 +732,12 @@ inline SizeType utf16_to_utf8(const u16char *start, const u16char *end, u8char *
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline SizeType utf32_to_utf8(const u32char *start, const u32char *end, u8char *result)
+inline SizeType utf32_to_utf8(const u32char* start, const u32char* end, u8char* result)
 {
     SizeType len = 0;
 
-    while (start != end) {
+    while (start != end)
+    {
         uint32 cp = *start++;
 
         len += utf8_append(cp, result);
@@ -619,20 +748,24 @@ inline SizeType utf32_to_utf8(const u32char *start, const u32char *end, u8char *
 
 /*! \brief Pass nullptr to \ref{result} on the first call to get the size needed for the buffer.
  * *  Then call the function again with the memory allocated for \ref{result}. */
-inline SizeType wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *result)
+inline SizeType wide_to_utf8(const wchar_t* start, const wchar_t* end, u8char* result)
 {
 #ifdef _WIN32
     SizeType len = 0;
 
-    if (result) {
-        len = SizeType(WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), (char *)result, 0, NULL, NULL));
+    if (result)
+    {
+        len = SizeType(WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), (char*)result, 0, NULL, NULL));
 
-        if (len == 0) {
+        if (len == 0)
+        {
             return 0;
         }
 
-        WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), (char *)result, int(len), NULL, NULL);
-    } else {
+        WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), (char*)result, int(len), NULL, NULL);
+    }
+    else
+    {
         len = SizeType(WideCharToMultiByte(CP_UTF8, 0, start, (int)(end - start), NULL, 0, NULL, NULL));
     }
 
@@ -640,37 +773,56 @@ inline SizeType wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *r
 #else
     SizeType len = 0;
 
-    if (result) {
-        while (start != end) {
+    if (result)
+    {
+        while (start != end)
+        {
             wchar_t ch = *start++;
 
-            if (ch <= 0x7F) {
+            if (ch <= 0x7F)
+            {
                 result[len++] = static_cast<u8char>(ch);
-            } else if (ch <= 0x7FF) {
+            }
+            else if (ch <= 0x7FF)
+            {
                 result[len++] = static_cast<u8char>(0xC0 | ((ch >> 6) & 0x1F));
                 result[len++] = static_cast<u8char>(0x80 | (ch & 0x3F));
-            } else if (ch <= 0xFFFF) {
+            }
+            else if (ch <= 0xFFFF)
+            {
                 result[len++] = static_cast<u8char>(0xE0 | ((ch >> 12) & 0x0F));
                 result[len++] = static_cast<u8char>(0x80 | ((ch >> 6) & 0x3F));
                 result[len++] = static_cast<u8char>(0x80 | (ch & 0x3F));
-            } else if (ch <= 0x10FFFF) {
+            }
+            else if (ch <= 0x10FFFF)
+            {
                 result[len++] = static_cast<u8char>(0xF0 | ((ch >> 18) & 0x07));
                 result[len++] = static_cast<u8char>(0x80 | ((ch >> 12) & 0x3F));
                 result[len++] = static_cast<u8char>(0x80 | ((ch >> 6) & 0x3F));
                 result[len++] = static_cast<u8char>(0x80 | (ch & 0x3F));
             }
         }
-    } else {
-        while (start != end) {
+    }
+    else
+    {
+        while (start != end)
+        {
             wchar_t ch = *start++;
 
-            if (ch <= 0x7F) {
+            if (ch <= 0x7F)
+            {
                 len++;
-            } else if (ch <= 0x7FF) {
+            }
+            else if (ch <= 0x7FF)
+            {
                 len += 2;
-            } else if (ch <= 0xFFFF) {
+            }
+            else if (ch <= 0xFFFF)
+            {
                 len += 3;
-            } else if (ch <= 0x10FFFF) {
+            }
+            else if (ch <= 0x10FFFF)
+            {
                 len += 4;
             }
         }
@@ -680,61 +832,78 @@ inline SizeType wide_to_utf8(const wchar_t *start, const wchar_t *end, u8char *r
 #endif
 }
 
-inline SizeType utf8_to_wide(const u8char *start, const u8char *end, wchar_t *result)
+inline SizeType utf8_to_wide(const u8char* start, const u8char* end, wchar_t* result)
 {
     SizeType len = 0;
 
 #ifdef _WIN32
-    if (result) {
-        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), NULL, 0));
+    if (result)
+    {
+        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), NULL, 0));
 
-        if (len == 0) {
+        if (len == 0)
+        {
             return 0;
         }
 
-        MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), result, int(len));
-    } else {
-        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char *)start, (int)(end - start), NULL, 0));
+        MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), result, int(len));
+    }
+    else
+    {
+        len = SizeType(MultiByteToWideChar(CP_UTF8, 0, (const char*)start, (int)(end - start), NULL, 0));
     }
 #else
-    if (result) {
-        while (start != end) {
+    if (result)
+    {
+        while (start != end)
+        {
             u32char ch = 0;
             SizeType codepoints = 0;
 
-            ch = utf::char8to32(reinterpret_cast<const char *>(start), end - start, codepoints);
+            ch = utf::Char8to32(reinterpret_cast<const char*>(start), end - start, codepoints);
 
-            if (ch == -1) {
+            if (ch == -1)
+            {
                 break;
             }
 
             start += codepoints;
 
-            if (ch <= 0xFFFF) {
+            if (ch <= 0xFFFF)
+            {
                 *result++ = static_cast<wchar_t>(ch);
                 len++;
-            } else if (ch <= 0x10FFFF) {
+            }
+            else if (ch <= 0x10FFFF)
+            {
                 ch -= 0x10000;
                 *result++ = static_cast<wchar_t>((ch >> 10) + 0xD800);
                 *result++ = static_cast<wchar_t>((ch & 0x3FF) + 0xDC00);
                 len += 2;
             }
         }
-    } else {
-        while (start != end) {
+    }
+    else
+    {
+        while (start != end)
+        {
             u32char ch = 0;
             SizeType codepoints = 0;
 
-            ch = utf::char8to32(reinterpret_cast<const char *>(start), end - start, codepoints);
-            if (ch == -1) {
+            ch = utf::Char8to32(reinterpret_cast<const char*>(start), end - start, codepoints);
+            if (ch == -1)
+            {
                 break;
             }
 
             start += codepoints;
 
-            if (ch <= 0xFFFF) {
+            if (ch <= 0xFFFF)
+            {
                 len++;
-            } else if (ch <= 0x10FFFF) {
+            }
+            else if (ch <= 0x10FFFF)
+            {
                 len += 2;
             }
         }
@@ -744,12 +913,14 @@ inline SizeType utf8_to_wide(const u8char *start, const u8char *end, wchar_t *re
     return len;
 }
 
-inline SizeType utf16_to_wide(const u16char *start, const u16char *end, wchar_t *result)
+inline SizeType utf16_to_wide(const u16char* start, const u16char* end, wchar_t* result)
 {
     const SizeType len = SizeType(end - start);
 
-    if (result) {
-        for (SizeType i = 0; i < len; i++) {
+    if (result)
+    {
+        for (SizeType i = 0; i < len; i++)
+        {
             result[i] = (wchar_t)start[i];
         }
     }
@@ -757,12 +928,14 @@ inline SizeType utf16_to_wide(const u16char *start, const u16char *end, wchar_t 
     return SizeType(len);
 }
 
-inline SizeType utf32_to_wide(const u32char *start, const u32char *end, wchar_t *result)
+inline SizeType utf32_to_wide(const u32char* start, const u32char* end, wchar_t* result)
 {
     const SizeType len = SizeType(end - start);
 
-    if (result) {
-        for (SizeType i = 0; i < len; i++) {
+    if (result)
+    {
+        for (SizeType i = 0; i < len; i++)
+        {
             result[i] = (wchar_t)start[i];
         }
     }
@@ -777,27 +950,31 @@ inline SizeType utf32_to_wide(const u32char *start, const u32char *end, wchar_t 
     value for \ref{buffer_length}. The resulting string will be written into the provided
     param, \ref{result}, so it'll need to have \ref{buffer_length} bytes allocated to it. */
 template <class T, class CharType>
-inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
+inline void utf_to_str(T value, SizeType& buffer_length, CharType* result)
 {
     T divisor = 1;
     bool is_negative = 0;
     SizeType buffer_index = 0;
 
-    if (value < 0) {
+    if (value < 0)
+    {
         is_negative = true;
     }
 
-    if (result == nullptr) {
+    if (result == nullptr)
+    {
         // first call
         buffer_length = 1;
 
-        while (value / divisor >= 10) {
+        while (value / divisor >= 10)
+        {
             divisor *= 10;
             ++buffer_length;
         }
 
         // for negative sign
-        if (is_negative) {
+        if (is_negative)
+        {
             ++buffer_length;
         }
 
@@ -812,7 +989,8 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
     // don't modify passed in value any more
     SizeType buffer_length_remaining = buffer_length - 1;
 
-    if (is_negative) {
+    if (is_negative)
+    {
         AssertThrow(buffer_length != 1);
         result[buffer_index++] = CharType('-');
         value *= -1;
@@ -820,30 +998,35 @@ inline void utf_to_str(T value, SizeType &buffer_length, CharType *result)
         --buffer_length_remaining;
     }
 
-    while (value / divisor >= 10) {
+    while (value / divisor >= 10)
+    {
         divisor *= 10;
     }
-    
-    while (buffer_length_remaining) {
+
+    while (buffer_length_remaining)
+    {
         // ASCII table has the number characters in sequence from 0-9 so use the
         // ASCII value of '0' as the base
         result[buffer_index++] = CharType(T('0') + value / divisor);
-        
+
         // This removes the most significant digit converting 1337 to 337 because
         // 1337 % 1000 = 337
         value = value % divisor;
-        
+
         // Adjust the divisor to next lowest position
         divisor = divisor / 10;
 
         --buffer_length_remaining;
     }
-    
+
     // NULL terminate the string
     result[buffer_index] = 0;
 }
 
-inline char *get_bytes(u32char &ch) { return reinterpret_cast<char *>(&ch); }
+inline char* get_bytes(u32char& ch)
+{
+    return reinterpret_cast<char*>(&ch);
+}
 
 } // namespace utf
 } // namespace hyperion

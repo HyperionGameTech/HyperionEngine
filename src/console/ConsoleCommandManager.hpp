@@ -17,31 +17,32 @@ class ConsoleCommandBase;
 class ConsoleCommandManagerImpl;
 
 HYP_CLASS()
+
 class HYP_API ConsoleCommandManager
 {
     HYP_OBJECT_BODY(ConsoleCommandManager);
 
 public:
-    static ConsoleCommandManager &GetInstance();
+    static ConsoleCommandManager& GetInstance();
 
     ConsoleCommandManager();
-    ConsoleCommandManager(const ConsoleCommandManager &other)                   = delete;
-    ConsoleCommandManager &operator=(const ConsoleCommandManager &other)        = delete;
-    ConsoleCommandManager(ConsoleCommandManager &&other) noexcept               = default;
-    ConsoleCommandManager &operator=(ConsoleCommandManager &&other) noexcept    = default;
+    ConsoleCommandManager(const ConsoleCommandManager& other) = delete;
+    ConsoleCommandManager& operator=(const ConsoleCommandManager& other) = delete;
+    ConsoleCommandManager(ConsoleCommandManager&& other) noexcept = default;
+    ConsoleCommandManager& operator=(ConsoleCommandManager&& other) noexcept = default;
     virtual ~ConsoleCommandManager();
 
     void Initialize();
     void Shutdown();
 
-    void RegisterCommand(const RC<ConsoleCommandBase> &command);
+    void RegisterCommand(const RC<ConsoleCommandBase>& command);
 
-    Result ExecuteCommand(const String &command_line);
+    Result ExecuteCommand(const String& command_line);
 
 private:
     int FindAndRegisterCommands();
 
-    UniquePtr<ConsoleCommandManagerImpl>    m_impl;
+    UniquePtr<ConsoleCommandManagerImpl> m_impl;
 };
 
 } // namespace hyperion

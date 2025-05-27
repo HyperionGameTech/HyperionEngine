@@ -15,7 +15,7 @@ template <PlatformType PLATFORM>
 class Device;
 } // namespace platform
 
-using Device = platform::Device<Platform::CURRENT>;
+using Device = platform::Device<Platform::current>;
 
 } // namespace hyperion::renderer
 

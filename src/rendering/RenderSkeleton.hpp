@@ -25,24 +25,24 @@ static constexpr uint32 max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(Skel
 class SkeletonRenderResource final : public RenderResourceBase
 {
 public:
-    SkeletonRenderResource(Skeleton *skeleton);
-    SkeletonRenderResource(SkeletonRenderResource &&other) noexcept;
+    SkeletonRenderResource(Skeleton* skeleton);
+    SkeletonRenderResource(SkeletonRenderResource&& other) noexcept;
     virtual ~SkeletonRenderResource() override;
 
-    void SetBufferData(const SkeletonShaderData &buffer_data);
+    void SetBufferData(const SkeletonShaderData& buffer_data);
 
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
-    
-    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
+
+    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
 
 private:
     void UpdateBufferData();
 
-    Skeleton            *m_skeleton;
-    SkeletonShaderData  m_buffer_data;
+    Skeleton* m_skeleton;
+    SkeletonShaderData m_buffer_data;
 };
 
 } // namespace hyperion

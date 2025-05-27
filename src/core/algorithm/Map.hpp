@@ -25,7 +25,7 @@ namespace algorithm {
  *  \param func The function to apply to each element.
  *  \return A new array with the results of the function applied to each element. */
 template <class ContainerType, class Func>
-auto Map(ContainerType &&container, Func &&func)
+auto Map(ContainerType&& container, Func&& func)
 {
     using ContainerElementType = typename NormalizedType<ContainerType>::ValueType;
     using MapResultType = decltype(std::declval<FunctionWrapper<NormalizedType<Func>>>()(std::declval<ContainerElementType>()));
@@ -35,7 +35,8 @@ auto Map(ContainerType &&container, Func &&func)
     Array<NormalizedType<MapResultType>> result;
     result.Reserve(container.Size());
 
-    for (auto it = container.Begin(); it != container.End(); ++it) {
+    for (auto it = container.Begin(); it != container.End(); ++it)
+    {
         result.PushBack(fn(*it));
     }
 

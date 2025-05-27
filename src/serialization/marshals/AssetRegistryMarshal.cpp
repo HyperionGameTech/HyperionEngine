@@ -23,20 +23,24 @@ class FBOMMarshaler<AssetRegistry> : public HypClassInstanceMarshal
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out)) {
+        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        {
             return err;
         }
 
-        const AssetRegistry &in_object = in.Get<AssetRegistry>();
+        const AssetRegistry& in_object = in.Get<AssetRegistry>();
 
-        for (const Handle<AssetPackage> &package : in_object.GetPackages()) {
-            if (!package.IsValid()) {
+        for (const Handle<AssetPackage>& package : in_object.GetPackages())
+        {
+            if (!package.IsValid())
+            {
                 continue;
             }
 
-            if (FBOMResult err = out.AddChild(*package)) {
+            if (FBOMResult err = out.AddChild(*package))
+            {
                 return err;
             }
         }
@@ -44,21 +48,25 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Handle<AssetRegistry> asset_registry_handle = CreateObject<AssetRegistry>();
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetRegistry::Class(), AnyRef(*asset_registry_handle))) {
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, AssetRegistry::Class(), AnyRef(*asset_registry_handle)))
+        {
             return err;
         }
 
         AssetPackageSet packages;
 
-        for (const FBOMObject &child : in.GetChildren()) {
-            if (child.GetType().IsOrExtends("AssetPackage")) {
-                const Handle<AssetPackage> &asset_package = child.m_deserialized_object->Get<Handle<AssetPackage>>();
+        for (const FBOMObject& child : in.GetChildren())
+        {
+            if (child.GetType().IsOrExtends("AssetPackage"))
+            {
+                const Handle<AssetPackage>& asset_package = child.m_deserialized_object->Get<Handle<AssetPackage>>();
 
-                if (!asset_package) {
+                if (!asset_package)
+                {
                     continue;
                 }
 

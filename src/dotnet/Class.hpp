@@ -28,12 +28,12 @@ class HypClass;
 
 enum class ManagedClassFlags : uint32
 {
-    NONE        = 0x0,
-    CLASS_TYPE  = 0x1,
+    NONE = 0x0,
+    CLASS_TYPE = 0x1,
     STRUCT_TYPE = 0x2,
-    ENUM_TYPE   = 0x4,
+    ENUM_TYPE = 0x4,
 
-    ABSTRACT    = 0x8
+    ABSTRACT = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(ManagedClassFlags)
@@ -45,18 +45,19 @@ class Object;
 class Class;
 class Assembly;
 
-extern "C" {
-
-struct ManagedClass
+extern "C"
 {
-    int32                   type_hash;
-    Class                   *class_object;
-    ManagedGuid             assembly_guid;
-    ManagedGuid             new_object_guid;
-    ManagedGuid             free_object_guid;
-    ManagedGuid             marshal_object_guid;
-    uint32                  flags;
-};
+
+    struct ManagedClass
+    {
+        int32 type_hash;
+        Class* class_object;
+        ManagedGuid assembly_guid;
+        ManagedGuid new_object_guid;
+        ManagedGuid free_object_guid;
+        ManagedGuid marshal_object_guid;
+        uint32 flags;
+    };
 
 } // extern "C"
 
@@ -67,16 +68,16 @@ public:
      *  If keep_alive is true, the object will have a strong GCHandle allocated for it, and it will not be collected by the .NET runtime
      *  until the object is released via \ref{Class::~Class}.
      *  If false, only a weak GCHandle will be created.
-     *  
+     *
      *  If hyp_class is provided (not nullptr), the object is constructed as a HypObject instance (must derive HypObject class).
      *  In this case, native_object_ptr must also be provided.
      *  Both hyp_class and native_object_ptr can be nullptr. */
-    using InitializeObjectCallbackFunction = void(*)(void *ctx, void *dst, uint32 dst_size);
+    using InitializeObjectCallbackFunction = void (*)(void* ctx, void* dst, uint32 dst_size);
 
-    using NewObjectFunction = ObjectReference(*)(bool keep_alive, const HypClass *hyp_class, void *native_object_ptr, void *context_ptr, InitializeObjectCallbackFunction callback);
-    using MarshalObjectFunction = ObjectReference(*)(const void *intptr, uint32 size);
+    using NewObjectFunction = ObjectReference (*)(bool keep_alive, const HypClass* hyp_class, void* native_object_ptr, void* context_ptr, InitializeObjectCallbackFunction callback);
+    using MarshalObjectFunction = ObjectReference (*)(const void* intptr, uint32 size);
 
-    Class(const Weak<Assembly> &assembly, String name, uint32 size, TypeID type_id, const HypClass *hyp_class, Class *parent_class, EnumFlags<ManagedClassFlags> flags)
+    Class(const Weak<Assembly>& assembly, String name, uint32 size, TypeID type_id, const HypClass* hyp_class, Class* parent_class, EnumFlags<ManagedClassFlags> flags)
         : m_assembly(assembly),
           m_name(std::move(name)),
           m_size(size),
@@ -89,47 +90,71 @@ public:
     {
     }
 
-    Class(const Class &)                = delete;
-    Class &operator=(const Class &)     = delete;
-    Class(Class &&) noexcept            = delete;
-    Class &operator=(Class &&) noexcept = delete;
+    Class(const Class&) = delete;
+    Class& operator=(const Class&) = delete;
+    Class(Class&&) noexcept = delete;
+    Class& operator=(Class&&) noexcept = delete;
     ~Class();
 
-    HYP_FORCE_INLINE const String &GetName() const
-        { return m_name; }
+    HYP_FORCE_INLINE const String& GetName() const
+    {
+        return m_name;
+    }
 
     HYP_FORCE_INLINE uint32 GetSize() const
-        { return m_size; }
+    {
+        return m_size;
+    }
 
     HYP_FORCE_INLINE TypeID GetTypeID() const
-        { return m_type_id; }
+    {
+        return m_type_id;
+    }
 
-    HYP_FORCE_INLINE const HypClass *GetHypClass() const
-        { return m_hyp_class; }
+    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    {
+        return m_hyp_class;
+    }
 
-    HYP_FORCE_INLINE Class *GetParentClass() const
-        { return m_parent_class; }
+    HYP_FORCE_INLINE Class* GetParentClass() const
+    {
+        return m_parent_class;
+    }
 
     HYP_FORCE_INLINE EnumFlags<ManagedClassFlags> GetFlags() const
-        { return m_flags; }
+    {
+        return m_flags;
+    }
 
     HYP_FORCE_INLINE NewObjectFunction GetNewObjectFunction() const
-        { return m_new_object_fptr; }
+    {
+        return m_new_object_fptr;
+    }
 
     HYP_FORCE_INLINE void SetNewObjectFunction(NewObjectFunction new_object_fptr)
-        { m_new_object_fptr = new_object_fptr; }
+    {
+        m_new_object_fptr = new_object_fptr;
+    }
 
     HYP_FORCE_INLINE void SetMarshalObjectFunction(MarshalObjectFunction marshal_object_fptr)
-        { m_marshal_object_fptr = marshal_object_fptr; }
+    {
+        m_marshal_object_fptr = marshal_object_fptr;
+    }
 
     HYP_FORCE_INLINE MarshalObjectFunction GetMarshalObjectFunction() const
-        { return m_marshal_object_fptr; }
+    {
+        return m_marshal_object_fptr;
+    }
 
-    HYP_FORCE_INLINE const AttributeSet &GetAttributes() const
-        { return m_attributes; }
+    HYP_FORCE_INLINE const AttributeSet& GetAttributes() const
+    {
+        return m_attributes;
+    }
 
-    HYP_FORCE_INLINE void SetAttributes(AttributeSet &&attributes)
-        { m_attributes = std::move(attributes); }
+    HYP_FORCE_INLINE void SetAttributes(AttributeSet&& attributes)
+    {
+        m_attributes = std::move(attributes);
+    }
 
     /*! \brief Check if a method exists by name.
      *
@@ -138,7 +163,9 @@ public:
      *  \return True if the method exists, otherwise false.
      */
     HYP_FORCE_INLINE bool HasMethod(UTF8StringView method_name) const
-        { return m_methods.FindAs(method_name) != m_methods.End(); }
+    {
+        return m_methods.FindAs(method_name) != m_methods.End();
+    }
 
     /*! \brief Get a method by the hash code of its name
      *
@@ -146,10 +173,11 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Method *GetMethodByHash(HashCode hash_code)
+    HYP_FORCE_INLINE Method* GetMethodByHash(HashCode hash_code)
     {
         auto it = m_methods.FindByHash(hash_code);
-        if (it == m_methods.End()) {
+        if (it == m_methods.End())
+        {
             return nullptr;
         }
 
@@ -162,10 +190,11 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Method *GetMethodByHash(HashCode hash_code) const
+    HYP_FORCE_INLINE const Method* GetMethodByHash(HashCode hash_code) const
     {
         auto it = m_methods.FindByHash(hash_code);
-        if (it == m_methods.End()) {
+        if (it == m_methods.End())
+        {
             return nullptr;
         }
 
@@ -178,10 +207,11 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Method *GetMethod(UTF8StringView method_name)
+    HYP_FORCE_INLINE Method* GetMethod(UTF8StringView method_name)
     {
         auto it = m_methods.FindAs(method_name);
-        if (it == m_methods.End()) {
+        if (it == m_methods.End())
+        {
             return nullptr;
         }
 
@@ -194,10 +224,11 @@ public:
      *
      *  \return A pointer to the method object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Method *GetMethod(UTF8StringView method_name) const
+    HYP_FORCE_INLINE const Method* GetMethod(UTF8StringView method_name) const
     {
         auto it = m_methods.FindAs(method_name);
-        if (it == m_methods.End()) {
+        if (it == m_methods.End())
+        {
             return nullptr;
         }
 
@@ -209,15 +240,19 @@ public:
      *  \param method_name The name of the method to add.
      *  \param method_object The method object to add.
      */
-    HYP_FORCE_INLINE void AddMethod(const String &method_name, Method &&method_object)
-        { m_methods[method_name] = std::move(method_object); }
+    HYP_FORCE_INLINE void AddMethod(const String& method_name, Method&& method_object)
+    {
+        m_methods[method_name] = std::move(method_object);
+    }
 
     /*! \brief Get all methods of this class.
      *
      *  \return A reference to the map of methods.
      */
-    HYP_FORCE_INLINE const HashMap<String, Method> &GetMethods() const
-        { return m_methods; }
+    HYP_FORCE_INLINE const HashMap<String, Method>& GetMethods() const
+    {
+        return m_methods;
+    }
 
     /*! \brief Check if a property exists by name.
      *
@@ -226,7 +261,9 @@ public:
      *  \return True if the property exists, otherwise false.
      */
     HYP_FORCE_INLINE bool HasProperty(UTF8StringView property_name) const
-        { return m_properties.FindAs(property_name) != m_properties.End(); }
+    {
+        return m_properties.FindAs(property_name) != m_properties.End();
+    }
 
     /*! \brief Get a property by name.
      *
@@ -234,10 +271,11 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE Property *GetProperty(UTF8StringView property_name)
+    HYP_FORCE_INLINE Property* GetProperty(UTF8StringView property_name)
     {
         auto it = m_properties.FindAs(property_name);
-        if (it == m_properties.End()) {
+        if (it == m_properties.End())
+        {
             return nullptr;
         }
 
@@ -250,10 +288,11 @@ public:
      *
      *  \return A pointer to the property object if it exists, otherwise nullptr.
      */
-    HYP_FORCE_INLINE const Property *GetProperty(UTF8StringView property_name) const
+    HYP_FORCE_INLINE const Property* GetProperty(UTF8StringView property_name) const
     {
         auto it = m_properties.FindAs(property_name);
-        if (it == m_properties.End()) {
+        if (it == m_properties.End())
+        {
             return nullptr;
         }
 
@@ -265,15 +304,19 @@ public:
      *  \param property_name The name of the property to add.
      *  \param property_object The property object to add.
      */
-    HYP_FORCE_INLINE void AddProperty(const String &property_name, Property &&property_object)
-        { m_properties[property_name] = std::move(property_object); }
+    HYP_FORCE_INLINE void AddProperty(const String& property_name, Property&& property_object)
+    {
+        m_properties[property_name] = std::move(property_object);
+    }
 
     /*! \brief Get all properties of this class.
      *
      *  \return A reference to the map of properties.
      */
-    HYP_FORCE_INLINE const HashMap<String, Property> &GetProperties() const
-        { return m_properties; }
+    HYP_FORCE_INLINE const HashMap<String, Property>& GetProperties() const
+    {
+        return m_properties;
+    }
 
     RC<Assembly> GetAssembly() const;
 
@@ -283,7 +326,7 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object *NewObject();
+    HYP_NODISCARD Object* NewObject();
 
     /*! \brief Create a new managed object of this class.
      *  The new object will be removed from the managed object cache when the object goes out of scope, allowing for the .NET runtime to collect it.
@@ -291,14 +334,14 @@ public:
      *
      *  \return The new managed object.
      */
-    HYP_NODISCARD Object *NewObject(const HypClass *hyp_class, void *owning_object_ptr);
+    HYP_NODISCARD Object* NewObject(const HypClass* hyp_class, void* owning_object_ptr);
 
     /*! \brief Create a new managed object of this class, but do not allow its lifetime to be managed from the C++ side.
      *  A struct containing the object's GUID and .NET object address will be returned.
      *
      *  \return A struct containing the object's GUID and .NET object address
      */
-    HYP_NODISCARD ObjectReference NewManagedObject(void *context_ptr = nullptr, InitializeObjectCallbackFunction callback = nullptr);
+    HYP_NODISCARD ObjectReference NewManagedObject(void* context_ptr = nullptr, InitializeObjectCallbackFunction callback = nullptr);
 
     /*! \brief Check if this class has a parent class with the given name.
      *
@@ -314,45 +357,56 @@ public:
      *
      *  \return True if this class has the parent class, otherwise false.
      */
-    bool HasParentClass(const Class *parent_class) const;
+    bool HasParentClass(const Class* parent_class) const;
 
     template <class ReturnType, class... Args>
-    ReturnType InvokeStaticMethod(UTF8StringView method_name, Args &&... args)
+    ReturnType InvokeStaticMethod(UTF8StringView method_name, Args&&... args)
     {
         auto it = m_methods.FindAs(method_name);
         AssertThrowMsg(it != m_methods.End(), "Method not found");
 
-        const Method &method_object = it->second;
-        const Method *method_ptr = &method_object;
+        const Method& method_object = it->second;
+        const Method* method_ptr = &method_object;
 
-        if constexpr (sizeof...(args) != 0) {
-            HypData *args_array = (HypData *)StackAlloc(sizeof(HypData) * sizeof...(args));
-            const HypData *args_array_ptr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
+        if constexpr (sizeof...(args) != 0)
+        {
+            HypData* args_array = (HypData*)StackAlloc(sizeof(HypData) * sizeof...(args));
+            const HypData* args_array_ptr[sizeof...(args) + 1]; // Mark last as nullptr so C# can use it as a null terminator
 
-            FillArgs_HypData(std::make_index_sequence<sizeof...(args)>(), args_array, args_array_ptr, std::forward<Args>(args)...);
+            SetArgs_HypData(std::make_index_sequence<sizeof...(args)>(), args_array, args_array_ptr, std::forward<Args>(args)...);
 
-            if constexpr (std::is_void_v<ReturnType>) {
+            if constexpr (std::is_void_v<ReturnType>)
+            {
                 InvokeStaticMethod_Internal(method_ptr, args_array_ptr, nullptr);
-            } else {
+            }
+            else
+            {
                 HypData return_hyp_data;
                 InvokeStaticMethod_Internal(method_ptr, args_array_ptr, &return_hyp_data);
 
-                if (return_hyp_data.IsNull()) {
+                if (return_hyp_data.IsNull())
+                {
                     return ReturnType();
                 }
 
                 return std::move(return_hyp_data.Get<ReturnType>());
             }
-        } else {
-            const HypData *args_array_ptr[] = { nullptr };
+        }
+        else
+        {
+            const HypData* args_array_ptr[] = { nullptr };
 
-            if constexpr (std::is_void_v<ReturnType>) {
+            if constexpr (std::is_void_v<ReturnType>)
+            {
                 InvokeStaticMethod_Internal(method_ptr, args_array_ptr, nullptr);
-            } else {
+            }
+            else
+            {
                 HypData return_hyp_data;
                 InvokeStaticMethod_Internal(method_ptr, args_array_ptr, &return_hyp_data);
 
-                if (return_hyp_data.IsNull()) {
+                if (return_hyp_data.IsNull())
+                {
                     return ReturnType();
                 }
 
@@ -362,23 +416,23 @@ public:
     }
 
 private:
-    void InvokeStaticMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data);
+    void InvokeStaticMethod_Internal(const Method* method_ptr, const HypData** args_hyp_data, HypData* out_return_hyp_data);
 
-    String                          m_name;
-    uint32                          m_size;
-    TypeID                          m_type_id;
-    const HypClass                  *m_hyp_class;
-    Class                           *m_parent_class;
-    EnumFlags<ManagedClassFlags>    m_flags;
-    HashMap<String, Method>         m_methods;
-    HashMap<String, Property>       m_properties;
+    String m_name;
+    uint32 m_size;
+    TypeID m_type_id;
+    const HypClass* m_hyp_class;
+    Class* m_parent_class;
+    EnumFlags<ManagedClassFlags> m_flags;
+    HashMap<String, Method> m_methods;
+    HashMap<String, Property> m_properties;
 
-    Weak<Assembly>                  m_assembly;
+    Weak<Assembly> m_assembly;
 
-    NewObjectFunction               m_new_object_fptr;
-    MarshalObjectFunction           m_marshal_object_fptr;
+    NewObjectFunction m_new_object_fptr;
+    MarshalObjectFunction m_marshal_object_fptr;
 
-    AttributeSet                    m_attributes;
+    AttributeSet m_attributes;
 };
 
 } // namespace hyperion::dotnet

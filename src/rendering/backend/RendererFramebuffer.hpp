@@ -20,13 +20,19 @@ public:
     virtual ~FramebufferBase() override = default;
 
     HYP_FORCE_INLINE uint32 GetWidth() const
-        { return m_extent.x; }
+    {
+        return m_extent.x;
+    }
 
     HYP_FORCE_INLINE uint32 GetHeight() const
-        { return m_extent.y; }
+    {
+        return m_extent.y;
+    }
 
-    HYP_FORCE_INLINE const Vec2u &GetExtent() const
-        { return m_extent; }
+    HYP_FORCE_INLINE const Vec2u& GetExtent() const
+    {
+        return m_extent;
+    }
 
     HYP_API virtual bool IsCreated() const = 0;
 
@@ -35,21 +41,20 @@ public:
 
     HYP_API virtual RendererResult Resize(Vec2u new_size) = 0;
 
-    HYP_API virtual AttachmentRef AddAttachment(const AttachmentRef &attachment) = 0;
-    HYP_API virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef &image, LoadOperation load_op, StoreOperation store_op) = 0;
+    HYP_API virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) = 0;
+    HYP_API virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef& image, LoadOperation load_op, StoreOperation store_op) = 0;
     HYP_API virtual AttachmentRef AddAttachment(
         uint32 binding,
         InternalFormat format,
         ImageType type,
         LoadOperation load_op,
-        StoreOperation store_op
-    ) = 0;
+        StoreOperation store_op) = 0;
 
     HYP_API virtual bool RemoveAttachment(uint32 binding) = 0;
-    HYP_API virtual AttachmentBase *GetAttachment(uint32 binding) const = 0;
+    HYP_API virtual AttachmentBase* GetAttachment(uint32 binding) const = 0;
 
-    HYP_API virtual void BeginCapture(CommandBufferBase *command_buffer, uint32 frame_index) = 0;
-    HYP_API virtual void EndCapture(CommandBufferBase *command_buffer, uint32 frame_index) = 0;
+    HYP_API virtual void BeginCapture(CommandBufferBase* command_buffer, uint32 frame_index) = 0;
+    HYP_API virtual void EndCapture(CommandBufferBase* command_buffer, uint32 frame_index) = 0;
 
 protected:
     FramebufferBase(Vec2u extent)
@@ -57,7 +62,7 @@ protected:
     {
     }
 
-    Vec2u   m_extent;
+    Vec2u m_extent;
 };
 
 } // namespace renderer

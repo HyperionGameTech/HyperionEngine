@@ -8,6 +8,7 @@
 namespace hyperion {
 
 HYP_CLASS()
+
 class OrthoCameraController : public CameraController
 {
     HYP_OBJECT_BODY(OrthoCameraController);
@@ -25,12 +26,12 @@ protected:
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 
-    float   m_left,
-            m_right,
-            m_bottom,
-            m_top,
-            m_near,
-            m_far;
+    float m_left,
+        m_right,
+        m_bottom,
+        m_top,
+        m_near,
+        m_far;
 };
 
 } // namespace hyperion

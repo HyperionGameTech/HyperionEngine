@@ -33,10 +33,11 @@ public:
     Name FindNameByIndex(uint32 index)
     {
         Mutex::Guard guard(m_mutex);
-        
+
         auto it = m_reverse_name_mapping.Find(index);
 
-        if (it == m_reverse_name_mapping.End()) {
+        if (it == m_reverse_name_mapping.End())
+        {
             return Name();
         }
 
@@ -61,7 +62,8 @@ public:
     {
         Mutex::Guard guard(m_mutex);
 
-        if (uint32 *index_ptr = FindIndexByName_Internal(name)) {
+        if (uint32* index_ptr = FindIndexByName_Internal(name))
+        {
             return *index_ptr;
         }
 
@@ -74,33 +76,34 @@ public:
     }
 
 private:
-    uint32 *FindIndexByName_Internal(Name name)
+    uint32* FindIndexByName_Internal(Name name)
     {
         auto it = m_name_mapping.Find(name);
 
-        if (it != m_name_mapping.End() && it->second.Any()) {
+        if (it != m_name_mapping.End() && it->second.Any())
+        {
             return &it->second.Front();
         }
 
         return nullptr;
     }
 
-    IDGenerator                     m_id_generator;
+    IDGenerator m_id_generator;
 
-    HashMap<Name, Array<uint32>>    m_name_mapping;
-    HashMap<uint32, Name>           m_reverse_name_mapping;
+    HashMap<Name, Array<uint32>> m_name_mapping;
+    HashMap<uint32, Name> m_reverse_name_mapping;
 
-    mutable Mutex                   m_mutex;
+    mutable Mutex m_mutex;
 };
 
-static GlobalThreadIDCache &GetStaticThreadIDCache()
+static GlobalThreadIDCache& GetStaticThreadIDCache()
 {
     static GlobalThreadIDCache cache;
 
     return cache;
 }
 
-static GlobalThreadIDCache &GetDynamicThreadIDCache()
+static GlobalThreadIDCache& GetDynamicThreadIDCache()
 {
     static GlobalThreadIDCache cache;
 
@@ -113,11 +116,14 @@ static uint32 AllocateThreadID(Name name, uint32 allocate_flags)
 {
     uint32 thread_id_value;
 
-    if (allocate_flags & ThreadID::AllocateFlags::DYNAMIC) {
+    if (allocate_flags & ThreadID::AllocateFlags::DYNAMIC)
+    {
         thread_id_value = (allocate_flags & ThreadID::AllocateFlags::FORCE_UNIQUE)
             ? GetDynamicThreadIDCache().AllocateIndex(name)
             : GetDynamicThreadIDCache().FindOrAllocateIndex(name);
-    } else {
+    }
+    else
+    {
         thread_id_value = (allocate_flags & ThreadID::AllocateFlags::FORCE_UNIQUE)
             ? GetStaticThreadIDCache().AllocateIndex(name)
             : GetStaticThreadIDCache().FindOrAllocateIndex(name);
@@ -145,12 +151,12 @@ static uint32 MakeThreadIDValue(Name name, ThreadCategory category, uint32 alloc
     return value;
 }
 
-const ThreadID &ThreadID::Current()
+const ThreadID& ThreadID::Current()
 {
     return Threads::CurrentThreadID();
 }
 
-const ThreadID &ThreadID::Invalid()
+const ThreadID& ThreadID::Invalid()
 {
     return invalid;
 }
@@ -162,11 +168,10 @@ ThreadID::ThreadID(Name name, bool force_unique)
 
 ThreadID::ThreadID(Name name, ThreadCategory category, bool force_unique)
     : ThreadID(
-        name,
-        category,
-        AllocateFlags::DYNAMIC
-            | (force_unique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE)
-    )
+          name,
+          category,
+          AllocateFlags::DYNAMIC
+              | (force_unique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
 {
 }
 

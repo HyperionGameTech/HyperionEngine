@@ -20,7 +20,7 @@
 
 namespace hyperion {
 
-ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource> &view, ScreenCaptureMode screen_capture_mode)
+ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource>& view, ScreenCaptureMode screen_capture_mode)
     : RenderSubsystem(name),
       m_view(view),
       m_texture(CreateObject<Texture>(TextureDesc {
@@ -29,8 +29,7 @@ ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TRes
           Vec3u { Vec2u(view->GetViewport().extent), 1 },
           FilterMode::TEXTURE_FILTER_NEAREST,
           FilterMode::TEXTURE_FILTER_NEAREST,
-          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-      })),
+          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE })),
       m_screen_capture_mode(screen_capture_mode)
 {
     InitObject(m_texture);
@@ -56,7 +55,6 @@ void ScreenCaptureRenderSubsystem::Init()
 
 void ScreenCaptureRenderSubsystem::InitGame()
 {
-    
 }
 
 void ScreenCaptureRenderSubsystem::OnRemoved()
@@ -70,23 +68,25 @@ void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void ScreenCaptureRenderSubsystem::OnRender(FrameBase *frame)
+void ScreenCaptureRenderSubsystem::OnRender(FrameBase* frame)
 {
     AssertThrow(m_texture.IsValid());
     AssertThrow(m_texture->IsReady());
 
-    const ImageRef &image_ref = m_view->GetRendererConfig().taa_enabled
+    const ImageRef& image_ref = m_view->GetRendererConfig().taa_enabled
         ? m_view->GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
         : m_view->GetTonemapPass()->GetFinalImageView()->GetImage();
 
     AssertThrow(image_ref.IsValid());
 
     // wait for the image to be ready
-    if (image_ref->GetResourceState() == renderer::ResourceState::UNDEFINED) {
+    if (image_ref->GetResourceState() == renderer::ResourceState::UNDEFINED)
+    {
         return;
     }
 
-    if (m_texture->GetExtent() != image_ref->GetExtent()) {
+    if (m_texture->GetExtent() != image_ref->GetExtent())
+    {
         m_texture->Resize(image_ref->GetExtent());
     }
 
@@ -94,10 +94,12 @@ void ScreenCaptureRenderSubsystem::OnRender(FrameBase *frame)
 
     frame->GetCommandList().Add<InsertBarrier>(image_ref, renderer::ResourceState::COPY_SRC);
 
-    switch (m_screen_capture_mode) {
+    switch (m_screen_capture_mode)
+    {
     case ScreenCaptureMode::TO_TEXTURE:
         // Hack, but we need to make sure the image is created before we can blit to it
-        if (!m_texture->GetRenderResource().GetImage()->IsCreated()) {
+        if (!m_texture->GetRenderResource().GetImage()->IsCreated())
+        {
             HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
         }
 

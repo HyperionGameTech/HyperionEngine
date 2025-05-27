@@ -35,15 +35,15 @@ public:
     using ConstIterator = typename Map::ConstIterator;
 
     TypeMap() = default;
-    TypeMap(const TypeMap &other) = default;
-    TypeMap &operator=(const TypeMap &other) = default;
+    TypeMap(const TypeMap& other) = default;
+    TypeMap& operator=(const TypeMap& other) = default;
 
-    TypeMap(TypeMap &&other) noexcept
+    TypeMap(TypeMap&& other) noexcept
         : m_map(std::move(other.m_map))
     {
     }
 
-    TypeMap &operator=(TypeMap &&other) noexcept
+    TypeMap& operator=(TypeMap&& other) noexcept
     {
         m_map = std::move(other.m_map);
 
@@ -53,37 +53,47 @@ public:
     ~TypeMap() = default;
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return m_map.Size(); }
+    {
+        return m_map.Size();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType *Data()
-        { return m_map.Data(); }
+    HYP_FORCE_INLINE KeyValuePairType* Data()
+    {
+        return m_map.Data();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType * const Data() const
-        { return m_map.Data(); }
-    
+    HYP_FORCE_INLINE KeyValuePairType* const Data() const
+    {
+        return m_map.Data();
+    }
+
     template <class T>
-    HYP_FORCE_INLINE InsertResult Set(const Value &value)
+    HYP_FORCE_INLINE InsertResult Set(const Value& value)
     {
         const auto id = TypeID::ForType<T>();
 
         return m_map.Set(id, value);
     }
-    
+
     template <class T>
-    HYP_FORCE_INLINE InsertResult Set(Value &&value)
+    HYP_FORCE_INLINE InsertResult Set(Value&& value)
     {
         const auto id = TypeID::ForType<T>();
 
         return m_map.Set(id, std::move(value));
     }
 
-    HYP_FORCE_INLINE InsertResult Set(TypeID type_id, const Value &value)
-        { return m_map.Set(type_id, value); }
+    HYP_FORCE_INLINE InsertResult Set(TypeID type_id, const Value& value)
+    {
+        return m_map.Set(type_id, value);
+    }
 
-    HYP_FORCE_INLINE InsertResult Set(TypeID type_id, Value &&value)
-        { return m_map.Set(type_id, std::move(value)); }
+    HYP_FORCE_INLINE InsertResult Set(TypeID type_id, Value&& value)
+    {
+        return m_map.Set(type_id, std::move(value));
+    }
 
-    HYP_FORCE_INLINE Value &Get(TypeID type_id)
+    HYP_FORCE_INLINE Value& Get(TypeID type_id)
     {
         Iterator it = m_map.Find(type_id);
         AssertThrow(it != m_map.End());
@@ -108,23 +118,33 @@ public:
     }
 
     HYP_FORCE_INLINE Iterator Find(TypeID type_id)
-        { return m_map.Find(type_id); }
+    {
+        return m_map.Find(type_id);
+    }
 
     HYP_FORCE_INLINE ConstIterator Find(TypeID type_id) const
-        { return m_map.Find(type_id); }
+    {
+        return m_map.Find(type_id);
+    }
 
     HYP_FORCE_INLINE Iterator Erase(ConstIterator it)
-        { return m_map.Erase(it); }
+    {
+        return m_map.Erase(it);
+    }
 
     HYP_FORCE_INLINE bool Erase(TypeID type_id)
-        { return m_map.Erase(type_id); }
+    {
+        return m_map.Erase(type_id);
+    }
 
     template <class T>
     HYP_FORCE_INLINE bool Erase()
-        { return m_map.Erase(TypeID::ForType<T>()); }
+    {
+        return m_map.Erase(TypeID::ForType<T>());
+    }
 
     template <class T>
-    HYP_FORCE_INLINE Value &At()
+    HYP_FORCE_INLINE Value& At()
     {
         const auto it = Find<T>();
 
@@ -134,7 +154,7 @@ public:
     }
 
     template <class T>
-    HYP_FORCE_INLINE const Value &At() const
+    HYP_FORCE_INLINE const Value& At() const
     {
         const auto it = Find<T>();
 
@@ -143,7 +163,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Value &At(TypeID type_id)
+    HYP_FORCE_INLINE Value& At(TypeID type_id)
     {
         const auto it = Find(type_id);
 
@@ -152,7 +172,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE const Value &At(TypeID type_id) const
+    HYP_FORCE_INLINE const Value& At(TypeID type_id) const
     {
         const auto it = Find(type_id);
 
@@ -161,17 +181,22 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Value &AtIndex(SizeType index)
-        { return m_map.AtIndex(index).second; }
+    HYP_FORCE_INLINE Value& AtIndex(SizeType index)
+    {
+        return m_map.AtIndex(index).second;
+    }
 
-    HYP_FORCE_INLINE const Value &AtIndex(SizeType index) const
-        { return m_map.AtIndex(index).second; }
+    HYP_FORCE_INLINE const Value& AtIndex(SizeType index) const
+    {
+        return m_map.AtIndex(index).second;
+    }
 
-    HYP_FORCE_INLINE Value &operator[](TypeID type_id)
+    HYP_FORCE_INLINE Value& operator[](TypeID type_id)
     {
         const auto it = Find(type_id);
 
-        if (it == m_map.End()) {
+        if (it == m_map.End())
+        {
             return m_map.Set(type_id, Value()).first->second;
         }
 
@@ -179,7 +204,9 @@ public:
     }
 
     HYP_FORCE_INLINE bool Contains(TypeID type_id) const
-        { return m_map.Contains(type_id); }
+    {
+        return m_map.Contains(type_id);
+    }
 
     template <class T>
     HYP_FORCE_INLINE bool Contains() const
@@ -188,13 +215,14 @@ public:
 
         return m_map.Contains(id);
     }
-    
+
     template <class T>
     HYP_FORCE_INLINE bool Remove()
     {
         const auto it = Find<T>();
 
-        if (it == m_map.End()) {
+        if (it == m_map.End())
+        {
             return false;
         }
 
@@ -207,7 +235,8 @@ public:
     {
         const auto it = m_map.Find(type_id);
 
-        if (it == m_map.End()) {
+        if (it == m_map.End())
+        {
             return false;
         }
 
@@ -217,19 +246,29 @@ public:
     }
 
     HYP_FORCE_INLINE void Clear()
-        { m_map.Clear(); }
+    {
+        m_map.Clear();
+    }
 
     HYP_FORCE_INLINE bool Any() const
-        { return m_map.Any(); }
+    {
+        return m_map.Any();
+    }
 
     HYP_FORCE_INLINE bool Empty() const
-        { return m_map.Empty(); }
+    {
+        return m_map.Empty();
+    }
 
     HYP_NODISCARD HYP_FORCE_INLINE FlatSet<TypeID> Keys() const
-        { return m_map.Keys(); }
+    {
+        return m_map.Keys();
+    }
 
     HYP_NODISCARD FlatSet<Value> Values() const
-        { return m_map.Values(); }
+    {
+        return m_map.Values();
+    }
 
     HYP_DEF_STL_BEGIN_END(m_map.Begin(), m_map.End())
 

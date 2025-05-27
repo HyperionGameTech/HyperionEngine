@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-const Transform Transform::identity { };
+const Transform Transform::identity {};
 
 Transform::Transform()
     : translation(Vec3f::Zero()),
@@ -14,7 +14,7 @@ Transform::Transform()
     UpdateMatrix();
 }
 
-Transform::Transform(const Vec3f &translation, const Vec3f &scale)
+Transform::Transform(const Vec3f& translation, const Vec3f& scale)
     : translation(translation),
       scale(scale),
       rotation(Quaternion::Identity())
@@ -22,7 +22,7 @@ Transform::Transform(const Vec3f &translation, const Vec3f &scale)
     UpdateMatrix();
 }
 
-Transform::Transform(const Vec3f &translation, const Vec3f &scale, const Quaternion &rotation)
+Transform::Transform(const Vec3f& translation, const Vec3f& scale, const Quaternion& rotation)
     : translation(translation),
       scale(scale),
       rotation(rotation)
@@ -30,7 +30,7 @@ Transform::Transform(const Vec3f &translation, const Vec3f &scale, const Quatern
     UpdateMatrix();
 }
 
-Transform::Transform(const Vec3f &translation)
+Transform::Transform(const Vec3f& translation)
     : Transform(translation, Vec3f::One(), Quaternion::Identity())
 {
 }
@@ -53,7 +53,7 @@ Transform Transform::GetInverse() const
     };
 }
 
-Transform Transform::operator*(const Transform &other) const
+Transform Transform::operator*(const Transform& other) const
 {
     return {
         translation + ((scale * other.translation).Rotate(rotation)),
@@ -62,7 +62,7 @@ Transform Transform::operator*(const Transform &other) const
     };
 }
 
-Transform &Transform::operator*=(const Transform &other)
+Transform& Transform::operator*=(const Transform& other)
 {
     return *this = *this * other;
 }

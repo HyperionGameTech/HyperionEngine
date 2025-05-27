@@ -18,39 +18,54 @@ struct SerializationWrapper
     using Type = std::conditional_t<
         has_handle_definition<T> && !std::is_same_v<T, Node>,
         Handle<T>,
-        T
-    >;
-    
-    static void OnPostLoad(const Type &value) { }
+        T>;
+
+    static void OnPostLoad(const Type& value)
+    {
+    }
 };
 
 template <class T>
-struct SerializationWrapperReverseMapping { using Type = T; };
+struct SerializationWrapperReverseMapping
+{
+    using Type = T;
+};
 
 template <class T>
-struct SerializationWrapperReverseMapping<Handle<T>> { using Type = T; };
+struct SerializationWrapperReverseMapping<Handle<T>>
+{
+    using Type = T;
+};
 
 template <class T>
 struct SerializationWrapper<RC<T>>
 {
     using Type = RC<T>;
 
-    static void OnPostLoad(const Type &value) { }
+    static void OnPostLoad(const Type& value)
+    {
+    }
 };
 
 template <class T>
-struct SerializationWrapperReverseMapping<RC<T>> { using Type = T; };
+struct SerializationWrapperReverseMapping<RC<T>>
+{
+    using Type = T;
+};
 
 template <>
 struct SerializationWrapper<Node>
 {
     using Type = Handle<Node>;
 
-    HYP_API static void OnPostLoad(const Type &value);
+    HYP_API static void OnPostLoad(const Type& value);
 };
 
 template <>
-struct SerializationWrapperReverseMapping<Handle<Node>> { using Type = Node; };
+struct SerializationWrapperReverseMapping<Handle<Node>>
+{
+    using Type = Node;
+};
 
 } // namespace hyperion
 

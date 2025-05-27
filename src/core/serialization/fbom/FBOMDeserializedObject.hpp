@@ -30,17 +30,17 @@ namespace hyperion::fbom {
 
 struct FBOMDeserializedObject
 {
-    UniquePtr<HypData>  ptr;
+    UniquePtr<HypData> ptr;
 
-    FBOMDeserializedObject()                                                    = default;
+    FBOMDeserializedObject() = default;
 
-    FBOMDeserializedObject(const FBOMDeserializedObject &other)                 = delete;
-    FBOMDeserializedObject &operator=(const FBOMDeserializedObject &other)      = delete;
+    FBOMDeserializedObject(const FBOMDeserializedObject& other) = delete;
+    FBOMDeserializedObject& operator=(const FBOMDeserializedObject& other) = delete;
 
-    FBOMDeserializedObject(FBOMDeserializedObject &&other) noexcept             = default;
-    FBOMDeserializedObject &operator=(FBOMDeserializedObject &&other) noexcept  = default;
+    FBOMDeserializedObject(FBOMDeserializedObject&& other) noexcept = default;
+    FBOMDeserializedObject& operator=(FBOMDeserializedObject&& other) noexcept = default;
 
-    ~FBOMDeserializedObject()                                                   = default;
+    ~FBOMDeserializedObject() = default;
 
     // template <class T>
     // HYP_FORCE_INLINE void Set(const typename SerializationWrapper<T>::Type &value)
@@ -74,7 +74,8 @@ struct FBOMDeserializedObject
     template <class T>
     HYP_FORCE_INLINE decltype(auto) TryGet() const
     {
-        if (!ptr) {
+        if (!ptr)
+        {
             return nullptr;
         }
 

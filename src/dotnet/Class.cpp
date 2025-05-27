@@ -15,14 +15,15 @@ RC<Assembly> Class::GetAssembly() const
 {
     RC<Assembly> assembly = m_assembly.Lock();
 
-    if (!assembly || !assembly->IsLoaded()) {
+    if (!assembly || !assembly->IsLoaded())
+    {
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
 
     return assembly;
 }
 
-Object *Class::NewObject()
+Object* Class::NewObject()
 {
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
@@ -31,7 +32,7 @@ Object *Class::NewObject()
     return new Object(RefCountedPtrFromThis(), object_reference);
 }
 
-Object *Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
+Object* Class::NewObject(const HypClass* hyp_class, void* owning_object_ptr)
 {
     AssertThrow(hyp_class != nullptr);
     AssertThrow(owning_object_ptr != nullptr);
@@ -43,7 +44,7 @@ Object *Class::NewObject(const HypClass *hyp_class, void *owning_object_ptr)
     return new Object(RefCountedPtrFromThis(), object_reference);
 }
 
-ObjectReference Class::NewManagedObject(void *context_ptr, InitializeObjectCallbackFunction callback)
+ObjectReference Class::NewManagedObject(void* context_ptr, InitializeObjectCallbackFunction callback)
 {
     AssertThrowMsg(m_new_object_fptr != nullptr, "New object function pointer not set for managed class %s", m_name.Data());
 
@@ -52,10 +53,12 @@ ObjectReference Class::NewManagedObject(void *context_ptr, InitializeObjectCallb
 
 bool Class::HasParentClass(UTF8StringView parent_class_name) const
 {
-    const Class *parent_class = m_parent_class;
+    const Class* parent_class = m_parent_class;
 
-    while (parent_class) {
-        if (parent_class->GetName() == parent_class_name) {
+    while (parent_class)
+    {
+        if (parent_class->GetName() == parent_class_name)
+        {
             return true;
         }
 
@@ -65,12 +68,14 @@ bool Class::HasParentClass(UTF8StringView parent_class_name) const
     return false;
 }
 
-bool Class::HasParentClass(const Class *parent_class) const
+bool Class::HasParentClass(const Class* parent_class) const
 {
-    const Class *current_parent_class = m_parent_class;
+    const Class* current_parent_class = m_parent_class;
 
-    while (current_parent_class) {
-        if (current_parent_class == parent_class) {
+    while (current_parent_class)
+    {
+        if (current_parent_class == parent_class)
+        {
             return true;
         }
 
@@ -80,15 +85,16 @@ bool Class::HasParentClass(const Class *parent_class) const
     return false;
 }
 
-void Class::InvokeStaticMethod_Internal(const Method *method_ptr, const HypData **args_hyp_data, HypData *out_return_hyp_data)
+void Class::InvokeStaticMethod_Internal(const Method* method_ptr, const HypData** args_hyp_data, HypData* out_return_hyp_data)
 {
     RC<Assembly> assembly = m_assembly.Lock();
-    
-    if (!assembly || !assembly->IsLoaded()) {
+
+    if (!assembly || !assembly->IsLoaded())
+    {
         HYP_THROW("Cannot use managed class: assembly has been unloaded");
     }
-    
-    method_ptr->Invoke({ }, args_hyp_data, out_return_hyp_data);
+
+    method_ptr->Invoke({}, args_hyp_data, out_return_hyp_data);
 }
 
 } // namespace hyperion::dotnet

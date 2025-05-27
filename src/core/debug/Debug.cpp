@@ -11,38 +11,39 @@
 namespace hyperion {
 namespace debug {
 
-static const char *g_log_type_table[] = {
-        "INFO",
-        "WARN",
-        "ERROR",
-        "FATAL",
-        "DEBUG",
+static const char* g_log_type_table[] = {
+    "INFO",
+    "WARN",
+    "ERROR",
+    "FATAL",
+    "DEBUG",
 
-        "VKINFO",
-        "VKWARN",
-        "VKERROR",
-        "VKDEBUG",
-        nullptr
+    "VKINFO",
+    "VKWARN",
+    "VKERROR",
+    "VKDEBUG",
+    nullptr
 };
 
 /* Colours increase happiness by 200% */
-static const char *g_log_colour_table[] = {
-        "\33[34m",
-        "\33[33m",
-        "\33[31m",
-        "\33[31;4m",
-        "\33[32;4m",
+static const char* g_log_colour_table[] = {
+    "\33[34m",
+    "\33[33m",
+    "\33[31m",
+    "\33[31;4m",
+    "\33[32;4m",
 
-        "\33[1;34m",
-        "\33[1;33m",
-        "\33[1;31m",
-        "\33[1;32m",
+    "\33[1;34m",
+    "\33[1;33m",
+    "\33[1;31m",
+    "\33[1;32m",
 
-        nullptr
+    nullptr
 };
 
 #ifndef HYP_DEBUG_MODE
-HYP_API void DebugLog_Write(LogType type, const char *fmt, ...) {
+HYP_API void DebugLog_Write(LogType type, const char* fmt, ...)
+{
     /* Coloured files are less that ideal */
     const int type_n = static_cast<std::underlying_type<LogType>::type>(type);
     fprintf(HYP_DEBUG_OUTPUT_STREAM, "[%s] ", g_log_type_table[type_n]);
@@ -53,7 +54,8 @@ HYP_API void DebugLog_Write(LogType type, const char *fmt, ...) {
     va_end(args);
 }
 #else
-HYP_API void DebugLog_Write(LogType type, const char *callee, uint32_t line, const char *fmt, ...) {
+HYP_API void DebugLog_Write(LogType type, const char* callee, uint32_t line, const char* fmt, ...)
+{
     const int type_n = static_cast<std::underlying_type<LogType>::type>(type);
     /* Coloured files are less than ideal */
     if (HYP_DEBUG_OUTPUT_STREAM == stdout)
@@ -76,7 +78,7 @@ HYP_API void DebugLog_FlushOutputStream()
     fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 
-HYP_API void WriteToStandardError(const char *msg)
+HYP_API void WriteToStandardError(const char* msg)
 {
     fputs(msg, stderr);
     fflush(stderr);

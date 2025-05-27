@@ -9,13 +9,13 @@ Keyframe::Keyframe()
 {
 }
 
-Keyframe::Keyframe(float time, const Transform &transform)
+Keyframe::Keyframe(float time, const Transform& transform)
     : m_time(time),
       m_transform(transform)
 {
 }
 
-Keyframe Keyframe::Blend(const Keyframe &to, float blend) const
+Keyframe Keyframe::Blend(const Keyframe& to, float blend) const
 {
     const float time = MathUtil::Lerp(m_time, to.GetTime(), blend);
 
@@ -27,6 +27,5 @@ Keyframe Keyframe::Blend(const Keyframe &to, float blend) const
 
     return { time, transform };
 }
-
 
 } // namespace hyperion

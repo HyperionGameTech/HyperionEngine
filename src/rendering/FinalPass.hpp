@@ -21,7 +21,7 @@ class FullScreenPass;
 class WorldRenderResource;
 class Mesh;
 
-extern ShaderManager *g_shader_manager;
+extern ShaderManager* g_shader_manager;
 
 struct RENDER_COMMAND(SetUILayerImageView);
 
@@ -30,24 +30,24 @@ class FinalPass final
 public:
     friend struct RENDER_COMMAND(SetUILayerImageView);
 
-    FinalPass(const SwapchainRef &swapchain);
-    FinalPass(const FinalPass &other)               = delete;
-    FinalPass &operator=(const FinalPass &other)    = delete;
+    FinalPass(const SwapchainRef& swapchain);
+    FinalPass(const FinalPass& other) = delete;
+    FinalPass& operator=(const FinalPass& other) = delete;
     ~FinalPass();
-    
-    void SetUILayerImageView(const ImageViewRef &image_view);
+
+    void SetUILayerImageView(const ImageViewRef& image_view);
 
     void Create();
-    void Render(FrameBase *frame, WorldRenderResource *world_render_resource);
+    void Render(FrameBase* frame, WorldRenderResource* world_render_resource);
 
 private:
-    SwapchainRef                    m_swapchain;
-    Vec2u                           m_extent;
-    InternalFormat                  m_image_format;
-    Handle<Mesh>                    m_quad_mesh;
-    ImageViewRef                    m_ui_layer_image_view;
-    UniquePtr<FullScreenPass>       m_render_texture_to_screen_pass;
-    uint8                           m_dirty_frame_indices;
+    SwapchainRef m_swapchain;
+    Vec2u m_extent;
+    InternalFormat m_image_format;
+    Handle<Mesh> m_quad_mesh;
+    ImageViewRef m_ui_layer_image_view;
+    UniquePtr<FullScreenPass> m_render_texture_to_screen_pass;
+    uint8 m_dirty_frame_indices;
 };
 } // namespace hyperion
 

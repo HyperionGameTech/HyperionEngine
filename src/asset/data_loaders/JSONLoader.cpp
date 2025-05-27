@@ -6,17 +6,17 @@
 #include <stack>
 #include <string>
 
-
 namespace hyperion {
 
-AssetLoadResult JSONLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult JSONLoader::LoadAsset(LoaderState& state) const
 {
     AssertThrow(state.asset_manager != nullptr);
     JSONValue json;
 
     const ByteBuffer byte_buffer = state.stream.ReadBytes();
 
-    if (!byte_buffer.Size()) {
+    if (!byte_buffer.Size())
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "Empty JSON file");
     }
 
@@ -24,7 +24,8 @@ AssetLoadResult JSONLoader::LoadAsset(LoaderState &state) const
 
     const auto json_parse_result = JSON::Parse(json_string);
 
-    if (!json_parse_result.ok) {
+    if (!json_parse_result.ok)
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse json: {}", json_parse_result.message);
     }
 

@@ -18,19 +18,23 @@ namespace hyperion {
 
 int Option::GetInt() const
 {
-    if (auto *ptr = TryGet<int>()) {
+    if (auto* ptr = TryGet<int>())
+    {
         return *ptr;
     }
 
-    if (auto *ptr = TryGet<float>()) {
+    if (auto* ptr = TryGet<float>())
+    {
         return static_cast<int>(*ptr);
     }
 
-    if (auto *ptr = TryGet<bool>()) {
+    if (auto* ptr = TryGet<bool>())
+    {
         return static_cast<int>(*ptr);
     }
 
-    if (auto *ptr = TryGet<String>()) {
+    if (auto* ptr = TryGet<String>())
+    {
         return StringUtil::Parse<int>(*ptr, 0);
     }
 
@@ -39,19 +43,23 @@ int Option::GetInt() const
 
 float Option::GetFloat() const
 {
-    if (auto *ptr = TryGet<int>()) {
+    if (auto* ptr = TryGet<int>())
+    {
         return static_cast<float>(*ptr);
     }
 
-    if (auto *ptr = TryGet<float>()) {
+    if (auto* ptr = TryGet<float>())
+    {
         return *ptr;
     }
 
-    if (auto *ptr = TryGet<bool>()) {
+    if (auto* ptr = TryGet<bool>())
+    {
         return static_cast<float>(*ptr);
     }
 
-    if (auto *ptr = TryGet<String>()) {
+    if (auto* ptr = TryGet<String>())
+    {
         return StringUtil::Parse<float>(*ptr, 0);
     }
 
@@ -60,19 +68,23 @@ float Option::GetFloat() const
 
 bool Option::GetBool() const
 {
-    if (auto *ptr = TryGet<int>()) {
+    if (auto* ptr = TryGet<int>())
+    {
         return static_cast<bool>(*ptr);
     }
 
-    if (auto *ptr = TryGet<float>()) {
+    if (auto* ptr = TryGet<float>())
+    {
         return static_cast<bool>(*ptr);
     }
 
-    if (auto *ptr = TryGet<bool>()) {
+    if (auto* ptr = TryGet<bool>())
+    {
         return *ptr;
     }
 
-    if (auto *ptr = TryGet<String>()) {
+    if (auto* ptr = TryGet<String>())
+    {
         const String trimmed = ptr->Trimmed().ToLower();
 
         return trimmed == "true" || GetInt() != 0;
@@ -83,19 +95,23 @@ bool Option::GetBool() const
 
 String Option::GetString() const
 {
-    if (auto *ptr = TryGet<int>()) {
+    if (auto* ptr = TryGet<int>())
+    {
         return HYP_FORMAT("{}", *ptr);
     }
 
-    if (auto *ptr = TryGet<float>()) {
+    if (auto* ptr = TryGet<float>())
+    {
         return HYP_FORMAT("{}", *ptr);
     }
 
-    if (auto *ptr = TryGet<bool>()) {
+    if (auto* ptr = TryGet<bool>())
+    {
         return HYP_FORMAT("{}", *ptr);
     }
 
-    if (auto *ptr = TryGet<String>()) {
+    if (auto* ptr = TryGet<String>())
+    {
         return *ptr;
     }
 
@@ -106,12 +122,12 @@ String Option::GetString() const
 
 #pragma region Configuration
 
-static const FlatMap<OptionName, String> &GetOptionNameStrings()
+static const FlatMap<OptionName, String>& GetOptionNameStrings()
 {
     static const FlatMap<OptionName, String> option_name_strings {
         { CONFIG_DEBUG_MODE, "DebugMode" },
         { CONFIG_SHADER_COMPILATION, "ShaderCompilation" },
-        { CONFIG_PATHTRACER,  "PathTracer" },
+        { CONFIG_PATHTRACER, "PathTracer" },
         { CONFIG_ENV_GRID_REFLECTIONS, "EnvGridReflections" },
         { CONFIG_ENV_GRID_GI, "EnvGridGlobalIllumination" },
         { CONFIG_ENV_GRID_GI_MODE, "EnvGridGlobalIlluminationMode" },
@@ -131,10 +147,12 @@ static const FlatMap<OptionName, String> &GetOptionNameStrings()
     return option_name_strings;
 }
 
-OptionName Configuration::StringToOptionName(const String &str)
+OptionName Configuration::StringToOptionName(const String& str)
 {
-    for (auto &it : GetOptionNameStrings()) {
-        if (it.second == str) {
+    for (auto& it : GetOptionNameStrings())
+    {
+        if (it.second == str)
+        {
             return it.first;
         }
     }
@@ -146,7 +164,8 @@ String Configuration::OptionNameToString(OptionName option)
 {
     const auto it = GetOptionNameStrings().Find(option);
 
-    if (it == GetOptionNameStrings().End()) {
+    if (it == GetOptionNameStrings().End())
+    {
         return "Unknown";
     }
 
@@ -159,16 +178,20 @@ bool Configuration::LoadFromDefinitionsFile()
 {
     const INIFile definitions(AssetManager::GetInstance()->GetBasePath() / "Config.ini");
 
-    if (!definitions.IsValid()) {
+    if (!definitions.IsValid())
+    {
         return false;
     }
 
-    for (const auto &it : definitions.GetSections()) {
-        for (const auto &option_it : it.second) {
+    for (const auto& it : definitions.GetSections())
+    {
+        for (const auto& option_it : it.second)
+        {
             const OptionName option_name = StringToOptionName(option_it.first);
-            const INIFile::Value &option_value = option_it.second;
+            const INIFile::Value& option_value = option_it.second;
 
-            if (option_name == CONFIG_NONE || option_name >= CONFIG_MAX) {
+            if (option_name == CONFIG_NONE || option_name >= CONFIG_MAX)
+            {
                 HYP_LOG(Config, Warning, "{}: Unknown config option", option_it.first);
 
                 continue;
@@ -176,17 +199,30 @@ bool Configuration::LoadFromDefinitionsFile()
 
             Option value;
 
-            union { int i; float f; } tmp_value;
+            union
+            {
+                int i;
+                float f;
+            } tmp_value;
 
-            if (option_value.GetValue().name == "true") {
+            if (option_value.GetValue().name == "true")
+            {
                 value = true;
-            } else if (option_value.GetValue().name == "false") {
+            }
+            else if (option_value.GetValue().name == "false")
+            {
                 value = false;
-            } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.i)) {
+            }
+            else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.i))
+            {
                 value = tmp_value.i;
-            } else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.f)) {
+            }
+            else if (StringUtil::Parse(option_it.first.Data(), &tmp_value.f))
+            {
                 value = tmp_value.f;
-            } else {
+            }
+            else
+            {
                 value = false;
             }
 
@@ -200,7 +236,7 @@ bool Configuration::LoadFromDefinitionsFile()
 bool Configuration::SaveToDefinitionsFile()
 {
     static const String default_section_name = "Default";
-    
+
     // for (Option &option : m_variables) {
     //     if (!(option.GetFlags() & OptionFlags::SAVE)) {
     //         continue;
@@ -219,16 +255,19 @@ bool Configuration::SaveToDefinitionsFile()
 
     String str_result = "[Default]\n";
 
-    for (uint32 index = CONFIG_NONE + 1; index < CONFIG_MAX; index++) {
-        const Option &option = m_variables[index];
+    for (uint32 index = CONFIG_NONE + 1; index < CONFIG_MAX; index++)
+    {
+        const Option& option = m_variables[index];
 
-        if (!(option.GetFlags() & OptionFlags::SAVE)) {
+        if (!(option.GetFlags() & OptionFlags::SAVE))
+        {
             continue;
         }
 
         String value_string = "false";
 
-        if (option.IsValid()) {
+        if (option.IsValid())
+        {
             value_string = option.GetString();
         }
 
@@ -239,7 +278,8 @@ bool Configuration::SaveToDefinitionsFile()
 
     FileByteWriter writer(path.Data());
 
-    if (!writer.IsOpen()) {
+    if (!writer.IsOpen())
+    {
         return false;
     }
 
@@ -251,7 +291,7 @@ bool Configuration::SaveToDefinitionsFile()
 
 void Configuration::SetToDefaultConfiguration()
 {
-    m_variables = { };
+    m_variables = {};
 
 #ifdef HYP_DEBUG_MODE
     m_variables[CONFIG_DEBUG_MODE] = Option(true, false);
@@ -262,7 +302,7 @@ void Configuration::SetToDefaultConfiguration()
 #else
     m_variables[CONFIG_SHADER_COMPILATION] = Option(false, false);
 #endif
-    
+
     m_variables[CONFIG_HBAO] = Option(true, true);
     m_variables[CONFIG_HBIL] = Option(m_variables[CONFIG_HBAO].GetBool(), true);
 

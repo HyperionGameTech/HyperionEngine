@@ -28,27 +28,31 @@ class RenderResourceBase : public ResourceBase
 public:
     RenderResourceBase();
 
-    RenderResourceBase(const RenderResourceBase &other)                 = delete;
-    RenderResourceBase &operator=(const RenderResourceBase &other)      = delete;
+    RenderResourceBase(const RenderResourceBase& other) = delete;
+    RenderResourceBase& operator=(const RenderResourceBase& other) = delete;
 
-    RenderResourceBase(RenderResourceBase &&other) noexcept;
-    RenderResourceBase &operator=(RenderResourceBase &&other) noexcept  = delete;
+    RenderResourceBase(RenderResourceBase&& other) noexcept;
+    RenderResourceBase& operator=(RenderResourceBase&& other) noexcept = delete;
 
     virtual ~RenderResourceBase() override;
 
     /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
     HYP_FORCE_INLINE uint32 GetBufferIndex() const
-        { return m_buffer_index; }
+    {
+        return m_buffer_index;
+    }
 
     /*! \note Only call from render thread or from task on a task thread that is initiated by the render thread. */
-    HYP_FORCE_INLINE void *GetBufferAddress() const
-        { return m_buffer_address; }
+    HYP_FORCE_INLINE void* GetBufferAddress() const
+    {
+        return m_buffer_address;
+    }
 
 protected:
-    virtual IThread *GetOwnerThread() const override final;
+    virtual IThread* GetOwnerThread() const override final;
     virtual bool CanExecuteInline() const override final;
     virtual void FlushScheduledTasks() const override final;
-    virtual void EnqueueOp(Proc<void()> &&proc) override final;
+    virtual void EnqueueOp(Proc<void()>&& proc) override final;
 
     virtual void Initialize() override final;
     virtual void Destroy() override final;
@@ -58,10 +62,13 @@ protected:
     virtual void Destroy_Internal() = 0;
     virtual void Update_Internal() = 0;
 
-    virtual GPUBufferHolderBase *GetGPUBufferHolder() const { return nullptr; }
+    virtual GPUBufferHolderBase* GetGPUBufferHolder() const
+    {
+        return nullptr;
+    }
 
-    uint32  m_buffer_index;
-    void    *m_buffer_address;
+    uint32 m_buffer_index;
+    void* m_buffer_address;
 
 private:
     void AcquireBufferIndex();

@@ -11,11 +11,14 @@ namespace hyperion {
 
 namespace functional {
 
-HYP_API void LogScriptableDelegateError(const char *message, dotnet::Object *object_ptr)
+HYP_API void LogScriptableDelegateError(const char* message, dotnet::Object* object_ptr)
 {
-    if (object_ptr) {
+    if (object_ptr)
+    {
         HYP_LOG(DotNET, Error, "ScriptableDelegate: {} (Obj: {})", message, object_ptr->GetClass()->GetName());
-    } else {
+    }
+    else
+    {
         HYP_LOG(DotNET, Error, "ScriptableDelegate: {}", message);
     }
 }

@@ -24,9 +24,9 @@ struct StaticMessageInitializer
 
 struct StaticMessage
 {
-    ANSIStringView  value;
+    ANSIStringView value;
 
-    constexpr StaticMessage()                                           = default;
+    constexpr StaticMessage() = default;
 
     template <auto MessageStaticString>
     constexpr StaticMessage(ValueWrapper<MessageStaticString>)
@@ -34,17 +34,19 @@ struct StaticMessage
     {
     }
 
-    constexpr StaticMessage(const StaticMessage &other)                 = default;
-    constexpr StaticMessage &operator=(const StaticMessage &other)      = default;
-    constexpr StaticMessage(StaticMessage &&other) noexcept             = default;
-    constexpr StaticMessage &operator=(StaticMessage &&other) noexcept  = default;
+    constexpr StaticMessage(const StaticMessage& other) = default;
+    constexpr StaticMessage& operator=(const StaticMessage& other) = default;
+    constexpr StaticMessage(StaticMessage&& other) noexcept = default;
+    constexpr StaticMessage& operator=(StaticMessage&& other) noexcept = default;
 
-    constexpr operator const ANSIStringView &() const
-        { return value; }
+    constexpr operator const ANSIStringView&() const
+    {
+        return value;
+    }
 };
 
 template <auto Value>
-inline const StaticMessage &MakeStaticMessage()
+inline const StaticMessage& MakeStaticMessage()
 {
     static const StaticMessage value { ValueWrapper<Value>() };
 

@@ -18,32 +18,37 @@ class UIRenderSubsystem;
 class Scene;
 
 HYP_CLASS()
+
 class HYP_API UISubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(UISubsystem);
 
 public:
-    UISubsystem(const RC<UIStage> &ui_stage);
+    UISubsystem(const RC<UIStage>& ui_stage);
     virtual ~UISubsystem() override;
-    
+
     virtual bool RequiresUpdateOnGameThread() const
-        { return false; }
+    {
+        return false;
+    }
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
     virtual void PreUpdate(GameCounter::TickUnit delta) override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
-    virtual void OnSceneAttached(const Handle<Scene> &scene) override;
-    virtual void OnSceneDetached(const Handle<Scene> &scene) override;
+    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
+    virtual void OnSceneDetached(const Handle<Scene>& scene) override;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<UIStage> &GetUIStage() const
-        { return m_ui_stage; }
+    HYP_FORCE_INLINE const RC<UIStage>& GetUIStage() const
+    {
+        return m_ui_stage;
+    }
 
 private:
-    RC<UIStage>                             m_ui_stage;
-    HashMap<Scene *, RC<UIRenderSubsystem>> m_ui_render_subsystems;
+    RC<UIStage> m_ui_stage;
+    HashMap<Scene*, RC<UIRenderSubsystem>> m_ui_render_subsystems;
 };
 
 } // namespace hyperion

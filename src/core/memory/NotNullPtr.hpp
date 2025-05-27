@@ -20,46 +20,53 @@ class NotNullPtr;
 template <class T>
 class NotNullPtr<T, std::enable_if_t<!std::is_const_v<T>>>
 {
-    NotNullPtr() { }
+    NotNullPtr()
+    {
+    }
 
     // Disallow nullptr assignment
-    NotNullPtr(std::nullptr_t) { }
-    NotNullPtr &operator=(std::nullptr_t) { }
+    NotNullPtr(std::nullptr_t)
+    {
+    }
+
+    NotNullPtr& operator=(std::nullptr_t)
+    {
+    }
 
 public:
-    NotNullPtr(T * HYP_NOTNULL ptr)
+    NotNullPtr(T* HYP_NOTNULL ptr)
     {
         AssertDebug(ptr);
 
         m_ptr = ptr;
     }
 
-    NotNullPtr(const NotNullPtr &other)                 = default;
-    NotNullPtr &operator=(const NotNullPtr &other)      = default;
+    NotNullPtr(const NotNullPtr& other) = default;
+    NotNullPtr& operator=(const NotNullPtr& other) = default;
 
     // Delete move constructor and assignment to prevent setting other to nullptr
-    NotNullPtr(NotNullPtr &&other) noexcept             = delete;
-    NotNullPtr &operator=(NotNullPtr &&other) noexcept  = delete;
+    NotNullPtr(NotNullPtr&& other) noexcept = delete;
+    NotNullPtr& operator=(NotNullPtr&& other) noexcept = delete;
 
     template <class OtherT>
-    NotNullPtr(const NotNullPtr<OtherT> &other)
+    NotNullPtr(const NotNullPtr<OtherT>& other)
     {
-        static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
+        static_assert(std::is_convertible_v<T*, std::remove_const_t<OtherT>*>);
 
         m_ptr = other.m_ptr;
     }
 
     template <class OtherT>
-    NotNullPtr &operator=(const NotNullPtr<OtherT> &other)
+    NotNullPtr& operator=(const NotNullPtr<OtherT>& other)
     {
-        static_assert(std::is_convertible_v<T *, std::remove_const_t<OtherT> *>);
+        static_assert(std::is_convertible_v<T*, std::remove_const_t<OtherT>*>);
 
         m_ptr = other.m_ptr;
 
         return *this;
     }
 
-    NotNullPtr &operator=(T * HYP_NOTNULL ptr)
+    NotNullPtr& operator=(T* HYP_NOTNULL ptr)
     {
         AssertDebug(ptr);
 
@@ -86,81 +93,123 @@ public:
     //     return *this;
     // }
 
-    ~NotNullPtr()                                       = default;
+    ~NotNullPtr() = default;
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator==(const NotNullPtr<OtherT> &other) const
-        { return m_ptr == other.m_ptr; }
+    HYP_FORCE_INLINE bool operator==(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr == other.m_ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator!=(const NotNullPtr<OtherT> &other) const
-        { return m_ptr != other.m_ptr; }
+    HYP_FORCE_INLINE bool operator!=(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr != other.m_ptr;
+    }
 
     constexpr HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
-        { return false; }
+    {
+        return false;
+    }
 
     constexpr HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
-        { return true; }
+    {
+        return true;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator==(OtherT *ptr) const
-        { return m_ptr == ptr; }
+    HYP_FORCE_INLINE bool operator==(OtherT* ptr) const
+    {
+        return m_ptr == ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator!=(OtherT *ptr) const
-        { return m_ptr != ptr; }
+    HYP_FORCE_INLINE bool operator!=(OtherT* ptr) const
+    {
+        return m_ptr != ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator<(const NotNullPtr<OtherT> &other) const
-        { return m_ptr < other.m_ptr; }
+    HYP_FORCE_INLINE bool operator<(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr < other.m_ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator<=(const NotNullPtr<OtherT> &other) const
-        { return m_ptr <= other.m_ptr; }
+    HYP_FORCE_INLINE bool operator<=(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr <= other.m_ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator>(const NotNullPtr<OtherT> &other) const
-        { return m_ptr > other.m_ptr; }
+    HYP_FORCE_INLINE bool operator>(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr > other.m_ptr;
+    }
 
     template <class OtherT>
-    HYP_FORCE_INLINE bool operator>=(const NotNullPtr<OtherT> &other) const
-        { return m_ptr >= other.m_ptr; }
+    HYP_FORCE_INLINE bool operator>=(const NotNullPtr<OtherT>& other) const
+    {
+        return m_ptr >= other.m_ptr;
+    }
 
     constexpr HYP_FORCE_INLINE explicit operator bool() const
-        { return true; }
+    {
+        return true;
+    }
 
     constexpr HYP_FORCE_INLINE bool operator!() const
-        { return false; }
+    {
+        return false;
+    }
 
-    HYP_FORCE_INLINE T &operator*() const
-        { return *m_ptr; }
+    HYP_FORCE_INLINE T& operator*() const
+    {
+        return *m_ptr;
+    }
 
-    HYP_FORCE_INLINE T *operator->() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE T* operator->() const
+    {
+        return m_ptr;
+    }
 
-    HYP_FORCE_INLINE operator T *() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE operator T*() const
+    {
+        return m_ptr;
+    }
 
-    HYP_FORCE_INLINE operator const T *() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE operator const T*() const
+    {
+        return m_ptr;
+    }
 
-    HYP_FORCE_INLINE T **operator &()
-        { return &m_ptr; }
+    HYP_FORCE_INLINE T** operator&()
+    {
+        return &m_ptr;
+    }
 
-    HYP_FORCE_INLINE const T **operator &() const
-        { return &m_ptr; }
+    HYP_FORCE_INLINE const T** operator&() const
+    {
+        return &m_ptr;
+    }
 
-    HYP_FORCE_INLINE T *operator+(void *other) const
-        { return m_ptr + other; }
+    HYP_FORCE_INLINE T* operator+(void* other) const
+    {
+        return m_ptr + other;
+    }
 
-    HYP_FORCE_INLINE T *operator-(void *other) const
-        { return m_ptr - other; }
+    HYP_FORCE_INLINE T* operator-(void* other) const
+    {
+        return m_ptr - other;
+    }
 
-    HYP_FORCE_INLINE T *Get() const
-        { return m_ptr; }
+    HYP_FORCE_INLINE T* Get() const
+    {
+        return m_ptr;
+    }
 
 private:
-    T   *m_ptr;
+    T* m_ptr;
 };
 
 } // namespace memory
@@ -169,9 +218,9 @@ template <class T>
 using NotNullPtr = memory::NotNullPtr<T>;
 
 template <class T>
-HYP_FORCE_INLINE void Swap(NotNullPtr<T> &a, NotNullPtr<T> &b)
+HYP_FORCE_INLINE void Swap(NotNullPtr<T>& a, NotNullPtr<T>& b)
 {
-    T *temp = a.Get();
+    T* temp = a.Get();
     a = b.Get();
     b = temp;
 }

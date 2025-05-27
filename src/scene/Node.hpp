@@ -38,27 +38,29 @@ class Scene;
 class EditorDelegates;
 
 HYP_ENUM(Flags)
+
 enum NodeFlags : uint32
 {
-    NONE                        = 0x0,
+    NONE = 0x0,
 
-    IGNORE_PARENT_TRANSLATION   = 0x1,
-    IGNORE_PARENT_SCALE         = 0x2,
-    IGNORE_PARENT_ROTATION      = 0x4,
-    IGNORE_PARENT_TRANSFORM     = IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE | IGNORE_PARENT_ROTATION,
+    IGNORE_PARENT_TRANSLATION = 0x1,
+    IGNORE_PARENT_SCALE = 0x2,
+    IGNORE_PARENT_ROTATION = 0x4,
+    IGNORE_PARENT_TRANSFORM = IGNORE_PARENT_TRANSLATION | IGNORE_PARENT_SCALE | IGNORE_PARENT_ROTATION,
 
-    EXCLUDE_FROM_PARENT_AABB    = 0x8,
+    EXCLUDE_FROM_PARENT_AABB = 0x8,
 
-    BUILD_BVH                   = 0x10,  // Should this Node ensure a BVHComponent is added to its Entity?
+    BUILD_BVH = 0x10, // Should this Node ensure a BVHComponent is added to its Entity?
 
-    TRANSIENT                   = 0x100, // Set if the node should not be serialized
+    TRANSIENT = 0x100, // Set if the node should not be serialized
 
-    HIDE_IN_SCENE_OUTLINE       = 0x1000 // Should this node be hidden in the editor's outline window?
+    HIDE_IN_SCENE_OUTLINE = 0x1000 // Should this node be hidden in the editor's outline window?
 };
 
 HYP_MAKE_ENUM_FLAGS(NodeFlags)
 
 HYP_STRUCT()
+
 struct NodeTag
 {
     using VariantType = Variant<
@@ -72,45 +74,45 @@ struct NodeTag
         Vec2u, Vec3u, Vec4u,
         String,
         Name,
-        UUID
-    >;
+        UUID>;
 
-    HYP_FIELD(Property="Name", Serialize=true)
-    Name        name;
-    
-    HYP_FIELD(Property="Data", Serialize=true)
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name;
+
+    HYP_FIELD(Property = "Data", Serialize = true)
     VariantType data;
 
     NodeTag() = default;
 
-    NodeTag(Name name, const VariantType &data)
+    NodeTag(Name name, const VariantType& data)
         : name(name),
           data(data)
     {
     }
 
-    NodeTag(Name name, VariantType &&data)
+    NodeTag(Name name, VariantType&& data)
         : name(name),
           data(std::move(data))
     {
     }
 
     template <class T>
-    NodeTag(Name name, T &&value)
+    NodeTag(Name name, T&& value)
         : name(name),
           data(std::forward<T>(value))
     {
     }
 
-    NodeTag(const NodeTag &other)
+    NodeTag(const NodeTag& other)
         : name(other.name),
           data(other.data)
     {
     }
 
-    NodeTag &operator=(const NodeTag &other)
+    NodeTag& operator=(const NodeTag& other)
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
@@ -120,15 +122,16 @@ struct NodeTag
         return *this;
     }
 
-    NodeTag(NodeTag &&other) noexcept
+    NodeTag(NodeTag&& other) noexcept
         : name(std::move(other.name)),
           data(std::move(other.data))
     {
     }
 
-    NodeTag &operator=(NodeTag &&other) noexcept
+    NodeTag& operator=(NodeTag&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
@@ -139,20 +142,26 @@ struct NodeTag
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return data.IsValid(); }
+    {
+        return data.IsValid();
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return !data.IsValid(); }
+    {
+        return !data.IsValid();
+    }
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return data.IsValid(); }
+    {
+        return data.IsValid();
+    }
 
-    HYP_FORCE_INLINE bool operator==(const NodeTag &other) const
+    HYP_FORCE_INLINE bool operator==(const NodeTag& other) const
     {
         return name == other.name && data == other.data;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const NodeTag &other) const
+    HYP_FORCE_INLINE bool operator!=(const NodeTag& other) const
     {
         return name != other.name || data != other.data;
     }
@@ -162,9 +171,10 @@ struct NodeTag
 
 struct NodeUnlockTransformScope;
 
-HYP_API extern void Node_OnPostLoad(Node &node);
+HYP_API extern void Node_OnPostLoad(Node& node);
 
-HYP_CLASS(PostLoad="Node_OnPostLoad")
+HYP_CLASS(PostLoad = "Node_OnPostLoad")
+
 class HYP_API Node : public HypObject<Node>
 {
     friend class Scene;
@@ -177,8 +187,8 @@ public:
 
     struct Delegates
     {
-        Delegate<void, Node *, bool /* direct */> OnChildAdded;
-        Delegate<void, Node *, bool /* direct */> OnChildRemoved;
+        Delegate<void, Node*, bool /* direct */> OnChildAdded;
+        Delegate<void, Node*, bool /* direct */> OnChildRemoved;
     };
 
     using NodeList = Array<Handle<Node>, DynamicAllocator>;
@@ -196,119 +206,136 @@ public:
      * \param local_transform An optional parameter representing the local-space transform of this Node.
      */
     Node(
-        const String &name = String::empty,
-        const Transform &local_transform = Transform()
-    );
+        const String& name = String::empty,
+        const Transform& local_transform = Transform());
 
     Node(
-        const String &name,
-        const Handle<Entity> &entity,
-        const Transform &local_transform = Transform()
-    );
+        const String& name,
+        const Handle<Entity>& entity,
+        const Transform& local_transform = Transform());
 
     Node(
-        const String &name,
-        const Handle<Entity> &entity,
-        const Transform &local_transform,
-        Scene *scene
-    );
+        const String& name,
+        const Handle<Entity>& entity,
+        const Transform& local_transform,
+        Scene* scene);
 
-    Node(const Node &other)             = delete;
-    Node &operator=(const Node &other)  = delete;
-    Node(Node &&other) noexcept;
-    Node &operator=(Node &&other) noexcept;
+    Node(const Node& other) = delete;
+    Node& operator=(const Node& other) = delete;
+    Node(Node&& other) noexcept;
+    Node& operator=(Node&& other) noexcept;
     ~Node();
 
     /*! \brief Get the UUID of the Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID &GetUUID() const
-        { return m_uuid; }
+    HYP_FORCE_INLINE const UUID& GetUUID() const
+    {
+        return m_uuid;
+    }
 
     /*! \brief Set the UUID of the Node. For deserialization purposes only. */
-    HYP_FORCE_INLINE void SetUUID(const UUID &uuid)
-        { m_uuid = uuid; }
+    HYP_FORCE_INLINE void SetUUID(const UUID& uuid)
+    {
+        m_uuid = uuid;
+    }
 
     /*! \returns The name that was given to the Node on creation. */
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true, Label="Name", Description="The name of the node.")
-    HYP_FORCE_INLINE const String &GetName() const
-        { return m_name; }
-        
+    HYP_METHOD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
+    HYP_FORCE_INLINE const String& GetName() const
+    {
+        return m_name;
+    }
+
     /*! \brief Set the name of this Node. Used for nested lookups. */
-    HYP_METHOD(Property="Name", Serialize=true, Editor=true)
-    void SetName(const String &name);
+    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
+    void SetName(const String& name);
 
     HYP_METHOD()
     bool HasName() const;
 
     /*! \returns The type of the node. By default, it will just be NODE. */
-    HYP_METHOD(Property="Type")
+    HYP_METHOD(Property = "Type")
     HYP_FORCE_INLINE Type GetType() const
-        { return m_type; }
+    {
+        return m_type;
+    }
 
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
      *  \returns The flags of the Node. */
-    HYP_METHOD(Property="Flags", Serialize=true)
+    HYP_METHOD(Property = "Flags", Serialize = true)
     HYP_FORCE_INLINE EnumFlags<NodeFlags> GetFlags() const
-        { return m_flags; }
+    {
+        return m_flags;
+    }
 
     /*! \brief Set the flags of the Node.
      *  \see NodeFlagBits
      *  \param flags The flags to set on the Node. */
-    HYP_METHOD(Property="Flags", Serialize=true)
+    HYP_METHOD(Property = "Flags", Serialize = true)
     void SetFlags(EnumFlags<NodeFlags> flags);
 
-    HYP_METHOD(Property="Parent")
-    HYP_FORCE_INLINE Node *GetParent() const
-        { return m_parent_node; }
-    
+    HYP_METHOD(Property = "Parent")
+    HYP_FORCE_INLINE Node* GetParent() const
+    {
+        return m_parent_node;
+    }
+
     HYP_METHOD()
-    bool IsOrHasParent(const Node *node) const;
-    
+    bool IsOrHasParent(const Node* node) const;
+
     HYP_METHOD()
-    Node *FindParentWithName(UTF8StringView name) const;
+    Node* FindParentWithName(UTF8StringView name) const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsRoot() const
-        { return m_parent_node == nullptr; }
+    {
+        return m_parent_node == nullptr;
+    }
 
     /*! \returns A pointer to the Scene this Node and its children are attached to. May be null. */
-    HYP_METHOD(Property="Scene")
-    HYP_FORCE_INLINE Scene *GetScene() const
-        { return m_scene; }
+    HYP_METHOD(Property = "Scene")
+    HYP_FORCE_INLINE Scene* GetScene() const
+    {
+        return m_scene;
+    }
 
     /*! \brief Set the Scene this Node and its children are attached to.
      *  \internal Not intended to be used in user code. Use Remove() instead. */
-    HYP_METHOD(Property="Scene")
-    void SetScene(Scene *scene);
+    HYP_METHOD(Property = "Scene")
+    void SetScene(Scene* scene);
 
     /*! \returns A pointer to the World this Node and its children are attached to. May be null. */
-    HYP_METHOD(Property="World")
-    World *GetWorld() const;
+    HYP_METHOD(Property = "World")
+    World* GetWorld() const;
 
     /*! \brief \returns The underlying entity AABB for this node. */
-    HYP_METHOD(Property="EntityAABB", Serialize=true, Editor=true, Label="Bounding Box", Description="The underlying axis-aligned bounding box for this node, not considering child nodes or transform")
-    HYP_FORCE_INLINE const BoundingBox &GetEntityAABB() const
-        { return m_entity_aabb; }
+    HYP_METHOD(Property = "EntityAABB", Serialize = true, Editor = true, Label = "Bounding Box", Description = "The underlying axis-aligned bounding box for this node, not considering child nodes or transform")
+    HYP_FORCE_INLINE const BoundingBox& GetEntityAABB() const
+    {
+        return m_entity_aabb;
+    }
 
     /*! \brief Set the underlying entity AABB of the Node. Does not update the Entity's BoundingBoxComponent.
-    *   \param aabb The entity bounding box to set
-    *   \note Calls to RefreshEntityTransform() will override this value. */
-    HYP_METHOD(Property="EntityAABB", Serialize=true, Editor=true)
-    void SetEntityAABB(const BoundingBox &aabb);
+     *   \param aabb The entity bounding box to set
+     *   \note Calls to RefreshEntityTransform() will override this value. */
+    HYP_METHOD(Property = "EntityAABB", Serialize = true, Editor = true)
+    void SetEntityAABB(const BoundingBox& aabb);
 
-    HYP_METHOD(Property="Entity", Serialize=true, Editor=true, Label="Entity", Description="The entity that this node is linked with.")
-    HYP_FORCE_INLINE const Handle<Entity> &GetEntity() const
-        { return m_entity; }
+    HYP_METHOD(Property = "Entity", Serialize = true, Editor = true, Label = "Entity", Description = "The entity that this node is linked with.")
+    HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
+    {
+        return m_entity;
+    }
 
-    HYP_METHOD(Property="Entity", Serialize=true, Editor=true)
-    void SetEntity(const Handle<Entity> &entity);
+    HYP_METHOD(Property = "Entity", Serialize = true, Editor = true)
+    void SetEntity(const Handle<Entity>& entity);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
      *  \param node The Node to be added as achild of this Node
      *  \returns The added Node */
     HYP_METHOD()
-    Handle<Node> AddChild(const Handle<Node> &node = { });
+    Handle<Node> AddChild(const Handle<Node>& node = {});
 
     /*! \brief Remove a child using the given iterator (i.e from FindChild())
      *  \param iter The iterator from this Node's child list
@@ -328,7 +355,7 @@ public:
 
     HYP_METHOD()
     void RemoveAllChildren();
-    
+
     /*! \brief Get a child Node from this Node's child list at the given index.
      *  \param index The index of the child element to return
      *  \returns The child node at the given index. If the index is out of bounds, nullptr
@@ -350,102 +377,131 @@ public:
     /*! \brief Get an iterator for the given child Node from this Node's child list
      * \param node The node to find in this Node's child list
      * \returns The resulting iterator */
-    NodeList::Iterator FindChild(const Node *node);
+    NodeList::Iterator FindChild(const Node* node);
 
     /*! \brief Get an iterator for the given child Node from this Node's child list
      * \param node The node to find in this Node's child list
      * \returns The resulting iterator */
-    NodeList::ConstIterator FindChild(const Node *node) const;
+    NodeList::ConstIterator FindChild(const Node* node) const;
 
     /*! \brief Get an iterator for a node by finding it by its name
      * \param name The string to compare with the child Node's name
      * \returns The resulting iterator */
-    NodeList::Iterator FindChild(const char *name);
+    NodeList::Iterator FindChild(const char* name);
 
     /*! \brief Get an iterator for a node by finding it by its name
      * \param name The string to compare with the child Node's name
      * \returns The resulting iterator */
-    NodeList::ConstIterator FindChild(const char *name) const;
+    NodeList::ConstIterator FindChild(const char* name) const;
 
     /*! \brief Get the child Nodes of this Node.
      *  \returns Array of child Nodes */
-    HYP_FORCE_INLINE const NodeList &GetChildren() const
-        { return m_child_nodes; }
+    HYP_FORCE_INLINE const NodeList& GetChildren() const
+    {
+        return m_child_nodes;
+    }
 
     /*! \brief Get all descendant child Nodes from this Node. This vector is pre-calculated,
      * so no calculation happens when calling this method.
      * \returns A vector of raw pointers to descendant Nodes */
-    HYP_FORCE_INLINE const Array<Node *> &GetDescendants() const
-        { return m_descendants; }
+    HYP_FORCE_INLINE const Array<Node*>& GetDescendants() const
+    {
+        return m_descendants;
+    }
 
     /*! \brief Set the local-space translation, scale, rotation of this Node (not influenced by the parent Node) */
-    HYP_METHOD(Property="LocalTransform", Serialize=true, Editor=true, Label="Local-space Transform")
-    void SetLocalTransform(const Transform &transform);
+    HYP_METHOD(Property = "LocalTransform", Serialize = true, Editor = true, Label = "Local-space Transform")
+    void SetLocalTransform(const Transform& transform);
 
     /*! \returns The local-space translation, scale, rotation of this Node. */
-    HYP_METHOD(Property="LocalTransform", Serialize=true, Editor=true)
-    HYP_FORCE_INLINE const Transform &GetLocalTransform() const
-        { return m_local_transform; }
-    
+    HYP_METHOD(Property = "LocalTransform", Serialize = true, Editor = true)
+    HYP_FORCE_INLINE const Transform& GetLocalTransform() const
+    {
+        return m_local_transform;
+    }
+
     /*! \returns The local-space translation of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec3f &GetLocalTranslation() const
-        { return m_local_transform.GetTranslation(); }
-    
+    HYP_FORCE_INLINE const Vec3f& GetLocalTranslation() const
+    {
+        return m_local_transform.GetTranslation();
+    }
+
     /*! \brief Set the local-space translation of this Node (not influenced by the parent Node) */
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f &translation)
-        { SetLocalTransform(Transform { translation, m_local_transform.GetScale(), m_local_transform.GetRotation() }); }
+    HYP_FORCE_INLINE void SetLocalTranslation(const Vec3f& translation)
+    {
+        SetLocalTransform(Transform { translation, m_local_transform.GetScale(), m_local_transform.GetRotation() });
+    }
 
     /*! \brief Move the Node in local-space by adding the given vector to the current local-space translation.
      * \param translation The vector to translate this Node by
      */
     HYP_METHOD()
-    HYP_FORCE_INLINE void Translate(const Vec3f &translation)
-        { SetLocalTranslation(m_local_transform.GetTranslation() + translation); }
-    
+    HYP_FORCE_INLINE void Translate(const Vec3f& translation)
+    {
+        SetLocalTranslation(m_local_transform.GetTranslation() + translation);
+    }
+
     /*! \returns The local-space scale of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec3f &GetLocalScale() const
-        { return m_local_transform.GetScale(); }
-    
+    HYP_FORCE_INLINE const Vec3f& GetLocalScale() const
+    {
+        return m_local_transform.GetScale();
+    }
+
     /*! \brief Set the local-space scale of this Node (not influenced by the parent Node) */
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetLocalScale(const Vec3f &scale)
-        { SetLocalTransform(Transform { m_local_transform.GetTranslation(), scale, m_local_transform.GetRotation() }); }
+    HYP_FORCE_INLINE void SetLocalScale(const Vec3f& scale)
+    {
+        SetLocalTransform(Transform { m_local_transform.GetTranslation(), scale, m_local_transform.GetRotation() });
+    }
 
     /*! \brief Scale the Node in local-space by multiplying the current local-space scale by the given scale vector.
      * \param scale The vector to scale this Node by */
     HYP_METHOD()
-    HYP_FORCE_INLINE void Scale(const Vec3f &scale)
-        { SetLocalScale(m_local_transform.GetScale() * scale); }
-    
+    HYP_FORCE_INLINE void Scale(const Vec3f& scale)
+    {
+        SetLocalScale(m_local_transform.GetScale() * scale);
+    }
+
     /*! \returns The local-space rotation of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Quaternion &GetLocalRotation() const
-        { return m_local_transform.GetRotation(); }
-    
+    HYP_FORCE_INLINE const Quaternion& GetLocalRotation() const
+    {
+        return m_local_transform.GetRotation();
+    }
+
     /*! \brief Set the local-space rotation of this Node (not influenced by the parent Node) */
     HYP_METHOD()
-    HYP_FORCE_INLINE void SetLocalRotation(const Quaternion &rotation)
-        { SetLocalTransform(Transform { m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation }); }
+    HYP_FORCE_INLINE void SetLocalRotation(const Quaternion& rotation)
+    {
+        SetLocalTransform(Transform { m_local_transform.GetTranslation(), m_local_transform.GetScale(), rotation });
+    }
 
     /*! \brief Rotate the Node by multiplying the current local-space rotation by the given quaternion.
      * \param rotation The quaternion to rotate this Node by */
     HYP_METHOD()
-    HYP_FORCE_INLINE void Rotate(const Quaternion &rotation)
-        { SetLocalRotation(m_local_transform.GetRotation() * rotation); }
+    HYP_FORCE_INLINE void Rotate(const Quaternion& rotation)
+    {
+        SetLocalRotation(m_local_transform.GetRotation() * rotation);
+    }
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
-    HYP_METHOD(Property="WorldTransform", Editor=true, Label="World-space Transform")
-    const Transform &GetWorldTransform() const
-        { return m_world_transform; }
+    HYP_METHOD(Property = "WorldTransform", Editor = true, Label = "World-space Transform")
+
+    const Transform& GetWorldTransform() const
+    {
+        return m_world_transform;
+    }
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */
-    HYP_METHOD(Property="WorldTransform", Editor=true)
-    void SetWorldTransform(const Transform &transform)
+    HYP_METHOD(Property = "WorldTransform", Editor = true)
+
+    void SetWorldTransform(const Transform& transform)
     {
-        if (m_parent_node == nullptr) {
+        if (m_parent_node == nullptr)
+        {
             SetLocalTransform(transform);
 
             return;
@@ -466,17 +522,21 @@ public:
 
         SetLocalTransform(offset_transform);
     }
-    
+
     /*! \returns The world-space translation of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec3f &GetWorldTranslation() const
-        { return m_world_transform.GetTranslation(); }
-    
+    HYP_FORCE_INLINE const Vec3f& GetWorldTranslation() const
+    {
+        return m_world_transform.GetTranslation();
+    }
+
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
     HYP_METHOD()
-    void SetWorldTranslation(const Vec3f &translation)
+
+    void SetWorldTranslation(const Vec3f& translation)
     {
-        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION))
+        {
             SetLocalTranslation(translation);
 
             return;
@@ -484,17 +544,21 @@ public:
 
         SetLocalTranslation(translation * m_parent_node->GetWorldTransform().GetMatrix().Inverted());
     }
-    
+
     /*! \returns The local-space scale of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Vec3f &GetWorldScale() const
-        { return m_world_transform.GetScale(); }
-    
+    HYP_FORCE_INLINE const Vec3f& GetWorldScale() const
+    {
+        return m_world_transform.GetScale();
+    }
+
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
     HYP_METHOD()
-    void SetWorldScale(const Vec3f &scale)
+
+    void SetWorldScale(const Vec3f& scale)
     {
-        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_SCALE)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_SCALE))
+        {
             SetLocalScale(scale);
 
             return;
@@ -502,17 +566,21 @@ public:
 
         SetLocalScale(scale / m_parent_node->GetWorldScale());
     }
-    
+
     /*! \returns The world-space rotation of this Node. */
     HYP_METHOD()
-    HYP_FORCE_INLINE const Quaternion &GetWorldRotation() const
-        { return m_world_transform.GetRotation(); }
-    
+    HYP_FORCE_INLINE const Quaternion& GetWorldRotation() const
+    {
+        return m_world_transform.GetRotation();
+    }
+
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     HYP_METHOD()
-    void SetWorldRotation(const Quaternion &rotation)
+
+    void SetWorldRotation(const Quaternion& rotation)
     {
-        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_ROTATION)) {
+        if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_ROTATION))
+        {
             SetLocalRotation(rotation);
 
             return;
@@ -525,12 +593,14 @@ public:
      * \param parent_transform The parent transform to calculate the relative transform to.
      * \returns The relative transform of this Node to the given parent transform. */
     HYP_METHOD()
-    Transform GetRelativeTransform(const Transform &parent_transform) const;
+    Transform GetRelativeTransform(const Transform& parent_transform) const;
 
     /*! \brief Returns whether the Node is locked from being transformed. */
     HYP_METHOD()
     HYP_FORCE_INLINE bool IsTransformLocked() const
-        { return m_transform_locked; }
+    {
+        return m_transform_locked;
+    }
 
     /*! \brief Lock the Node from being transformed. */
     void LockTransform();
@@ -545,12 +615,12 @@ public:
 
     /*! \brief Get the local-space (model) aabb of the node.
      *  \returns The local-space (model) of the node's aabb. */
-    HYP_METHOD(Property="LocalAABB")
+    HYP_METHOD(Property = "LocalAABB")
     BoundingBox GetLocalAABB() const;
 
     /*! \brief \returns The world-space aabb of the node. Includes the transforms of all
      * parent nodes. */
-    HYP_METHOD(Property="WorldAABB")
+    HYP_METHOD(Property = "WorldAABB")
     BoundingBox GetWorldAABB() const;
 
     /*! \brief Update the world transform of the Node to reflect changes in the local transform and parent transform.
@@ -568,11 +638,11 @@ public:
     HYP_METHOD()
     uint32 FindSelfIndex() const;
 
-    bool TestRay(const Ray &ray, RayTestResults &out_results, bool use_bvh = true) const;
+    bool TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh = true) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
     HYP_METHOD()
-    Handle<Node> FindChildWithEntity(ID<Entity> entity) const;
+    Handle<Node> FindChildWithEntity(ID<Entity> entity_id) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
@@ -580,17 +650,21 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with the given UUID is found. */
     HYP_METHOD()
-    Handle<Node> FindChildByUUID(const UUID &uuid) const;
+    Handle<Node> FindChildByUUID(const UUID& uuid) const;
 
     /*! \brief Get the delegates for this Node. */
-    HYP_FORCE_INLINE Delegates *GetDelegates() const
-        { return m_delegates.Get(); }
+    HYP_FORCE_INLINE Delegates* GetDelegates() const
+    {
+        return m_delegates.Get();
+    }
 
-    HYP_FORCE_INLINE const NodeTagSet &GetTags() const
-        { return m_tags; }
+    HYP_FORCE_INLINE const NodeTagSet& GetTags() const
+    {
+        return m_tags;
+    }
 
     /*! \brief Add a tag to this Node. */
-    void AddTag(NodeTag &&value);
+    void AddTag(NodeTag&& value);
 
     /*! \brief Remove a tag from this Node.
      *  \param key The key the tag
@@ -600,7 +674,7 @@ public:
     /*! \brief Get a tag from this Node.
      *  \param key The key the tag
      *  \returns The tag with the given key. If the tag does not exist, an empty NodeTag is returned */
-    const NodeTag &GetTag(WeakName key) const;
+    const NodeTag& GetTag(WeakName key) const;
 
     /*! \brief Check if this Node has a tag with the given name.
      *  \param key The key the tag
@@ -617,8 +691,10 @@ public:
         hc.Add(m_world_transform);
         hc.Add(m_entity);
 
-        for (const Handle<Node> &child : m_child_nodes) {
-            if (!child.IsValid()) {
+        for (const Handle<Node>& child : m_child_nodes)
+        {
+            if (!child.IsValid())
+            {
                 continue;
             }
 
@@ -631,13 +707,12 @@ public:
 protected:
     Node(
         Type type,
-        const String &name,
-        const Handle<Entity> &entity,
-        const Transform &local_transform = Transform(),
-        Scene *scene = nullptr
-    );
+        const String& name,
+        const Handle<Entity>& entity,
+        const Transform& local_transform = Transform(),
+        Scene* scene = nullptr);
 
-    static Scene *GetDefaultScene();
+    static Scene* GetDefaultScene();
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
@@ -645,66 +720,68 @@ protected:
 
     void EnsureEntityHasBVHComponent();
 
-    void OnNestedNodeAdded(Node *node, bool direct);
-    void OnNestedNodeRemoved(Node *node, bool direct);
+    void OnNestedNodeAdded(Node* node, bool direct);
+    void OnNestedNodeRemoved(Node* node, bool direct);
 
 #ifdef HYP_EDITOR
-    EditorDelegates *GetEditorDelegates();
+    EditorDelegates* GetEditorDelegates();
 
     /*! \brief Do something with editor delegates. Thread safe, func will be called on the game thread. */
     template <class Function>
-    void GetEditorDelegates(Function &&func);
+    void GetEditorDelegates(Function&& func);
 #endif
 
-    Type                            m_type = Type::NODE;
-    EnumFlags<NodeFlags>            m_flags = NodeFlags::NONE;
-    String                          m_name;    
-    Node                            *m_parent_node;
-    NodeList                        m_child_nodes;
-    Transform                       m_local_transform;
-    Transform                       m_world_transform;
-    BoundingBox                     m_entity_aabb;
+    Type m_type = Type::NODE;
+    EnumFlags<NodeFlags> m_flags = NodeFlags::NONE;
+    String m_name;
+    Node* m_parent_node;
+    NodeList m_child_nodes;
+    Transform m_local_transform;
+    Transform m_world_transform;
+    BoundingBox m_entity_aabb;
 
-    Handle<Entity>                  m_entity;
+    Handle<Entity> m_entity;
 
-    Array<Node *>                   m_descendants;
+    Array<Node*> m_descendants;
 
-    Scene                           *m_scene;
+    Scene* m_scene;
 
-    bool                            m_transform_locked;
+    bool m_transform_locked;
 
     // has the transform been updated since the entity has been set or transform has been unlocked?
-    bool                            m_transform_changed;
+    bool m_transform_changed;
 
-    UniquePtr<Delegates>            m_delegates;
+    UniquePtr<Delegates> m_delegates;
 
-    HYP_FIELD(Property="Tags", Serialize=true)
-    NodeTagSet                      m_tags;
+    HYP_FIELD(Property = "Tags", Serialize = true)
+    NodeTagSet m_tags;
 
-    HYP_FIELD(Property="UUID", Serialize=true)
-    UUID                            m_uuid;
+    HYP_FIELD(Property = "UUID", Serialize = true)
+    UUID m_uuid;
 };
 
 struct NodeUnlockTransformScope
 {
-    NodeUnlockTransformScope(Node &node)
+    NodeUnlockTransformScope(Node& node)
         : node(node),
           locked(node.IsTransformLocked())
     {
-        if (locked) {
+        if (locked)
+        {
             node.UnlockTransform();
         }
     }
 
     ~NodeUnlockTransformScope()
     {
-        if (locked) {
+        if (locked)
+        {
             node.LockTransform();
         }
     }
 
-    Node    &node;
-    bool    locked;
+    Node& node;
+    bool locked;
 };
 
 } // namespace hyperion

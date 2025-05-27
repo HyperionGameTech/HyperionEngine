@@ -26,14 +26,15 @@ using VulkanDescriptorSetLayoutWrapperRef = RenderObjectHandle_Strong<VulkanDesc
 
 struct VulkanDescriptorElementInfo
 {
-    uint32              binding;
-    uint32              index;
-    VkDescriptorType    descriptor_type;
+    uint32 binding;
+    uint32 index;
+    VkDescriptorType descriptor_type;
 
-    union {
-        VkDescriptorBufferInfo                          buffer_info;
-        VkDescriptorImageInfo                           image_info;
-        VkWriteDescriptorSetAccelerationStructureKHR    acceleration_structure_info;
+    union
+    {
+        VkDescriptorBufferInfo buffer_info;
+        VkDescriptorImageInfo image_info;
+        VkWriteDescriptorSetAccelerationStructureKHR acceleration_structure_info;
     };
 };
 
@@ -45,14 +46,18 @@ struct DescriptorSetElementCachedValue
 class VulkanDescriptorSet final : public DescriptorSetBase
 {
 public:
-    HYP_API VulkanDescriptorSet(const DescriptorSetLayout &layout);
+    HYP_API VulkanDescriptorSet(const DescriptorSetLayout& layout);
     HYP_API ~VulkanDescriptorSet();
 
     HYP_FORCE_INLINE VkDescriptorSet GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
-    HYP_FORCE_INLINE VulkanDescriptorSetLayoutWrapper *GetVulkanLayoutWrapper() const
-        { return m_vk_layout_wrapper.Get(); }
+    HYP_FORCE_INLINE VulkanDescriptorSetLayoutWrapper* GetVulkanLayoutWrapper() const
+    {
+        return m_vk_layout_wrapper.Get();
+    }
 
     HYP_API virtual bool IsCreated() const override;
 
@@ -64,22 +69,22 @@ public:
     HYP_API virtual DescriptorSetRef Clone() const override;
 
 protected:
-    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, uint32 bind_index) const override;
-    virtual void Bind(const CommandBufferBase *command_buffer, const GraphicsPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
-    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, uint32 bind_index) const override;
-    virtual void Bind(const CommandBufferBase *command_buffer, const ComputePipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
-    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, uint32 bind_index) const override;
-    virtual void Bind(const CommandBufferBase *command_buffer, const RaytracingPipelineBase *pipeline, const ArrayMap<Name, uint32> &offsets, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const GraphicsPipelineBase* pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const GraphicsPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const ComputePipelineBase* pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const ComputePipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const RaytracingPipelineBase* pipeline, uint32 bind_index) const override;
+    virtual void Bind(const CommandBufferBase* command_buffer, const RaytracingPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const override;
 
-    VkDescriptorSet                                         m_handle;
-    HashMap<Name, Array<DescriptorSetElementCachedValue>>   m_cached_elements;
-    VulkanDescriptorSetLayoutWrapperRef                     m_vk_layout_wrapper;
+    VkDescriptorSet m_handle;
+    HashMap<Name, Array<DescriptorSetElementCachedValue>> m_cached_elements;
+    VulkanDescriptorSetLayoutWrapperRef m_vk_layout_wrapper;
 };
 
 class VulkanDescriptorTable : public DescriptorTableBase
 {
 public:
-    HYP_API VulkanDescriptorTable(const DescriptorTableDeclaration &decl);
+    HYP_API VulkanDescriptorTable(const DescriptorTableDeclaration& decl);
     HYP_API virtual ~VulkanDescriptorTable() override = default;
 };
 

@@ -8,56 +8,58 @@
 
 using namespace hyperion;
 
-extern "C" {
-using TaskDelegate = std::add_pointer_t<void()>;
-
-HYP_EXPORT TaskBatch *TaskBatch_Create()
+extern "C"
 {
-    return new TaskBatch();
-}
+    using TaskDelegate = std::add_pointer_t<void()>;
 
-HYP_EXPORT void TaskBatch_Destroy(TaskBatch *task_batch)
-{
-    delete task_batch;
-}
-
-HYP_EXPORT bool TaskBatch_IsCompleted(const TaskBatch *task_batch)
-{
-    return task_batch->IsCompleted();
-}
-
-HYP_EXPORT int32 TaskBatch_NumCompleted(const TaskBatch *task_batch)
-{
-    return task_batch->semaphore.GetValue();
-}
-
-HYP_EXPORT int32 TaskBatch_NumEnqueued(const TaskBatch *task_batch)
-{
-    return task_batch->num_enqueued;
-}
-
-HYP_EXPORT void TaskBatch_AwaitCompletion(TaskBatch *task_batch)
-{
-    task_batch->AwaitCompletion();
-}
-
-HYP_EXPORT void TaskBatch_AddTask(TaskBatch *task_batch, TaskDelegate delegate)
-{
-    task_batch->AddTask([delegate](...)
+    HYP_EXPORT TaskBatch* TaskBatch_Create()
     {
-        delegate();
-    });
-}
-
-HYP_EXPORT void TaskBatch_Launch(TaskBatch *task_batch, void(*callback)(void))
-{
-    if (!task_batch) {
-        return;
+        return new TaskBatch();
     }
 
-    task_batch->OnComplete.Bind(callback).Detach();
+    HYP_EXPORT void TaskBatch_Destroy(TaskBatch* task_batch)
+    {
+        delete task_batch;
+    }
 
-    TaskSystem::GetInstance().EnqueueBatch(task_batch);
-}
+    HYP_EXPORT bool TaskBatch_IsCompleted(const TaskBatch* task_batch)
+    {
+        return task_batch->IsCompleted();
+    }
+
+    HYP_EXPORT int32 TaskBatch_NumCompleted(const TaskBatch* task_batch)
+    {
+        return task_batch->semaphore.GetValue();
+    }
+
+    HYP_EXPORT int32 TaskBatch_NumEnqueued(const TaskBatch* task_batch)
+    {
+        return task_batch->num_enqueued;
+    }
+
+    HYP_EXPORT void TaskBatch_AwaitCompletion(TaskBatch* task_batch)
+    {
+        task_batch->AwaitCompletion();
+    }
+
+    HYP_EXPORT void TaskBatch_AddTask(TaskBatch* task_batch, TaskDelegate delegate)
+    {
+        task_batch->AddTask([delegate](...)
+            {
+                delegate();
+            });
+    }
+
+    HYP_EXPORT void TaskBatch_Launch(TaskBatch* task_batch, void (*callback)(void))
+    {
+        if (!task_batch)
+        {
+            return;
+        }
+
+        task_batch->OnComplete.Bind(callback).Detach();
+
+        TaskSystem::GetInstance().EnqueueBatch(task_batch);
+    }
 
 } // extern "C"

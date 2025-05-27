@@ -14,6 +14,7 @@ namespace hyperion {
 class Lightmapper;
 
 HYP_CLASS()
+
 class HYP_API LightmapperSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(LightmapperSubsystem);
@@ -26,11 +27,11 @@ public:
     virtual void Shutdown() override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
-    Task<void> *GenerateLightmaps(const Handle<Scene> &scene);
+    Task<void>* GenerateLightmaps(const Handle<Scene>& scene);
 
 private:
-    HashMap<ID<Scene>, UniquePtr<Lightmapper>>  m_lightmappers;
-    LinkedList<Task<void>>                      m_tasks;
+    HashMap<ID<Scene>, UniquePtr<Lightmapper>> m_lightmappers;
+    LinkedList<Task<void>> m_tasks;
 };
 
 } // namespace hyperion

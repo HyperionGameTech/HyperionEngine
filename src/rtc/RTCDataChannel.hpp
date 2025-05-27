@@ -11,7 +11,7 @@ namespace rtc {
 class DataChannel;
 } // namespace rtc
 
-#include <memory>
+    #include <memory>
 
 class LibDataChannelRTCClient;
 
@@ -22,15 +22,15 @@ namespace hyperion {
 class HYP_API RTCDataChannel
 {
 public:
-    RTCDataChannel()                                            = default;
-    RTCDataChannel(const RTCDataChannel &other)                 = delete;
-    RTCDataChannel &operator=(const RTCDataChannel &other)      = delete;
-    RTCDataChannel(RTCDataChannel &&other) noexcept             = delete;
-    RTCDataChannel &operator=(RTCDataChannel &&other) noexcept  = delete;
-    virtual ~RTCDataChannel()                                   = default;
+    RTCDataChannel() = default;
+    RTCDataChannel(const RTCDataChannel& other) = delete;
+    RTCDataChannel& operator=(const RTCDataChannel& other) = delete;
+    RTCDataChannel(RTCDataChannel&& other) noexcept = delete;
+    RTCDataChannel& operator=(RTCDataChannel&& other) noexcept = delete;
+    virtual ~RTCDataChannel() = default;
 
-    virtual void Send(const ByteBuffer &) = 0;
-    void Send(const String &);
+    virtual void Send(const ByteBuffer&) = 0;
+    void Send(const String&);
 };
 
 class HYP_API NullRTCDataChannel : public RTCDataChannel
@@ -38,14 +38,14 @@ class HYP_API NullRTCDataChannel : public RTCDataChannel
 public:
     using RTCDataChannel::Send;
 
-    NullRTCDataChannel()                                                = default;
-    NullRTCDataChannel(const NullRTCDataChannel &other)                 = delete;
-    NullRTCDataChannel &operator=(const NullRTCDataChannel &other)      = delete;
-    NullRTCDataChannel(NullRTCDataChannel &&other) noexcept             = delete;
-    NullRTCDataChannel &operator=(NullRTCDataChannel &&other) noexcept  = delete;
-    virtual ~NullRTCDataChannel() override                              = default;
+    NullRTCDataChannel() = default;
+    NullRTCDataChannel(const NullRTCDataChannel& other) = delete;
+    NullRTCDataChannel& operator=(const NullRTCDataChannel& other) = delete;
+    NullRTCDataChannel(NullRTCDataChannel&& other) noexcept = delete;
+    NullRTCDataChannel& operator=(NullRTCDataChannel&& other) noexcept = delete;
+    virtual ~NullRTCDataChannel() override = default;
 
-    virtual void Send(const ByteBuffer &) override;
+    virtual void Send(const ByteBuffer&) override;
 };
 
 #ifdef HYP_LIBDATACHANNEL
@@ -57,14 +57,14 @@ public:
 
     using RTCDataChannel::Send;
 
-    LibDataChannelRTCDataChannel()                                                          = default;
-    LibDataChannelRTCDataChannel(const LibDataChannelRTCDataChannel &other)                 = delete;
-    LibDataChannelRTCDataChannel &operator=(const LibDataChannelRTCDataChannel &other)      = delete;
-    LibDataChannelRTCDataChannel(LibDataChannelRTCDataChannel &&other) noexcept             = delete;
-    LibDataChannelRTCDataChannel &operator=(LibDataChannelRTCDataChannel &&other) noexcept  = delete;
-    virtual ~LibDataChannelRTCDataChannel()                                                 = default;
+    LibDataChannelRTCDataChannel() = default;
+    LibDataChannelRTCDataChannel(const LibDataChannelRTCDataChannel& other) = delete;
+    LibDataChannelRTCDataChannel& operator=(const LibDataChannelRTCDataChannel& other) = delete;
+    LibDataChannelRTCDataChannel(LibDataChannelRTCDataChannel&& other) noexcept = delete;
+    LibDataChannelRTCDataChannel& operator=(LibDataChannelRTCDataChannel&& other) noexcept = delete;
+    virtual ~LibDataChannelRTCDataChannel() = default;
 
-    virtual void Send(const ByteBuffer &) override;
+    virtual void Send(const ByteBuffer&) override;
 
 private:
     std::shared_ptr<rtc::DataChannel> m_data_channel;

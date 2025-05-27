@@ -23,10 +23,11 @@ class ScriptTracker
 public:
     ScriptTracker()
     {
-        if (!dotnet::DotNetSystem::GetInstance().IsInitialized()) {
+        if (!dotnet::DotNetSystem::GetInstance().IsInitialized())
+        {
             return;
         }
-        
+
         RC<dotnet::Assembly> managed_assembly = dotnet::DotNetSystem::GetInstance().LoadAssembly("HyperionScripting.dll");
         AssertThrowMsg(managed_assembly != nullptr, "Failed to load HyperionScripting assembly");
 
@@ -37,47 +38,50 @@ public:
         m_assembly = std::move(managed_assembly);
     }
 
-    HYP_FORCE_INLINE dotnet::Object *GetObject() const
-        { return m_object.Get(); } 
+    HYP_FORCE_INLINE dotnet::Object* GetObject() const
+    {
+        return m_object.Get();
+    }
 
     void InvokeUpdate()
     {
-        if (!m_object) {
+        if (!m_object)
+        {
             return;
         }
-        
+
         AssertThrowMsg(m_object != nullptr && m_object->IsValid(), "Cannot call InvokeUpdate(), ScriptTracker is not properly initialized");
 
         m_object->InvokeMethodByName<void>("Update");
     }
 
 private:
-    RC<dotnet::Assembly>        m_assembly;
-    UniquePtr<dotnet::Object>   m_object;
+    RC<dotnet::Assembly> m_assembly;
+    UniquePtr<dotnet::Object> m_object;
 };
 
 #pragma endregion ScriptTracker
 
 #pragma region ScriptingServiceThread
 
-using ScriptingServiceThreadCallback = void(*)(void *, ScriptEvent);
+using ScriptingServiceThreadCallback = void (*)(void*, ScriptEvent);
 
 class ScriptingServiceThread : public TaskThread
 {
 public:
     ScriptingServiceThread(
-        const FilePath &watch_directory,
-        const FilePath &intermediate_directory,
-        const FilePath &binary_output_directory,
+        const FilePath& watch_directory,
+        const FilePath& intermediate_directory,
+        const FilePath& binary_output_directory,
         ScriptingServiceThreadCallback callback,
-        void *callback_self_ptr
-    ) : TaskThread(ThreadID(NAME("ScriptingServiceThread")), ThreadPriorityValue::LOWEST),
-        m_script_tracker(new ScriptTracker),
-        m_watch_directory(watch_directory),
-        m_intermediate_directory(intermediate_directory),
-        m_binary_output_directory(binary_output_directory),
-        m_callback(callback),
-        m_callback_self_ptr(callback_self_ptr)
+        void* callback_self_ptr)
+        : TaskThread(ThreadID(NAME("ScriptingServiceThread")), ThreadPriorityValue::LOWEST),
+          m_script_tracker(new ScriptTracker),
+          m_watch_directory(watch_directory),
+          m_intermediate_directory(intermediate_directory),
+          m_binary_output_directory(binary_output_directory),
+          m_callback(callback),
+          m_callback_self_ptr(callback_self_ptr)
     {
     }
 
@@ -86,8 +90,10 @@ public:
         delete m_script_tracker;
     }
 
-    ScriptTracker *GetScriptTracker() const
-        { return m_script_tracker; }
+    ScriptTracker* GetScriptTracker() const
+    {
+        return m_script_tracker;
+    }
 
     virtual void Stop() override
     {
@@ -97,9 +103,10 @@ public:
 protected:
     virtual void operator()() override
     {
-        if (!m_script_tracker->GetObject()) {
+        if (!m_script_tracker->GetObject())
+        {
             m_is_running.Set(false, MemoryOrder::RELAXED);
-            
+
             return;
         }
 
@@ -113,20 +120,22 @@ protected:
                 m_watch_directory,
                 m_intermediate_directory,
                 m_binary_output_directory,
-                (void *)m_callback,
-                m_callback_self_ptr
-            );
+                (void*)m_callback,
+                m_callback_self_ptr);
         }
 
         Queue<Scheduler::ScheduledTask> tasks;
 
-        while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
-            if (uint32 num_enqueued = m_scheduler.NumEnqueued()) {
+        while (!m_stop_requested.Get(MemoryOrder::RELAXED))
+        {
+            if (uint32 num_enqueued = m_scheduler.NumEnqueued())
+            {
                 HYP_NAMED_SCOPE("Scripting service: Execute enqueued tasks");
 
                 m_scheduler.AcceptAll(tasks);
 
-                while (tasks.Any()) {
+                while (tasks.Any())
+                {
                     tasks.Pop().Execute();
                 }
             }
@@ -138,41 +147,43 @@ protected:
         }
     }
 
-    ScriptTracker                   *m_script_tracker;
-    FilePath                        m_watch_directory;
-    FilePath                        m_intermediate_directory;
-    FilePath                        m_binary_output_directory;
-    ScriptingServiceThreadCallback  m_callback;
-    void                            *m_callback_self_ptr;
+    ScriptTracker* m_script_tracker;
+    FilePath m_watch_directory;
+    FilePath m_intermediate_directory;
+    FilePath m_binary_output_directory;
+    ScriptingServiceThreadCallback m_callback;
+    void* m_callback_self_ptr;
 };
 
 #pragma endregion ScriptingServiceThread
 
 #pragma region ScriptingService
 
-ScriptingService::ScriptingService(const FilePath &watch_directory, const FilePath &intermediate_directory, const FilePath &binary_output_directory)
+ScriptingService::ScriptingService(const FilePath& watch_directory, const FilePath& intermediate_directory, const FilePath& binary_output_directory)
     : m_thread(MakeUnique<ScriptingServiceThread>(
-        watch_directory,
-        intermediate_directory,
-        binary_output_directory,
-        [](void *self_ptr, ScriptEvent event)
-        {
-            static_cast<ScriptingService *>(self_ptr)->PushScriptEvent(event);
-        },
-        this
-      ))
+          watch_directory,
+          intermediate_directory,
+          binary_output_directory,
+          [](void* self_ptr, ScriptEvent event)
+          {
+              static_cast<ScriptingService*>(self_ptr)->PushScriptEvent(event);
+          },
+          this))
 {
     HYP_NAMED_SCOPE("ScriptingService: Initialize directories");
 
-    if (!watch_directory.Exists()) {
+    if (!watch_directory.Exists())
+    {
         watch_directory.MkDir();
     }
 
-    if (!intermediate_directory.Exists()) {
+    if (!intermediate_directory.Exists())
+    {
         intermediate_directory.MkDir();
     }
 
-    if (!binary_output_directory.Exists()) {
+    if (!binary_output_directory.Exists())
+    {
         binary_output_directory.MkDir();
     }
 }
@@ -194,7 +205,8 @@ void ScriptingService::Stop()
 
 void ScriptingService::Update()
 {
-    if (!HasEvents()) {
+    if (!HasEvents())
+    {
         return;
     }
 
@@ -212,15 +224,18 @@ void ScriptingService::Update()
         m_script_event_queue_count.Decrement(script_event_queue.Size(), MemoryOrder::RELEASE);
     }
 
-    if (script_event_queue.Empty()) {
+    if (script_event_queue.Empty())
+    {
         return;
     }
 
     {
         HYP_NAMED_SCOPE("ScriptingService: Process events");
 
-        for (ScriptEvent &event : script_event_queue) {
-            switch (event.type) {
+        for (ScriptEvent& event : script_event_queue)
+        {
+            switch (event.type)
+            {
             case ScriptEventType::STATE_CHANGED:
                 OnScriptStateChanged(*event.script);
 
@@ -236,7 +251,7 @@ void ScriptingService::Update()
 
 // Called from any thread - most likely from C# thread pool
 // @TODO: Use scheduler to push task to game thread instead
-void ScriptingService::PushScriptEvent(const ScriptEvent &event)
+void ScriptingService::PushScriptEvent(const ScriptEvent& event)
 {
     Mutex::Guard guard(m_script_event_queue_mutex);
 

@@ -38,19 +38,20 @@ static constexpr InternalFormat ddgi_depth_format = InternalFormat::RG16F;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(SetDDGIDescriptors) : renderer::RenderCommand
+struct RENDER_COMMAND(SetDDGIDescriptors)
+    : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
     ImageViewRef irradiance_image_view;
     ImageViewRef depth_image_view;
 
     RENDER_COMMAND(SetDDGIDescriptors)(
-        const GPUBufferRef &uniform_buffer,
-        const ImageViewRef &irradiance_image_view,
-        const ImageViewRef &depth_image_view
-    ) : uniform_buffer(uniform_buffer),
-        irradiance_image_view(irradiance_image_view),
-        depth_image_view(depth_image_view)
+        const GPUBufferRef& uniform_buffer,
+        const ImageViewRef& irradiance_image_view,
+        const ImageViewRef& depth_image_view)
+        : uniform_buffer(uniform_buffer),
+          irradiance_image_view(irradiance_image_view),
+          depth_image_view(depth_image_view)
     {
     }
 
@@ -58,22 +59,21 @@ struct RENDER_COMMAND(SetDDGIDescriptors) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DDGIUniforms"), uniform_buffer);
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), uniform_buffer);
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DDGIIrradianceTexture"), irradiance_image_view);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), irradiance_image_view);
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DDGIDepthTexture"), depth_image_view);
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), depth_image_view);
         }
 
         HYPERION_RETURN_OK;
     }
 };
 
-struct RENDER_COMMAND(UnsetDDGIDescriptors) : renderer::RenderCommand
+struct RENDER_COMMAND(UnsetDDGIDescriptors)
+    : renderer::RenderCommand
 {
     RENDER_COMMAND(UnsetDDGIDescriptors)()
     {
@@ -82,26 +82,26 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors) : renderer::RenderCommand
     virtual ~RENDER_COMMAND(UnsetDDGIDescriptors)() override = default;
 
     virtual RendererResult operator()() override
-    {   
+    {
         // remove result image from global descriptor set
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DDGIIrradianceTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
-                ->SetElement(NAME("DDGIDepthTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
     }
 };
 
-struct RENDER_COMMAND(CreateDDGIUniformBuffer) : renderer::RenderCommand
+struct RENDER_COMMAND(CreateDDGIUniformBuffer)
+    : renderer::RenderCommand
 {
     GPUBufferRef uniform_buffer;
     DDGIUniforms uniforms;
 
-    RENDER_COMMAND(CreateDDGIUniformBuffer)(const GPUBufferRef &uniform_buffer, const DDGIUniforms &uniforms)
+    RENDER_COMMAND(CreateDDGIUniformBuffer)(const GPUBufferRef& uniform_buffer, const DDGIUniforms& uniforms)
         : uniform_buffer(uniform_buffer),
           uniforms(uniforms)
     {
@@ -118,12 +118,13 @@ struct RENDER_COMMAND(CreateDDGIUniformBuffer) : renderer::RenderCommand
     }
 };
 
-struct RENDER_COMMAND(CreateDDGIRadianceBuffer) : renderer::RenderCommand
+struct RENDER_COMMAND(CreateDDGIRadianceBuffer)
+    : renderer::RenderCommand
 {
     GPUBufferRef radiance_buffer;
     DDGIInfo grid_info;
 
-    RENDER_COMMAND(CreateDDGIRadianceBuffer)(const GPUBufferRef &radiance_buffer, const DDGIInfo &grid_info)
+    RENDER_COMMAND(CreateDDGIRadianceBuffer)(const GPUBufferRef& radiance_buffer, const DDGIInfo& grid_info)
         : radiance_buffer(radiance_buffer),
           grid_info(grid_info)
     {
@@ -142,7 +143,7 @@ struct RENDER_COMMAND(CreateDDGIRadianceBuffer) : renderer::RenderCommand
 
 #pragma endregion Render commands
 
-DDGI::DDGI(DDGIInfo &&grid_info)
+DDGI::DDGI(DDGIInfo&& grid_info)
     : m_grid_info(std::move(grid_info)),
       m_updates { PROBE_SYSTEM_UPDATES_NONE, PROBE_SYSTEM_UPDATES_NONE },
       m_time(0)
@@ -158,9 +159,12 @@ void DDGI::Init()
     const Vec3u grid = m_grid_info.NumProbesPerDimension();
     m_probes.Resize(m_grid_info.NumProbes());
 
-    for (uint32 x = 0; x < grid.x; x++) {
-        for (uint32 y = 0; y < grid.y; y++) {
-            for (uint32 z = 0; z < grid.z; z++) {
+    for (uint32 x = 0; x < grid.x; x++)
+    {
+        for (uint32 y = 0; y < grid.y; y++)
+        {
+            for (uint32 z = 0; z < grid.z; z++)
+            {
                 const uint32 index = x * grid.x * grid.y + y * grid.z + z;
 
                 m_probes[index] = Probe {
@@ -178,14 +182,13 @@ void DDGI::Init()
         SetDDGIDescriptors,
         m_uniform_buffer,
         m_irradiance_image_view,
-        m_depth_image_view
-    );
+        m_depth_image_view);
 }
 
 void DDGI::Destroy()
 {
     m_shader.Reset();
-    
+
     SafeRelease(std::move(m_uniform_buffer));
     SafeRelease(std::move(m_radiance_buffer));
     SafeRelease(std::move(m_irradiance_image));
@@ -211,14 +214,15 @@ void DDGI::CreatePipelines()
     const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef raytracing_pipeline_descriptor_table = g_rendering_api->MakeDescriptorTable(raytracing_pipeline_descriptor_table_decl);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
         AssertThrow(m_top_level_acceleration_structures[frame_index] != nullptr);
 
-        const DescriptorSetRef &descriptor_set = raytracing_pipeline_descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
+        const DescriptorSetRef& descriptor_set = raytracing_pipeline_descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
-        
+
         descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
@@ -233,8 +237,7 @@ void DDGI::CreatePipelines()
 
     m_pipeline = g_rendering_api->MakeRaytracingPipeline(
         m_shader,
-        raytracing_pipeline_descriptor_table
-    );
+        raytracing_pipeline_descriptor_table);
 
     DeferCreate(m_pipeline);
 
@@ -243,22 +246,24 @@ void DDGI::CreatePipelines()
     ShaderRef copy_border_texels_irradiance_shader = g_shader_manager->GetOrCreate(NAME("RTCopyBorderTexelsIrradiance"));
     ShaderRef copy_border_texels_depth_shader = g_shader_manager->GetOrCreate(NAME("RTCopyBorderTexelsDepth"));
 
-    Pair<ShaderRef, ComputePipelineRef &> shaders[] = {
+    Pair<ShaderRef, ComputePipelineRef&> shaders[] = {
         { update_irradiance_shader, m_update_irradiance },
         { update_depth_shader, m_update_depth },
         { copy_border_texels_irradiance_shader, m_copy_border_texels_irradiance },
         { copy_border_texels_depth_shader, m_copy_border_texels_depth }
     };
 
-    for (const Pair<ShaderRef, ComputePipelineRef &> &it : shaders) {
+    for (const Pair<ShaderRef, ComputePipelineRef&>& it : shaders)
+    {
         AssertThrow(it.first.IsValid());
-        
+
         const DescriptorTableDeclaration descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
             AssertThrow(descriptor_set != nullptr);
 
             descriptor_set->SetElement(NAME("DDGIUniforms"), m_uniform_buffer);
@@ -272,8 +277,7 @@ void DDGI::CreatePipelines()
 
         it.second = g_rendering_api->MakeComputePipeline(
             it.first,
-            descriptor_table
-        );
+            descriptor_table);
 
         DeferCreate(it.second);
     }
@@ -293,38 +297,17 @@ void DDGI::CreateUniformBuffer()
             m_grid_info.probe_border.x,
             m_grid_info.probe_border.y,
             m_grid_info.probe_border.z,
-            0
-        },
-        .probe_counts = {
-            num_probes_per_dimension.x,
-            num_probes_per_dimension.y,
-            num_probes_per_dimension.z,
-            0
-        },
-        .grid_dimensions = {
-            grid_image_dimensions.x,
-            grid_image_dimensions.y,
-            0, 0
-        },
-        .image_dimensions = {
-            m_irradiance_image->GetExtent().x,
-            m_irradiance_image->GetExtent().y,
-            m_depth_image->GetExtent().x,
-            m_depth_image->GetExtent().y
-        },
-        .params = {
-            ByteUtil::PackFloat(m_grid_info.probe_distance),
-            m_grid_info.num_rays_per_probe,
-            PROBE_SYSTEM_FLAGS_FIRST_RUN,
-            0
-        }
+            0 },
+        .probe_counts = { num_probes_per_dimension.x, num_probes_per_dimension.y, num_probes_per_dimension.z, 0 },
+        .grid_dimensions = { grid_image_dimensions.x, grid_image_dimensions.y, 0, 0 },
+        .image_dimensions = { m_irradiance_image->GetExtent().x, m_irradiance_image->GetExtent().y, m_depth_image->GetExtent().x, m_depth_image->GetExtent().y },
+        .params = { ByteUtil::PackFloat(m_grid_info.probe_distance), m_grid_info.num_rays_per_probe, PROBE_SYSTEM_FLAGS_FIRST_RUN, 0 }
     };
 
     PUSH_RENDER_COMMAND(
         CreateDDGIUniformBuffer,
         m_uniform_buffer,
-        m_uniforms
-    );
+        m_uniforms);
 }
 
 void DDGI::CreateStorageBuffers()
@@ -336,8 +319,7 @@ void DDGI::CreateStorageBuffers()
     PUSH_RENDER_COMMAND(
         CreateDDGIRadianceBuffer,
         m_radiance_buffer,
-        m_grid_info
-    );
+        m_grid_info);
 
     { // irradiance image
         const Vec3u extent {
@@ -354,8 +336,7 @@ void DDGI::CreateStorageBuffers()
             renderer::FilterMode::TEXTURE_FILTER_NEAREST,
             renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-        });
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
         DeferCreate(m_irradiance_image);
     }
@@ -381,8 +362,7 @@ void DDGI::CreateStorageBuffers()
             renderer::FilterMode::TEXTURE_FILTER_NEAREST,
             renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-        });
+            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
         DeferCreate(m_depth_image);
     }
@@ -396,20 +376,24 @@ void DDGI::CreateStorageBuffers()
 
 void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
 {
-    if (!flags) {
+    if (!flags)
+    {
         return;
     }
-    
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = m_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = m_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE) {
+        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE)
+        {
             // update acceleration structure in descriptor set
             descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         }
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS) {
+        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS)
+        {
             // update mesh descriptions buffer in descriptor set
             descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
         }
@@ -420,12 +404,12 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
     }
 }
 
-void DDGI::UpdateUniforms(FrameBase *frame)
+void DDGI::UpdateUniforms(FrameBase* frame)
 {
     // FIXME: Lights are now stored per-view.
     // We don't have a View for DDGI since it is for the entire WorldRenderResource it is indirectly attached to.
     // We'll need to find a way to get the lights for the current view.
-    // Ideas: 
+    // Ideas:
     // a) create a View for the DDGI and use that to get the lights. It will need to collect the lights on the Game thread so we'll need to add some kind of System to do that.
     // b) add a function to the SceneRenderResource to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some LightRenderResource active when it could be inactive if it is not in any view.
     // OR: We can just use the lights in the current view and ignore the rest. This is a bit of a hack but it will work for now.
@@ -438,16 +422,16 @@ void DDGI::UpdateUniforms(FrameBase *frame)
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::RenderProbes(FrameBase *frame)
+void DDGI::RenderProbes(FrameBase* frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
     UpdateUniforms(frame);
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
 
@@ -456,7 +440,7 @@ void DDGI::RenderProbes(FrameBase *frame)
     struct alignas(128)
     {
         Matrix4 matrix;
-        uint32  time;
+        uint32 time;
     } push_constants;
 
     push_constants.matrix = m_random_generator.matrix;
@@ -470,72 +454,58 @@ void DDGI::RenderProbes(FrameBase *frame)
         m_pipeline->GetDescriptorTable(),
         m_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            {
-                NAME("Global"),
-                {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+            { NAME("Global"),
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
-                }
-            }
-        },
-        frame->GetFrameIndex()
-    );
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+        frame->GetFrameIndex());
 
     frame->GetCommandList().Add<TraceRays>(
         m_pipeline,
         Vec3u {
             m_grid_info.NumProbes(),
             m_grid_info.num_rays_per_probe,
-            1u
-        }
-    );
+            1u });
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_radiance_buffer,
-        ResourceState::UNORDERED_ACCESS
-    );
+        ResourceState::UNORDERED_ACCESS);
 }
 
-void DDGI::ComputeIrradiance(FrameBase *frame)
+void DDGI::ComputeIrradiance(FrameBase* frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_irradiance_image,
-        ResourceState::UNORDERED_ACCESS
-    );
+        ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_depth_image,
-        ResourceState::UNORDERED_ACCESS
-    );
+        ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(m_update_irradiance);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
         m_update_irradiance->GetDescriptorTable(),
         m_update_irradiance,
-        ArrayMap<Name, ArrayMap<Name, uint32>> { },
-        frame->GetFrameIndex()
-    );
+        ArrayMap<Name, ArrayMap<Name, uint32>> {},
+        frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
         m_update_irradiance,
         Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
-            1u
-        }
-    );
+            1u });
 
     frame->GetCommandList().Add<BindComputePipeline>(m_update_depth);
 
@@ -543,28 +513,20 @@ void DDGI::ComputeIrradiance(FrameBase *frame)
         m_update_depth->GetDescriptorTable(),
         m_update_depth,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            {
-                NAME("Global"),
-                {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+            { NAME("Global"),
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
-                }
-            }
-        },
-        frame->GetFrameIndex()
-    );
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+        frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
         m_update_depth,
         Vec3u {
             probe_counts.x * probe_counts.y,
             probe_counts.z,
-            1u
-        }
-    );
-    
+            1u });
+
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     m_irradiance_image->InsertBarrier(
         frame->GetCommandList(),

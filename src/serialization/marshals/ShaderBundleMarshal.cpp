@@ -21,9 +21,10 @@ class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledSha
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const CompiledShader &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const CompiledShader& in_object, FBOMObject& out) const override
     {
-        if (!in_object.IsValid()) {
+        if (!in_object.IsValid())
+        {
             return { FBOMResult::FBOM_ERR, "Cannot serialize invalid compiled shader instance" };
         }
 
@@ -40,57 +41,57 @@ public:
         const VertexAttributeSet optional_vertex_attributes = in_object.definition.properties.GetOptionalVertexAttributes();
         out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
 
-        for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++) {
+        for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++)
+        {
             out.AddChild(in_object.GetDescriptorUsages()[index]);
         }
 
         Array<ShaderProperty> properties_array = in_object.definition.properties.GetPropertySet().ToArray();
         out.SetProperty("properties.size", FBOMData::FromUInt32(uint32(properties_array.Size())));
 
-        for (SizeType index = 0; index < properties_array.Size(); index++) {
-            const ShaderProperty &item = properties_array[index];
+        for (SizeType index = 0; index < properties_array.Size(); index++)
+        {
+            const ShaderProperty& item = properties_array[index];
 
             // @TODO: Serialize `value`
 
             out.SetProperty(
                 ANSIString("properties.") + ANSIString::ToString(index) + ".name",
-                FBOMData::FromString(item.name)
-            );
+                FBOMData::FromString(item.name));
 
             out.SetProperty(
                 ANSIString("properties.") + ANSIString::ToString(index) + ".is_permutation",
-                FBOMData::FromBool(item.is_permutation)
-            );
+                FBOMData::FromBool(item.is_permutation));
 
             out.SetProperty(
                 ANSIString("properties.") + ANSIString::ToString(index) + ".flags",
-                FBOMData::FromUInt32(item.flags)
-            );
+                FBOMData::FromUInt32(item.flags));
 
             out.SetProperty(
                 ANSIString("properties.") + ANSIString::ToString(index) + ".is_value_group",
-                FBOMData::FromBool(item.IsValueGroup())
-            );
+                FBOMData::FromBool(item.IsValueGroup()));
 
-            if (item.IsValueGroup()) {
+            if (item.IsValueGroup())
+            {
                 out.SetProperty(
                     ANSIString("properties.") + ANSIString::ToString(index) + ".num_possible_values",
-                    FBOMData::FromUInt32(uint32(item.possible_values.Size()))
-                );
+                    FBOMData::FromUInt32(uint32(item.possible_values.Size())));
 
-                for (SizeType i = 0; i < item.possible_values.Size(); i++) {
+                for (SizeType i = 0; i < item.possible_values.Size(); i++)
+                {
                     out.SetProperty(
                         ANSIString("properties.") + ANSIString::ToString(index) + ".possible_values[" + ANSIString::ToString(i) + "]",
-                        FBOMData::FromString(item.possible_values[i])
-                    );
+                        FBOMData::FromString(item.possible_values[i]));
                 }
             }
         }
 
-        for (SizeType index = 0; index < in_object.modules.Size(); index++) {
-            const ByteBuffer &byte_buffer = in_object.modules[index];
+        for (SizeType index = 0; index < in_object.modules.Size(); index++)
+        {
+            const ByteBuffer& byte_buffer = in_object.modules[index];
 
-            if (byte_buffer.Size()) {
+            if (byte_buffer.Size())
+            {
                 out.SetProperty(ANSIString("module[") + ANSIString::ToString(index) + "]", FBOMData::FromByteBuffer(byte_buffer));
             }
         }
@@ -108,15 +109,17 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         uint64 global_descriptor_table_version = -1;
 
-        if (FBOMResult err = in.GetProperty("global_descriptor_table_version").ReadUInt64(&global_descriptor_table_version)) {
+        if (FBOMResult err = in.GetProperty("global_descriptor_table_version").ReadUInt64(&global_descriptor_table_version))
+        {
             return err;
         }
 
-        if (global_descriptor_table_version != renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value()) {
+        if (global_descriptor_table_version != renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        {
             HYP_LOG(ShaderCompiler, Info, "The global descriptor table version does not match. This shader will need to be recompiled.");
 
             return { FBOMResult::FBOM_ERR, "Global descriptor table version mismatch" };
@@ -124,29 +127,36 @@ public:
 
         CompiledShader compiled_shader;
 
-        if (FBOMResult err = in.GetProperty("name").ReadName(&compiled_shader.definition.name)) {
+        if (FBOMResult err = in.GetProperty("name").ReadName(&compiled_shader.definition.name))
+        {
             return err;
         }
 
-        if (in.HasProperty("entry_point_name")) {
-            if (FBOMResult err = in.GetProperty("entry_point_name").ReadString(compiled_shader.entry_point_name)) {
+        if (in.HasProperty("entry_point_name"))
+        {
+            if (FBOMResult err = in.GetProperty("entry_point_name").ReadString(compiled_shader.entry_point_name))
+            {
                 return err;
             }
-        } else {
+        }
+        else
+        {
             compiled_shader.entry_point_name = "main";
         }
 
-        VertexAttributeSet required_vertex_attributes { };
+        VertexAttributeSet required_vertex_attributes {};
 
-        if (FBOMResult err = in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask)) {
+        if (FBOMResult err = in.GetProperty("required_vertex_attributes").ReadUInt64(&required_vertex_attributes.flag_mask))
+        {
             return err;
         }
 
         compiled_shader.definition.properties.SetRequiredVertexAttributes(required_vertex_attributes);
 
-        VertexAttributeSet optional_vertex_attributes { };
-        
-        if (FBOMResult err = in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask)) {
+        VertexAttributeSet optional_vertex_attributes {};
+
+        if (FBOMResult err = in.GetProperty("optional_vertex_attributes").ReadUInt64(&optional_vertex_attributes.flag_mask))
+        {
             return err;
         }
 
@@ -154,16 +164,19 @@ public:
 
         uint32 num_properties;
 
-        if (FBOMResult err = in.GetProperty("properties.size").ReadUInt32(&num_properties)) {
+        if (FBOMResult err = in.GetProperty("properties.size").ReadUInt32(&num_properties))
+        {
             return err;
         }
 
-        for (uint32 i = 0; i < num_properties; i++) {
+        for (uint32 i = 0; i < num_properties; i++)
+        {
             const ANSIString param_string = ANSIString("properties.") + ANSIString::ToString(i);
 
             ShaderProperty property;
 
-            if (FBOMResult err = in.GetProperty(param_string + ".name").ReadString(property.name)) {
+            if (FBOMResult err = in.GetProperty(param_string + ".name").ReadString(property.name))
+            {
                 continue;
             }
 
@@ -173,17 +186,21 @@ public:
             in.GetProperty(param_string + ".flags").ReadUInt32(&property.flags);
             in.GetProperty(param_string + ".is_value_group").ReadBool(&is_value_group);
 
-            if (is_value_group) {
+            if (is_value_group)
+            {
                 uint32 num_possible_values = 0;
 
-                if (FBOMResult err = in.GetProperty(param_string + ".num_possible_values").ReadUInt32(&num_possible_values)) {
+                if (FBOMResult err = in.GetProperty(param_string + ".num_possible_values").ReadUInt32(&num_possible_values))
+                {
                     continue;
                 }
 
-                for (uint32 i = 0; i < num_possible_values; i++) {
+                for (uint32 i = 0; i < num_possible_values; i++)
+                {
                     String possible_value;
 
-                    if (FBOMResult err = in.GetProperty(param_string + ".possible_values[" + ANSIString::ToString(i) + "]").ReadString(possible_value)) {
+                    if (FBOMResult err = in.GetProperty(param_string + ".possible_values[" + ANSIString::ToString(i) + "]").ReadString(possible_value))
+                    {
                         continue;
                     }
 
@@ -194,18 +211,23 @@ public:
             compiled_shader.definition.properties.Set(property);
         }
 
-        for (SizeType index = 0; index < ShaderModuleType::MAX; index++) {
+        for (SizeType index = 0; index < ShaderModuleType::MAX; index++)
+        {
             const ANSIString module_property_name = ANSIString("module[") + ANSIString::ToString(index) + "]";
 
-            if (const FBOMData &property = in.GetProperty(module_property_name)) {
-                if (FBOMResult err = property.ReadByteBuffer(compiled_shader.modules[index])) {
+            if (const FBOMData& property = in.GetProperty(module_property_name))
+            {
+                if (FBOMResult err = property.ReadByteBuffer(compiled_shader.modules[index]))
+                {
                     return err;
                 }
             }
         }
 
-        for (const FBOMObject &child : in.GetChildren()) {
-            if (child.GetType().GetNativeTypeID() == TypeID::ForType<DescriptorUsage>()) {
+        for (const FBOMObject& child : in.GetChildren())
+        {
+            if (child.GetType().GetNativeTypeID() == TypeID::ForType<DescriptorUsage>())
+            {
                 compiled_shader.descriptor_usages.Add(child.m_deserialized_object->Get<DescriptorUsage>());
             }
         }
@@ -215,7 +237,7 @@ public:
         // for (const ShaderProperty &property : compiled_shader.definition.properties.ToArray()) {
         //     properties_string += " " + property.name + "\n";
         // }
-        
+
         // DebugLog(LogType::Info, "Deserialized shader '%s', %u descriptor sets; Properties = %s\n", compiled_shader.definition.name.LookupString(),
         //     compiled_shader.descriptor_usages.Size(),
         //     properties_string.Data());
@@ -234,26 +256,32 @@ class FBOMMarshaler<CompiledShaderBatch> : public FBOMObjectMarshalerBase<Compil
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const CompiledShaderBatch &in_object, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const CompiledShaderBatch& in_object, FBOMObject& out) const override
     {
-        for (const CompiledShader &compiled_shader : in_object.compiled_shaders) {
+        for (const CompiledShader& compiled_shader : in_object.compiled_shaders)
+        {
             out.AddChild(compiled_shader);
         }
 
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         CompiledShaderBatch batch;
 
-        for (const FBOMObject &child : in.GetChildren()) {
-            if (child.GetType().IsOrExtends("CompiledShader")) {
-                Optional<CompiledShader &> compiled_shader_opt = child.m_deserialized_object->TryGet<CompiledShader>();
+        for (const FBOMObject& child : in.GetChildren())
+        {
+            if (child.GetType().IsOrExtends("CompiledShader"))
+            {
+                Optional<CompiledShader&> compiled_shader_opt = child.m_deserialized_object->TryGet<CompiledShader>();
 
-                if (compiled_shader_opt.HasValue()) {
+                if (compiled_shader_opt.HasValue())
+                {
                     batch.compiled_shaders.PushBack(*compiled_shader_opt);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Serialization, Error, "Failed to deserialize CompiledShader instance");
                 }
             }

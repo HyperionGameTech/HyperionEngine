@@ -10,56 +10,57 @@
 namespace hyperion {
 
 template <bool DefaultConstructible, bool Copyable, bool Moveable, class Type>
-struct ConstructAssignmentTraits { };
+struct ConstructAssignmentTraits
+{
+};
 
 template <class Type>
 struct ConstructAssignmentTraits<true, false, false, Type>
 {
     constexpr ConstructAssignmentTraits() noexcept = default;
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = delete;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = delete;
 };
 
 template <class Type>
 struct ConstructAssignmentTraits<true, true, false, Type>
 {
     constexpr ConstructAssignmentTraits() noexcept = default;
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = default;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = default;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = default;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = delete;
 };
 
 template <class Type>
 struct ConstructAssignmentTraits<true, true, true, Type>
 {
     constexpr ConstructAssignmentTraits() noexcept = default;
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = default;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = default;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = default;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = default;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = default;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = default;
 };
 
 template <class Type>
 struct ConstructAssignmentTraits<true, false, true, Type>
 {
     constexpr ConstructAssignmentTraits() noexcept = default;
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = delete;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = default;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = default;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = default;
 };
-
 
 template <class Type>
 struct ConstructAssignmentTraits<false, false, false, Type>
 {
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = delete;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = delete;
 
 protected:
     constexpr ConstructAssignmentTraits() noexcept = default;
@@ -68,10 +69,10 @@ protected:
 template <class Type>
 struct ConstructAssignmentTraits<false, true, false, Type>
 {
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = default;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = default;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = default;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = delete;
 
 protected:
     constexpr ConstructAssignmentTraits() noexcept = default;
@@ -80,10 +81,10 @@ protected:
 template <class Type>
 struct ConstructAssignmentTraits<false, true, true, Type>
 {
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = default;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = default;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = default;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = default;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = default;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = default;
 
 protected:
     constexpr ConstructAssignmentTraits() noexcept = default;
@@ -92,10 +93,10 @@ protected:
 template <class Type>
 struct ConstructAssignmentTraits<false, false, true, Type>
 {
-    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits &other) noexcept = delete;
-    ConstructAssignmentTraits &operator=(const ConstructAssignmentTraits &other) noexcept = delete;
-    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits &&other) noexcept = default;
-    ConstructAssignmentTraits &operator=(ConstructAssignmentTraits &&other) noexcept = default;
+    constexpr ConstructAssignmentTraits(const ConstructAssignmentTraits& other) noexcept = delete;
+    ConstructAssignmentTraits& operator=(const ConstructAssignmentTraits& other) noexcept = delete;
+    constexpr ConstructAssignmentTraits(ConstructAssignmentTraits&& other) noexcept = default;
+    ConstructAssignmentTraits& operator=(ConstructAssignmentTraits&& other) noexcept = default;
 
 protected:
     constexpr ConstructAssignmentTraits() noexcept = default;
@@ -110,7 +111,7 @@ struct IsFunctor
 };
 
 template <class T>
-struct IsFunctor<T, std::enable_if_t< implementation_exists< decltype(&T::operator()) > > >
+struct IsFunctor<T, std::enable_if_t<implementation_exists<decltype(&T::operator())>>>
 {
     static constexpr bool value = true;
 };
@@ -143,13 +144,13 @@ struct FunctionTraits<R(Args...)>
 };
 
 template <class R, class... Args>
-struct FunctionTraits<R(*)(Args...)> : public FunctionTraits<R(Args...)>
+struct FunctionTraits<R (*)(Args...)> : public FunctionTraits<R(Args...)>
 {
     static constexpr bool is_function_pointer = true;
 };
 
 template <class R, class C, class... Args>
-struct FunctionTraits<R(C::*)(Args...), std::enable_if_t< !IsFunctor<R(C::*)(Args...) >::value > > : public FunctionTraits<R(Args...)>
+struct FunctionTraits<R (C::*)(Args...), std::enable_if_t<!IsFunctor<R (C::*)(Args...)>::value>> : public FunctionTraits<R(Args...)>
 {
     using ThisType = C;
 
@@ -157,7 +158,7 @@ struct FunctionTraits<R(C::*)(Args...), std::enable_if_t< !IsFunctor<R(C::*)(Arg
 };
 
 template <class R, class C, class... Args>
-struct FunctionTraits<R(C::*)(Args...) const, std::enable_if_t< !IsFunctor<R(C::*)(Args...) const>::value > > : public FunctionTraits<R(Args...)>
+struct FunctionTraits<R (C::*)(Args...) const, std::enable_if_t<!IsFunctor<R (C::*)(Args...) const>::value>> : public FunctionTraits<R(Args...)>
 {
     using ThisType = C;
 
@@ -165,7 +166,7 @@ struct FunctionTraits<R(C::*)(Args...) const, std::enable_if_t< !IsFunctor<R(C::
 };
 
 template <class R, class C, class... Args>
-struct FunctionTraits<R(C::*)(Args...) volatile, std::enable_if_t< !IsFunctor<R(C::*)(Args...) volatile>::value > > : public FunctionTraits<R(Args...)>
+struct FunctionTraits<R (C::*)(Args...) volatile, std::enable_if_t<!IsFunctor<R (C::*)(Args...) volatile>::value>> : public FunctionTraits<R(Args...)>
 {
     using ThisType = C;
 
@@ -173,7 +174,7 @@ struct FunctionTraits<R(C::*)(Args...) volatile, std::enable_if_t< !IsFunctor<R(
 };
 
 template <class R, class C, class... Args>
-struct FunctionTraits<R(C::*)(Args...) const volatile, std::enable_if_t< !IsFunctor<R(C::*)(Args...) const volatile>::value > > : public FunctionTraits<R(Args...) >
+struct FunctionTraits<R (C::*)(Args...) const volatile, std::enable_if_t<!IsFunctor<R (C::*)(Args...) const volatile>::value>> : public FunctionTraits<R(Args...)>
 {
     using ThisType = C;
 
@@ -181,11 +182,10 @@ struct FunctionTraits<R(C::*)(Args...) const volatile, std::enable_if_t< !IsFunc
 };
 
 template <class T>
-struct FunctionTraits<T, std::enable_if_t< IsFunctor<T>::value > > : public FunctionTraits< decltype(&T::operator()) >
+struct FunctionTraits<T, std::enable_if_t<IsFunctor<T>::value>> : public FunctionTraits<decltype(&T::operator())>
 {
     static constexpr bool is_functor = true;
 };
-
 
 // template <class R, class C, class... Args>
 // struct FunctionTraits<R(C::*)(Args...), std::enable_if_t< IsFunctor<R(C::*)(Args...) >::value > > : public FunctionTraits<R(Args...)>
@@ -219,24 +219,35 @@ struct FunctionTraits<T, std::enable_if_t< IsFunctor<T>::value > > : public Func
 //     static constexpr bool is_member_function = true;
 // };
 
+template <class T>
+struct FunctionTraits<T&> : public FunctionTraits<T>
+{
+};
 
 template <class T>
-struct FunctionTraits<T &> : public FunctionTraits<T> {};
+struct FunctionTraits<T&&> : public FunctionTraits<T>
+{
+};
 
 template <class T>
-struct FunctionTraits<T &&> : public FunctionTraits<T> {};
+struct FunctionTraits<T*> : public FunctionTraits<T>
+{
+};
 
 template <class T>
-struct FunctionTraits<T *> : public FunctionTraits<T> {};
+struct FunctionTraits<T const> : public FunctionTraits<T>
+{
+};
 
 template <class T>
-struct FunctionTraits<T const> : public FunctionTraits<T> {};
+struct FunctionTraits<T volatile> : public FunctionTraits<T>
+{
+};
 
 template <class T>
-struct FunctionTraits<T volatile> : public FunctionTraits<T> {};
-
-template <class T>
-struct FunctionTraits<T const volatile> : public FunctionTraits<T> {};
+struct FunctionTraits<T const volatile> : public FunctionTraits<T>
+{
+};
 
 #pragma endregion FunctionTraits
 
@@ -244,15 +255,21 @@ struct FunctionTraits<T const volatile> : public FunctionTraits<T> {};
  *  \param method_name The name of the method to check for.
  *  \details Usage:
  *      HYP_MAKE_HAS_METHOD(ToString);
- * 
+ *
  *      static_assert(HYP_HAS_METHOD(MyType, ToString), "MyType must have a ToString method");
  */
-#define HYP_MAKE_HAS_METHOD(method_name) \
-    template <class T, class Enabled = void> \
-    struct HasMethod_##method_name { static constexpr bool value = false; }; \
-    \
-    template <class T> \
-    struct HasMethod_##method_name<T, std::enable_if_t<std::is_member_function_pointer_v<decltype(&T::method_name)>>> { static constexpr bool value = true; }
+#define HYP_MAKE_HAS_METHOD(method_name)                                                                              \
+    template <class T, class Enabled = void>                                                                          \
+    struct HasMethod_##method_name                                                                                    \
+    {                                                                                                                 \
+        static constexpr bool value = false;                                                                          \
+    };                                                                                                                \
+                                                                                                                      \
+    template <class T>                                                                                                \
+    struct HasMethod_##method_name<T, std::enable_if_t<std::is_member_function_pointer_v<decltype(&T::method_name)>>> \
+    {                                                                                                                 \
+        static constexpr bool value = true;                                                                           \
+    }
 
 #define HYP_HAS_METHOD(T, method_name) HasMethod_##method_name<T>::value
 
@@ -260,15 +277,21 @@ struct FunctionTraits<T const volatile> : public FunctionTraits<T> {};
  *  \param method_name The name of the method to check for.
  *  \details Usage:
  *      HYP_MAKE_HAS_STATIC_METHOD(ToString);
- * 
+ *
  *      static_assert(HYP_HAS_STATIC_METHOD(MyType, Create), "MyType must have a Create static method");
  */
-#define HYP_MAKE_HAS_STATIC_METHOD(method_name) \
-    template <class T, class Enabled = void> \
-    struct HasStaticMethod_##method_name { static constexpr bool value = false; }; \
-    \
-    template <class T> \
-    struct HasStaticMethod_##method_name<T, std::enable_if_t<std::is_function_v<decltype(&T::method_name)>>> { static constexpr bool value = true; }
+#define HYP_MAKE_HAS_STATIC_METHOD(method_name)                                                              \
+    template <class T, class Enabled = void>                                                                 \
+    struct HasStaticMethod_##method_name                                                                     \
+    {                                                                                                        \
+        static constexpr bool value = false;                                                                 \
+    };                                                                                                       \
+                                                                                                             \
+    template <class T>                                                                                       \
+    struct HasStaticMethod_##method_name<T, std::enable_if_t<std::is_function_v<decltype(&T::method_name)>>> \
+    {                                                                                                        \
+        static constexpr bool value = true;                                                                  \
+    }
 
 #define HYP_HAS_STATIC_METHOD(T, method_name) HasStaticMethod_##method_name<T>::value
 

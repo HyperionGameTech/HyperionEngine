@@ -32,7 +32,8 @@ void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 
     AssertThrow(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread);
 
-    if (!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_game_thread)) {
+    if (!(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_game_thread))
+    {
         InitGame();
 
         m_is_initialized.BitOr(uint32(g_game_thread), MemoryOrder::RELEASE);
@@ -42,26 +43,27 @@ void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 }
 
 /*! \brief Perform rendering. Called from RENDER thread. */
-void RenderSubsystem::ComponentRender(FrameBase *frame)
+void RenderSubsystem::ComponentRender(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_is_initialized.Get(MemoryOrder::ACQUIRE) & g_render_thread);
 
-    if (m_render_frame_slicing == 0 || m_render_frame_slicing_counter++ % m_render_frame_slicing == 0) {
+    if (m_render_frame_slicing == 0 || m_render_frame_slicing_counter++ % m_render_frame_slicing == 0)
+    {
         OnRender(frame);
     }
 }
 
-RenderEnvironment *RenderSubsystem::GetParent() const
+RenderEnvironment* RenderSubsystem::GetParent() const
 {
     Threads::AssertOnThread(g_render_thread);
-    
+
     return m_parent;
 }
 
-void RenderSubsystem::SetParent(RenderEnvironment *parent)
+void RenderSubsystem::SetParent(RenderEnvironment* parent)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -73,11 +75,12 @@ void RenderSubsystem::RemoveFromEnvironment()
 {
     HYP_SCOPE;
 
-    struct RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment) : public renderer::RenderCommand
+    struct RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)
+        : public renderer::RenderCommand
     {
         RC<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(RC<RenderSubsystem> &&render_subsystem)
+        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(RC<RenderSubsystem>&& render_subsystem)
             : render_subsystem(render_subsystem)
         {
         }
@@ -86,10 +89,12 @@ void RenderSubsystem::RemoveFromEnvironment()
 
         virtual RendererResult operator()() override
         {
-            if (render_subsystem) {
-                RenderEnvironment *parent = render_subsystem->GetParent();
+            if (render_subsystem)
+            {
+                RenderEnvironment* parent = render_subsystem->GetParent();
 
-                if (parent != nullptr) {
+                if (parent != nullptr)
+                {
                     parent->RemoveRenderSubsystem(render_subsystem);
                 }
             }

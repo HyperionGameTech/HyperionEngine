@@ -3,7 +3,6 @@
 #ifndef HYPERION_FBOM_OBJECT_LIBRARY_HPP
 #define HYPERION_FBOM_OBJECT_LIBRARY_HPP
 
-
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
@@ -25,10 +24,10 @@ using compression::Archive;
 
 enum class FBOMObjectLibraryFlags : uint8
 {
-    NONE                = 0x0,
-    LOCATION_INLINE     = 0x1,
-    LOCATION_EXTERNAL   = 0x2,
-    LOCATION_MASK       = LOCATION_INLINE | LOCATION_EXTERNAL
+    NONE = 0x0,
+    LOCATION_INLINE = 0x1,
+    LOCATION_EXTERNAL = 0x2,
+    LOCATION_MASK = LOCATION_INLINE | LOCATION_EXTERNAL
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMObjectLibraryFlags)
@@ -37,12 +36,13 @@ namespace fbom {
 
 struct FBOMObjectLibrary
 {
-    UUID                uuid;
-    Array<FBOMObject>   object_data;
+    UUID uuid;
+    Array<FBOMObject> object_data;
 
-    bool TryGet(uint32 index, FBOMObject &out) const
+    bool TryGet(uint32 index, FBOMObject& out) const
     {
-        if (index >= object_data.Size()) {
+        if (index >= object_data.Size())
+        {
             return false;
         }
 
@@ -51,11 +51,11 @@ struct FBOMObjectLibrary
         return true;
     }
 
-    void Put(FBOMObject &object)
+    void Put(FBOMObject& object)
     {
         const uint32 next_index = uint32(object_data.Size());
 
-        FBOMExternalObjectInfo *external_object_info = object.GetExternalObjectInfo();
+        FBOMExternalObjectInfo* external_object_info = object.GetExternalObjectInfo();
         AssertThrow(external_object_info != nullptr);
         AssertThrow(!external_object_info->IsLinked());
 
@@ -67,11 +67,11 @@ struct FBOMObjectLibrary
         object_data[next_index] = object;
     }
 
-    void Put(FBOMObject &&object)
+    void Put(FBOMObject&& object)
     {
         const uint32 next_index = uint32(object_data.Size());
 
-        FBOMExternalObjectInfo *external_object_info = object.GetExternalObjectInfo();
+        FBOMExternalObjectInfo* external_object_info = object.GetExternalObjectInfo();
         AssertThrow(external_object_info != nullptr);
         AssertThrow(!external_object_info->IsLinked());
 
@@ -92,7 +92,7 @@ struct FBOMObjectLibrary
 
     //     return next_index;
     // }
-    
+
     SizeType CalculateTotalSize() const
     {
         // SizeType size = 0;

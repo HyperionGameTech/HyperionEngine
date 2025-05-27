@@ -25,23 +25,23 @@ class Entity;
 struct ShaderGlobals
 {
     ShaderGlobals();
-    ShaderGlobals(const ShaderGlobals &other) = delete;
-    ShaderGlobals &operator=(const ShaderGlobals &other) = delete;
+    ShaderGlobals(const ShaderGlobals& other) = delete;
+    ShaderGlobals& operator=(const ShaderGlobals& other) = delete;
 
     void Create();
     void Destroy();
 
-    GPUBufferHolderBase             *scenes;
-    GPUBufferHolderBase             *cameras;
-    GPUBufferHolderBase             *lights;
-    GPUBufferHolderBase             *objects;
-    GPUBufferHolderBase             *materials;
-    GPUBufferHolderBase             *skeletons;
-    GPUBufferHolderBase             *shadow_map_data;
-    GPUBufferHolderBase             *env_probes;
-    GPUBufferHolderBase             *env_grids;
-    
-    BindlessStorage                 textures;
+    GPUBufferHolderBase* scenes;
+    GPUBufferHolderBase* cameras;
+    GPUBufferHolderBase* lights;
+    GPUBufferHolderBase* objects;
+    GPUBufferHolderBase* materials;
+    GPUBufferHolderBase* skeletons;
+    GPUBufferHolderBase* shadow_map_data;
+    GPUBufferHolderBase* env_probes;
+    GPUBufferHolderBase* env_grids;
+
+    BindlessStorage textures;
 };
 
 } // namespace hyperion

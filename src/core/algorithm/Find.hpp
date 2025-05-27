@@ -11,10 +11,12 @@ namespace hyperion {
 namespace algorithm {
 
 template <class IteratorType, class ValueType>
-HYP_FORCE_INLINE IteratorType Find(IteratorType _begin, IteratorType _end, ValueType &&value)
+HYP_FORCE_INLINE IteratorType Find(IteratorType _begin, IteratorType _end, ValueType&& value)
 {
-    for (auto it = _begin; it != _end; ++it) {
-        if (*it == value) {
+    for (auto it = _begin; it != _end; ++it)
+    {
+        if (*it == value)
+        {
             return it;
         }
     }

@@ -14,18 +14,19 @@ namespace hyperion {
 
 struct EngineRenderStatsCounts
 {
-    uint32  num_draw_calls = 0;
-    uint32  num_triangles = 0;
+    uint32 num_draw_calls = 0;
+    uint32 num_triangles = 0;
 };
 
 HYP_STRUCT()
+
 struct EngineRenderStats
 {
-    double                  frames_per_second = 0.0;
-    double                  milliseconds_per_frame = 0.0;
-    double                  milliseconds_per_frame_avg = 0.0;
-    double                  milliseconds_per_frame_max = 0.0;
-    double                  milliseconds_per_frame_min = DBL_MAX;
+    double frames_per_second = 0.0;
+    double milliseconds_per_frame = 0.0;
+    double milliseconds_per_frame_avg = 0.0;
+    double milliseconds_per_frame_max = 0.0;
+    double milliseconds_per_frame_min = DBL_MAX;
     EngineRenderStatsCounts counts;
 };
 
@@ -42,8 +43,8 @@ class EngineRenderStatsCalculator
 public:
     friend struct SuppressEngineRenderStatsScope;
 
-    void AddCounts(const EngineRenderStatsCounts &counts);
-    void Advance(EngineRenderStats &render_stats);
+    void AddCounts(const EngineRenderStatsCounts& counts);
+    void Advance(EngineRenderStats& render_stats);
 
 private:
     HYP_FORCE_INLINE void Suppress()
@@ -53,7 +54,8 @@ private:
 
     HYP_FORCE_INLINE void Unsuppress()
     {
-        if (m_suppress_count > 0) {
+        if (m_suppress_count > 0)
+        {
             m_suppress_count--;
         }
     }
@@ -63,13 +65,13 @@ private:
 
     void AddSample(double delta);
 
-    GameCounter                     m_counter;
-    double                          m_delta_accum = 0.0;
+    GameCounter m_counter;
+    double m_delta_accum = 0.0;
     FixedArray<double, max_samples> m_samples { 0.0 };
-    uint32                          m_num_samples = 0;
-    EngineRenderStatsCounts         m_counts;
+    uint32 m_num_samples = 0;
+    EngineRenderStatsCounts m_counts;
 
-    int                             m_suppress_count = 0;
+    int m_suppress_count = 0;
 };
 
 } // namespace hyperion

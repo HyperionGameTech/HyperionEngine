@@ -25,8 +25,8 @@ RenderResourceBase::RenderResourceBase()
 {
 }
 
-RenderResourceBase::RenderResourceBase(RenderResourceBase &&other) noexcept
-    : ResourceBase(static_cast<ResourceBase &&>(other)),
+RenderResourceBase::RenderResourceBase(RenderResourceBase&& other) noexcept
+    : ResourceBase(static_cast<ResourceBase&&>(other)),
       m_buffer_index(other.m_buffer_index),
       m_buffer_address(other.m_buffer_address)
 {
@@ -48,7 +48,8 @@ void RenderResourceBase::Initialize()
 
 void RenderResourceBase::Destroy()
 {
-    if (m_buffer_index != ~0u) {
+    if (m_buffer_index != ~0u)
+    {
         ReleaseBufferIndex();
     }
 
@@ -60,9 +61,9 @@ void RenderResourceBase::Update()
     Update_Internal();
 }
 
-IThread *RenderResourceBase::GetOwnerThread() const
+IThread* RenderResourceBase::GetOwnerThread() const
 {
-    static IThread *const render_thread = Threads::GetThread(g_render_thread);
+    static IThread* const render_thread = Threads::GetThread(g_render_thread);
 
     return render_thread;
 }
@@ -77,13 +78,14 @@ void RenderResourceBase::FlushScheduledTasks() const
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 }
 
-void RenderResourceBase::EnqueueOp(Proc<void()> &&proc)
+void RenderResourceBase::EnqueueOp(Proc<void()>&& proc)
 {
-    struct RENDER_COMMAND(RenderResourceOperation) : renderer::RenderCommand
+    struct RENDER_COMMAND(RenderResourceOperation)
+        : renderer::RenderCommand
     {
-        Proc<void()>  proc;
+        Proc<void()> proc;
 
-        RENDER_COMMAND(RenderResourceOperation)(Proc<void()> &&proc)
+        RENDER_COMMAND(RenderResourceOperation)(Proc<void()>&& proc)
             : proc(std::move(proc))
         {
         }
@@ -94,7 +96,7 @@ void RenderResourceBase::EnqueueOp(Proc<void()> &&proc)
         {
             proc();
 
-            return { };
+            return {};
         }
     };
 
@@ -109,9 +111,10 @@ void RenderResourceBase::AcquireBufferIndex()
 
     AssertThrow(m_buffer_index == ~0u);
 
-    GPUBufferHolderBase *holder = GetGPUBufferHolder();
+    GPUBufferHolderBase* holder = GetGPUBufferHolder();
 
-    if (holder == nullptr) {
+    if (holder == nullptr)
+    {
         return;
     }
 
@@ -126,7 +129,7 @@ void RenderResourceBase::ReleaseBufferIndex()
 
     AssertThrow(m_buffer_index != ~0u);
 
-    GPUBufferHolderBase *holder = GetGPUBufferHolder();
+    GPUBufferHolderBase* holder = GetGPUBufferHolder();
     AssertThrow(holder != nullptr);
 
     holder->ReleaseIndex(m_buffer_index);

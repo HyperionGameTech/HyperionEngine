@@ -18,15 +18,16 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState& state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    fbom::FBOMReader reader { fbom::FBOMReaderConfig { } };
-    
+    fbom::FBOMReader reader { fbom::FBOMReaderConfig {} };
+
     HypData result;
 
-    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, result)) {
+    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, result))
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to read serialized object: {}", err.message);
     }
     return LoadedAsset { std::move(result) };

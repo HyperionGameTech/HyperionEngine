@@ -12,16 +12,18 @@ void SchedulerBase::RequestStop()
 {
     m_stop_requested.Set(true, MemoryOrder::RELAXED);
 
-    if (!Threads::IsOnThread(m_owner_thread)) {
+    if (!Threads::IsOnThread(m_owner_thread))
+    {
         WakeUpOwnerThread();
     }
 }
 
-bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex> &lock)
+bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex>& lock)
 {
     // must be locked before calling this function
 
-    if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    if (m_stop_requested.Get(MemoryOrder::RELAXED))
+    {
         return false;
     }
 
@@ -29,13 +31,13 @@ bool SchedulerBase::WaitForTasks(std::unique_lock<std::mutex> &lock)
         lock,
         [this]()
         {
-            if (m_stop_requested.Get(MemoryOrder::RELAXED)) {
+            if (m_stop_requested.Get(MemoryOrder::RELAXED))
+            {
                 return true;
             }
 
             return m_num_enqueued.Get(MemoryOrder::ACQUIRE) != 0;
-        }
-    );
+        });
 
     return !m_stop_requested.Get(MemoryOrder::RELAXED);
 }

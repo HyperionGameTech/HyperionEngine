@@ -30,17 +30,18 @@ enum class UIDockableItemPosition : uint32
 #pragma region UIDockableItem
 
 HYP_CLASS()
+
 class HYP_API UIDockableItem : public UIPanel
 {
     HYP_OBJECT_BODY(UIDockableItem);
 
 public:
     UIDockableItem();
-    UIDockableItem(const UIDockableItem &other)                 = delete;
-    UIDockableItem &operator=(const UIDockableItem &other)      = delete;
-    UIDockableItem(UIDockableItem &&other) noexcept             = delete;
-    UIDockableItem &operator=(UIDockableItem &&other) noexcept  = delete;
-    virtual ~UIDockableItem() override                          = default;
+    UIDockableItem(const UIDockableItem& other) = delete;
+    UIDockableItem& operator=(const UIDockableItem& other) = delete;
+    UIDockableItem(UIDockableItem&& other) noexcept = delete;
+    UIDockableItem& operator=(UIDockableItem&& other) noexcept = delete;
+    virtual ~UIDockableItem() override = default;
 };
 
 #pragma endregion UIDockableItem
@@ -48,22 +49,23 @@ public:
 #pragma region UIDockableContainer
 
 HYP_CLASS()
+
 class HYP_API UIDockableContainer : public UIPanel
 {
     HYP_OBJECT_BODY(UIDockableContainer);
 
 public:
     UIDockableContainer();
-    UIDockableContainer(const UIDockableContainer &other)                   = delete;
-    UIDockableContainer &operator=(const UIDockableContainer &other)        = delete;
-    UIDockableContainer(UIDockableContainer &&other) noexcept               = delete;
-    UIDockableContainer &operator=(UIDockableContainer &&other) noexcept    = delete;
-    virtual ~UIDockableContainer() override                                 = default;
+    UIDockableContainer(const UIDockableContainer& other) = delete;
+    UIDockableContainer& operator=(const UIDockableContainer& other) = delete;
+    UIDockableContainer(UIDockableContainer&& other) noexcept = delete;
+    UIDockableContainer& operator=(UIDockableContainer&& other) noexcept = delete;
+    virtual ~UIDockableContainer() override = default;
 
-    void AddChildUIObject(const RC<UIObject> &ui_object, UIDockableItemPosition position);
+    void AddChildUIObject(const RC<UIObject>& ui_object, UIDockableItemPosition position);
 
-    virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
-    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
     virtual void Init() override;
 

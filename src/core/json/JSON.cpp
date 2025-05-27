@@ -22,8 +22,10 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
     uint32 start_index = 0;
     uint32 end_index = 0;
 
-    for (utf::u32char ch : view) {
-        if (ch == separator) {
+    for (utf::u32char ch : view)
+    {
+        if (ch == separator)
+        {
             tokens.PushBack(view.Substr(start_index, current_index));
 
             current_index++;
@@ -35,12 +37,13 @@ static Array<UTF8StringView> SplitStringView(UTF8StringView view, UTF8StringView
         current_index++;
     }
 
-    if (start_index != current_index) {
+    if (start_index != current_index)
+    {
         tokens.PushBack(view.Substr(start_index, current_index));
     }
 
     return tokens;
-} 
+}
 
 static String GetIndentationString(uint32 depth)
 {
@@ -58,13 +61,15 @@ static String GetIndentationString(uint32 depth)
         "                  "
     };
 
-    if (depth < preallocated_strings.Size()) {
+    if (depth < preallocated_strings.Size())
+    {
         return preallocated_strings[depth];
     }
 
     String indentation = preallocated_strings[preallocated_strings.Size() - 1];
 
-    for (uint32 i = preallocated_strings.Size(); i <= depth; i++) {
+    for (uint32 i = preallocated_strings.Size(); i <= depth; i++)
+    {
         indentation += "  ";
     }
 
@@ -72,34 +77,39 @@ static String GetIndentationString(uint32 depth)
 }
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects = false);
+JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T>& subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects = false);
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts);
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscript_wrapper, Span<UTF8StringView> parts);
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects)
+JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T>& subscript_wrapper, Span<UTF8StringView> parts, bool create_intermediate_objects)
 {
-    if (parts.Size() == 0) {
+    if (parts.Size() == 0)
+    {
         return subscript_wrapper;
     }
-    
-    if (subscript_wrapper.value && subscript_wrapper.value->IsObject()) {
-        auto &as_object = subscript_wrapper.value->AsObject();
+
+    if (subscript_wrapper.value && subscript_wrapper.value->IsObject())
+    {
+        auto& as_object = subscript_wrapper.value->AsObject();
 
         auto it = as_object.FindAs(*parts.Begin());
 
-        if (it == as_object.End()) {
-            if (!create_intermediate_objects) {
+        if (it == as_object.End())
+        {
+            if (!create_intermediate_objects)
+            {
                 return { nullptr };
             }
 
             it = as_object.Insert(*parts.Begin(), JSONUndefined()).first;
         }
 
-        auto &value = it->second;
+        auto& value = it->second;
 
-        if (create_intermediate_objects && (value.IsUndefined() || value.IsNull())) {
+        if (create_intermediate_objects && (value.IsUndefined() || value.IsNull()))
+        {
             value = JSONObject();
         }
 
@@ -108,42 +118,47 @@ JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T> &subscript_wrapper,
         return SelectHelper(
             element_subscript_wrapper,
             parts + 1,
-            create_intermediate_objects
-        );
+            create_intermediate_objects);
     }
 
     return JSONSubscriptWrapper<T> { nullptr };
 }
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wrapper, Span<UTF8StringView> parts)
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscript_wrapper, Span<UTF8StringView> parts)
 {
-    if (parts.Size() == 0) {
+    if (parts.Size() == 0)
+    {
         return subscript_wrapper;
     }
 
-    if (!subscript_wrapper.value) {
+    if (!subscript_wrapper.value)
+    {
         return subscript_wrapper;
     }
 
-    if (subscript_wrapper.value->IsObject()) {
-        auto &as_object = subscript_wrapper.value->AsObject();
+    if (subscript_wrapper.value->IsObject())
+    {
+        auto& as_object = subscript_wrapper.value->AsObject();
 
         auto it = as_object.FindAs(*parts.Begin());
 
-        if (it == as_object.End()) {
+        if (it == as_object.End())
+        {
             return { nullptr };
         }
 
-        auto &value = it->second;
+        auto& value = it->second;
 
-        if (parts.Size() == 1) {
+        if (parts.Size() == 1)
+        {
             return JSONSubscriptWrapper<T> { &value };
-        } else {
+        }
+        else
+        {
             return SelectHelper(
                 JSONSubscriptWrapper<T> { &value },
-                parts + 1
-            );
+                parts + 1);
         }
     }
 
@@ -154,7 +169,7 @@ JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T> &subscript_wr
 
 #pragma region JSONSubscriptWrapper<JSONValue>
 
-JSONValue &JSONSubscriptWrapper<JSONValue>::Get() const
+JSONValue& JSONSubscriptWrapper<JSONValue>::Get() const
 {
     AssertThrow(value != nullptr);
 
@@ -196,7 +211,7 @@ bool JSONSubscriptWrapper<JSONValue>::IsUndefined() const
     return !value || value->IsUndefined();
 }
 
-JSONString &JSONSubscriptWrapper<JSONValue>::AsString() const
+JSONString& JSONSubscriptWrapper<JSONValue>::AsString() const
 {
     AssertThrow(IsString());
 
@@ -205,7 +220,8 @@ JSONString &JSONSubscriptWrapper<JSONValue>::AsString() const
 
 JSONString JSONSubscriptWrapper<JSONValue>::ToString() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONString();
     }
 
@@ -221,7 +237,8 @@ JSONNumber JSONSubscriptWrapper<JSONValue>::AsNumber() const
 
 JSONNumber JSONSubscriptWrapper<JSONValue>::ToNumber() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONNumber(0.0);
     }
 
@@ -237,14 +254,15 @@ JSONBool JSONSubscriptWrapper<JSONValue>::AsBool() const
 
 JSONBool JSONSubscriptWrapper<JSONValue>::ToBool() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONBool(false);
     }
 
     return value->ToBool();
 }
 
-JSONArray &JSONSubscriptWrapper<JSONValue>::AsArray() const
+JSONArray& JSONSubscriptWrapper<JSONValue>::AsArray() const
 {
     AssertThrow(IsArray());
 
@@ -253,14 +271,15 @@ JSONArray &JSONSubscriptWrapper<JSONValue>::AsArray() const
 
 JSONArray JSONSubscriptWrapper<JSONValue>::ToArray() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONArray();
     }
 
     return value->ToArray();
 }
 
-JSONObject &JSONSubscriptWrapper<JSONValue>::AsObject() const
+JSONObject& JSONSubscriptWrapper<JSONValue>::AsObject() const
 {
     AssertThrow(IsObject());
 
@@ -269,7 +288,8 @@ JSONObject &JSONSubscriptWrapper<JSONValue>::AsObject() const
 
 JSONObject JSONSubscriptWrapper<JSONValue>::ToObject() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONObject();
     }
 
@@ -278,14 +298,17 @@ JSONObject JSONSubscriptWrapper<JSONValue>::ToObject() const
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint32 index)
 {
-    if (!value) {
+    if (!value)
+    {
         return *this;
     }
 
-    if (value->IsArray()) {
+    if (value->IsArray())
+    {
         auto as_array = value->AsArray();
 
-        if (index >= as_array.Size()) {
+        if (index >= as_array.Size())
+        {
             return { nullptr };
         }
 
@@ -302,16 +325,19 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](UTF8StringView key)
 {
-    if (!value) {
+    if (!value)
+    {
         return { nullptr };
     }
 
-    if (value->IsObject()) {
-        JSONObject &as_object = value->AsObject();
+    if (value->IsObject())
+    {
+        JSONObject& as_object = value->AsObject();
 
         auto it = as_object.FindAs(key);
 
-        if (it == as_object.End()) {
+        if (it == as_object.End())
+        {
             return { nullptr };
         }
 
@@ -328,7 +354,8 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::operator[
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path, bool create_intermediate_objects)
 {
-    if (!value) {
+    if (!value)
+    {
         return *this;
     }
 
@@ -337,58 +364,65 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringV
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path) const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONSubscriptWrapper<const JSONValue> { value };
     }
 
     return SelectHelper(JSONSubscriptWrapper<const JSONValue> { value }, SplitStringView(path, '.').ToSpan());
 }
 
-void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue &value)
+void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue& value)
 {
-    JSONValue *target = this->value;
+    JSONValue* target = this->value;
 
-    if (!target) {
+    if (!target)
+    {
         return;
     }
 
     Array<UTF8StringView> parts = SplitStringView(path, '.');
 
-    if (parts.Empty()) {
+    if (parts.Empty())
+    {
         return;
     }
 
     UTF8StringView key = parts.PopBack();
 
-    if (parts.Any()) {
+    if (parts.Any())
+    {
         auto select_result = SelectHelper(*this, parts.ToSpan(), true);
 
-        if (!select_result.value) {
+        if (!select_result.value)
+        {
             return;
         }
 
         target = select_result.value;
     }
 
-    if (target && target->IsObject()) {
+    if (target && target->IsObject())
+    {
         target->AsObject().Set(key, value);
     }
 }
 
 HashCode JSONSubscriptWrapper<JSONValue>::GetHashCode() const
 {
-    if (!value) {
+    if (!value)
+    {
         return HashCode();
     }
 
     return value->GetHashCode();
 }
 
-#pragma endregion JSONSubscriptWrapper<JSONValue>
+#pragma endregion JSONSubscriptWrapper < JSONValue>
 
 #pragma region JSONSubscriptWrapper<const JSONValue>
 
-const JSONValue &JSONSubscriptWrapper<const JSONValue>::Get() const
+const JSONValue& JSONSubscriptWrapper<const JSONValue>::Get() const
 {
     AssertThrow(value != nullptr);
 
@@ -430,7 +464,7 @@ bool JSONSubscriptWrapper<const JSONValue>::IsUndefined() const
     return !value || value->IsUndefined();
 }
 
-const JSONString &JSONSubscriptWrapper<const JSONValue>::AsString() const
+const JSONString& JSONSubscriptWrapper<const JSONValue>::AsString() const
 {
     AssertThrow(IsString());
 
@@ -439,7 +473,8 @@ const JSONString &JSONSubscriptWrapper<const JSONValue>::AsString() const
 
 JSONString JSONSubscriptWrapper<const JSONValue>::ToString() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONString();
     }
 
@@ -455,7 +490,8 @@ JSONNumber JSONSubscriptWrapper<const JSONValue>::AsNumber() const
 
 JSONNumber JSONSubscriptWrapper<const JSONValue>::ToNumber() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONNumber(0.0);
     }
 
@@ -471,14 +507,15 @@ JSONBool JSONSubscriptWrapper<const JSONValue>::AsBool() const
 
 JSONBool JSONSubscriptWrapper<const JSONValue>::ToBool() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONBool(false);
     }
 
     return value->ToBool();
 }
 
-const JSONArray &JSONSubscriptWrapper<const JSONValue>::AsArray() const
+const JSONArray& JSONSubscriptWrapper<const JSONValue>::AsArray() const
 {
     AssertThrow(IsArray());
 
@@ -487,14 +524,15 @@ const JSONArray &JSONSubscriptWrapper<const JSONValue>::AsArray() const
 
 JSONArray JSONSubscriptWrapper<const JSONValue>::ToArray() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONArray();
     }
 
     return value->ToArray();
 }
 
-const JSONObject &JSONSubscriptWrapper<const JSONValue>::AsObject() const
+const JSONObject& JSONSubscriptWrapper<const JSONValue>::AsObject() const
 {
     AssertThrow(IsObject());
 
@@ -503,7 +541,8 @@ const JSONObject &JSONSubscriptWrapper<const JSONValue>::AsObject() const
 
 JSONObject JSONSubscriptWrapper<const JSONValue>::ToObject() const
 {
-    if (!value) {
+    if (!value)
+    {
         return JSONObject();
     }
 
@@ -512,14 +551,17 @@ JSONObject JSONSubscriptWrapper<const JSONValue>::ToObject() const
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](uint32 index) const
 {
-    if (!value) {
+    if (!value)
+    {
         return *this;
     }
 
-    if (value->IsArray()) {
-        const JSONArray &as_array = value->AsArray();
+    if (value->IsArray())
+    {
+        const JSONArray& as_array = value->AsArray();
 
-        if (index >= as_array.Size()) {
+        if (index >= as_array.Size())
+        {
             return { nullptr };
         }
 
@@ -531,16 +573,19 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](UTF8StringView key) const
 {
-    if (!value) {
+    if (!value)
+    {
         return *this;
     }
 
-    if (value->IsObject()) {
-        const JSONObject &as_object = value->AsObject();
+    if (value->IsObject())
+    {
+        const JSONObject& as_object = value->AsObject();
 
         auto it = as_object.FindAs(key);
 
-        if (it == as_object.End()) {
+        if (it == as_object.End())
+        {
             return { nullptr };
         }
 
@@ -552,7 +597,8 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::ope
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get(UTF8StringView path) const
 {
-    if (!value) {
+    if (!value)
+    {
         return *this;
     }
 
@@ -561,14 +607,15 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get
 
 HashCode JSONSubscriptWrapper<const JSONValue>::GetHashCode() const
 {
-    if (!value) {
+    if (!value)
+    {
         return HashCode();
     }
 
     return value->GetHashCode();
 }
 
-#pragma endregion JSONSubscriptWrapper<const JSONValue>
+#pragma endregion JSONSubscriptWrapper < const JSONValue>
 
 #pragma region JSONParser
 
@@ -576,18 +623,18 @@ class JSONParser
 {
 public:
     JSONParser(
-        TokenStream *token_stream,
-        CompilationUnit *compilation_unit
-    ) : m_token_stream(token_stream),
-        m_compilation_unit(compilation_unit)
+        TokenStream* token_stream,
+        CompilationUnit* compilation_unit)
+        : m_token_stream(token_stream),
+          m_compilation_unit(compilation_unit)
     {
     }
 
-    JSONParser(const JSONParser &other) = delete;
-    JSONParser &operator=(JSONParser &other) = delete;
+    JSONParser(const JSONParser& other) = delete;
+    JSONParser& operator=(JSONParser& other) = delete;
 
-    JSONParser(JSONParser &&other) noexcept = delete;
-    JSONParser &operator=(JSONParser &&other) noexcept = delete;
+    JSONParser(JSONParser&& other) noexcept = delete;
+    JSONParser& operator=(JSONParser&& other) noexcept = delete;
 
     ~JSONParser() = default;
 
@@ -596,12 +643,12 @@ public:
         json::JSONValue value = ParseValue();
 
         // Should not have any tokens left
-        if (m_token_stream->HasNext()) {
+        if (m_token_stream->HasNext())
+        {
             m_compilation_unit->GetErrorList().AddError(CompilerError(
                 ErrorLevel::LEVEL_ERROR,
-                ErrorMessage::Msg_unexpected_token,
-                CurrentLocation()
-            ));
+                ErrorMessage::MSG_UNEXPECTED_TOKEN,
+                CurrentLocation()));
         }
 
         return value;
@@ -610,42 +657,49 @@ public:
 private:
     JSONValue ParseValue()
     {
-        if (Match(TokenClass::TK_OPEN_BRACE, false)) {
+        if (Match(TokenClass::TK_OPEN_BRACE, false))
+        {
             return JSONValue(ParseObject());
         }
 
-        if (Match(TokenClass::TK_OPEN_BRACKET, false)) {
+        if (Match(TokenClass::TK_OPEN_BRACKET, false))
+        {
             return JSONValue(ParseArray());
         }
 
-        if (Match(TokenClass::TK_STRING, false)) {
+        if (Match(TokenClass::TK_STRING, false))
+        {
             return JSONValue(ParseString());
         }
 
-        if (Match(TokenClass::TK_INTEGER, false) || Match(TokenClass::TK_FLOAT, false)) {
+        if (Match(TokenClass::TK_INTEGER, false) || Match(TokenClass::TK_FLOAT, false))
+        {
             return JSONValue(ParseNumber());
         }
 
         const SourceLocation location = CurrentLocation();
 
-        if (Token identifier = Match(TokenClass::TK_IDENT, true)) {
-            if (identifier.GetValue() == "true") {
+        if (Token identifier = Match(TokenClass::TK_IDENT, true))
+        {
+            if (identifier.GetValue() == "true")
+            {
                 return JSONValue(true);
             }
 
-            if (identifier.GetValue() == "false") {
+            if (identifier.GetValue() == "false")
+            {
                 return JSONValue(false);
             }
 
-            if (identifier.GetValue() == "null") {
+            if (identifier.GetValue() == "null")
+            {
                 return JSONValue(JSONNull());
             }
 
             m_compilation_unit->GetErrorList().AddError(CompilerError(
                 ErrorLevel::LEVEL_ERROR,
-                ErrorMessage::Msg_unexpected_identifier,
-                location
-            ));
+                ErrorMessage::MSG_UNEXPECTED_IDENTIFIER,
+                location));
         }
 
         return JSONValue(JSONUndefined());
@@ -653,7 +707,8 @@ private:
 
     JSONString ParseString()
     {
-        if (Token token = Expect(TokenClass::TK_STRING, true)) {
+        if (Token token = Expect(TokenClass::TK_STRING, true))
+        {
             return token.GetValue();
         }
 
@@ -664,14 +719,16 @@ private:
     {
         Token token = Match(TokenClass::TK_INTEGER, true);
 
-        if (!token) {
+        if (!token)
+        {
             token = Expect(TokenClass::TK_FLOAT, true);
         }
 
-        if (!token) {
+        if (!token)
+        {
             return JSONNumber(0);
         }
-    
+
         std::istringstream ss(token.GetValue().Data());
 
         JSONNumber value;
@@ -684,14 +741,18 @@ private:
     {
         JSONArray array;
 
-        if (Token token = Expect(TokenClass::TK_OPEN_BRACKET, true)) {
-            do {
-                if (Match(TokenClass::TK_CLOSE_BRACKET, false)) {
+        if (Token token = Expect(TokenClass::TK_OPEN_BRACKET, true))
+        {
+            do
+            {
+                if (Match(TokenClass::TK_CLOSE_BRACKET, false))
+                {
                     break;
                 }
 
                 array.PushBack(ParseValue());
-            } while (Match(TokenClass::TK_COMMA, true));
+            }
+            while (Match(TokenClass::TK_COMMA, true));
 
             Expect(TokenClass::TK_CLOSE_BRACKET, true);
         }
@@ -703,30 +764,37 @@ private:
     {
         JSONObject object;
 
-        if (Token token = Expect(TokenClass::TK_OPEN_BRACE, true)) {
-            do {
-                if (Match(TokenClass::TK_CLOSE_BRACE, false)) {
+        if (Token token = Expect(TokenClass::TK_OPEN_BRACE, true))
+        {
+            do
+            {
+                if (Match(TokenClass::TK_CLOSE_BRACE, false))
+                {
                     break;
                 }
 
-                if (Match(TokenClass::TK_STRING, false)) {
+                if (Match(TokenClass::TK_STRING, false))
+                {
                     const JSONString key = ParseString();
 
-                    if (Expect(TokenClass::TK_COLON, true)) {
+                    if (Expect(TokenClass::TK_COLON, true))
+                    {
                         object[key] = ParseValue();
                     }
                 }
-            } while (Match(TokenClass::TK_COMMA, true));
+            }
+            while (Match(TokenClass::TK_COMMA, true));
 
             Expect(TokenClass::TK_CLOSE_BRACE, true);
         }
-        
+
         return object;
     }
 
     SourceLocation CurrentLocation() const
     {
-        if (m_token_stream->GetSize() != 0 && !m_token_stream->HasNext()) {
+        if (m_token_stream->GetSize() != 0 && !m_token_stream->HasNext())
+        {
             return m_token_stream->Last().GetLocation();
         }
 
@@ -736,45 +804,50 @@ private:
     Token Match(TokenClass token_class, bool read)
     {
         Token peek = m_token_stream->Peek();
-        
-        if (peek && peek.GetTokenClass() == token_class) {
-            if (read && m_token_stream->HasNext()) {
+
+        if (peek && peek.GetTokenClass() == token_class)
+        {
+            if (read && m_token_stream->HasNext())
+            {
                 m_token_stream->Next();
             }
-            
+
             return peek;
         }
-        
-        return Token::EMPTY;
+
+        return Token::empty;
     }
 
     Token MatchAhead(TokenClass token_class, int n)
     {
         Token peek = m_token_stream->Peek(n);
-        
-        if (peek && peek.GetTokenClass() == token_class) {
+
+        if (peek && peek.GetTokenClass() == token_class)
+        {
             return peek;
         }
-        
-        return Token::EMPTY;
+
+        return Token::empty;
     }
 
     Token Expect(TokenClass token_class, bool read)
     {
         Token token = Match(token_class, read);
-        
-        if (!token) {
+
+        if (!token)
+        {
             const SourceLocation location = CurrentLocation();
 
             ErrorMessage error_msg;
             String error_str;
 
-            switch (token_class) {
+            switch (token_class)
+            {
             case TokenClass::TK_IDENT:
-                error_msg = ErrorMessage::Msg_expected_identifier;
+                error_msg = ErrorMessage::MSG_EXPECTED_IDENTIFIER;
                 break;
             default:
-                error_msg = ErrorMessage::Msg_expected_token;
+                error_msg = ErrorMessage::MSG_EXPECTED_TOKEN;
                 error_str = Token::TokenTypeToString(token_class);
             }
 
@@ -782,26 +855,28 @@ private:
                 ErrorLevel::LEVEL_ERROR,
                 error_msg,
                 location,
-                error_str
-            ));
+                error_str));
         }
 
         return token;
     }
 
-    Token MatchIdentifier(const String &value, bool read)
+    Token MatchIdentifier(const String& value, bool read)
     {
         const Token token = Match(TokenClass::TK_IDENT, false);
 
-        if (!token) {
-            return Token::EMPTY;
+        if (!token)
+        {
+            return Token::empty;
         }
 
-        if (token.GetValue() != value) {
-            return Token::EMPTY;
+        if (token.GetValue() != value)
+        {
+            return Token::empty;
         }
 
-        if (read && m_token_stream->HasNext()) {
+        if (read && m_token_stream->HasNext())
+        {
             // read the token since it was matched
             m_token_stream->Next();
         }
@@ -809,21 +884,22 @@ private:
         return token;
     }
 
-    Token ExpectIdentifier(const String &value, bool read)
+    Token ExpectIdentifier(const String& value, bool read)
     {
         Token token = MatchIdentifier(value, read);
-        
-        if (!token) {
+
+        if (!token)
+        {
             const SourceLocation location = CurrentLocation();
 
             m_compilation_unit->GetErrorList().AddError(CompilerError(
                 ErrorLevel::LEVEL_ERROR,
-                ErrorMessage::Msg_expected_identifier,
-                location
-            ));
+                ErrorMessage::MSG_UNEXPECTED_IDENTIFIER,
+                location));
 
             // Skip the token
-            if (read && m_token_stream->HasNext()) {
+            if (read && m_token_stream->HasNext())
+            {
                 m_token_stream->Next();
             }
         }
@@ -831,8 +907,8 @@ private:
         return token;
     }
 
-    TokenStream *m_token_stream;
-    CompilationUnit *m_compilation_unit;
+    TokenStream* m_token_stream;
+    CompilationUnit* m_compilation_unit;
 };
 
 #pragma endregion JSONParser
@@ -854,27 +930,35 @@ JSONString JSONValue::ToString(bool representation, uint32 depth) const
 
 JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 {
-    if (IsString()) {
-        if (representation) {
+    if (IsString())
+    {
+        if (representation)
+        {
             return "\"" + AsString().Escape() + "\"";
-        } else {
+        }
+        else
+        {
             return AsString();
         }
     }
 
-    if (IsBool()) {
+    if (IsBool())
+    {
         return (AsBool() ? "true" : "false");
     }
 
-    if (IsNull()) {
+    if (IsNull())
+    {
         return "null";
     }
 
-    if (IsUndefined()) {
+    if (IsUndefined())
+    {
         return "undefined";
     }
 
-    if (IsNumber()) {
+    if (IsNumber())
+    {
         // Format string
         const JSONNumber number = AsNumber();
 
@@ -882,15 +966,20 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
         Array<char> chars;
 
-        if (is_integer) {
+        if (is_integer)
+        {
             int n = std::snprintf(nullptr, 0, "%lld", (long long)number);
-            if (n > 0) {
+            if (n > 0)
+            {
                 chars.Resize(SizeType(n) + 1);
                 std::sprintf(chars.Data(), "%lld", (long long)number);
             }
-        } else {
+        }
+        else
+        {
             int n = std::snprintf(nullptr, 0, "%f", number);
-            if (n > 0) {
+            if (n > 0)
+            {
                 chars.Resize(SizeType(n) + 1);
                 std::sprintf(chars.Data(), "%f", number);
             }
@@ -899,15 +988,18 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         return String(chars.ToByteView());
     }
 
-    if (IsArray()) {
-        const auto &as_array = AsArray();
+    if (IsArray())
+    {
+        const auto& as_array = AsArray();
 
         String result = "[";
 
-        for (SizeType index = 0; index < as_array.Size(); index++) {
+        for (SizeType index = 0; index < as_array.Size(); index++)
+        {
             result += as_array[index].ToString(true, depth + 1);
 
-            if (index != as_array.Size() - 1) {
+            if (index != as_array.Size() - 1)
+            {
                 result += ", ";
             }
         }
@@ -917,12 +1009,14 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         return result;
     }
 
-    if (IsObject()) {
-        const auto &as_object = AsObject();
+    if (IsObject())
+    {
+        const auto& as_object = AsObject();
 
         Array<Pair<JSONString, JSONValue>> members;
 
-        for (const auto &member : as_object) {
+        for (const auto& member : as_object)
+        {
             members.PushBack({ member.first, member.second });
         }
 
@@ -931,14 +1025,18 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
         String result = "{";
 
-        for (SizeType index = 0; index < members.Size(); index++) {
+        for (SizeType index = 0; index < members.Size(); index++)
+        {
             result += "\n" + property_indentation + "\"" + members[index].first.Escape() + "\": ";
 
             result += members[index].second.ToString(true, depth + 1);
 
-            if (index != members.Size() - 1) {
+            if (index != members.Size() - 1)
+            {
                 result += ",";
-            } else {
+            }
+            else
+            {
                 result += "\n" + indentation;
             }
         }
@@ -948,40 +1046,50 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
         return result;
     }
 
-    if (representation) {
+    if (representation)
+    {
         return "\"<invalid value>\"";
-    } else {
+    }
+    else
+    {
         return "<invalid value>";
     }
 }
 
 HashCode JSONValue::GetHashCode() const
 {
-    if (IsString()) {
+    if (IsString())
+    {
         return HashCode::GetHashCode(AsString());
     }
 
-    if (IsNumber()) {
+    if (IsNumber())
+    {
         return HashCode::GetHashCode(AsNumber());
     }
 
-    if (IsBool()) {
+    if (IsBool())
+    {
         return HashCode::GetHashCode(AsBool());
     }
 
-    if (IsArray()) {
+    if (IsArray())
+    {
         return HashCode::GetHashCode(AsArray());
     }
 
-    if (IsObject()) {
+    if (IsObject())
+    {
         return HashCode::GetHashCode(AsObject());
     }
 
-    if (IsNull()) {
+    if (IsNull())
+    {
         return HashCode::GetHashCode(SizeType(-1));
     }
 
-    if (IsUndefined()) {
+    if (IsUndefined())
+    {
         return HashCode::GetHashCode(SizeType(-2));
     }
 
@@ -992,7 +1100,7 @@ HashCode JSONValue::GetHashCode() const
 
 #pragma region JSON
 
-ParseResult JSON::Parse(BufferedReader &reader)
+ParseResult JSON::Parse(BufferedReader& reader)
 {
     SourceFile source_file("<input>", reader.Max());
     source_file.ReadIntoBuffer(reader.ReadBytes());
@@ -1000,7 +1108,7 @@ ParseResult JSON::Parse(BufferedReader &reader)
     return Parse(source_file);
 }
 
-ParseResult JSON::Parse(const String &json_string)
+ParseResult JSON::Parse(const String& json_string)
 {
     SourceFile source_file("<input>", json_string.Size());
 
@@ -1010,20 +1118,21 @@ ParseResult JSON::Parse(const String &json_string)
     return Parse(source_file);
 }
 
-ParseResult JSON::Parse(const SourceFile &source_file)
+ParseResult JSON::Parse(const SourceFile& source_file)
 {
     // use the lexer and parser on this file buffer
     TokenStream token_stream(TokenStreamInfo { "<input>" });
 
     CompilationUnit unit;
 
-    const auto HandleErrors = [&]() -> ParseResult
+    const auto handle_errors = [&]() -> ParseResult
     {
         AssertThrow(unit.GetErrorList().HasFatalErrors());
 
         String error_message;
 
-        for (SizeType index = 0; index < unit.GetErrorList().Size(); index++) {
+        for (SizeType index = 0; index < unit.GetErrorList().Size(); index++)
+        {
             error_message += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
                 + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)
                 + ": " + unit.GetErrorList()[index].GetText() + "\n";
@@ -1035,19 +1144,20 @@ ParseResult JSON::Parse(const SourceFile &source_file)
     Lexer lexer(SourceStream(&source_file), &token_stream, &unit);
     lexer.Analyze();
 
-    if (unit.GetErrorList().HasFatalErrors()) {
-        return HandleErrors();
+    if (unit.GetErrorList().HasFatalErrors())
+    {
+        return handle_errors();
     }
 
     JSONParser parser(
         &token_stream,
-        &unit
-    );
+        &unit);
 
     JSONValue value = parser.Parse();
 
-    if (unit.GetErrorList().HasFatalErrors()) {
-        return HandleErrors();
+    if (unit.GetErrorList().HasFatalErrors())
+    {
+        return handle_errors();
     }
 
     return { true, "", value };

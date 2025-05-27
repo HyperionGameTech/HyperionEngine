@@ -21,19 +21,19 @@ using DataStoreFlags = uint32;
 
 enum DataStoreFlagBits : DataStoreFlags
 {
-    DSF_NONE    = 0x0,
-    DSF_READ    = 0x1,
-    DSF_WRITE   = 0x2,
-    DSF_RW      = DSF_READ | DSF_WRITE
+    DSF_NONE = 0x0,
+    DSF_READ = 0x1,
+    DSF_WRITE = 0x2,
+    DSF_RW = DSF_READ | DSF_WRITE
 };
 
 namespace filesystem {
 
 struct DataStoreOptions
 {
-    DataStoreFlags  flags = DSF_RW;
+    DataStoreFlags flags = DSF_RW;
     // max size in bytes before old data is discarded - 0 means no limit
-    uint64          max_size = 5ull * 1024ull * 1024ull * 1024ull /* 5GB */;
+    uint64 max_size = 5ull * 1024ull * 1024ull * 1024ull /* 5GB */;
 };
 
 class HYP_API DataStoreBase : public IResource
@@ -42,30 +42,30 @@ class HYP_API DataStoreBase : public IResource
     using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
-    static DataStoreBase *GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase *(UTF8StringView)> &&create_fn);
+    static DataStoreBase* GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn);
 
     template <class DataStoreType>
-    static DataStoreType &GetOrCreate(UTF8StringView prefix)
+    static DataStoreType& GetOrCreate(UTF8StringView prefix)
     {
         static_assert(std::is_base_of_v<DataStoreBase, DataStoreType>, "DataStoreType must be a subclass of DataStoreBase");
 
-        DataStoreBase *ptr = DataStoreBase::GetOrCreate(TypeID::ForType<DataStoreType>(), prefix, [](UTF8StringView prefix) -> DataStoreBase *
-        {
-            return AllocateResource<DataStoreType>(prefix);
-        });
+        DataStoreBase* ptr = DataStoreBase::GetOrCreate(TypeID::ForType<DataStoreType>(), prefix, [](UTF8StringView prefix) -> DataStoreBase*
+            {
+                return AllocateResource<DataStoreType>(prefix);
+            });
 
-        DataStoreType *ptr_casted = dynamic_cast<DataStoreType *>(ptr);
+        DataStoreType* ptr_casted = dynamic_cast<DataStoreType*>(ptr);
         AssertThrow(ptr_casted != nullptr);
 
         return *ptr_casted;
     }
 
-    DataStoreBase(const String &prefix, DataStoreOptions options);
-    DataStoreBase(const DataStoreBase &other)               = delete;
-    DataStoreBase &operator=(const DataStoreBase &other)    = delete;
-    DataStoreBase(DataStoreBase &&other)                    = default;
-    DataStoreBase &operator=(DataStoreBase &&other)         = delete;
-    virtual ~DataStoreBase() override                       = default;
+    DataStoreBase(const String& prefix, DataStoreOptions options);
+    DataStoreBase(const DataStoreBase& other) = delete;
+    DataStoreBase& operator=(const DataStoreBase& other) = delete;
+    DataStoreBase(DataStoreBase&& other) = default;
+    DataStoreBase& operator=(DataStoreBase&& other) = delete;
+    virtual ~DataStoreBase() override = default;
 
     /*! \brief Discard old files if the directory size exceeds the max size.
      *  \todo Call this function on cleanup, before exit. Make this run in a separate thread (with a lock on the directory) */
@@ -82,28 +82,34 @@ public:
     /*! \brief Write a byte buffer keyed by \ref{key} to the data store
      *  \param key The key to use for the data that will be written
      *  \param byte_buffer The byte buffer to write */
-    virtual void Write(const String &key, const ByteBuffer &byte_buffer);
+    virtual void Write(const String& key, const ByteBuffer& byte_buffer);
 
     /*! \brief Read a byte buffer keyed by \ref{key} from the data store
      *  \param key The key to use for the data that will be read
      *  \param out_byte_buffer The byte buffer to read into
      *  \returns true if the read was successful, false otherwise */
-    virtual bool Read(const String &key, ByteBuffer &out_byte_buffer) const;
+    virtual bool Read(const String& key, ByteBuffer& out_byte_buffer) const;
 
     /*! \brief Check if a key exists in the data store
      *  \param key The key to check for
      *  \returns true if the key exists, false otherwise */
-    virtual bool Exists(const String &key) const;
+    virtual bool Exists(const String& key) const;
 
     virtual ResourceMemoryPoolHandle GetPoolHandle() const override
-        { return m_pool_handle; }
+    {
+        return m_pool_handle;
+    }
 
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) override
-        { m_pool_handle = pool_handle; }
+    {
+        m_pool_handle = pool_handle;
+    }
 
 protected:
     virtual bool IsNull() const override
-        { return false; }
+    {
+        return false;
+    }
 
     virtual int Claim(int count = 1) override;
     virtual int ClaimWithoutInitialize() override;
@@ -113,11 +119,11 @@ protected:
     virtual void WaitForFinalization() const override final;
 
 private:
-    ResourceMemoryPoolHandle    m_pool_handle;
-    String                      m_prefix;
-    DataStoreOptions            m_options;
-    ClaimedSemaphore            m_claimed_semaphore;
-    ShutdownSemaphore           m_shutdown_semaphore;
+    ResourceMemoryPoolHandle m_pool_handle;
+    String m_prefix;
+    DataStoreOptions m_options;
+    ClaimedSemaphore m_claimed_semaphore;
+    ShutdownSemaphore m_shutdown_semaphore;
 };
 
 class DataStore : public DataStoreBase
@@ -154,13 +160,18 @@ public:
 };
 
 template <auto Prefix, DataStoreFlags Flags>
-static inline DataStore &GetDataStore()
+static inline DataStore& GetDataStore()
 {
-    if constexpr (Flags & DSF_WRITE) {
+    if constexpr (Flags & DSF_WRITE)
+    {
         return DataStoreBase::GetOrCreate<ReadWriteDataStore>(&Prefix.data[0]);
-    } else if constexpr (Flags & DSF_READ) {
+    }
+    else if constexpr (Flags & DSF_READ)
+    {
         return DataStoreBase::GetOrCreate<ReadOnlyDataStore>(&Prefix.data[0]);
-    } else {
+    }
+    else
+    {
         static_assert(resolution_failure<std::integral_constant<int, int(Flags)>>, "Cannot create DataStore with the given flags!");
     }
 }

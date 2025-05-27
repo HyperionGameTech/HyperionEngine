@@ -25,35 +25,39 @@ enum class TerrainPatchState
 };
 
 HYP_STRUCT()
+
 struct TerrainPatchNeighbor
 {
-    HYP_FIELD(Serialize, Property="Coord")
+    HYP_FIELD(Serialize, Property = "Coord")
     TerrainPatchCoord coord;
 
     HYP_FORCE_INLINE Vec2f GetCenter() const
-        { return Vec2f(coord) - 0.5f; }
+    {
+        return Vec2f(coord) - 0.5f;
+    }
 };
 
 HYP_STRUCT()
+
 struct TerrainPatchInfo
 {
-    HYP_FIELD(Serialize, Property="Extent")
-    Vec3u                               extent;
+    HYP_FIELD(Serialize, Property = "Extent")
+    Vec3u extent;
 
-    HYP_FIELD(Serialize, Property="Coord")
-    TerrainPatchCoord                   coord;
+    HYP_FIELD(Serialize, Property = "Coord")
+    TerrainPatchCoord coord;
 
-    HYP_FIELD(Serialize, Property="Scale")
-    Vec3f                               scale = Vec3f::One();
+    HYP_FIELD(Serialize, Property = "Scale")
+    Vec3f scale = Vec3f::One();
 
-    HYP_FIELD(Serialize, Property="State")
-    TerrainPatchState                   state = TerrainPatchState::UNLOADED;
+    HYP_FIELD(Serialize, Property = "State")
+    TerrainPatchState state = TerrainPatchState::UNLOADED;
 
-    HYP_FIELD(Serialize, Property="Neighbors")
+    HYP_FIELD(Serialize, Property = "Neighbors")
     FixedArray<TerrainPatchNeighbor, 8> neighbors;
-    
+
     HYP_FIELD()
-    float                               unload_timer = 0.0f;
+    float unload_timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -75,23 +79,24 @@ enum TerrainComponentFlagBits : TerrainComponentFlags
     TERRAIN_COMPONENT_FLAG_INIT = 0x1
 };
 
-HYP_STRUCT(Component, Label="Terrain Component", Description="Controls dynamic terrain.", Editor=true)
+HYP_STRUCT(Component, Label = "Terrain Component", Description = "Controls dynamic terrain.", Editor = true)
+
 struct TerrainComponent
 {
-    HYP_FIELD(Property="Seed", Serialize=true, Editor=true)
-    uint32                  seed = 0;
+    HYP_FIELD(Property = "Seed", Serialize = true, Editor = true)
+    uint32 seed = 0;
 
-    HYP_FIELD(Property="PatchSize", Serialize=true, Editor=true)
-    Vec3u                   patch_size = { 32, 32, 32 };
+    HYP_FIELD(Property = "PatchSize", Serialize = true, Editor = true)
+    Vec3u patch_size = { 32, 32, 32 };
 
-    HYP_FIELD(Property="Scale", Serialize=true, Editor=true)
-    Vec3f                   scale = Vec3f::One();
+    HYP_FIELD(Property = "Scale", Serialize = true, Editor = true)
+    Vec3f scale = Vec3f::One();
 
-    HYP_FIELD(Property="MaxDistance", Serialize=true, Editor=true)
-    float                   max_distance = 2.0f;
+    HYP_FIELD(Property = "MaxDistance", Serialize = true, Editor = true)
+    float max_distance = 2.0f;
 
     HYP_FIELD()
-    TerrainComponentFlags   flags = TERRAIN_COMPONENT_FLAG_NONE;
+    TerrainComponentFlags flags = TERRAIN_COMPONENT_FLAG_NONE;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

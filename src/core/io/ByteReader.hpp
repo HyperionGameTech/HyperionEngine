@@ -14,33 +14,35 @@ public:
     virtual ~ByteReader() = default;
 
     template <typename T>
-    void Read(T *ptr, SizeType size = sizeof(T))
+    void Read(T* ptr, SizeType size = sizeof(T))
     {
-        if (size == 0) {
+        if (size == 0)
+        {
             return;
         }
 
         AssertThrow(Position() + size <= Max());
 
-        ReadBytes(static_cast<void *>(ptr), size);
+        ReadBytes(static_cast<void*>(ptr), size);
     }
 
     /*! \brief Reads from the current position, to current position + \ref{size}.
         If that position is greater than the maximum position, the number of bytes is truncated.
         Endianness is not taken into account
         @returns The number of bytes read */
-    SizeType Read(SizeType size, ByteBuffer &out_byte_buffer)
+    SizeType Read(SizeType size, ByteBuffer& out_byte_buffer)
     {
-        if (Eof()) {
+        if (Eof())
+        {
             return 0;
         }
-    
+
         const SizeType read_to_position = MathUtil::Min(
             Position() + size,
-            Max()
-        );
+            Max());
 
-        if (read_to_position <= SizeType(Position())) {
+        if (read_to_position <= SizeType(Position()))
+        {
             return 0;
         }
 
@@ -55,15 +57,16 @@ public:
         @returns a ByteBuffer object, containing the data that was read. */
     ByteBuffer Read()
     {
-        if (Eof()) {
+        if (Eof())
+        {
             return ByteBuffer();
         }
 
         return ReadBytes(Max() - Position());
     }
-    
+
     template <typename T>
-    void Peek(T *ptr, SizeType size = sizeof(T))
+    void Peek(T* ptr, SizeType size = sizeof(T))
     {
         Read(ptr, size);
         Rewind(size);
@@ -76,17 +79,19 @@ public:
     virtual void Seek(SizeType where_to) = 0;
 
     bool Eof() const
-        { return Position() >= Max(); }
+    {
+        return Position() >= Max();
+    }
 
 protected:
-    virtual void ReadBytes(void *ptr, SizeType size) = 0;
+    virtual void ReadBytes(void* ptr, SizeType size) = 0;
     virtual ByteBuffer ReadBytes(SizeType size) = 0;
 };
 
 class MemoryByteReader : public ByteReader
 {
 public:
-    MemoryByteReader(ByteBuffer *byte_buffer)
+    MemoryByteReader(ByteBuffer* byte_buffer)
         : m_byte_buffer(byte_buffer),
           m_pos(0)
     {
@@ -120,12 +125,13 @@ public:
     }
 
 protected:
-    ByteBuffer *m_byte_buffer;
+    ByteBuffer* m_byte_buffer;
     SizeType m_pos;
 
-    virtual void ReadBytes(void *ptr, SizeType size) override
+    virtual void ReadBytes(void* ptr, SizeType size) override
     {
-        if (m_byte_buffer == nullptr) {
+        if (m_byte_buffer == nullptr)
+        {
             return;
         }
 
@@ -135,7 +141,8 @@ protected:
 
     virtual ByteBuffer ReadBytes(SizeType size) override
     {
-        if (m_byte_buffer == nullptr) {
+        if (m_byte_buffer == nullptr)
+        {
             return ByteBuffer();
         }
 
@@ -148,88 +155,87 @@ protected:
 class FileByteReader : public ByteReader
 {
 public:
-    FileByteReader(const std::string &filepath, std::streampos begin = 0)
-        : filepath(filepath),
-          pos(0),
-          max_pos(0)
+    FileByteReader(const std::string& filepath, std::streampos begin = 0)
+        : m_filepath(filepath),
+          m_pos(0),
+          m_max_pos(0)
     {
-        file = new std::ifstream(
+        m_file = new std::ifstream(
             filepath,
             std::ifstream::in
-            | std::ifstream::binary
-            | std::ifstream::ate
-        );
+                | std::ifstream::binary
+                | std::ifstream::ate);
 
-        max_pos = file->tellg();
-        file->seekg(begin);
-        pos = file->tellg();
+        m_max_pos = m_file->tellg();
+        m_file->seekg(begin);
+        m_pos = m_file->tellg();
 
-        if (Eof()) {
+        if (Eof())
+        {
             DebugLog(
                 LogType::Warn,
                 "File could not be opened at path %s\n",
-                filepath.c_str()
-            );
+                filepath.c_str());
         }
     }
 
     virtual ~FileByteReader() override
     {
-        delete file;
+        delete m_file;
     }
-    
-    const std::string &GetFilepath() const
+
+    const std::string& GetFilepath() const
     {
-        return filepath;
+        return m_filepath;
     }
 
     virtual SizeType Position() const override
     {
-        return pos;
+        return m_pos;
     }
 
     virtual SizeType Max() const override
     {
-        return max_pos;
+        return m_max_pos;
     }
 
     virtual void Skip(SizeType amount) override
     {
-        file->seekg(pos += amount);
+        m_file->seekg(m_pos += amount);
     }
 
     virtual void Rewind(SizeType amount) override
     {
-        file->seekg(pos -= amount);
+        m_file->seekg(m_pos -= amount);
     }
 
     virtual void Seek(SizeType where_to) override
     {
-        file->seekg(pos = where_to);
+        m_file->seekg(m_pos = where_to);
     }
 
 protected:
-    std::istream *file;
-    SizeType pos;
-    SizeType max_pos;
-    std::string filepath;
+    std::istream* m_file;
+    SizeType m_pos;
+    SizeType m_max_pos;
+    std::string m_filepath;
 
-    virtual void ReadBytes(void *ptr, size_t size) override
+    virtual void ReadBytes(void* ptr, size_t size) override
     {
-        file->read(static_cast<char *>(ptr), size);
-        pos += size;
+        m_file->read(static_cast<char*>(ptr), size);
+        m_pos += size;
     }
 
     virtual ByteBuffer ReadBytes(SizeType size) override
     {
-        pos += size;
+        m_pos += size;
 
         ByteBuffer byte_buffer(size);
-        file->read(reinterpret_cast<char *>(byte_buffer.Data()), size);
+        m_file->read(reinterpret_cast<char*>(byte_buffer.Data()), size);
 
         return byte_buffer;
     }
 };
-}
+} // namespace hyperion
 
 #endif

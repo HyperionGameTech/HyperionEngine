@@ -11,17 +11,22 @@ namespace hyperion {
 
 class Light;
 
-HYP_STRUCT(Component, Size=8, Label="Light Component", Description="Controls the rendering of an object acting as a light source.", Editor=true, EditorPropertyPanelClass="LightComponentEditorPropertyPanel")
+HYP_STRUCT(Component, Size = 8, Label = "Light Component", Description = "Controls the rendering of an object acting as a light source.", Editor = true, EditorPropertyPanelClass = "LightComponentEditorPropertyPanel")
+
 struct LightComponent
 {
-    HYP_FIELD(Property="Light", Serialize=true, Editor=true)
-    Handle<Light>   light;
+    HYP_FIELD(Property = "Light", Serialize = true, Editor = true)
+    Handle<Light> light;
 
-    const Handle<Light> &GetLight() const
-        { return light; }
-    
-    void SetLight(const Handle<Light> &light)
-        { this->light = light; }
+    const Handle<Light>& GetLight() const
+    {
+        return light;
+    }
+
+    void SetLight(const Handle<Light>& light)
+    {
+        this->light = light;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

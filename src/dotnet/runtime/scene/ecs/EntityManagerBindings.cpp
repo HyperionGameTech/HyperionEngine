@@ -23,30 +23,31 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT bool EntityManager_HasComponent(EntityManager *manager, uint32 component_type_id, IDBase::ValueType entity_id)
+extern "C"
 {
-    AssertThrow(manager != nullptr);
-    
-    return manager->HasComponent(TypeID { component_type_id }, ID<Entity> { entity_id });
-}
 
-HYP_EXPORT void *EntityManager_GetComponent(EntityManager *manager, uint32 component_type_id, IDBase::ValueType entity_id)
-{
-    AssertThrow(manager != nullptr);
-    
-    return manager->TryGetComponent(TypeID { component_type_id }, ID<Entity> { entity_id }).GetPointer();
-}
+    HYP_EXPORT bool EntityManager_HasComponent(EntityManager* manager, uint32 component_type_id, IDBase::ValueType entity_id)
+    {
+        AssertThrow(manager != nullptr);
 
-HYP_EXPORT void EntityManager_AddComponent(EntityManager *manager, IDBase::ValueType entity_id, uint32 component_type_id, void *component_ptr)
-{
-    AssertThrow(manager != nullptr);
-    AssertThrow(component_ptr != nullptr);
+        return manager->HasComponent(TypeID { component_type_id }, ID<Entity> { entity_id });
+    }
 
-    AssertThrow(manager->IsValidComponentType(TypeID { component_type_id }));
+    HYP_EXPORT void* EntityManager_GetComponent(EntityManager* manager, uint32 component_type_id, IDBase::ValueType entity_id)
+    {
+        AssertThrow(manager != nullptr);
 
-    manager->AddComponent(ID<Entity> { entity_id }, AnyRef(TypeID { component_type_id }, component_ptr));
-}
+        return manager->TryGetComponent(TypeID { component_type_id }, ID<Entity> { entity_id }).GetPointer();
+    }
+
+    HYP_EXPORT void EntityManager_AddComponent(EntityManager* manager, IDBase::ValueType entity_id, uint32 component_type_id, void* component_ptr)
+    {
+        AssertThrow(manager != nullptr);
+        AssertThrow(component_ptr != nullptr);
+
+        AssertThrow(manager->IsValidComponentType(TypeID { component_type_id }));
+
+        manager->AddComponent(ID<Entity> { entity_id }, AnyRef(TypeID { component_type_id }, component_ptr));
+    }
 
 } // extern "C"

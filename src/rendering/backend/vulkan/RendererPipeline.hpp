@@ -11,16 +11,17 @@
 namespace hyperion {
 namespace renderer {
 
-extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper &layout);
+extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout);
 
 template <class PipelineType>
-static inline Array<VkDescriptorSetLayout> GetPipelineVulkanDescriptorSetLayouts(const PipelineType &pipeline)
+static inline Array<VkDescriptorSetLayout> GetPipelineVulkanDescriptorSetLayouts(const PipelineType& pipeline)
 {
     AssertThrowMsg(pipeline.GetDescriptorTable().IsValid(), "Invalid DescriptorTable provided to Pipeline");
 
     Array<VkDescriptorSetLayout> used_layouts;
 
-    for (const DescriptorSetRef &descriptor_set : pipeline.GetDescriptorTable()->GetSets()[0]) {
+    for (const DescriptorSetRef& descriptor_set : pipeline.GetDescriptorTable()->GetSets()[0])
+    {
         VulkanDescriptorSetRef vulkan_descriptor_set = VulkanDescriptorSetRef(descriptor_set);
 
         AssertThrow(vulkan_descriptor_set != nullptr);
@@ -39,24 +40,28 @@ public:
     HYP_API virtual ~VulkanPipelineBase();
 
     HYP_FORCE_INLINE VkPipeline GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
     HYP_FORCE_INLINE VkPipelineLayout GetVulkanPipelineLayout() const
-        { return m_layout; }
+    {
+        return m_layout;
+    }
 
     HYP_API Array<VkDescriptorSetLayout> GetDescriptorSetLayouts() const;
-    
+
     HYP_API RendererResult Destroy();
 
     HYP_API bool IsCreated() const;
-    
-    HYP_API void SetPushConstants(const void *data, SizeType size);
+
+    HYP_API void SetPushConstants(const void* data, SizeType size);
 
 protected:
-    VkPipeline                  m_handle;
-    VkPipelineLayout            m_layout;
+    VkPipeline m_handle;
+    VkPipelineLayout m_layout;
 
-    PushConstantData            m_push_constants;
+    PushConstantData m_push_constants;
 };
 
 } // namespace renderer

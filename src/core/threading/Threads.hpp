@@ -20,16 +20,16 @@ namespace threading {
 // max 4 bits
 enum ThreadCategory : ThreadMask
 {
-    THREAD_CATEGORY_NONE    = 0x0,
-    THREAD_CATEGORY_TASK    = 0x1
+    THREAD_CATEGORY_NONE = 0x0,
+    THREAD_CATEGORY_TASK = 0x1
 };
 
 enum ThreadType : uint32
 {
     THREAD_TYPE_INVALID = uint32(-1),
-    THREAD_TYPE_GAME    = 0,
-    THREAD_TYPE_RENDER  = 1,
-    THREAD_TYPE_TASK    = 2,
+    THREAD_TYPE_GAME = 0,
+    THREAD_TYPE_RENDER = 1,
+    THREAD_TYPE_TASK = 2,
     THREAD_TYPE_DYNAMIC = 3,
     THREAD_TYPE_MAX
 };
@@ -37,25 +37,25 @@ enum ThreadType : uint32
 class HYP_API Threads
 {
 public:
-    static void AssertOnThread(ThreadMask mask, const char *message = nullptr);
-    static void AssertOnThread(const ThreadID &thread_id, const char *message = nullptr);
-    static bool IsThreadInMask(const ThreadID &thread_id, ThreadMask mask);
+    static void AssertOnThread(ThreadMask mask, const char* message = nullptr);
+    static void AssertOnThread(const ThreadID& thread_id, const char* message = nullptr);
+    static bool IsThreadInMask(const ThreadID& thread_id, ThreadMask mask);
     static bool IsOnThread(ThreadMask mask);
-    static bool IsOnThread(const ThreadID &thread_id);
+    static bool IsOnThread(const ThreadID& thread_id);
 
-    static IThread *GetThread(const ThreadID &thread_id);
+    static IThread* GetThread(const ThreadID& thread_id);
 
-    static IThread *CurrentThreadObject();
+    static IThread* CurrentThreadObject();
 
-    static const ThreadID &CurrentThreadID();
+    static const ThreadID& CurrentThreadID();
 
-    static void RegisterThread(const ThreadID &id, IThread *thread);
-    static void UnregisterThread(const ThreadID &id);
-    static bool IsThreadRegistered(const ThreadID &id);
+    static void RegisterThread(const ThreadID& id, IThread* thread);
+    static void UnregisterThread(const ThreadID& id);
+    static bool IsThreadRegistered(const ThreadID& id);
 
-    static void SetCurrentThreadID(const ThreadID &id);
+    static void SetCurrentThreadID(const ThreadID& id);
 
-    static void SetCurrentThreadObject(IThread *);
+    static void SetCurrentThreadObject(IThread*);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
     static SizeType NumCores();
@@ -65,8 +65,8 @@ public:
 
 } // namespace threading
 
-using threading::Threads;
 using threading::ThreadCategory;
+using threading::Threads;
 using threading::ThreadType;
 
 HYP_API extern const StaticThreadID g_main_thread;

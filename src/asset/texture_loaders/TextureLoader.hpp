@@ -10,12 +10,12 @@
 
 namespace hyperion {
 
-class TextureLoader : public AssetLoader
+class TextureLoader : public AssetLoaderBase
 {
 public:
     virtual ~TextureLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

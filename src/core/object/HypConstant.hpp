@@ -33,7 +33,7 @@ class HypConstant : public IHypMember
 {
 public:
     template <class ConstantType>
-    HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = { })
+    HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
           m_type_id(TypeID::ForType<ConstantType>()),
           m_size(sizeof(ConstantType)),
@@ -44,12 +44,14 @@ public:
             return HypData(value);
         };
 
-        if (m_attributes["serialize"] || m_attributes["xmlattribute"]) {
+        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        {
             m_serialize_proc = [value]() -> fbom::FBOMData
             {
                 fbom::FBOMData out;
 
-                if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out)) {
+                if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out))
+                {
                     HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                 }
 
@@ -58,11 +60,11 @@ public:
         }
     }
 
-    HypConstant(const HypConstant &other)                   = delete;
-    HypConstant &operator=(const HypConstant &other)        = delete;
-    HypConstant(HypConstant &&other) noexcept               = default;
-    HypConstant &operator=(HypConstant &&other) noexcept    = default;
-    virtual ~HypConstant() override                         = default;
+    HypConstant(const HypConstant& other) = delete;
+    HypConstant& operator=(const HypConstant& other) = delete;
+    HypConstant(HypConstant&& other) noexcept = default;
+    HypConstant& operator=(HypConstant&& other) noexcept = default;
+    virtual ~HypConstant() override = default;
 
     virtual HypMemberType GetMemberType() const override
     {
@@ -94,16 +96,20 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE bool Serialize(fbom::FBOMData &out) const
-        { return Serialize({}, out); }
-
-    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const override
+    HYP_FORCE_INLINE bool Serialize(fbom::FBOMData& out) const
     {
-        if (!CanSerialize()) {
+        return Serialize({}, out);
+    }
+
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData& out) const override
+    {
+        if (!CanSerialize())
+        {
             return false;
         }
 
-        if (args.Size() != 0) {
+        if (args.Size() != 0)
+        {
             return false;
         }
 
@@ -112,28 +118,30 @@ public:
         return true;
     }
 
-    virtual bool Deserialize(fbom::FBOMLoadContext &context, HypData &target, const fbom::FBOMData &data) const override
+    virtual bool Deserialize(fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& data) const override
     {
         return false;
     }
-    
-    virtual const HypClassAttributeSet &GetAttributes() const override
+
+    virtual const HypClassAttributeSet& GetAttributes() const override
     {
         return m_attributes;
     }
 
-    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const override
+    virtual const HypClassAttributeValue& GetAttribute(ANSIStringView key) const override
     {
         return m_attributes.Get(key);
     }
 
-    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const override
+    virtual const HypClassAttributeValue& GetAttribute(ANSIStringView key, const HypClassAttributeValue& default_value) const override
     {
         return m_attributes.Get(key, default_value);
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return IsValid(); }
+    {
+        return IsValid();
+    }
 
     HYP_FORCE_INLINE bool IsValid() const
     {
@@ -148,13 +156,13 @@ public:
     }
 
 private:
-    Name                    m_name;
-    TypeID                  m_type_id;
-    uint32                  m_size;
-    HypClassAttributeSet    m_attributes;
+    Name m_name;
+    TypeID m_type_id;
+    uint32 m_size;
+    HypClassAttributeSet m_attributes;
 
-    Proc<HypData()>           m_get_proc;
-    Proc<fbom::FBOMData()>    m_serialize_proc;
+    Proc<HypData()> m_get_proc;
+    Proc<fbom::FBOMData()> m_serialize_proc;
 };
 
 } // namespace hyperion

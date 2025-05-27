@@ -14,23 +14,19 @@
 
 namespace hyperion {
 
-class EntityMeshDirtyStateSystem : public System<
-    EntityMeshDirtyStateSystem,
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+class EntityMeshDirtyStateSystem : public System<EntityMeshDirtyStateSystem, ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ, false>
->
+                                       ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    EntityMeshDirtyStateSystem(EntityManager &entity_manager)
+    EntityMeshDirtyStateSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
 
     virtual ~EntityMeshDirtyStateSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

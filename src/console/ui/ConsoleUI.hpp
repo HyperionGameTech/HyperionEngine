@@ -15,16 +15,17 @@ class UIListView;
 class ConsoleHistory;
 
 HYP_CLASS()
+
 class HYP_API ConsoleUI : public UIObject
 {
     HYP_OBJECT_BODY(ConsoleUI);
 
 public:
     ConsoleUI();
-    ConsoleUI(const ConsoleUI &other)                   = delete;
-    ConsoleUI &operator=(const ConsoleUI &other)        = delete;
-    ConsoleUI(ConsoleUI &&other) noexcept               = delete;
-    ConsoleUI &operator=(ConsoleUI &&other) noexcept    = delete;
+    ConsoleUI(const ConsoleUI& other) = delete;
+    ConsoleUI& operator=(const ConsoleUI& other) = delete;
+    ConsoleUI(ConsoleUI&& other) noexcept = delete;
+    ConsoleUI& operator=(ConsoleUI&& other) noexcept = delete;
     virtual ~ConsoleUI() override;
 
     virtual void Init() override;
@@ -34,14 +35,14 @@ protected:
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
-    RC<UIListView>          m_history_list_view;
-    RC<UITextbox>           m_textbox;
+    RC<UIListView> m_history_list_view;
+    RC<UITextbox> m_textbox;
 
-    Pimpl<ConsoleHistory>   m_history;
+    Pimpl<ConsoleHistory> m_history;
 
-    String                  m_current_command_text;
+    String m_current_command_text;
 
-    int                     m_logger_redirect_id;
+    int m_logger_redirect_id;
 };
 
 } // namespace hyperion

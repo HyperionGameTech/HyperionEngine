@@ -14,77 +14,84 @@ namespace hyperion {
 class NameRegistry
 {
 public:
-    NameRegistry()                                          = default;
-    NameRegistry(const NameRegistry &other)                 = delete;
-    NameRegistry &operator=(const NameRegistry &other)      = delete;
-    NameRegistry(NameRegistry &&other) noexcept             = delete;
-    NameRegistry &operator=(NameRegistry &&other) noexcept  = delete;
-    ~NameRegistry()                                         = default;
+    NameRegistry() = default;
+    NameRegistry(const NameRegistry& other) = delete;
+    NameRegistry& operator=(const NameRegistry& other) = delete;
+    NameRegistry(NameRegistry&& other) noexcept = delete;
+    NameRegistry& operator=(NameRegistry&& other) noexcept = delete;
+    ~NameRegistry() = default;
 
-    Name RegisterName(NameID id, const ANSIString &str, bool lock);
-    Name RegisterUniqueName(const ANSIString &str, bool lock);
-    const ANSIString &LookupStringForName(Name name) const;
+    Name RegisterName(NameID id, const ANSIString& str, bool lock);
+    Name RegisterUniqueName(const ANSIString& str, bool lock);
+    const ANSIString& LookupStringForName(Name name) const;
 
 private:
-    HashMap<NameID, Pair<ANSIString, uint32>>   m_name_map;
-    mutable Mutex                               m_mutex;
+    HashMap<NameID, Pair<ANSIString, uint32>> m_name_map;
+    mutable Mutex m_mutex;
 };
 
 HYP_DISABLE_OPTIMIZATION;
 
-Name NameRegistry::RegisterName(NameID id, const ANSIString &str, bool lock)
+Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
 {
     Name name(id);
 
-    if (lock) {
+    if (lock)
+    {
         m_mutex.Lock();
     }
 
     auto it = m_name_map.Find(id);
 
-    if (it != m_name_map.End()) {
-        Pair<ANSIString, uint32> &string_count_pair = it->second;
+    if (it != m_name_map.End())
+    {
+        Pair<ANSIString, uint32>& string_count_pair = it->second;
 
         ++string_count_pair.second;
-    } else {
+    }
+    else
+    {
         m_name_map.Insert({ id, Pair<ANSIString, uint32> { str, 1 } });
     }
 
-    if (lock) {
+    if (lock)
+    {
         m_mutex.Unlock();
     }
 
     return name;
 }
 
-
 HYP_ENABLE_OPTIMIZATION;
-Name NameRegistry::RegisterUniqueName(const ANSIString &str, bool lock)
+
+Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
 {
     Name name;
     bool inserted = false;
     int suffix = 0;
 
-    if (lock) {
+    if (lock)
+    {
         m_mutex.Lock();
     }
 
-    while (!inserted) {
+    while (!inserted)
+    {
         ANSIString str_with_suffix = str;
-    
-        if (suffix > 0) {
+
+        if (suffix > 0)
+        {
             str_with_suffix = ANSIString(HYP_FORMAT("{}_{}", str, suffix));
         }
 
         const NameID name_id_with_suffix = NameRegistration::GenerateID(str_with_suffix);
-    
+
         auto it = m_name_map.Find(name_id_with_suffix);
 
-        if (it == m_name_map.End()) {
-            m_name_map.Insert({
-                name_id_with_suffix,
-                Pair<ANSIString, uint32> { str_with_suffix, 1 }
-            });
+        if (it == m_name_map.End())
+        {
+            m_name_map.Insert({ name_id_with_suffix,
+                Pair<ANSIString, uint32> { str_with_suffix, 1 } });
 
             name = Name(name_id_with_suffix);
 
@@ -94,16 +101,18 @@ Name NameRegistry::RegisterUniqueName(const ANSIString &str, bool lock)
         ++suffix;
     }
 
-    if (lock) {
+    if (lock)
+    {
         m_mutex.Unlock();
     }
 
     return name;
 }
 
-const ANSIString &NameRegistry::LookupStringForName(Name name) const
+const ANSIString& NameRegistry::LookupStringForName(Name name) const
 {
-    if (!name.IsValid()) {
+    if (!name.IsValid())
+    {
         return ANSIString::empty;
     }
 
@@ -111,19 +120,20 @@ const ANSIString &NameRegistry::LookupStringForName(Name name) const
 
     const auto it = m_name_map.Find(name.hash_code);
 
-    if (it == m_name_map.End()) {
+    if (it == m_name_map.End())
+    {
         return ANSIString::empty;
     }
 
     return it->second.first;
 }
 
-HYP_API Name RegisterName(NameRegistry *name_registry, NameID id, const ANSIString &str, bool lock)
+HYP_API Name RegisterName(NameRegistry* name_registry, NameID id, const ANSIString& str, bool lock)
 {
     return name_registry->RegisterName(id, str, lock);
 }
 
-HYP_API const ANSIString &LookupStringForName(const NameRegistry *name_registry, Name name)
+HYP_API const ANSIString& LookupStringForName(const NameRegistry* name_registry, Name name)
 {
     return name_registry->LookupStringForName(name);
 }
@@ -132,7 +142,7 @@ HYP_API const ANSIString &LookupStringForName(const NameRegistry *name_registry,
 
 #pragma region Name
 
-NameRegistry *Name::GetRegistry()
+NameRegistry* Name::GetRegistry()
 {
     static NameRegistry name_registry;
 
@@ -144,28 +154,28 @@ Name Name::Unique(ANSIStringView prefix)
     return GetRegistry()->RegisterUniqueName(prefix, /* lock */ true);
 }
 
-const char *Name::LookupString() const
+const char* Name::LookupString() const
 {
     return GetRegistry()->LookupStringForName(*this).Data();
 }
 
 #pragma endregion Name
 
-Name CreateNameFromDynamicString(const ANSIString &str)
+Name CreateNameFromDynamicString(const ANSIString& str)
 {
     const NameRegistration name_registration = NameRegistration::FromDynamicString(str);
 
     return Name(name_registration.id);
 }
 
-WeakName CreateWeakNameFromDynamicString(const ANSIStringView &str)
+WeakName CreateWeakNameFromDynamicString(const ANSIStringView& str)
 {
     return WeakName(NameRegistration::GenerateID(str));
 }
 
 #pragma region NameRegistration
 
-NameID NameRegistration::GenerateID(const ANSIStringView &str)
+NameID NameRegistration::GenerateID(const ANSIStringView& str)
 {
     const HashCode hash_code = HashCode::GetHashCode(str.Data());
     const NameID id = hash_code.Value();
@@ -173,7 +183,7 @@ NameID NameRegistration::GenerateID(const ANSIStringView &str)
     return id;
 }
 
-NameRegistration NameRegistration::FromDynamicString(const ANSIString &str)
+NameRegistration NameRegistration::FromDynamicString(const ANSIString& str)
 {
     const NameID id = GenerateID(str);
 

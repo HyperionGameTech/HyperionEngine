@@ -36,7 +36,7 @@ static const float global_terrain_noise_scale = 1.0f;
 class TerrainWorldGridPatch : public WorldGridPatch
 {
 public:
-    TerrainWorldGridPatch(const WorldGridPatchInfo &patch_info, const Handle<Mesh> &mesh, const Handle<Material> &material)
+    TerrainWorldGridPatch(const WorldGridPatchInfo& patch_info, const Handle<Mesh>& mesh, const Handle<Material>& material)
         : WorldGridPatch(patch_info),
           m_mesh(mesh),
           m_material(material)
@@ -47,44 +47,48 @@ public:
     {
     }
 
-    virtual void InitializeEntity(const Handle<Scene> &scene, ID<Entity> entity) override
+    virtual void InitializeEntity(const Handle<Scene>& scene, ID<Entity> entity) override
     {
         HYP_SCOPE;
 
-        if (!m_mesh.IsValid()) {
+        if (!m_mesh.IsValid())
+        {
             HYP_LOG(WorldGrid, Error, "Terrain mesh is invalid");
 
             return;
         }
 
-        const RC<EntityManager> &entity_manager = scene->GetEntityManager();
+        const RC<EntityManager>& entity_manager = scene->GetEntityManager();
         AssertThrow(entity_manager != nullptr);
 
-        MeshComponent *patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
-        BoundingBoxComponent *patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(entity);
-        TransformComponent *patch_transform_component = entity_manager->TryGetComponent<TransformComponent>(entity);
+        MeshComponent* patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
+        BoundingBoxComponent* patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(entity);
+        TransformComponent* patch_transform_component = entity_manager->TryGetComponent<TransformComponent>(entity);
 
-        if (patch_bounding_box_component) {
+        if (patch_bounding_box_component)
+        {
             patch_bounding_box_component->local_aabb = m_mesh->GetAABB();
 
-            if (patch_transform_component) {
+            if (patch_transform_component)
+            {
                 patch_bounding_box_component->world_aabb = BoundingBox::Empty();
 
-                for (const Vec3f &corner : patch_bounding_box_component->local_aabb.GetCorners()) {
+                for (const Vec3f& corner : patch_bounding_box_component->local_aabb.GetCorners())
+                {
                     patch_bounding_box_component->world_aabb = patch_bounding_box_component->world_aabb.Union(patch_transform_component->transform.GetMatrix() * corner);
                 }
             }
         }
 
-        if (patch_mesh_component) {
+        if (patch_mesh_component)
+        {
             patch_mesh_component->mesh = m_mesh;
             patch_mesh_component->material = m_material;
-        } else {
+        }
+        else
+        {
             // Add MeshComponent to patch entity
-            entity_manager->AddComponent<MeshComponent>(entity, MeshComponent {
-                .mesh       = m_mesh,
-                .material   = m_material
-            });
+            entity_manager->AddComponent<MeshComponent>(entity, MeshComponent { .mesh = m_mesh, .material = m_material });
         }
 
         entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
@@ -92,12 +96,11 @@ public:
 
     virtual void Update(GameCounter::TickUnit delta) override
     {
-
     }
 
 protected:
-    Handle<Mesh>        m_mesh;
-    Handle<Material>    m_material;
+    Handle<Mesh> m_mesh;
+    Handle<Material> m_material;
 };
 
 #pragma endregion TerrainWorldGridPatch
@@ -106,30 +109,30 @@ namespace terrain {
 
 struct TerrainHeight
 {
-    float   height;
-    float   erosion;
-    float   sediment;
-    float   water;
-    float   new_water;
-    float   displacement;
+    float height;
+    float erosion;
+    float sediment;
+    float water;
+    float new_water;
+    float displacement;
 };
 
 struct TerrainHeightData
 {
-    WorldGridPatchInfo      patch_info;
-    Array<TerrainHeight>    heights;
+    WorldGridPatchInfo patch_info;
+    Array<TerrainHeight> heights;
 
-    TerrainHeightData(const WorldGridPatchInfo &patch_info)
+    TerrainHeightData(const WorldGridPatchInfo& patch_info)
         : patch_info(patch_info)
     {
         heights.Resize(patch_info.extent.x * patch_info.extent.z);
     }
 
-    TerrainHeightData(const TerrainHeightData &other)                   = delete;
-    TerrainHeightData &operator=(const TerrainHeightData &other)        = delete;
-    TerrainHeightData(TerrainHeightData &&other) noexcept               = delete;
-    TerrainHeightData &operator=(TerrainHeightData &&other) noexcept    = delete;
-    ~TerrainHeightData()                                                = default;
+    TerrainHeightData(const TerrainHeightData& other) = delete;
+    TerrainHeightData& operator=(const TerrainHeightData& other) = delete;
+    TerrainHeightData(TerrainHeightData&& other) noexcept = delete;
+    TerrainHeightData& operator=(TerrainHeightData&& other) noexcept = delete;
+    ~TerrainHeightData() = default;
 
     uint32 GetHeightIndex(int x, int z) const
     {
@@ -149,7 +152,7 @@ class TerrainErosion
     static const FixedArray<Pair<int, int>, 8> offsets;
 
 public:
-    static void Erode(TerrainHeightData &height_data);
+    static void Erode(TerrainHeightData& height_data);
 };
 
 const FixedArray<Pair<int, int>, 8> TerrainErosion::offsets {
@@ -163,40 +166,47 @@ const FixedArray<Pair<int, int>, 8> TerrainErosion::offsets {
     Pair<int, int> { -1, -1 }
 };
 
-void TerrainErosion::Erode(TerrainHeightData &height_data)
+void TerrainErosion::Erode(TerrainHeightData& height_data)
 {
-    for (uint32 iteration = 0; iteration < num_iterations; iteration++) {
-        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++) {
-            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++) {
-                TerrainHeight &height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
+    for (uint32 iteration = 0; iteration < num_iterations; iteration++)
+    {
+        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++)
+        {
+            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++)
+            {
+                TerrainHeight& height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
                 height_info.displacement = 0.0f;
 
-                for (const auto &offset : offsets) {
-                    const auto &neighbor_height_info = height_data.heights[height_data.GetHeightIndex(x + offset.first, z + offset.second)];
+                for (const auto& offset : offsets)
+                {
+                    const auto& neighbor_height_info = height_data.heights[height_data.GetHeightIndex(x + offset.first, z + offset.second)];
 
                     height_info.displacement += MathUtil::Max(height_info.height - neighbor_height_info.height, 0.0f);
                 }
 
-                if (height_info.displacement != 0.0f) {
+                if (height_info.displacement != 0.0f)
+                {
                     float water = height_info.water * evaporation;
                     float staying_water = (water * 0.0002f) / (height_info.displacement * erosion_scale + 1);
                     water -= staying_water;
 
-                    for (const auto &offset : offsets) {
-                        auto &neighbor_height_info = height_data.heights[height_data.GetHeightIndex(x + offset.first, z + offset.second)];
+                    for (const auto& offset : offsets)
+                    {
+                        auto& neighbor_height_info = height_data.heights[height_data.GetHeightIndex(x + offset.first, z + offset.second)];
 
                         neighbor_height_info.new_water += MathUtil::Max(height_info.height - neighbor_height_info.height, 0.0f) / height_info.displacement * water;
                     }
 
                     height_info.water = staying_water + 1.0f;
                 }
-
             }
         }
 
-        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++) {
-            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++) {
-                TerrainHeight &height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
+        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++)
+        {
+            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++)
+            {
+                TerrainHeight& height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
 
                 height_info.water += height_info.new_water;
                 height_info.new_water = 0.0f;
@@ -205,7 +215,8 @@ void TerrainErosion::Erode(TerrainHeightData &height_data)
                 height_info.height += (-(height_info.displacement - (0.005f / erosion_scale)) * height_info.water) * erosion + height_info.water * deposition;
                 height_info.erosion = old_height - height_info.height;
 
-                if (old_height < height_info.height) {
+                if (old_height < height_info.height)
+                {
                     height_info.water = MathUtil::Max(height_info.water - (height_info.height - old_height) * 1000.0f, 0.0f);
                 }
             }
@@ -216,14 +227,14 @@ void TerrainErosion::Erode(TerrainHeightData &height_data)
 class TerrainMeshBuilder
 {
 public:
-    TerrainMeshBuilder(const WorldGridPatchInfo &patch_info);
-    TerrainMeshBuilder(const TerrainMeshBuilder &other)                 = delete;
-    TerrainMeshBuilder &operator=(const TerrainMeshBuilder &other)      = delete;
-    TerrainMeshBuilder(TerrainMeshBuilder &&other) noexcept             = delete;
-    TerrainMeshBuilder &operator=(TerrainMeshBuilder &&other) noexcept  = delete;
-    ~TerrainMeshBuilder()                                               = default;
+    TerrainMeshBuilder(const WorldGridPatchInfo& patch_info);
+    TerrainMeshBuilder(const TerrainMeshBuilder& other) = delete;
+    TerrainMeshBuilder& operator=(const TerrainMeshBuilder& other) = delete;
+    TerrainMeshBuilder(TerrainMeshBuilder&& other) noexcept = delete;
+    TerrainMeshBuilder& operator=(TerrainMeshBuilder&& other) noexcept = delete;
+    ~TerrainMeshBuilder() = default;
 
-    void GenerateHeights(const NoiseCombinator &noise_combinator);
+    void GenerateHeights(const NoiseCombinator& noise_combinator);
     Handle<Mesh> BuildMesh() const;
 
 private:
@@ -233,29 +244,31 @@ private:
     TerrainHeightData m_height_data;
 };
 
-TerrainMeshBuilder::TerrainMeshBuilder(const WorldGridPatchInfo &patch_info)
+TerrainMeshBuilder::TerrainMeshBuilder(const WorldGridPatchInfo& patch_info)
     : m_height_data(patch_info)
 {
 }
 
-void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator &noise_combinator)
+void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noise_combinator)
 {
     Threads::AssertOnThread(ThreadCategory::THREAD_CATEGORY_TASK);
 
-    for (int z = 0; z < int(m_height_data.patch_info.extent.z); z++) {
-        for (int x = 0; x < int(m_height_data.patch_info.extent.x); x++) {
+    for (int z = 0; z < int(m_height_data.patch_info.extent.z); z++)
+    {
+        for (int x = 0; x < int(m_height_data.patch_info.extent.x); x++)
+        {
             const float x_offset = float(x + (m_height_data.patch_info.coord.x * int(m_height_data.patch_info.extent.x - 1))) / float(m_height_data.patch_info.extent.x);
             const float z_offset = float(z + (m_height_data.patch_info.coord.y * int(m_height_data.patch_info.extent.z - 1))) / float(m_height_data.patch_info.extent.z);
 
             const uint32 index = m_height_data.GetHeightIndex(x, z);
 
             m_height_data.heights[index] = TerrainHeight {
-                .height         = noise_combinator.GetNoise(Vec2f(x_offset, z_offset)),
-                .erosion        = 0.0f,
-                .sediment       = 0.0f,
-                .water          = 1.0f,
-                .new_water      = 0.0f,
-                .displacement   = 0.0f
+                .height = noise_combinator.GetNoise(Vec2f(x_offset, z_offset)),
+                .erosion = 0.0f,
+                .sediment = 0.0f,
+                .water = 1.0f,
+                .new_water = 0.0f,
+                .displacement = 0.0f
             };
         }
     }
@@ -274,8 +287,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
         vertices,
         indices,
         Topology::TRIANGLES,
-        static_mesh_vertex_attributes
-    );
+        static_mesh_vertex_attributes);
 
     mesh->CalculateNormals();
     mesh->CalculateTangents();
@@ -290,14 +302,15 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 
     int i = 0;
 
-    for (int z = 0; z < m_height_data.patch_info.extent.z; z++) {
-        for (int x = 0; x < m_height_data.patch_info.extent.x; x++) {
+    for (int z = 0; z < m_height_data.patch_info.extent.z; z++)
+    {
+        for (int x = 0; x < m_height_data.patch_info.extent.x; x++)
+        {
             const Vec3f position = Vec3f { float(x), m_height_data.heights[i].height, float(z) } * m_height_data.patch_info.scale;
 
             const Vec2f texcoord(
-               float(x) / float(m_height_data.patch_info.extent.x),
-               float(z) / float(m_height_data.patch_info.extent.z)
-            );
+                float(x) / float(m_height_data.patch_info.extent.x),
+                float(z) / float(m_height_data.patch_info.extent.z));
 
             vertices[i++] = Vertex(position, texcoord);
         }
@@ -321,8 +334,10 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 
     uint32 i = 0;
 
-    for (uint32 z = 0; z < m_height_data.patch_info.extent.z - 1; z++) {
-        for (uint32 x = 0; x < m_height_data.patch_info.extent.x - 1; x++) {
+    for (uint32 z = 0; z < m_height_data.patch_info.extent.z - 1; z++)
+    {
+        for (uint32 x = 0; x < m_height_data.patch_info.extent.x - 1; x++)
+        {
             indices[i++] = i0;
             indices[i++] = i2;
             indices[i++] = i1;
@@ -350,7 +365,7 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 } // namespace terrain
 
 TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : m_noise_combinator(MakeUnique<NoiseCombinator>(0x123F/* TODO: seed */))
+    : m_noise_combinator(MakeUnique<NoiseCombinator>(0x123F /* TODO: seed */))
 {
     (*m_noise_combinator)
         .Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountain_height, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * global_terrain_noise_scale)
@@ -384,17 +399,19 @@ void TerrainWorldGridPlugin::Initialize()
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
 
-    if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png")) {
+    if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
+    {
         Handle<Texture> albedo_texture = albedo_texture_asset->Result();
 
         TextureDesc texture_desc = albedo_texture->GetTextureDesc();
         texture_desc.format = InternalFormat::RGBA8_SRGB;
         albedo_texture->SetTextureDesc(texture_desc);
-        
+
         m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
     }
 
-    if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png")) {
+    if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
+    {
         m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset->Result());
     }
 
@@ -413,7 +430,7 @@ void TerrainWorldGridPlugin::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
 }
 
-UniquePtr<WorldGridPatch> TerrainWorldGridPlugin::CreatePatch(const WorldGridPatchInfo &patch_info)
+UniquePtr<WorldGridPatch> TerrainWorldGridPlugin::CreatePatch(const WorldGridPatchInfo& patch_info)
 {
     HYP_SCOPE;
 

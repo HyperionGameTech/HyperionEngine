@@ -27,30 +27,31 @@ class View;
 
 enum class EnvProbeFlags : uint32
 {
-    NONE                = 0x0,
-    PARALLAX_CORRECTED  = 0x1,
-    SHADOW              = 0x2,
-    DIRTY               = 0x4,
-    MAX                 = 0x7 // 3 bits after are used for shadow
+    NONE = 0x0,
+    PARALLAX_CORRECTED = 0x1,
+    SHADOW = 0x2,
+    DIRTY = 0x4,
+    MAX = 0x7 // 3 bits after are used for shadow
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
 
 enum EnvProbeBindingSlot : uint32
 {
-    ENV_PROBE_BINDING_SLOT_INVALID          = uint32(-1),
+    ENV_PROBE_BINDING_SLOT_INVALID = uint32(-1),
 
-    ENV_PROBE_BINDING_SLOT_CUBEMAP          = 0,
-    ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP   = 1,
+    ENV_PROBE_BINDING_SLOT_CUBEMAP = 0,
+    ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP = 1,
     ENV_PROBE_BINDING_SLOT_MAX
 };
 
 HYP_ENUM()
+
 enum EnvProbeType : uint32
 {
-    ENV_PROBE_TYPE_INVALID      = uint32(-1),
+    ENV_PROBE_TYPE_INVALID = uint32(-1),
 
-    ENV_PROBE_TYPE_REFLECTION   = 0,
+    ENV_PROBE_TYPE_REFLECTION = 0,
     ENV_PROBE_TYPE_SKY,
     ENV_PROBE_TYPE_SHADOW,
 
@@ -64,6 +65,7 @@ class EnvProbe;
 class EnvProbeRenderResource;
 
 HYP_CLASS()
+
 class HYP_API EnvProbe : public HypObject<EnvProbe>
 {
     HYP_OBJECT_BODY(EnvProbe);
@@ -72,92 +74,131 @@ public:
     friend struct RENDER_COMMAND(DestroyCubemapRenderPass);
 
     EnvProbe();
-    
-    EnvProbe(
-        const Handle<Scene> &parent_scene,
-        const BoundingBox &aabb,
-        const Vec2u &dimensions,
-        EnvProbeType env_probe_type
-    );
 
-    EnvProbe(const EnvProbe &other)             = delete;
-    EnvProbe &operator=(const EnvProbe &other)  = delete;
+    EnvProbe(
+        const Handle<Scene>& parent_scene,
+        const BoundingBox& aabb,
+        const Vec2u& dimensions,
+        EnvProbeType env_probe_type);
+
+    EnvProbe(const EnvProbe& other) = delete;
+    EnvProbe& operator=(const EnvProbe& other) = delete;
     ~EnvProbe();
 
-    HYP_FORCE_INLINE EnvProbeRenderResource &GetRenderResource() const
-        { return *m_render_resource; }
-    
-    HYP_METHOD()
-    EnvProbeType GetEnvProbeType() const
-        { return m_env_probe_type; }
-    
-    HYP_METHOD()
-    bool IsReflectionProbe() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION; }
-    
-    HYP_METHOD()
-    bool IsSkyProbe() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY; }
-    
-    HYP_METHOD()
-    bool IsShadowProbe() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW; }
-    
-    HYP_METHOD()
-    bool IsAmbientProbe() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
-    
-    HYP_METHOD()
-    bool IsControlledByEnvGrid() const
-        { return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT; }
-    
-    HYP_METHOD()
-    const BoundingBox &GetAABB() const
-        { return m_aabb; }
+    HYP_FORCE_INLINE EnvProbeRenderResource& GetRenderResource() const
+    {
+        return *m_render_resource;
+    }
 
     HYP_METHOD()
-    void SetAABB(const BoundingBox &aabb);
-    
+
+    EnvProbeType GetEnvProbeType() const
+    {
+        return m_env_probe_type;
+    }
+
     HYP_METHOD()
+
+    bool IsReflectionProbe() const
+    {
+        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION;
+    }
+
+    HYP_METHOD()
+
+    bool IsSkyProbe() const
+    {
+        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY;
+    }
+
+    HYP_METHOD()
+
+    bool IsShadowProbe() const
+    {
+        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW;
+    }
+
+    HYP_METHOD()
+
+    bool IsAmbientProbe() const
+    {
+        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
+    }
+
+    HYP_METHOD()
+
+    bool IsControlledByEnvGrid() const
+    {
+        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
+    }
+
+    HYP_METHOD()
+
+    const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
+
+    HYP_METHOD()
+    void SetAABB(const BoundingBox& aabb);
+
+    HYP_METHOD()
+
     Vec3f GetOrigin() const
     {
-        if (IsAmbientProbe()) {
+        if (IsAmbientProbe())
+        {
             // ambient probes use the min point of the aabb as the origin,
             // so it can blend between 7 other probes
             return m_aabb.GetMin();
-        } else {
+        }
+        else
+        {
             return m_aabb.GetCenter();
         }
     }
 
     HYP_METHOD()
-    void SetOrigin(const Vec3f &origin);
+    void SetOrigin(const Vec3f& origin);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Camera> &GetCamera() const
-        { return m_camera; }
+    HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
+    {
+        return m_camera;
+    }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Scene> &GetParentScene() const
-        { return m_parent_scene; }
+    HYP_FORCE_INLINE const Handle<Scene>& GetParentScene() const
+    {
+        return m_parent_scene;
+    }
 
     HYP_METHOD()
-    void SetParentScene(const Handle<Scene> &parent_scene);
+    void SetParentScene(const Handle<Scene>& parent_scene);
 
     HYP_FORCE_INLINE Vec2u GetDimensions() const
-        { return m_dimensions; }
+    {
+        return m_dimensions;
+    }
 
     HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
-        { m_needs_update = needs_update; }
-    
+    {
+        m_needs_update = needs_update;
+    }
+
     HYP_FORCE_INLINE bool NeedsUpdate() const
-        { return m_needs_update; }
+    {
+        return m_needs_update;
+    }
 
     HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
     {
-        if (needs_render) {
+        if (needs_render)
+        {
             m_needs_render_counter.Set(1, MemoryOrder::RELAXED);
-        } else {
+        }
+        else
+        {
             m_needs_render_counter.Set(0, MemoryOrder::RELAXED);
         }
     }
@@ -178,40 +219,44 @@ public:
     void Update(GameCounter::TickUnit delta);
 
     uint32 m_grid_slot = ~0u; // temp
-    
+
 private:
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
-        { return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe(); }
+    {
+        return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe();
+    }
 
     HYP_FORCE_INLINE void Invalidate()
-        { m_octant_hash_code = HashCode(); }
+    {
+        m_octant_hash_code = HashCode();
+    }
 
     void CreateView();
 
-    Handle<Scene>           m_parent_scene;
-    Handle<View>            m_view;
+    Handle<Scene> m_parent_scene;
+    Handle<View> m_view;
 
-    HYP_FIELD(Property="AABB", Serialize=true)
-    BoundingBox             m_aabb;
+    HYP_FIELD(Property = "AABB", Serialize = true)
+    BoundingBox m_aabb;
 
-    HYP_FIELD(Property="Dimensions", Serialize=true)
-    Vec2u                   m_dimensions;
+    HYP_FIELD(Property = "Dimensions", Serialize = true)
+    Vec2u m_dimensions;
 
-    HYP_FIELD(Property="EnvProbeType", Serialize=true)
-    EnvProbeType            m_env_probe_type;
+    HYP_FIELD(Property = "EnvProbeType", Serialize = true)
+    EnvProbeType m_env_probe_type;
 
-    float                   m_camera_near;
-    float                   m_camera_far;
-    
-    Handle<Camera>          m_camera;
+    float m_camera_near;
+    float m_camera_far;
 
-    Bitset                  m_visibility_bits;
+    Handle<Camera> m_camera;
 
-    bool                    m_needs_update;
-    AtomicVar<int32>        m_needs_render_counter;
-    HashCode                m_octant_hash_code;
+    Bitset m_visibility_bits;
 
-    EnvProbeRenderResource  *m_render_resource;
+    bool m_needs_update;
+    AtomicVar<int32> m_needs_render_counter;
+    HashCode m_octant_hash_code;
+
+    EnvProbeRenderResource* m_render_resource;
 };
 
 } // namespace hyperion

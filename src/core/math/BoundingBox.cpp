@@ -8,22 +8,24 @@
 
 namespace hyperion {
 
-HYP_API BoundingBox operator*(const Matrix4 &transform, const BoundingBox &aabb)
+HYP_API BoundingBox operator*(const Matrix4& transform, const BoundingBox& aabb)
 {
-    if (!aabb.IsValid()) {
+    if (!aabb.IsValid())
+    {
         return aabb;
     }
 
     BoundingBox result;
 
-    for (Vec3f corner : aabb.GetCorners()) {
+    for (Vec3f corner : aabb.GetCorners())
+    {
         result = result.Union(transform * corner);
     }
 
     return result;
 }
 
-HYP_API BoundingBox operator*(const Transform &transform, const BoundingBox &aabb)
+HYP_API BoundingBox operator*(const Transform& transform, const BoundingBox& aabb)
 {
     return transform.GetMatrix() * aabb;
 }
@@ -34,8 +36,8 @@ BoundingBox::BoundingBox()
 {
 }
 
-BoundingBox::BoundingBox(const Vec3f &min, const Vec3f &max)
-    : min(min), 
+BoundingBox::BoundingBox(const Vec3f& min, const Vec3f& max)
+    : min(min),
       max(max)
 {
 }
@@ -65,7 +67,7 @@ Vec3f BoundingBox::GetCorner(uint32 index) const
     };
 }
 
-void BoundingBox::SetCenter(const Vec3f &center)
+void BoundingBox::SetCenter(const Vec3f& center)
 {
     Vec3f dimensions = GetExtent();
 
@@ -73,18 +75,19 @@ void BoundingBox::SetCenter(const Vec3f &center)
     min = center - dimensions * 0.5f;
 }
 
-void BoundingBox::SetCorners(const FixedArray<Vec3f, 8> &corners)
+void BoundingBox::SetCorners(const FixedArray<Vec3f, 8>& corners)
 {
     min = corners[0];
     max = corners[0];
 
-    for (uint32 i = 1; i < 8; ++i) {
+    for (uint32 i = 1; i < 8; ++i)
+    {
         min = Vec3f::Min(min, corners[i]);
         max = Vec3f::Max(max, corners[i]);
     }
 }
 
-void BoundingBox::SetExtent(const Vec3f &dimensions)
+void BoundingBox::SetExtent(const Vec3f& dimensions)
 {
     Vec3f center = GetCenter();
 
@@ -111,9 +114,10 @@ BoundingBox BoundingBox::operator*(float scalar) const
     return other;
 }
 
-BoundingBox &BoundingBox::operator*=(float scalar)
+BoundingBox& BoundingBox::operator*=(float scalar)
 {
-    if (!IsValid()) {
+    if (!IsValid())
+    {
         return *this;
     }
 
@@ -128,9 +132,10 @@ BoundingBox BoundingBox::operator/(float scalar) const
     return BoundingBox(*this) /= scalar;
 }
 
-BoundingBox &BoundingBox::operator/=(float scalar)
+BoundingBox& BoundingBox::operator/=(float scalar)
 {
-    if (!IsValid()) {
+    if (!IsValid())
+    {
         return *this;
     }
 
@@ -140,12 +145,12 @@ BoundingBox &BoundingBox::operator/=(float scalar)
     return *this;
 }
 
-BoundingBox BoundingBox::operator+(const Vec3f &vec) const
+BoundingBox BoundingBox::operator+(const Vec3f& vec) const
 {
     return BoundingBox(min + vec, max + vec);
 }
 
-BoundingBox &BoundingBox::operator+=(const Vec3f &vec)
+BoundingBox& BoundingBox::operator+=(const Vec3f& vec)
 {
     min += vec;
     max += vec;
@@ -153,12 +158,12 @@ BoundingBox &BoundingBox::operator+=(const Vec3f &vec)
     return *this;
 }
 
-BoundingBox BoundingBox::operator/(const Vec3f &vec) const
+BoundingBox BoundingBox::operator/(const Vec3f& vec) const
 {
     return BoundingBox(min / vec, max / vec);
 }
 
-BoundingBox &BoundingBox::operator/=(const Vec3f &vec)
+BoundingBox& BoundingBox::operator/=(const Vec3f& vec)
 {
     min /= vec;
     max /= vec;
@@ -166,12 +171,12 @@ BoundingBox &BoundingBox::operator/=(const Vec3f &vec)
     return *this;
 }
 
-BoundingBox BoundingBox::operator*(const Vec3f &scale) const
+BoundingBox BoundingBox::operator*(const Vec3f& scale) const
 {
     return BoundingBox(min * scale, max * scale);
 }
 
-BoundingBox &BoundingBox::operator*=(const Vec3f &scale)
+BoundingBox& BoundingBox::operator*=(const Vec3f& scale)
 {
     min *= scale;
     max *= scale;
@@ -179,7 +184,7 @@ BoundingBox &BoundingBox::operator*=(const Vec3f &scale)
     return *this;
 }
 
-BoundingBox &BoundingBox::Clear()
+BoundingBox& BoundingBox::Clear()
 {
     min = Vec3f(MathUtil::MaxSafeValue<float>());
     max = Vec3f(MathUtil::MinSafeValue<float>());
@@ -187,7 +192,7 @@ BoundingBox &BoundingBox::Clear()
     return *this;
 }
 
-BoundingBox BoundingBox::Union(const Vec3f &vec) const
+BoundingBox BoundingBox::Union(const Vec3f& vec) const
 {
     return BoundingBox {
         Vec3f::Min(min, vec),
@@ -195,7 +200,7 @@ BoundingBox BoundingBox::Union(const Vec3f &vec) const
     };
 }
 
-BoundingBox BoundingBox::Union(const BoundingBox &other) const
+BoundingBox BoundingBox::Union(const BoundingBox& other) const
 {
     return BoundingBox {
         Vec3f::Min(min, other.min),
@@ -203,9 +208,10 @@ BoundingBox BoundingBox::Union(const BoundingBox &other) const
     };
 }
 
-BoundingBox BoundingBox::Intersection(const BoundingBox &other) const
+BoundingBox BoundingBox::Intersection(const BoundingBox& other) const
 {
-    if (!Overlaps(other)) {
+    if (!Overlaps(other))
+    {
         return Empty();
     }
 
@@ -215,32 +221,43 @@ BoundingBox BoundingBox::Intersection(const BoundingBox &other) const
     };
 }
 
-bool BoundingBox::Overlaps(const BoundingBox &other) const
+bool BoundingBox::Overlaps(const BoundingBox& other) const
 {
-    if (max.x < other.min.x || min.x > other.max.x) return false;
-    if (max.y < other.min.y || min.y > other.max.y) return false;
-    if (max.z < other.min.z || min.z > other.max.z) return false;
+    if (max.x < other.min.x || min.x > other.max.x)
+        return false;
+    if (max.y < other.min.y || min.y > other.max.y)
+        return false;
+    if (max.z < other.min.z || min.z > other.max.z)
+        return false;
 
     return true;
 }
 
-bool BoundingBox::Contains(const BoundingBox &other) const
+bool BoundingBox::Contains(const BoundingBox& other) const
 {
     const FixedArray<Vec3f, 8> corners = other.GetCorners();
 
-    if (!ContainsPoint(corners[0])) return false;
-    if (!ContainsPoint(corners[1])) return false;
-    if (!ContainsPoint(corners[2])) return false;
-    if (!ContainsPoint(corners[3])) return false;
-    if (!ContainsPoint(corners[4])) return false;
-    if (!ContainsPoint(corners[5])) return false;
-    if (!ContainsPoint(corners[6])) return false;
-    if (!ContainsPoint(corners[7])) return false;
+    if (!ContainsPoint(corners[0]))
+        return false;
+    if (!ContainsPoint(corners[1]))
+        return false;
+    if (!ContainsPoint(corners[2]))
+        return false;
+    if (!ContainsPoint(corners[3]))
+        return false;
+    if (!ContainsPoint(corners[4]))
+        return false;
+    if (!ContainsPoint(corners[5]))
+        return false;
+    if (!ContainsPoint(corners[6]))
+        return false;
+    if (!ContainsPoint(corners[7]))
+        return false;
 
     return true;
 }
 
-bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
+bool BoundingBox::ContainsTriangle(const Triangle& triangle) const
 {
     // Get the axes to test for separation
     static const FixedArray<Vec3f, 3> axes = {
@@ -259,11 +276,13 @@ bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
         triangle.GetPoint(2).GetPosition()
     };
 
-    for (const Vec3f &axis : axes) {
+    for (const Vec3f& axis : axes)
+    {
         float aabb_min = MathUtil::MaxSafeValue<float>();
         float aabb_max = MathUtil::MinSafeValue<float>();
-        
-        for (const Vec3f &corner : aabb_corners) {
+
+        for (const Vec3f& corner : aabb_corners)
+        {
             const float projection = corner.Dot(axis);
 
             aabb_min = MathUtil::Min(aabb_min, projection);
@@ -273,14 +292,16 @@ bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
         float triangle_min = MathUtil::MaxSafeValue<float>();
         float triangle_max = MathUtil::MinSafeValue<float>();
 
-        for (const Vec3f &corner : triangle_corners) {
+        for (const Vec3f& corner : triangle_corners)
+        {
             const float projection = corner.Dot(axis);
 
             triangle_min = MathUtil::Min(triangle_min, projection);
             triangle_max = MathUtil::Max(triangle_max, projection);
         }
 
-        if (aabb_max < triangle_min || aabb_min > triangle_max) {
+        if (aabb_max < triangle_min || aabb_min > triangle_max)
+        {
             return false;
         }
     }
@@ -288,14 +309,20 @@ bool BoundingBox::ContainsTriangle(const Triangle &triangle) const
     return true;
 }
 
-bool BoundingBox::ContainsPoint(const Vec3f &vec) const
+bool BoundingBox::ContainsPoint(const Vec3f& vec) const
 {
-    if (vec.x < min.x) return false;
-    if (vec.y < min.y) return false;
-    if (vec.z < min.z) return false;
-    if (vec.x > max.x) return false;
-    if (vec.y > max.y) return false;
-    if (vec.z > max.z) return false;
+    if (vec.x < min.x)
+        return false;
+    if (vec.y < min.y)
+        return false;
+    if (vec.z < min.z)
+        return false;
+    if (vec.x > max.x)
+        return false;
+    if (vec.y > max.y)
+        return false;
+    if (vec.z > max.z)
+        return false;
 
     return true;
 }
@@ -306,7 +333,7 @@ float BoundingBox::Area() const
     return dimensions.x * dimensions.y * dimensions.z;
 }
 
-std::ostream &operator<<(std::ostream &out, const BoundingBox &bb) // output
+std::ostream& operator<<(std::ostream& out, const BoundingBox& bb) // output
 {
     out << "BoundingBox [max: " << bb.GetMax() << ", min: " << bb.GetMin() << "]";
     return out;

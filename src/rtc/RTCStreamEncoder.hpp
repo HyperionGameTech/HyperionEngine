@@ -14,17 +14,17 @@ class TaskThread;
 
 using threading::TaskThread;
 
-class RTCTrack;
+class RTCTrackBase;
 
 class HYP_API RTCStreamEncoder
 {
 public:
-    RTCStreamEncoder()                                                = default;
-    RTCStreamEncoder(const RTCStreamEncoder &other)                   = delete;
-    RTCStreamEncoder &operator=(const RTCStreamEncoder &other)        = delete;
-    RTCStreamEncoder(RTCStreamEncoder &&other) noexcept               = default;
-    RTCStreamEncoder &operator=(RTCStreamEncoder &&other) noexcept    = default;
-    virtual ~RTCStreamEncoder()                                       = default;
+    RTCStreamEncoder() = default;
+    RTCStreamEncoder(const RTCStreamEncoder& other) = delete;
+    RTCStreamEncoder& operator=(const RTCStreamEncoder& other) = delete;
+    RTCStreamEncoder(RTCStreamEncoder&& other) noexcept = default;
+    RTCStreamEncoder& operator=(RTCStreamEncoder&& other) noexcept = default;
+    virtual ~RTCStreamEncoder() = default;
 
     virtual void PushData(ByteBuffer data) = 0;
     virtual Optional<ByteBuffer> PullData() = 0;
@@ -36,12 +36,12 @@ public:
 class HYP_API RTCStreamVideoEncoder : public RTCStreamEncoder
 {
 public:
-    RTCStreamVideoEncoder()                                                     = default;
-    RTCStreamVideoEncoder(const RTCStreamVideoEncoder &other)                   = delete;
-    RTCStreamVideoEncoder &operator=(const RTCStreamVideoEncoder &other)        = delete;
-    RTCStreamVideoEncoder(RTCStreamVideoEncoder &&other) noexcept               = default;
-    RTCStreamVideoEncoder &operator=(RTCStreamVideoEncoder &&other) noexcept    = default;
-    virtual ~RTCStreamVideoEncoder() override                                   = default;
+    RTCStreamVideoEncoder() = default;
+    RTCStreamVideoEncoder(const RTCStreamVideoEncoder& other) = delete;
+    RTCStreamVideoEncoder& operator=(const RTCStreamVideoEncoder& other) = delete;
+    RTCStreamVideoEncoder(RTCStreamVideoEncoder&& other) noexcept = default;
+    RTCStreamVideoEncoder& operator=(RTCStreamVideoEncoder&& other) noexcept = default;
+    virtual ~RTCStreamVideoEncoder() override = default;
 
     virtual void PushData(ByteBuffer data) override = 0;
     virtual Optional<ByteBuffer> PullData() override = 0;
@@ -53,12 +53,12 @@ public:
 class HYP_API NullRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
-    NullRTCStreamVideoEncoder()                                                         = default;
-    NullRTCStreamVideoEncoder(const NullRTCStreamVideoEncoder &other)                   = delete;
-    NullRTCStreamVideoEncoder &operator=(const NullRTCStreamVideoEncoder &other)        = delete;
-    NullRTCStreamVideoEncoder(NullRTCStreamVideoEncoder &&other) noexcept               = default;
-    NullRTCStreamVideoEncoder &operator=(NullRTCStreamVideoEncoder &&other) noexcept    = default;
-    virtual ~NullRTCStreamVideoEncoder() override                                       = default;
+    NullRTCStreamVideoEncoder() = default;
+    NullRTCStreamVideoEncoder(const NullRTCStreamVideoEncoder& other) = delete;
+    NullRTCStreamVideoEncoder& operator=(const NullRTCStreamVideoEncoder& other) = delete;
+    NullRTCStreamVideoEncoder(NullRTCStreamVideoEncoder&& other) noexcept = default;
+    NullRTCStreamVideoEncoder& operator=(NullRTCStreamVideoEncoder&& other) noexcept = default;
+    virtual ~NullRTCStreamVideoEncoder() override = default;
 
     virtual void PushData(ByteBuffer data) override;
     virtual Optional<ByteBuffer> PullData() override;
@@ -75,10 +75,10 @@ class HYP_API GStreamerRTCStreamVideoEncoder : public RTCStreamVideoEncoder
 {
 public:
     GStreamerRTCStreamVideoEncoder();
-    GStreamerRTCStreamVideoEncoder(const GStreamerRTCStreamVideoEncoder &other)                 = delete;
-    GStreamerRTCStreamVideoEncoder &operator=(const GStreamerRTCStreamVideoEncoder &other)      = delete;
-    GStreamerRTCStreamVideoEncoder(GStreamerRTCStreamVideoEncoder &&other) noexcept             = default;
-    GStreamerRTCStreamVideoEncoder &operator=(GStreamerRTCStreamVideoEncoder &&other) noexcept  = default;
+    GStreamerRTCStreamVideoEncoder(const GStreamerRTCStreamVideoEncoder& other) = delete;
+    GStreamerRTCStreamVideoEncoder& operator=(const GStreamerRTCStreamVideoEncoder& other) = delete;
+    GStreamerRTCStreamVideoEncoder(GStreamerRTCStreamVideoEncoder&& other) noexcept = default;
+    GStreamerRTCStreamVideoEncoder& operator=(GStreamerRTCStreamVideoEncoder&& other) noexcept = default;
     virtual ~GStreamerRTCStreamVideoEncoder() override;
 
     virtual void PushData(ByteBuffer data) override;
@@ -88,7 +88,7 @@ public:
     virtual void Stop() override;
 
 private:
-    UniquePtr<GStreamerThread>  m_thread;
+    UniquePtr<GStreamerThread> m_thread;
 };
 
 #else

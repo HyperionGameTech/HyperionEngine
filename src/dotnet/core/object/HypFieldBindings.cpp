@@ -8,33 +8,37 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void HypField_GetName(const HypField *field, Name *out_name)
+extern "C"
 {
-    if (!field || !out_name) {
-        return;
+
+    HYP_EXPORT void HypField_GetName(const HypField* field, Name* out_name)
+    {
+        if (!field || !out_name)
+        {
+            return;
+        }
+
+        *out_name = field->GetName();
     }
 
-    *out_name = field->GetName();
-}
+    HYP_EXPORT void HypField_GetTypeID(const HypField* field, TypeID* out_type_id)
+    {
+        if (!field || !out_type_id)
+        {
+            return;
+        }
 
-HYP_EXPORT void HypField_GetTypeID(const HypField *field, TypeID *out_type_id)
-{
-    if (!field || !out_type_id) {
-        return;
+        *out_type_id = field->GetTypeID();
     }
 
-    *out_type_id = field->GetTypeID();
-}
+    HYP_EXPORT uint32 HypField_GetOffset(const HypField* field)
+    {
+        if (!field)
+        {
+            return 0;
+        }
 
-HYP_EXPORT uint32 HypField_GetOffset(const HypField *field)
-{
-    if (!field) {
-        return 0;
+        return field->GetOffset();
     }
-
-    return field->GetOffset();
-}
 
 } // extern "C"

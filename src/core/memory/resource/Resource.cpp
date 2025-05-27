@@ -21,13 +21,14 @@ HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 static TypeMap<UniquePtr<IResourceMemoryPool>> g_resource_memory_pools;
 static Mutex g_resource_memory_pools_mutex;
 
-HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool>(*create_fn)(void))
+HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void))
 {
     Mutex::Guard guard(g_resource_memory_pools_mutex);
 
     auto it = g_resource_memory_pools.Find(type_id);
 
-    if (it == g_resource_memory_pools.End()) {
+    if (it == g_resource_memory_pools.End())
+    {
         it = g_resource_memory_pools.Set(type_id, create_fn()).first;
     }
 
@@ -44,7 +45,7 @@ ResourceBase::ResourceBase()
 {
 }
 
-ResourceBase::ResourceBase(ResourceBase &&other) noexcept
+ResourceBase::ResourceBase(ResourceBase&& other) noexcept
     : m_initialization_mask(other.m_initialization_mask.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
@@ -64,36 +65,39 @@ bool ResourceBase::IsInitialized() const
 int ResourceBase::ClaimWithoutInitialize()
 {
     return m_claimed_semaphore.Produce(1, [this](bool)
-    {
-        // loop until we have exclusive access.
-        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
+        {
+            // loop until we have exclusive access.
+            uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
 
-        while (state & g_initialization_mask_read_mask) {
-            state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
-            Threads::Sleep(0);
-        }
-    });
+            while (state & g_initialization_mask_read_mask)
+            {
+                state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+                Threads::Sleep(0);
+            }
+        });
 }
 
 int ResourceBase::Claim(int count)
 {
-    if (count <= 0) {
+    if (count <= 0)
+    {
         return 0;
     }
 
-    IThread *owner_thread = GetOwnerThread();
+    IThread* owner_thread = GetOwnerThread();
 
-    auto Impl = [this]()
+    auto impl = [this]()
     {
         {
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
             uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
             AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Claim() called on a resource that is already initialized");
-            
+
             // loop until we have exclusive access.
-            while (state & g_initialization_mask_read_mask) {
+            while (state & g_initialization_mask_read_mask)
+            {
                 state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
                 Threads::Sleep(0);
             }
@@ -109,7 +113,8 @@ int ResourceBase::Claim(int count)
             // Perform any updates that were requested before initialization
             int16 current_update_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-            while (current_update_count != 0) {
+            while (current_update_count != 0)
+            {
                 AssertThrow(current_update_count > 0);
 
                 Update();
@@ -126,24 +131,26 @@ int ResourceBase::Claim(int count)
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &Impl, &should_release](bool state)
-    {
-        AssertDebug(!state);
+    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &impl, &should_release](bool state)
+        {
+            AssertDebug(!state);
 
-        should_release = false;
+            should_release = false;
 
-        if (!CanExecuteInline()) {
-            EnqueueOp(std::move(Impl));
-    
-            return;
-        }
-    
-        Impl();
-    });
+            if (!CanExecuteInline())
+            {
+                EnqueueOp(std::move(impl));
+
+                return;
+            }
+
+            impl();
+        });
 
     AssertDebug(result >= 0);
 
-    if (should_release) {
+    if (should_release)
+    {
         m_completion_semaphore.Release(1);
     }
 
@@ -152,7 +159,7 @@ int ResourceBase::Claim(int count)
 
 int ResourceBase::Unclaim()
 {
-    auto Impl = [this]()
+    auto impl = [this]()
     {
         HYP_NAMED_SCOPE("Destroying Resource");
 
@@ -160,7 +167,8 @@ int ResourceBase::Unclaim()
         AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::Unclaim() called on a resource that is not initialized");
 
         // Wait till all reads are complete before we continue
-        while (state & g_initialization_mask_read_mask) {
+        while (state & g_initialization_mask_read_mask)
+        {
             state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
             Threads::Sleep(0);
         }
@@ -175,7 +183,7 @@ int ResourceBase::Unclaim()
         AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Unclaim() called on a resource that is still initialized");
 
         HYP_MT_CHECK_RW(m_data_race_detector);
-        
+
         Destroy();
 
         // Done with destroying, we can now remove our read access
@@ -189,25 +197,27 @@ int ResourceBase::Unclaim()
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Release(1, [this, &Impl, &should_release](bool state)
-    {
-        AssertDebug(state);
-        
-        // Must be put into non-initialized state to destroy
-        should_release = false;
+    int result = m_claimed_semaphore.Release(1, [this, &impl, &should_release](bool state)
+        {
+            AssertDebug(state);
 
-        if (!CanExecuteInline()) {
-            EnqueueOp(std::move(Impl));
-    
-            return;
-        }
-    
-        Impl();
-    });
+            // Must be put into non-initialized state to destroy
+            should_release = false;
+
+            if (!CanExecuteInline())
+            {
+                EnqueueOp(std::move(impl));
+
+                return;
+            }
+
+            impl();
+        });
 
     AssertDebug(result >= 0);
 
-    if (should_release) {
+    if (should_release)
+    {
         m_completion_semaphore.Release(1);
     }
 
@@ -216,18 +226,19 @@ int ResourceBase::Unclaim()
 
 void ResourceBase::SetNeedsUpdate()
 {
-    auto Impl = [this]()
+    auto impl = [this]()
     {
         HYP_NAMED_SCOPE("Applying Resource updates");
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-        while (current_count != 0) {
+        while (current_count != 0)
+        {
             AssertDebug(current_count > 0);
 
             HYP_MT_CHECK_RW(m_data_race_detector);
-            
+
             Update();
 
             current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
@@ -240,10 +251,12 @@ void ResourceBase::SetNeedsUpdate()
 
     m_completion_semaphore.Produce(1);
 
-    if (m_claimed_semaphore.IsInSignalState()) {
+    if (m_claimed_semaphore.IsInSignalState())
+    {
         // Check initialization state -- if it is not initialized, we increment the update counter
         // without waiting for the owner thread to finish
-        if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
+        if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit))
+        {
             m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
             // Remove our read access
@@ -261,33 +274,39 @@ void ResourceBase::SetNeedsUpdate()
 
     m_update_counter.Increment(1, MemoryOrder::RELEASE);
 
-    if (!CanExecuteInline()) {
-        EnqueueOp(std::move(Impl));
+    if (!CanExecuteInline())
+    {
+        EnqueueOp(std::move(impl));
 
         return;
     }
 
-    Impl();
+    impl();
 }
 
 void ResourceBase::WaitForTaskCompletion() const
 {
     HYP_SCOPE;
 
-    if (CanExecuteInline()) {
-        if (!m_completion_semaphore.IsInSignalState()) {
-            if (GetOwnerThread() == nullptr) { // No owner thread is used to execute tasks on.
+    if (CanExecuteInline())
+    {
+        if (!m_completion_semaphore.IsInSignalState())
+        {
+            if (GetOwnerThread() == nullptr)
+            { // No owner thread is used to execute tasks on.
                 HYP_FAIL("No owner thread - cannot wait for task completion");
-            } else { // We are on the owner thread
+            }
+            else
+            { // We are on the owner thread
                 // We need to flush pending tasks if we are on the owner thread and
-                // we still have pending tasks. 
+                // we still have pending tasks.
                 HYP_NAMED_SCOPE("Flushing scheduler tasks");
 
                 HYP_LOG(Resource, Debug, "Flushing scheduler tasks for Resource");
-                
+
                 FlushScheduledTasks();
             }
-        
+
             AssertThrow(m_completion_semaphore.IsInSignalState());
         }
 
@@ -309,28 +328,27 @@ void ResourceBase::WaitForFinalization() const
 
 bool ResourceBase::CanExecuteInline() const
 {
-    IThread *owner_thread = GetOwnerThread();
+    IThread* owner_thread = GetOwnerThread();
 
     return owner_thread == nullptr || Threads::IsOnThread(owner_thread->GetID());
 }
 
 void ResourceBase::FlushScheduledTasks() const
 {
-    IThread *owner_thread = GetOwnerThread();
+    IThread* owner_thread = GetOwnerThread();
     AssertThrow(owner_thread != nullptr);
 
-    owner_thread->GetScheduler().Flush([](auto &operation)
-    {
-        operation.Execute();
-    });
+    owner_thread->GetScheduler().Flush([](auto& operation)
+        {
+            operation.Execute();
+        });
 }
 
-void ResourceBase::EnqueueOp(Proc<void()> &&proc)
+void ResourceBase::EnqueueOp(Proc<void()>&& proc)
 {
     GetOwnerThread()->GetScheduler().Enqueue(
         std::move(proc),
-        TaskEnqueueFlags::FIRE_AND_FORGET
-    );
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 #pragma endregion ResourceBase
@@ -340,9 +358,9 @@ void ResourceBase::EnqueueOp(Proc<void()> &&proc)
 class NullResource final : public IResource
 {
 public:
-    NullResource()                              = default;
-    NullResource(NullResource &&other) noexcept = default;
-    virtual ~NullResource() override            = default;
+    NullResource() = default;
+    NullResource(NullResource&& other) noexcept = default;
+    virtual ~NullResource() override = default;
 
     virtual bool IsNull() const override
     {
@@ -385,7 +403,7 @@ public:
     }
 };
 
-HYP_API IResource &GetNullResource()
+HYP_API IResource& GetNullResource()
 {
     static NullResource null_resource;
 

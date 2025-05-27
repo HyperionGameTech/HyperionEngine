@@ -11,7 +11,8 @@ namespace hyperion {
 
 class SkydomeRenderer;
 
-HYP_STRUCT(Component, Label="Sky Component", Description="Controls the rendering of a dynamic skydome.", Editor=true)
+HYP_STRUCT(Component, Label = "Sky Component", Description = "Controls the rendering of a dynamic skydome.", Editor = true)
+
 struct SkyComponent
 {
     HYP_FIELD()

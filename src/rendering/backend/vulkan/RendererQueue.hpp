@@ -21,9 +21,9 @@ enum class VulkanDeviceQueueType : uint8
 
 struct VulkanDeviceQueue
 {
-    VulkanDeviceQueueType           type;
-    VkQueue                         queue;
-    FixedArray<VkCommandPool, 8>    command_pools;
+    VulkanDeviceQueueType type;
+    VkQueue queue;
+    FixedArray<VkCommandPool, 8> command_pools;
 };
 
 } // namespace renderer

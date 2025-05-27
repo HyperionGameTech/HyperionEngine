@@ -16,13 +16,13 @@ FBOMObject::FBOMObject()
 {
 }
 
-FBOMObject::FBOMObject(const FBOMType &loader_type)
+FBOMObject::FBOMObject(const FBOMType& loader_type)
     : m_object_type(loader_type)
 {
     AssertThrowMsg(loader_type.IsOrExtends(FBOMBaseObjectType()), "Expected type to be an object type, got %s", loader_type.ToString().Data());
 }
 
-FBOMObject::FBOMObject(const FBOMObject &other)
+FBOMObject::FBOMObject(const FBOMObject& other)
     : m_object_type(other.m_object_type),
       m_children(other.m_children),
       properties(other.properties),
@@ -32,9 +32,10 @@ FBOMObject::FBOMObject(const FBOMObject &other)
 {
 }
 
-FBOMObject &FBOMObject::operator=(const FBOMObject &other)
+FBOMObject& FBOMObject::operator=(const FBOMObject& other)
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -48,7 +49,7 @@ FBOMObject &FBOMObject::operator=(const FBOMObject &other)
     return *this;
 }
 
-FBOMObject::FBOMObject(FBOMObject &&other) noexcept
+FBOMObject::FBOMObject(FBOMObject&& other) noexcept
     : m_object_type(std::move(other.m_object_type)),
       m_children(std::move(other.m_children)),
       properties(std::move(other.properties)),
@@ -58,9 +59,10 @@ FBOMObject::FBOMObject(FBOMObject &&other) noexcept
 {
 }
 
-FBOMObject &FBOMObject::operator=(FBOMObject &&other) noexcept
+FBOMObject& FBOMObject::operator=(FBOMObject&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -80,34 +82,36 @@ bool FBOMObject::HasProperty(ANSIStringView key) const
 {
     const auto it = properties.FindAs(key);
 
-    if (it == properties.End()) {
+    if (it == properties.End())
+    {
         return false;
     }
 
     return true;
 }
 
-const FBOMData &FBOMObject::GetProperty(ANSIStringView key) const
+const FBOMData& FBOMObject::GetProperty(ANSIStringView key) const
 {
-    static const FBOMData invalid_property_data { };
+    static const FBOMData invalid_property_data {};
 
     auto it = properties.FindAs(key);
 
-    if (it == properties.End()) {
+    if (it == properties.End())
+    {
         return invalid_property_data;
     }
 
     return it->second;
 }
 
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMData &data)
+FBOMObject& FBOMObject::SetProperty(ANSIStringView key, const FBOMData& data)
 {
     properties.Set(key, data);
 
     return *this;
 }
 
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, FBOMData &&data)
+FBOMObject& FBOMObject::SetProperty(ANSIStringView key, FBOMData&& data)
 {
     // sanity check
     // ANSIString str = key.LookupString();
@@ -126,36 +130,41 @@ FBOMObject &FBOMObject::SetProperty(ANSIStringView key, FBOMData &&data)
     return *this;
 }
 
-FBOMObject &FBOMObject::SetProperty(ANSIStringView key, const FBOMType &type, SizeType size, const void *bytes)
+FBOMObject& FBOMObject::SetProperty(ANSIStringView key, const FBOMType& type, SizeType size, const void* bytes)
 {
     FBOMData data(type);
     data.SetBytes(size, bytes);
 
-    if (!type.IsUnbounded()) {
+    if (!type.IsUnbounded())
+    {
         AssertThrowMsg(data.TotalSize() == type.size, "Expected byte count to match type size");
     }
 
     return SetProperty(key, std::move(data));
 }
 
-const FBOMData &FBOMObject::operator[](ANSIStringView key) const
+const FBOMData& FBOMObject::operator[](ANSIStringView key) const
 {
     return GetProperty(key);
 }
 
-void FBOMObject::AddChild(FBOMObject &&object)
+void FBOMObject::AddChild(FBOMObject&& object)
 {
     m_children.PushBack(std::move(object));
 }
 
-FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
+FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes) const
 {
-    if (IsExternal()) {
-        if (GetExternalObjectInfo()->IsLinked()) {
+    if (IsExternal())
+    {
+        if (GetExternalObjectInfo()->IsLinked())
+        {
             // make sure the EXT_REF_PLACEHOLDER bit is not set if the external data properties is already set.
             // we don't want to end up having it set to empty.
             attributes &= ~FBOMDataAttributes::EXT_REF_PLACEHOLDER;
-        } else {
+        }
+        else
+        {
             // Set the EXT_REF_PLACEHOLDER flag so when we iterate properties and children, we can update them
             attributes |= FBOMDataAttributes::EXT_REF_PLACEHOLDER;
         }
@@ -164,11 +173,12 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(FBOMLoadContext &context, TypeID type_id, const FBOMObject &in, HypData &out)
+FBOMResult FBOMObject::Deserialize(FBOMLoadContext& context, TypeID type_id, const FBOMObject& in, HypData& out)
 {
-    FBOMMarshalerBase *marshal = GetMarshal(type_id);
-    
-    if (!marshal) {
+    FBOMMarshalerBase* marshal = GetMarshal(type_id);
+
+    if (!marshal)
+    {
         return {
             FBOMResult::FBOM_ERR,
             "No registered marshal class for type"
@@ -184,14 +194,16 @@ HashCode FBOMObject::GetHashCode() const
 
     hc.Add(m_object_type.GetHashCode());
 
-    for (const auto &it : properties) {
+    for (const auto& it : properties)
+    {
         hc.Add(it.first.GetHashCode());
         hc.Add(it.second.GetHashCode());
     }
 
     hc.Add(m_children.Size());
 
-    for (const FBOMObject &child : m_children) {
+    for (const FBOMObject& child : m_children)
+    {
         hc.Add(child.GetHashCode());
     }
 
@@ -204,12 +216,16 @@ String FBOMObject::ToString(bool deep) const
 
     ss << m_object_type.ToString();
     ss << " { properties: { ";
-    for (auto &prop : properties) {
+    for (auto& prop : properties)
+    {
         ss << *prop.first;
         ss << ": ";
-        if (deep) {
+        if (deep)
+        {
             ss << prop.second.ToString(deep);
-        } else {
+        }
+        else
+        {
             ss << "...";
         }
         ss << ", ";
@@ -217,11 +233,15 @@ String FBOMObject::ToString(bool deep) const
 
     ss << " }, children: [ ";
 
-    if (deep) {
-        for (const FBOMObject &child : m_children) {
+    if (deep)
+    {
+        for (const FBOMObject& child : m_children)
+        {
             ss << child.ToString(deep);
         }
-    } else {
+    }
+    else
+    {
         ss << m_children.Size();
     }
 
@@ -232,7 +252,7 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-FBOMMarshalerBase *FBOMObject::GetMarshal(TypeID type_id)
+FBOMMarshalerBase* FBOMObject::GetMarshal(TypeID type_id)
 {
     return FBOM::GetInstance().GetMarshal(type_id);
 }

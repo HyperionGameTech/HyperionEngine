@@ -14,7 +14,7 @@ namespace hyperion {
 
 class Engine;
 
-/*! \brief A transient, global ID for an instance of an object. 
+/*! \brief A transient, global ID for an instance of an object.
  *  \details This ID is not guaranteed to be stable across runs of the engine, but is guaranteed to be unique for the lifetime of the object.
  *  \note The ID is not a pointer to the object, but rather an index into a pool of objects. */
 struct IDBase
@@ -22,37 +22,53 @@ struct IDBase
     using ValueType = uint32;
 
     HYP_FORCE_INLINE constexpr bool IsValid() const
-        { return bool(value); }
-    
+    {
+        return bool(value);
+    }
+
     HYP_FORCE_INLINE explicit constexpr operator ValueType() const
-        { return value; }
-    
+    {
+        return value;
+    }
+
     HYP_FORCE_INLINE constexpr ValueType Value() const
-        { return value; }
-    
+    {
+        return value;
+    }
+
     HYP_FORCE_INLINE explicit constexpr operator bool() const
-        { return bool(value); }
+    {
+        return bool(value);
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const IDBase &other) const
-        { return value == other.value; }
+    HYP_FORCE_INLINE constexpr bool operator==(const IDBase& other) const
+    {
+        return value == other.value;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const IDBase &other) const
-        { return value != other.value; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const IDBase& other) const
+    {
+        return value != other.value;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator<(const IDBase &other) const
-        { return value < other.value; }
+    HYP_FORCE_INLINE constexpr bool operator<(const IDBase& other) const
+    {
+        return value < other.value;
+    }
 
     /*! \brief If the value is non-zero, returns the ID minus one,
         to be used as a storage index. If the value is zero (invalid state),
         zero is returned. Ideally a validation check would be performed before you use this,
         unless you are totally sure that 0 is a valid index. */
     HYP_FORCE_INLINE uint32 ToIndex(uint32 invalid_value = 0) const
-        { return value ? value - 1 : invalid_value; }
+    {
+        return value ? value - 1 : invalid_value;
+    }
 
     ValueType value { 0 };
 };
 
-/*! \brief A transient, global ID for an instance of an object. 
+/*! \brief A transient, global ID for an instance of an object.
  *  \details This ID is not guaranteed to be stable across runs of the engine, but is guaranteed to be unique for the lifetime of the object.
  *  \note The ID is not a pointer to the object, but rather an index into a pool of objects. */
 template <class T>
@@ -62,7 +78,7 @@ struct ID : IDBase
 
     constexpr ID() = default;
 
-    explicit ID(const IDBase &other)
+    explicit ID(const IDBase& other)
         : IDBase(other)
     {
     }
@@ -72,29 +88,39 @@ struct ID : IDBase
     {
     }
 
-    constexpr ID(const ID &other)
+    constexpr ID(const ID& other)
         : IDBase(other)
     {
     }
 
-    ID &operator=(const IDBase &other) = delete; // delete so we cannot assign a type's ID to a different type
-    ID &operator=(const ID &other) = default;
+    ID& operator=(const IDBase& other) = delete; // delete so we cannot assign a type's ID to a different type
+    ID& operator=(const ID& other) = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return IDBase::operator bool(); }
+    {
+        return IDBase::operator bool();
+    }
 
-    HYP_FORCE_INLINE bool operator==(const ID &other) const
-        { return IDBase::operator==(other); }
+    HYP_FORCE_INLINE bool operator==(const ID& other) const
+    {
+        return IDBase::operator==(other);
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const ID &other) const
-        { return IDBase::operator!=(other); }
+    HYP_FORCE_INLINE bool operator!=(const ID& other) const
+    {
+        return IDBase::operator!=(other);
+    }
 
-    HYP_FORCE_INLINE bool operator<(const ID &other) const
-        { return IDBase::operator<(other); }
+    HYP_FORCE_INLINE bool operator<(const ID& other) const
+    {
+        return IDBase::operator<(other);
+    }
 
     TypeID GetTypeID() const
-        { return TypeID::ForType<NormalizedType<T>>(); }
-    
+    {
+        return TypeID::ForType<NormalizedType<T>>();
+    }
+
     static Name GetTypeName()
     {
         static const Name type_name = CreateNameFromDynamicString(TypeNameWithoutNamespace<NormalizedType<T>>().Data());

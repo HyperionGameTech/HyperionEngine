@@ -19,9 +19,9 @@ struct LoaderState
 {
     using Stream = BufferedReader;
 
-    AssetManager    *asset_manager;
-    String          filepath;
-    Stream          stream;
+    AssetManager* asset_manager;
+    String filepath;
+    Stream stream;
 };
 
 class AssetLoadError final : public Error
@@ -42,14 +42,14 @@ public:
     }
 
     template <auto MessageString>
-    AssetLoadError(const StaticMessage &current_function, ValueWrapper<MessageString>, ErrorCode error_code)
+    AssetLoadError(const StaticMessage& current_function, ValueWrapper<MessageString>, ErrorCode error_code)
         : Error(current_function, ValueWrapper<MessageString>()),
           m_error_code(error_code)
     {
     }
 
     template <auto MessageString, class... Args>
-    AssetLoadError(const StaticMessage &current_function, ValueWrapper<MessageString>, Args &&... args)
+    AssetLoadError(const StaticMessage& current_function, ValueWrapper<MessageString>, Args&&... args)
         : Error(current_function, ValueWrapper<MessageString>(), std::forward<Args>(args)...),
           m_error_code(UNKNOWN)
     {
@@ -58,10 +58,12 @@ public:
     virtual ~AssetLoadError() override = default;
 
     HYP_FORCE_INLINE ErrorCode GetErrorCode() const
-        { return m_error_code; }
+    {
+        return m_error_code;
+    }
 
 private:
-    ErrorCode   m_error_code;
+    ErrorCode m_error_code;
 };
 
 } // namespace hyperion

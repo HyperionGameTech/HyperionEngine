@@ -16,50 +16,53 @@ namespace hyperion {
 
 enum class UIWindowFlags : uint32
 {
-    NONE            = 0x0,
-    ALLOW_DRAG      = 0x1,
-    TITLE_BAR       = 0x2,
+    NONE = 0x0,
+    ALLOW_DRAG = 0x1,
+    TITLE_BAR = 0x2,
 
-    DEFAULT         = ALLOW_DRAG | TITLE_BAR
+    DEFAULT = ALLOW_DRAG | TITLE_BAR
 };
 
 HYP_MAKE_ENUM_FLAGS(UIWindowFlags)
 
 HYP_CLASS()
+
 class HYP_API UIWindow : public UIPanel
 {
     HYP_OBJECT_BODY(UIWindow);
 
 public:
     UIWindow();
-    UIWindow(const UIWindow &other)                 = delete;
-    UIWindow &operator=(const UIWindow &other)      = delete;
-    UIWindow(UIWindow &&other) noexcept             = delete;
-    UIWindow &operator=(UIWindow &&other) noexcept  = delete;
-    virtual ~UIWindow() override                    = default;
+    UIWindow(const UIWindow& other) = delete;
+    UIWindow& operator=(const UIWindow& other) = delete;
+    UIWindow(UIWindow&& other) noexcept = delete;
+    UIWindow& operator=(UIWindow&& other) noexcept = delete;
+    virtual ~UIWindow() override = default;
 
     HYP_FORCE_INLINE EnumFlags<UIWindowFlags> GetWindowFlags() const
-        { return m_window_flags; }
+    {
+        return m_window_flags;
+    }
 
     void SetWindowFlags(EnumFlags<UIWindowFlags> window_flags);
 
-    virtual void SetText(const String &text) override;
+    virtual void SetText(const String& text) override;
 
     virtual void Init() override;
 
-    virtual void AddChildUIObject(const RC<UIObject> &ui_object) override;
-    virtual bool RemoveChildUIObject(UIObject *ui_object) override;
+    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
     virtual void UpdateSize_Internal(bool update_children) override;
 
-    EnumFlags<UIWindowFlags>    m_window_flags;
+    EnumFlags<UIWindowFlags> m_window_flags;
 
-    RC<UIPanel>                 m_title_bar;
-    RC<UIPanel>                 m_content;
+    RC<UIPanel> m_title_bar;
+    RC<UIPanel> m_content;
 
 private:
-    Optional<Vec2i>             m_mouse_drag_start;
+    Optional<Vec2i> m_mouse_drag_start;
 };
 
 #pragma endregion UIWindow

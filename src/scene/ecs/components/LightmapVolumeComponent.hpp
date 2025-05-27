@@ -12,10 +12,11 @@ namespace hyperion {
 class LightmapVolume;
 
 HYP_STRUCT(Component)
+
 struct LightmapVolumeComponent
 {
-    HYP_FIELD(Property="Volume", Serialize=true)
-    Handle<LightmapVolume>  volume;
+    HYP_FIELD(Property = "Volume", Serialize = true)
+    Handle<LightmapVolume> volume;
 };
 
 } // namespace hyperion

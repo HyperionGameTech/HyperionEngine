@@ -21,22 +21,23 @@ enum class AnimationLoopMode : uint32
 };
 
 HYP_STRUCT()
+
 struct AnimationPlaybackState
 {
-    HYP_FIELD(Property="AnimationIndex", Serialize=true, Editor=true)
-    uint32                  animation_index = ~0u;
+    HYP_FIELD(Property = "AnimationIndex", Serialize = true, Editor = true)
+    uint32 animation_index = ~0u;
 
-    HYP_FIELD(Property="Status", Serialize=true, Editor=true)
+    HYP_FIELD(Property = "Status", Serialize = true, Editor = true)
     AnimationPlaybackStatus status = AnimationPlaybackStatus::STOPPED;
 
-    HYP_FIELD(Property="LoopMode", Serialize=true, Editor=true)
-    AnimationLoopMode       loop_mode = AnimationLoopMode::ONCE;
+    HYP_FIELD(Property = "LoopMode", Serialize = true, Editor = true)
+    AnimationLoopMode loop_mode = AnimationLoopMode::ONCE;
 
-    HYP_FIELD(Property="Speed", Serialize=true, Editor=true)
-    float                   speed = 1.0f;
+    HYP_FIELD(Property = "Speed", Serialize = true, Editor = true)
+    float speed = 1.0f;
 
-    HYP_FIELD(Property="CurrentTime", Serialize=true, Editor=true)
-    float                   current_time = 0.0f;
+    HYP_FIELD(Property = "CurrentTime", Serialize = true, Editor = true)
+    float current_time = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -53,10 +54,11 @@ struct AnimationPlaybackState
 };
 
 HYP_STRUCT(Component)
+
 struct AnimationComponent
 {
-    HYP_FIELD(Property="PlaybackState", Serialize=true, Editor=true)
-    AnimationPlaybackState  playback_state;
+    HYP_FIELD(Property = "PlaybackState", Serialize = true, Editor = true)
+    AnimationPlaybackState playback_state;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

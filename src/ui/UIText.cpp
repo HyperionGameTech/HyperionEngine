@@ -37,109 +37,121 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 
 struct FontAtlasCharacterIterator
 {
-    Vec2f           placement;
-    Vec2f           atlas_pixel_size;
-    Vec2f           cell_dimensions;
+    Vec2f placement;
+    Vec2f atlas_pixel_size;
+    Vec2f cell_dimensions;
 
-    utf::u32char    char_value;
+    utf::u32char char_value;
 
-    Vec2i           char_offset;
+    Vec2i char_offset;
 
-    Vec2f           glyph_dimensions;
-    Vec2f           glyph_scaling;
+    Vec2f glyph_dimensions;
+    Vec2f glyph_scaling;
 
-    float           bearing_y;
-    float           char_width;
+    float bearing_y;
+    float char_width;
 };
 
 template <class Callback>
-static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, Array<Vec2f> *out_character_placements, Callback &&callback)
+static void ForEachCharacter(const FontAtlas& font_atlas, const String& text, const Vec2i& parent_bounds, float text_size, Array<Vec2f>* out_character_placements, Callback&& callback)
 {
     HYP_SCOPE;
 
     Vec2f placement = Vec2f::Zero();
 
     const SizeType length = text.Length();
-    
-    if (out_character_placements) {
+
+    if (out_character_placements)
+    {
         out_character_placements->Reserve(length + 1);
         out_character_placements->PushBack(placement);
     }
-    
+
     const Vec2f cell_dimensions = Vec2f(font_atlas.GetCellDimensions()) / 64.0f;
     AssertThrowMsg(cell_dimensions.x * cell_dimensions.y != 0.0f, "Cell dimensions are invalid");
 
     const float cell_dimensions_ratio = cell_dimensions.x / cell_dimensions.y;
 
-    const Handle<Texture> &main_texture_atlas = font_atlas.GetAtlasTextures().GetMainAtlas();
+    const Handle<Texture>& main_texture_atlas = font_atlas.GetAtlasTextures().GetMainAtlas();
     AssertThrowMsg(main_texture_atlas.IsValid(), "Main texture atlas is invalid");
 
     const Vec2f atlas_pixel_size = Vec2f::One() / Vec2f(main_texture_atlas->GetExtent().GetXY());
-    
+
     struct
     {
-        Array<FontAtlasCharacterIterator>   chars;
+        Array<FontAtlasCharacterIterator> chars;
     } current_word;
 
-    const auto IterateCurrentWord = [&current_word, &callback]()
+    const auto iterate_current_word = [&current_word, &callback]()
     {
-        for (const FontAtlasCharacterIterator &character_iterator : current_word.chars) {
+        for (const FontAtlasCharacterIterator& character_iterator : current_word.chars)
+        {
             callback(character_iterator);
         }
 
-        current_word = { };
+        current_word = {};
     };
 
-    for (SizeType i = 0; i < length; i++) {
-        UITextCharacter character { };
+    for (SizeType i = 0; i < length; i++)
+    {
+        UITextCharacter character {};
 
         const utf::u32char ch = text.GetChar(i);
 
-        if (ch == utf::u32char(' ')) {
+        if (ch == utf::u32char(' '))
+        {
 
-            if (current_word.chars.Any() && parent_bounds.x != 0 && (current_word.chars.Back().placement.x + current_word.chars.Back().char_width) * text_size >= float(parent_bounds.x)) {
+            if (current_word.chars.Any() && parent_bounds.x != 0 && (current_word.chars.Back().placement.x + current_word.chars.Back().char_width) * text_size >= float(parent_bounds.x))
+            {
                 // newline
                 placement.x = 0.0f;
                 placement.y += cell_dimensions.y;
-            } else {
+            }
+            else
+            {
                 // add room for space
                 placement.x += cell_dimensions.x * 0.5f;
             }
 
-            if (out_character_placements) {
+            if (out_character_placements)
+            {
                 out_character_placements->PushBack(placement);
             }
 
-            IterateCurrentWord();
+            iterate_current_word();
 
             continue;
         }
 
-        if (ch == utf::u32char('\n')) {
+        if (ch == utf::u32char('\n'))
+        {
             // reset placement, add room for newline
             placement.x = 0.0f;
             placement.y += cell_dimensions.y;
 
-            if (out_character_placements) {
+            if (out_character_placements)
+            {
                 out_character_placements->PushBack(placement);
             }
 
-            IterateCurrentWord();
+            iterate_current_word();
 
             continue;
         }
 
         Optional<Glyph::Metrics> glyph_metrics = font_atlas.GetGlyphMetrics(ch);
 
-        if (!glyph_metrics.HasValue() || (glyph_metrics->metrics.width == 0 || glyph_metrics->metrics.height == 0)) {
-            if (out_character_placements) {
+        if (!glyph_metrics.HasValue() || (glyph_metrics->metrics.width == 0 || glyph_metrics->metrics.height == 0))
+        {
+            if (out_character_placements)
+            {
                 out_character_placements->PushBack(placement);
             }
 
             continue;
         }
 
-        FontAtlasCharacterIterator &character_iterator = current_word.chars.EmplaceBack();
+        FontAtlasCharacterIterator& character_iterator = current_word.chars.EmplaceBack();
         character_iterator.char_value = ch;
         character_iterator.placement = placement;
         character_iterator.atlas_pixel_size = atlas_pixel_size;
@@ -152,38 +164,42 @@ static void ForEachCharacter(const FontAtlas &font_atlas, const String &text, co
 
         placement.x += character_iterator.char_width;
 
-        if (out_character_placements) {
+        if (out_character_placements)
+        {
             out_character_placements->PushBack(placement);
         }
     }
 
-    IterateCurrentWord();
+    iterate_current_word();
 }
 
-static BoundingBox CalculateTextAABB(const FontAtlas &font_atlas, const String &text, const Vec2i &parent_bounds, float text_size, bool include_bearing, Array<Vec2f> *out_character_placements = nullptr)
+static BoundingBox CalculateTextAABB(const FontAtlas& font_atlas, const String& text, const Vec2i& parent_bounds, float text_size, bool include_bearing, Array<Vec2f>* out_character_placements = nullptr)
 {
     HYP_SCOPE;
 
     BoundingBox aabb;
 
-    ForEachCharacter(font_atlas, text, parent_bounds, text_size, out_character_placements, [include_bearing, &aabb](const FontAtlasCharacterIterator &iter)
-    {
-        BoundingBox character_aabb;
+    ForEachCharacter(font_atlas, text, parent_bounds, text_size, out_character_placements, [include_bearing, &aabb](const FontAtlasCharacterIterator& iter)
+        {
+            BoundingBox character_aabb;
 
-        if (include_bearing) {
-            const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
+            if (include_bearing)
+            {
+                const float offset_y = (iter.cell_dimensions.y - iter.glyph_dimensions.y) + iter.bearing_y;
 
-            character_aabb = character_aabb
-                .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
-                .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
-        } else {
-            character_aabb = character_aabb
-                .Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f))
-                .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + iter.cell_dimensions.y, 0.0f));
-        }
+                character_aabb = character_aabb
+                                     .Union(Vec3f(iter.placement.x, iter.placement.y + offset_y, 0.0f))
+                                     .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + offset_y + iter.cell_dimensions.y, 0.0f));
+            }
+            else
+            {
+                character_aabb = character_aabb
+                                     .Union(Vec3f(iter.placement.x, iter.placement.y, 0.0f))
+                                     .Union(Vec3f(iter.placement.x + iter.glyph_dimensions.x, iter.placement.y + iter.cell_dimensions.y, 0.0f));
+            }
 
-        aabb = aabb.Union(character_aabb);
-    });
+            aabb = aabb.Union(character_aabb);
+        });
 
     return aabb;
 }
@@ -196,27 +212,31 @@ UIText::UIText()
     m_text_color = Color(Vec4f::One());
 
     OnComputedVisibilityChange.Bind([this]()
-    {
-        if (GetComputedVisibility()) {
-            SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
-        }
+                                  {
+                                      if (GetComputedVisibility())
+                                      {
+                                          SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
+                                      }
 
-        return UIEventHandlerResult::OK;
-    }).Detach();
+                                      return UIEventHandlerResult::OK;
+                                  })
+        .Detach();
 
     OnEnabled.Bind([this]()
-    {
-        UpdateMaterial(false);
+                 {
+                     UpdateMaterial(false);
 
-        return UIEventHandlerResult::OK;
-    }).Detach();
+                     return UIEventHandlerResult::OK;
+                 })
+        .Detach();
 
     OnDisabled.Bind([this]()
-    {
-        UpdateMaterial(false);
+                  {
+                      UpdateMaterial(false);
 
-        return UIEventHandlerResult::OK;
-    }).Detach();
+                      return UIEventHandlerResult::OK;
+                  })
+        .Detach();
 }
 
 UIText::~UIText()
@@ -230,13 +250,14 @@ void UIText::Init()
     UIObject::Init();
 }
 
-void UIText::SetText(const String &text)
+void UIText::SetText(const String& text)
 {
     HYP_SCOPE;
 
     UIObject::SetText(text);
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -251,13 +272,14 @@ void UIText::SetText(const String &text)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA, false);
 }
 
-const RC<FontAtlas> &UIText::GetFontAtlasOrDefault() const
+const RC<FontAtlas>& UIText::GetFontAtlasOrDefault() const
 {
     HYP_SCOPE;
 
-    const UIStage *stage = GetStage();
+    const UIStage* stage = GetStage();
 
-    if (!stage) {
+    if (!stage)
+    {
         return m_font_atlas;
     }
 
@@ -266,13 +288,14 @@ const RC<FontAtlas> &UIText::GetFontAtlasOrDefault() const
         : stage->GetDefaultFontAtlas();
 }
 
-void UIText::SetFontAtlas(const RC<FontAtlas> &font_atlas)
+void UIText::SetFontAtlas(const RC<FontAtlas>& font_atlas)
 {
     HYP_SCOPE;
 
     m_font_atlas = font_atlas;
 
-    if (!IsInit()) {
+    if (!IsInit())
+    {
         return;
     }
 
@@ -291,11 +314,13 @@ Vec2f UIText::GetCharacterOffset(int character_index) const
 {
     HYP_SCOPE;
 
-    if (character_index < 0 || m_character_offsets.Empty()) {
+    if (character_index < 0 || m_character_offsets.Empty())
+    {
         return Vec2f::Zero();
     }
 
-    if (character_index >= int(m_character_offsets.Size())) {
+    if (character_index >= int(m_character_offsets.Size()))
+    {
         character_index = int(m_character_offsets.Size()) - 1;
     }
 
@@ -306,7 +331,8 @@ void UIText::UpdateTextAABB()
 {
     HYP_SCOPE;
 
-    if (const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault()) {
+    if (const RC<FontAtlas>& font_atlas = GetFontAtlasOrDefault())
+    {
         const Vec2i parent_bounds = GetParentBounds();
         const float text_size = GetTextSize();
 
@@ -316,7 +342,9 @@ void UIText::UpdateTextAABB()
         m_text_aabb_without_bearing = CalculateTextAABB(*font_atlas, m_text, parent_bounds, text_size, false, &m_character_offsets);
 
         AssertThrow(m_character_offsets.Size() == m_text.Length() + 1);
-    } else {
+    }
+    else
+    {
         HYP_LOG_ONCE(UI, Warning, "No font atlas for UIText {}", GetName());
     }
 }
@@ -325,7 +353,8 @@ void UIText::UpdateRenderData()
 {
     HYP_SCOPE;
 
-    if (m_locked_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA) {
+    if (m_locked_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA)
+    {
         return;
     }
 
@@ -333,16 +362,19 @@ void UIText::UpdateRenderData()
 
     // Only update render data if computed visibility is true (visible)
     // When this changes to be true, UpdateRenderData will be called - no need to update it if we are not visible
-    if (!GetComputedVisibility()) {
+    if (!GetComputedVisibility())
+    {
         return;
     }
 
-    if (const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault()) {
+    if (const RC<FontAtlas>& font_atlas = GetFontAtlasOrDefault())
+    {
         const float text_size = GetTextSize();
 
         m_current_font_atlas_texture = font_atlas->GetAtlasTextures().GetAtlasForPixelSize(text_size);
 
-        if (!m_current_font_atlas_texture.IsValid()) {
+        if (!m_current_font_atlas_texture.IsValid())
+        {
             HYP_LOG_ONCE(UI, Warning, "No font atlas texture for text size {}", text_size);
         }
 
@@ -359,9 +391,10 @@ void UIText::UpdateMeshData_Internal()
 
     UIObject::UpdateMeshData_Internal();
 
-    const RC<FontAtlas> &font_atlas = GetFontAtlasOrDefault();
+    const RC<FontAtlas>& font_atlas = GetFontAtlasOrDefault();
 
-    if (!font_atlas) {
+    if (!font_atlas)
+    {
         HYP_LOG_ONCE(UI, Warning, "No font atlas, cannot update text mesh data");
 
         return;
@@ -369,11 +402,12 @@ void UIText::UpdateMeshData_Internal()
 
     BoundingBox parent_aabb_clamped;
 
-    if (UIObject *parent = GetParentUIObject()) {
+    if (UIObject* parent = GetParentUIObject())
+    {
         parent_aabb_clamped = parent->GetAABBClamped();
     }
 
-    MeshComponent &mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
+    MeshComponent& mesh_component = GetScene()->GetEntityManager()->GetComponent<MeshComponent>(GetEntity());
 
     const Vec2f position = GetAbsolutePosition();
     const float text_size = GetTextSize();
@@ -383,42 +417,42 @@ void UIText::UpdateMeshData_Internal()
     Array<Vec4f> instance_offsets;
     Array<Vec4f> instance_sizes;
 
-    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, nullptr, [&](const FontAtlasCharacterIterator &iter)
-    {
-        Transform character_transform;
-        character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));
-        character_transform.GetTranslation().y += (iter.cell_dimensions.y - iter.glyph_dimensions.y) * text_size;
-        character_transform.GetTranslation().y += iter.bearing_y * text_size;
-        character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * text_size;
-        character_transform.UpdateMatrix();
+    ForEachCharacter(*font_atlas, m_text, GetParentBounds(), text_size, nullptr, [&](const FontAtlasCharacterIterator& iter)
+        {
+            Transform character_transform;
+            character_transform.SetScale(Vec3f(iter.glyph_dimensions.x * text_size, iter.glyph_dimensions.y * text_size, 1.0f));
+            character_transform.GetTranslation().y += (iter.cell_dimensions.y - iter.glyph_dimensions.y) * text_size;
+            character_transform.GetTranslation().y += iter.bearing_y * text_size;
+            character_transform.GetTranslation() += Vec3f(iter.placement.x, iter.placement.y, 0.0f) * text_size;
+            character_transform.UpdateMatrix();
 
-        BoundingBox character_aabb = character_transform * BoundingBox(Vec3f::Zero(), Vec3f::One());
-        character_aabb.min += Vec3f(position, 0.0f);
-        character_aabb.max += Vec3f(position, 0.0f);
+            BoundingBox character_aabb = character_transform * BoundingBox(Vec3f::Zero(), Vec3f::One());
+            character_aabb.min += Vec3f(position, 0.0f);
+            character_aabb.max += Vec3f(position, 0.0f);
 
-        BoundingBox character_aabb_clamped = character_aabb.Intersection(parent_aabb_clamped);
+            BoundingBox character_aabb_clamped = character_aabb.Intersection(parent_aabb_clamped);
 
-        Matrix4 instance_transform;
-        instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;
-        instance_transform[1][1] = character_aabb_clamped.max.y - character_aabb_clamped.min.y;
-        instance_transform[2][2] = 1.0f;
-        instance_transform[0][3] = character_aabb_clamped.min.x;
-        instance_transform[1][3] = character_aabb_clamped.min.y;
-        instance_transform[2][3] = 0.0f;
+            Matrix4 instance_transform;
+            instance_transform[0][0] = character_aabb_clamped.max.x - character_aabb_clamped.min.x;
+            instance_transform[1][1] = character_aabb_clamped.max.y - character_aabb_clamped.min.y;
+            instance_transform[2][2] = 1.0f;
+            instance_transform[0][3] = character_aabb_clamped.min.x;
+            instance_transform[1][3] = character_aabb_clamped.min.y;
+            instance_transform[2][3] = 0.0f;
 
-        instance_transforms.PushBack(instance_transform);
+            instance_transforms.PushBack(instance_transform);
 
-        const Vec2f size = character_aabb.GetExtent().GetXY();
-        const Vec2f clamped_size = character_aabb_clamped.GetExtent().GetXY();
-        const Vec2f clamped_offset = character_aabb.min.GetXY() - character_aabb_clamped.min.GetXY();
+            const Vec2f size = character_aabb.GetExtent().GetXY();
+            const Vec2f clamped_size = character_aabb_clamped.GetExtent().GetXY();
+            const Vec2f clamped_offset = character_aabb.min.GetXY() - character_aabb_clamped.min.GetXY();
 
-        Vec2f texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
-        Vec2f texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
+            Vec2f texcoord_start = Vec2f(iter.char_offset) * iter.atlas_pixel_size;
+            Vec2f texcoord_end = (Vec2f(iter.char_offset) + (iter.glyph_dimensions * 64.0f)) * iter.atlas_pixel_size;
 
-        instance_texcoords.PushBack(Vec4f(texcoord_start, texcoord_end));
-        instance_offsets.PushBack(Vec4f(clamped_offset, 0.0f, 0.0f));
-        instance_sizes.PushBack(Vec4f(size, clamped_size));
-    });
+            instance_texcoords.PushBack(Vec4f(texcoord_start, texcoord_end));
+            instance_offsets.PushBack(Vec4f(clamped_offset, 0.0f, 0.0f));
+            instance_sizes.PushBack(Vec4f(size, clamped_size));
+        });
 
     mesh_component.instance_data.num_instances = instance_transforms.Size();
     mesh_component.instance_data.SetBufferData(0, instance_transforms.Data(), instance_transforms.Size());
@@ -444,7 +478,8 @@ Material::ParameterTable UIText::GetMaterialParameters() const
 {
     Color color = GetTextColor();
 
-    if (!IsEnabled()) {
+    if (!IsEnabled())
+    {
         color.a *= 0.5f;
     }
 
@@ -455,7 +490,8 @@ Material::ParameterTable UIText::GetMaterialParameters() const
 
 Material::TextureSet UIText::GetMaterialTextures() const
 {
-    if (!m_current_font_atlas_texture.IsValid()) {
+    if (!m_current_font_atlas_texture.IsValid())
+    {
         return UIObject::GetMaterialTextures();
     }
 
@@ -468,8 +504,10 @@ void UIText::Update_Internal(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    if (m_deferred_updates) {
-        if (m_deferred_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA) {
+    if (m_deferred_updates)
+    {
+        if (m_deferred_updates & UIObjectUpdateType::UPDATE_TEXT_RENDER_DATA)
+        {
             UpdateRenderData();
         }
     }
@@ -530,14 +568,17 @@ Vec2i UIText::GetParentBounds() const
 {
     Vec2i parent_bounds;
 
-    if (const UIObject *parent = GetParentUIObject()) {
+    if (const UIObject* parent = GetParentUIObject())
+    {
         const UIObjectSize parent_size = parent->GetSize();
 
-        if (!(parent_size.GetFlagsX() & UIObjectSize::AUTO)) {
+        if (!(parent_size.GetFlagsX() & UIObjectSize::AUTO))
+        {
             parent_bounds.x = parent->GetActualSize().x;
         }
 
-        if (!(parent_size.GetFlagsY() & UIObjectSize::AUTO)) {
+        if (!(parent_size.GetFlagsY() & UIObjectSize::AUTO))
+        {
             parent_bounds.y = parent->GetActualSize().y;
         }
     }

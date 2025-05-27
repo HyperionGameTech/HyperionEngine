@@ -36,33 +36,34 @@ static constexpr InternalFormat ssgi_format = InternalFormat::RGBA8;
 
 struct SSGIUniforms
 {
-    Vec4u   dimensions;
-    float   ray_step;
-    float   num_iterations;
-    float   max_ray_distance;
-    float   distance_bias;
-    float   offset;
-    float   eye_fade_start;
-    float   eye_fade_end;
-    float   screen_edge_fade_start;
-    float   screen_edge_fade_end;
+    Vec4u dimensions;
+    float ray_step;
+    float num_iterations;
+    float max_ray_distance;
+    float distance_bias;
+    float offset;
+    float eye_fade_start;
+    float eye_fade_end;
+    float screen_edge_fade_start;
+    float screen_edge_fade_end;
 
-    uint32  num_bound_lights;
+    uint32 num_bound_lights;
     alignas(16) uint32 light_indices[16];
 };
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateSSGIUniformBuffers) : renderer::RenderCommand
+struct RENDER_COMMAND(CreateSSGIUniformBuffers)
+    : renderer::RenderCommand
 {
-    SSGIUniforms                                    uniforms;
-    FixedArray<GPUBufferRef, max_frames_in_flight>  uniform_buffers;
+    SSGIUniforms uniforms;
+    FixedArray<GPUBufferRef, max_frames_in_flight> uniform_buffers;
 
     RENDER_COMMAND(CreateSSGIUniformBuffers)(
-        const SSGIUniforms &uniforms,
-        const FixedArray<GPUBufferRef, max_frames_in_flight> &uniform_buffers
-    ) : uniforms(uniforms),
-        uniform_buffers(uniform_buffers)
+        const SSGIUniforms& uniforms,
+        const FixedArray<GPUBufferRef, max_frames_in_flight>& uniform_buffers)
+        : uniforms(uniforms),
+          uniform_buffers(uniform_buffers)
     {
         AssertThrow(uniforms.dimensions.x * uniforms.dimensions.y != 0);
     }
@@ -71,11 +72,12 @@ struct RENDER_COMMAND(CreateSSGIUniformBuffers) : renderer::RenderCommand
 
     virtual RendererResult operator()() override
     {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
             AssertThrow(uniform_buffers[frame_index] != nullptr);
-            
+
             HYPERION_BUBBLE_ERRORS(uniform_buffers[frame_index]->Create());
-            
+
             uniform_buffers[frame_index]->Copy(sizeof(uniforms), &uniforms);
         }
 
@@ -87,7 +89,7 @@ struct RENDER_COMMAND(CreateSSGIUniformBuffers) : renderer::RenderCommand
 
 #pragma region SSGI
 
-SSGI::SSGI(SSGIConfig &&config, GBuffer *gbuffer)
+SSGI::SSGI(SSGIConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer),
       m_is_rendered(false)
@@ -96,10 +98,11 @@ SSGI::SSGI(SSGIConfig &&config, GBuffer *gbuffer)
 
 SSGI::~SSGI()
 {
-    if (m_temporal_blending) {
+    if (m_temporal_blending)
+    {
         m_temporal_blending.Reset();
     }
-    
+
     SafeRelease(std::move(m_uniform_buffers));
     SafeRelease(std::move(m_compute_pipeline));
 }
@@ -114,8 +117,7 @@ void SSGI::Create()
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-    });
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
     InitObject(m_result_texture);
 
@@ -123,15 +125,15 @@ void SSGI::Create()
 
     CreateUniformBuffers();
 
-    if (use_temporal_blending) {
+    if (use_temporal_blending)
+    {
         m_temporal_blending = MakeUnique<TemporalBlending>(
             m_config.extent,
             ssgi_format,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             m_result_texture->GetRenderResource().GetImageView(),
-            m_gbuffer
-        );
+            m_gbuffer);
 
         m_temporal_blending->Create();
     }
@@ -139,7 +141,7 @@ void SSGI::Create()
     CreateComputePipelines();
 }
 
-const Handle<Texture> &SSGI::GetFinalResultTexture() const
+const Handle<Texture>& SSGI::GetFinalResultTexture() const
 {
     return m_temporal_blending
         ? m_temporal_blending->GetResultTexture()
@@ -150,7 +152,8 @@ ShaderProperties SSGI::GetShaderProperties() const
 {
     ShaderProperties shader_properties;
 
-    switch (ssgi_format) {
+    switch (ssgi_format)
+    {
     case InternalFormat::RGBA8:
         shader_properties.Set("OUTPUT_RGBA8");
         break;
@@ -170,10 +173,11 @@ void SSGI::CreateUniformBuffers()
     SSGIUniforms uniforms;
     FillUniformBufferData(nullptr, uniforms);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
         m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
     }
-    
+
     PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniform_buffers);
 }
 
@@ -187,8 +191,9 @@ void SSGI::CreateComputePipelines()
     const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("SSGIDescriptorSet"), frame_index);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("SSGIDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("OutImage"), m_result_texture->GetRenderResource().GetImageView());
@@ -199,18 +204,17 @@ void SSGI::CreateComputePipelines()
 
     m_compute_pipeline = g_rendering_api->MakeComputePipeline(
         shader,
-        descriptor_table
-    );
+        descriptor_table);
 
     DeferCreate(m_compute_pipeline);
 }
 
-void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
+void SSGI::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
     // Used for sky
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvProbeRenderResource>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -231,45 +235,39 @@ void SSGI::Render(FrameBase *frame, ViewRenderResource *view)
         m_compute_pipeline->GetDescriptorTable(),
         m_compute_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            {
-                NAME("Global"),
-                {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+            { NAME("Global"),
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) }
-                }
-            }
-        },
-        frame_index
-    );
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+        frame_index);
 
     const uint32 scene_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (view != nullptr && scene_descriptor_set_index != ~0u) {
+    if (view != nullptr && scene_descriptor_set_index != ~0u)
+    {
         frame->GetCommandList().Add<BindDescriptorSet>(
             view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_compute_pipeline,
-            ArrayMap<Name, uint32> { },
-            scene_descriptor_set_index
-        );
+            ArrayMap<Name, uint32> {},
+            scene_descriptor_set_index);
     }
 
     frame->GetCommandList().Add<DispatchCompute>(
         m_compute_pipeline,
-        Vec3u { num_dispatch_calls, 1, 1 }
-    );
+        Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition sample image back into read state
     frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
-    if (use_temporal_blending && m_temporal_blending != nullptr) {
+    if (use_temporal_blending && m_temporal_blending != nullptr)
+    {
         m_temporal_blending->Render(frame, view);
     }
 
     m_is_rendered = true;
 }
 
-void SSGI::FillUniformBufferData(ViewRenderResource *view, SSGIUniforms &out_uniforms) const
+void SSGI::FillUniformBufferData(ViewRenderResource* view, SSGIUniforms& out_uniforms) const
 {
     out_uniforms = SSGIUniforms();
     out_uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
@@ -282,20 +280,25 @@ void SSGI::FillUniformBufferData(ViewRenderResource *view, SSGIUniforms &out_uni
     out_uniforms.eye_fade_end = 0.99f;
     out_uniforms.screen_edge_fade_start = 0.98f;
     out_uniforms.screen_edge_fade_end = 0.99f;
-    
+
     uint32 num_bound_lights = 0;
 
     // Can only fill the lights if we have a view ready
-    if (view) {
+    if (view)
+    {
         const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
-            if (num_bound_lights >= max_bound_lights) {
+        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+        {
+            if (num_bound_lights >= max_bound_lights)
+            {
                 break;
             }
 
-            for (const auto &it : view->GetLights(LightType(light_type))) {
-                if (num_bound_lights >= max_bound_lights) {
+            for (const auto& it : view->GetLights(LightType(light_type)))
+            {
+                if (num_bound_lights >= max_bound_lights)
+                {
                     break;
                 }
 

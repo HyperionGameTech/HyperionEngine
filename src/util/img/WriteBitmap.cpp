@@ -2,101 +2,102 @@
 
 #include <stdio.h>
 
-const int BYTES_PER_PIXEL = 3;
-const int FILE_HEADER_SIZE = 14;
-const int INFO_HEADER_SIZE = 40;
+const int bytes_per_pixel = 3;
+const int file_header_size = 14;
+const int info_header_size = 40;
 
-void generateBitmapImage(unsigned char* image, int height, int width, char* imageFileName);
-unsigned char* createBitmapFileHeader(int height, int stride);
-unsigned char* createBitmapInfoHeader(int height, int width);
+void GenerateBitmapImage(unsigned char* image, int height, int width, char* image_file_name);
+unsigned char* CreateBitmapFileHeader(int height, int stride);
+unsigned char* CreateBitmapInfoHeader(int height, int width);
 
-unsigned char* createBitmapFileHeader (int height, int stride)
+unsigned char* CreateBitmapFileHeader(int height, int stride)
 {
-    int fileSize = FILE_HEADER_SIZE + INFO_HEADER_SIZE + (stride * height);
+    int file_size = file_header_size + info_header_size + (stride * height);
 
-    static unsigned char fileHeader[] = {
-        0,0,     /// signature
-        0,0,0,0, /// image file size in bytes
-        0,0,0,0, /// reserved
-        0,0,0,0, /// start of pixel array
+    static unsigned char file_header[] = {
+        0, 0,       /// signature
+        0, 0, 0, 0, /// image file size in bytes
+        0, 0, 0, 0, /// reserved
+        0, 0, 0, 0, /// start of pixel array
     };
 
-    fileHeader[ 0] = (unsigned char)('B');
-    fileHeader[ 1] = (unsigned char)('M');
-    fileHeader[ 2] = (unsigned char)(fileSize      );
-    fileHeader[ 3] = (unsigned char)(fileSize >>  8);
-    fileHeader[ 4] = (unsigned char)(fileSize >> 16);
-    fileHeader[ 5] = (unsigned char)(fileSize >> 24);
-    fileHeader[10] = (unsigned char)(FILE_HEADER_SIZE + INFO_HEADER_SIZE);
+    file_header[0] = (unsigned char)('B');
+    file_header[1] = (unsigned char)('M');
+    file_header[2] = (unsigned char)(file_size);
+    file_header[3] = (unsigned char)(file_size >> 8);
+    file_header[4] = (unsigned char)(file_size >> 16);
+    file_header[5] = (unsigned char)(file_size >> 24);
+    file_header[10] = (unsigned char)(file_header_size + info_header_size);
 
-    return fileHeader;
+    return file_header;
 }
 
-unsigned char* createBitmapInfoHeader (int height, int width)
+unsigned char* CreateBitmapInfoHeader(int height, int width)
 {
-    static unsigned char infoHeader[] = {
-        0,0,0,0, /// header size
-        0,0,0,0, /// image width
-        0,0,0,0, /// image height
-        0,0,     /// number of color planes
-        0,0,     /// bits per pixel
-        0,0,0,0, /// compression
-        0,0,0,0, /// image size
-        0,0,0,0, /// horizontal resolution
-        0,0,0,0, /// vertical resolution
-        0,0,0,0, /// colors in color table
-        0,0,0,0, /// important color count
+    static unsigned char info_header[] = {
+        0, 0, 0, 0, /// header size
+        0, 0, 0, 0, /// image width
+        0, 0, 0, 0, /// image height
+        0, 0,       /// number of color planes
+        0, 0,       /// bits per pixel
+        0, 0, 0, 0, /// compression
+        0, 0, 0, 0, /// image size
+        0, 0, 0, 0, /// horizontal resolution
+        0, 0, 0, 0, /// vertical resolution
+        0, 0, 0, 0, /// colors in color table
+        0, 0, 0, 0, /// important color count
     };
 
-    infoHeader[ 0] = (unsigned char)(INFO_HEADER_SIZE);
-    infoHeader[ 4] = (unsigned char)(width      );
-    infoHeader[ 5] = (unsigned char)(width >>  8);
-    infoHeader[ 6] = (unsigned char)(width >> 16);
-    infoHeader[ 7] = (unsigned char)(width >> 24);
-    infoHeader[ 8] = (unsigned char)(height      );
-    infoHeader[ 9] = (unsigned char)(height >>  8);
-    infoHeader[10] = (unsigned char)(height >> 16);
-    infoHeader[11] = (unsigned char)(height >> 24);
-    infoHeader[12] = (unsigned char)(1);
-    infoHeader[14] = (unsigned char)(BYTES_PER_PIXEL*8);
+    info_header[0] = (unsigned char)(info_header_size);
+    info_header[4] = (unsigned char)(width);
+    info_header[5] = (unsigned char)(width >> 8);
+    info_header[6] = (unsigned char)(width >> 16);
+    info_header[7] = (unsigned char)(width >> 24);
+    info_header[8] = (unsigned char)(height);
+    info_header[9] = (unsigned char)(height >> 8);
+    info_header[10] = (unsigned char)(height >> 16);
+    info_header[11] = (unsigned char)(height >> 24);
+    info_header[12] = (unsigned char)(1);
+    info_header[14] = (unsigned char)(bytes_per_pixel * 8);
 
-    return infoHeader;
+    return info_header;
 }
 
 namespace hyperion {
 bool WriteBitmap::Write(
-    const char *path,
+    const char* path,
     int width,
     int height,
-    unsigned char *bytes
-)
+    unsigned char* bytes)
 {
-    int widthInBytes = width * BYTES_PER_PIXEL;
+    int width_in_bytes = width * bytes_per_pixel;
 
-    unsigned char padding[3] = {0, 0, 0};
-    int paddingSize = (4 - (widthInBytes) % 4) % 4;
+    unsigned char padding[3] = { 0, 0, 0 };
+    int padding_size = (4 - (width_in_bytes) % 4) % 4;
 
-    int stride = (widthInBytes) + paddingSize;
+    int stride = (width_in_bytes) + padding_size;
 
-    FILE* imageFile = fopen(path, "wb");
+    FILE* image_file = fopen(path, "wb");
 
-    if (!imageFile) {
+    if (!image_file)
+    {
         return false;
     }
 
-    unsigned char* fileHeader = createBitmapFileHeader(height, stride);
-    fwrite(fileHeader, 1, FILE_HEADER_SIZE, imageFile);
+    unsigned char* file_header = CreateBitmapFileHeader(height, stride);
+    fwrite(file_header, 1, file_header_size, image_file);
 
-    unsigned char* infoHeader = createBitmapInfoHeader(height, width);
-    fwrite(infoHeader, 1, INFO_HEADER_SIZE, imageFile);
+    unsigned char* info_header = CreateBitmapInfoHeader(height, width);
+    fwrite(info_header, 1, info_header_size, image_file);
 
     int i;
-    for (i = 0; i < height; i++) {
-        fwrite(bytes + (i*widthInBytes), BYTES_PER_PIXEL, width, imageFile);
-        fwrite(padding, 1, paddingSize, imageFile);
+    for (i = 0; i < height; i++)
+    {
+        fwrite(bytes + (i * width_in_bytes), bytes_per_pixel, width, image_file);
+        fwrite(padding, 1, padding_size, image_file);
     }
 
-    fclose(imageFile);
+    fclose(image_file);
 
     return true;
 }

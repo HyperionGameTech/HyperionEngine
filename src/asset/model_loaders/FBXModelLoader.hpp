@@ -10,12 +10,12 @@
 
 namespace hyperion {
 
-class FBXModelLoader : public AssetLoader
+class FBXModelLoader : public AssetLoaderBase
 {
 public:
     virtual ~FBXModelLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

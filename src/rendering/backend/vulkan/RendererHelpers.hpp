@@ -38,11 +38,11 @@ VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
 namespace platform {
 
 template <>
-struct SingleTimeCommandsPlatformImpl<Platform::VULKAN>
+struct SingleTimeCommandsPlatformImpl<Platform::vulkan>
 {
-    SingleTimeCommands<Platform::VULKAN>    *self = nullptr;
-    VkCommandPool                           pool { };
-    QueueFamilyIndices                      family_indices { };
+    SingleTimeCommands<Platform::vulkan>* self = nullptr;
+    VkCommandPool pool {};
+    QueueFamilyIndices family_indices {};
 };
 
 } // namespace platform

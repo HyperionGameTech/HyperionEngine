@@ -5,11 +5,11 @@
 namespace hyperion {
 
 Script::Script()
-    : Script(ScriptDesc { })
+    : Script(ScriptDesc {})
 {
 }
 
-Script::Script(const ScriptDesc &desc)
+Script::Script(const ScriptDesc& desc)
     : m_desc(desc)
 {
     AssertThrowMsg(m_desc.path.Size() + 1 <= script_max_path_length, "Invalid script path: must be <= %llu characters", script_max_path_length - 1);

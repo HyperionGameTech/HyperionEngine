@@ -14,12 +14,12 @@
 
 namespace hyperion {
 
-class FontAtlasLoader : public AssetLoader
+class FontAtlasLoader : public AssetLoaderBase
 {
 public:
     virtual ~FontAtlasLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

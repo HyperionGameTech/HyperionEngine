@@ -7,29 +7,32 @@
 #include <core/threading/TaskThread.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
-#include <rtc/rtcpsrreporter.hpp>
-#include <rtc/rtppacketizationconfig.hpp>
+    #include <rtc/rtcpsrreporter.hpp>
+    #include <rtc/rtppacketizationconfig.hpp>
 #endif
 
 namespace hyperion {
 
 void RTCStream::Start()
 {
-    if (m_encoder) {
+    if (m_encoder)
+    {
         m_encoder->Start();
     }
 }
 
 void RTCStream::Stop()
 {
-    if (m_encoder) {
+    if (m_encoder)
+    {
         m_encoder->Stop();
     }
 }
 
-void RTCStream::SendSample(const RTCStreamDestination &destination)
+void RTCStream::SendSample(const RTCStreamDestination& destination)
 {
-    if (!m_encoder) {
+    if (!m_encoder)
+    {
         DebugLog(LogType::Warn, "SendSample() called but encoder is not set\n");
 
         return;
@@ -37,9 +40,12 @@ void RTCStream::SendSample(const RTCStreamDestination &destination)
 
     uint32 num_samples = 0;
 
-    while (auto sample = m_encoder->PullData()) {
-        for (const RC<RTCTrack> &track : destination.tracks) {
-            if (!track->IsOpen()) {
+    while (auto sample = m_encoder->PullData())
+    {
+        for (const RC<RTCTrackBase>& track : destination.tracks)
+        {
+            if (!track->IsOpen())
+            {
                 continue;
             }
 
@@ -56,11 +62,11 @@ void RTCStream::SendSample(const RTCStreamDestination &destination)
 
 #ifdef HYP_LIBDATACHANNEL
 
-LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
+LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder>&& encoder)
     : RTCStream(stream_type, std::move(encoder), { 60 })
 {
 }
 
 #endif
 
-}  // namespace hyperion
+} // namespace hyperion

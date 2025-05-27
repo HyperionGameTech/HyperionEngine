@@ -29,14 +29,18 @@ public:
 
     virtual bool IsSupported() const = 0;
 
-    HYP_FORCE_INLINE RHICommandList &GetCommandList()
-        { return m_command_list; }
+    HYP_FORCE_INLINE RHICommandList& GetCommandList()
+    {
+        return m_command_list;
+    }
 
-    HYP_FORCE_INLINE const RHICommandList &GetCommandList(uint32 frame_index) const
-        { return m_command_list; }
+    HYP_FORCE_INLINE const RHICommandList& GetCommandList(uint32 frame_index) const
+    {
+        return m_command_list;
+    }
 
 protected:
-    RHICommandList  m_command_list;
+    RHICommandList m_command_list;
 };
 
 } // namespace hyperion::renderer

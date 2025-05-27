@@ -14,7 +14,7 @@ class TaskThread;
 using threading::TaskThread;
 
 class RTCStreamEncoder;
-class RTCTrack;
+class RTCTrackBase;
 
 enum RTCStreamType
 {
@@ -25,7 +25,7 @@ enum RTCStreamType
 
 struct RTCStreamDestination
 {
-    Array<RC<RTCTrack>> tracks;
+    Array<RC<RTCTrackBase>> tracks;
 };
 
 struct RTCStreamParams
@@ -41,7 +41,7 @@ struct RTCStreamParams
 class HYP_API RTCStream
 {
 public:
-    RTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder, RTCStreamParams params = { })
+    RTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder>&& encoder, RTCStreamParams params = {})
         : m_stream_type(stream_type),
           m_encoder(std::move(encoder)),
           m_params(params),
@@ -49,46 +49,52 @@ public:
     {
     }
 
-    RTCStream(const RTCStream &other)                   = delete;
-    RTCStream &operator=(const RTCStream &other)        = delete;
-    RTCStream(RTCStream &&other) noexcept               = default;
-    RTCStream &operator=(RTCStream &&other) noexcept    = default;
-    virtual ~RTCStream()                                = default;
+    RTCStream(const RTCStream& other) = delete;
+    RTCStream& operator=(const RTCStream& other) = delete;
+    RTCStream(RTCStream&& other) noexcept = default;
+    RTCStream& operator=(RTCStream&& other) noexcept = default;
+    virtual ~RTCStream() = default;
 
     RTCStreamType GetStreamType() const
-        { return m_stream_type; }
+    {
+        return m_stream_type;
+    }
 
-    const UniquePtr<RTCStreamEncoder> &GetEncoder() const
-        { return m_encoder; }
+    const UniquePtr<RTCStreamEncoder>& GetEncoder() const
+    {
+        return m_encoder;
+    }
 
     uint64 GetCurrentTimestamp() const
-        { return m_timestamp; }
+    {
+        return m_timestamp;
+    }
 
-    virtual void SendSample(const RTCStreamDestination &destination);
+    virtual void SendSample(const RTCStreamDestination& destination);
 
     virtual void Start();
     virtual void Stop();
 
 protected:
-    RTCStreamType               m_stream_type;
+    RTCStreamType m_stream_type;
     UniquePtr<RTCStreamEncoder> m_encoder;
-    RTCStreamParams             m_params;
-    uint64                      m_timestamp;
+    RTCStreamParams m_params;
+    uint64 m_timestamp;
 };
 
 class HYP_API NullRTCStream : public RTCStream
 {
 public:
-    NullRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
+    NullRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder>&& encoder)
         : RTCStream(stream_type, std::move(encoder))
     {
     }
 
-    NullRTCStream(const NullRTCStream &other)                   = delete;
-    NullRTCStream &operator=(const NullRTCStream &other)        = delete;
-    NullRTCStream(NullRTCStream &&other) noexcept               = default;
-    NullRTCStream &operator=(NullRTCStream &&other) noexcept    = default;
-    virtual ~NullRTCStream() override                           = default;
+    NullRTCStream(const NullRTCStream& other) = delete;
+    NullRTCStream& operator=(const NullRTCStream& other) = delete;
+    NullRTCStream(NullRTCStream&& other) noexcept = default;
+    NullRTCStream& operator=(NullRTCStream&& other) noexcept = default;
+    virtual ~NullRTCStream() override = default;
 };
 
 #ifdef HYP_LIBDATACHANNEL
@@ -96,12 +102,12 @@ public:
 class HYP_API LibDataChannelRTCStream : public RTCStream
 {
 public:
-    LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder);
-    LibDataChannelRTCStream(const LibDataChannelRTCStream &other)                   = delete;
-    LibDataChannelRTCStream &operator=(const LibDataChannelRTCStream &other)        = delete;
-    LibDataChannelRTCStream(LibDataChannelRTCStream &&other) noexcept               = default;
-    LibDataChannelRTCStream &operator=(LibDataChannelRTCStream &&other) noexcept    = default;
-    virtual ~LibDataChannelRTCStream() override                                     = default;
+    LibDataChannelRTCStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder>&& encoder);
+    LibDataChannelRTCStream(const LibDataChannelRTCStream& other) = delete;
+    LibDataChannelRTCStream& operator=(const LibDataChannelRTCStream& other) = delete;
+    LibDataChannelRTCStream(LibDataChannelRTCStream&& other) noexcept = default;
+    LibDataChannelRTCStream& operator=(LibDataChannelRTCStream&& other) noexcept = default;
+    virtual ~LibDataChannelRTCStream() override = default;
 };
 
 #else

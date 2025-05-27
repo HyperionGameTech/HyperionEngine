@@ -11,14 +11,21 @@ class CompilationUnit
 {
 public:
     CompilationUnit();
-    CompilationUnit(const CompilationUnit &other) = delete;
+    CompilationUnit(const CompilationUnit& other) = delete;
     ~CompilationUnit();
 
-    ErrorList &GetErrorList() { return m_error_list; }
-    const ErrorList &GetErrorList() const { return m_error_list; }
+    ErrorList& GetErrorList()
+    {
+        return m_error_list;
+    }
+
+    const ErrorList& GetErrorList() const
+    {
+        return m_error_list;
+    }
 
 private:
-    ErrorList   m_error_list;
+    ErrorList m_error_list;
 };
 
 } // namespace hyperion::json

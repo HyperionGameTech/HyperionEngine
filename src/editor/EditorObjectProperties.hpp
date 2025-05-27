@@ -23,18 +23,18 @@ protected:
     EditorObjectPropertiesBase(TypeID type_id);
 
 public:
-    EditorObjectPropertiesBase(const EditorObjectPropertiesBase &)                  = delete;
-    EditorObjectPropertiesBase &operator=(const EditorObjectPropertiesBase &)       = delete;
-    EditorObjectPropertiesBase(EditorObjectPropertiesBase &&) noexcept              = delete;
-    EditorObjectPropertiesBase &operator=(EditorObjectPropertiesBase &&) noexcept   = delete;
-    virtual ~EditorObjectPropertiesBase()                                           = default;
+    EditorObjectPropertiesBase(const EditorObjectPropertiesBase&) = delete;
+    EditorObjectPropertiesBase& operator=(const EditorObjectPropertiesBase&) = delete;
+    EditorObjectPropertiesBase(EditorObjectPropertiesBase&&) noexcept = delete;
+    EditorObjectPropertiesBase& operator=(EditorObjectPropertiesBase&&) noexcept = delete;
+    virtual ~EditorObjectPropertiesBase() = default;
 
-    const HypClass *GetClass() const;
+    const HypClass* GetClass() const;
 
-    virtual RC<UIObject> CreateUIObject(UIObject *parent) const = 0;
+    virtual RC<UIObject> CreateUIObject(UIObject* parent) const = 0;
 
 private:
-    TypeID  m_type_id;
+    TypeID m_type_id;
 };
 
 template <class T>
@@ -49,7 +49,7 @@ public:
     {
     }
 
-    RC<UIObject> CreateUIObject(UIObject *parent) const override;
+    RC<UIObject> CreateUIObject(UIObject* parent) const override;
 };
 
 } // namespace hyperion

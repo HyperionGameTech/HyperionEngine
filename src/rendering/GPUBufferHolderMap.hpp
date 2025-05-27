@@ -23,28 +23,31 @@ class GPUBufferHolder;
 class GPUBufferHolderMap
 {
 public:
-    HYP_FORCE_INLINE const TypeMap<UniquePtr<GPUBufferHolderBase>> &GetItems() const
-        { return m_holders; }
+    HYP_FORCE_INLINE const TypeMap<UniquePtr<GPUBufferHolderBase>>& GetItems() const
+    {
+        return m_holders;
+    }
 
     template <class T, GPUBufferType BufferType = GPUBufferType::STORAGE_BUFFER>
-    GPUBufferHolder<T, BufferType> *GetOrCreate(uint32 count)
+    GPUBufferHolder<T, BufferType>* GetOrCreate(uint32 count)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         auto it = m_holders.Find<T>();
 
-        if (it == m_holders.End()) {
+        if (it == m_holders.End())
+        {
             HYP_MT_CHECK_WRITE(m_data_race_detector);
 
             it = m_holders.Set<T>(MakeUnique<GPUBufferHolder<T, BufferType>>(count)).first;
         }
 
-        return static_cast<GPUBufferHolder<T, BufferType> *>(it->second.Get());
+        return static_cast<GPUBufferHolder<T, BufferType>*>(it->second.Get());
     }
 
 private:
     TypeMap<UniquePtr<GPUBufferHolderBase>> m_holders;
-    
+
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 

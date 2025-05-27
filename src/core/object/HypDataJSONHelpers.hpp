@@ -24,10 +24,10 @@ using JSONObject = HashMap<JSONString, JSONValue>;
 
 } // namespace json
 
-bool JSONToHypData(const json::JSONValue &json_value, TypeID type_id, HypData &out_hyp_data);
-bool HypDataToJSON(const HypData &value, json::JSONValue &out_json);
-bool ObjectToJSON(const HypClass *hyp_class, const HypData &target, json::JSONObject &out_json);
-bool JSONToObject(const json::JSONObject &json_object, const HypClass *hyp_class, HypData &target);
+bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& out_hyp_data);
+bool HypDataToJSON(const HypData& value, json::JSONValue& out_json);
+bool ObjectToJSON(const HypClass* hyp_class, const HypData& target, json::JSONObject& out_json);
+bool JSONToObject(const json::JSONObject& json_object, const HypClass* hyp_class, HypData& target);
 
 } // namespace hyperion
 

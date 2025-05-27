@@ -38,23 +38,19 @@ static RenderableAttributeSet GetRenderableAttributes()
 {
     return RenderableAttributeSet(
         MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
+            .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .bucket             = Bucket::BUCKET_TRANSLUCENT,
-            .fill_mode          = FillMode::FILL,
-            .blend_function     = BlendFunction::None(),
-            .flags              = MaterialAttributeFlags::DEPTH_TEST,
-            .stencil_function   = StencilFunction {
-                .pass_op        = StencilOp::KEEP,
-                .fail_op        = StencilOp::KEEP,
-                .depth_fail_op  = StencilOp::KEEP,
-                .compare_op     = StencilCompareOp::NOT_EQUAL,
-                .mask           = 0x0,
-                .value          = 0x1
-            }
-        }
-    );
+            .bucket = Bucket::BUCKET_TRANSLUCENT,
+            .fill_mode = FillMode::FILL,
+            .blend_function = BlendFunction::None(),
+            .flags = MaterialAttributeFlags::DEPTH_TEST,
+            .stencil_function = StencilFunction {
+                .pass_op = StencilOp::KEEP,
+                .fail_op = StencilOp::KEEP,
+                .depth_fail_op = StencilOp::KEEP,
+                .compare_op = StencilCompareOp::NOT_EQUAL,
+                .mask = 0x0,
+                .value = 0x1 } });
 }
 
 #pragma region DebugDrawCommand_Probe
@@ -68,11 +64,12 @@ struct DebugDrawCommand_Probe : DebugDrawCommand
 
 #pragma region MeshDebugDrawShapeBase
 
-MeshDebugDrawShapeBase::MeshDebugDrawShapeBase(IDebugDrawCommandList &command_list, const Handle<Mesh> &mesh)
+MeshDebugDrawShapeBase::MeshDebugDrawShapeBase(IDebugDrawCommandList& command_list, const Handle<Mesh>& mesh)
     : m_command_list(command_list),
       m_mesh(mesh)
 {
-    if (InitObject(mesh)) {
+    if (InitObject(mesh))
+    {
         mesh->SetPersistentRenderResourceEnabled(true);
     }
 }
@@ -81,31 +78,30 @@ MeshDebugDrawShapeBase::MeshDebugDrawShapeBase(IDebugDrawCommandList &command_li
 
 #pragma region SphereDebugDrawShape
 
-SphereDebugDrawShape::SphereDebugDrawShape(IDebugDrawCommandList &command_list)
+SphereDebugDrawShape::SphereDebugDrawShape(IDebugDrawCommandList& command_list)
     : MeshDebugDrawShapeBase(command_list, MeshBuilder::NormalizedCubeSphere(4))
 {
 }
 
-void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const Color &color)
+void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const Color& color)
 {
     (*this)(position, radius, color, GetRenderableAttributes());
 }
 
-void SphereDebugDrawShape::operator()(const Vec3f &position, float radius, const Color &color, const RenderableAttributeSet &attributes)
+void SphereDebugDrawShape::operator()(const Vec3f& position, float radius, const Color& color, const RenderableAttributeSet& attributes)
 {
     m_command_list.Push(MakeUnique<DebugDrawCommand>(DebugDrawCommand {
         this,
         Transform(position, radius, Quaternion::Identity()).GetMatrix(),
         color,
-        attributes
-    }));
+        attributes }));
 }
 
 #pragma endregion SphereDebugDrawShape
 
 #pragma region AmbientProbeDebugDrawShape
 
-void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const EnvProbe &env_probe)
+void AmbientProbeDebugDrawShape::operator()(const Vec3f& position, float radius, const EnvProbe& env_probe)
 {
     AssertThrow(env_probe.IsReady());
 
@@ -122,7 +118,7 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f &position, float radius,
 
 #pragma region ReflectionProbeDebugDrawShape
 
-void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radius, const EnvProbe &env_probe)
+void ReflectionProbeDebugDrawShape::operator()(const Vec3f& position, float radius, const EnvProbe& env_probe)
 {
     AssertThrow(env_probe.IsReady());
 
@@ -139,41 +135,40 @@ void ReflectionProbeDebugDrawShape::operator()(const Vec3f &position, float radi
 
 #pragma region BoxDebugDrawShape
 
-BoxDebugDrawShape::BoxDebugDrawShape(IDebugDrawCommandList &command_list)
+BoxDebugDrawShape::BoxDebugDrawShape(IDebugDrawCommandList& command_list)
     : MeshDebugDrawShapeBase(command_list, MeshBuilder::Cube())
 {
 }
 
-void BoxDebugDrawShape::operator()(const Vec3f &position, const Vec3f &size, const Color &color)
+void BoxDebugDrawShape::operator()(const Vec3f& position, const Vec3f& size, const Color& color)
 {
     (*this)(position, size, color, GetRenderableAttributes());
 }
 
-void BoxDebugDrawShape::operator()(const Vec3f &position, const Vec3f &size, const Color &color, const RenderableAttributeSet &attributes)
+void BoxDebugDrawShape::operator()(const Vec3f& position, const Vec3f& size, const Color& color, const RenderableAttributeSet& attributes)
 {
     m_command_list.Push(MakeUnique<DebugDrawCommand>(DebugDrawCommand {
         this,
         Transform(position, size, Quaternion::Identity()).GetMatrix(),
         color,
-        attributes
-    }));
+        attributes }));
 }
 
 #pragma endregion BoxDebugDrawShape
 
 #pragma region PlaneDebugDrawShape
 
-PlaneDebugDrawShape::PlaneDebugDrawShape(IDebugDrawCommandList &command_list)
+PlaneDebugDrawShape::PlaneDebugDrawShape(IDebugDrawCommandList& command_list)
     : MeshDebugDrawShapeBase(command_list, MeshBuilder::Quad())
 {
 }
 
-void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const Color &color)
+void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const Color& color)
 {
     (*this)(points, color, GetRenderableAttributes());
 }
 
-void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const Color &color, const RenderableAttributeSet &attributes)
+void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4>& points, const Color& color, const RenderableAttributeSet& attributes)
 {
     Vec3f x = (points[1] - points[0]).Normalize();
     Vec3f y = (points[2] - points[0]).Normalize();
@@ -191,8 +186,7 @@ void PlaneDebugDrawShape::operator()(const FixedArray<Vec3f, 4> &points, const C
         this,
         transform_matrix,
         color,
-        attributes
-    }));
+        attributes }));
 }
 
 #pragma endregion PlaneDebugDrawShape
@@ -229,7 +223,8 @@ void DebugDrawer::Initialize()
 
     AssertThrow(!m_is_initialized.Get(MemoryOrder::ACQUIRE));
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
         m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
         DeferCreate(m_instance_buffers[frame_index]);
     }
@@ -238,9 +233,7 @@ void DebugDrawer::Initialize()
         NAME("DebugAABB"),
         ShaderProperties(
             static_mesh_vertex_attributes,
-            Array<String> { "IMMEDIATE_MODE" }
-        )
-    );
+            Array<String> { "IMMEDIATE_MODE" }));
 
     AssertThrow(m_shader.IsValid());
 
@@ -252,8 +245,9 @@ void DebugDrawer::Initialize()
     const uint32 debug_drawer_descriptor_set_index = m_descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
     AssertThrow(debug_drawer_descriptor_set_index != ~0u);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &debug_drawer_descriptor_set = m_descriptor_table->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& debug_drawer_descriptor_set = m_descriptor_table->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
         AssertThrow(debug_drawer_descriptor_set != nullptr);
 
         debug_drawer_descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), m_instance_buffers[frame_index]);
@@ -269,61 +263,68 @@ void DebugDrawer::Update(GameCounter::TickUnit delta)
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
-    if (!IsEnabled()) {
+    if (!IsEnabled())
+    {
         return;
     }
 }
 
-void DebugDrawer::Render(FrameBase *frame)
+void DebugDrawer::Render(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     // wait for initialization on the game thread
-    if (!m_is_initialized.Get(MemoryOrder::ACQUIRE)) {
+    if (!m_is_initialized.Get(MemoryOrder::ACQUIRE))
+    {
         return;
     }
 
-    if (!m_default_command_list.IsEmpty()) {
+    if (!m_default_command_list.IsEmpty())
+    {
         m_default_command_list.Commit();
     }
 
-    if (m_num_draw_commands_pending_addition.Get(MemoryOrder::ACQUIRE) != 0) {
+    if (m_num_draw_commands_pending_addition.Get(MemoryOrder::ACQUIRE) != 0)
+    {
         UpdateDrawCommands();
     }
 
-    if (!IsEnabled()) {
+    if (!IsEnabled())
+    {
         return;
     }
 
-    if (m_draw_commands.Empty()) {
+    if (m_draw_commands.Empty())
+    {
         return;
     }
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource *scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource> &camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
-    GPUBufferRef &instance_buffer = m_instance_buffers[frame_index];
+    GPUBufferRef& instance_buffer = m_instance_buffers[frame_index];
     bool was_instance_buffer_rebuilt = false;
 
-    if (m_draw_commands.Size() * sizeof(ImmediateDrawShaderData) > instance_buffer->Size()) {
+    if (m_draw_commands.Size() * sizeof(ImmediateDrawShaderData) > instance_buffer->Size())
+    {
         HYPERION_ASSERT_RESULT(instance_buffer->EnsureCapacity(
             m_draw_commands.Size() * sizeof(ImmediateDrawShaderData),
-            &was_instance_buffer_rebuilt
-        ));
+            &was_instance_buffer_rebuilt));
     }
 
     const uint32 debug_drawer_descriptor_set_index = m_descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
     AssertThrow(debug_drawer_descriptor_set_index != ~0u);
 
-    const DescriptorSetRef &debug_drawer_descriptor_set = m_descriptor_table->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
+    const DescriptorSetRef& debug_drawer_descriptor_set = m_descriptor_table->GetDescriptorSet(debug_drawer_descriptor_set_index, frame_index);
     AssertThrow(debug_drawer_descriptor_set != nullptr);
 
     // Update descriptor set if instance buffer was rebuilt
-    if (was_instance_buffer_rebuilt) {
+    if (was_instance_buffer_rebuilt)
+    {
         debug_drawer_descriptor_set->SetElement(NAME("ImmediateDrawsBuffer"), instance_buffer);
 
         debug_drawer_descriptor_set->Update();
@@ -332,23 +333,27 @@ void DebugDrawer::Render(FrameBase *frame)
     Array<ImmediateDrawShaderData> shader_data;
     shader_data.Resize(m_draw_commands.Size());
 
-    for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
-        const DebugDrawCommand &draw_command = *m_draw_commands[index];
+    for (SizeType index = 0; index < m_draw_commands.Size(); index++)
+    {
+        const DebugDrawCommand& draw_command = *m_draw_commands[index];
 
         uint32 env_probe_type = uint32(ENV_PROBE_TYPE_INVALID);
         uint32 env_probe_index = ~0u;
 
-        if (draw_command.shape == &AmbientProbe) {
-            const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
+        if (draw_command.shape == &AmbientProbe)
+        {
+            const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
             env_probe_type = uint32(ENV_PROBE_TYPE_AMBIENT);
             env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
-        } else if (draw_command.shape == &ReflectionProbe) {
-            const DebugDrawCommand_Probe &probe_command = static_cast<const DebugDrawCommand_Probe &>(draw_command);
+        }
+        else if (draw_command.shape == &ReflectionProbe)
+        {
+            const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
             env_probe_type = uint32(ENV_PROBE_TYPE_REFLECTION);
             env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
         }
 
-       shader_data[index] = ImmediateDrawShaderData {
+        shader_data[index] = ImmediateDrawShaderData {
             draw_command.transform_matrix,
             draw_command.color.Packed(),
             env_probe_type,
@@ -357,78 +362,63 @@ void DebugDrawer::Render(FrameBase *frame)
     }
 
     instance_buffer->Copy(shader_data.ByteSize(), shader_data.Data());
-    
+
     struct
     {
-        HashCode            attributes_hash_code;
+        HashCode attributes_hash_code;
         Handle<RenderGroup> render_group;
-        uint32              drawable_layer = ~0u;
+        uint32 drawable_layer = ~0u;
     } last_used_render_group;
 
-    for (SizeType index = 0; index < m_draw_commands.Size(); index++) {
-        const DebugDrawCommand &draw_command = *m_draw_commands[index];
+    for (SizeType index = 0; index < m_draw_commands.Size(); index++)
+    {
+        const DebugDrawCommand& draw_command = *m_draw_commands[index];
 
         bool is_new_render_group = false;
 
-        Handle<RenderGroup> &render_group = last_used_render_group.render_group;
+        Handle<RenderGroup>& render_group = last_used_render_group.render_group;
 
-        if (!render_group.IsValid() || last_used_render_group.attributes_hash_code != draw_command.attributes.GetHashCode()) {
+        if (!render_group.IsValid() || last_used_render_group.attributes_hash_code != draw_command.attributes.GetHashCode())
+        {
             render_group = GetOrCreateRenderGroup(draw_command.attributes, ++last_used_render_group.drawable_layer);
             last_used_render_group.attributes_hash_code = draw_command.attributes.GetHashCode();
 
             is_new_render_group = true;
         }
 
-        if (is_new_render_group) {
+        if (is_new_render_group)
+        {
             frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
 
             frame->GetCommandList().Add<BindDescriptorTable>(
                 m_descriptor_table,
                 render_group->GetPipeline(),
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
-                    {
-                        NAME("DebugDrawerDescriptorSet"),
-                        {
-                            { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) }
-                        }
-                    },
-                    {
-                        NAME("Global"),
-                        {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { NAME("DebugDrawerDescriptorSet"),
+                        { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
+                    { NAME("Global"),
+                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) }
-                        }
-                    },
-                    {
-                        NAME("Object"),
-                        {
-                        }
-                    },
-                    {
-                        NAME("Instancing"),
-                        {
-                            { NAME("EntityInstanceBatchesBuffer"), 0 }
-                        }
-                    }
-                },
-                frame_index
-            );
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) } } },
+                    { NAME("Object"),
+                        {} },
+                    { NAME("Instancing"),
+                        { { NAME("EntityInstanceBatchesBuffer"), 0 } } } },
+                frame_index);
         }
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             debug_drawer_descriptor_set,
             render_group->GetPipeline(),
             ArrayMap<Name, uint32> {
-                { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(index) }
-            },
-            debug_drawer_descriptor_set_index
-        );
+                { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(index) } },
+            debug_drawer_descriptor_set_index);
 
-        switch (draw_command.shape->GetDebugDrawType()) {
+        switch (draw_command.shape->GetDebugDrawType())
+        {
         case DebugDrawType::MESH:
         {
-            MeshDebugDrawShapeBase *mesh_shape = static_cast<MeshDebugDrawShapeBase *>(draw_command.shape);
+            MeshDebugDrawShapeBase* mesh_shape = static_cast<MeshDebugDrawShapeBase*>(draw_command.shape);
 
             mesh_shape->GetMesh()->GetRenderResource().Render(frame->GetCommandList());
 
@@ -464,7 +454,7 @@ UniquePtr<DebugDrawCommandList> DebugDrawer::CreateCommandList()
     return MakeUnique<DebugDrawCommandList>(*this);
 }
 
-void DebugDrawer::CommitCommands(DebugDrawCommandList &command_list)
+void DebugDrawer::CommitCommands(DebugDrawCommandList& command_list)
 {
     HYP_SCOPE;
 
@@ -485,26 +475,30 @@ Handle<RenderGroup> DebugDrawer::GetOrCreateRenderGroup(RenderableAttributeSet a
 
     auto it = m_render_groups.Find(attributes);
 
-    if (it != m_render_groups.End()) {
+    if (it != m_render_groups.End())
+    {
         render_group = it->second.Lock();
     }
 
-    if (!render_group) {
+    if (!render_group)
+    {
         render_group = CreateObject<RenderGroup>(
             m_shader,
             attributes,
             m_descriptor_table,
-            RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
-        );
+            RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING));
 
-        const FramebufferRef &framebuffer = g_engine->GetCurrentView()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+        const FramebufferRef& framebuffer = g_engine->GetCurrentView()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
         render_group->AddFramebuffer(framebuffer);
 
         InitObject(render_group);
 
-        if (it != m_render_groups.End()) {
+        if (it != m_render_groups.End())
+        {
             it->second = render_group.ToWeak();
-        } else {
+        }
+        else
+        {
             m_render_groups.Insert(attributes, render_group.ToWeak());
         }
     }
@@ -516,7 +510,7 @@ Handle<RenderGroup> DebugDrawer::GetOrCreateRenderGroup(RenderableAttributeSet a
 
 #pragma region DebugDrawCommandList
 
-void DebugDrawCommandList::Push(UniquePtr<DebugDrawCommand> &&command)
+void DebugDrawCommandList::Push(UniquePtr<DebugDrawCommand>&& command)
 {
     HYP_SCOPE;
 
@@ -530,11 +524,11 @@ void DebugDrawCommandList::Push(UniquePtr<DebugDrawCommand> &&command)
 void DebugDrawCommandList::Commit()
 {
     HYP_SCOPE;
-    
+
     Mutex::Guard guard(m_draw_commands_mutex);
 
     const SizeType num_added_items = m_draw_commands.Size();
-    
+
     m_debug_drawer.CommitCommands(*this);
 
     m_num_draw_commands.Decrement(uint32(num_added_items), MemoryOrder::RELEASE);

@@ -17,10 +17,10 @@ struct ObjectReference;
 
 using Delegate = std::add_pointer_t<void()>;
 
-using InvokeMethodFunction = void(*)(ObjectReference *, const HypData **, HypData *);
+using InvokeMethodFunction = void (*)(ObjectReference*, const HypData**, HypData*);
 
-using InvokeGetterFunction = void(*)(ManagedGuid, ObjectReference *, const HypData **, HypData *);
-using InvokeSetterFunction = void(*)(ManagedGuid, ObjectReference *, const HypData **, HypData *);
+using InvokeGetterFunction = void (*)(ManagedGuid, ObjectReference*, const HypData**, HypData*);
+using InvokeSetterFunction = void (*)(ManagedGuid, ObjectReference*, const HypData**, HypData*);
 
 } // namespace dotnet
 } // namespace hyperion

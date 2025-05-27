@@ -16,17 +16,18 @@ struct ThreadSignal
     {
     }
 
-    ThreadSignal(const ThreadSignal &other)                 = delete;
-    ThreadSignal &operator=(const ThreadSignal &other)      = delete;
-    ThreadSignal(ThreadSignal &&other) noexcept             = delete;
-    ThreadSignal &operator=(ThreadSignal &&other) noexcept  = delete;
-    ~ThreadSignal()                                         = default;
+    ThreadSignal(const ThreadSignal& other) = delete;
+    ThreadSignal& operator=(const ThreadSignal& other) = delete;
+    ThreadSignal(ThreadSignal&& other) noexcept = delete;
+    ThreadSignal& operator=(ThreadSignal&& other) noexcept = delete;
+    ~ThreadSignal() = default;
 
     bool Consume()
     {
         ValueType current_value = value.Get(MemoryOrder::ACQUIRE);
 
-        if (current_value) {
+        if (current_value)
+        {
             value.Decrement(1, MemoryOrder::RELEASE);
 
             return true;
@@ -40,7 +41,7 @@ struct ThreadSignal
         value.Increment(increment, MemoryOrder::RELAXED);
     }
 
-    AtomicVar<ValueType>    value;
+    AtomicVar<ValueType> value;
 };
 
 } // namespace threading

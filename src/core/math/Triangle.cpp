@@ -5,30 +5,33 @@
 
 namespace hyperion {
 Triangle::Triangle()
-    : points{}
+    : points {}
 {
 }
 
-Triangle::Triangle(const Vertex &v0, const Vertex &v1, const Vertex &v2)
+Triangle::Triangle(const Vertex& v0, const Vertex& v1, const Vertex& v2)
     : points({ v0, v1, v2 })
 {
 }
 
-Triangle::Triangle(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2)
+Triangle::Triangle(const Vec3f& v0, const Vec3f& v1, const Vec3f& v2)
     : points({ Vertex(v0), Vertex(v1), Vertex(v2) })
 {
 }
 
-Vertex &Triangle::Closest(const Vec3f &vec)
+Vertex& Triangle::Closest(const Vec3f& vec)
 {
     float distances[3];
     uint32 shortest_index = 0;
 
-    for (uint32 i = 0; i < 3; i++) {
+    for (uint32 i = 0; i < 3; i++)
+    {
         distances[i] = points[i].GetPosition().DistanceSquared(vec);
 
-        if (i != 0) {
-            if (distances[i] < distances[shortest_index]) {
+        if (i != 0)
+        {
+            if (distances[i] < distances[shortest_index])
+            {
                 shortest_index = i;
             }
         }
@@ -37,27 +40,25 @@ Vertex &Triangle::Closest(const Vec3f &vec)
     return points[shortest_index];
 }
 
-const Vertex &Triangle::Closest(const Vec3f &vec) const
+const Vertex& Triangle::Closest(const Vec3f& vec) const
 {
-    return const_cast<Triangle *>(this)->Closest(vec);
+    return const_cast<Triangle*>(this)->Closest(vec);
 }
 
 BoundingBox Triangle::GetBoundingBox() const
 {
     const Vec3f min = Vec3f::Min(
         Vec3f::Min(points[0].GetPosition(), points[1].GetPosition()),
-        points[2].GetPosition()
-    );
+        points[2].GetPosition());
 
     const Vec3f max = Vec3f::Max(
         Vec3f::Max(points[0].GetPosition(), points[1].GetPosition()),
-        points[2].GetPosition()
-    );
+        points[2].GetPosition());
 
     return BoundingBox(min, max);
 }
 
-bool Triangle::ContainsPoint(const Vec3f &pt) const
+bool Triangle::ContainsPoint(const Vec3f& pt) const
 {
     const Vec3f v0 = points[2].GetPosition() - points[0].GetPosition();
     const Vec3f v1 = points[1].GetPosition() - points[0].GetPosition();
@@ -76,4 +77,4 @@ bool Triangle::ContainsPoint(const Vec3f &pt) const
     return (u >= 0.0f) && (v >= 0.0f) && (u + v < 1.0f);
 }
 
-} // namespace
+} // namespace hyperion

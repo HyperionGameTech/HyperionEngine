@@ -16,17 +16,21 @@ namespace renderer {
 
 struct MeshBindingDescription
 {
-    uint32              binding;
-    uint32              stride;
-    VkVertexInputRate   input_rate;
+    uint32 binding;
+    uint32 stride;
+    VkVertexInputRate input_rate;
 
     MeshBindingDescription()
-        : binding(0), stride(0), input_rate(VK_VERTEX_INPUT_RATE_VERTEX)
+        : binding(0),
+          stride(0),
+          input_rate(VK_VERTEX_INPUT_RATE_VERTEX)
     {
     }
 
     MeshBindingDescription(uint32 binding, uint32 stride, VkVertexInputRate input_rate)
-        : binding(binding), stride(stride), input_rate(input_rate)
+        : binding(binding),
+          stride(stride),
+          input_rate(input_rate)
     {
     }
 
@@ -40,7 +44,6 @@ struct MeshBindingDescription
     }
 };
 
-
 struct QueueFamilyIndices
 {
     Optional<uint32> graphics_family;
@@ -48,7 +51,8 @@ struct QueueFamilyIndices
     Optional<uint32> present_family;
     Optional<uint32> compute_family;
 
-    bool IsComplete() const {
+    bool IsComplete() const
+    {
         return graphics_family.HasValue()
             && transfer_family.HasValue()
             && present_family.HasValue()
@@ -58,10 +62,10 @@ struct QueueFamilyIndices
 
 struct SwapchainSupportDetails
 {
-    VkSurfaceCapabilitiesKHR        capabilities;
-    Array<VkQueueFamilyProperties>  queue_family_properties;
-    Array<VkSurfaceFormatKHR>       formats;
-    Array<VkPresentModeKHR>         present_modes;
+    VkSurfaceCapabilitiesKHR capabilities;
+    Array<VkQueueFamilyProperties> queue_family_properties;
+    Array<VkSurfaceFormatKHR> formats;
+    Array<VkPresentModeKHR> present_modes;
 };
 
 struct IndirectDrawCommand
@@ -76,4 +80,4 @@ static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shade
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP
+#endif // HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP

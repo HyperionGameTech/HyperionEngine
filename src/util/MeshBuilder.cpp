@@ -9,10 +9,10 @@
 namespace hyperion {
 
 const Array<Vertex> MeshBuilder::quad_vertices = {
-    Vertex {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{ 1.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{ 1.0f,  1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{-1.0f,  1.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}}
+    Vertex { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { 1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { -1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } }
 };
 
 const Array<uint32> MeshBuilder::quad_indices = {
@@ -21,53 +21,53 @@ const Array<uint32> MeshBuilder::quad_indices = {
 };
 
 const Array<Vertex> MeshBuilder::cube_vertices = {
-    Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
-    Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
-    Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+    Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
+    Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
+    Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
 
-    Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-    Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-    Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+    Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
+    Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { -1.0f, 0.0f, 0.0f } },
+    Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { -1.0f, 0.0f, 0.0f } },
 
-    Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-    Vertex {{-1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-    Vertex {{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+    Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
+    Vertex { { -1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
+    Vertex { { -1.0f, -1.0f, 1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
 
-    Vertex {{-1.0f, -1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-    Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-    Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+    Vertex { { -1.0f, -1.0f, 1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+    Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+    Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 1.0f } },
 
-    Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-    Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+    Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+    Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
+    Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
 
-    Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-    Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } },
+    Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+    Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
 
-    Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{1.0f, 1.0f, -1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+    Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { 1.0f, 1.0f, -1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
 
-    Vertex {{1.0f, 1.0f, -1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{1.0f, -1.0f, -1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-    Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+    Vertex { { 1.0f, 1.0f, -1.0f }, { 1.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { 1.0f, -1.0f, -1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
+    Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 0.0f, -1.0f } },
 
-    Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-    Vertex {{-1.0f, 1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-    Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+    Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+    Vertex { { -1.0f, 1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+    Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
 
-    Vertex {{-1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-    Vertex {{1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-    Vertex {{1.0f, 1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+    Vertex { { -1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } },
+    Vertex { { 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+    Vertex { { 1.0f, 1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
 
-    Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
-    Vertex {{-1.0f, -1.0f, -1.0f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
-    Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+    Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } },
+    Vertex { { -1.0f, -1.0f, -1.0f }, { 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } },
+    Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
 
-    Vertex {{1.0f, -1.0f, -1.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-    Vertex {{1.0f, -1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-    Vertex {{-1.0f, -1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
+    Vertex { { 1.0f, -1.0f, -1.0f }, { 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
+    Vertex { { 1.0f, -1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } },
+    Vertex { { -1.0f, -1.0f, 1.0f }, { 1.0f, 1.0f }, { 0.0f, -1.0f, 0.0f } }
 };
 
 Handle<Mesh> MeshBuilder::Quad()
@@ -78,8 +78,7 @@ Handle<Mesh> MeshBuilder::Quad()
         quad_vertices,
         quad_indices,
         renderer::Topology::TRIANGLES,
-        vertex_attributes
-    );
+        vertex_attributes);
 
     mesh->SetName(NAME("MeshBuilder_Quad"));
 
@@ -100,8 +99,7 @@ Handle<Mesh> MeshBuilder::Cube()
         mesh_data.first,
         mesh_data.second,
         Topology::TRIANGLES,
-        vertex_attributes
-    );
+        vertex_attributes);
     mesh->SetName(NAME("MeshBuilder_Cube"));
 
     mesh->CalculateTangents();
@@ -143,21 +141,23 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
     Array<Vertex> vertices;
     Array<Mesh::Index> indices;
 
-    for (uint32 face = 0; face < 6; face++) {
-        const Vec3f &origin = origins[face];
-        const Vec3f &right = rights[face];
-        const Vec3f &up = ups[face];
+    for (uint32 face = 0; face < 6; face++)
+    {
+        const Vec3f& origin = origins[face];
+        const Vec3f& right = rights[face];
+        const Vec3f& up = ups[face];
 
-        for (uint32 j = 0; j < num_divisions + 1; j++) {
-            for (uint32 i = 0; i < num_divisions + 1; i++) {
+        for (uint32 j = 0; j < num_divisions + 1; j++)
+        {
+            for (uint32 i = 0; i < num_divisions + 1; i++)
+            {
                 const Vec3f point = (origin + Vec3f(step) * (Vec3f(i) * right + Vec3f(j) * up)).Normalized();
                 Vec3f position = point;
                 Vec3f normal = point;
 
                 const Vec2f uv(
                     float(j + (face * num_divisions)) / float(num_divisions * 6),
-                    float(i + (face * num_divisions)) / float(num_divisions * 6)
-                );
+                    float(i + (face * num_divisions)) / float(num_divisions * 6));
 
                 vertices.PushBack(Vertex(position, uv));
             }
@@ -166,11 +166,14 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
 
     const uint32 k = num_divisions + 1;
 
-    for (uint32 face = 0; face < 6; face++) {
-        for (uint32 j = 0; j < num_divisions; j++) {
+    for (uint32 face = 0; face < 6; face++)
+    {
+        for (uint32 j = 0; j < num_divisions; j++)
+        {
             const bool is_bottom = j < (num_divisions / 2);
 
-            for (uint32 i = 0; i < num_divisions; i++) {
+            for (uint32 i = 0; i < num_divisions; i++)
+            {
                 const bool is_left = i < (num_divisions / 2);
 
                 const uint32 a = (face * k + j) * k + i;
@@ -178,14 +181,17 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
                 const uint32 c = (face * k + j + 1) * k + i;
                 const uint32 d = (face * k + j + 1) * k + i + 1;
 
-                if (is_bottom ^ is_left) {
+                if (is_bottom ^ is_left)
+                {
                     indices.PushBack(a);
                     indices.PushBack(c);
                     indices.PushBack(b);
                     indices.PushBack(c);
                     indices.PushBack(d);
                     indices.PushBack(b);
-                } else {
+                }
+                else
+                {
                     indices.PushBack(a);
                     indices.PushBack(c);
                     indices.PushBack(d);
@@ -201,8 +207,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
         vertices,
         indices,
         Topology::TRIANGLES,
-        static_mesh_vertex_attributes
-    );
+        static_mesh_vertex_attributes);
 
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));
 
@@ -212,14 +217,15 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
     return mesh;
 }
 
-Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &transform)
+Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh* mesh, const Transform& transform)
 {
     AssertThrow(mesh != nullptr);
 
-    StreamedMeshData *streamed_mesh_data = mesh->GetStreamedMeshData();
+    StreamedMeshData* streamed_mesh_data = mesh->GetStreamedMeshData();
 
-    if (!streamed_mesh_data) {
-        return Handle<Mesh> { };
+    if (!streamed_mesh_data)
+    {
+        return Handle<Mesh> {};
     }
 
     ResourceHandle resource_handle(*streamed_mesh_data);
@@ -228,7 +234,8 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
 
     Array<Vertex> new_vertices = streamed_mesh_data->GetMeshData().vertices;
 
-    for (Vertex &vertex : new_vertices) {
+    for (Vertex& vertex : new_vertices)
+    {
         vertex.SetPosition(transform.GetMatrix() * vertex.GetPosition());
         vertex.SetNormal(normal_matrix * vertex.GetNormal());
         vertex.SetTangent(normal_matrix * vertex.GetTangent());
@@ -239,14 +246,13 @@ Handle<Mesh> MeshBuilder::ApplyTransform(const Mesh *mesh, const Transform &tran
         std::move(new_vertices),
         streamed_mesh_data->GetMeshData().indices,
         mesh->GetTopology(),
-        mesh->GetVertexAttributes()
-    );
+        mesh->GetVertexAttributes());
     new_mesh->SetName(mesh->GetName());
 
     return new_mesh;
 }
 
-Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a_transform, const Transform &b_transform)
+Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b, const Transform& a_transform, const Transform& b_transform)
 {
     AssertThrow(a != nullptr);
     AssertThrow(b != nullptr);
@@ -256,7 +262,7 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
         ApplyTransform(b, b_transform)
     };
 
-    StreamedMeshData *streamed_mesh_datas[] = {
+    StreamedMeshData* streamed_mesh_datas[] = {
         transformed_meshes[0]->GetStreamedMeshData(),
         transformed_meshes[1]->GetStreamedMeshData()
     };
@@ -278,16 +284,19 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
     all_indices.Resize(streamed_mesh_data_refs[0]->GetMeshData().indices.Size() + streamed_mesh_data_refs[1]->GetMeshData().indices.Size());
 
     SizeType vertex_offset = 0,
-        index_offset = 0;
+             index_offset = 0;
 
-    for (SizeType mesh_index = 0; mesh_index < 2; mesh_index++) {
+    for (SizeType mesh_index = 0; mesh_index < 2; mesh_index++)
+    {
         const SizeType vertex_offset_before = vertex_offset;
 
-        for (SizeType i = 0; i < streamed_mesh_data_refs[mesh_index]->GetMeshData().vertices.Size(); i++) {
+        for (SizeType i = 0; i < streamed_mesh_data_refs[mesh_index]->GetMeshData().vertices.Size(); i++)
+        {
             all_vertices[vertex_offset++] = streamed_mesh_data_refs[mesh_index]->GetMeshData().vertices[i];
         }
 
-        for (SizeType i = 0; i < streamed_mesh_data_refs[mesh_index]->GetMeshData().indices.Size(); i++) {
+        for (SizeType i = 0; i < streamed_mesh_data_refs[mesh_index]->GetMeshData().indices.Size(); i++)
+        {
             all_indices[index_offset++] = streamed_mesh_data_refs[mesh_index]->GetMeshData().indices[i] + vertex_offset_before;
         }
     }
@@ -296,15 +305,14 @@ Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b, const Transform &a
         std::move(all_vertices),
         std::move(all_indices),
         a->GetTopology(),
-        merged_vertex_attributes
-    );
+        merged_vertex_attributes);
 
     new_mesh->SetName(NAME("MeshBuilder_MergedMesh"));
 
     return new_mesh;
 }
 
-Handle<Mesh> MeshBuilder::Merge(const Mesh *a, const Mesh *b)
+Handle<Mesh> MeshBuilder::Merge(const Mesh* a, const Mesh* b)
 {
     return Merge(a, b, Transform(), Transform());
 }
@@ -313,35 +321,41 @@ Handle<Mesh> MeshBuilder::BuildVoxelMesh(VoxelGrid voxel_grid)
 {
     Handle<Mesh> mesh;
 
-    for (uint32 x = 0; x < voxel_grid.size.x; x++) {
-        for (uint32 y = 0; y < voxel_grid.size.y; y++) {
-            for (uint32 z = 0; z < voxel_grid.size.z; z++) {
+    for (uint32 x = 0; x < voxel_grid.size.x; x++)
+    {
+        for (uint32 y = 0; y < voxel_grid.size.y; y++)
+        {
+            for (uint32 z = 0; z < voxel_grid.size.z; z++)
+            {
                 uint32 index = voxel_grid.GetIndex(x, y, z);
 
-                if (!voxel_grid.voxels[index].filled) {
+                if (!voxel_grid.voxels[index].filled)
+                {
                     continue;
                 }
 
                 auto cube = Cube();
 
-                if (!mesh) {
+                if (!mesh)
+                {
                     mesh = ApplyTransform(
                         cube.Get(),
-                        Transform(Vec3f { float(x), float(y), float(z) } * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity())
-                    );
-                } else {
+                        Transform(Vec3f { float(x), float(y), float(z) } * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity()));
+                }
+                else
+                {
                     mesh = Merge(
                         mesh.Get(),
                         cube.Get(),
                         Transform(),
-                        Transform(Vec3f { float(x), float(y), float(z) } * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity())
-                    );
+                        Transform(Vec3f { float(x), float(y), float(z) } * voxel_grid.voxel_size, voxel_grid.voxel_size, Quaternion::Identity()));
                 }
             }
         }
     }
 
-    if (!mesh) {
+    if (!mesh)
+    {
         mesh = Cube();
     }
 

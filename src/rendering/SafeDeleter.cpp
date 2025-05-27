@@ -12,11 +12,13 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderCommand
+struct RENDER_COMMAND(RemoveTextureFromBindlessStorage)
+    : renderer::RenderCommand
 {
     ID<Texture> id;
 
-    RENDER_COMMAND(RemoveTextureFromBindlessStorage)(ID<Texture> id) : id(id)
+    RENDER_COMMAND(RemoveTextureFromBindlessStorage)(ID<Texture> id)
+        : id(id)
     {
     }
 
@@ -36,7 +38,8 @@ struct RENDER_COMMAND(RemoveTextureFromBindlessStorage) : renderer::RenderComman
 
 bool DeletionEntryBase::DecrementCycle()
 {
-    if (m_cycles_remaining == 0) {
+    if (m_cycles_remaining == 0)
+    {
         return true;
     }
 
@@ -47,11 +50,13 @@ bool DeletionEntryBase::DecrementCycle()
 
 bool DeletionEntryBase::PerformDeletion(bool force)
 {
-    if (force) {
+    if (force)
+    {
         m_cycles_remaining = 0;
     }
 
-    if (m_cycles_remaining != 0) {
+    if (m_cycles_remaining != 0)
+    {
         return false;
     }
 
@@ -66,7 +71,8 @@ bool DeletionEntryBase::PerformDeletion(bool force)
 
 void SafeDeleter::PerformEnqueuedDeletions()
 {
-    if (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::ACQUIRE)) {
+    if (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::ACQUIRE))
+    {
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
@@ -75,9 +81,10 @@ void SafeDeleter::PerformEnqueuedDeletions()
             CollectAllEnqueuedItems(deletion_entries);
         }
 
-        for (auto it = deletion_entries.Begin(); it != deletion_entries.End(); ++it) {
+        for (auto it = deletion_entries.Begin(); it != deletion_entries.End(); ++it)
+        {
             AssertThrow((*it)->PerformDeletion());
-        
+
             m_num_deletion_entries.Decrement(1, MemoryOrder::RELEASE);
         }
     }
@@ -85,7 +92,8 @@ void SafeDeleter::PerformEnqueuedDeletions()
 
 void SafeDeleter::ForceDeleteAll()
 {
-    while (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::ACQUIRE)) {
+    while (int32 num_deletion_entries = m_num_deletion_entries.Get(MemoryOrder::ACQUIRE))
+    {
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
@@ -94,9 +102,10 @@ void SafeDeleter::ForceDeleteAll()
             CollectAllEnqueuedItems(deletion_entries);
         }
 
-        for (auto it = deletion_entries.Begin(); it != deletion_entries.End();) {
+        for (auto it = deletion_entries.Begin(); it != deletion_entries.End();)
+        {
             AssertThrow((*it)->PerformDeletion(true /* force */));
-            
+
             it = deletion_entries.Erase(it);
 
             m_num_deletion_entries.Decrement(1, MemoryOrder::RELEASE);
@@ -104,16 +113,20 @@ void SafeDeleter::ForceDeleteAll()
     }
 }
 
-bool SafeDeleter::CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>> &out_entries)
+bool SafeDeleter::CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>>& out_entries)
 {
-    for (auto it = m_deletion_entries.Begin(); it != m_deletion_entries.End();) {
-        auto &entry = *it;
+    for (auto it = m_deletion_entries.Begin(); it != m_deletion_entries.End();)
+    {
+        auto& entry = *it;
 
-        if (entry->DecrementCycle()) {
+        if (entry->DecrementCycle())
+        {
             out_entries.PushBack(std::move(*it));
 
             it = m_deletion_entries.Erase(it);
-        } else {
+        }
+        else
+        {
             ++it;
         }
     }

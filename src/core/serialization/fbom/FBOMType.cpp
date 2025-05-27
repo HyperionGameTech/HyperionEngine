@@ -19,7 +19,7 @@ FBOMType::FBOMType()
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id)
     : name(name),
       size(size),
       type_id(type_id),
@@ -28,7 +28,7 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id)
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, const FBOMType &extends)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, const FBOMType& extends)
     : name(name),
       size(size),
       type_id(type_id),
@@ -37,7 +37,7 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, co
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags)
     : name(name),
       size(size),
       type_id(type_id),
@@ -46,7 +46,7 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, En
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType &extends)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends)
     : name(name),
       size(size),
       type_id(type_id),
@@ -55,21 +55,23 @@ FBOMType::FBOMType(const ANSIStringView &name, SizeType size, TypeID type_id, En
 {
 }
 
-FBOMType::FBOMType(const FBOMType &other)
+FBOMType::FBOMType(const FBOMType& other)
     : name(other.name),
       size(other.size),
       type_id(other.type_id),
       flags(other.flags),
       extends(nullptr)
 {
-    if (other.extends != nullptr) {
+    if (other.extends != nullptr)
+    {
         extends = new FBOMType(*other.extends);
     }
 }
 
-FBOMType &FBOMType::operator=(const FBOMType &other)
+FBOMType& FBOMType::operator=(const FBOMType& other)
 {
-    if (extends != nullptr) {
+    if (extends != nullptr)
+    {
         delete extends;
     }
 
@@ -79,14 +81,15 @@ FBOMType &FBOMType::operator=(const FBOMType &other)
     flags = other.flags;
     extends = nullptr;
 
-    if (other.extends != nullptr) {
+    if (other.extends != nullptr)
+    {
         extends = new FBOMType(*other.extends);
     }
 
     return *this;
 }
 
-FBOMType::FBOMType(FBOMType &&other) noexcept
+FBOMType::FBOMType(FBOMType&& other) noexcept
     : name(std::move(other.name)),
       size(other.size),
       type_id(other.type_id),
@@ -99,9 +102,10 @@ FBOMType::FBOMType(FBOMType &&other) noexcept
     other.extends = nullptr;
 }
 
-FBOMType &FBOMType::operator=(FBOMType &&other) noexcept
+FBOMType& FBOMType::operator=(FBOMType&& other) noexcept
 {
-    if (extends != nullptr) {
+    if (extends != nullptr)
+    {
         delete extends;
     }
 
@@ -121,62 +125,74 @@ FBOMType &FBOMType::operator=(FBOMType &&other) noexcept
 
 FBOMType::~FBOMType()
 {
-    if (extends != nullptr) {
+    if (extends != nullptr)
+    {
         delete extends;
     }
 }
 
-FBOMType FBOMType::Extend(const FBOMType &object) const
+FBOMType FBOMType::Extend(const FBOMType& object) const
 {
     return FBOMType(object.name, -1, TypeID::Void(), object.flags, *this);
 }
 
 bool FBOMType::HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents) const
 {
-    if (this->flags & flags) {
+    if (this->flags & flags)
+    {
         return true;
     }
 
-    if (include_parents && extends) {
+    if (include_parents && extends)
+    {
         return extends->HasAnyFlagsSet(flags, true);
     }
 
     return false;
 }
 
-bool FBOMType::IsOrExtends(const ANSIStringView &name, bool allow_unbounded, bool allow_void_type_id) const
+bool FBOMType::IsOrExtends(const ANSIStringView& name, bool allow_unbounded, bool allow_void_type_id) const
 {
-    if (this->name == name) {
+    if (this->name == name)
+    {
         return true;
     }
 
-    if (extends == nullptr || extends->IsUnset()) {
+    if (extends == nullptr || extends->IsUnset())
+    {
         return false;
     }
 
     return extends->IsOrExtends(name, allow_unbounded, allow_void_type_id);
 }
 
-bool FBOMType::Is(const FBOMType &other, bool allow_unbounded, bool allow_void_type_id) const
+bool FBOMType::Is(const FBOMType& other, bool allow_unbounded, bool allow_void_type_id) const
 {
-    if (name != other.name) {
+    if (name != other.name)
+    {
         return false;
     }
 
-    if (!allow_void_type_id || (type_id && other.type_id)) {
-        if (type_id != other.type_id) {
+    if (!allow_void_type_id || (type_id && other.type_id))
+    {
+        if (type_id != other.type_id)
+        {
             return false;
         }
     }
 
-    if (!allow_unbounded) {
-        if (size != other.size) {
+    if (!allow_unbounded)
+    {
+        if (size != other.size)
+        {
             return false;
         }
     }
 
-    if (extends != nullptr) {
-        if (!other.extends) {
+    if (extends != nullptr)
+    {
+        if (!other.extends)
+        {
             return false;
         }
 
@@ -186,9 +202,10 @@ bool FBOMType::Is(const FBOMType &other, bool allow_unbounded, bool allow_void_t
     return true;
 }
 
-bool FBOMType::IsOrExtends(const FBOMType &other, bool allow_unbounded, bool allow_void_type_id) const
+bool FBOMType::IsOrExtends(const FBOMType& other, bool allow_unbounded, bool allow_void_type_id) const
 {
-    if (Is(other, allow_unbounded, allow_void_type_id)) {
+    if (Is(other, allow_unbounded, allow_void_type_id))
+    {
         return true;
     }
 
@@ -207,20 +224,22 @@ bool FBOMType::IsOrExtends(const FBOMType &other, bool allow_unbounded, bool all
     // return Extends(other);
 }
 
-bool FBOMType::Extends(const FBOMType &other, bool allow_unbounded, bool allow_void_type_id) const
+bool FBOMType::Extends(const FBOMType& other, bool allow_unbounded, bool allow_void_type_id) const
 {
-    if (extends == nullptr || extends->IsUnset()) {
+    if (extends == nullptr || extends->IsUnset())
+    {
         return false;
     }
 
-    if (extends->Is(other, allow_unbounded, allow_void_type_id)) {
+    if (extends->Is(other, allow_unbounded, allow_void_type_id))
+    {
         return true;
     }
 
     return extends->Extends(other, allow_unbounded, allow_void_type_id);
 }
 
-FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter *writer, ByteWriter *out, EnumFlags<FBOMDataAttributes> attributes) const
+FBOMResult FBOMType::Visit(UniqueID id, FBOMWriter* writer, ByteWriter* out, EnumFlags<FBOMDataAttributes> attributes) const
 {
     return writer->Write(out, *this, id, attributes);
 }
@@ -229,7 +248,8 @@ String FBOMType::ToString(bool deep) const
 {
     String str = String(name) + " (" + String::ToString(size) + ") ";
 
-    if (extends != nullptr && !extends->IsUnset()) {
+    if (extends != nullptr && !extends->IsUnset())
+    {
         str += "[" + extends->ToString(deep) + "]";
     }
 

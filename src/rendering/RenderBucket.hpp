@@ -9,7 +9,7 @@ namespace hyperion {
 
 enum Bucket : uint32
 {
-    BUCKET_NONE         = 0,
+    BUCKET_NONE = 0,
     BUCKET_OPAQUE,      /* Opaque objects, default for all objects */
     BUCKET_LIGHTMAP,    /* Lightmapped objects - objects that should bypass deferred shading pass. */
     BUCKET_TRANSLUCENT, /* Transparent - rendering on top of opaque objects */

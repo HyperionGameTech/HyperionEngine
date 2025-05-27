@@ -14,23 +14,24 @@ namespace hyperion::dotnet {
 
 class Class;
 
-extern "C" {
-
-struct ManagedAttribute
+extern "C"
 {
-    Class           *class_ptr;
-    ObjectReference object_reference;
-};
 
-static_assert(sizeof(ManagedAttribute) == 24, "sizeof(ManagedAttribute) must match C# struct size");
+    struct ManagedAttribute
+    {
+        Class* class_ptr;
+        ObjectReference object_reference;
+    };
 
-struct ManagedAttributeHolder
-{
-    uint32              managed_attributes_size;
-    ManagedAttribute    *managed_attributes_ptr;
-};
+    static_assert(sizeof(ManagedAttribute) == 24, "sizeof(ManagedAttribute) must match C# struct size");
 
-static_assert(sizeof(ManagedAttributeHolder) == 16, "sizeof(ManagedAttributeHolder) must match C# struct size");
+    struct ManagedAttributeHolder
+    {
+        uint32 managed_attributes_size;
+        ManagedAttribute* managed_attributes_ptr;
+    };
+
+    static_assert(sizeof(ManagedAttributeHolder) == 16, "sizeof(ManagedAttributeHolder) must match C# struct size");
 
 } // extern "C"
 

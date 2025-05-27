@@ -19,9 +19,9 @@ class Spinlock
 public:
     struct Guard
     {
-        Spinlock    &m_spinlock;
+        Spinlock& m_spinlock;
 
-        Guard(Spinlock &spinlock)
+        Guard(Spinlock& spinlock)
             : m_spinlock(spinlock)
         {
             m_spinlock.Lock();
@@ -38,15 +38,15 @@ public:
     {
     }
 
-    Spinlock(const Spinlock &)                   = delete;
-    Spinlock &operator=(const Spinlock &)        = delete;
+    Spinlock(const Spinlock&) = delete;
+    Spinlock& operator=(const Spinlock&) = delete;
 
-    Spinlock(Spinlock &&other) noexcept
+    Spinlock(Spinlock&& other) noexcept
         : m_value(other.m_value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
     {
     }
 
-    Spinlock &operator=(Spinlock &&other) noexcept
+    Spinlock& operator=(Spinlock&& other) noexcept
     {
         m_value.Set(other.m_value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
 
@@ -60,12 +60,15 @@ public:
 
     void Lock()
     {
-        while (true) {
-            if (TryLock()) {
+        while (true)
+        {
+            if (TryLock())
+            {
                 return;
             }
 
-            while (m_value.Get(MemoryOrder::ACQUIRE) != 0) {
+            while (m_value.Get(MemoryOrder::ACQUIRE) != 0)
+            {
                 // Spin
                 HYP_WAIT_IDLE();
             }
@@ -85,7 +88,7 @@ public:
     }
 
 private:
-    AtomicVar<uint32>   m_value;
+    AtomicVar<uint32> m_value;
 };
 
 } // namespace threading

@@ -25,53 +25,53 @@ class Entity;
 
 struct LightmapSubElement
 {
-    Handle<Entity>      entity;
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Transform           transform;
-    BoundingBox         aabb;
+    Handle<Entity> entity;
+    Handle<Mesh> mesh;
+    Handle<Material> material;
+    Transform transform;
+    BoundingBox aabb;
 };
 
 struct LightmapUVBuilderParams
 {
-    Span<const LightmapSubElement>  sub_elements;
+    Span<const LightmapSubElement> sub_elements;
 };
 
 struct LightmapMeshData
 {
-    Handle<Mesh>                    mesh;
-    Handle<Material>                material;
+    Handle<Mesh> mesh;
+    Handle<Material> material;
 
-    Matrix4                         transform;
+    Matrix4 transform;
 
-    Array<float, DynamicAllocator>  vertex_positions;
-    Array<float, DynamicAllocator>  vertex_normals;
-    Array<float, DynamicAllocator>  vertex_uvs;
+    Array<float, DynamicAllocator> vertex_positions;
+    Array<float, DynamicAllocator> vertex_normals;
+    Array<float, DynamicAllocator> vertex_uvs;
 
     Array<uint32, DynamicAllocator> indices;
 
-    Array<Vec2f, DynamicAllocator>  lightmap_uvs;
+    Array<Vec2f, DynamicAllocator> lightmap_uvs;
 };
 
 struct LightmapUV
 {
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Matrix4             transform = Matrix4::identity;
-    uint32              triangle_index = ~0u;
-    Vec3f               barycentric_coords = Vec3f::Zero();
-    Vec2f               lightmap_uv = Vec2f::Zero();
-    Vec4f               radiance = Vec4f::Zero();
-    Vec4f               irradiance = Vec4f::Zero();
+    Handle<Mesh> mesh;
+    Handle<Material> material;
+    Matrix4 transform = Matrix4::identity;
+    uint32 triangle_index = ~0u;
+    Vec3f barycentric_coords = Vec3f::Zero();
+    Vec2f lightmap_uv = Vec2f::Zero();
+    Vec4f radiance = Vec4f::Zero();
+    Vec4f irradiance = Vec4f::Zero();
 };
 
 struct LightmapUVMap
 {
-    uint32                              width = 0;
-    uint32                              height = 0;
-    Array<LightmapUV>                   uvs;
-    FlatMap<ID<Mesh>, Array<uint32>>    mesh_to_uv_indices;
-    
+    uint32 width = 0;
+    uint32 height = 0;
+    Array<LightmapUV> uvs;
+    FlatMap<ID<Mesh>, Array<uint32>> mesh_to_uv_indices;
+
     /*! \brief Write the UV map radiance data to RGBA32F format. */
     Bitmap<4, float> ToBitmapRadiance() const;
     /*! \brief Write the UV map irradiance data to RGBA32F format. */
@@ -81,12 +81,14 @@ struct LightmapUVMap
 class LightmapUVBuilder
 {
 public:
-    LightmapUVBuilder(const LightmapUVBuilderParams &params);
+    LightmapUVBuilder(const LightmapUVBuilderParams& params);
     ~LightmapUVBuilder() = default;
 
-    HYP_FORCE_INLINE const Array<LightmapMeshData> &GetMeshData() const
-        { return m_mesh_data; }
-    
+    HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
+    {
+        return m_mesh_data;
+    }
+
     TResult<LightmapUVMap> Build();
 
 private:

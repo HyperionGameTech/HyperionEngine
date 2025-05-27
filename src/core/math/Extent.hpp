@@ -17,7 +17,7 @@ struct Extent2D
     union
     {
         struct // NOLINT(clang-diagnostic-nested-anon-types)
-        { 
+        {
             uint32 width, height;
         };
 
@@ -36,48 +36,54 @@ struct Extent2D
     {
     }
 
-    constexpr Extent2D(const Vec2u &vec)
+    constexpr Extent2D(const Vec2u& vec)
         : width(vec.x),
           height(vec.y)
     {
     }
 
-    constexpr Extent2D(const Vec2i &vec)
+    constexpr Extent2D(const Vec2i& vec)
         : width(uint32(vec.x)),
           height(uint32(vec.y))
     {
     }
 
-    Extent2D(const Extent2D &other)                 = default;
-    Extent2D &operator=(const Extent2D &other)      = default;
-    Extent2D(Extent2D &&other) noexcept             = default;
-    Extent2D &operator=(Extent2D &&other) noexcept  = default;
-    ~Extent2D()                                     = default;
+    Extent2D(const Extent2D& other) = default;
+    Extent2D& operator=(const Extent2D& other) = default;
+    Extent2D(Extent2D&& other) noexcept = default;
+    Extent2D& operator=(Extent2D&& other) noexcept = default;
+    ~Extent2D() = default;
 
-    constexpr bool operator==(const Extent2D &other) const
+    constexpr bool operator==(const Extent2D& other) const
     {
         return width == other.width
             && height == other.height;
     }
 
-    constexpr bool operator!=(const Extent2D &other) const
-        { return !operator==(other); }
-    
-    constexpr Extent2D operator*(const Extent2D &other) const
-        { return Extent2D(width * other.width, height * other.height); }
+    constexpr bool operator!=(const Extent2D& other) const
+    {
+        return !operator==(other);
+    }
 
-    Extent2D &operator*=(const Extent2D &other)
+    constexpr Extent2D operator*(const Extent2D& other) const
+    {
+        return Extent2D(width * other.width, height * other.height);
+    }
+
+    Extent2D& operator*=(const Extent2D& other)
     {
         width *= other.width;
         height *= other.height;
 
         return *this;
     }
-    
-    constexpr Extent2D operator*(uint32 scalar) const
-        { return Extent2D(width * scalar, height * scalar); }
 
-    Extent2D &operator*=(uint32 scalar)
+    constexpr Extent2D operator*(uint32 scalar) const
+    {
+        return Extent2D(width * scalar, height * scalar);
+    }
+
+    Extent2D& operator*=(uint32 scalar)
     {
         width *= scalar;
         height *= scalar;
@@ -85,22 +91,22 @@ struct Extent2D
         return *this;
     }
 
-    Extent2D operator/(const Extent2D &other) const
+    Extent2D operator/(const Extent2D& other) const
     {
         AssertThrow(other.width != 0 && other.height != 0);
         return Extent2D(width / other.width, height / other.height);
     }
 
-    Extent2D &operator/=(const Extent2D &other)
+    Extent2D& operator/=(const Extent2D& other)
     {
         AssertThrow(other.width != 0 && other.height != 0);
 
-        width  /= other.width;
+        width /= other.width;
         height /= other.height;
 
         return *this;
     }
-    
+
     Extent2D operator/(uint32 scalar) const
     {
         AssertThrow(scalar != 0);
@@ -108,7 +114,7 @@ struct Extent2D
         return Extent2D(width / scalar, height / scalar);
     }
 
-    Extent2D &operator/=(uint32 scalar)
+    Extent2D& operator/=(uint32 scalar)
     {
         AssertThrow(scalar != 0);
 
@@ -117,15 +123,21 @@ struct Extent2D
 
         return *this;
     }
-    
-    constexpr uint32 &operator[](uint32 index)
-        { return v[index]; }
+
+    constexpr uint32& operator[](uint32 index)
+    {
+        return v[index];
+    }
 
     constexpr uint32 operator[](uint32 index) const
-        { return v[index]; }
+    {
+        return v[index];
+    }
 
     uint32 Size() const
-        { return width * height; }
+    {
+        return width * height;
+    }
 
     constexpr operator Vec2u() const
     {
@@ -174,7 +186,7 @@ struct Extent3D
     {
     }
 
-    explicit constexpr Extent3D(uint32 extent)  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit constexpr Extent3D(uint32 extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent),
           height(extent),
           depth(extent),
@@ -190,51 +202,53 @@ struct Extent3D
     {
     }
 
-    explicit Extent3D(const Vec3f &extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit Extent3D(const Vec3f& extent) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(uint32(extent.x)),
           height(uint32(extent.y)),
           depth(uint32(extent.z))
     {
     }
 
-    constexpr Extent3D(const Vec3u &vec)
+    constexpr Extent3D(const Vec3u& vec)
         : width(vec.x),
           height(vec.y),
           depth(vec.z)
     {
     }
 
-    constexpr Extent3D(const Vec3i &vec)
+    constexpr Extent3D(const Vec3i& vec)
         : width(uint32(vec.x)),
           height(uint32(vec.y)),
           depth(uint32(vec.z))
     {
     }
 
-    explicit Extent3D(const Extent2D &extent_2d, uint32 depth = 1) // NOLINT(cppcoreguidelines-pro-type-member-init)
+    explicit Extent3D(const Extent2D& extent_2d, uint32 depth = 1) // NOLINT(cppcoreguidelines-pro-type-member-init)
         : width(extent_2d.width),
           height(extent_2d.height),
           depth(depth)
     {
     }
 
-    Extent3D(const Extent3D &other)                 = default;
-    Extent3D &operator=(const Extent3D &other)      = default;
-    Extent3D(Extent3D &&other) noexcept             = default;
-    Extent3D &operator=(Extent3D &&other) noexcept  = default;
-    ~Extent3D()                                     = default;
+    Extent3D(const Extent3D& other) = default;
+    Extent3D& operator=(const Extent3D& other) = default;
+    Extent3D(Extent3D&& other) noexcept = default;
+    Extent3D& operator=(Extent3D&& other) noexcept = default;
+    ~Extent3D() = default;
 
-    constexpr bool operator==(const Extent3D &other) const
+    constexpr bool operator==(const Extent3D& other) const
     {
         return width == other.width
             && height == other.height
             && depth == other.depth;
     }
 
-    constexpr bool operator!=(const Extent3D &other) const
-        { return !operator==(other); }
-    
-    constexpr Extent3D operator*(const Extent3D &other) const
+    constexpr bool operator!=(const Extent3D& other) const
+    {
+        return !operator==(other);
+    }
+
+    constexpr Extent3D operator*(const Extent3D& other) const
     {
         return {
             width * other.width,
@@ -243,7 +257,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator*=(const Extent3D &other)
+    Extent3D& operator*=(const Extent3D& other)
     {
         width *= other.width;
         height *= other.height;
@@ -251,7 +265,7 @@ struct Extent3D
 
         return *this;
     }
-    
+
     constexpr Extent3D operator*(uint32 scalar) const
     {
         return {
@@ -261,7 +275,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator*=(uint32 scalar)
+    Extent3D& operator*=(uint32 scalar)
     {
         width *= scalar;
         height *= scalar;
@@ -270,7 +284,7 @@ struct Extent3D
         return *this;
     }
 
-    Extent3D operator/(const Extent3D &other) const
+    Extent3D operator/(const Extent3D& other) const
     {
         AssertThrow(other.width != 0 && other.height != 0 && other.depth != 0);
         return {
@@ -280,7 +294,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator/=(const Extent3D &other)
+    Extent3D& operator/=(const Extent3D& other)
     {
         AssertThrow(other.width != 0 && other.height != 0 && other.depth != 0);
 
@@ -290,7 +304,7 @@ struct Extent3D
 
         return *this;
     }
-    
+
     Extent3D operator/(uint32 scalar) const
     {
         AssertThrow(scalar != 0);
@@ -302,7 +316,7 @@ struct Extent3D
         };
     }
 
-    Extent3D &operator/=(uint32 scalar)
+    Extent3D& operator/=(uint32 scalar)
     {
         AssertThrow(scalar != 0);
 
@@ -312,12 +326,16 @@ struct Extent3D
 
         return *this;
     }
-    
-    constexpr uint32 &operator[](uint32 index)
-        { return v[index]; }
+
+    constexpr uint32& operator[](uint32 index)
+    {
+        return v[index];
+    }
 
     constexpr uint32 operator[](uint32 index) const
-        { return v[index]; }
+    {
+        return v[index];
+    }
 
     constexpr explicit operator Extent2D() const
     {
@@ -326,7 +344,7 @@ struct Extent3D
             height
         };
     }
-    
+
     constexpr operator Vec3u() const
     {
         return {
@@ -355,7 +373,9 @@ struct Extent3D
     }
 
     constexpr uint32 Size() const
-        { return width * height * depth; }
+    {
+        return width * height * depth;
+    }
 };
 
 static_assert(sizeof(Extent3D) == 16);

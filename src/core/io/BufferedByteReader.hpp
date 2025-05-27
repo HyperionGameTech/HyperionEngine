@@ -29,19 +29,20 @@ public:
 
     virtual bool IsOK() const = 0;
     virtual SizeType Size() const = 0;
-    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) = 0;
+    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) = 0;
 };
 
 class FileBufferedReaderSource : public BufferedReaderSource
 {
 public:
     /*! \brief Takes ownership of the file pointer to use for reading */
-    FileBufferedReaderSource(FILE *file, int(*close_func)(FILE *) = nullptr)
+    FileBufferedReaderSource(FILE* file, int (*close_func)(FILE*) = nullptr)
         : m_size(0),
           m_file(file),
           m_close_func(close_func)
     {
-        if (m_file) {
+        if (m_file)
+        {
             fseek(m_file, 0, SEEK_END);
 
             m_size = ftell(m_file);
@@ -51,31 +52,40 @@ public:
     }
 
     /*! \brief Opens the file at the given path for reading */
-    FileBufferedReaderSource(const FilePath &filepath)
+    FileBufferedReaderSource(const FilePath& filepath)
         : FileBufferedReaderSource(fopen(filepath.Data(), "rb"), nullptr)
     {
     }
 
     virtual ~FileBufferedReaderSource() override
     {
-        if (m_file) {
-            if (m_close_func) {
+        if (m_file)
+        {
+            if (m_close_func)
+            {
                 m_close_func(m_file);
-            } else {
+            }
+            else
+            {
                 fclose(m_file);
             }
         }
     }
 
     virtual bool IsOK() const override
-        { return m_file != nullptr && !feof(m_file); }
+    {
+        return m_file != nullptr && !feof(m_file);
+    }
 
     virtual SizeType Size() const override
-        { return m_size; }
-
-    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) override
     {
-        if (!m_file) {
+        return m_size;
+    }
+
+    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) override
+    {
+        if (!m_file)
+        {
             return 0;
         }
 
@@ -84,9 +94,9 @@ public:
     }
 
 private:
-    SizeType    m_size;
-    FILE        *m_file;
-    int         (*m_close_func)(FILE *);
+    SizeType m_size;
+    FILE* m_file;
+    int (*m_close_func)(FILE*);
 };
 
 class MemoryBufferedReaderSource : public BufferedReaderSource
@@ -100,12 +110,16 @@ public:
     virtual ~MemoryBufferedReaderSource() override = default;
 
     virtual bool IsOK() const override
-        { return m_byte_view.Size() != 0; }
+    {
+        return m_byte_view.Size() != 0;
+    }
 
     virtual SizeType Size() const override
-        { return m_byte_view.Size(); }
+    {
+        return m_byte_view.Size();
+    }
 
-    virtual SizeType Read(ubyte *ptr, SizeType count, SizeType offset) override
+    virtual SizeType Read(ubyte* ptr, SizeType count, SizeType offset) override
     {
         if (offset >= m_byte_view.Size())
         {
@@ -118,7 +132,7 @@ public:
     }
 
 private:
-    ConstByteView   m_byte_view;
+    ConstByteView m_byte_view;
 };
 
 class BufferedReader
@@ -128,44 +142,44 @@ public:
     static constexpr SizeType eof_pos = ~0u;
 
     BufferedReader()
-        : pos(eof_pos)
+        : m_pos(eof_pos)
     {
     }
 
     BufferedReader(RC<BufferedReaderSource> source)
-        : source(std::move(source)),
-          pos(eof_pos)
+        : m_source(std::move(source)),
+          m_pos(eof_pos)
     {
-        if (this->source->IsOK())
+        if (m_source != nullptr && m_source->IsOK())
         {
             Seek(0);
         }
     }
 
-    BufferedReader(const FilePath &filepath)
-        : filepath(filepath),
-          source(MakeRefCountedPtr<FileBufferedReaderSource>(filepath)),
-          pos(eof_pos)
+    BufferedReader(const FilePath& filepath)
+        : m_filepath(filepath),
+          m_source(MakeRefCountedPtr<FileBufferedReaderSource>(filepath)),
+          m_pos(eof_pos)
     {
-        if (source->IsOK())
+        if (m_source->IsOK())
         {
             Seek(0);
         }
     }
 
-    BufferedReader(const BufferedReader &other)             = delete;
-    BufferedReader &operator=(const BufferedReader &other)  = delete;
+    BufferedReader(const BufferedReader& other) = delete;
+    BufferedReader& operator=(const BufferedReader& other) = delete;
 
-    BufferedReader(BufferedReader &&other) noexcept
-        : filepath(std::move(other.filepath)),
-          source(std::move(other.source)),
-          pos(other.pos),
-          buffer(std::move(other.buffer))
+    BufferedReader(BufferedReader&& other) noexcept
+        : m_filepath(std::move(other.m_filepath)),
+          m_source(std::move(other.m_source)),
+          m_pos(other.m_pos),
+          m_buffer(std::move(other.m_buffer))
     {
-        other.pos = eof_pos;
+        other.m_pos = eof_pos;
     }
 
-    BufferedReader &operator=(BufferedReader &&other) noexcept
+    BufferedReader& operator=(BufferedReader&& other) noexcept
     {
         if (&other == this)
         {
@@ -174,12 +188,12 @@ public:
 
         Close();
 
-        filepath = std::move(other.filepath);
-        source = std::move(other.source);
-        pos = other.pos;
-        buffer = std::move(other.buffer);
-        
-        other.pos = eof_pos;
+        m_filepath = std::move(other.m_filepath);
+        m_source = std::move(other.m_source);
+        m_pos = other.m_pos;
+        m_buffer = std::move(other.m_buffer);
+
+        other.m_pos = eof_pos;
 
         return *this;
     }
@@ -191,33 +205,45 @@ public:
 
     /*! \brief Returns a boolean indicating whether or not the file could be opened without issue */
     explicit operator bool() const
-        { return IsOpen(); }
+    {
+        return IsOpen();
+    }
 
-    const FilePath &GetFilepath() const
-        { return filepath; }
+    const FilePath& GetFilepath() const
+    {
+        return m_filepath;
+    }
 
     /*! \brief Returns a boolean indicating whether or not the file could be opened without issue */
     bool IsOpen() const
-        { return source != nullptr && source->IsOK(); }
+    {
+        return m_source != nullptr && m_source->IsOK();
+    }
 
     SizeType Position() const
-        { return pos; }
+    {
+        return m_pos;
+    }
 
     SizeType Max() const
-        { return source != nullptr ? source->Size() : 0; }
+    {
+        return m_source != nullptr ? m_source->Size() : 0;
+    }
 
     bool Eof() const
-        { return source == nullptr || pos >= source->Size(); }
+    {
+        return m_source == nullptr || m_pos >= m_source->Size();
+    }
 
     void Rewind(unsigned long amount)
     {
-        if (amount > pos)
+        if (amount > m_pos)
         {
-            pos = 0;
+            m_pos = 0;
         }
         else
         {
-            pos -= amount;
+            m_pos -= amount;
         }
     }
 
@@ -228,19 +254,19 @@ public:
             return;
         }
 
-        pos += amount;
+        m_pos += amount;
     }
 
     void Seek(unsigned long where_to)
     {
-        pos = where_to;
+        m_pos = where_to;
     }
 
     void Close()
     {
-        pos = eof_pos;
+        m_pos = eof_pos;
 
-        source.Reset();
+        m_source.Reset();
     }
 
     /*! \brief Reads the next \ref{count} bytes from the file and returns a ByteBuffer.
@@ -249,15 +275,15 @@ public:
     {
         if (Eof())
         {
-            return { };
+            return {};
         }
 
-        const SizeType remaining = source->Size() - pos;
+        const SizeType remaining = m_source->Size() - m_pos;
         const SizeType to_read = MathUtil::Min(remaining, count);
 
         ByteBuffer byte_buffer(to_read);
-        source->Read(byte_buffer.Data(), to_read, pos);
-        pos += to_read;
+        m_source->Read(byte_buffer.Data(), to_read, m_pos);
+        m_pos += to_read;
 
         return byte_buffer;
     }
@@ -269,14 +295,14 @@ public:
     {
         if (Eof())
         {
-            return { };
+            return {};
         }
 
-        const SizeType remaining = source->Size() - pos;
+        const SizeType remaining = m_source->Size() - m_pos;
 
         ByteBuffer byte_buffer(remaining);
-        source->Read(byte_buffer.Data(), remaining, pos);
-        pos += remaining;
+        m_source->Read(byte_buffer.Data(), remaining, m_pos);
+        m_pos += remaining;
 
         return byte_buffer;
     }
@@ -285,18 +311,18 @@ public:
         \ref{ptr}. If size is greater than the number of remaining bytes,
         it is capped to (num remaining bytes).
         @returns The number of bytes read */
-    SizeType ReadBytes(ubyte *ptr, SizeType count)
+    SizeType ReadBytes(ubyte* ptr, SizeType count)
     {
         if (Eof())
         {
             return 0;
         }
 
-        const SizeType remaining = source->Size() - pos;
+        const SizeType remaining = m_source->Size() - m_pos;
         const SizeType to_read = MathUtil::Min(remaining, count);
 
-        source->Read(ptr, to_read, pos);
-        pos += to_read;
+        m_source->Read(ptr, to_read, m_pos);
+        m_pos += to_read;
 
         return to_read;
     }
@@ -308,38 +334,38 @@ public:
     {
         if (Eof())
         {
-            return { };
+            return {};
         }
-        
+
         Array<String> lines;
 
-        ReadLines([&lines](const String &line, bool *)
-        {
-            lines.PushBack(line);
-        });
+        ReadLines([&lines](const String& line, bool*)
+            {
+                lines.PushBack(line);
+            });
 
         return lines;
     }
 
-    SizeType Read(ByteBuffer &byte_buffer)
+    SizeType Read(ByteBuffer& byte_buffer)
     {
-        return Read(byte_buffer.Data(), byte_buffer.Size(), [](void *ptr, const ubyte *buffer, SizeType chunk_size)
-        {
-            Memory::MemCpy(ptr, buffer, chunk_size);
-        });
+        return Read(byte_buffer.Data(), byte_buffer.Size(), [](void* ptr, const ubyte* buffer, SizeType chunk_size)
+            {
+                Memory::MemCpy(ptr, buffer, chunk_size);
+            });
     }
 
-    SizeType Read(void *ptr, SizeType count)
+    SizeType Read(void* ptr, SizeType count)
     {
-        return Read(ptr, count, [](void *ptr, const ubyte *buffer, SizeType chunk_size)
-        {
-            Memory::MemCpy(ptr, buffer, chunk_size);
-        });
+        return Read(ptr, count, [](void* ptr, const ubyte* buffer, SizeType chunk_size)
+            {
+                Memory::MemCpy(ptr, buffer, chunk_size);
+            });
     }
 
     /*! \returns The total number of bytes read */
-    template <class Lambda = std::add_pointer_t<void(void *, const ubyte *, SizeType)>>
-    SizeType Read(void *ptr, SizeType count, Lambda &&func)
+    template <class Lambda = std::add_pointer_t<void(void*, const ubyte*, SizeType)>>
+    SizeType Read(void* ptr, SizeType count, Lambda&& func)
     {
         if (Eof())
         {
@@ -354,7 +380,7 @@ public:
             const SizeType chunk_returned = Read(chunk_requested);
             const SizeType offset = total_read;
 
-            func(static_cast<ubyte *>(ptr) + offset, &buffer[0], chunk_returned);
+            func(static_cast<ubyte*>(ptr) + offset, &m_buffer[0], chunk_returned);
 
             total_read += chunk_returned;
 
@@ -374,19 +400,19 @@ public:
      *  \param ptr The pointer to T, where the read memory will be written.
      *  \returns The number of bytes read */
     template <class T>
-    SizeType Read(T *ptr)
+    SizeType Read(T* ptr)
     {
-        return Read(static_cast<void *>(ptr), sizeof(T));
+        return Read(static_cast<void*>(ptr), sizeof(T));
     }
 
     template <class T>
-    SizeType Peek(T *ptr) const
+    SizeType Peek(T* ptr) const
     {
-        return Peek(static_cast<void *>(ptr), sizeof(T));
+        return Peek(static_cast<void*>(ptr), sizeof(T));
     }
 
     template <class LambdaFunction>
-    void ReadLines(LambdaFunction &&func, bool buffered = true)
+    void ReadLines(LambdaFunction&& func, bool buffered = true)
     {
         if (Eof())
         {
@@ -404,7 +430,7 @@ public:
 
             String accum;
             accum.Reserve(buffer_size);
-            
+
             for (SizeType i = 0; i < all_bytes.Size(); i++)
             {
                 if (all_bytes[i] == '\n')
@@ -425,7 +451,7 @@ public:
                     }
 
                     accum.Clear();
-                    
+
                     continue;
                 }
 
@@ -468,7 +494,8 @@ public:
                     {
                         const SizeType amount_remaining = total_read - total_processed;
 
-                        if (amount_remaining != 0) {
+                        if (amount_remaining != 0)
+                        {
                             Rewind(amount_remaining);
                         }
 
@@ -476,7 +503,7 @@ public:
                     }
 
                     accum.Clear();
-                    
+
                     continue;
                 }
 
@@ -498,16 +525,16 @@ public:
         {
             for (SizeType i = 0; i < count; i++)
             {
-                func(char(buffer[i]));
+                func(char(m_buffer[i]));
             }
         }
     }
 
 private:
-    FilePath                        filepath;
-    RC<BufferedReaderSource>        source;
-    SizeType                        pos;
-    FixedArray<ubyte, buffer_size>  buffer { };
+    FilePath m_filepath;
+    RC<BufferedReaderSource> m_source;
+    SizeType m_pos;
+    FixedArray<ubyte, buffer_size> m_buffer {};
 
     SizeType Read()
     {
@@ -516,9 +543,9 @@ private:
             return 0;
         }
 
-        const SizeType count = source->Read(&buffer[0], buffer_size, pos);
+        const SizeType count = m_source->Read(&m_buffer[0], buffer_size, m_pos);
 
-        pos += count;
+        m_pos += count;
 
         return count;
     }
@@ -532,26 +559,26 @@ private:
             return 0;
         }
 
-        const SizeType count = source->Read(&buffer[0], sz, pos);
-        pos += count;
+        const SizeType count = m_source->Read(&m_buffer[0], sz, m_pos);
+        m_pos += count;
 
         return count;
     }
 
-    SizeType Peek(void *dest, SizeType sz) const
+    SizeType Peek(void* dest, SizeType sz) const
     {
         if (Eof())
         {
             return 0;
         }
 
-        AssertThrowMsg(pos + sz <= source->Size(),
-             "Attempt to read past end of file: %llu + %llu > %llu",
-              pos,
-              sz,
-              source->Size());
+        AssertThrowMsg(m_pos + sz <= m_source->Size(),
+            "Attempt to read past end of file: %llu + %llu > %llu",
+            m_pos,
+            sz,
+            m_source->Size());
 
-        return source->Read(static_cast<ubyte *>(dest), sz, pos);
+        return m_source->Read(static_cast<ubyte*>(dest), sz, m_pos);
     }
 };
 

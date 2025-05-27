@@ -16,22 +16,23 @@ using VisibilityStateFlags = uint32;
 
 enum VisibilityStateFlagBits : VisibilityStateFlags
 {
-    VISIBILITY_STATE_FLAG_NONE              = 0x0,
-    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE    = 0x1,
-    VISIBILITY_STATE_FLAG_INVALIDATED       = 0x2
+    VISIBILITY_STATE_FLAG_NONE = 0x0,
+    VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE = 0x1,
+    VISIBILITY_STATE_FLAG_INVALIDATED = 0x2
 };
 
-HYP_STRUCT(Component, Size=32, Serialize=false, Editor=false)
+HYP_STRUCT(Component, Size = 32, Serialize = false, Editor = false)
+
 struct VisibilityStateComponent
 {
     HYP_FIELD()
-    VisibilityStateFlags    flags = VISIBILITY_STATE_FLAG_NONE;
+    VisibilityStateFlags flags = VISIBILITY_STATE_FLAG_NONE;
 
     HYP_FIELD()
-    OctantID                octant_id = OctantID::Invalid();
+    OctantID octant_id = OctantID::Invalid();
 
     HYP_FIELD()
-    VisibilityState         *visibility_state = nullptr;
+    VisibilityState* visibility_state = nullptr;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

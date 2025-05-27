@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="StreamedTextureData")]
-    public class StreamedTextureData : StreamedData
+    public class StreamedTextureData : StreamedDataBase
     {
         public StreamedTextureData() : base()
         {

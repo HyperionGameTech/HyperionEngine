@@ -21,14 +21,15 @@ class GBuffer;
 struct SSGIUniforms;
 class ViewRenderResource;
 
-HYP_STRUCT(ConfigName="app", JSONPath="rendering.ssgi")
+HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.ssgi")
+
 struct SSGIConfig : public ConfigBase<SSGIConfig>
 {
-    HYP_FIELD(Description="The quality level of the SSGI effect. (0 = quarter res, 1 = half res)")
-    int     quality = 0;
+    HYP_FIELD(Description = "The quality level of the SSGI effect. (0 = quarter res, 1 = half res)")
+    int quality = 0;
 
     HYP_FIELD(JSONIgnore)
-    Vec2u   extent;
+    Vec2u extent;
 
     virtual ~SSGIConfig() override = default;
 
@@ -36,7 +37,8 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
     {
         extent = Vec2u { 1024, 1024 };
 
-        switch (quality) {
+        switch (quality)
+        {
         case 0:
             extent /= 2;
             break;
@@ -49,20 +51,24 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
 class SSGI
 {
 public:
-    SSGI(SSGIConfig &&config, GBuffer *gbuffer);
+    SSGI(SSGIConfig&& config, GBuffer* gbuffer);
     ~SSGI();
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetResultTexture() const
-        { return m_result_texture; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
+    {
+        return m_result_texture;
+    }
 
-    const Handle<Texture> &GetFinalResultTexture() const;
+    const Handle<Texture>& GetFinalResultTexture() const;
 
     HYP_FORCE_INLINE bool IsRendered() const
-        { return m_is_rendered; }
+    {
+        return m_is_rendered;
+    }
 
     void Create();
 
-    void Render(FrameBase *frame, ViewRenderResource *view);
+    void Render(FrameBase* frame, ViewRenderResource* view);
 
 private:
     ShaderProperties GetShaderProperties() const;
@@ -71,21 +77,21 @@ private:
     void CreateBlueNoiseBuffer();
     void CreateComputePipelines();
 
-    void FillUniformBufferData(ViewRenderResource *view, SSGIUniforms &out_uniforms) const;
+    void FillUniformBufferData(ViewRenderResource* view, SSGIUniforms& out_uniforms) const;
 
-    SSGIConfig                                      m_config;
+    SSGIConfig m_config;
 
-    GBuffer                                         *m_gbuffer;
+    GBuffer* m_gbuffer;
 
-    Handle<Texture>                                 m_result_texture;
-    
-    FixedArray<GPUBufferRef, max_frames_in_flight>  m_uniform_buffers;
-    
-    ComputePipelineRef                              m_compute_pipeline;
+    Handle<Texture> m_result_texture;
 
-    UniquePtr<TemporalBlending>                     m_temporal_blending;
+    FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
 
-    bool                                            m_is_rendered;
+    ComputePipelineRef m_compute_pipeline;
+
+    UniquePtr<TemporalBlending> m_temporal_blending;
+
+    bool m_is_rendered;
 };
 
 } // namespace hyperion

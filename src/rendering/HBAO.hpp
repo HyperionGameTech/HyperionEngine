@@ -16,17 +16,18 @@
 
 namespace hyperion {
 
-HYP_STRUCT(ConfigName="app", JSONPath="rendering.hbao")
+HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.hbao")
+
 struct HBAOConfig : public ConfigBase<HBAOConfig>
 {
     HYP_FIELD()
-    float   radius = 2.5f;
+    float radius = 2.5f;
 
     HYP_FIELD()
-    float   power = 0.8f;
+    float power = 0.8f;
 
     HYP_FIELD()
-    bool    use_temporal_blending = false;
+    bool use_temporal_blending = false;
 
     virtual ~HBAOConfig() override = default;
 
@@ -40,35 +41,42 @@ struct HBAOConfig : public ConfigBase<HBAOConfig>
 class HBAO final : public FullScreenPass
 {
 public:
-    HBAO(HBAOConfig &&config, GBuffer *gbuffer);
-    HBAO(const HBAO &other)             = delete;
-    HBAO &operator=(const HBAO &other)  = delete;
+    HBAO(HBAOConfig&& config, GBuffer* gbuffer);
+    HBAO(const HBAO& other) = delete;
+    HBAO& operator=(const HBAO& other) = delete;
     virtual ~HBAO() override;
 
     virtual void Create() override;
 
-    virtual void Render(FrameBase *frame, ViewRenderResource *view) override;
-    virtual void RenderToFramebuffer(FrameBase *frame, ViewRenderResource *view, const FramebufferRef &framebuffer) override
-        { HYP_NOT_IMPLEMENTED(); }
+    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+
+    virtual void RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer) override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
 
 protected:
     virtual bool UsesTemporalBlending() const override
-        { return false; }// m_config.use_temporal_blending; }
+    {
+        return false;
+    } // m_config.use_temporal_blending; }
 
     virtual bool ShouldRenderHalfRes() const override
-        { return false; }
+    {
+        return false;
+    }
 
     virtual void CreateDescriptors() override;
-    virtual void CreatePipeline(const RenderableAttributeSet &renderable_attributes) override;
+    virtual void CreatePipeline(const RenderableAttributeSet& renderable_attributes) override;
 
     virtual void Resize_Internal(Vec2u new_size) override;
 
 private:
     void CreateUniformBuffers();
 
-    HBAOConfig                  m_config;
+    HBAOConfig m_config;
 
-    GPUBufferRef                m_uniform_buffer;
+    GPUBufferRef m_uniform_buffer;
 };
 
 } // namespace hyperion

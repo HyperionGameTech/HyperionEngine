@@ -31,72 +31,116 @@ public:
         std::sort(Begin(), End());
     }
 
-    SortedArray(const T *begin, const T *end)
+    SortedArray(const T* begin, const T* end)
         : Base(begin, end)
     {
         std::sort(Begin(), End());
     }
 
-    SortedArray(const SortedArray &other);
-    SortedArray &operator=(const SortedArray &other);
-    SortedArray(SortedArray &&other) noexcept;
-    SortedArray &operator=(SortedArray &&other) noexcept;
+    SortedArray(const SortedArray& other);
+    SortedArray& operator=(const SortedArray& other);
+    SortedArray(SortedArray&& other) noexcept;
+    SortedArray& operator=(SortedArray&& other) noexcept;
     ~SortedArray();
-    
-    [[nodiscard]] Iterator Find(const T &value);
-    [[nodiscard]] ConstIterator Find(const T &value) const;
-    
-    Iterator Insert(const T &value);
-    Iterator Insert(T &&value);
+
+    [[nodiscard]] Iterator Find(const T& value);
+    [[nodiscard]] ConstIterator Find(const T& value) const;
+
+    Iterator Insert(const T& value);
+    Iterator Insert(T&& value);
 
     /*! \brief Performs a direct call to Array::Erase(), erasing the element at the iterator position. */
-    Iterator Erase(ConstIterator it)                      { return Base::Erase(it); }
+    Iterator Erase(ConstIterator it)
+    {
+        return Base::Erase(it);
+    }
+
     /*! \brief Erase an element by value. The item is searched for using binary search,
         and if the item was found, it will be erased (and iterators will be invalidated) */
-    Iterator Erase(const T &value);
+    Iterator Erase(const T& value);
 
-    [[nodiscard]] SizeType Size() const                   { return Base::Size(); }
-    [[nodiscard]] T *Data()                               { return Base::Data(); }
-    [[nodiscard]] const T *Data() const                   { return Base::Data(); }
-    [[nodiscard]] bool Empty() const                      { return Base::Empty(); }
-    [[nodiscard]] bool Any() const                        { return Base::Any(); }
-    [[nodiscard]] bool Contains(const T &value) const     { return Find(value) != End(); }
-    void Clear()                                          { Base::Clear(); }
-    
-    [[nodiscard]] T &Front()                              { return Base::Front(); }
-    [[nodiscard]] const T &Front() const                  { return Base::Front(); }
-    [[nodiscard]] T &Back()                               { return Base::Back(); }
-    [[nodiscard]] const T &Back() const                   { return Base::Back(); }
+    [[nodiscard]] SizeType Size() const
+    {
+        return Base::Size();
+    }
+
+    [[nodiscard]] T* Data()
+    {
+        return Base::Data();
+    }
+
+    [[nodiscard]] const T* Data() const
+    {
+        return Base::Data();
+    }
+
+    [[nodiscard]] bool Empty() const
+    {
+        return Base::Empty();
+    }
+
+    [[nodiscard]] bool Any() const
+    {
+        return Base::Any();
+    }
+
+    [[nodiscard]] bool Contains(const T& value) const
+    {
+        return Find(value) != End();
+    }
+
+    void Clear()
+    {
+        Base::Clear();
+    }
+
+    [[nodiscard]] T& Front()
+    {
+        return Base::Front();
+    }
+
+    [[nodiscard]] const T& Front() const
+    {
+        return Base::Front();
+    }
+
+    [[nodiscard]] T& Back()
+    {
+        return Base::Back();
+    }
+
+    [[nodiscard]] const T& Back() const
+    {
+        return Base::Back();
+    }
 
     HYP_DEF_STL_BEGIN_END(
         Base::Begin(),
-        Base::End()
-    )
+        Base::End())
 
 private:
     // Make these Array<T> methods private, so that they can't be used to break the sorted invariant
-    using Base::PushBack;
-    using Base::PushFront;
+    using Base::Concat;
     using Base::PopBack;
     using Base::PopFront;
-    using Base::Concat;
+    using Base::PushBack;
+    using Base::PushFront;
 };
 
 template <class T>
 SortedArray<T>::SortedArray()
     : Base()
 {
-    
 }
 
 template <class T>
-SortedArray<T>::SortedArray(const SortedArray &other)
+SortedArray<T>::SortedArray(const SortedArray& other)
     : Base(other)
 {
 }
 
 template <class T>
-auto SortedArray<T>::operator=(const SortedArray &other) -> SortedArray&
+auto SortedArray<T>::operator=(const SortedArray& other) -> SortedArray&
 {
     Base::operator=(other);
 
@@ -104,13 +148,13 @@ auto SortedArray<T>::operator=(const SortedArray &other) -> SortedArray&
 }
 
 template <class T>
-SortedArray<T>::SortedArray(SortedArray &&other) noexcept
+SortedArray<T>::SortedArray(SortedArray&& other) noexcept
     : Base(std::move(other))
 {
 }
 
 template <class T>
-auto SortedArray<T>::operator=(SortedArray &&other) noexcept -> SortedArray&
+auto SortedArray<T>::operator=(SortedArray&& other) noexcept -> SortedArray&
 {
     Base::operator=(std::move(other));
 
@@ -121,11 +165,12 @@ template <class T>
 SortedArray<T>::~SortedArray() = default;
 
 template <class T>
-auto SortedArray<T>::Find(const T &value) -> Iterator
+auto SortedArray<T>::Find(const T& value) -> Iterator
 {
     const auto it = Base::LowerBound(value);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -133,11 +178,12 @@ auto SortedArray<T>::Find(const T &value) -> Iterator
 }
 
 template <class T>
-auto SortedArray<T>::Find(const T &value) const -> ConstIterator
+auto SortedArray<T>::Find(const T& value) const -> ConstIterator
 {
     const auto it = Base::LowerBound(value);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -145,7 +191,7 @@ auto SortedArray<T>::Find(const T &value) const -> ConstIterator
 }
 
 template <class T>
-auto SortedArray<T>::Insert(const T &value) -> Iterator
+auto SortedArray<T>::Insert(const T& value) -> Iterator
 {
     Iterator it = Base::LowerBound(value);
 
@@ -153,7 +199,7 @@ auto SortedArray<T>::Insert(const T &value) -> Iterator
 }
 
 template <class T>
-auto SortedArray<T>::Insert(T &&value) -> Iterator
+auto SortedArray<T>::Insert(T&& value) -> Iterator
 {
     Iterator it = Base::LowerBound(value);
 
@@ -161,11 +207,12 @@ auto SortedArray<T>::Insert(T &&value) -> Iterator
 }
 
 template <class T>
-auto SortedArray<T>::Erase(const T &value) -> Iterator
+auto SortedArray<T>::Erase(const T& value) -> Iterator
 {
     const ConstIterator iter = Base::Find(value);
 
-    if (iter == End()) {
+    if (iter == End())
+    {
         return End();
     }
 

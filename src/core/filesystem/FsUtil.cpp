@@ -26,14 +26,14 @@
 namespace hyperion {
 namespace filesystem {
 
-std::mutex FileSystem::mtx = std::mutex();
-Array<FilePath> FileSystem::filepaths = { };
+std::mutex FileSystem::s_mtx = std::mutex();
+Array<FilePath> FileSystem::s_filepaths = {};
 
-void FileSystem::PushDirectory(const FilePath &path)
+void FileSystem::PushDirectory(const FilePath& path)
 {
-    std::lock_guard guard(mtx);
+    std::lock_guard guard(s_mtx);
 
-    filepaths.PushBack(FilePath::Current());
+    s_filepaths.PushBack(FilePath::Current());
 
 #if defined(HYP_WINDOWS)
     _chdir(path.Data());
@@ -44,35 +44,36 @@ void FileSystem::PushDirectory(const FilePath &path)
 
 FilePath FileSystem::PopDirectory()
 {
-    std::lock_guard guard(mtx);
+    std::lock_guard guard(s_mtx);
 
-    AssertThrow(filepaths.Any());
+    AssertThrow(s_filepaths.Any());
 
     auto current = FilePath::Current();
 
 #if defined(HYP_WINDOWS)
-    _chdir(filepaths.Back().Data());
+    _chdir(s_filepaths.Back().Data());
 #elif defined(HYP_UNIX)
-    chdir(filepaths.Back().Data());
+    chdir(s_filepaths.Back().Data());
 #endif
 
-    filepaths.PopBack();
+    s_filepaths.PopBack();
 
     return current;
 }
 
-bool FileSystem::DirExists(const std::string &path)
+bool FileSystem::DirExists(const std::string& path)
 {
     struct stat st;
-    
-    if (stat(path.c_str(), &st) == 0) {
+
+    if (stat(path.c_str(), &st) == 0)
+    {
         return st.st_mode & S_IFDIR;
     }
 
     return false;
 }
 
-int FileSystem::MkDir(const std::string &path)
+int FileSystem::MkDir(const std::string& path)
 {
 #if HYP_WINDOWS
     #define MKDIR_FUNCTION(path, mode) ::_mkdir(path)
@@ -81,24 +82,30 @@ int FileSystem::MkDir(const std::string &path)
 #endif
 
 #ifdef HYP_UNIX
-#define HYP_ISDIR(mode) S_ISDIR(mode)
+    #define HYP_ISDIR(mode) S_ISDIR(mode)
 #elif defined(HYP_WINDOWS)
-#define HYP_ISDIR(mode) (((mode) & _S_IFDIR) > 0)
+    #define HYP_ISDIR(mode) (((mode) & _S_IFDIR) > 0)
 #endif
 
     struct stat st;
 
     int status = 0;
-    for (SizeType pos = 0; pos < path.length(); ++pos) {
-        if (path[pos] == '/' || pos == path.length() - 1) {
+    for (SizeType pos = 0; pos < path.length(); ++pos)
+    {
+        if (path[pos] == '/' || pos == path.length() - 1)
+        {
             std::string subdir = path.substr(0, pos + 1);
-            if (stat(subdir.c_str(), &st) != 0) {
+            if (stat(subdir.c_str(), &st) != 0)
+            {
                 // Directory doesn't exist
-                if (MKDIR_FUNCTION(subdir.c_str(), 0755) != 0 && errno != EEXIST) {
+                if (MKDIR_FUNCTION(subdir.c_str(), 0755) != 0 && errno != EEXIST)
+                {
                     status = -1;
                     break;
                 }
-            } else if (!HYP_ISDIR(st.st_mode)) {
+            }
+            else if (!HYP_ISDIR(st.st_mode))
+            {
                 status = -1;
                 break;
             }
@@ -115,7 +122,7 @@ std::string FileSystem::CurrentPath()
     return std::filesystem::current_path().string();
 }
 
-std::string FileSystem::RelativePath(const std::string &path, const std::string &base)
+std::string FileSystem::RelativePath(const std::string& path, const std::string& base)
 {
     return std::filesystem::proximate(path, base).string();
 }

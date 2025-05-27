@@ -14,8 +14,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::SAMPLED })),
       m_image_view_2d_1x1_r8(g_rendering_api->MakeImageView(m_image_2d_1x1_r8)),
       m_image_2d_1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_2D,
@@ -25,8 +24,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED })),
       m_image_view_2d_1x1_r8_storage(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_storage)),
       m_image_3d_1x1x1_r8(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_3D,
@@ -36,8 +34,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::SAMPLED })),
       m_image_view_3d_1x1x1_r8(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8)),
       m_image_3d_1x1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_3D,
@@ -47,8 +44,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED })),
       m_image_view_3d_1x1x1_r8_storage(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8_storage)),
       m_image_cube_1x1_r8(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_CUBEMAP,
@@ -58,8 +54,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::SAMPLED })),
       m_image_view_cube_1x1_r8(g_rendering_api->MakeImageView(m_image_cube_1x1_r8)),
       m_image_2d_1x1_r8_array(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_2D_ARRAY,
@@ -69,8 +64,7 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::SAMPLED })),
       m_image_view_2d_1x1_r8_array(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_array)),
       m_image_cube_1x1_r8_array(g_rendering_api->MakeImage(TextureDesc {
           renderer::ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY,
@@ -80,24 +74,20 @@ PlaceholderData::PlaceholderData()
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED
-      })),
+          ImageFormatCapabilities::SAMPLED })),
       m_image_view_cube_1x1_r8_array(g_rendering_api->MakeImageView(m_image_cube_1x1_r8_array)),
       m_sampler_linear(g_rendering_api->MakeSampler(
           renderer::FilterMode::TEXTURE_FILTER_LINEAR,
           renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::WrapMode::TEXTURE_WRAP_REPEAT
-      )),
+          renderer::WrapMode::TEXTURE_WRAP_REPEAT)),
       m_sampler_linear_mipmap(g_rendering_api->MakeSampler(
           renderer::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
           renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::WrapMode::TEXTURE_WRAP_REPEAT
-      )),
+          renderer::WrapMode::TEXTURE_WRAP_REPEAT)),
       m_sampler_nearest(g_rendering_api->MakeSampler(
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
           renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-      ))
+          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE))
 {
 }
 
@@ -180,8 +170,10 @@ void PlaceholderData::Destroy()
     SafeRelease(std::move(m_sampler_linear_mipmap));
     SafeRelease(std::move(m_sampler_nearest));
 
-    for (auto &buffer_map : m_buffers) {
-        for (auto &it : buffer_map.second) {
+    for (auto& buffer_map : m_buffers)
+    {
+        for (auto& it : buffer_map.second)
+        {
             SafeRelease(std::move(it.second));
         }
     }

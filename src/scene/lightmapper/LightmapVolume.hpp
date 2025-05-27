@@ -29,59 +29,69 @@ class Texture;
 HYP_ENUM()
 enum class LightmapElementTextureType : uint32
 {
-    RADIANCE    = 0,
+    RADIANCE = 0,
     IRRADIANCE,
 
     MAX,
 
-    INVALID     = ~0u
+    INVALID = ~0u
 };
 
 HYP_STRUCT()
+
 struct LightmapElementTextureEntry
 {
-    HYP_FIELD(Property="TextureType", Serialize=true)
-    LightmapElementTextureType  type = LightmapElementTextureType::INVALID;
+    HYP_FIELD(Property = "TextureType", Serialize = true)
+    LightmapElementTextureType type = LightmapElementTextureType::INVALID;
 
-    HYP_FIELD(Property="Texture", Serialize=true)
-    Handle<Texture>             texture;
+    HYP_FIELD(Property = "Texture", Serialize = true)
+    Handle<Texture> texture;
 };
 
 HYP_STRUCT()
+
 struct LightmapElement
 {
-    HYP_FIELD(Property="Index", Serialize=true)
-    uint32                              index = ~0u;
+    HYP_FIELD(Property = "Index", Serialize = true)
+    uint32 index = ~0u;
 
-    HYP_FIELD(Property="Entries", Serialize = true)
-    Array<LightmapElementTextureEntry>  entries;
+    HYP_FIELD(Property = "Entries", Serialize = true)
+    Array<LightmapElementTextureEntry> entries;
 
     HYP_METHOD()
+
     bool IsValid() const
-        { return index != ~0u; }
+    {
+        return index != ~0u;
+    }
 };
 
 HYP_CLASS()
+
 class HYP_API LightmapVolume : public HypObject<LightmapVolume>
 {
     HYP_OBJECT_BODY(LightmapVolume);
 
 public:
     LightmapVolume();
-    
-    LightmapVolume(const BoundingBox &aabb);
 
-    LightmapVolume(const LightmapVolume &other)             = delete;
-    LightmapVolume &operator=(const LightmapVolume &other)  = delete;
+    LightmapVolume(const BoundingBox& aabb);
+
+    LightmapVolume(const LightmapVolume& other) = delete;
+    LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const UUID &GetUUID() const
-        { return m_uuid; }
+    HYP_FORCE_INLINE const UUID& GetUUID() const
+    {
+        return m_uuid;
+    }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const BoundingBox &GetAABB() const
-        { return m_aabb; }
+    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
 
     /*! \brief Add a LightmapElement to this volume.
      *  If \ref{element} has an index of ~0u, the index will be set based on where it would sit in the list of elements (at the back of the list)
@@ -91,19 +101,19 @@ public:
     bool AddElement(LightmapElement element);
 
     HYP_METHOD()
-    const LightmapElement *GetElement(uint32 index) const;
+    const LightmapElement* GetElement(uint32 index) const;
 
     void Init();
 
 private:
-    HYP_FIELD(Serialize=true)
-    UUID                    m_uuid;
-    
-    HYP_FIELD(Serialize=true)
-    BoundingBox             m_aabb;
+    HYP_FIELD(Serialize = true)
+    UUID m_uuid;
 
-    HYP_FIELD(Serialize=true)
-    Array<LightmapElement>  m_elements;
+    HYP_FIELD(Serialize = true)
+    BoundingBox m_aabb;
+
+    HYP_FIELD(Serialize = true)
+    Array<LightmapElement> m_elements;
 };
 
 } // namespace hyperion

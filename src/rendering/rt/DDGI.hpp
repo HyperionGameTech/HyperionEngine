@@ -29,40 +29,42 @@ enum ProbeSystemFlags : uint32
 
 struct ProbeRayData
 {
-    Vec4f   direction_depth;
-    Vec4f   origin;
-    Vec4f   normal;
-    Vec4f   color;
+    Vec4f direction_depth;
+    Vec4f origin;
+    Vec4f normal;
+    Vec4f color;
 };
 
 static_assert(sizeof(ProbeRayData) == 64);
 
 struct DDGIUniforms
 {
-    Vec4f   aabb_max;
-    Vec4f   aabb_min;
-    Vec4u   probe_border;
-    Vec4u   probe_counts;
-    Vec4u   grid_dimensions;
-    Vec4u   image_dimensions;
-    Vec4u   params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
-    uint32  shadow_map_index;
-    uint32  _pad0, _pad1, _pad2;
-    uint32  light_indices[16];
+    Vec4f aabb_max;
+    Vec4f aabb_min;
+    Vec4u probe_border;
+    Vec4u probe_counts;
+    Vec4u grid_dimensions;
+    Vec4u image_dimensions;
+    Vec4u params; // x = probe distance, y = num rays per probe, z = flags, w = num bound lights
+    uint32 shadow_map_index;
+    uint32 _pad0, _pad1, _pad2;
+    uint32 light_indices[16];
 };
 
 struct DDGIInfo
 {
     static constexpr uint32 irradiance_octahedron_size = 8;
     static constexpr uint32 depth_octahedron_size = 16;
-    static constexpr Vec3u  probe_border = Vec3u { 2, 0, 2 };
+    static constexpr Vec3u probe_border = Vec3u { 2, 0, 2 };
 
     BoundingBox aabb;
-    float       probe_distance = 2.5f;
-    uint32      num_rays_per_probe = 16;
+    float probe_distance = 2.5f;
+    uint32 num_rays_per_probe = 16;
 
-    HYP_FORCE_INLINE const Vec3f &GetOrigin() const
-        { return aabb.min; }
+    HYP_FORCE_INLINE const Vec3f& GetOrigin() const
+    {
+        return aabb.min;
+    }
 
     HYP_FORCE_INLINE Vec3u NumProbesPerDimension() const
     {
@@ -70,14 +72,14 @@ struct DDGIInfo
 
         return Vec3u(probes_per_dimension);
     }
-    
+
     HYP_FORCE_INLINE uint32 NumProbes() const
     {
         const Vec3u per_dimension = NumProbesPerDimension();
 
         return per_dimension.x * per_dimension.y * per_dimension.z;
     }
-    
+
     HYP_FORCE_INLINE Vec2u GetImageDimensions() const
     {
         return { uint32(MathUtil::NextPowerOf2(NumProbes())), num_rays_per_probe };
@@ -86,91 +88,99 @@ struct DDGIInfo
 
 struct RotationMatrixGenerator
 {
-    Matrix4                                 matrix;
-    std::random_device                      random_device;
-    std::mt19937                            mt { random_device() };
-    std::uniform_real_distribution<float>   angle { 0.0f, 359.0f };
-    std::uniform_real_distribution<float>   axis { -1.0f, 1.0f };
+    Matrix4 matrix;
+    std::random_device random_device;
+    std::mt19937 mt { random_device() };
+    std::uniform_real_distribution<float> angle { 0.0f, 359.0f };
+    std::uniform_real_distribution<float> axis { -1.0f, 1.0f };
 
-    const Matrix4 &Next()
+    const Matrix4& Next()
     {
-        return matrix = Matrix4::Rotation({
-            Vec3f { axis(mt), axis(mt), axis(mt) }.Normalize(),
-            MathUtil::DegToRad(angle(mt))
-        });
+        return matrix = Matrix4::Rotation({ Vec3f { axis(mt), axis(mt), axis(mt) }.Normalize(),
+                   MathUtil::DegToRad(angle(mt)) });
     }
 };
 
 struct Probe
 {
-    Vec3f   position;
+    Vec3f position;
 };
 
 class DDGI
 {
 public:
-    HYP_API DDGI(DDGIInfo &&grid_info);
-    DDGI(const DDGI &other)             = delete;
-    DDGI &operator=(const DDGI &other)  = delete;
+    HYP_API DDGI(DDGIInfo&& grid_info);
+    DDGI(const DDGI& other) = delete;
+    DDGI& operator=(const DDGI& other) = delete;
     HYP_API ~DDGI();
 
-    const Array<Probe> &GetProbes() const
-        { return m_probes; }
+    const Array<Probe>& GetProbes() const
+    {
+        return m_probes;
+    }
 
-    HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight> &top_level_acceleration_structures)
-        { m_top_level_acceleration_structures = top_level_acceleration_structures; }
+    HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight>& top_level_acceleration_structures)
+    {
+        m_top_level_acceleration_structures = top_level_acceleration_structures;
+    }
 
     HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
-    const GPUBufferRef &GetRadianceBuffer() const
-        { return m_radiance_buffer; }
+    const GPUBufferRef& GetRadianceBuffer() const
+    {
+        return m_radiance_buffer;
+    }
 
-    const ImageRef &GetIrradianceImage() const
-        { return m_irradiance_image; }
+    const ImageRef& GetIrradianceImage() const
+    {
+        return m_irradiance_image;
+    }
 
-    const ImageViewRef &GetIrradianceImageView() const
-        { return m_irradiance_image_view; }
+    const ImageViewRef& GetIrradianceImageView() const
+    {
+        return m_irradiance_image_view;
+    }
 
     HYP_API void Init();
     HYP_API void Destroy();
 
-    HYP_API void RenderProbes(FrameBase *frame);
-    HYP_API void ComputeIrradiance(FrameBase *frame);
+    HYP_API void RenderProbes(FrameBase* frame);
+    HYP_API void ComputeIrradiance(FrameBase* frame);
 
 private:
     void CreatePipelines();
     void CreateUniformBuffer();
     void CreateStorageBuffers();
-    void UpdateUniforms(FrameBase *frame);
+    void UpdateUniforms(FrameBase* frame);
 
-    DDGIInfo                                    m_grid_info;
-    Array<Probe>                                m_probes;
-    
-    FixedArray<uint32, max_frames_in_flight>    m_updates;
+    DDGIInfo m_grid_info;
+    Array<Probe> m_probes;
 
-    ComputePipelineRef                          m_update_irradiance;
-    ComputePipelineRef                          m_update_depth;
-    ComputePipelineRef                          m_copy_border_texels_irradiance;
-    ComputePipelineRef                          m_copy_border_texels_depth;
+    FixedArray<uint32, max_frames_in_flight> m_updates;
 
-    ShaderRef                                   m_shader;
+    ComputePipelineRef m_update_irradiance;
+    ComputePipelineRef m_update_depth;
+    ComputePipelineRef m_copy_border_texels_irradiance;
+    ComputePipelineRef m_copy_border_texels_depth;
 
-    RaytracingPipelineRef                       m_pipeline;
+    ShaderRef m_shader;
 
-    GPUBufferRef                                m_uniform_buffer;
-    GPUBufferRef                                m_radiance_buffer;
+    RaytracingPipelineRef m_pipeline;
 
-    ImageRef                                    m_irradiance_image;
-    ImageViewRef                                m_irradiance_image_view;
-    ImageRef                                    m_depth_image;
-    ImageViewRef                                m_depth_image_view;
+    GPUBufferRef m_uniform_buffer;
+    GPUBufferRef m_radiance_buffer;
 
-    FixedArray<TLASRef, max_frames_in_flight>   m_top_level_acceleration_structures;
+    ImageRef m_irradiance_image;
+    ImageViewRef m_irradiance_image_view;
+    ImageRef m_depth_image;
+    ImageViewRef m_depth_image_view;
 
-    DDGIUniforms                                m_uniforms;
+    FixedArray<TLASRef, max_frames_in_flight> m_top_level_acceleration_structures;
 
-    RotationMatrixGenerator                     m_random_generator;
-    uint32                                      m_time;
+    DDGIUniforms m_uniforms;
+
+    RotationMatrixGenerator m_random_generator;
+    uint32 m_time;
 };
 
 } // namespace hyperion

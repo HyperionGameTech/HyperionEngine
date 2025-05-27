@@ -25,19 +25,19 @@ struct EnumFlags
 
     struct SubscriptWrapper
     {
-        EnumFlags   &enum_flags;
-        EnumType    flag;
+        EnumFlags& enum_flags;
+        EnumType flag;
 
-        constexpr SubscriptWrapper(EnumFlags &enum_flags, EnumType flag)
+        constexpr SubscriptWrapper(EnumFlags& enum_flags, EnumType flag)
             : enum_flags(enum_flags),
               flag(flag)
         {
         }
 
-        SubscriptWrapper(const SubscriptWrapper &other)                 = delete;
-        SubscriptWrapper &operator=(const SubscriptWrapper &other)      = delete;
-        SubscriptWrapper(SubscriptWrapper &&other) noexcept             = delete;
-        SubscriptWrapper &operator=(SubscriptWrapper &&other) noexcept  = delete;
+        SubscriptWrapper(const SubscriptWrapper& other) = delete;
+        SubscriptWrapper& operator=(const SubscriptWrapper& other) = delete;
+        SubscriptWrapper(SubscriptWrapper&& other) noexcept = delete;
+        SubscriptWrapper& operator=(SubscriptWrapper&& other) noexcept = delete;
 
         constexpr HYP_FORCE_INLINE bool operator!() const
         {
@@ -59,11 +59,14 @@ struct EnumFlags
             return bool(UnderlyingType(enum_flags.value & static_cast<UnderlyingType>(flag))) != value;
         }
 
-        constexpr HYP_FORCE_INLINE SubscriptWrapper &operator=(bool value)
+        constexpr HYP_FORCE_INLINE SubscriptWrapper& operator=(bool value)
         {
-            if (value) {
+            if (value)
+            {
                 enum_flags.value |= static_cast<UnderlyingType>(flag);
-            } else {
+            }
+            else
+            {
                 enum_flags.value &= ~static_cast<UnderlyingType>(flag);
             }
 
@@ -71,9 +74,9 @@ struct EnumFlags
         }
     };
 
-    UnderlyingType  value { };
+    UnderlyingType value {};
 
-    constexpr EnumFlags()                               = default;
+    constexpr EnumFlags() = default;
 
     constexpr EnumFlags(EnumType value)
         : value(static_cast<UnderlyingType>(value))
@@ -85,40 +88,58 @@ struct EnumFlags
     {
     }
 
-    constexpr EnumFlags(const EnumFlags &other)         = default;
-    EnumFlags &operator=(const EnumFlags &other)        = default;
-    constexpr EnumFlags(EnumFlags &&other) noexcept     = default;
-    EnumFlags &operator=(EnumFlags &&other) noexcept    = default;
-    ~EnumFlags()                                        = default;
+    constexpr EnumFlags(const EnumFlags& other) = default;
+    EnumFlags& operator=(const EnumFlags& other) = default;
+    constexpr EnumFlags(EnumFlags&& other) noexcept = default;
+    EnumFlags& operator=(EnumFlags&& other) noexcept = default;
+    ~EnumFlags() = default;
 
     HYP_FORCE_INLINE constexpr explicit operator bool() const
-        { return bool(value); }
+    {
+        return bool(value);
+    }
 
     HYP_FORCE_INLINE constexpr operator EnumType() const
-        { return static_cast<EnumType>(value); }
+    {
+        return static_cast<EnumType>(value);
+    }
 
     HYP_FORCE_INLINE constexpr operator UnderlyingType() const
-        { return value; }
+    {
+        return value;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const EnumFlags &other) const
-        { return value == other.value; }
+    HYP_FORCE_INLINE constexpr bool operator==(const EnumFlags& other) const
+    {
+        return value == other.value;
+    }
 
     HYP_FORCE_INLINE constexpr bool operator==(Enum rhs) const
-        { return *this == EnumFlags<Enum>(rhs); }
+    {
+        return *this == EnumFlags<Enum>(rhs);
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const EnumFlags &other) const
-        { return value != other.value; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const EnumFlags& other) const
+    {
+        return value != other.value;
+    }
 
     HYP_FORCE_INLINE constexpr bool operator!=(Enum rhs) const
-        { return *this != EnumFlags<Enum>(rhs); }
+    {
+        return *this != EnumFlags<Enum>(rhs);
+    }
 
     HYP_FORCE_INLINE constexpr EnumFlags operator~() const
-        { return EnumFlags(~value); }
+    {
+        return EnumFlags(~value);
+    }
 
-    HYP_FORCE_INLINE constexpr EnumFlags operator|(const EnumFlags &other) const
-        { return EnumFlags(value | other.value); }
+    HYP_FORCE_INLINE constexpr EnumFlags operator|(const EnumFlags& other) const
+    {
+        return EnumFlags(value | other.value);
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator|=(const EnumFlags &other)
+    HYP_FORCE_INLINE EnumFlags& operator|=(const EnumFlags& other)
     {
         value |= other.value;
 
@@ -126,19 +147,23 @@ struct EnumFlags
     }
 
     HYP_FORCE_INLINE constexpr EnumFlags operator|(EnumType flag) const
-        { return EnumFlags(value | static_cast<UnderlyingType>(flag)); }
+    {
+        return EnumFlags(value | static_cast<UnderlyingType>(flag));
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator|=(EnumType flag)
+    HYP_FORCE_INLINE EnumFlags& operator|=(EnumType flag)
     {
         value |= static_cast<UnderlyingType>(flag);
 
         return *this;
     }
 
-    HYP_FORCE_INLINE constexpr EnumFlags operator&(const EnumFlags &other) const
-        { return EnumFlags(value & other.value); }
+    HYP_FORCE_INLINE constexpr EnumFlags operator&(const EnumFlags& other) const
+    {
+        return EnumFlags(value & other.value);
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator&=(const EnumFlags &other)
+    HYP_FORCE_INLINE EnumFlags& operator&=(const EnumFlags& other)
     {
         value &= other.value;
 
@@ -146,19 +171,23 @@ struct EnumFlags
     }
 
     HYP_FORCE_INLINE constexpr EnumFlags operator&(EnumType flag) const
-        { return EnumFlags(value & static_cast<UnderlyingType>(flag)); }
+    {
+        return EnumFlags(value & static_cast<UnderlyingType>(flag));
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator&=(EnumType flag)
+    HYP_FORCE_INLINE EnumFlags& operator&=(EnumType flag)
     {
         value &= static_cast<UnderlyingType>(flag);
 
         return *this;
     }
 
-    HYP_FORCE_INLINE constexpr EnumFlags operator^(const EnumFlags &other) const
-        { return EnumFlags(value ^ other.value); }
+    HYP_FORCE_INLINE constexpr EnumFlags operator^(const EnumFlags& other) const
+    {
+        return EnumFlags(value ^ other.value);
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator^=(const EnumFlags &other)
+    HYP_FORCE_INLINE EnumFlags& operator^=(const EnumFlags& other)
     {
         value ^= other.value;
 
@@ -166,29 +195,35 @@ struct EnumFlags
     }
 
     HYP_FORCE_INLINE constexpr EnumFlags operator^(EnumType flag) const
-        { return EnumFlags(value ^ static_cast<UnderlyingType>(flag)); }
+    {
+        return EnumFlags(value ^ static_cast<UnderlyingType>(flag));
+    }
 
-    HYP_FORCE_INLINE EnumFlags &operator^=(EnumType flag)
+    HYP_FORCE_INLINE EnumFlags& operator^=(EnumType flag)
     {
         value ^= static_cast<UnderlyingType>(flag);
 
         return *this;
     }
-    
-    HYP_FORCE_INLINE constexpr EnumFlags operator<<(int bits) const
-        { return EnumFlags(value << bits); }
 
-    HYP_FORCE_INLINE EnumFlags &operator<<=(int bits)
+    HYP_FORCE_INLINE constexpr EnumFlags operator<<(int bits) const
+    {
+        return EnumFlags(value << bits);
+    }
+
+    HYP_FORCE_INLINE EnumFlags& operator<<=(int bits)
     {
         value <<= bits;
 
         return *this;
     }
-    
-    HYP_FORCE_INLINE constexpr EnumFlags operator>>(int bits) const
-        { return EnumFlags(value >> bits); }
 
-    HYP_FORCE_INLINE EnumFlags &operator>>=(int bits)
+    HYP_FORCE_INLINE constexpr EnumFlags operator>>(int bits) const
+    {
+        return EnumFlags(value >> bits);
+    }
+
+    HYP_FORCE_INLINE EnumFlags& operator>>=(int bits)
     {
         value >>= bits;
 
@@ -196,13 +231,19 @@ struct EnumFlags
     }
 
     HYP_FORCE_INLINE constexpr SubscriptWrapper operator[](EnumType flag)
-        { return SubscriptWrapper { *this, flag }; }
+    {
+        return SubscriptWrapper { *this, flag };
+    }
 
     HYP_FORCE_INLINE constexpr const SubscriptWrapper operator[](EnumType flag) const
-        { return SubscriptWrapper { const_cast<EnumFlags &>(*this), flag }; }
+    {
+        return SubscriptWrapper { const_cast<EnumFlags&>(*this), flag };
+    }
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
-        { return HashCode::GetHashCode(value); }
+    {
+        return HashCode::GetHashCode(value);
+    }
 };
 
 // Unary ~
@@ -228,7 +269,7 @@ constexpr EnumFlags<Enum> operator|(Enum lhs, Enum rhs)
 }
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
-EnumFlags<Enum> &operator|=(EnumFlags<Enum> lhs, Enum rhs)
+EnumFlags<Enum>& operator|=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs |= EnumFlags<Enum>(rhs);
 }
@@ -246,7 +287,7 @@ constexpr EnumFlags<Enum> operator&(Enum lhs, Enum rhs)
 }
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
-EnumFlags<Enum> &operator&=(EnumFlags<Enum> lhs, Enum rhs)
+EnumFlags<Enum>& operator&=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs &= EnumFlags<Enum>(rhs);
 }
@@ -264,7 +305,7 @@ constexpr EnumFlags<Enum> operator^(Enum lhs, Enum rhs)
 }
 
 template <class Enum, typename = std::enable_if_t<std::is_enum_v<Enum> && EnumFlagsDecl<Enum>::is_enum_flags>>
-EnumFlags<Enum> &operator^=(EnumFlags<Enum> lhs, Enum rhs)
+EnumFlags<Enum>& operator^=(EnumFlags<Enum> lhs, Enum rhs)
 {
     return lhs ^= EnumFlags<Enum>(rhs);
 }
@@ -275,7 +316,7 @@ struct MergeEnumFlags;
 template <class Enum>
 struct MergeEnumFlags<Enum>
 {
-    static constexpr EnumFlags<Enum> value = { };
+    static constexpr EnumFlags<Enum> value = {};
 };
 
 template <class Enum, Enum... Values>
@@ -286,19 +327,19 @@ struct MergeEnumFlags
 
 } // namespace hyperion
 
-#define HYP_MAKE_ENUM_FLAGS_PUBLIC(_enum) \
-    namespace hyperion { \
-        template <> \
-        struct EnumFlagsDecl<_enum> \
-        { \
-            static constexpr bool is_enum_flags = true; \
-        }; \
+#define HYP_MAKE_ENUM_FLAGS_PUBLIC(_enum)           \
+    namespace hyperion {                            \
+    template <>                                     \
+    struct EnumFlagsDecl<_enum>                     \
+    {                                               \
+        static constexpr bool is_enum_flags = true; \
+    };                                              \
     }
 
-#define HYP_MAKE_ENUM_FLAGS(_enum) \
-    template <> \
-    struct ::hyperion::EnumFlagsDecl<_enum> \
-    { \
+#define HYP_MAKE_ENUM_FLAGS(_enum)                  \
+    template <>                                     \
+    struct ::hyperion::EnumFlagsDecl<_enum>         \
+    {                                               \
         static constexpr bool is_enum_flags = true; \
     };
 

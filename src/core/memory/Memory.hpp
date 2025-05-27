@@ -11,7 +11,7 @@
 #include <cstdlib>
 
 #ifdef HYP_WINDOWS
-#define _CRT_SECURE_NO_WARNINGS 1
+    #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
 namespace hyperion {
@@ -20,12 +20,12 @@ namespace memory {
 class Memory
 {
 public:
-    static int MemCmp(const void *lhs, const void *rhs, SizeType size)
+    static int MemCmp(const void* lhs, const void* rhs, SizeType size)
     {
         return std::memcmp(lhs, rhs, size);
     }
 
-    static int StrCmp(const char *lhs, const char *rhs, SizeType length = 0)
+    static int StrCmp(const char* lhs, const char* rhs, SizeType length = 0)
     {
         if (length)
         {
@@ -35,7 +35,7 @@ public:
         return std::strcmp(lhs, rhs);
     }
 
-    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs, SizeType length, SizeType index)
+    static constexpr bool AreStaticStringsEqual(const char* lhs, const char* rhs, SizeType length, SizeType index)
     {
         if (std::is_constant_evaluated())
         {
@@ -46,7 +46,7 @@ public:
         return StrCmp(lhs, rhs, length) == 0;
     }
 
-    static constexpr bool AreStaticStringsEqual(const char *lhs, const char *rhs, SizeType length = 0)
+    static constexpr bool AreStaticStringsEqual(const char* lhs, const char* rhs, SizeType length = 0)
     {
         if (std::is_constant_evaluated())
         {
@@ -57,7 +57,7 @@ public:
         return StrCmp(lhs, rhs, length) == 0;
     }
 
-    static char *StrCpy(char *dest, const char *src, SizeType length = 0)
+    static char* StrCpy(char* dest, const char* src, SizeType length = 0)
     {
         if (length)
         {
@@ -69,7 +69,7 @@ public:
         return std::strcpy(dest, src);
     }
 
-    static inline SizeType StrLen(const char *str)
+    static inline SizeType StrLen(const char* str)
     {
         if (!str)
         {
@@ -81,84 +81,86 @@ public:
 
     /*! \brief Alias for memset. Takes in a ubyte (unsigned char) as value,
         To signify that only the lowest byte is copied over. */
-    static inline void *MemSet(void *dest, ubyte ch, SizeType size)
+    static inline void* MemSet(void* dest, ubyte ch, SizeType size)
     {
         return std::memset(dest, ch, size);
     }
 
-    static inline void *MemCpy(void *dest, const void *src, SizeType size) 
+    static inline void* MemCpy(void* dest, const void* src, SizeType size)
     {
         return std::memcpy(dest, src, size);
     }
 
-    static inline void *MemMove(void *dest, const void *src, SizeType size)
+    static inline void* MemMove(void* dest, const void* src, SizeType size)
     {
         return std::memmove(dest, src, size);
     }
 
-    static inline void *Clear(void *dest, SizeType size)
+    static inline void* Clear(void* dest, SizeType size)
     {
         return std::memset(dest, 0, size);
     }
 
-    static void Garble(void *dest, SizeType length)
+    static void Garble(void* dest, SizeType length)
     {
         std::memset(dest, 0xDEAD, length);
     }
 
-    template <class T, class ...Args>
-    [[nodiscard]] static void *New(Args &&... args)
+    template <class T, class... Args>
+    [[nodiscard]] static void* New(Args&&... args)
     {
         return new T(std::forward<Args>(args)...);
     }
 
     template <class T>
-    static void Delete(void *ptr)
+    static void Delete(void* ptr)
     {
-        delete static_cast<T *>(ptr);
+        delete static_cast<T*>(ptr);
     }
 
     template <class T, class... Args>
-    static void Construct(void *where, Args &&... args)
+    static void Construct(void* where, Args&&... args)
     {
         new (where) T(std::forward<Args>(args)...);
     }
 
     template <class T, class Context, class... Args>
-    static void ConstructWithContext(void *where, Args &&... args)
+    static void ConstructWithContext(void* where, Args&&... args)
     {
         auto context_result = Context(where);
-        
+
         new (where) T(std::forward<Args>(args)...);
     }
 
     template <class T, class... Args>
-    HYP_NODISCARD static T *AllocateAndConstruct(Args &&... args)
+    HYP_NODISCARD static T* AllocateAndConstruct(Args&&... args)
     {
-        void *ptr = std::malloc(sizeof(T));
+        void* ptr = std::malloc(sizeof(T));
 
         new (ptr) T(std::forward<Args>(args)...);
 
-        return static_cast<T *>(ptr);
+        return static_cast<T*>(ptr);
     }
 
     template <class T, class Context, class... Args>
-    HYP_NODISCARD static T *AllocateAndConstructWithContext(Args &&... args)
+    HYP_NODISCARD static T* AllocateAndConstructWithContext(Args&&... args)
     {
-        void *ptr = std::malloc(sizeof(T));
+        void* ptr = std::malloc(sizeof(T));
 
         auto context_result = Context(ptr);
 
         new (ptr) T(std::forward<Args>(args)...);
 
-        return static_cast<T *>(ptr);
+        return static_cast<T*>(ptr);
     }
 
     template <class T>
-    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(T &) { /* Do nothing */ }
+    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(T&)
+    { /* Do nothing */
+    }
 
     template <class T>
-    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(T &object)
+    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(T& object)
     {
         object.~T();
 #ifdef HYP_DEBUG_MODE
@@ -167,12 +169,14 @@ public:
     }
 
     template <class T>
-    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(void *) { /* Do nothing */ }
+    static std::enable_if_t<std::is_trivially_destructible_v<T>> Destruct(void*)
+    { /* Do nothing */
+    }
 
     template <class T>
-    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(void *ptr)
+    static std::enable_if_t<!std::is_trivially_destructible_v<T>> Destruct(void* ptr)
     {
-        static_cast<T *>(ptr)->~T();
+        static_cast<T*>(ptr)->~T();
 
 #ifdef HYP_DEBUG_MODE
         Memory::Garble(ptr, sizeof(T));
@@ -180,12 +184,12 @@ public:
     }
 
     template <class T>
-    static typename std::enable_if_t<!std::is_same_v<void *, std::add_pointer_t<T>>, void>
-    DestructAndFree(void *ptr)
+    static typename std::enable_if_t<!std::is_same_v<void*, std::add_pointer_t<T>>, void>
+    DestructAndFree(void* ptr)
     {
         if constexpr (!std::is_trivially_destructible_v<T>)
-        { 
-            static_cast<T *>(ptr)->~T();
+        {
+            static_cast<T*>(ptr)->~T();
         }
 
 #ifdef HYP_DEBUG_MODE
@@ -196,26 +200,28 @@ public:
     }
 
     template <class T>
-    static typename std::enable_if_t<std::is_same_v<void *, std::add_pointer_t<T>>, void>
-    DestructAndFree(void *ptr)
+    static typename std::enable_if_t<std::is_same_v<void*, std::add_pointer_t<T>>, void>
+    DestructAndFree(void* ptr)
     {
         std::free(ptr);
     }
 
     /*! \brief No operation function for deleting a trivially destructible object. */
-    static void NoOp(void *) { /* Do nothing */ }
+    static void NoOp(void*)
+    { /* Do nothing */
+    }
 
-    static void Free(void *ptr)
+    static void Free(void* ptr)
     {
         std::free(ptr);
     }
 
-    static void *AllocateZeros(SizeType count)
+    static void* AllocateZeros(SizeType count)
     {
         return std::calloc(count, 1);
     }
 
-    static void *Allocate(SizeType count)
+    static void* Allocate(SizeType count)
     {
         return std::malloc(count);
     }

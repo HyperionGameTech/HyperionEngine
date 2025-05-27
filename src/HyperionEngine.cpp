@@ -20,7 +20,7 @@
 #include <rendering/SafeDeleter.hpp>
 
 #ifdef HYP_VULKAN
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+    #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 #endif
 
 #include <audio/AudioManager.hpp>
@@ -29,7 +29,7 @@
 
 namespace hyperion {
 
-HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game)
+HYP_API void InitializeAppContext(const RC<AppContextBase>& app_context, Game* game)
 {
     AssertThrow(app_context != nullptr);
 
@@ -43,10 +43,10 @@ HYP_API void InitializeAppContext(const RC<AppContext> &app_context, Game *game)
     g_engine->Initialize(app_context);
 }
 
-HYP_API void InitializeEngine(const FilePath &base_path)
+HYP_API void InitializeEngine(const FilePath& base_path)
 {
     Threads::SetCurrentThreadID(g_main_thread);
-    
+
     HypClassRegistry::GetInstance().Initialize();
     dotnet::DotNetSystem::GetInstance().Initialize(base_path);
     ConsoleCommandManager::GetInstance().Initialize();
@@ -77,8 +77,7 @@ HYP_API void DestroyEngine()
 
     AssertThrowMsg(
         g_engine != nullptr,
-        "Hyperion not initialized!"
-    );
+        "Hyperion not initialized!");
 
     g_engine->FinalizeStop();
 

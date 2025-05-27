@@ -8,7 +8,7 @@ namespace hyperion::fbom {
 
 #pragma region FBOMWriterConfig
 
-void FBOMWriterConfig::SaveToJSON(json::JSONValue &out_json) const
+void FBOMWriterConfig::SaveToJSON(json::JSONValue& out_json) const
 {
     json::JSONObject object = {
         { "enable_static_data", enable_static_data },
@@ -18,9 +18,10 @@ void FBOMWriterConfig::SaveToJSON(json::JSONValue &out_json) const
     out_json = object;
 }
 
-bool FBOMWriterConfig::LoadFromJSON(const json::JSONValue &json)
+bool FBOMWriterConfig::LoadFromJSON(const json::JSONValue& json)
 {
-    if (!json.IsObject()) {
+    if (!json.IsObject())
+    {
         return false;
     }
 
@@ -36,7 +37,7 @@ bool FBOMWriterConfig::LoadFromJSON(const json::JSONValue &json)
 
 #pragma region FBOMReaderConfig
 
-void FBOMReaderConfig::SaveToJSON(json::JSONValue &out_json) const
+void FBOMReaderConfig::SaveToJSON(json::JSONValue& out_json) const
 {
     json::JSONObject object = {
         { "continue_on_external_load_error", continue_on_external_load_error },
@@ -48,9 +49,10 @@ void FBOMReaderConfig::SaveToJSON(json::JSONValue &out_json) const
     out_json = object;
 }
 
-bool FBOMReaderConfig::LoadFromJSON(const json::JSONValue &json)
+bool FBOMReaderConfig::LoadFromJSON(const json::JSONValue& json)
 {
-    if (!json.IsObject()) {
+    if (!json.IsObject())
+    {
         return false;
     }
 

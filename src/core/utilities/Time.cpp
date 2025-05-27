@@ -1,10 +1,10 @@
 #include <core/utilities/Time.hpp>
 
 #ifdef HYP_UNIX
-#include <sys/time.h>
+    #include <sys/time.h>
 #elif defined(HYP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#include "windows.h"
+    #define WIN32_LEAN_AND_MEAN
+    #include "windows.h"
 #endif
 
 namespace hyperion {
@@ -12,17 +12,27 @@ namespace utilities {
 
 #pragma region TimeDiff
 
-TimeDiff TimeDiff::operator+(const Time &other) const
-    { return TimeDiff(milliseconds + other.m_value); }
+TimeDiff TimeDiff::operator+(const Time& other) const
+{
+    return TimeDiff(milliseconds + other.m_value);
+}
 
-TimeDiff &TimeDiff::operator+=(const Time &other)
-    { milliseconds += other.m_value; return *this; }
+TimeDiff& TimeDiff::operator+=(const Time& other)
+{
+    milliseconds += other.m_value;
+    return *this;
+}
 
-TimeDiff TimeDiff::operator-(const Time &other) const
-    { return TimeDiff(milliseconds + other.m_value); }
+TimeDiff TimeDiff::operator-(const Time& other) const
+{
+    return TimeDiff(milliseconds + other.m_value);
+}
 
-TimeDiff &TimeDiff::operator-=(const Time &other)
-    { milliseconds += other.m_value; return *this; }
+TimeDiff& TimeDiff::operator-=(const Time& other)
+{
+    milliseconds += other.m_value;
+    return *this;
+}
 
 #pragma endregion TimeDiff
 

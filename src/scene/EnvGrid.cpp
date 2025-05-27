@@ -27,7 +27,8 @@ static const Vec2u light_field_probe_dimensions { 32, 32 };
 
 static Vec2u GetProbeDimensions(EnvGridType env_grid_type)
 {
-    switch (env_grid_type) {
+    switch (env_grid_type)
+    {
     case EnvGridType::ENV_GRID_TYPE_SH:
         return sh_probe_dimensions;
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
@@ -39,7 +40,7 @@ static Vec2u GetProbeDimensions(EnvGridType env_grid_type)
 
 #pragma region EnvProbeCollection
 
-uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe> &env_probe)
+uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe>& env_probe)
 {
     AssertThrow(env_probe.IsValid());
     AssertThrow(env_probe->IsReady());
@@ -57,7 +58,7 @@ uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe> &env_probe)
 }
 
 // Must be called in EnvGrid::Init(), before probes are used from the render thread.
-void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe> &env_probe)
+void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe>& env_probe)
 {
     AssertThrow(env_probe.IsValid());
     AssertThrow(env_probe->IsReady());
@@ -65,7 +66,7 @@ void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe> &env_prob
     AssertThrow(index < max_bound_ambient_probes);
 
     num_probes = MathUtil::Max(num_probes, index + 1);
-        
+
     env_probes[index] = env_probe;
     env_probe_render_resources[index] = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
     indirect_indices[index] = index;
@@ -78,30 +79,30 @@ void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe> &env_prob
 
 EnvGrid::EnvGrid()
     : EnvGrid(
-          Handle<Scene> { },
+          Handle<Scene> {},
           BoundingBox::Empty(),
-          EnvGridOptions { }
-      )
+          EnvGridOptions {})
 {
 }
 
 EnvGrid::EnvGrid(
-    const Handle<Scene> &parent_scene,
-    const BoundingBox &aabb,
-    const EnvGridOptions &options
-) : HypObject(),
-    m_parent_scene(parent_scene),
-    m_aabb(aabb),
-    m_offset(aabb.GetCenter()),
-    m_voxel_grid_aabb(aabb),
-    m_options(options),
-    m_render_resource(nullptr)
+    const Handle<Scene>& parent_scene,
+    const BoundingBox& aabb,
+    const EnvGridOptions& options)
+    : HypObject(),
+      m_parent_scene(parent_scene),
+      m_aabb(aabb),
+      m_offset(aabb.GetCenter()),
+      m_voxel_grid_aabb(aabb),
+      m_options(options),
+      m_render_resource(nullptr)
 {
 }
 
 EnvGrid::~EnvGrid()
 {
-    if (m_render_resource != nullptr) {
+    if (m_render_resource != nullptr)
+    {
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
@@ -110,23 +111,25 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
-    {
-        if (m_render_resource != nullptr) {
-            FreeResource(m_render_resource);
+        {
+            if (m_render_resource != nullptr)
+            {
+                FreeResource(m_render_resource);
 
-            m_render_resource = nullptr;
-        }
+                m_render_resource = nullptr;
+            }
 
-        m_view.Reset();
-        m_camera.Reset();
-    }));
+            m_view.Reset();
+            m_camera.Reset();
+        }));
 
     AssertThrow(m_parent_scene.IsValid());
 
@@ -138,9 +141,8 @@ void EnvGrid::Init()
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(probe_dimensions.x), int(probe_dimensions.y),
-        0.001f, m_aabb.GetRadius() * 2.0f
-    );
-    
+        0.001f, m_aabb.GetRadius() * 2.0f);
+
     m_camera->SetName(Name::Unique("EnvGridCamera"));
     m_camera->SetTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
@@ -148,19 +150,16 @@ void EnvGrid::Init()
     m_render_resource = AllocateResource<EnvGridRenderResource>(this);
 
     m_view = CreateObject<View>(ViewDesc {
-        .viewport                   = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
-        .scene                      = m_parent_scene,
-        .camera                     = m_camera,
-        .entity_collection_flags    = ViewEntityCollectionFlags::COLLECT_STATIC | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
-        .override_attributes        = RenderableAttributeSet(
-            MeshAttributes { },
+        .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
+        .scene = m_parent_scene,
+        .camera = m_camera,
+        .entity_collection_flags = ViewEntityCollectionFlags::COLLECT_STATIC | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
+        .override_attributes = RenderableAttributeSet(
+            MeshAttributes {},
             MaterialAttributes {
-                .shader_definition  = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                .cull_faces         = FaceCullMode::BACK
-            }
-        )
-    });
-    
+                .shader_definition = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
+                .cull_faces = FaceCullMode::BACK }) });
+
     InitObject(m_view);
 
     m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
@@ -180,25 +179,27 @@ void EnvGrid::CreateEnvProbes()
     const Vec2u probe_dimensions = GetProbeDimensions(m_options.type);
     AssertThrow(probe_dimensions.Volume() != 0);
 
-    if (num_ambient_probes != 0) {
-        for (uint32 x = 0; x < m_options.density.x; x++) {
-            for (uint32 y = 0; y < m_options.density.y; y++) {
-                for (uint32 z = 0; z < m_options.density.z; z++) {
+    if (num_ambient_probes != 0)
+    {
+        for (uint32 x = 0; x < m_options.density.x; x++)
+        {
+            for (uint32 y = 0; y < m_options.density.y; y++)
+            {
+                for (uint32 z = 0; z < m_options.density.z; z++)
+                {
                     const uint32 index = x * m_options.density.x * m_options.density.y
                         + y * m_options.density.x
                         + z;
 
                     const BoundingBox env_probe_aabb(
                         m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
-                        m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe())
-                    );
+                        m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe()));
 
                     Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(
                         m_parent_scene,
                         env_probe_aabb,
                         probe_dimensions,
-                        EnvProbeType::ENV_PROBE_TYPE_AMBIENT
-                    );
+                        EnvProbeType::ENV_PROBE_TYPE_AMBIENT);
 
                     env_probe->m_grid_slot = index;
 
@@ -211,41 +212,48 @@ void EnvGrid::CreateEnvProbes()
     }
 }
 
-void EnvGrid::SetAABB(const BoundingBox &aabb)
+void EnvGrid::SetAABB(const BoundingBox& aabb)
 {
     HYP_SCOPE;
 
-    if (m_aabb != aabb) {
+    if (m_aabb != aabb)
+    {
         m_aabb = aabb;
 
-        if (IsInitCalled()) {
+        if (IsInitCalled())
+        {
             m_render_resource->SetAABB(aabb);
         }
     }
 }
 
-void EnvGrid::SetParentScene(const Handle<Scene> &parent_scene)
+void EnvGrid::SetParentScene(const Handle<Scene>& parent_scene)
 {
     HYP_SCOPE;
 
-    if (m_parent_scene == parent_scene) {
+    if (m_parent_scene == parent_scene)
+    {
         return;
     }
 
     m_parent_scene = parent_scene;
 
-    if (IsInitCalled()) {
-        if (parent_scene.IsValid()) {
+    if (IsInitCalled())
+    {
+        if (parent_scene.IsValid())
+        {
             AssertThrow(parent_scene->IsReady());
 
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
-        } else {
+        }
+        else
+        {
             m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
         }
     }
 }
 
-void EnvGrid::Translate(const BoundingBox &aabb, const Vec3f &translation)
+void EnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
 {
     HYP_SCOPE;
     AssertReady();
@@ -274,20 +282,25 @@ void EnvGrid::Translate(const BoundingBox &aabb, const Vec3f &translation)
 
     m_aabb.SetCenter(Vec3f(position_snapped) * size_of_probe + m_offset);
 
-    if (current_grid_position == position_snapped) {
+    if (current_grid_position == position_snapped)
+    {
         return;
     }
 
-    if (m_camera) {
+    if (m_camera)
+    {
         m_camera->SetTranslation(m_aabb.GetCenter());
     }
 
     Array<uint32> updates;
     updates.Resize(m_env_probe_collection.num_probes);
 
-    for (uint32 x = 0; x < m_options.density.x; x++) {
-        for (uint32 y = 0; y < m_options.density.y; y++) {
-            for (uint32 z = 0; z < m_options.density.z; z++) {
+    for (uint32 x = 0; x < m_options.density.x; x++)
+    {
+        for (uint32 y = 0; y < m_options.density.y; y++)
+        {
+            for (uint32 z = 0; z < m_options.density.z; z++)
+            {
                 const Vec3i coord { int(x), int(y), int(z) };
                 const Vec3i scrolled_coord = coord + position_snapped;
 
@@ -312,16 +325,18 @@ void EnvGrid::Translate(const BoundingBox &aabb, const Vec3f &translation)
                     m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * size_of_probe)
                 };
 
-                const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(scrolled_clamped_index);
+                const Handle<EnvProbe>& probe = m_env_probe_collection.GetEnvProbeDirect(scrolled_clamped_index);
 
-                if (!probe.IsValid()) {
+                if (!probe.IsValid())
+                {
                     // Should not happen, but just in case
                     continue;
                 }
 
                 // If probe is at the edge of the grid, it will be moved to the opposite edge.
                 // That means we need to re-render
-                if (!probe->GetAABB().ContainsPoint(new_probe_aabb.GetCenter())) {
+                if (!probe->GetAABB().ContainsPoint(new_probe_aabb.GetCenter()))
+                {
                     probe->SetAABB(new_probe_aabb);
                 }
 
@@ -330,7 +345,8 @@ void EnvGrid::Translate(const BoundingBox &aabb, const Vec3f &translation)
         }
     }
 
-    for (uint32 update_index = 0; update_index < uint32(updates.Size()); update_index++) {
+    for (uint32 update_index = 0; update_index < uint32(updates.Size()); update_index++)
+    {
         AssertThrow(update_index < m_env_probe_collection.num_probes);
         AssertThrow(updates[update_index] < m_env_probe_collection.num_probes);
 
@@ -350,8 +366,9 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
     m_camera->Update(delta);
     m_view->Update(delta);
 
-    for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++) {
-        const Handle<EnvProbe> &probe = m_env_probe_collection.GetEnvProbeDirect(index);
+    for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)
+    {
+        const Handle<EnvProbe>& probe = m_env_probe_collection.GetEnvProbeDirect(index);
         AssertThrow(probe.IsValid());
 
         probe->SetNeedsUpdate(true);

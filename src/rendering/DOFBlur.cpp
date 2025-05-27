@@ -8,7 +8,7 @@
 
 namespace hyperion {
 
-DOFBlur::DOFBlur(const Vec2u &extent, GBuffer *gbuffer)
+DOFBlur::DOFBlur(const Vec2u& extent, GBuffer* gbuffer)
     : m_gbuffer(gbuffer),
       m_extent(extent)
 {
@@ -25,8 +25,7 @@ void DOFBlur::Create()
         blur_horizontal_shader,
         InternalFormat::RGBA8,
         m_extent,
-        m_gbuffer
-    );
+        m_gbuffer);
 
     m_blur_horizontal_pass->Create();
 
@@ -37,8 +36,7 @@ void DOFBlur::Create()
         blur_vertical_shader,
         InternalFormat::RGBA8,
         m_extent,
-        m_gbuffer
-    );
+        m_gbuffer);
 
     m_blur_vertical_pass->Create();
 
@@ -49,8 +47,7 @@ void DOFBlur::Create()
         blur_mix_shader,
         InternalFormat::RGBA8,
         m_extent,
-        m_gbuffer
-    );
+        m_gbuffer);
 
     m_blur_mix_pass->Create();
 }
@@ -62,27 +59,28 @@ void DOFBlur::Destroy()
     m_blur_mix_pass.Reset();
 }
 
-void DOFBlur::Render(FrameBase *frame, ViewRenderResource *view)
+void DOFBlur::Render(FrameBase* frame, ViewRenderResource* view)
 {
     struct alignas(128)
     {
-        Vec2u   dimension;
+        Vec2u dimension;
     } push_constants;
 
     push_constants.dimension = m_extent;
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    FixedArray<FullScreenPass *, 2> directional_passes {
+    FixedArray<FullScreenPass*, 2> directional_passes {
         m_blur_horizontal_pass.Get(),
         m_blur_vertical_pass.Get()
     };
 
-    for (FullScreenPass *pass : directional_passes) {
+    for (FullScreenPass* pass : directional_passes)
+    {
         pass->SetPushConstants(&push_constants, sizeof(push_constants));
         pass->Render(frame, view);
     }
-    
+
     m_blur_mix_pass->SetPushConstants(&push_constants, sizeof(push_constants));
     m_blur_mix_pass->Render(frame, view);
 }

@@ -18,44 +18,44 @@ namespace hyperion {
 class NameRegistry;
 
 /*! \brief Creates a Name from a dynamic string. Adds it to the registry, so a lock is required. */
-extern HYP_API Name CreateNameFromDynamicString(const ANSIString &str);
+extern HYP_API Name CreateNameFromDynamicString(const ANSIString& str);
 
 /*! \brief Creates a Name from a dynamic string. Does not add it to the registry. */
-extern HYP_API WeakName CreateWeakNameFromDynamicString(const ANSIStringView &str);
+extern HYP_API WeakName CreateWeakNameFromDynamicString(const ANSIStringView& str);
 
-extern HYP_API Name RegisterName(NameRegistry *name_registry, NameID id, const ANSIString &str, bool lock);
+extern HYP_API Name RegisterName(NameRegistry* name_registry, NameID id, const ANSIString& str, bool lock);
 
-extern HYP_API const ANSIString &LookupStringForName(const NameRegistry *name_registry, Name name);
+extern HYP_API const ANSIString& LookupStringForName(const NameRegistry* name_registry, Name name);
 
 struct NameRegistration
 {
-    NameID  id;
-    
+    NameID id;
+
     template <class S>
     static constexpr NameID GenerateID()
     {
         using Seq = typename S::Sequence;
-        
+
         constexpr HashCode hash_code = HashCode::GetHashCode(Seq::Data());
         constexpr NameID id = hash_code.Value();
 
         return id;
     }
-    
-    HYP_API static NameID GenerateID(const ANSIStringView &str);
+
+    HYP_API static NameID GenerateID(const ANSIStringView& str);
 
     template <class HashedName>
-    static NameRegistration FromHashedName(HashedName &&hashed_name, bool lock = true)
+    static NameRegistration FromHashedName(HashedName&& hashed_name, bool lock = true)
     {
         static constexpr NameID name_id = HashedName::hash_code.Value();
 
         RegisterName(Name::GetRegistry(), name_id, hashed_name.data, lock);
-        
+
         return NameRegistration { name_id };
     }
-    
+
     template <HashCode::ValueType HashCode>
-    static NameRegistration FromHashedName(const char *str, bool lock = true)
+    static NameRegistration FromHashedName(const char* str, bool lock = true)
     {
         static constexpr NameID name_id = HashCode;
 
@@ -63,13 +63,13 @@ struct NameRegistration
 
         return NameRegistration { name_id };
     }
-    
-    HYP_API static NameRegistration FromDynamicString(const ANSIString &str);
+
+    HYP_API static NameRegistration FromDynamicString(const ANSIString& str);
 };
 
 /*! \brief Creates a Name from a static string. The string must be a compile-time constant. */
 template <class HashedName>
-static inline Name CreateNameFromStaticString_WithLock(HashedName &&hashed_name)
+static inline Name CreateNameFromStaticString_WithLock(HashedName&& hashed_name)
 {
     static const NameRegistration name_registration = NameRegistration::FromHashedName(std::forward<HashedName>(hashed_name), true);
 
@@ -79,7 +79,7 @@ static inline Name CreateNameFromStaticString_WithLock(HashedName &&hashed_name)
 /*! \brief Creates a Name from a static string. The string must be a compile-time constant.
  * Use in contexts where thread-safety is not an issue such as static initialization. */
 template <class HashedName>
-static inline Name CreateNameFromStaticString_NoLock(HashedName &&hashed_name)
+static inline Name CreateNameFromStaticString_NoLock(HashedName&& hashed_name)
 {
     static const NameRegistration name_registration = NameRegistration::FromHashedName(std::forward<HashedName>(hashed_name), false);
 
@@ -92,7 +92,7 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, Name>
 {
-    auto operator()(const Name &value) const
+    auto operator()(const Name& value) const
     {
         return StringType(value.LookupString());
     }
@@ -110,24 +110,24 @@ constexpr WeakName operator "" _nw(const char *, SizeType);
 
 #if defined(HYP_COMPILE_TIME_NAME_HASHING) && HYP_COMPILE_TIME_NAME_HASHING
 
-#define HYP_HASHED_NAME2(name)  ::hyperion::HashedName<::hyperion::StaticString<sizeof(name)>(name)>()
-#define HYP_NAME_UNSAFE2(name)  ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME2(name))
-#define HYP_WEAK_NAME2(name)    ::hyperion::Name(HYP_HASHED_NAME2(name).hash_code.Value())
-#define HYP_NAME2(name)         ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME2(name))
+    #define HYP_HASHED_NAME2(name) ::hyperion::HashedName<::hyperion::StaticString<sizeof(name)>(name)>()
+    #define HYP_NAME_UNSAFE2(name) ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME2(name))
+    #define HYP_WEAK_NAME2(name) ::hyperion::Name(HYP_HASHED_NAME2(name).hash_code.Value())
+    #define HYP_NAME2(name) ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME2(name))
 
-#define HYP_HASHED_NAME(name)   ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
-#define HYP_NAME_UNSAFE(name)   ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
-#define HYP_WEAK_NAME(name)     ::hyperion::Name(HYP_HASHED_NAME(name).hash_code.Value())
-#define HYP_NAME(name)          ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
+    #define HYP_HASHED_NAME(name) ::hyperion::HashedName<::hyperion::StaticString<sizeof(HYP_STR(name))>(HYP_STR(name))>()
+    #define HYP_NAME_UNSAFE(name) ::hyperion::CreateNameFromStaticString_NoLock(HYP_HASHED_NAME(name))
+    #define HYP_WEAK_NAME(name) ::hyperion::Name(HYP_HASHED_NAME(name).hash_code.Value())
+    #define HYP_NAME(name) ::hyperion::CreateNameFromStaticString_WithLock(HYP_HASHED_NAME(name))
 
-#define NAME(str) HYP_NAME2(str)
+    #define NAME(str) HYP_NAME2(str)
 
 #else
-#define HYP_NAME(name)          ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
-#define HYP_NAME_UNSAFE(name)   HYP_NAME(name)
-#define HYP_WEAK_NAME(name)     HYP_NAME(name)
+    #define HYP_NAME(name) ::hyperion::Name(HashCode::GetHashCode(HYP_STR(name)).Value())
+    #define HYP_NAME_UNSAFE(name) HYP_NAME(name)
+    #define HYP_WEAK_NAME(name) HYP_NAME(name)
 
-#define NAME(str) HYP_NAME(str)
+    #define NAME(str) HYP_NAME(str)
 #endif
 
 #define NAME_FMT(fmt, ...) CreateNameFromDynamicString(HYP_FORMAT(fmt, ##__VA_ARGS__).Data())

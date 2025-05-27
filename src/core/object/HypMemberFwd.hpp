@@ -26,11 +26,11 @@ class FBOMLoadContext;
 
 enum class HypMemberType : uint8
 {
-    NONE                = 0x0,
-    TYPE_FIELD          = 0x1,
-    TYPE_METHOD         = 0x2,
-    TYPE_PROPERTY       = 0x4,
-    TYPE_CONSTANT       = 0x8
+    NONE = 0x0,
+    TYPE_FIELD = 0x1,
+    TYPE_METHOD = 0x2,
+    TYPE_PROPERTY = 0x4,
+    TYPE_CONSTANT = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(HypMemberType)
@@ -51,12 +51,12 @@ public:
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
-    virtual bool Serialize(Span<HypData> args, fbom::FBOMData &out) const = 0;
-    virtual bool Deserialize(fbom::FBOMLoadContext &context, HypData &target, const fbom::FBOMData &value) const = 0;
+    virtual bool Serialize(Span<HypData> args, fbom::FBOMData& out) const = 0;
+    virtual bool Deserialize(fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& value) const = 0;
 
-    virtual const HypClassAttributeSet &GetAttributes() const = 0;
-    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key) const = 0;
-    virtual const HypClassAttributeValue &GetAttribute(ANSIStringView key, const HypClassAttributeValue &default_value) const = 0;
+    virtual const HypClassAttributeSet& GetAttributes() const = 0;
+    virtual const HypClassAttributeValue& GetAttribute(ANSIStringView key) const = 0;
+    virtual const HypClassAttributeValue& GetAttribute(ANSIStringView key, const HypClassAttributeValue& default_value) const = 0;
 };
 
 } // namespace hyperion

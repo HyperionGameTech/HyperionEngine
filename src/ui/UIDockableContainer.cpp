@@ -34,58 +34,70 @@ UIDockableContainer::UIDockableContainer()
 
 void UIDockableContainer::Init()
 {
-    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++)
+    {
         m_dockable_items[i] = CreateUIObject<UIDockableItem>(CreateNameFromDynamicString(ANSIString("DockableItems_") + ANSIString::ToString(i)), Vec2i { 0, 0 }, UIObjectSize());
     }
 
     UIPanel::Init();
 
-    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++)
+    {
         UIObject::AddChildUIObject(m_dockable_items[i]);
     }
 }
 
-void UIDockableContainer::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIDockableContainer::AddChildUIObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return;
     }
 
     UIDockableItemPosition position = UIDockableItemPosition::CENTER;
 
-    if (const NodeTag &side_node_tag = ui_object->GetNodeTag("side"); side_node_tag.IsValid()) {
-        Optional<const String &> side_opt = side_node_tag.data.TryGet<String>();
+    if (const NodeTag& side_node_tag = ui_object->GetNodeTag("side"); side_node_tag.IsValid())
+    {
+        Optional<const String&> side_opt = side_node_tag.data.TryGet<String>();
 
-        if (side_opt.HasValue()) {
+        if (side_opt.HasValue())
+        {
             const auto it = g_dockable_item_position_map.Find(*side_opt);
-        
-            if (it != g_dockable_item_position_map.End()) {
+
+            if (it != g_dockable_item_position_map.End())
+            {
                 position = it->second;
             }
         }
     }
 
-    if (position == UIDockableItemPosition::UNDOCKED) {
+    if (position == UIDockableItemPosition::UNDOCKED)
+    {
         UIPanel::AddChildUIObject(ui_object);
-    } else {
+    }
+    else
+    {
         m_dockable_items[uint32(position)]->AddChildUIObject(ui_object);
     }
 
     UpdateSize(true);
 }
 
-bool UIDockableContainer::RemoveChildUIObject(UIObject *ui_object)
+bool UIDockableContainer::RemoveChildUIObject(UIObject* ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
-    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++) {
-        if (m_dockable_items[i]->RemoveChildUIObject(ui_object)) {
+    for (uint32 i = 0; i < uint32(UIDockableItemPosition::MAX); i++)
+    {
+        if (m_dockable_items[i]->RemoveChildUIObject(ui_object))
+        {
             UpdateSize(true);
             return true;
         }
@@ -94,7 +106,7 @@ bool UIDockableContainer::RemoveChildUIObject(UIObject *ui_object)
     return UIPanel::RemoveChildUIObject(ui_object);
 }
 
-void UIDockableContainer::AddChildUIObject(const RC<UIObject> &ui_object, UIDockableItemPosition position)
+void UIDockableContainer::AddChildUIObject(const RC<UIObject>& ui_object, UIDockableItemPosition position)
 {
     HYP_SCOPE;
 
@@ -109,7 +121,8 @@ void UIDockableContainer::UpdateSize_Internal(bool update_children)
 
     UIPanel::UpdateSize_Internal(update_children);
 
-    if (update_children) {
+    if (update_children)
+    {
         UpdateLayout();
     }
 }

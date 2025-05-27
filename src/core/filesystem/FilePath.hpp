@@ -30,103 +30,103 @@ public:
     {
     }
 
-    FilePath(const String::ValueType *str)
+    FilePath(const String::ValueType* str)
         : String(str)
     {
     }
 
-    FilePath(const FilePath &other)
+    FilePath(const FilePath& other)
         : String(other)
     {
     }
 
-    FilePath(const String &str)
+    FilePath(const String& str)
         : String(str)
     {
     }
 
-    FilePath(FilePath &&other) noexcept
+    FilePath(FilePath&& other) noexcept
         : String(std::move(other))
     {
     }
 
-    FilePath(String &&str) noexcept
+    FilePath(String&& str) noexcept
         : String(std::move(str))
     {
     }
 
     ~FilePath() = default;
 
-    FilePath &operator=(const FilePath &other)
+    FilePath& operator=(const FilePath& other)
     {
         String::operator=(other);
 
         return *this;
     }
 
-    FilePath &operator=(FilePath &&other) noexcept
+    FilePath& operator=(FilePath&& other) noexcept
     {
         String::operator=(std::move(other));
 
         return *this;
     }
 
-    FilePath operator+(const FilePath &other) const
+    FilePath operator+(const FilePath& other) const
     {
         return FilePath(Base::operator+(other));
     }
 
-    FilePath operator+(const String &other) const
+    FilePath operator+(const String& other) const
     {
         return FilePath(Base::operator+(other));
     }
 
-    FilePath operator+(const char *str) const
+    FilePath operator+(const char* str) const
     {
         return FilePath(Base::operator+(str));
     }
 
-    FilePath &operator+=(const FilePath &other)
+    FilePath& operator+=(const FilePath& other)
     {
         return *this = Base::operator+=(other);
     }
 
-    FilePath &operator+=(const String &other)
+    FilePath& operator+=(const String& other)
     {
         return *this = Base::operator+=(other);
     }
 
-    FilePath &operator+=(const char *str)
+    FilePath& operator+=(const char* str)
     {
         return *this = Base::operator+=(str);
     }
 
-    FilePath operator/(const FilePath &other) const
+    FilePath operator/(const FilePath& other) const
     {
         return Join(Data(), other.Data());
     }
 
-    FilePath operator/(const String &other) const
+    FilePath operator/(const String& other) const
     {
         return Join(Data(), other.Data());
     }
 
-    FilePath operator/(const char *str) const
+    FilePath operator/(const char* str) const
     {
         return Join(Data(), str);
     }
 
-    FilePath &operator/=(const FilePath &other)
+    FilePath& operator/=(const FilePath& other)
     {
         return *this = Join(Data(), other.Data());
     }
 
-    FilePath &operator/=(const String &other)
+    FilePath& operator/=(const String& other)
     {
         return *this = Join(Data(), other.Data());
     }
 
-    FilePath &operator/=(const char *str)
+    FilePath& operator/=(const char* str)
     {
         return *this = Join(Data(), str);
     }
@@ -144,7 +144,7 @@ public:
 
     HYP_API FilePath BasePath() const;
 
-    HYP_API bool Open(BufferedReader &out) const;
+    HYP_API bool Open(BufferedReader& out) const;
 
     /*! \brief Remove the file or directory at the path.
      *
@@ -157,13 +157,13 @@ public:
         return FilePath(FileSystem::CurrentPath().c_str());
     }
 
-    static inline FilePath Relative(const FilePath &path, const FilePath &base)
+    static inline FilePath Relative(const FilePath& path, const FilePath& base)
     {
         return FilePath(FileSystem::RelativePath(path.Data(), base.Data()).c_str());
     }
 
-    template <class ... Paths>
-    static inline FilePath Join(Paths &&... paths)
+    template <class... Paths>
+    static inline FilePath Join(Paths&&... paths)
     {
         const auto str = FileSystem::Join(std::forward<Paths>(paths)...);
 
@@ -185,11 +185,14 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, FilePath>
 {
-    auto operator()(const FilePath &value) const
+    auto operator()(const FilePath& value) const
     {
-        if constexpr (std::is_base_of_v<StringType, FilePath>) {
+        if constexpr (std::is_base_of_v<StringType, FilePath>)
+        {
             return static_cast<StringType>(value);
-        } else {
+        }
+        else
+        {
             return StringType(value.Data());
         }
     }

@@ -12,11 +12,10 @@ class WriteBitmap
 {
 public:
     HYP_API static bool Write(
-        const char *path,
+        const char* path,
         int width,
         int height,
-        unsigned char *bytes
-    );
+        unsigned char* bytes);
 };
 
 } // namespace hyperion

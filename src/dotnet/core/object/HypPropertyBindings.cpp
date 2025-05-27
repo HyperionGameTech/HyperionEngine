@@ -18,58 +18,65 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void HypProperty_GetName(const HypProperty *property, Name *out_name)
+extern "C"
 {
-    if (!property || !out_name) {
-        return;
+
+    HYP_EXPORT void HypProperty_GetName(const HypProperty* property, Name* out_name)
+    {
+        if (!property || !out_name)
+        {
+            return;
+        }
+
+        *out_name = property->GetName();
     }
 
-    *out_name = property->GetName();
-}
+    HYP_EXPORT void HypProperty_GetTypeID(const HypProperty* property, TypeID* out_type_id)
+    {
+        if (!property || !out_type_id)
+        {
+            return;
+        }
 
-HYP_EXPORT void HypProperty_GetTypeID(const HypProperty *property, TypeID *out_type_id)
-{
-    if (!property || !out_type_id) {
-        return;
+        *out_type_id = property->GetTypeID();
     }
 
-    *out_type_id = property->GetTypeID();
-}
+    HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty* property, const HypClass* target_class, void* target_ptr, HypData* out_result)
+    {
+        if (!property || !target_class || !target_ptr || !out_result)
+        {
+            return false;
+        }
 
-HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *out_result)
-{
-    if (!property || !target_class || !target_ptr || !out_result) {
-        return false;
+        if (!property->CanGet())
+        {
+            return false;
+        }
+
+        HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+
+        *out_result = property->Get(target_data);
+
+        return true;
     }
 
-    if (!property->CanGet()) {
-        return false;
+    HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty* property, const HypClass* target_class, void* target_ptr, HypData* value)
+    {
+        if (!property || !target_class || !target_ptr || !value)
+        {
+            return false;
+        }
+
+        if (!property->CanSet())
+        {
+            return false;
+        }
+
+        HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+
+        property->Set(target_data, *value);
+
+        return true;
     }
-
-    HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
-
-    *out_result = property->Get(target_data);
-
-    return true;
-}
-
-HYP_EXPORT bool HypProperty_InvokeSetter(const HypProperty *property, const HypClass *target_class, void *target_ptr, HypData *value)
-{
-    if (!property || !target_class || !target_ptr || !value) {
-        return false;
-    }
-
-    if (!property->CanSet()) {
-        return false;
-    }
-
-    HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
-
-    property->Set(target_data, *value);
-
-    return true;
-}
 
 } // extern "C"

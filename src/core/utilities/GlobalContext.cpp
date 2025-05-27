@@ -5,11 +5,12 @@ namespace utilities {
 
 #pragma region GlobalContextRegistry
 
-thread_local GlobalContextRegistry *g_global_context_registry = nullptr;
+thread_local GlobalContextRegistry* g_global_context_registry = nullptr;
 
-HYP_API GlobalContextRegistry *GetGlobalContextRegistryForCurrentThread()
+HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 {
-    if (!g_global_context_registry) {
+    if (!g_global_context_registry)
+    {
         g_global_context_registry = new GlobalContextRegistry();
     }
 

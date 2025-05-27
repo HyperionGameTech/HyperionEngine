@@ -15,15 +15,15 @@
 #include <Engine.hpp>
 
 #ifdef HYP_SDL
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+    #include <SDL2/SDL.h>
+    #include <SDL2/SDL_vulkan.h>
 #endif
 
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
 
-HYP_API const CommandLineArgumentDefinitions &DefaultCommandLineArgumentDefinitions()
+HYP_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 {
     static const struct DefaultCommandLineArgumentDefinitionsInitializer
     {
@@ -72,26 +72,31 @@ SDLApplicationWindow::SDLApplicationWindow(ANSIString title, Vec2i size)
 
 SDLApplicationWindow::~SDLApplicationWindow()
 {
-    SDL_DestroyWindow(static_cast<SDL_Window *>(m_window_handle));
+    SDL_DestroyWindow(static_cast<SDL_Window*>(m_window_handle));
 }
 
 void SDLApplicationWindow::Initialize(WindowOptions window_options)
 {
     uint32 sdl_flags = 0;
 
-    if (!(window_options.flags & WindowFlags::NO_GFX)) {
+    if (!(window_options.flags & WindowFlags::NO_GFX))
+    {
 #if HYP_VULKAN
         sdl_flags |= SDL_WINDOW_VULKAN;
 #endif
     }
 
-    if (window_options.flags & WindowFlags::HIGH_DPI) {
+    if (window_options.flags & WindowFlags::HIGH_DPI)
+    {
         sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
     }
 
-    if (window_options.flags & WindowFlags::HEADLESS) {
+    if (window_options.flags & WindowFlags::HEADLESS)
+    {
         sdl_flags |= SDL_WINDOW_HIDDEN;
-    } else {
+    }
+    else
+    {
         sdl_flags |= SDL_WINDOW_SHOWN;
         sdl_flags |= SDL_WINDOW_RESIZABLE;
 
@@ -105,17 +110,16 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
         SDL_WINDOWPOS_CENTERED,
         int(m_size.x),
         int(m_size.y),
-        sdl_flags
-    );
+        sdl_flags);
 
     AssertThrowMsg(m_window_handle != nullptr, "Failed to initialize window: %s", SDL_GetError());
 }
 
 #ifdef HYP_VULKAN
-VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
+VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance* instance)
 {
     VkSurfaceKHR surface;
-    SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window *>(m_window_handle), instance->GetInstance(), &surface);
+    SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window*>(m_window_handle), instance->GetInstance(), &surface);
 
     AssertThrowMsg(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
 
@@ -125,7 +129,7 @@ VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance *instance)
 
 void SDLApplicationWindow::SetMousePosition(Vec2i position)
 {
-    SDL_WarpMouseInWindow(static_cast<SDL_Window *>(m_window_handle), position.x, position.y);
+    SDL_WarpMouseInWindow(static_cast<SDL_Window*>(m_window_handle), position.x, position.y);
 }
 
 Vec2i SDLApplicationWindow::GetMousePosition() const
@@ -139,38 +143,43 @@ Vec2i SDLApplicationWindow::GetMousePosition() const
 Vec2i SDLApplicationWindow::GetDimensions() const
 {
     int width, height;
-    SDL_GetWindowSize(static_cast<SDL_Window *>(m_window_handle), &width, &height);
+    SDL_GetWindowSize(static_cast<SDL_Window*>(m_window_handle), &width, &height);
 
     return Vec2i { width, height };
 }
 
 void SDLApplicationWindow::SetIsMouseLocked(bool locked)
 {
-    if (locked) {
+    if (locked)
+    {
         SDL_SetRelativeMouseMode(SDL_TRUE);
-    } else {
+    }
+    else
+    {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
 }
 
 bool SDLApplicationWindow::HasMouseFocus() const
 {
-    const SDL_Window *focus_window = SDL_GetMouseFocus();
+    const SDL_Window* focus_window = SDL_GetMouseFocus();
 
-    return focus_window == static_cast<SDL_Window *>(m_window_handle);
+    return focus_window == static_cast<SDL_Window*>(m_window_handle);
 }
 
 bool SDLApplicationWindow::IsHighDPI() const
 {
-    const int display_index = SDL_GetWindowDisplayIndex(static_cast<SDL_Window *>(m_window_handle));
+    const int display_index = SDL_GetWindowDisplayIndex(static_cast<SDL_Window*>(m_window_handle));
 
-    if (display_index < 0) {
+    if (display_index < 0)
+    {
         return false;
     }
 
     float ddpi, hdpi, vdpi;
 
-    if (SDL_GetDisplayDPI(display_index, &ddpi, &hdpi, &vdpi) == 0) {
+    if (SDL_GetDisplayDPI(display_index, &ddpi, &hdpi, &vdpi) == 0)
+    {
         return hdpi > 96.0f;
     }
 
@@ -182,20 +191,22 @@ bool SDLApplicationWindow::IsHighDPI() const
 #pragma region SDLAppContext
 
 #if defined(HYP_SDL) && defined(HYP_IOS)
-static struct IOSSDLInitializer {
+static struct IOSSDLInitializer
+{
     IOSSDLInitializer()
     {
         SDL_SetMainReady();
     }
-} g_ios_sdl_initializer = { };
+} g_ios_sdl_initializer = {};
 #endif
 
-SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments &arguments)
-    : AppContext(std::move(name), arguments)
+SDLAppContext::SDLAppContext(ANSIString name, const CommandLineArguments& arguments)
+    : AppContextBase(std::move(name), arguments)
 {
     const int sdl_init_result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-    if (sdl_init_result < 0) {
+    if (sdl_init_result < 0)
+    {
         HYP_FAIL("Failed to initialize SDL: %s (%d)", SDL_GetError(), sdl_init_result);
     }
 }
@@ -213,12 +224,14 @@ RC<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window_opt
     return window;
 }
 
-int SDLAppContext::PollEvent(SystemEvent &event)
+int SDLAppContext::PollEvent(SystemEvent& event)
 {
     const int result = SDL_PollEvent(event.GetInternalEvent());
 
-    if (result) {
-        if (event.GetType() == SystemEventType::EVENT_FILE_DROP) {
+    if (result)
+    {
+        if (event.GetType() == SystemEventType::EVENT_FILE_DROP)
+        {
             // set event data variant to the file path
             event.GetEventData().Set(FilePath(event.GetInternalEvent()->drop.file));
 
@@ -232,18 +245,20 @@ int SDLAppContext::PollEvent(SystemEvent &event)
 }
 
 #ifdef HYP_VULKAN
-bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
+bool SDLAppContext::GetVkExtensions(Array<const char*>& out_extensions) const
 {
     uint32 num_extensions = 0;
-    SDL_Window *window = static_cast<SDL_Window *>(static_cast<SDLApplicationWindow *>(m_main_window.Get())->GetInternalWindowHandle());
+    SDL_Window* window = static_cast<SDL_Window*>(static_cast<SDLApplicationWindow*>(m_main_window.Get())->GetInternalWindowHandle());
 
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, nullptr)) {
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, nullptr))
+    {
         return false;
     }
-    
+
     out_extensions.Resize(num_extensions);
 
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, out_extensions.Data())) {
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &num_extensions, out_extensions.Data()))
+    {
         return false;
     }
 
@@ -253,9 +268,9 @@ bool SDLAppContext::GetVkExtensions(Array<const char *> &out_extensions) const
 
 #pragma endregion SDLAppContext
 
-#pragma region AppContext
+#pragma region AppContextBase
 
-AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
+AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
     : m_configuration("app"),
       m_game(nullptr)
 {
@@ -263,15 +278,18 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
 
     m_name = std::move(name);
 
-    if (m_name.Empty()) {
-        if (json::JSONValue config_app_name = m_configuration.Get("app.name")) {
+    if (m_name.Empty())
+    {
+        if (json::JSONValue config_app_name = m_configuration.Get("app.name"))
+        {
             m_name = m_configuration.Get("app.name").ToString();
         }
     }
 
     UniquePtr<CommandLineArguments> new_arguments;
-    
-    if (json::JSONValue config_args = m_configuration.Get("app.args")) {
+
+    if (json::JSONValue config_args = m_configuration.Get("app.args"))
+    {
         json::JSONString config_args_string = config_args.ToString();
         Array<String> config_args_string_split = config_args_string.Split(' ');
 
@@ -279,40 +297,44 @@ AppContext::AppContext(ANSIString name, const CommandLineArguments &arguments)
 
         TResult<CommandLineArguments> parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
 
-        if (parse_result.HasValue()) { 
+        if (parse_result.HasValue())
+        {
             new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(*arg_parse.GetDefinitions(), *parse_result, arguments));
-        } else {
+        }
+        else
+        {
             HYP_LOG(Core, Error, "Failed to parse config command line value \"{}\":\n\t{}", config_args_string, parse_result.GetError().GetMessage());
         }
     }
 
-    if (!new_arguments) {
+    if (!new_arguments)
+    {
         new_arguments = MakeUnique<CommandLineArguments>(arguments);
     }
 
     m_arguments = std::move(new_arguments);
 }
 
-AppContext::~AppContext() = default;
+AppContextBase::~AppContextBase() = default;
 
-Game *AppContext::GetGame() const
+Game* AppContextBase::GetGame() const
 {
     return m_game;
 }
 
-void AppContext::SetGame(Game *game)
+void AppContextBase::SetGame(Game* game)
 {
     m_game = game;
 }
 
-const CommandLineArguments &AppContext::GetArguments() const
+const CommandLineArguments& AppContextBase::GetArguments() const
 {
     AssertThrow(m_arguments != nullptr);
 
     return *m_arguments;
 }
 
-void AppContext::SetMainWindow(const RC<ApplicationWindow> &window)
+void AppContextBase::SetMainWindow(const RC<ApplicationWindow>& window)
 {
     m_main_window = window;
     m_input_manager->SetWindow(m_main_window.Get());
@@ -320,23 +342,25 @@ void AppContext::SetMainWindow(const RC<ApplicationWindow> &window)
     OnCurrentWindowChanged(m_main_window.Get());
 }
 
-void AppContext::UpdateConfigurationOverrides()
+void AppContextBase::UpdateConfigurationOverrides()
 {
     // if ray tracing is not supported, we need to update the configuration
-    if (!g_rendering_api->GetRenderConfig().IsRaytracingSupported()) {
+    if (!g_rendering_api->GetRenderConfig().IsRaytracingSupported())
+    {
         m_configuration.Set("rendering.rt.enabled", false);
         m_configuration.Set("rendering.rt.reflections.enabled", false);
         m_configuration.Set("rendering.rt.gi.enabled", false);
         m_configuration.Set("rendering.rt.path_tracing.enabled", false);
 
         // Save new configuration to disk
-        if (m_configuration.IsChanged()) {
+        if (m_configuration.IsChanged())
+        {
             m_configuration.Save();
         }
     }
 }
 
-#pragma endregion AppContext
+#pragma endregion AppContextBase
 
 } // namespace sys
 } // namespace hyperion

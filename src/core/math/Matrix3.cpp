@@ -15,17 +15,17 @@ Matrix3::Matrix3()
 {
 }
 
-Matrix3::Matrix3(const float *v)
+Matrix3::Matrix3(const float* v)
 {
     Memory::MemCpy(&values[0], v, std::size(values) * sizeof(values[0]));
 }
 
 float Matrix3::Determinant() const
 {
-     float a = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1]);
-     float b = rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0]);
-     float c = rows[0][2] * (rows[1][0] * rows[2][1] - rows[1][1] * rows[2][0]);
-     return a - b + c; 
+    float a = rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1]);
+    float b = rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0]);
+    float c = rows[0][2] * (rows[1][0] * rows[2][1] - rows[1][1] * rows[2][0]);
+    return a - b + c;
 }
 
 Matrix3 Matrix3::Transposed() const
@@ -36,10 +36,10 @@ Matrix3 Matrix3::Transposed() const
         { rows[0][2], rows[1][2], rows[2][2] }
     };
 
-    return Matrix3(reinterpret_cast<const float *>(v));
+    return Matrix3(reinterpret_cast<const float*>(v));
 }
 
-Matrix3 &Matrix3::Transpose()
+Matrix3& Matrix3::Transpose()
 {
     return *this = Transposed();
 }
@@ -63,32 +63,34 @@ Matrix3 Matrix3::Inverted() const
     return result;
 }
 
-Matrix3 &Matrix3::Invert()
+Matrix3& Matrix3::Invert()
 {
     return *this = Inverted();
 }
 
-Matrix3 Matrix3::operator+(const Matrix3 &other) const
+Matrix3 Matrix3::operator+(const Matrix3& other) const
 {
     Matrix3 result(*this);
 
-    for (int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++)
+    {
         result.values[i] += other.values[i];
     }
 
     return result;
 }
 
-Matrix3 &Matrix3::operator+=(const Matrix3 &other)
+Matrix3& Matrix3::operator+=(const Matrix3& other)
 {
-    for (int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++)
+    {
         values[i] += other.values[i];
     }
 
     return *this;
 }
 
-Matrix3 Matrix3::operator*(const Matrix3 &other) const
+Matrix3 Matrix3::operator*(const Matrix3& other) const
 {
     const float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[3] + values[2] * other.values[6],
@@ -107,7 +109,7 @@ Matrix3 Matrix3::operator*(const Matrix3 &other) const
     return Matrix3(fv);
 }
 
-Matrix3 &Matrix3::operator*=(const Matrix3 &other)
+Matrix3& Matrix3::operator*=(const Matrix3& other)
 {
     return (*this) = operator*(other);
 }
@@ -116,16 +118,18 @@ Matrix3 Matrix3::operator*(float scalar) const
 {
     Matrix3 result(*this);
 
-    for (int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++)
+    {
         result.values[i] *= scalar;
     }
 
     return result;
 }
 
-Matrix3 &Matrix3::operator*=(float scalar)
+Matrix3& Matrix3::operator*=(float scalar)
 {
-    for (int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++)
+    {
         values[i] *= scalar;
     }
 
@@ -137,7 +141,7 @@ float Matrix3::operator()(int i, int j) const
     return values[i * 3 + j];
 }
 
-float &Matrix3::operator()(int i, int j)
+float& Matrix3::operator()(int i, int j)
 {
     return values[i * 3 + j];
 }
@@ -147,21 +151,21 @@ float Matrix3::At(int i, int j) const
     return operator()(i, j);
 }
 
-float &Matrix3::At(int i, int j)
+float& Matrix3::At(int i, int j)
 {
     return operator()(i, j);
 }
 
 Matrix3 Matrix3::Zeros()
 {
-    float zero_array[sizeof(values) / sizeof(values[0])] = {0.0f};
+    float zero_array[sizeof(values) / sizeof(values[0])] = { 0.0f };
 
     return Matrix3(zero_array);
 }
 
 Matrix3 Matrix3::Ones()
 {
-    float ones_array[sizeof(values) / sizeof(values[0])] = {1.0f};
+    float ones_array[sizeof(values) / sizeof(values[0])] = { 1.0f };
 
     return Matrix3(ones_array);
 }
@@ -171,16 +175,21 @@ Matrix3 Matrix3::Identity()
     return Matrix3(); // constructor fills out identity matrix
 }
 
-std::ostream &operator<<(std::ostream &os, const Matrix3 &mat)
+std::ostream& operator<<(std::ostream& os, const Matrix3& mat)
 {
     os << "[";
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
             int index1 = i * 3 + j;
             os << mat.values[index1];
-            if (i != 2 && j == 2) {
+            if (i != 2 && j == 2)
+            {
                 os << "\n";
-            } else if (!(i == 2 && j == 2)) {
+            }
+            else if (!(i == 2 && j == 2))
+            {
                 os << ", ";
             }
         }

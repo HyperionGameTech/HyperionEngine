@@ -19,8 +19,6 @@ using VulkanFenceRef = RenderObjectHandle_Strong<VulkanFence>;
 class VulkanFrame final : public FrameBase
 {
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-
     explicit VulkanFrame();
     explicit VulkanFrame(uint32 frame_index);
     virtual ~VulkanFrame() override;
@@ -28,20 +26,26 @@ public:
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Destroy() override;
 
-    HYP_FORCE_INLINE const VulkanFenceRef &GetFence() const
-        { return m_queue_submit_fence; }
+    HYP_FORCE_INLINE const VulkanFenceRef& GetFence() const
+    {
+        return m_queue_submit_fence;
+    }
 
-    HYP_FORCE_INLINE VulkanSemaphoreChain &GetPresentSemaphores()
-        { return m_present_semaphores; }
+    HYP_FORCE_INLINE VulkanSemaphoreChain& GetPresentSemaphores()
+    {
+        return m_present_semaphores;
+    }
 
-    HYP_FORCE_INLINE const VulkanSemaphoreChain &GetPresentSemaphores() const
-        { return m_present_semaphores; }
+    HYP_FORCE_INLINE const VulkanSemaphoreChain& GetPresentSemaphores() const
+    {
+        return m_present_semaphores;
+    }
 
     RendererResult RecreateFence();
 
 private:
-    VulkanSemaphoreChain    m_present_semaphores;
-    VulkanFenceRef          m_queue_submit_fence;
+    VulkanSemaphoreChain m_present_semaphores;
+    VulkanFenceRef m_queue_submit_fence;
 };
 
 } // namespace renderer

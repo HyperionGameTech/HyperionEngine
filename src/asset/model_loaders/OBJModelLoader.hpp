@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-class OBJModelLoader : public AssetLoader
+class OBJModelLoader : public AssetLoaderBase
 {
 public:
     struct OBJModel
@@ -23,16 +23,20 @@ public:
         struct OBJIndex
         {
             int64 vertex,
-                  normal,
-                  texcoord;
+                normal,
+                texcoord;
 
-            HYP_FORCE_INLINE bool operator==(const OBJIndex &other) const
-                { return vertex == other.vertex
+            HYP_FORCE_INLINE bool operator==(const OBJIndex& other) const
+            {
+                return vertex == other.vertex
                     && normal == other.normal
-                    && texcoord == other.texcoord; }
+                    && texcoord == other.texcoord;
+            }
 
-            HYP_FORCE_INLINE bool operator<(const OBJIndex &other) const
-                { return Tie(vertex, normal, texcoord) < Tie(other.vertex, other.normal, other.texcoord); }
+            HYP_FORCE_INLINE bool operator<(const OBJIndex& other) const
+            {
+                return Tie(vertex, normal, texcoord) < Tie(other.vertex, other.normal, other.texcoord);
+            }
 
             HYP_FORCE_INLINE HashCode GetHashCode() const
             {
@@ -47,32 +51,32 @@ public:
 
         struct OBJMesh
         {
-            String          name;
-            String          material;
+            String name;
+            String material;
             Array<OBJIndex> indices;
         };
 
-        String          filepath;
+        String filepath;
 
-        Array<Vec3f>    positions;
-        Array<Vec3f>    normals;
-        Array<Vec2f>    texcoords;
-        Array<OBJMesh>  meshes;
-        String          name;
-        String          material_library;
+        Array<Vec3f> positions;
+        Array<Vec3f> normals;
+        Array<Vec2f> texcoords;
+        Array<OBJMesh> meshes;
+        String name;
+        String material_library;
     };
 
     virtual ~OBJModelLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override
     {
         OBJModel model = LoadModel(state);
 
         return BuildModel(state, model);
     }
-    
-    static OBJModel LoadModel(LoaderState &state);
-    static LoadedAsset BuildModel(LoaderState &state, OBJModel &model);
+
+    static OBJModel LoadModel(LoaderState& state);
+    static LoadedAsset BuildModel(LoaderState& state, OBJModel& model);
 };
 
 using OBJIndex = OBJModelLoader::OBJModel::OBJIndex;
@@ -80,9 +84,10 @@ using OBJIndex = OBJModelLoader::OBJModel::OBJIndex;
 } // namespace hyperion
 
 namespace std {
-template<>
-struct hash<hyperion::OBJIndex> {
-    size_t operator()(const hyperion::OBJIndex &obj) const
+template <>
+struct hash<hyperion::OBJIndex>
+{
+    size_t operator()(const hyperion::OBJIndex& obj) const
     {
         hyperion::HashCode hc;
         hc.Add(obj.vertex);

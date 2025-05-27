@@ -19,16 +19,16 @@
 
 namespace hyperion {
 
-extern IRenderingAPI *g_rendering_api;
+extern IRenderingAPI* g_rendering_api;
 
 namespace renderer {
 
-static inline VulkanRenderingAPI *GetRenderingAPI()
+static inline VulkanRenderingAPI* GetRenderingAPI()
 {
-    return static_cast<VulkanRenderingAPI *>(g_rendering_api);
+    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
-static VkTransformMatrixKHR ToVkTransform(const Matrix4 &matrix)
+static VkTransformMatrixKHR ToVkTransform(const Matrix4& matrix)
 {
     VkTransformMatrixKHR transform;
     std::memcpy(&transform, matrix.values, sizeof(VkTransformMatrixKHR));
@@ -38,7 +38,8 @@ static VkTransformMatrixKHR ToVkTransform(const Matrix4 &matrix)
 
 static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(AccelerationStructureType type)
 {
-    switch (type) {
+    switch (type)
+    {
     case AccelerationStructureType::BOTTOM_LEVEL:
         return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
     case AccelerationStructureType::TOP_LEVEL:
@@ -51,13 +52,13 @@ static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(Acceleration
 #pragma region VulkanAccelerationGeometry
 
 VulkanAccelerationGeometry::VulkanAccelerationGeometry(
-    const VulkanGPUBufferRef &packed_vertices_buffer,
-    const VulkanGPUBufferRef &packed_indices_buffer,
-    const Handle<Material> &material
-) : m_packed_vertices_buffer(packed_vertices_buffer),
-    m_packed_indices_buffer(packed_indices_buffer),
-    m_material(material),
-    m_geometry { }
+    const VulkanGPUBufferRef& packed_vertices_buffer,
+    const VulkanGPUBufferRef& packed_indices_buffer,
+    const Handle<Material>& material)
+    : m_packed_vertices_buffer(packed_vertices_buffer),
+      m_packed_indices_buffer(packed_indices_buffer),
+      m_material(material),
+      m_geometry {}
 {
 }
 
@@ -72,27 +73,33 @@ bool VulkanAccelerationGeometry::IsCreated() const
 
 RendererResult VulkanAccelerationGeometry::Create()
 {
-    if (m_material.IsValid()) {
+    if (m_material.IsValid())
+    {
         m_material->GetRenderResource().Claim();
     }
 
-    if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+    if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    {
         return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
 
-    if (!m_packed_vertices_buffer.IsValid()) {
+    if (!m_packed_vertices_buffer.IsValid())
+    {
         return HYP_MAKE_ERROR(RendererError, "Packed vertices buffer is not valid");
     }
 
-    if (!m_packed_vertices_buffer->IsCreated()) {
+    if (!m_packed_vertices_buffer->IsCreated())
+    {
         return HYP_MAKE_ERROR(RendererError, "Packed vertices buffer is not created");
     }
 
-    if (!m_packed_indices_buffer.IsValid()) {
+    if (!m_packed_indices_buffer.IsValid())
+    {
         return HYP_MAKE_ERROR(RendererError, "Packed indices buffer is not valid");
     }
 
-    if (!m_packed_indices_buffer->IsCreated()) {
+    if (!m_packed_indices_buffer->IsCreated())
+    {
         return HYP_MAKE_ERROR(RendererError, "Packed indices buffer is not created");
     }
 
@@ -109,15 +116,14 @@ RendererResult VulkanAccelerationGeometry::Create()
     m_geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     m_geometry.geometry = {
         .triangles = VkAccelerationStructureGeometryTrianglesDataKHR {
-            .sType 			= VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-            .vertexFormat 	= VK_FORMAT_R32G32B32_SFLOAT,
-            .vertexData 	= vertices_address,
-            .vertexStride 	= sizeof(PackedVertex),
-            .maxVertex 		= uint32(m_packed_vertices_buffer->Size() / sizeof(PackedVertex)),
-            .indexType 		= VK_INDEX_TYPE_UINT32,
-            .indexData 		= indices_address,
-            .transformData 	= { { } }
-        }
+            .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
+            .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
+            .vertexData = vertices_address,
+            .vertexStride = sizeof(PackedVertex),
+            .maxVertex = uint32(m_packed_vertices_buffer->Size() / sizeof(PackedVertex)),
+            .indexType = VK_INDEX_TYPE_UINT32,
+            .indexData = indices_address,
+            .transformData = { {} } }
     };
 
     HYPERION_RETURN_OK;
@@ -125,7 +131,8 @@ RendererResult VulkanAccelerationGeometry::Create()
 
 RendererResult VulkanAccelerationGeometry::Destroy()
 {
-    if (m_material.IsValid()) {
+    if (m_material.IsValid())
+    {
         m_material->GetRenderResource().Unclaim();
     }
 
@@ -141,7 +148,7 @@ RendererResult VulkanAccelerationGeometry::Destroy()
 
 #pragma region AccelerationStructure
 
-VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Matrix4 &transform)
+VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Matrix4& transform)
     : m_transform(transform),
       m_acceleration_structure(VK_NULL_HANDLE),
       m_device_address(0),
@@ -153,47 +160,48 @@ VulkanAccelerationStructureBase::~VulkanAccelerationStructureBase()
 {
     AssertThrowMsg(
         m_acceleration_structure == VK_NULL_HANDLE,
-        "Expected acceleration structure to have been destroyed before destructor call"
-    );
+        "Expected acceleration structure to have been destroyed before destructor call");
 
     AssertThrowMsg(
         m_buffer == nullptr,
-        "Acceleration structure buffer should have been destroyed before destructor call"
-    );
+        "Acceleration structure buffer should have been destroyed before destructor call");
 
     AssertThrowMsg(
         m_scratch_buffer == nullptr,
-        "Scratch buffer should have been destroyed before destructor call"
-    );
+        "Scratch buffer should have been destroyed before destructor call");
 }
 
 RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     AccelerationStructureType type,
-    const std::vector<VkAccelerationStructureGeometryKHR> &geometries,
-    const std::vector<uint32> &primitive_counts,
+    const std::vector<VkAccelerationStructureGeometryKHR>& geometries,
+    const std::vector<uint32>& primitive_counts,
     bool update,
-    RTUpdateStateFlags &out_update_state_flags
-)
+    RTUpdateStateFlags& out_update_state_flags)
 {
-    if (update) {
+    if (update)
+    {
         AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
 
         // TEMP: we should have two TLASes and two RT descriptor sets I suppose...
-        //HYPERION_BUBBLE_ERRORS(instance->GetDevice()->Wait());
-    } else {
+        // HYPERION_BUBBLE_ERRORS(instance->GetDevice()->Wait());
+    }
+    else
+    {
         AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
     }
 
-    if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported()) {
+    if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    {
         return HYP_MAKE_ERROR(RendererError, "Device does not support raytracing");
     }
 
-    if (geometries.empty()) {
+    if (geometries.empty())
+    {
         return HYP_MAKE_ERROR(RendererError, "Geometries empty");
     }
 
     RendererResult result;
-    
+
     VkAccelerationStructureBuildGeometryInfoKHR geometry_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
     geometry_info.type = ToVkAccelerationStructureType(type);
     geometry_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
@@ -202,15 +210,14 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     geometry_info.pGeometries = geometries.data();
 
     AssertThrow(primitive_counts.size() == geometries.size());
-    
+
     VkAccelerationStructureBuildSizesInfoKHR build_sizes_info { VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
     GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetAccelerationStructureBuildSizesKHR(
         GetRenderingAPI()->GetDevice()->GetDevice(),
         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &geometry_info,
         primitive_counts.data(),
-        &build_sizes_info
-    );
+        &build_sizes_info);
 
     const SizeType scratch_buffer_alignment = GetRenderingAPI()->GetDevice()->GetFeatures().GetAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment;
     SizeType acceleration_structure_size = MathUtil::NextMultiple(build_sizes_info.accelerationStructureSize, 256ull);
@@ -218,37 +225,38 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     SizeType update_scratch_size = MathUtil::NextMultiple(build_sizes_info.updateScratchSize, scratch_buffer_alignment);
 
     bool was_rebuilt = false;
-    
-    if (!m_buffer) {
+
+    if (!m_buffer)
+    {
         m_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER, acceleration_structure_size);
         HYPERION_PASS_ERRORS(m_buffer->Create(), result);
     }
 
     HYPERION_BUBBLE_ERRORS(m_buffer->EnsureCapacity(
         acceleration_structure_size,
-        &was_rebuilt
-    ));
+        &was_rebuilt));
 
     // force recreate (for debug)
     was_rebuilt = true;
 
-    if (was_rebuilt) {
+    if (was_rebuilt)
+    {
         out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
 
-        if (update) {
-            HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetDevice()->Wait()); // To prevent deletion while in use 
+        if (update)
+        {
+            HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetDevice()->Wait()); // To prevent deletion while in use
 
             // delete the current acceleration structure
             GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
                 GetRenderingAPI()->GetDevice()->GetDevice(),
                 m_acceleration_structure,
-                nullptr
-            );
+                nullptr);
 
             m_acceleration_structure = VK_NULL_HANDLE;
 
             // fetch the corrected acceleration structure and scratch buffer sizes
-            // update was true but we need to rebuild from scratch, have to unset the UPDATE flag. 
+            // update was true but we need to rebuild from scratch, have to unset the UPDATE flag.
             geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 
             GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetAccelerationStructureBuildSizesKHR(
@@ -256,8 +264,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
                 VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
                 &geometry_info,
                 primitive_counts.data(),
-                &build_sizes_info
-            );
+                &build_sizes_info);
 
             acceleration_structure_size = MathUtil::NextMultiple(build_sizes_info.accelerationStructureSize, 256ull);
             build_scratch_size = MathUtil::NextMultiple(build_sizes_info.buildScratchSize, scratch_buffer_alignment);
@@ -279,12 +286,11 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
                 GetRenderingAPI()->GetDevice()->GetDevice(),
                 &create_info,
                 VK_NULL_HANDLE,
-                &m_acceleration_structure
-            ),
-            result
-        );
+                &m_acceleration_structure),
+            result);
 
-        if (!result) {
+        if (!result)
+        {
             HYPERION_IGNORE_ERRORS(Destroy());
 
             return result;
@@ -298,20 +304,21 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     m_device_address = GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetAccelerationStructureDeviceAddressKHR(
         GetRenderingAPI()->GetDevice()->GetDevice(),
-        &address_info
-    );
+        &address_info);
 
     const SizeType scratch_size = (update && !was_rebuilt) ? update_scratch_size : build_scratch_size;
 
-    if (m_scratch_buffer == nullptr) {
+    if (m_scratch_buffer == nullptr)
+    {
         m_scratch_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::SCRATCH_BUFFER, scratch_size, scratch_buffer_alignment);
-        
+
         HYPERION_PASS_ERRORS(m_scratch_buffer->Create(), result);
-    } else {
+    }
+    else
+    {
         HYPERION_PASS_ERRORS(
             m_scratch_buffer->EnsureCapacity(scratch_size, scratch_buffer_alignment),
-            result
-        );
+            result);
     }
 
     // zero out scratch buffer
@@ -320,14 +327,15 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     geometry_info.dstAccelerationStructure = m_acceleration_structure;
     geometry_info.srcAccelerationStructure = (update && !was_rebuilt) ? m_acceleration_structure : VK_NULL_HANDLE;
     geometry_info.scratchData = { .deviceAddress = m_scratch_buffer->GetBufferDeviceAddress() };
-    
+
     std::vector<VkAccelerationStructureBuildRangeInfoKHR> range_infos;
     range_infos.resize(geometries.size());
 
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR *> range_info_ptrs;
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR*> range_info_ptrs;
     range_info_ptrs.resize(geometries.size());
 
-    for (SizeType i = 0; i < geometries.size(); i++) {
+    for (SizeType i = 0; i < geometries.size(); i++)
+    {
         range_infos[i] = VkAccelerationStructureBuildRangeInfoKHR {
             .primitiveCount = primitive_counts[i],
             .primitiveOffset = 0,
@@ -349,8 +357,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
         command_buffer->GetVulkanHandle(),
         uint32(range_info_ptrs.size()),
         &geometry_info,
-        range_info_ptrs.data()
-    );
+        range_info_ptrs.data());
 
     HYPERION_PASS_ERRORS(command_buffer->End(), result);
 
@@ -359,7 +366,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     HYPERION_PASS_ERRORS(fence->Reset(), result);
 
     HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&GetRenderingAPI()->GetDevice()->GetGraphicsQueue(), fence, nullptr), result);
-    
+
     HYPERION_PASS_ERRORS(fence->WaitForGPU(), result);
     HYPERION_PASS_ERRORS(fence->Destroy(), result);
 
@@ -378,12 +385,12 @@ RendererResult VulkanAccelerationStructureBase::Destroy()
     SafeRelease(std::move(m_buffer));
     SafeRelease(std::move(m_scratch_buffer));
 
-    if (m_acceleration_structure != VK_NULL_HANDLE) {
+    if (m_acceleration_structure != VK_NULL_HANDLE)
+    {
         GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkDestroyAccelerationStructureKHR(
             GetRenderingAPI()->GetDevice()->GetDevice(),
             m_acceleration_structure,
-            VK_NULL_HANDLE
-        );
+            VK_NULL_HANDLE);
 
         m_acceleration_structure = VK_NULL_HANDLE;
     }
@@ -395,7 +402,8 @@ void VulkanAccelerationStructureBase::RemoveGeometry(uint32 index)
 {
     const auto it = m_geometries.Begin() + index;
 
-    if (it >= m_geometries.End()) {
+    if (it >= m_geometries.End())
+    {
         return;
     }
 
@@ -406,15 +414,17 @@ void VulkanAccelerationStructureBase::RemoveGeometry(uint32 index)
     SetNeedsRebuildFlag();
 }
 
-void VulkanAccelerationStructureBase::RemoveGeometry(const VulkanAccelerationGeometryRef &geometry)
+void VulkanAccelerationStructureBase::RemoveGeometry(const VulkanAccelerationGeometryRef& geometry)
 {
-    if (geometry == nullptr) {
+    if (geometry == nullptr)
+    {
         return;
     }
 
     const auto it = m_geometries.Find(geometry);
 
-    if (it == m_geometries.End()) {
+    if (it == m_geometries.End())
+    {
         return;
     }
 
@@ -438,8 +448,7 @@ VulkanTLAS::~VulkanTLAS()
 {
     AssertThrowMsg(
         m_instances_buffer == nullptr,
-        "Instances buffer should have been destroyed before destructor call"
-    );
+        "Instances buffer should have been destroyed before destructor call");
 
     AssertThrowMsg(m_acceleration_structure == VK_NULL_HANDLE, "Acceleration structure should have been destroyed before destructor call");
 }
@@ -447,18 +456,14 @@ VulkanTLAS::~VulkanTLAS()
 std::vector<VkAccelerationStructureGeometryKHR> VulkanTLAS::GetGeometries() const
 {
     return {
-        {
-            .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+        { .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
             .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
             .geometry = {
                 .instances = {
                     .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
                     .arrayOfPointers = VK_FALSE,
-                    .data = { .deviceAddress = m_instances_buffer->GetBufferDeviceAddress() }
-                }
-            },
-            .flags = VK_GEOMETRY_OPAQUE_BIT_KHR
-        }
+                    .data = { .deviceAddress = m_instances_buffer->GetBufferDeviceAddress() } } },
+            .flags = VK_GEOMETRY_OPAQUE_BIT_KHR }
     };
 }
 
@@ -471,7 +476,8 @@ RendererResult VulkanTLAS::Create()
 {
     AssertThrow(m_acceleration_structure == VK_NULL_HANDLE);
 
-    if (m_blas.Empty()) {
+    if (m_blas.Empty())
+    {
         return HYP_MAKE_ERROR(RendererError, "Top level acceleration structure must have at least one BLAS");
     }
 
@@ -480,19 +486,18 @@ RendererResult VulkanTLAS::Create()
     RTUpdateStateFlags update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
 
     RendererResult result;
-    
+
     HYPERION_PASS_ERRORS(
         CreateAccelerationStructure(
             GetType(),
             GetGeometries(),
             GetPrimitiveCounts(),
             false,
-            update_state_flags
-        ),
-        result
-    );
+            update_state_flags),
+        result);
 
-    if (!result) {
+    if (!result)
+    {
         HYPERION_IGNORE_ERRORS(Destroy());
 
         return result;
@@ -502,8 +507,7 @@ RendererResult VulkanTLAS::Create()
 
     HYPERION_PASS_ERRORS(
         CreateMeshDescriptionsBuffer(),
-        result
-    );
+        result);
 
     update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS;
 
@@ -521,13 +525,12 @@ RendererResult VulkanTLAS::Destroy()
 
     HYPERION_PASS_ERRORS(
         VulkanAccelerationStructureBase::Destroy(),
-        result
-    );
+        result);
 
     return result;
 }
 
-void VulkanTLAS::AddBLAS(const BLASRef &blas)
+void VulkanTLAS::AddBLAS(const BLASRef& blas)
 {
     AssertThrow(blas != nullptr);
 
@@ -535,7 +538,8 @@ void VulkanTLAS::AddBLAS(const BLASRef &blas)
 
     AssertThrow(!vulkan_blas->GetGeometries().Empty());
 
-    for (const auto &geometry : vulkan_blas->GetGeometries()) {
+    for (const auto& geometry : vulkan_blas->GetGeometries())
+    {
         AssertThrow(geometry != nullptr);
         AssertThrow(geometry->GetPackedVerticesBuffer() != nullptr);
         AssertThrow(geometry->GetPackedIndicesBuffer() != nullptr);
@@ -546,11 +550,12 @@ void VulkanTLAS::AddBLAS(const BLASRef &blas)
     SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
 }
 
-void VulkanTLAS::RemoveBLAS(const BLASRef &blas)
+void VulkanTLAS::RemoveBLAS(const BLASRef& blas)
 {
     auto it = std::find(m_blas.begin(), m_blas.end(), blas);
 
-    if (it != m_blas.end()) {
+    if (it != m_blas.end())
+    {
         m_blas.Erase(it);
 
         SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
@@ -564,19 +569,20 @@ RendererResult VulkanTLAS::CreateOrRebuildInstancesBuffer()
     Array<VkAccelerationStructureInstanceKHR> instances;
     instances.Resize(m_blas.Size());
 
-    for (SizeType i = 0; i < m_blas.Size(); i++) {
-        const VulkanBLASRef &blas = m_blas[i];
+    for (SizeType i = 0; i < m_blas.Size(); i++)
+    {
+        const VulkanBLASRef& blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
         const uint32 instance_index = uint32(i); /* Index of mesh in mesh descriptions buffer. */
 
         instances[i] = VkAccelerationStructureInstanceKHR {
-            .transform                              = ToVkTransform(blas->GetTransform()),
-            .instanceCustomIndex                    = instance_index,
-            .mask                                   = 0xff,
+            .transform = ToVkTransform(blas->GetTransform()),
+            .instanceCustomIndex = instance_index,
+            .mask = 0xff,
             .instanceShaderBindingTableRecordOffset = 0,
-            .flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR,
-            .accelerationStructureReference         = blas->GetDeviceAddress()
+            .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_KHR,
+            .accelerationStructureReference = blas->GetDeviceAddress()
         };
     }
 
@@ -584,32 +590,36 @@ RendererResult VulkanTLAS::CreateOrRebuildInstancesBuffer()
 
     const SizeType instances_buffer_size = MathUtil::Max(
         min_instances_buffer_size,
-        instances.Size() * sizeof(VkAccelerationStructureInstanceKHR)
-    );
+        instances.Size() * sizeof(VkAccelerationStructureInstanceKHR));
 
-    if (m_instances_buffer && m_instances_buffer->Size() != instances_buffer_size) {
+    if (m_instances_buffer && m_instances_buffer->Size() != instances_buffer_size)
+    {
         DebugLog(
             LogType::Debug,
             "Resizing TLAS instances buffer from %llu to %llu\n",
             m_instances_buffer->Size(),
-            instances_buffer_size
-        );
+            instances_buffer_size);
 
         SafeRelease(std::move(m_instances_buffer));
     }
 
-    if (!m_instances_buffer) {
+    if (!m_instances_buffer)
+    {
         m_instances_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instances_buffer_size);
     }
 
-    if (!m_instances_buffer->IsCreated()) {
+    if (!m_instances_buffer->IsCreated())
+    {
         HYPERION_BUBBLE_ERRORS(m_instances_buffer->Create());
     }
 
-    if (instances.Empty()) {
+    if (instances.Empty())
+    {
         // zero out the buffer
         m_instances_buffer->Memset(instances_buffer_size, 0);
-    } else {
+    }
+    else
+    {
         m_instances_buffer->Copy(instances_buffer_size, instances.Data());
     }
 
@@ -618,8 +628,9 @@ RendererResult VulkanTLAS::CreateOrRebuildInstancesBuffer()
 
 RendererResult VulkanTLAS::UpdateInstancesBuffer(uint32 first, uint32 last)
 {
-    if (last == first) {
-        HYPERION_RETURN_OK; 
+    if (last == first)
+    {
+        HYPERION_RETURN_OK;
     }
 
     AssertThrow(last > first);
@@ -629,19 +640,20 @@ RendererResult VulkanTLAS::UpdateInstancesBuffer(uint32 first, uint32 last)
     Array<VkAccelerationStructureInstanceKHR> instances;
     instances.Resize(last - first);
 
-    for (uint32 i = first; i < last; i++) {
-        const VulkanBLASRef &blas = m_blas[i];
+    for (uint32 i = first; i < last; i++)
+    {
+        const VulkanBLASRef& blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
         const uint32 instance_index = i; /* Index of mesh in mesh descriptions buffer. */
 
         instances[i - first] = VkAccelerationStructureInstanceKHR {
-            .transform                              = ToVkTransform(blas->GetTransform()),
-            .instanceCustomIndex                    = instance_index,
-            .mask                                   = 0xff,
+            .transform = ToVkTransform(blas->GetTransform()),
+            .instanceCustomIndex = instance_index,
+            .mask = 0xff,
             .instanceShaderBindingTableRecordOffset = 0,
-            .flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-            .accelerationStructureReference         = blas->GetDeviceAddress()
+            .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
+            .accelerationStructureReference = blas->GetDeviceAddress()
         };
     }
 
@@ -653,8 +665,7 @@ RendererResult VulkanTLAS::UpdateInstancesBuffer(uint32 first, uint32 last)
     m_instances_buffer->Copy(
         first * sizeof(VkAccelerationStructureInstanceKHR),
         instances_size,
-        instances.Data()
-    );
+        instances.Data());
 
     HYPERION_RETURN_OK;
 }
@@ -665,8 +676,7 @@ RendererResult VulkanTLAS::CreateMeshDescriptionsBuffer()
 
     const SizeType mesh_descriptions_buffer_size = MathUtil::Max(
         min_mesh_descriptions_buffer_size,
-        sizeof(MeshDescription) * m_blas.Size()
-    );
+        sizeof(MeshDescription) * m_blas.Size());
 
     m_mesh_descriptions_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::STORAGE_BUFFER, mesh_descriptions_buffer_size);
     HYPERION_BUBBLE_ERRORS(m_mesh_descriptions_buffer->Create());
@@ -674,7 +684,8 @@ RendererResult VulkanTLAS::CreateMeshDescriptionsBuffer()
     // zero out buffer
     m_mesh_descriptions_buffer->Memset(m_mesh_descriptions_buffer->Size(), 0x0);
 
-    if (m_blas.Empty()) {
+    if (m_blas.Empty())
+    {
         // no need to update the data inside
         HYPERION_RETURN_OK;
     }
@@ -694,32 +705,37 @@ RendererResult VulkanTLAS::UpdateMeshDescriptionsBuffer(uint32 first, uint32 las
     AssertThrow(first < m_blas.Size());
     AssertThrow(last <= m_blas.Size());
 
-    if (last <= first) {
+    if (last <= first)
+    {
         // nothing to update
-        return RendererResult { };
+        return RendererResult {};
     }
 
     Array<MeshDescription> mesh_descriptions;
     mesh_descriptions.Resize(last - first);
 
-    for (uint32 i = first; i < last; i++) {
-        const VulkanBLASRef &blas = m_blas[i];
+    for (uint32 i = first; i < last; i++)
+    {
+        const VulkanBLASRef& blas = m_blas[i];
 
-        MeshDescription &mesh_description = mesh_descriptions[i - first];
+        MeshDescription& mesh_description = mesh_descriptions[i - first];
         Memory::MemSet(&mesh_description, 0, sizeof(MeshDescription));
 
-        if (blas->GetGeometries().Empty()) {
+        if (blas->GetGeometries().Empty())
+        {
             AssertThrowMsg(
                 false,
                 "No geometries added to BLAS node %u!\n",
-                i
-            );
+                i);
 
-            mesh_description = { };
-        } else {
-            const Handle<Material> &material = blas->GetGeometries()[0]->GetMaterial();
+            mesh_description = {};
+        }
+        else
+        {
+            const Handle<Material>& material = blas->GetGeometries()[0]->GetMaterial();
 
-            if (material.IsValid()) {
+            if (material.IsValid())
+            {
                 // Must be initialized (AccelerationGeometry calls Claim() and Unclaim())
                 AssertThrow(material->GetRenderResource().GetBufferIndex() != ~0u);
             }
@@ -735,10 +751,9 @@ RendererResult VulkanTLAS::UpdateMeshDescriptionsBuffer(uint32 first, uint32 las
     m_mesh_descriptions_buffer->Copy(
         first * sizeof(MeshDescription),
         mesh_descriptions.Size() * sizeof(MeshDescription),
-        mesh_descriptions.Data()
-    );
+        mesh_descriptions.Data());
 
-    return RendererResult { };
+    return RendererResult {};
 }
 
 RendererResult VulkanTLAS::RebuildMeshDescriptionsBuffer()
@@ -748,21 +763,24 @@ RendererResult VulkanTLAS::RebuildMeshDescriptionsBuffer()
     return CreateMeshDescriptionsBuffer();
 }
 
-RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags &out_update_state_flags)
+RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags& out_update_state_flags)
 {
     out_update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
+    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
+    {
         return Rebuild(out_update_state_flags);
     }
 
-    Range<uint32> dirty_range { };
+    Range<uint32> dirty_range {};
 
-    for (uint32 i = 0; i < uint32(m_blas.Size()); i++) {
-        const VulkanBLASRef &blas = m_blas[i];
+    for (uint32 i = 0; i < uint32(m_blas.Size()); i++)
+    {
+        const VulkanBLASRef& blas = m_blas[i];
         AssertThrow(blas != nullptr);
 
-        if (blas->GetFlags() & ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE) {
+        if (blas->GetFlags() & ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE)
+        {
             dirty_range |= Range { i, i + 1 };
 
             blas->ClearFlag(ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
@@ -771,50 +789,51 @@ RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags &out_update_state_
         RTUpdateStateFlags blas_update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
         HYPERION_BUBBLE_ERRORS(blas->UpdateStructure(blas_update_state_flags));
 
-        if (blas_update_state_flags) {
+        if (blas_update_state_flags)
+        {
             dirty_range |= Range { i, i + 1 };
         }
     }
 
-    if (dirty_range) {
+    if (dirty_range)
+    {
         out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS | RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
 
         // update data in instances buffer
         HYPERION_BUBBLE_ERRORS(UpdateInstancesBuffer(
             dirty_range.GetStart(),
-            dirty_range.GetEnd()
-        ));
+            dirty_range.GetEnd()));
 
         // copy mesh descriptions
         HYPERION_BUBBLE_ERRORS(UpdateMeshDescriptionsBuffer(
             dirty_range.GetStart(),
-            dirty_range.GetEnd()
-        ));
-        
+            dirty_range.GetEnd()));
+
         HYPERION_BUBBLE_ERRORS(CreateAccelerationStructure(
             GetType(),
             GetGeometries(),
             GetPrimitiveCounts(),
             true,
-            out_update_state_flags
-        ));
+            out_update_state_flags));
     }
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
+RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags& out_update_state_flags)
 {
     AssertThrow(m_acceleration_structure != VK_NULL_HANDLE);
 
     RendererResult result;
 
     // check each BLAS, assert that it is valid.
-    for (const VulkanBLASRef &blas : m_blas) {
+    for (const VulkanBLASRef& blas : m_blas)
+    {
         AssertThrow(blas != nullptr);
         AssertThrow(!blas->GetGeometries().Empty());
 
-        for (const VulkanAccelerationGeometryRef &geometry : blas->GetGeometries()) {
+        for (const VulkanAccelerationGeometryRef& geometry : blas->GetGeometries())
+        {
             AssertThrow(geometry != nullptr);
             AssertThrow(geometry->GetPackedVerticesBuffer() != nullptr);
             AssertThrow(geometry->GetPackedIndicesBuffer() != nullptr);
@@ -829,12 +848,11 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
             GetGeometries(),
             GetPrimitiveCounts(),
             true,
-            out_update_state_flags
-        ),
-        result
-    );
+            out_update_state_flags),
+        result);
 
-    if (!result) {
+    if (!result)
+    {
         HYPERION_IGNORE_ERRORS(Destroy());
 
         return result;
@@ -842,8 +860,7 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
 
     HYPERION_PASS_ERRORS(
         RebuildMeshDescriptionsBuffer(),
-        result
-    );
+        result);
 
     out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS;
 
@@ -855,20 +872,19 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
 #pragma region BLAS
 
 VulkanBLAS::VulkanBLAS(
-    const VulkanGPUBufferRef &packed_vertices_buffer,
-    const VulkanGPUBufferRef &packed_indices_buffer,
-    const Handle<Material> &material,
-    const Matrix4 &transform
-) : VulkanAccelerationStructureBase(transform),
-    m_packed_vertices_buffer(packed_vertices_buffer),
-    m_packed_indices_buffer(packed_indices_buffer),
-    m_material(material)
+    const VulkanGPUBufferRef& packed_vertices_buffer,
+    const VulkanGPUBufferRef& packed_indices_buffer,
+    const Handle<Material>& material,
+    const Matrix4& transform)
+    : VulkanAccelerationStructureBase(transform),
+      m_packed_vertices_buffer(packed_vertices_buffer),
+      m_packed_indices_buffer(packed_indices_buffer),
+      m_material(material)
 {
     m_geometries.PushBack(MakeRenderObject<VulkanAccelerationGeometry>(
         m_packed_vertices_buffer,
         m_packed_indices_buffer,
-        m_material
-    ));
+        m_material));
 }
 
 VulkanBLAS::~VulkanBLAS() = default;
@@ -880,27 +896,34 @@ RendererResult VulkanBLAS::Create()
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());
     std::vector<uint32> primitive_counts(m_geometries.Size());
 
-    if (m_geometries.Empty()) {
+    if (m_geometries.Empty())
+    {
         return HYP_MAKE_ERROR(RendererError, "Cannot create BLAS with zero geometries");
     }
 
-    for (SizeType i = 0; i < m_geometries.Size(); i++) {
-        const VulkanAccelerationGeometryRef &geometry = m_geometries[i];
+    for (SizeType i = 0; i < m_geometries.Size(); i++)
+    {
+        const VulkanAccelerationGeometryRef& geometry = m_geometries[i];
 
-        if (!geometry->IsCreated()) {
+        if (!geometry->IsCreated())
+        {
             HYPERION_PASS_ERRORS(geometry->Create(), result);
         }
 
-        if (result) {
+        if (result)
+        {
             geometries[i] = geometry->m_geometry;
             primitive_counts[i] = uint32(geometry->GetPackedIndicesBuffer()->Size() / sizeof(uint32) / 3);
 
-            if (primitive_counts[i] == 0) {
+            if (primitive_counts[i] == 0)
+            {
                 HYPERION_IGNORE_ERRORS(Destroy());
 
                 return HYP_MAKE_ERROR(RendererError, "Cannot create BLAS -- geometry has zero indices");
             }
-        } else {
+        }
+        else
+        {
             HYPERION_IGNORE_ERRORS(Destroy());
 
             return result;
@@ -915,12 +938,11 @@ RendererResult VulkanBLAS::Create()
             geometries,
             primitive_counts,
             false,
-            update_state_flags
-        ),
-        result
-    );
+            update_state_flags),
+        result);
 
-    if (!result) {
+    if (!result)
+    {
         HYPERION_IGNORE_ERRORS(Destroy());
 
         return result;
@@ -939,32 +961,35 @@ RendererResult VulkanBLAS::Destroy()
     return VulkanAccelerationStructureBase::Destroy();
 }
 
-RendererResult VulkanBLAS::UpdateStructure(RTUpdateStateFlags &out_update_state_flags)
+RendererResult VulkanBLAS::UpdateStructure(RTUpdateStateFlags& out_update_state_flags)
 {
     out_update_state_flags = RT_UPDATE_STATE_FLAGS_NONE;
-    
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE) {
+
+    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE)
+    {
         out_update_state_flags |= RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM;
 
         ClearFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
     }
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING) {
+    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
+    {
         return Rebuild(out_update_state_flags);
     }
 
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
+RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags& out_update_state_flags)
 {
     RendererResult result;
 
     std::vector<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());
     std::vector<uint32> primitive_counts(m_geometries.Size());
 
-    for (SizeType i = 0; i < m_geometries.Size(); i++) {
-        const VulkanAccelerationGeometryRef &geometry = m_geometries[i];
+    for (SizeType i = 0; i < m_geometries.Size(); i++)
+    {
+        const VulkanAccelerationGeometryRef& geometry = m_geometries[i];
         AssertThrow(geometry != nullptr);
 
         geometries[i] = geometry->m_geometry;
@@ -977,12 +1002,11 @@ RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags &out_update_state_flags)
             geometries,
             primitive_counts,
             true,
-            out_update_state_flags
-        ),
-        result
-    );
+            out_update_state_flags),
+        result);
 
-    if (!result) {
+    if (!result)
+    {
         HYPERION_IGNORE_ERRORS(Destroy());
 
         return result;

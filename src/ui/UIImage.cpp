@@ -21,13 +21,15 @@ void UIImage::Init()
     UIObject::Init();
 }
 
-void UIImage::SetTexture(const Handle<Texture> &texture)
+void UIImage::SetTexture(const Handle<Texture>& texture)
 {
-    if (texture == m_texture) {
+    if (texture == m_texture)
+    {
         return;
     }
 
-    if (m_texture.IsValid()) {
+    if (m_texture.IsValid())
+    {
         g_safe_deleter->SafeRelease(std::move(m_texture));
     }
 

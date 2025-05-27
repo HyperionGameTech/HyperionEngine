@@ -32,18 +32,18 @@ class MeshRenderResource;
 class MaterialRenderResource;
 class SkeletonRenderResource;
 
-extern HYP_API GPUBufferHolderMap *GetGPUBufferHolderMap();
+extern HYP_API GPUBufferHolderMap* GetGPUBufferHolderMap();
 
 static constexpr uint32 max_entities_per_instance_batch = 60;
 
 struct alignas(16) EntityInstanceBatch
 {
-    uint32  batch_index;
-    uint32  num_entities;
-    uint32  _pad0;
-    uint32  _pad1;
+    uint32 batch_index;
+    uint32 num_entities;
+    uint32 _pad0;
+    uint32 _pad1;
 
-    uint32  indices[max_entities_per_instance_batch];
+    uint32 indices[max_entities_per_instance_batch];
     Matrix4 transforms[max_entities_per_instance_batch];
 };
 
@@ -58,7 +58,7 @@ struct DrawCallID
     static constexpr uint64 mesh_mask = uint64(0xFFFFFFFF);
     static constexpr uint64 material_mask = uint64(0xFFFFFFFF) << 32;
 
-    uint64  value;
+    uint64 value;
 
     constexpr DrawCallID()
         : value(0)
@@ -76,33 +76,43 @@ struct DrawCallID
     }
 
     HYP_FORCE_INLINE constexpr operator uint64() const
-        { return value; }
+    {
+        return value;
+    }
 
-    HYP_FORCE_INLINE bool operator==(const DrawCallID &other) const
-        { return value == other.value; }
+    HYP_FORCE_INLINE bool operator==(const DrawCallID& other) const
+    {
+        return value == other.value;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const DrawCallID &other) const
-        { return value != other.value; }
+    HYP_FORCE_INLINE bool operator!=(const DrawCallID& other) const
+    {
+        return value != other.value;
+    }
 
     HYP_FORCE_INLINE bool HasMaterial() const
-        { return bool(value & (uint64(~0u) << 32)); }
+    {
+        return bool(value & (uint64(~0u) << 32));
+    }
 
     HYP_FORCE_INLINE constexpr uint64 Value() const
-        { return value; }
+    {
+        return value;
+    }
 };
 
 struct DrawCall
 {
-    DrawCallID              id;
-    EntityInstanceBatch     *batch = nullptr;
-    uint32                  draw_command_index = 0;
+    DrawCallID id;
+    EntityInstanceBatch* batch = nullptr;
+    uint32 draw_command_index = 0;
 
-    MeshRenderResource      *mesh_render_resource = nullptr;
-    MaterialRenderResource  *material_render_resource = nullptr;
-    SkeletonRenderResource  *skeleton_render_resource = nullptr;
+    MeshRenderResource* mesh_render_resource = nullptr;
+    MaterialRenderResource* material_render_resource = nullptr;
+    SkeletonRenderResource* skeleton_render_resource = nullptr;
 
-    uint32                  entity_id_count = 0;
-    ID<Entity>              entity_ids[max_entities_per_instance_batch];
+    uint32 entity_id_count = 0;
+    ID<Entity> entity_ids[max_entities_per_instance_batch];
 };
 
 class IDrawCallCollectionImpl
@@ -111,61 +121,68 @@ public:
     virtual ~IDrawCallCollectionImpl() = default;
 
     virtual SizeType GetBatchSizeOf() const = 0;
-    virtual EntityInstanceBatch &GetBatch(SizeType index) const = 0;
-    virtual EntityInstanceBatch *AcquireBatch() const = 0;
-    virtual void ReleaseBatch(EntityInstanceBatch *batch) const = 0;
-    virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const = 0;
+    virtual EntityInstanceBatch& GetBatch(SizeType index) const = 0;
+    virtual EntityInstanceBatch* AcquireBatch() const = 0;
+    virtual void ReleaseBatch(EntityInstanceBatch* batch) const = 0;
+    virtual GPUBufferHolderBase* GetEntityInstanceBatchHolder() const = 0;
 };
 
 class DrawCallCollection
 {
 public:
-    DrawCallCollection(IDrawCallCollectionImpl *impl, RenderGroup *render_group)
+    DrawCallCollection(IDrawCallCollectionImpl* impl, RenderGroup* render_group)
         : m_impl(impl),
           m_render_group(render_group)
     {
     }
 
-    DrawCallCollection(const DrawCallCollection &other)                 = delete;
-    DrawCallCollection &operator=(const DrawCallCollection &other)      = delete;
+    DrawCallCollection(const DrawCallCollection& other) = delete;
+    DrawCallCollection& operator=(const DrawCallCollection& other) = delete;
 
-    DrawCallCollection(DrawCallCollection &&other) noexcept;
-    DrawCallCollection &operator=(DrawCallCollection &&other) noexcept;
+    DrawCallCollection(DrawCallCollection&& other) noexcept;
+    DrawCallCollection& operator=(DrawCallCollection&& other) noexcept;
 
     ~DrawCallCollection();
 
-    HYP_FORCE_INLINE IDrawCallCollectionImpl *GetImpl() const
-        { return m_impl; }
+    HYP_FORCE_INLINE IDrawCallCollectionImpl* GetImpl() const
+    {
+        return m_impl;
+    }
 
-    HYP_FORCE_INLINE RenderGroup *GetRenderGroup() const
-        { return m_render_group; }
+    HYP_FORCE_INLINE RenderGroup* GetRenderGroup() const
+    {
+        return m_render_group;
+    }
 
-    HYP_FORCE_INLINE Array<DrawCall, InlineAllocator<16>> &GetDrawCalls()
-        { return m_draw_calls; }
+    HYP_FORCE_INLINE Array<DrawCall, InlineAllocator<16>>& GetDrawCalls()
+    {
+        return m_draw_calls;
+    }
 
-    HYP_FORCE_INLINE const Array<DrawCall, InlineAllocator<16>> &GetDrawCalls() const
-        { return m_draw_calls; }
+    HYP_FORCE_INLINE const Array<DrawCall, InlineAllocator<16>>& GetDrawCalls() const
+    {
+        return m_draw_calls;
+    }
 
-    void PushDrawCallToBatch(EntityInstanceBatch *batch, DrawCallID id, const RenderProxy &render_proxy);
-    EntityInstanceBatch *TakeDrawCallBatch(DrawCallID id);
+    void PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy);
+    EntityInstanceBatch* TakeDrawCallBatch(DrawCallID id);
     void ResetDrawCalls();
 
 protected:
-
 private:
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
-    *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
-    *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(DrawCall &draw_call, ID<Entity> entity, const MeshInstanceData &mesh_instance_data, uint32 num_instances, uint32 instance_offset);
+     *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
+     *  Otherwise, zero will be returned. */
+    uint32 PushEntityToBatch(DrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
 
-    IDrawCallCollectionImpl                 *m_impl;
+    IDrawCallCollectionImpl* m_impl;
 
-    RenderGroup                             *m_render_group;
+    RenderGroup* m_render_group;
 
-    Array<DrawCall, InlineAllocator<16>>    m_draw_calls;
+    Array<DrawCall, InlineAllocator<16>> m_draw_calls;
 
     // Map from draw call ID to index in draw_calls
-    HashMap<uint64, Array<SizeType>>        m_index_map;
+    HashMap<uint64, Array<SizeType>> m_index_map;
 };
 
 template <class EntityInstanceBatchType>
@@ -186,14 +203,14 @@ public:
         return sizeof(EntityInstanceBatchType);
     }
 
-    virtual EntityInstanceBatch &GetBatch(SizeType index) const override
+    virtual EntityInstanceBatch& GetBatch(SizeType index) const override
     {
         return m_entity_instance_batches->Get(index);
     }
 
-    virtual EntityInstanceBatch *AcquireBatch() const override
+    virtual EntityInstanceBatch* AcquireBatch() const override
     {
-        EntityInstanceBatchType *batch;
+        EntityInstanceBatchType* batch;
         const uint32 batch_index = m_entity_instance_batches->AcquireIndex(&batch);
 
         batch->batch_index = batch_index;
@@ -201,28 +218,29 @@ public:
         return batch;
     }
 
-    virtual void ReleaseBatch(EntityInstanceBatch *batch) const override
+    virtual void ReleaseBatch(EntityInstanceBatch* batch) const override
     {
         m_entity_instance_batches->ReleaseIndex(batch->batch_index);
     }
 
-    virtual GPUBufferHolderBase *GetEntityInstanceBatchHolder() const override
+    virtual GPUBufferHolderBase* GetEntityInstanceBatchHolder() const override
     {
         // Need to use reinterpret_cast because GPUBufferHolder is forward declared here
-        return reinterpret_cast<GPUBufferHolderBase *>(m_entity_instance_batches);
+        return reinterpret_cast<GPUBufferHolderBase*>(m_entity_instance_batches);
     }
 
 private:
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER> *m_entity_instance_batches;
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER>* m_entity_instance_batches;
 };
 
-extern HYP_API IDrawCallCollectionImpl *GetDrawCallCollectionImpl(TypeID type_id);
-extern HYP_API IDrawCallCollectionImpl *SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl> &&impl);
+extern HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeID type_id);
+extern HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl>&& impl);
 
 template <class EntityInstanceBatchType>
-IDrawCallCollectionImpl *GetOrCreateDrawCallCollectionImpl(uint32 count)
+IDrawCallCollectionImpl* GetOrCreateDrawCallCollectionImpl(uint32 count)
 {
-    if (IDrawCallCollectionImpl *impl = GetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>())) {
+    if (IDrawCallCollectionImpl* impl = GetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>()))
+    {
         return impl;
     }
 

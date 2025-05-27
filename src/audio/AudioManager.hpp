@@ -12,35 +12,44 @@
 #include <core/math/Vector3.hpp>
 
 namespace hyperion {
-class AudioManager {
+class AudioManager
+{
 public:
-  static AudioManager &GetInstance();
+    static AudioManager& GetInstance();
 
-  AudioManager();
-  ~AudioManager();
+    AudioManager();
+    ~AudioManager();
 
-  bool Initialize();
-  void Shutdown();
+    bool Initialize();
+    void Shutdown();
 
-  bool IsInitialized() const
-    { return m_is_initialized; }
+    bool IsInitialized() const
+    {
+        return m_is_initialized;
+    }
 
-  Array<String> ListDevices() const;
+    Array<String> ListDevices() const;
 
-  ALCdevice *GetDevice() const { return m_device; }
+    ALCdevice* GetDevice() const
+    {
+        return m_device;
+    }
 
-  ALCcontext *GetContext() const { return m_context; }
+    ALCcontext* GetContext() const
+    {
+        return m_context;
+    }
 
-  void SetListenerPosition(const Vec3f &position);
-  void SetListenerOrientation(const Vec3f &forward, const Vec3f &up);
+    void SetListenerPosition(const Vec3f& position);
+    void SetListenerOrientation(const Vec3f& forward, const Vec3f& up);
 
 private:
-  static AudioManager *instance;
+    static AudioManager* s_instance;
 
-  bool          m_is_initialized;
+    bool m_is_initialized;
 
-  ALCdevice     *m_device;
-  ALCcontext    *m_context;
+    ALCdevice* m_device;
+    ALCcontext* m_context;
 };
 } // namespace hyperion
 

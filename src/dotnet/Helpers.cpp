@@ -14,7 +14,7 @@ namespace detail {
 //     return value->GetObjectReference().weak_handle;
 // }
 
-const char *TransformArgument<FilePath>::operator()(const FilePath &value) const
+const char* TransformArgument<FilePath>::operator()(const FilePath& value) const
 {
     return value.Data();
 }

@@ -27,44 +27,49 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvProbe);
 
-ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager &entity_manager)
+ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager& entity_manager)
     : System(entity_manager)
 {
 }
 
-void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
+void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    ReflectionProbeComponent &reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
-    BoundingBoxComponent &bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
-    TransformComponent &transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
+    ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
+    BoundingBoxComponent& bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
+    TransformComponent& transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
     BoundingBox world_aabb = bounding_box_component.world_aabb;
 
-    if (!world_aabb.IsFinite()) {
+    if (!world_aabb.IsFinite())
+    {
         world_aabb = BoundingBox::Empty();
     }
 
-    if (!world_aabb.IsValid()) {
+    if (!world_aabb.IsValid())
+    {
         HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
     }
 
-    if (reflection_probe_component.reflection_probe_renderer) {
+    if (reflection_probe_component.reflection_probe_renderer)
+    {
         reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
         reflection_probe_component.reflection_probe_renderer.Reset();
     }
 
-    if (reflection_probe_component.env_probe.IsValid()) {
+    if (reflection_probe_component.env_probe.IsValid())
+    {
         reflection_probe_component.env_probe->SetParentScene(GetScene()->HandleFromThis());
         reflection_probe_component.env_probe->SetAABB(world_aabb);
-    } else {
+    }
+    else
+    {
         reflection_probe_component.env_probe = CreateObject<EnvProbe>(
             GetScene()->HandleFromThis(),
             world_aabb,
             reflection_probe_component.dimensions,
-            ENV_PROBE_TYPE_REFLECTION
-        );
+            ENV_PROBE_TYPE_REFLECTION);
     }
 
     reflection_probe_component.env_probe->SetOrigin(transform_component.transform.GetTranslation());
@@ -80,13 +85,15 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    ReflectionProbeComponent &reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
+    ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
 
-    if (reflection_probe_component.env_probe.IsValid()) {
+    if (reflection_probe_component.env_probe.IsValid())
+    {
         reflection_probe_component.env_probe->SetParentScene(Handle<Scene>::empty);
     }
 
-    if (reflection_probe_component.reflection_probe_renderer) {
+    if (reflection_probe_component.reflection_probe_renderer)
+    {
         reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
         reflection_probe_component.reflection_probe_renderer.Reset();
     }
@@ -94,18 +101,21 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos())) {
-        const Handle<EnvProbe> &env_probe = reflection_probe_component.env_probe;
+    for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
+    {
+        const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 
-        if (!env_probe.IsValid()) {
+        if (!env_probe.IsValid())
+        {
             continue;
         }
 
         env_probe->Update(delta);
 
-        const Handle<Camera> &camera = GetScene()->GetPrimaryCamera();
+        const Handle<Camera>& camera = GetScene()->GetPrimaryCamera();
 
-        if (!camera.IsValid()) {
+        if (!camera.IsValid())
+        {
             continue;
         }
 
@@ -117,10 +127,12 @@ void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
     { // Update transforms and bounding boxes of EnvProbes to match the components
         HashSet<ID<Entity>> updated_entity_ids;
 
-        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos())) {
-            const Handle<EnvProbe> &env_probe = reflection_probe_component.env_probe;
+        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+        {
+            const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 
-            if (!env_probe.IsValid()) {
+            if (!env_probe.IsValid())
+            {
                 continue;
             }
 
@@ -132,23 +144,29 @@ void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
             updated_entity_ids.Insert(entity_id);
         }
 
-        if (updated_entity_ids.Any()) {
+        if (updated_entity_ids.Any())
+        {
             AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
-            {
-                for (const ID<Entity> &entity_id : updated_entity_ids) {
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
-                }
-            });
+                {
+                    for (const ID<Entity>& entity_id : updated_entity_ids)
+                    {
+                        GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
+                    }
+                });
         }
     }
 }
 
-void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent &reflection_probe_component)
+void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent& reflection_probe_component)
 {
-    if (reflection_probe_component.reflection_probe_renderer) {
+    if (reflection_probe_component.reflection_probe_renderer)
+    {
         GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
-    } else {
-        if (!reflection_probe_component.env_probe.IsValid()) {
+    }
+    else
+    {
+        if (!reflection_probe_component.env_probe.IsValid())
+        {
             HYP_LOG(EnvProbe, Warning, "ReflectionProbeComponent has invalid EnvProbe");
 
             return;
@@ -158,8 +176,7 @@ void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionPro
 
         reflection_probe_component.reflection_probe_renderer = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("ReflectionProbeRenderer"),
-            TResourceHandle<EnvProbeRenderResource>(reflection_probe_component.env_probe->GetRenderResource())
-        );
+            TResourceHandle<EnvProbeRenderResource>(reflection_probe_component.env_probe->GetRenderResource()));
     }
 }
 

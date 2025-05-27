@@ -21,7 +21,7 @@ class Entity;
 
 struct EntityData
 {
-    TypeMap<ComponentID>    components;
+    TypeMap<ComponentID> components;
 
     template <class Component>
     HYP_FORCE_INLINE bool HasComponent() const
@@ -56,8 +56,9 @@ struct EntityData
     {
         auto it = components.Find<Component>();
 
-        if (it == components.End()) {
-            return { };
+        if (it == components.End())
+        {
+            return {};
         }
 
         return it->second;
@@ -67,10 +68,11 @@ struct EntityData
     {
         auto it = components.Find(component_type_id);
 
-        if (it == components.End()) {
-            return { };
+        if (it == components.End())
+        {
+            return {};
         }
-        
+
         return it->second;
     }
 
@@ -103,15 +105,15 @@ public:
     using Iterator = HashMap<WeakHandle<Entity>, EntityData>::Iterator;
     using ConstIterator = HashMap<WeakHandle<Entity>, EntityData>::ConstIterator;
 
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle)
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
         auto it = m_entities.Insert(handle.ToWeak(), {});
         AssertThrow(it.second);
     }
-    
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle, const EntityData &entity_data)
+
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle, const EntityData& entity_data)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -119,7 +121,7 @@ public:
         AssertThrow(it.second);
     }
 
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity> &handle, EntityData &&entity_data)
+    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle, EntityData&& entity_data)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -127,7 +129,7 @@ public:
         AssertThrow(it.second);
     }
 
-    HYP_FORCE_INLINE EntityData *TryGetEntityData(ID<Entity> id)
+    HYP_FORCE_INLINE EntityData* TryGetEntityData(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -136,7 +138,7 @@ public:
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    HYP_FORCE_INLINE const EntityData *TryGetEntityData(ID<Entity> id) const
+    HYP_FORCE_INLINE const EntityData* TryGetEntityData(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -145,7 +147,7 @@ public:
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    HYP_FORCE_INLINE EntityData &GetEntityData(ID<Entity> id)
+    HYP_FORCE_INLINE EntityData& GetEntityData(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -155,7 +157,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE const EntityData &GetEntityData(ID<Entity> id) const
+    HYP_FORCE_INLINE const EntityData& GetEntityData(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -165,28 +167,28 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Iterator Find(const Handle<Entity> &entity)
+    HYP_FORCE_INLINE Iterator Find(const Handle<Entity>& entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(const Handle<Entity> &entity) const
+    HYP_FORCE_INLINE ConstIterator Find(const Handle<Entity>& entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    HYP_FORCE_INLINE Iterator Find(const WeakHandle<Entity> &entity)
+    HYP_FORCE_INLINE Iterator Find(const WeakHandle<Entity>& entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.Find(entity);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(const WeakHandle<Entity> &entity) const
+    HYP_FORCE_INLINE ConstIterator Find(const WeakHandle<Entity>& entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -216,12 +218,11 @@ public:
 
     HYP_DEF_STL_BEGIN_END(
         m_entities.Begin(),
-        m_entities.End()
-    )
+        m_entities.End())
 
 private:
     HashMap<WeakHandle<Entity>, EntityData> m_entities;
-    
+
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 

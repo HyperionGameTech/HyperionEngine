@@ -11,25 +11,25 @@ namespace hyperion {
 
 enum class FBOMDataAttributes : uint8
 {
-    NONE                = 0x0,
-    COMPRESSED          = 0x1,
+    NONE = 0x0,
+    COMPRESSED = 0x1,
 
     EXT_REF_PLACEHOLDER = 0x2, // Write the data now, will be changed to ext ref later. Used for properties / children that will eventually be external references
-    RESERVED1           = 0x4,
-    RESERVED2           = 0x8,
-    RESERVED3           = 0x10,
+    RESERVED1 = 0x4,
+    RESERVED2 = 0x8,
+    RESERVED3 = 0x10,
 
-    LOCATION_MASK       = 0x20 | 0x40 | 0x80
+    LOCATION_MASK = 0x20 | 0x40 | 0x80
 };
 
 HYP_MAKE_ENUM_FLAGS(FBOMDataAttributes)
 
 enum class FBOMDataLocation : uint8
 {
-    LOC_STATIC  = 0,
+    LOC_STATIC = 0,
     LOC_INPLACE,
     LOC_EXT_REF,
-    INVALID     = uint8(-1)
+    INVALID = uint8(-1)
 };
 
 enum FBOMCommand : uint8

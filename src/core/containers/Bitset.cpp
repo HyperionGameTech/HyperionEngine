@@ -7,8 +7,8 @@
 #include <core/utilities/ByteUtil.hpp>
 
 #ifdef HYP_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
 #endif
 
 #include <bitset> // for output
@@ -31,7 +31,7 @@ static Span<const Bitset::BlockType> CreateBlocks_Static_Internal()
 }
 
 Bitset::Bitset()
-    : m_blocks(CreateBlocks_Static_Internal< 0 >())
+    : m_blocks(CreateBlocks_Static_Internal<0>())
 {
 }
 
@@ -40,16 +40,16 @@ Bitset::Bitset(uint64 value)
 {
 }
 
-Bitset::Bitset(Bitset &&other) noexcept
+Bitset::Bitset(Bitset&& other) noexcept
     : m_blocks(std::move(other.m_blocks))
 {
-    other.m_blocks = CreateBlocks_Static_Internal< 0 >();
+    other.m_blocks = CreateBlocks_Static_Internal<0>();
 }
 
-Bitset &Bitset::operator=(Bitset &&other) noexcept
+Bitset& Bitset::operator=(Bitset&& other) noexcept
 {
     m_blocks = std::move(other.m_blocks);
-    other.m_blocks = CreateBlocks_Static_Internal< 0 >();
+    other.m_blocks = CreateBlocks_Static_Internal<0>();
 
     return *this;
 }
@@ -59,7 +59,8 @@ Bitset Bitset::operator~() const
     Bitset result;
     result.m_blocks.Resize(m_blocks.Size());
 
-    for (uint32 index = 0; index < result.m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
         result.m_blocks[index] = ~m_blocks[index];
     }
 
@@ -74,22 +75,26 @@ Bitset Bitset::operator<<(uint32 pos) const
 
     const SizeType total_bit_size = NumBits();
 
-    for (uint32 combined_bit_index = 0; combined_bit_index < total_bit_size; ++combined_bit_index) {
+    for (uint32 combined_bit_index = 0; combined_bit_index < total_bit_size; ++combined_bit_index)
+    {
         result.Set(combined_bit_index + pos, Get(combined_bit_index));
     }
 
     return result;
 }
 
-Bitset &Bitset::operator<<=(uint32 pos)
-    { return *this = (*this << pos); }
+Bitset& Bitset::operator<<=(uint32 pos)
+{
+    return *this = (*this << pos);
+}
 
-Bitset Bitset::operator&(const Bitset &other) const
+Bitset Bitset::operator&(const Bitset& other) const
 {
     Bitset result;
     result.m_blocks.Resize(MathUtil::Min(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < result.m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
         result.m_blocks[index] = m_blocks[index] & other.m_blocks[index];
     }
 
@@ -98,11 +103,12 @@ Bitset Bitset::operator&(const Bitset &other) const
     return result;
 }
 
-Bitset &Bitset::operator&=(const Bitset &other)
+Bitset& Bitset::operator&=(const Bitset& other)
 {
     m_blocks.Resize(MathUtil::Min(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
         m_blocks[index] = m_blocks[index] & other.m_blocks[index];
     }
 
@@ -111,12 +117,13 @@ Bitset &Bitset::operator&=(const Bitset &other)
     return *this;
 }
 
-Bitset Bitset::operator|(const Bitset &other) const
+Bitset Bitset::operator|(const Bitset& other) const
 {
     Bitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < result.m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
         result.m_blocks[index] = (index < m_blocks.Size() ? m_blocks[index] : 0)
             | (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
     }
@@ -126,11 +133,12 @@ Bitset Bitset::operator|(const Bitset &other) const
     return result;
 }
 
-Bitset &Bitset::operator|=(const Bitset &other)
+Bitset& Bitset::operator|=(const Bitset& other)
 {
     m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
         m_blocks[index] = m_blocks[index] | (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
     }
 
@@ -139,12 +147,13 @@ Bitset &Bitset::operator|=(const Bitset &other)
     return *this;
 }
 
-Bitset Bitset::operator^(const Bitset &other) const
+Bitset Bitset::operator^(const Bitset& other) const
 {
     Bitset result;
     result.m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < result.m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < result.m_blocks.Size(); index++)
+    {
         result.m_blocks[index] = (index < m_blocks.Size() ? m_blocks[index] : 0)
             ^ (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
     }
@@ -154,11 +163,12 @@ Bitset Bitset::operator^(const Bitset &other) const
     return result;
 }
 
-Bitset &Bitset::operator^=(const Bitset &other)
+Bitset& Bitset::operator^=(const Bitset& other)
 {
     m_blocks.Resize(MathUtil::Max(m_blocks.Size(), other.m_blocks.Size()));
 
-    for (uint32 index = 0; index < m_blocks.Size(); index++) {
+    for (uint32 index = 0; index < m_blocks.Size(); index++)
+    {
         m_blocks[index] = m_blocks[index] ^ (index < other.m_blocks.Size() ? other.m_blocks[index] : 0);
     }
 
@@ -171,17 +181,22 @@ void Bitset::Set(BitIndex index, bool value)
 {
     const uint32 block_index = GetBlockIndex(index);
 
-    if (block_index >= m_blocks.Size()) {
-        if (!value) {
+    if (block_index >= m_blocks.Size())
+    {
+        if (!value)
+        {
             return; // not point setting if it's already unset.
         }
 
         m_blocks.Resize(block_index + 1);
     }
 
-    if (value) {
+    if (value)
+    {
         m_blocks[block_index] |= GetBitMask(index);
-    } else {
+    }
+    else
+    {
         m_blocks[block_index] &= ~GetBitMask(index);
     }
 }
@@ -196,14 +211,15 @@ uint64 Bitset::Count() const
 {
     uint64 count = 0;
 
-    for (const BlockType value : m_blocks) {
+    for (const BlockType value : m_blocks)
+    {
         count += ByteUtil::BitCount(value);
     }
 
     return count;
 }
 
-Bitset &Bitset::Resize(SizeType num_bits)
+Bitset& Bitset::Resize(SizeType num_bits)
 {
     const SizeType previous_num_blocks = m_blocks.Size();
     const SizeType new_num_blocks = (num_bits + (num_bits_per_block - 1)) / num_bits_per_block;
@@ -219,7 +235,8 @@ Bitset &Bitset::Resize(SizeType num_bits)
     //     }
     // }
 
-    if (m_blocks.Size() < num_preallocated_blocks) {
+    if (m_blocks.Size() < num_preallocated_blocks)
+    {
         m_blocks.Resize(num_preallocated_blocks);
     }
 
@@ -228,8 +245,10 @@ Bitset &Bitset::Resize(SizeType num_bits)
 
 Bitset::BitIndex Bitset::FirstSetBitIndex() const
 {
-    for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++) {
-        if (m_blocks[block_index] != 0) {
+    for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++)
+    {
+        if (m_blocks[block_index] != 0)
+        {
 #ifdef HYP_CLANG_OR_GCC
             const uint32 bit_index = __builtin_ffs(m_blocks[block_index]) - 1;
 #elif defined(HYP_MSVC)
@@ -246,15 +265,17 @@ Bitset::BitIndex Bitset::FirstSetBitIndex() const
 
 Bitset::BitIndex Bitset::LastSetBitIndex() const
 {
-    for (uint32 block_index = m_blocks.Size(); block_index != 0; --block_index) {
-        if (m_blocks[block_index - 1] != 0) {
+    for (uint32 block_index = m_blocks.Size(); block_index != 0; --block_index)
+    {
+        if (m_blocks[block_index - 1] != 0)
+        {
 #ifdef HYP_CLANG_OR_GCC
             const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clz(m_blocks[block_index - 1]) - 1;
 #elif defined(HYP_MSVC)
             unsigned long bit_index = 0;
             _BitScanReverse(&bit_index, m_blocks[block_index - 1]);
 #endif
-    
+
             return ((block_index - 1) * num_bits_per_block) + bit_index;
         }
     }
@@ -267,9 +288,11 @@ Bitset::BitIndex Bitset::NextSetBitIndex(BitIndex offset) const
     const uint32 block_index = GetBlockIndex(offset);
 
     uint32 mask = ~(GetBitMask(offset) - 1);
-    
-    for (uint32 i = block_index; i < m_blocks.Size(); i++) {
-        if ((m_blocks[i] & mask) != 0) {
+
+    for (uint32 i = block_index; i < m_blocks.Size(); i++)
+    {
+        if ((m_blocks[i] & mask) != 0)
+        {
 #ifdef HYP_CLANG_OR_GCC
             const uint32 bit_index = __builtin_ffs(m_blocks[i] & mask) - 1;
 #elif defined(HYP_MSVC)

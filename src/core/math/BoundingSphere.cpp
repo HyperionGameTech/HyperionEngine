@@ -14,19 +14,19 @@ BoundingSphere::BoundingSphere()
 {
 }
 
-BoundingSphere::BoundingSphere(const Vec3f &center, float radius)
+BoundingSphere::BoundingSphere(const Vec3f& center, float radius)
     : center(center),
       radius(radius)
 {
 }
 
-BoundingSphere::BoundingSphere(const BoundingSphere &other)
+BoundingSphere::BoundingSphere(const BoundingSphere& other)
     : center(other.center),
       radius(other.radius)
 {
 }
 
-BoundingSphere &BoundingSphere::operator=(const BoundingSphere &other)
+BoundingSphere& BoundingSphere::operator=(const BoundingSphere& other)
 {
     center = other.center;
     radius = other.radius;
@@ -34,7 +34,7 @@ BoundingSphere &BoundingSphere::operator=(const BoundingSphere &other)
     return *this;
 }
 
-BoundingSphere::BoundingSphere(BoundingSphere &&other) noexcept
+BoundingSphere::BoundingSphere(BoundingSphere&& other) noexcept
     : center(other.center),
       radius(other.radius)
 {
@@ -42,7 +42,7 @@ BoundingSphere::BoundingSphere(BoundingSphere &&other) noexcept
     other.radius = 0.0f;
 }
 
-BoundingSphere &BoundingSphere::operator=(BoundingSphere &&other) noexcept
+BoundingSphere& BoundingSphere::operator=(BoundingSphere&& other) noexcept
 {
     center = other.center;
     radius = other.radius;
@@ -53,16 +53,17 @@ BoundingSphere &BoundingSphere::operator=(BoundingSphere &&other) noexcept
     return *this;
 }
 
-BoundingSphere::BoundingSphere(const BoundingBox &box)
+BoundingSphere::BoundingSphere(const BoundingBox& box)
     : BoundingSphere()
 {
-    if (box.IsValid()) {
+    if (box.IsValid())
+    {
         center = box.GetCenter();
         radius = box.GetRadius();
     }
 }
 
-BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
+BoundingSphere& BoundingSphere::Extend(const BoundingBox& box)
 {
     // https://github.com/openscenegraph/OpenSceneGraph/blob/master/include/osg/BoundingSphere
 
@@ -70,7 +71,8 @@ BoundingSphere &BoundingSphere::Extend(const BoundingBox &box)
 
     Vec3f direction_vector;
 
-    for (const Vec3f &corner : box.GetCorners()) {
+    for (const Vec3f& corner : box.GetCorners())
+    {
         direction_vector = (corner - center).Normalized();
         direction_vector *= -radius;
         direction_vector += center;

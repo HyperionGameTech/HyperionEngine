@@ -12,21 +12,21 @@
 namespace hyperion {
 namespace renderer {
 
-RenderCommands::Buffer RenderCommands::buffers[2] = { };
-AtomicVar<uint32> RenderCommands::buffer_index = 0;
-RenderCommands::RenderCommandSemaphore RenderCommands::semaphore = { };
+RenderCommands::Buffer RenderCommands::s_buffers[2] = {};
+AtomicVar<uint32> RenderCommands::s_buffer_index = 0;
+RenderCommands::RenderCommandSemaphore RenderCommands::s_semaphore = {};
 
 // // Note: double buffering is currently disabled as some render commands are dependent on being executed sequentially.
 // #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 
 #pragma region RenderScheduler
 
-void RenderScheduler::Commit(RenderCommand *command)
+void RenderScheduler::Commit(RenderCommand* command)
 {
     m_commands.PushBack(command);
 }
 
-void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
+void RenderScheduler::AcceptAll(Array<RenderCommand*>& out_container)
 {
     out_container = std::move(m_commands);
 }
@@ -35,9 +35,9 @@ void RenderScheduler::AcceptAll(Array<RenderCommand *> &out_container)
 
 #pragma region RenderCommands
 
-void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) *command)
+void RenderCommands::PushCustomRenderCommand(RENDER_COMMAND(CustomRenderCommand) * command)
 {
-    Buffer &buffer = buffers[CurrentBufferIndex()];
+    Buffer& buffer = s_buffers[CurrentBufferIndex()];
 
     buffer.scheduler.m_num_enqueued.Increment(1, MemoryOrder::RELEASE);
 
@@ -52,11 +52,11 @@ RendererResult RenderCommands::Flush()
 
     Threads::AssertOnThread(g_render_thread);
 
-    Array<RenderCommand *> commands;
+    Array<RenderCommand*> commands;
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
     const uint32 buffer_index = CurrentBufferIndex();
-    Buffer &buffer = buffers[buffer_index];
+    Buffer& buffer = s_buffers[buffer_index];
 
     std::unique_lock lock(buffer.mtx);
 
@@ -68,8 +68,9 @@ RendererResult RenderCommands::Flush()
 
     const SizeType num_commands = commands.Size();
 
-    for (SizeType index = 0; index < num_commands; index++) {
-        RenderCommand *front = commands[index];
+    for (SizeType index = 0; index < num_commands; index++)
+    {
+        RenderCommand* front = commands[index];
 
         HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, buffer_index);
 
@@ -78,7 +79,8 @@ RendererResult RenderCommands::Flush()
         front->~RenderCommand();
     }
 
-    if (num_commands) {
+    if (num_commands)
+    {
         buffer.scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
 
         // Buffer is swapped now, safe to rewind without locking mutex.
@@ -86,7 +88,7 @@ RendererResult RenderCommands::Flush()
     }
 #else
     const uint32 buffer_index = 0;
-    Buffer &buffer = buffers[buffer_index];
+    Buffer& buffer = s_buffers[buffer_index];
 
     std::unique_lock lock(buffer.mtx);
 
@@ -94,22 +96,24 @@ RendererResult RenderCommands::Flush()
 
     const SizeType num_commands = commands.Size();
 
-    for (SizeType index = 0; index < num_commands; index++) {
-        RenderCommand *front = commands[index];
+    for (SizeType index = 0; index < num_commands; index++)
+    {
+        RenderCommand* front = commands[index];
 
-#ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
+    #ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
         HYP_NAMED_SCOPE(front->_debug_name);
-#else
+    #else
         HYP_NAMED_SCOPE("Executing render command");
-#endif
+    #endif
 
         const RendererResult command_result = front->Call();
         AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.GetError().GetErrorCode(), command_result.GetError().GetMessage().Data());
-        
+
         front->~RenderCommand();
     }
 
-    if (num_commands) {
+    if (num_commands)
+    {
         Rewind(buffer_index);
     }
 
@@ -118,9 +122,9 @@ RendererResult RenderCommands::Flush()
     lock.unlock();
 #endif
 
-    semaphore.Produce(1);
+    s_semaphore.Produce(1);
 
-    return { };
+    return {};
 }
 
 void RenderCommands::Wait()
@@ -129,24 +133,26 @@ void RenderCommands::Wait()
 
     Threads::AssertOnThread(~g_render_thread);
 
-    const uint32 current_value = semaphore.GetValue();
+    const uint32 current_value = s_semaphore.GetValue();
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
     // wait for the counter to increment by 2
-    semaphore.WaitForValue(current_value + 2);
+    s_semaphore.WaitForValue(current_value + 2);
 #else
     // wait for the counter to increment by 1
-    semaphore.WaitForValue(current_value + 1);
+    s_semaphore.WaitForValue(current_value + 1);
 #endif
 }
 
 void RenderCommands::Rewind(uint32 buffer_index)
 {
     // all items in the cache must have had destructor called on them already.
-    Buffer &buffer = buffers[buffer_index];
+    Buffer& buffer = s_buffers[buffer_index];
 
-    for (auto it = buffer.holders.Begin(); it != buffer.holders.End(); ++it) {
-        if (!it->render_command_list_ptr) {
+    for (auto it = buffer.holders.Begin(); it != buffer.holders.End(); ++it)
+    {
+        if (!it->render_command_list_ptr)
+        {
             break;
         }
 

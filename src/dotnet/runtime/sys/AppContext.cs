@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="AppContext")]
-    public class AppContext : HypObject
+    [HypClassBinding(Name="AppContextBase")]
+    public class AppContextBase : HypObject
     {
-        public AppContext()
+        public AppContextBase()
         {
         }
     }

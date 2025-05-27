@@ -33,8 +33,8 @@ public:
     virtual FBOMType GetObjectType() const = 0;
     virtual TypeID GetTypeID() const = 0;
 
-    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(FBOMLoadContext &context, const FBOMObject &in, HypData &out) const = 0;
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const = 0;
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const = 0;
 };
 
 template <class T>
@@ -48,7 +48,7 @@ namespace detail {
 struct FBOMMarshalerRegistrationBase
 {
 protected:
-    FBOMMarshalerRegistrationBase(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase> &&marshal);
+    FBOMMarshalerRegistrationBase(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal);
 };
 
 template <class T, class MarshalerType>
@@ -69,14 +69,19 @@ public:
     virtual ~FBOMObjectMarshalerBase() = default;
 
     virtual FBOMType GetObjectType() const override
-        { return FBOMObjectType(TypeNameHelper<T, true>::value.Data()); }
+    {
+        return FBOMObjectType(TypeNameHelper<T, true>::value.Data());
+    }
 
     virtual TypeID GetTypeID() const override final
-        { return TypeID::ForType<T>(); }
-
-    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject &out) const override final
     {
-        if (!in.Is<T>()) {
+        return TypeID::ForType<T>();
+    }
+
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override final
+    {
+        if (!in.Is<T>())
+        {
 #ifdef HYP_DEBUG_MODE
             AssertThrowMsg(false, "Cannot serialize - given object is not of expected type");
 #endif
@@ -87,20 +92,22 @@ public:
         return Serialize(in.Get<T>(), out);
     }
 
-    virtual FBOMResult Serialize(const T &in, FBOMObject &out) const = 0;
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override = 0;
+    virtual FBOMResult Serialize(const T& in, FBOMObject& out) const = 0;
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override = 0;
 };
 
 template <class T>
 class FBOMMarshaler : public FBOMObjectMarshalerBase<T>
 {
 public:
-    virtual FBOMResult Serialize(const T &in, FBOMObject &out) const override;
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override;
+    virtual FBOMResult Serialize(const T& in, FBOMObject& out) const override;
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override;
 };
 
-#define HYP_DEFINE_MARSHAL(T, MarshalType) \
-    static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> HYP_UNIQUE_NAME(marshal_registration) { }
+#define HYP_DEFINE_MARSHAL(T, MarshalType)                                                                           \
+    static ::hyperion::fbom::detail::FBOMMarshalerRegistration<T, MarshalType> HYP_UNIQUE_NAME(marshal_registration) \
+    {                                                                                                                \
+    }
 
 } // namespace hyperion::fbom
 

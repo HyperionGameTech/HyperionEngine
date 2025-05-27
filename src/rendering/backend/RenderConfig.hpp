@@ -22,7 +22,7 @@ public:
 
     // are bindless resources supported by the current platform?
     virtual bool IsBindlessSupported() const = 0;
-    
+
     // is raytracing supported by the current platform?
     virtual bool IsRaytracingSupported() const = 0;
 

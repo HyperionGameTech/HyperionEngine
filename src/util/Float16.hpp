@@ -3,24 +3,26 @@
 #ifndef HYPERION_FLOAT16_HPP
 #define HYPERION_FLOAT16_HPP
 
+#include <core/Defines.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
 /*! \brief A 16-bit floating point number. */
-struct alignas(2) float16
+struct alignas(2) Float16
 {
     uint16 value;
 
-    float16() = default;
-    
-    float16(float float_value)
+    Float16() = default;
+
+    Float16(float float_value)
     {
         static constexpr uint32 sign_mask = 0x80000000;
         static constexpr uint32 exp_mask = 0x7F800000;
         static constexpr uint32 frac_mask = 0x007FFFFF;
 
-        const uint32 float_bits = *reinterpret_cast<uint32 *>(&float_value);
+        const uint32 float_bits = *reinterpret_cast<uint32*>(&float_value);
         const uint32 sign = (float_bits & sign_mask) >> 16;
 
         int32 exponent = (float_bits & exp_mask) >> 23;
@@ -29,14 +31,20 @@ struct alignas(2) float16
         exponent -= 127;
         exponent += 15;
 
-        if (exponent >= 31) {
+        if (exponent >= 31)
+        {
             exponent = 31;
             fraction = 0;
-        } else if (exponent <= 0) {
-            if (exponent < -10) {
+        }
+        else if (exponent <= 0)
+        {
+            if (exponent < -10)
+            {
                 exponent = 0;
                 fraction = 0;
-            } else {
+            }
+            else
+            {
                 fraction = (fraction | 0x00800000) >> (1 - exponent);
                 exponent = 0;
             }
@@ -44,7 +52,8 @@ struct alignas(2) float16
 
         fraction = fraction >> 13;
 
-        if (fraction > 0x3FF) {
+        if (fraction > 0x3FF)
+        {
             fraction = 0x3FF;
         }
 
@@ -61,155 +70,145 @@ struct alignas(2) float16
         int32 exponent = (this->value & exp_mask) >> 10;
         uint32 fraction = (this->value & frac_mask) << 13;
 
-        if (exponent == 0) {
-            if (fraction == 0) {
+        if (exponent == 0)
+        {
+            if (fraction == 0)
+            {
                 exponent = 0;
-            } else {
-                while ((fraction & (1 << 23)) == 0) {
+            }
+            else
+            {
+                while ((fraction & (1 << 23)) == 0)
+                {
                     fraction <<= 1;
                     exponent--;
                 }
                 fraction &= ~(1 << 23);
                 exponent += 127;
             }
-        } else if (exponent == 31) {
+        }
+        else if (exponent == 31)
+        {
             exponent = 255;
-        } else {
+        }
+        else
+        {
             exponent -= 15;
             exponent += 127;
         }
 
         uint32 float_bits = sign | (exponent << 23) | fraction;
 
-        return *reinterpret_cast<float *>(&float_bits);
+        return *reinterpret_cast<float*>(&float_bits);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    float16 operator+(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE Float16 operator+(Float16 other) const
     {
-        return float16(float(*this) + float(other));
+        return Float16(float(*this) + float(other));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    float16 operator-(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE Float16 operator-(Float16 other) const
     {
-        return float16(float(*this) - float(other));
+        return Float16(float(*this) - float(other));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    float16 operator*(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE Float16 operator*(Float16 other) const
     {
-        return float16(float(*this) * float(other));
+        return Float16(float(*this) * float(other));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    float16 operator/(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE Float16 operator/(Float16 other) const
     {
-        return float16(float(*this) / float(other));
+        return Float16(float(*this) / float(other));
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator+=(float16 other)
+    HYP_FORCE_INLINE Float16& operator+=(Float16 other)
     {
         *this = *this + other;
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator-=(float16 other)
+    HYP_FORCE_INLINE Float16& operator-=(Float16 other)
     {
         *this = *this - other;
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator*=(float16 other)
+    HYP_FORCE_INLINE Float16& operator*=(Float16 other)
     {
         *this = *this * other;
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator/=(float16 other)
+    HYP_FORCE_INLINE Float16& operator/=(Float16 other)
     {
         *this = *this / other;
         return *this;
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    float16 operator-() const
+    HYP_NODISCARD HYP_FORCE_INLINE Float16 operator-() const
     {
-        return float16(-float(*this));
+        return Float16(-float(*this));
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator==(Float16 other) const
     {
         return float(*this) == float(other);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator!=(Float16 other) const
     {
         return float(*this) != float(other);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator<(Float16 other) const
     {
         return float(*this) < float(other);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator<=(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator<=(Float16 other) const
     {
         return float(*this) <= float(other);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator>(Float16 other) const
     {
         return float(*this) > float(other);
     }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator>=(float16 other) const
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator>=(Float16 other) const
     {
         return float(*this) >= float(other);
     }
 
-    HYP_FORCE_INLINE
-    float16 operator++(int)
+    HYP_FORCE_INLINE Float16 operator++(int)
     {
-        float16 result = *this;
+        Float16 result = *this;
         *this += 1.0f;
         return result;
     }
 
-    HYP_FORCE_INLINE
-    float16 operator--(int)
+    HYP_FORCE_INLINE Float16 operator--(int)
     {
-        float16 result = *this;
+        Float16 result = *this;
         *this -= 1.0f;
         return result;
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator++()
+    HYP_FORCE_INLINE Float16& operator++()
     {
         *this += 1.0f;
         return *this;
     }
 
-    HYP_FORCE_INLINE
-    float16 &operator--()
+    HYP_FORCE_INLINE Float16& operator--()
     {
         *this -= 1.0f;
         return *this;
     }
 };
 
-static_assert(sizeof(float16) == 2, "float16 must be 2 bytes in size");
+static_assert(sizeof(Float16) == 2, "float16 must be 2 bytes in size");
 
 } // namespace hyperion
 

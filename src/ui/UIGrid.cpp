@@ -46,11 +46,12 @@ void UIGridRow::Init()
     UIPanel::Init();
 }
 
-void UIGridRow::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIGridRow::AddChildUIObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
-    
-    if (ui_object.Is<UIGridColumn>()) {
+
+    if (ui_object.Is<UIGridColumn>())
+    {
         UIObject::AddChildUIObject(ui_object);
 
         m_columns.PushBack(ui_object.CastUnsafe<UIGridColumn>());
@@ -61,9 +62,10 @@ void UIGridRow::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    UIGridColumn *column = FindEmptyColumn();
-    
-    if (column == nullptr) {
+    UIGridColumn* column = FindEmptyColumn();
+
+    if (column == nullptr)
+    {
         column = AddColumn();
     }
 
@@ -73,25 +75,29 @@ void UIGridRow::AddChildUIObject(const RC<UIObject> &ui_object)
     UpdateColumnOffsets();
 }
 
-bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
+bool UIGridRow::RemoveChildUIObject(UIObject* ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
     // Keep a reference to the UIObject before removing it
     RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
 
-    if (!UIObject::RemoveChildUIObject(ui_object)) {
+    if (!UIObject::RemoveChildUIObject(ui_object))
+    {
         return false;
     }
 
-    if (IsInstanceOfHypClass<UIGridColumn>(ui_object)) {
+    if (IsInstanceOfHypClass<UIGridColumn>(ui_object))
+    {
         auto it = m_columns.FindAs(ui_object);
 
-        if (it != m_columns.End()) {
+        if (it != m_columns.End())
+        {
             m_columns.Erase(it);
 
             UpdateColumnSizes();
@@ -102,16 +108,19 @@ bool UIGridRow::RemoveChildUIObject(UIObject *ui_object)
     return true;
 }
 
-UIGridColumn *UIGridRow::FindEmptyColumn() const
+UIGridColumn* UIGridRow::FindEmptyColumn() const
 {
     HYP_SCOPE;
 
-    for (UIGridColumn *column : m_columns) {
-        if (!column) {
+    for (UIGridColumn* column : m_columns)
+    {
+        if (!column)
+        {
             continue;
         }
 
-        if (!column->HasChildUIObjects()) {
+        if (!column->HasChildUIObjects())
+        {
             return column;
         }
     }
@@ -128,7 +137,8 @@ void UIGridRow::SetNumColumns(int num_columns)
 {
     HYP_SCOPE;
 
-    if (m_num_columns == num_columns) {
+    if (m_num_columns == num_columns)
+    {
         return;
     }
 
@@ -165,7 +175,8 @@ RC<UIGridColumn> UIGridRow::AddColumn()
 
     m_columns.PushBack(column);
 
-    if (m_num_columns >= 0) {
+    if (m_num_columns >= 0)
+    {
         m_num_columns = SizeType(m_columns.Size());
     }
 
@@ -183,10 +194,12 @@ void UIGridRow::UpdateColumnSizes()
 
     Vec2i offset { 0, 0 };
 
-    for (SizeType i = 0; i < m_columns.Size(); i++) {
-        UIGridColumn *column = m_columns[i];
+    for (SizeType i = 0; i < m_columns.Size(); i++)
+    {
+        UIGridColumn* column = m_columns[i];
 
-        if (!column) {
+        if (!column)
+        {
             continue;
         }
 
@@ -202,10 +215,12 @@ void UIGridRow::UpdateColumnOffsets()
 
     Vec2i offset { 0, 0 };
 
-    for (SizeType i = 0; i < m_columns.Size(); i++) {
-        UIGridColumn *column = m_columns[i];
+    for (SizeType i = 0; i < m_columns.Size(); i++)
+    {
+        UIGridColumn* column = m_columns[i];
 
-        if (!column) {
+        if (!column)
+        {
             continue;
         }
 
@@ -236,36 +251,44 @@ void UIGrid::SetNumColumns(int num_columns)
 {
     m_num_columns = num_columns;
 
-    ForEachChildUIObject_Proc([this](UIObject *ui_object)
-    {
-        if (!ui_object->IsInstanceOf<UIGridRow>()) {
+    ForEachChildUIObject_Proc([this](UIObject* ui_object)
+        {
+            if (!ui_object->IsInstanceOf<UIGridRow>())
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            static_cast<UIGridRow*>(ui_object)->SetNumColumns(m_num_columns);
+
             return IterationResult::CONTINUE;
-        }
-
-        static_cast<UIGridRow *>(ui_object)->SetNumColumns(m_num_columns);
-
-        return IterationResult::CONTINUE;
-    }, false);
+        },
+        false);
 }
 
 void UIGrid::SetNumRows(uint32 num_rows)
 {
     const SizeType current_num_rows = m_rows.Size();
 
-    if (num_rows == current_num_rows) {
+    if (num_rows == current_num_rows)
+    {
         return;
     }
 
-    if (num_rows < current_num_rows) {
-        for (SizeType i = num_rows; i < current_num_rows; i++) {
+    if (num_rows < current_num_rows)
+    {
+        for (SizeType i = num_rows; i < current_num_rows; i++)
+        {
             UIObject::RemoveChildUIObject(m_rows[i]);
         }
 
         m_rows.Resize(num_rows);
-    } else {
+    }
+    else
+    {
         const SizeType num_rows_to_add = num_rows - current_num_rows;
 
-        for (SizeType i = 0; i < num_rows_to_add; i++) {
+        for (SizeType i = 0; i < num_rows_to_add; i++)
+        {
             RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
 
@@ -281,12 +304,14 @@ RC<UIGridRow> UIGrid::AddRow()
     const RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     row->SetNumColumns(m_num_columns);
 
-    if (m_num_columns >= 0) {
-        for (SizeType i = 0; i < SizeType(m_num_columns); i++) {
+    if (m_num_columns >= 0)
+    {
+        for (SizeType i = 0; i < SizeType(m_num_columns); i++)
+        {
             row->AddColumn();
         }
     }
-    
+
     UIObject::AddChildUIObject(row);
 
     m_rows.PushBack(row);
@@ -303,9 +328,10 @@ void UIGrid::Init()
     UIPanel::Init();
 }
 
-void UIGrid::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIGrid::AddChildUIObject(const RC<UIObject>& ui_object)
 {
-    if (ui_object->IsInstanceOf<UIGridRow>()) {
+    if (ui_object->IsInstanceOf<UIGridRow>())
+    {
         RC<UIGridRow> row = ui_object.CastUnsafe<UIGridRow>();
         row->SetNumColumns(m_num_columns);
 
@@ -318,16 +344,19 @@ void UIGrid::AddChildUIObject(const RC<UIObject> &ui_object)
         return;
     }
 
-    UIGridColumn *column;
+    UIGridColumn* column = nullptr;
 
-    for (UIGridRow *row : m_rows) {
-        if (!row) {
+    for (UIGridRow* row : m_rows)
+    {
+        if (!row)
+        {
             continue;
         }
 
         column = row->FindEmptyColumn();
 
-        if (column != nullptr) {
+        if (column != nullptr)
+        {
             column->AddChildUIObject(ui_object);
 
             UpdateLayout();
@@ -336,10 +365,12 @@ void UIGrid::AddChildUIObject(const RC<UIObject> &ui_object)
         }
     }
 
-    if (!column) {
+    if (!column)
+    {
         RC<UIGridRow> row = AddRow();
 
-        if (!(column = row->FindEmptyColumn())) {
+        if (!(column = row->FindEmptyColumn()))
+        {
             column = row->AddColumn();
         }
     }
@@ -349,27 +380,31 @@ void UIGrid::AddChildUIObject(const RC<UIObject> &ui_object)
     UpdateLayout();
 }
 
-bool UIGrid::RemoveChildUIObject(UIObject *ui_object)
+bool UIGrid::RemoveChildUIObject(UIObject* ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
     // Keep a reference around
     RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
 
-    if (!UIObject::RemoveChildUIObject(ui_object)) {
+    if (!UIObject::RemoveChildUIObject(ui_object))
+    {
         return false;
     }
-    
-    if (ui_object->IsInstanceOf<UIGridRow>()) {
+
+    if (ui_object->IsInstanceOf<UIGridRow>())
+    {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
         auto it = m_rows.FindAs(ui_object);
 
-        if (it != m_rows.End()) {
+        if (it != m_rows.End())
+        {
             m_rows.Erase(it);
         }
 
@@ -388,16 +423,19 @@ void UIGrid::UpdateSize_Internal(bool update_children)
 
 void UIGrid::UpdateLayout()
 {
-    if (m_rows.Empty()) {
+    if (m_rows.Empty())
+    {
         return;
     }
 
     int y_offset = 0;
 
-    for (SizeType i = 0; i < m_rows.Size(); i++) {
-        UIGridRow *row = m_rows[i];
+    for (SizeType i = 0; i < m_rows.Size(); i++)
+    {
+        UIGridRow* row = m_rows[i];
 
-        if (!row) {
+        if (!row)
+        {
             continue;
         }
 
@@ -407,36 +445,41 @@ void UIGrid::UpdateLayout()
     }
 }
 
-void UIGrid::SetDataSource_Internal(UIDataSourceBase *data_source)
+void UIGrid::SetDataSource_Internal(UIDataSourceBase* data_source)
 {
     RemoveAllChildUIObjects();
 
-    if (!data_source) {
+    if (!data_source)
+    {
         return;
     }
 
-    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
-    {
-        HYP_NAMED_SCOPE("Add element from data source to grid view");
+    m_data_source_on_element_add_handler = data_source->OnElementAdd.Bind([this, data_source](UIDataSourceBase* data_source_ptr, UIDataSourceElement* element, UIDataSourceElement* parent)
+        {
+            HYP_NAMED_SCOPE("Add element from data source to grid view");
 
-        AddChildUIObject(data_source_ptr->CreateUIObject(this, element->GetValue(), { }));
-    });
+            AddChildUIObject(data_source_ptr->CreateUIObject(this, element->GetValue(), {}));
+        });
 
-    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
-    {
-        HYP_NAMED_SCOPE("Remove element from data source from grid view");
+    m_data_source_on_element_remove_handler = data_source->OnElementRemove.Bind([this](UIDataSourceBase* data_source_ptr, UIDataSourceElement* element, UIDataSourceElement* parent)
+        {
+            HYP_NAMED_SCOPE("Remove element from data source from grid view");
 
-        if (RC<UIObject> ui_object = FindChildUIObject([element](UIObject *ui_object) { return ui_object->GetDataSourceElementUUID() == element->GetUUID(); })) {
-            RemoveChildUIObject(ui_object);
-        }
+            if (RC<UIObject> ui_object = FindChildUIObject([element](UIObject* ui_object)
+                    {
+                        return ui_object->GetDataSourceElementUUID() == element->GetUUID();
+                    }))
+            {
+                RemoveChildUIObject(ui_object);
+            }
 
-        // @TODO: Rebuild grid layout so that there are no empty rows/columns
-    });
+            // @TODO: Rebuild grid layout so that there are no empty rows/columns
+        });
 
-    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase *data_source_ptr, UIDataSourceElement *element, UIDataSourceElement *parent)
-    {
-        HYP_NAMED_SCOPE("Update element from data source in grid view");
-    });
+    m_data_source_on_element_update_handler = data_source->OnElementUpdate.Bind([this, data_source](UIDataSourceBase* data_source_ptr, UIDataSourceElement* element, UIDataSourceElement* parent)
+        {
+            HYP_NAMED_SCOPE("Update element from data source in grid view");
+        });
 }
 
 #pragma region UIGrid

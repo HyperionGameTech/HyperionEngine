@@ -19,23 +19,24 @@ class WorldGridPatch;
 struct WorldGridPatchInfo;
 
 HYP_CLASS(Abstract)
+
 class HYP_API WorldGridPlugin : public EnableRefCountedPtrFromThis<WorldGridPlugin>
 {
     HYP_OBJECT_BODY(WorldGridPlugin);
 
 public:
     WorldGridPlugin();
-    WorldGridPlugin(const WorldGridPlugin &other)               = delete;
-    WorldGridPlugin &operator=(const WorldGridPlugin &other)    = delete;
-    WorldGridPlugin(WorldGridPlugin &&other)                    = delete;
-    WorldGridPlugin &operator=(WorldGridPlugin &&other)         = delete;
-    virtual ~WorldGridPlugin()                                  = default;
+    WorldGridPlugin(const WorldGridPlugin& other) = delete;
+    WorldGridPlugin& operator=(const WorldGridPlugin& other) = delete;
+    WorldGridPlugin(WorldGridPlugin&& other) = delete;
+    WorldGridPlugin& operator=(WorldGridPlugin&& other) = delete;
+    virtual ~WorldGridPlugin() = default;
 
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
 
-    virtual UniquePtr<WorldGridPatch> CreatePatch(const WorldGridPatchInfo &patch_info) = 0;
+    virtual UniquePtr<WorldGridPatch> CreatePatch(const WorldGridPatchInfo& patch_info) = 0;
 };
 
 } // namespace hyperion

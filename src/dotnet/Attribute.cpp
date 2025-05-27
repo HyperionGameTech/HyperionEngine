@@ -7,10 +7,11 @@
 
 namespace hyperion::dotnet {
 
-AttributeSet::AttributeSet(Array<Attribute> &&values)
+AttributeSet::AttributeSet(Array<Attribute>&& values)
     : m_values(std::move(values))
 {
-    for (Attribute &attribute : m_values) {
+    for (Attribute& attribute : m_values)
+    {
         AssertThrow(attribute.object != nullptr);
         AssertThrow(attribute.object->GetClass() != nullptr);
 

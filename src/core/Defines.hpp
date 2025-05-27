@@ -60,7 +60,7 @@
 #elif defined(HYP_GCC) && HYP_GCC
     #define HYP_NOTNULL __attribute__((nonnull))
 #elif defined(HYP_MSVC) && HYP_MSVC
-    #define HYP_NOTNULL 
+    #define HYP_NOTNULL
 #else
     #define HYP_NOTNULL
 #endif
@@ -114,8 +114,8 @@
 #endif
 
 #ifdef HYP_MSVC
-#pragma warning( disable : 4251 ) // class needs to have dll-interface to be used by clients of class
-#pragma warning( disable : 4275 ) // non dll-interface class used as base for dll-interface class
+    #pragma warning(disable : 4251) // class needs to have dll-interface to be used by clients of class
+    #pragma warning(disable : 4275) // non dll-interface class used as base for dll-interface class
 #endif
 
 #pragma endregion Compiler and Platform Switches
@@ -127,74 +127,158 @@
 #define HYP_STR(x) #x
 
 #ifdef HYP_WINDOWS
-#define HYP_TEXT(x) L##x
+    #define HYP_TEXT(x) L##x
 #else
-#define HYP_TEXT(x) x
+    #define HYP_TEXT(x) x
 #endif
 
 #define HYP_CONCAT(a, b) HYP_CONCAT_INNER(a, b)
-#define HYP_CONCAT_INNER(a, b) a ## b
+#define HYP_CONCAT_INNER(a, b) a##b
 
 // https://mpark.github.io/programming/2017/05/26/constexpr-function-parameters/
 #define HYP_MAKE_CONST_ARG(value) \
-    [] { return (value); }
+    [] {                          \
+        return (value);           \
+    }
 
 #define HYP_GET_CONST_ARG(arg) \
     (arg)()
 
-#define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class) \
-    bool operator==(const hyp_class &other) const { \
+#define HYP_DEF_STRUCT_COMPARE_EQL(hyp_class)                 \
+    bool operator==(const hyp_class& other) const             \
+    {                                                         \
         return std::memcmp(this, &other, sizeof(*this)) == 0; \
-    } \
-    bool operator!=(const hyp_class &other) const { \
+    }                                                         \
+    bool operator!=(const hyp_class& other) const             \
+    {                                                         \
         return std::memcmp(this, &other, sizeof(*this)) != 0; \
     }
 
-#define HYP_DEF_STRUCT_COMPARE_LT(hyp_class) \
-    bool operator<(const hyp_class &other) const { \
+#define HYP_DEF_STRUCT_COMPARE_LT(hyp_class)                 \
+    bool operator<(const hyp_class& other) const             \
+    {                                                        \
         return std::memcmp(this, &other, sizeof(*this)) < 0; \
     }
 
-#define HYP_DEF_STL_HASH(hyp_class) \
-    template<> \
-    struct std::hash<hyp_class> { \
-        size_t operator()(const hyp_class &obj) const \
-        { \
-            return obj.GetHashCode().Value(); \
-        } \
+#define HYP_DEF_STL_HASH(hyp_class)                   \
+    template <>                                       \
+    struct std::hash<hyp_class>                       \
+    {                                                 \
+        size_t operator()(const hyp_class& obj) const \
+        {                                             \
+            return obj.GetHashCode().Value();         \
+        }                                             \
     }
 
-#define HYP_DEF_STL_ITERATOR(container) \
-    HYP_NODISCARD Iterator Begin()             { return container.begin(); }  \
-    HYP_NODISCARD Iterator End()               { return container.end(); }    \
-    HYP_NODISCARD ConstIterator Begin() const  { return container.begin(); }  \
-    HYP_NODISCARD ConstIterator End() const    { return container.end(); }    \
-    HYP_NODISCARD Iterator begin()             { return container.begin(); }  \
-    HYP_NODISCARD Iterator end()               { return container.end(); }    \
-    HYP_NODISCARD ConstIterator begin() const  { return container.begin(); }  \
-    HYP_NODISCARD ConstIterator end() const    { return container.end(); }    \
-    HYP_NODISCARD ConstIterator cbegin() const { return container.cbegin(); } \
-    HYP_NODISCARD ConstIterator cend() const   { return container.cend(); }
+#define HYP_DEF_STL_ITERATOR(container)        \
+    HYP_NODISCARD Iterator Begin()             \
+    {                                          \
+        return container.begin();              \
+    }                                          \
+    HYP_NODISCARD Iterator End()               \
+    {                                          \
+        return container.end();                \
+    }                                          \
+    HYP_NODISCARD ConstIterator Begin() const  \
+    {                                          \
+        return container.begin();              \
+    }                                          \
+    HYP_NODISCARD ConstIterator End() const    \
+    {                                          \
+        return container.end();                \
+    }                                          \
+    HYP_NODISCARD Iterator begin()             \
+    {                                          \
+        return container.begin();              \
+    }                                          \
+    HYP_NODISCARD Iterator end()               \
+    {                                          \
+        return container.end();                \
+    }                                          \
+    HYP_NODISCARD ConstIterator begin() const  \
+    {                                          \
+        return container.begin();              \
+    }                                          \
+    HYP_NODISCARD ConstIterator end() const    \
+    {                                          \
+        return container.end();                \
+    }                                          \
+    HYP_NODISCARD ConstIterator cbegin() const \
+    {                                          \
+        return container.cbegin();             \
+    }                                          \
+    HYP_NODISCARD ConstIterator cend() const   \
+    {                                          \
+        return container.cend();               \
+    }
 
-#define HYP_DEF_STL_BEGIN_END(_begin, _end) \
-    HYP_NODISCARD Iterator Begin()             { return _begin; } \
-    HYP_NODISCARD Iterator End()               { return _end; }   \
-    HYP_NODISCARD ConstIterator Begin() const  { return _begin; } \
-    HYP_NODISCARD ConstIterator End() const    { return _end; }   \
-    HYP_NODISCARD Iterator begin()             { return _begin; } \
-    HYP_NODISCARD Iterator end()               { return _end; }   \
-    HYP_NODISCARD ConstIterator begin() const  { return _begin; } \
-    HYP_NODISCARD ConstIterator end() const    { return _end; }
+#define HYP_DEF_STL_BEGIN_END(_begin, _end)   \
+    HYP_NODISCARD Iterator Begin()            \
+    {                                         \
+        return _begin;                        \
+    }                                         \
+    HYP_NODISCARD Iterator End()              \
+    {                                         \
+        return _end;                          \
+    }                                         \
+    HYP_NODISCARD ConstIterator Begin() const \
+    {                                         \
+        return _begin;                        \
+    }                                         \
+    HYP_NODISCARD ConstIterator End() const   \
+    {                                         \
+        return _end;                          \
+    }                                         \
+    HYP_NODISCARD Iterator begin()            \
+    {                                         \
+        return _begin;                        \
+    }                                         \
+    HYP_NODISCARD Iterator end()              \
+    {                                         \
+        return _end;                          \
+    }                                         \
+    HYP_NODISCARD ConstIterator begin() const \
+    {                                         \
+        return _begin;                        \
+    }                                         \
+    HYP_NODISCARD ConstIterator end() const   \
+    {                                         \
+        return _end;                          \
+    }
 
-#define HYP_DEF_STL_BEGIN_END_CONSTEXPR(_begin, _end) \
-    HYP_NODISCARD constexpr Iterator Begin()             { return _begin; } \
-    HYP_NODISCARD constexpr Iterator End()               { return _end; }   \
-    HYP_NODISCARD constexpr ConstIterator Begin() const  { return _begin; } \
-    HYP_NODISCARD constexpr ConstIterator End() const    { return _end; }   \
-    HYP_NODISCARD constexpr Iterator begin()             { return _begin; } \
-    HYP_NODISCARD constexpr Iterator end()               { return _end; }   \
-    HYP_NODISCARD constexpr ConstIterator begin() const  { return _begin; } \
-    HYP_NODISCARD constexpr ConstIterator end() const    { return _end; }
+#define HYP_DEF_STL_BEGIN_END_CONSTEXPR(_begin, _end)   \
+    HYP_NODISCARD constexpr Iterator Begin()            \
+    {                                                   \
+        return _begin;                                  \
+    }                                                   \
+    HYP_NODISCARD constexpr Iterator End()              \
+    {                                                   \
+        return _end;                                    \
+    }                                                   \
+    HYP_NODISCARD constexpr ConstIterator Begin() const \
+    {                                                   \
+        return _begin;                                  \
+    }                                                   \
+    HYP_NODISCARD constexpr ConstIterator End() const   \
+    {                                                   \
+        return _end;                                    \
+    }                                                   \
+    HYP_NODISCARD constexpr Iterator begin()            \
+    {                                                   \
+        return _begin;                                  \
+    }                                                   \
+    HYP_NODISCARD constexpr Iterator end()              \
+    {                                                   \
+        return _end;                                    \
+    }                                                   \
+    HYP_NODISCARD constexpr ConstIterator begin() const \
+    {                                                   \
+        return _begin;                                  \
+    }                                                   \
+    HYP_NODISCARD constexpr ConstIterator end() const   \
+    {                                                   \
+        return _end;                                    \
+    }
 
 #define HYP_ENABLE_IF(cond, return_type) \
     typename std::enable_if_t<cond, return_type>
@@ -203,14 +287,14 @@
 #define HYP_UNLIKELY(cond) cond
 
 #ifdef HYP_MSVC
-#define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
-#define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
+    #define HYP_DISABLE_OPTIMIZATION __pragma(optimize("", off))
+    #define HYP_ENABLE_OPTIMIZATION __pragma(optimize("", on))
 #elif defined(HYP_CLANG)
-#define HYP_DISABLE_OPTIMIZATION _Pragma("clang optimize off")
-#define HYP_ENABLE_OPTIMIZATION _Pragma("clang optimize on")
+    #define HYP_DISABLE_OPTIMIZATION _Pragma("clang optimize off")
+    #define HYP_ENABLE_OPTIMIZATION _Pragma("clang optimize on")
 #elif defined(HYP_GCC)
-#define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
-#define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
+    #define HYP_DISABLE_OPTIMIZATION _Pragma("GCC push_options") _Pragma("GCC optimize (\"O0\")")
+    #define HYP_ENABLE_OPTIMIZATION _Pragma("GCC pop_options")
 #endif
 
 #ifdef __COUNTER__
@@ -235,23 +319,29 @@
 #endif
 
 #if defined(HYP_CLANG_OR_GCC) && HYP_CLANG_OR_GCC
-    #define HYP_DEBUG_FUNC_SHORT    (__FUNCTION__)
-    #define HYP_DEBUG_FUNC          (__PRETTY_FUNCTION__)
-    #define HYP_DEBUG_LINE          (__LINE__)
-    #define HYP_FUNCTION_NAME_LIT   (__PRETTY_FUNCTION__)
+    #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+    #define HYP_DEBUG_FUNC (__PRETTY_FUNCTION__)
+    #define HYP_DEBUG_LINE (__LINE__)
+    #define HYP_FUNCTION_NAME_LIT (__PRETTY_FUNCTION__)
 
     #if HYP_ENABLE_BREAKPOINTS
         #if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
-            #define HYP_BREAKPOINT { __builtin_trap(); }
+            #define HYP_BREAKPOINT    \
+                {                     \
+                    __builtin_trap(); \
+                }
         #else
-            #define HYP_BREAKPOINT { __asm__ volatile("int $0x03"); }
+            #define HYP_BREAKPOINT                 \
+                {                                  \
+                    __asm__ volatile("int $0x03"); \
+                }
         #endif
     #endif
 #elif defined(HYP_MSVC) && HYP_MSVC
-    #define HYP_DEBUG_FUNC_SHORT    (__FUNCTION__)
-    #define HYP_DEBUG_FUNC          (__FUNCSIG__)
-    #define HYP_DEBUG_LINE          (__LINE__)
-    #define HYP_FUNCTION_NAME_LIT   (__FUNCSIG__)
+    #define HYP_DEBUG_FUNC_SHORT (__FUNCTION__)
+    #define HYP_DEBUG_FUNC (__FUNCSIG__)
+    #define HYP_DEBUG_LINE (__LINE__)
+    #define HYP_FUNCTION_NAME_LIT (__FUNCSIG__)
 
     #if HYP_ENABLE_BREAKPOINTS
         #define HYP_BREAKPOINT (__debugbreak())
@@ -263,29 +353,31 @@
     #define HYP_FUNCTION_NAME_LIT ""
 
     #if HYP_ENABLE_BREAKPOINTS
-        #define HYP_BREAKPOINT       (void(0))
+        #define HYP_BREAKPOINT (void(0))
     #endif
 #endif
 
 #ifdef HYP_DEBUG_MODE
     #define HYP_BREAKPOINT_DEBUG_MODE HYP_BREAKPOINT
 #else
-    #define HYP_BREAK_IF_DEBUG_MODE  (void(0))
+    #define HYP_BREAK_IF_DEBUG_MODE (void(0))
 #endif
 
 #if !defined(HYP_ENABLE_BREAKPOINTS) || !HYP_ENABLE_BREAKPOINTS
-    #define HYP_BREAKPOINT           (void(0))
+    #define HYP_BREAKPOINT (void(0))
 #endif
 
 #pragma endregion Debug Preprocessor Definitions
 
 #pragma region Synchonization
 
-#define HYP_WAIT_IDLE() \
-    do { \
+#define HYP_WAIT_IDLE()        \
+    do                         \
+    {                          \
         volatile uint32 x = 0; \
-        x = x + 1; \
-    } while (0)
+        x = x + 1;             \
+    }                          \
+    while (0)
 
 // conditionals
 
@@ -305,7 +397,7 @@
 
 #ifdef HYP_DEBUG_MODE
     #ifdef HYP_VULKAN
-        //#define HYP_VULKAN_DEBUG
+        // #define HYP_VULKAN_DEBUG
     #endif
 #endif
 
@@ -323,7 +415,7 @@
         #define HYP_MOLTENVK 1
 
         #ifdef HYP_DEBUG_MODE
-            //#define HYP_MOLTENVK_LINKED 1
+            // #define HYP_MOLTENVK_LINKED 1
         #endif
     #endif
 #else
@@ -379,24 +471,24 @@
 #pragma region Symbol Visibility
 
 #ifdef HYP_MSVC
-#define HYP_EXPORT __declspec(dllexport)
-#define HYP_IMPORT __declspec(dllimport)
+    #define HYP_EXPORT __declspec(dllexport)
+    #define HYP_IMPORT __declspec(dllimport)
 #elif defined(HYP_CLANG_OR_GCC)
-#define HYP_EXPORT __attribute__((visibility("default")))
-#define HYP_IMPORT
+    #define HYP_EXPORT __attribute__((visibility("default")))
+    #define HYP_IMPORT
 #endif
 
 #ifdef HYP_STATICALLY_LINKED
-#define HYP_API
-#define HYP_C_API extern "C"
+    #define HYP_API
+    #define HYP_C_API extern "C"
 #else
-#ifdef HYP_BUILD_LIBRARY
-#define HYP_API HYP_EXPORT
-#define HYP_C_API extern "C" HYP_EXPORT
-#else
-#define HYP_API HYP_IMPORT
-#define HYP_C_API extern "C" HYP_IMPORT
-#endif
+    #ifdef HYP_BUILD_LIBRARY
+        #define HYP_API HYP_EXPORT
+        #define HYP_C_API extern "C" HYP_EXPORT
+    #else
+        #define HYP_API HYP_IMPORT
+        #define HYP_C_API extern "C" HYP_IMPORT
+    #endif
 #endif
 
 #pragma endregion Symbol Visibility

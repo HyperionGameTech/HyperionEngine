@@ -18,7 +18,7 @@ static const double g_task_thread_single_task_lag_spike_threshold = 10.0;
 
 // #define HYP_ENABLE_LAG_SPIKE_DETECTION
 
-TaskThread::TaskThread(const ThreadID &thread_id, ThreadPriorityValue priority)
+TaskThread::TaskThread(const ThreadID& thread_id, ThreadPriorityValue priority)
     : Thread(thread_id, priority),
       m_is_running(false),
       m_stop_requested(false),
@@ -39,7 +39,7 @@ void TaskThread::Stop()
     m_stop_requested.Set(true, MemoryOrder::RELAXED);
 
     m_scheduler.RequestStop();
-    
+
     m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
@@ -48,14 +48,19 @@ void TaskThread::operator()()
     m_is_running.Set(true, MemoryOrder::RELAXED);
     m_num_tasks.Set(m_task_queue.Size(), MemoryOrder::RELEASE);
 
-    while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
-        if (m_task_queue.Empty()) {
-            if (!m_scheduler.WaitForTasks(m_task_queue)) {
+    while (!m_stop_requested.Get(MemoryOrder::RELAXED))
+    {
+        if (m_task_queue.Empty())
+        {
+            if (!m_scheduler.WaitForTasks(m_task_queue))
+            {
                 Stop();
 
                 break;
             }
-        } else {
+        }
+        else
+        {
             // append all tasks from the scheduler
             m_scheduler.AcceptAll(m_task_queue);
         }
@@ -76,9 +81,10 @@ void TaskThread::operator()()
             PerformanceClock performance_clock;
             performance_clock.Start();
 #endif
-        
+
             // execute all tasks outside of lock
-            while (m_task_queue.Any()) {
+            while (m_task_queue.Any())
+            {
 #ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
                 PerformanceClock task_performance_clock;
                 task_performance_clock.Start();
@@ -92,7 +98,8 @@ void TaskThread::operator()()
 
                 ++num_executed_tasks;
 
-                if (task_performance_clock.Elapsed() / 1000.0 > g_task_thread_single_task_lag_spike_threshold) {
+                if (task_performance_clock.Elapsed() / 1000.0 > g_task_thread_single_task_lag_spike_threshold)
+                {
                     HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected in single task \"{}\": {}ms",
                         GetID().GetName(),
                         scheduled_task.debug_name.value ? scheduled_task.debug_name.value : "<unnamed task>",
@@ -104,11 +111,12 @@ void TaskThread::operator()()
 #ifdef HYP_ENABLE_LAG_SPIKE_DETECTION
             performance_clock.Stop();
 
-            if (performance_clock.Elapsed() / 1000.0 > g_task_thread_lag_spike_threshold) {
+            if (performance_clock.Elapsed() / 1000.0 > g_task_thread_lag_spike_threshold)
+            {
                 HYP_LOG(Tasks, Warning, "Task thread {} lag spike detected executing {} tasks: {}ms", GetID().GetName(), num_executed_tasks, performance_clock.Elapsed() / 1000.0);
             }
 #endif
-            
+
             m_num_tasks.Decrement(num_tasks, MemoryOrder::RELEASE);
         }
 

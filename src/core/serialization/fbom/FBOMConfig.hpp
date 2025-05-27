@@ -22,30 +22,30 @@ class IFBOMConfig
 public:
     virtual ~IFBOMConfig() = default;
 
-    virtual void SaveToJSON(json::JSONValue &out_json) const = 0;
-    virtual bool LoadFromJSON(const json::JSONValue &json) = 0;
+    virtual void SaveToJSON(json::JSONValue& out_json) const = 0;
+    virtual bool LoadFromJSON(const json::JSONValue& json) = 0;
 };
 
 struct FBOMWriterConfig : public IFBOMConfig
 {
-    bool    enable_static_data = true;
-    bool    compress_static_data = true;
+    bool enable_static_data = true;
+    bool compress_static_data = true;
 
     virtual ~FBOMWriterConfig() override = default;
 
-    virtual void SaveToJSON(json::JSONValue &out_json) const override;
-    virtual bool LoadFromJSON(const json::JSONValue &json) override;
+    virtual void SaveToJSON(json::JSONValue& out_json) const override;
+    virtual bool LoadFromJSON(const json::JSONValue& json) override;
 };
 
 struct FBOMReaderConfig : public IFBOMConfig
 {
-    bool                                continue_on_external_load_error = false;
-    String                              base_path;
+    bool continue_on_external_load_error = false;
+    String base_path;
 
     virtual ~FBOMReaderConfig() override = default;
 
-    virtual void SaveToJSON(json::JSONValue &out_json) const override;
-    virtual bool LoadFromJSON(const json::JSONValue &json) override;
+    virtual void SaveToJSON(json::JSONValue& out_json) const override;
+    virtual bool LoadFromJSON(const json::JSONValue& json) override;
 };
 
 } // namespace fbom

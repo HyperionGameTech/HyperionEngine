@@ -9,11 +9,12 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component, Label="Transform Component", Description="Controls the translation, rotation, and scale of an object.", Editor=false)
+HYP_STRUCT(Component, Label = "Transform Component", Description = "Controls the translation, rotation, and scale of an object.", Editor = false)
+
 struct TransformComponent
 {
-    HYP_FIELD(Property="Transform", Serialize=true)
-    Transform   transform;
+    HYP_FIELD(Property = "Transform", Serialize = true)
+    Transform transform;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

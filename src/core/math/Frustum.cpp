@@ -6,37 +6,46 @@ namespace hyperion {
 
 static const FixedArray<Vec4f, 8> frustucorners_ndc {
     Vec4f { -1.0f, -1.0f, 0.0f, 1.0f },
-    Vec4f { -1.0f,  1.0f, 0.0f, 1.0f },
-    Vec4f {  1.0f,  1.0f, 0.0f, 1.0f },
-    Vec4f {  1.0f, -1.0f, 0.0f, 1.0f },
+    Vec4f { -1.0f, 1.0f, 0.0f, 1.0f },
+    Vec4f { 1.0f, 1.0f, 0.0f, 1.0f },
+    Vec4f { 1.0f, -1.0f, 0.0f, 1.0f },
     Vec4f { -1.0f, -1.0f, 1.0f, 1.0f },
-    Vec4f { -1.0f,  1.0f, 1.0f, 1.0f },
-    Vec4f {  1.0f,  1.0f, 1.0f, 1.0f },
-    Vec4f {  1.0f, -1.0f, 1.0f, 1.0f }
+    Vec4f { -1.0f, 1.0f, 1.0f, 1.0f },
+    Vec4f { 1.0f, 1.0f, 1.0f, 1.0f },
+    Vec4f { 1.0f, -1.0f, 1.0f, 1.0f }
 };
 
 Frustum::Frustum()
 {
 }
 
-Frustum::Frustum(const Matrix4 &view_proj)
+Frustum::Frustum(const Matrix4& view_proj)
 {
     SetFromViewProjectionMatrix(view_proj);
 }
 
-bool Frustum::ContainsAABB(const BoundingBox &aabb) const
+bool Frustum::ContainsAABB(const BoundingBox& aabb) const
 {
     const FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
-    for (const Vec4f &plane : planes) {
-        if (plane.Dot(Vec4f(corners[0], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[1], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[2], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[3], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[4], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[5], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[6], 1.0f)) > 0.0f) continue;
-        if (plane.Dot(Vec4f(corners[7], 1.0f)) > 0.0f) continue;
+    for (const Vec4f& plane : planes)
+    {
+        if (plane.Dot(Vec4f(corners[0], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[1], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[2], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[3], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[4], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[5], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[6], 1.0f)) > 0.0f)
+            continue;
+        if (plane.Dot(Vec4f(corners[7], 1.0f)) > 0.0f)
+            continue;
 
         return false;
     }
@@ -44,10 +53,12 @@ bool Frustum::ContainsAABB(const BoundingBox &aabb) const
     return true;
 }
 
-bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
+bool Frustum::ContainsBoundingSphere(const BoundingSphere& sphere) const
 {
-    for (const Vec4f &plane : planes) {
-        if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius) {
+    for (const Vec4f& plane : planes)
+    {
+        if (plane.Dot(Vec4f(sphere.center, 1.0f)) <= -sphere.radius)
+        {
             return false;
         }
     }
@@ -55,10 +66,10 @@ bool Frustum::ContainsBoundingSphere(const BoundingSphere &sphere) const
     return true;
 }
 
-Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
+Frustum& Frustum::SetFromViewProjectionMatrix(const Matrix4& view_proj)
 {
     const Matrix4 mat = view_proj.Transposed();
-    
+
     planes[0][0] = mat[0][3] - mat[0][0];
     planes[0][1] = mat[1][3] - mat[1][0];
     planes[0][2] = mat[2][3] - mat[2][0];
@@ -97,7 +108,8 @@ Frustum &Frustum::SetFromViewProjectionMatrix(const Matrix4 &view_proj)
 
     const Matrix4 clip_to_world = view_proj.Inverted();
 
-    for (uint32 i = 0; i < 8; i++) {
+    for (uint32 i = 0; i < 8; i++)
+    {
         Vec4f corner = clip_to_world * frustucorners_ndc[i];
         corner /= corner.w;
 

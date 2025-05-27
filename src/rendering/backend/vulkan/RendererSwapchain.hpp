@@ -24,31 +24,37 @@ namespace renderer {
 class VulkanSwapchain final : public SwapchainBase
 {
 public:
-    friend class platform::Instance<Platform::VULKAN>;
+    friend class platform::Instance<Platform::vulkan>;
 
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
     HYP_API VulkanSwapchain();
     HYP_API virtual ~VulkanSwapchain() override;
 
     HYP_FORCE_INLINE VkSwapchainKHR GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
-    HYP_FORCE_INLINE const VulkanFrameRef &GetCurrentFrame() const
-        { return m_frames[m_current_frame_index]; }
+    HYP_FORCE_INLINE const VulkanFrameRef& GetCurrentFrame() const
+    {
+        return m_frames[m_current_frame_index];
+    }
 
-    HYP_FORCE_INLINE const VulkanCommandBufferRef &GetCurrentCommandBuffer() const
-        { return m_command_buffers[m_current_frame_index]; }
+    HYP_FORCE_INLINE const VulkanCommandBufferRef& GetCurrentCommandBuffer() const
+    {
+        return m_command_buffers[m_current_frame_index];
+    }
 
     HYP_FORCE_INLINE uint32 NumAcquiredImages() const
-        { return uint32(m_images.Size()); }
+    {
+        return uint32(m_images.Size());
+    }
 
     HYP_API virtual bool IsCreated() const override;
 
     HYP_API void NextFrame();
-    
-    HYP_API RendererResult PrepareFrame(bool &out_needs_recreate);
-    HYP_API RendererResult PresentFrame(VulkanDeviceQueue *queue) const;
+
+    HYP_API RendererResult PrepareFrame(bool& out_needs_recreate);
+    HYP_API RendererResult PresentFrame(VulkanDeviceQueue* queue) const;
 
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Destroy() override;
@@ -59,18 +65,17 @@ private:
     RendererResult RetrieveSupportDetails();
     RendererResult RetrieveImageHandles();
 
-    FixedArray<VulkanFrameRef, max_frames_in_flight>            m_frames;
-    FixedArray<VulkanCommandBufferRef, max_frames_in_flight>    m_command_buffers;
+    FixedArray<VulkanFrameRef, max_frames_in_flight> m_frames;
+    FixedArray<VulkanCommandBufferRef, max_frames_in_flight> m_command_buffers;
 
-    VkSwapchainKHR                                              m_handle;
-    VkSurfaceKHR                                                m_surface;
-    VkSurfaceFormatKHR                                          m_surface_format;
-    VkPresentModeKHR                                            m_present_mode;
-    SwapchainSupportDetails                                     m_support_details;
+    VkSwapchainKHR m_handle;
+    VkSurfaceKHR m_surface;
+    VkSurfaceFormatKHR m_surface_format;
+    VkPresentModeKHR m_present_mode;
+    SwapchainSupportDetails m_support_details;
 };
 
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_BACKEND_VULKAN_SWAPCHAIN_HPP
-
+#endif // HYPERION_RENDERER_BACKEND_VULKAN_SWAPCHAIN_HPP

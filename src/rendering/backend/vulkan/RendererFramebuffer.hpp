@@ -21,7 +21,7 @@ class VulkanCommandBuffer;
 
 struct VulkanAttachmentDef
 {
-    VulkanImageRef      image;
+    VulkanImageRef image;
     VulkanAttachmentRef attachment;
 };
 
@@ -30,8 +30,8 @@ struct VulkanAttachmentMap
     using Iterator = typename FlatMap<uint32, VulkanAttachmentDef>::Iterator;
     using ConstIterator = typename FlatMap<uint32, VulkanAttachmentDef>::ConstIterator;
 
-    VulkanFramebufferWeakRef                framebuffer;
-    FlatMap<uint32, VulkanAttachmentDef>    attachments;
+    VulkanFramebufferWeakRef framebuffer;
+    FlatMap<uint32, VulkanAttachmentDef> attachments;
 
     ~VulkanAttachmentMap()
     {
@@ -43,7 +43,8 @@ struct VulkanAttachmentMap
 
     void Reset()
     {
-        for (auto &it : attachments) {
+        for (auto& it : attachments)
+        {
             SafeRelease(std::move(it.second.attachment));
         }
 
@@ -51,20 +52,23 @@ struct VulkanAttachmentMap
     }
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return attachments.Size(); }
+    {
+        return attachments.Size();
+    }
 
-    HYP_FORCE_INLINE const VulkanAttachmentRef &GetAttachment(uint32 binding) const
+    HYP_FORCE_INLINE const VulkanAttachmentRef& GetAttachment(uint32 binding) const
     {
         const auto it = attachments.Find(binding);
 
-        if (it == attachments.End()) {
+        if (it == attachments.End())
+        {
             return VulkanAttachmentRef::Null();
         }
 
         return it->second.attachment;
     }
 
-    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef &attachment)
+    HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(const VulkanAttachmentRef& attachment)
     {
         AssertThrow(attachment.IsValid());
         AssertThrow(attachment->GetImage().IsValid());
@@ -78,9 +82,7 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 VulkanImageRef(attachment->GetImage()),
-                attachment
-            }
-        );
+                attachment });
 
         return attachment;
     }
@@ -92,8 +94,7 @@ struct VulkanAttachmentMap
         ImageType type,
         RenderPassStage stage,
         LoadOperation load_op,
-        StoreOperation store_op
-    )
+        StoreOperation store_op)
     {
         TextureDesc texture_desc;
         texture_desc.type = type;
@@ -110,55 +111,54 @@ struct VulkanAttachmentMap
             binding,
             VulkanAttachmentDef {
                 image,
-                attachment
-            }
-        );
+                attachment });
 
         return attachment;
     }
 
     HYP_DEF_STL_BEGIN_END(
         attachments.Begin(),
-        attachments.End()
-    )
+        attachments.End())
 };
 
 class VulkanFramebuffer final : public FramebufferBase
 {
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
     HYP_API VulkanFramebuffer(
         Vec2u extent,
         RenderPassStage stage = RenderPassStage::SHADER,
-        uint32 num_multiview_layers = 0
-    );
+        uint32 num_multiview_layers = 0);
 
     HYP_API virtual ~VulkanFramebuffer() override;
 
-    HYP_FORCE_INLINE const FixedArray<VkFramebuffer, max_frames_in_flight> &GetVulkanHandles() const
-        { return m_handles; }
+    HYP_FORCE_INLINE const FixedArray<VkFramebuffer, max_frames_in_flight>& GetVulkanHandles() const
+    {
+        return m_handles;
+    }
 
-    HYP_FORCE_INLINE const VulkanRenderPassRef &GetRenderPass() const
-        { return m_render_pass; }
+    HYP_FORCE_INLINE const VulkanRenderPassRef& GetRenderPass() const
+    {
+        return m_render_pass;
+    }
 
-    HYP_API virtual AttachmentRef AddAttachment(const AttachmentRef &attachment) override;
-    HYP_API virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef &image, LoadOperation load_op, StoreOperation store_op) override;
+    HYP_API virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
+    HYP_API virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef& image, LoadOperation load_op, StoreOperation store_op) override;
 
     HYP_API virtual AttachmentRef AddAttachment(
         uint32 binding,
         InternalFormat format,
         ImageType type,
         LoadOperation load_op,
-        StoreOperation store_op
-    ) override;
+        StoreOperation store_op) override;
 
     HYP_API virtual bool RemoveAttachment(uint32 binding) override;
 
-    HYP_API virtual AttachmentBase *GetAttachment(uint32 binding) const override;
+    HYP_API virtual AttachmentBase* GetAttachment(uint32 binding) const override;
 
-    HYP_FORCE_INLINE const VulkanAttachmentMap &GetAttachmentMap() const
-        { return m_attachment_map; }
+    HYP_FORCE_INLINE const VulkanAttachmentMap& GetAttachmentMap() const
+    {
+        return m_attachment_map;
+    }
 
     HYP_API virtual bool IsCreated() const override;
 
@@ -167,13 +167,13 @@ public:
 
     HYP_API virtual RendererResult Resize(Vec2u new_size) override;
 
-    HYP_API virtual void BeginCapture(CommandBufferBase *command_buffer, uint32 frame_index) override;
-    HYP_API virtual void EndCapture(CommandBufferBase *command_buffer, uint32 frame_index) override;
+    HYP_API virtual void BeginCapture(CommandBufferBase* command_buffer, uint32 frame_index) override;
+    HYP_API virtual void EndCapture(CommandBufferBase* command_buffer, uint32 frame_index) override;
 
 private:
     FixedArray<VkFramebuffer, max_frames_in_flight> m_handles;
-    VulkanRenderPassRef                             m_render_pass;
-    VulkanAttachmentMap                             m_attachment_map;
+    VulkanRenderPassRef m_render_pass;
+    VulkanAttachmentMap m_attachment_map;
 };
 
 } // namespace renderer

@@ -14,7 +14,8 @@ namespace renderer {
 
 static VkImageLayout GetInitialLayout(LoadOperation load_operation)
 {
-    switch (load_operation) {
+    switch (load_operation)
+    {
     case LoadOperation::CLEAR:
         return VK_IMAGE_LAYOUT_UNDEFINED;
     case LoadOperation::LOAD:
@@ -26,7 +27,8 @@ static VkImageLayout GetInitialLayout(LoadOperation load_operation)
 
 static VkImageLayout GetFinalLayout(RenderPassStage stage, bool is_depth_attachment)
 {
-    switch (stage) {
+    switch (stage)
+    {
     case RenderPassStage::NONE:
         return VK_IMAGE_LAYOUT_UNDEFINED;
     case RenderPassStage::PRESENT:
@@ -42,7 +44,8 @@ static VkImageLayout GetFinalLayout(RenderPassStage stage, bool is_depth_attachm
 
 static VkAttachmentLoadOp ToVkLoadOp(LoadOperation load_operation)
 {
-    switch (load_operation) {
+    switch (load_operation)
+    {
     case LoadOperation::UNDEFINED:
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     case LoadOperation::NONE:
@@ -58,7 +61,8 @@ static VkAttachmentLoadOp ToVkLoadOp(LoadOperation load_operation)
 
 static VkAttachmentStoreOp ToVkStoreOp(StoreOperation store_operation)
 {
-    switch (store_operation) {
+    switch (store_operation)
+    {
     case StoreOperation::UNDEFINED:
         return VK_ATTACHMENT_STORE_OP_DONT_CARE;
     case StoreOperation::NONE:
@@ -82,14 +86,14 @@ static VkImageLayout GetIntermediateLayout(bool is_depth_attachment)
 #pragma region VulkanAttachment
 
 VulkanAttachment::VulkanAttachment(
-    const VulkanImageRef &image,
-    const VulkanFramebufferWeakRef &framebuffer,
+    const VulkanImageRef& image,
+    const VulkanFramebufferWeakRef& framebuffer,
     RenderPassStage stage,
     LoadOperation load_operation,
     StoreOperation store_operation,
-    BlendFunction blend_function
-) : AttachmentBase(image, framebuffer, load_operation, store_operation, blend_function),
-    m_stage(stage)
+    BlendFunction blend_function)
+    : AttachmentBase(image, framebuffer, load_operation, store_operation, blend_function),
+      m_stage(stage)
 {
     m_image_view = MakeRenderObject<VulkanImageView>(image);
 }
@@ -109,7 +113,8 @@ RendererResult VulkanAttachment::Create()
 {
     AssertThrow(m_image != nullptr);
 
-    if (!m_image->IsCreated()) {
+    if (!m_image->IsCreated())
+    {
         return HYP_MAKE_ERROR(RendererError, "Image is expected to be initialized before initializing attachment");
     }
 
@@ -127,26 +132,27 @@ RendererResult VulkanAttachment::Destroy()
 VkAttachmentDescription VulkanAttachment::GetVulkanAttachmentDescription() const
 {
     return VkAttachmentDescription {
-        .format         = helpers::ToVkFormat(GetFormat()),
-        .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = ToVkLoadOp(GetLoadOperation()),
-        .storeOp        = ToVkStoreOp(GetStoreOperation()),
-        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
+        .format = helpers::ToVkFormat(GetFormat()),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = ToVkLoadOp(GetLoadOperation()),
+        .storeOp = ToVkStoreOp(GetStoreOperation()),
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // <-- @TODO for stencil
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = GetInitialLayout(GetLoadOperation()),
-        .finalLayout    = GetFinalLayout(GetRenderPassStage(), IsDepthAttachment())
+        .initialLayout = GetInitialLayout(GetLoadOperation()),
+        .finalLayout = GetFinalLayout(GetRenderPassStage(), IsDepthAttachment())
     };
 }
 
 VkAttachmentReference VulkanAttachment::GetVulkanHandle() const
 {
-    if (!HasBinding()) {
+    if (!HasBinding())
+    {
         DebugLog(LogType::Warn, "Calling GetHandle() without a binding set on attachment ref -- binding will be set to %ul\n", GetBinding());
     }
 
     return VkAttachmentReference {
         .attachment = GetBinding(),
-        .layout     = GetIntermediateLayout(IsDepthAttachment())
+        .layout = GetIntermediateLayout(IsDepthAttachment())
     };
 }
 

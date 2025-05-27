@@ -14,35 +14,27 @@
 
 namespace hyperion {
 
-class EnvGridUpdaterSystem : public System<
-    EnvGridUpdaterSystem,
-    ComponentDescriptor<EnvGridComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
+class EnvGridUpdaterSystem : public System<EnvGridUpdaterSystem, ComponentDescriptor<EnvGridComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>, ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
 
-    // Calling EnvGrid::Update() calls View::Update() which reads the the following components.
-    ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false>,
+                                 // Calling EnvGrid::Update() calls View::Update() which reads the the following components.
+                                 ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false>, ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ, false>, ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false>,
 
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ, false>,
+                                 ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>, ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ, false>,
 
-    // EnvGrid::Update() collects static entities
-    ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false>
->
+                                 // EnvGrid::Update() collects static entities
+                                 ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    EnvGridUpdaterSystem(EntityManager &entity_manager);
+    EnvGridUpdaterSystem(EntityManager& entity_manager);
     virtual ~EnvGridUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    void UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridComponent &env_grid_component, BoundingBoxComponent &bounding_box_component);
+    void UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridComponent& env_grid_component, BoundingBoxComponent& bounding_box_component);
 };
 
 } // namespace hyperion

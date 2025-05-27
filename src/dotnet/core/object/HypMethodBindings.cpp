@@ -17,65 +17,73 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void HypMethod_GetName(const HypMethod *method, Name *out_name)
+extern "C"
 {
-    if (!method || !out_name) {
-        return;
+
+    HYP_EXPORT void HypMethod_GetName(const HypMethod* method, Name* out_name)
+    {
+        if (!method || !out_name)
+        {
+            return;
+        }
+
+        *out_name = method->GetName();
     }
 
-    *out_name = method->GetName();
-}
+    HYP_EXPORT void HypMethod_GetReturnTypeID(const HypMethod* method, TypeID* out_return_type_id)
+    {
+        if (!method || !out_return_type_id)
+        {
+            return;
+        }
 
-HYP_EXPORT void HypMethod_GetReturnTypeID(const HypMethod *method, TypeID *out_return_type_id)
-{
-    if (!method || !out_return_type_id) {
-        return;
+        *out_return_type_id = method->GetTypeID();
     }
 
-    *out_return_type_id = method->GetTypeID();
-}
+    HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod* method, const HypMethodParameter** out_params)
+    {
+        if (!method || !out_params)
+        {
+            return 0;
+        }
 
-HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod *method, const HypMethodParameter **out_params)
-{
-    if (!method || !out_params) {
-        return 0;
+        if (method->GetParameters().Empty())
+        {
+            return 0;
+        }
+
+        *out_params = method->GetParameters().Begin();
+
+        return (uint32)method->GetParameters().Size();
     }
 
-    if (method->GetParameters().Empty()) {
-        return 0;
+    HYP_EXPORT uint32 HypMethod_GetFlags(const HypMethod* method)
+    {
+        if (!method)
+        {
+            return uint32(HypMethodFlags::NONE);
+        }
+
+        return uint32(method->GetFlags());
     }
 
-    *out_params = method->GetParameters().Begin();
+    HYP_EXPORT bool HypMethod_Invoke(const HypMethod* method, HypData* args, uint32 num_args, HypData* out_result)
+    {
+        if (!method || !out_result)
+        {
+            return false;
+        }
 
-    return (uint32)method->GetParameters().Size();
-}
+        if (num_args != 0 && !args)
+        {
+            return false;
+        }
 
-HYP_EXPORT uint32 HypMethod_GetFlags(const HypMethod *method)
-{
-    if (!method) {
-        return uint32(HypMethodFlags::NONE);
+        Span<HypData> args_view(args, num_args);
+
+        *out_result = method->Invoke(args_view);
+
+        return true;
     }
-
-    return uint32(method->GetFlags());
-}
-
-HYP_EXPORT bool HypMethod_Invoke(const HypMethod *method, HypData *args, uint32 num_args, HypData *out_result)
-{
-    if (!method || !out_result) {
-        return false;
-    }
-
-    if (num_args != 0 && !args) {
-        return false;
-    }
-
-    Span<HypData> args_view(args, num_args);
-
-    *out_result = method->Invoke(args_view);
-
-    return true;
-}
 
 } // extern "C"

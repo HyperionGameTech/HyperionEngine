@@ -9,12 +9,12 @@
 
 namespace hyperion {
 
-class UILoader : public AssetLoader
+class UILoader : public AssetLoaderBase
 {
 public:
     virtual ~UILoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

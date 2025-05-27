@@ -56,14 +56,16 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Assets);
 
-#define UI_OBJECT_CREATE_FUNCTION(name) \
-    { \
-        String(HYP_STR(name)).ToUpper(), \
-        [](UIObject *parent, Name name, Vec2i position, UIObjectSize size) -> Pair<RC<UIObject>, const HypClass *> \
-            { return { parent->CreateUIObject<UI##name>(name, position, size), GetClass<UI##name>() }; } \
+#define UI_OBJECT_CREATE_FUNCTION(name)                                                                           \
+    {                                                                                                             \
+        String(HYP_STR(name)).ToUpper(),                                                                          \
+        [](UIObject* parent, Name name, Vec2i position, UIObjectSize size) -> Pair<RC<UIObject>, const HypClass*> \
+        {                                                                                                         \
+            return { parent->CreateUIObject<UI##name>(name, position, size), GetClass<UI##name>() };              \
+        }                                                                                                         \
     }
 
-static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass *>(UIObject *, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
+static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClass*>(UIObject*, Name, Vec2i, UIObjectSize)>> g_node_create_functions {
     UI_OBJECT_CREATE_FUNCTION(Stage),
     UI_OBJECT_CREATE_FUNCTION(Button),
     UI_OBJECT_CREATE_FUNCTION(Text),
@@ -86,14 +88,16 @@ static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClas
 
 #undef UI_OBJECT_CREATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
-    { \
-        String(HYP_STR(name)).ToUpper(), \
-        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult> * \
-            { return &ui_object->name; } \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                      \
+    {                                                              \
+        String(HYP_STR(name)).ToUpper(),                           \
+        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult>* \
+        {                                                          \
+            return &ui_object->name;                               \
+        }                                                          \
     }
 
-static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult> *(UIObject *)> > g_get_delegate_functions {
+static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult>*(UIObject*)>> g_get_delegate_functions {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
@@ -101,28 +105,32 @@ static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult> 
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
-    { \
-        String(HYP_STR(name)).ToUpper(), \
-        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, UIObject *> * \
-            { return &ui_object->name; } \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                 \
+    {                                                                         \
+        String(HYP_STR(name)).ToUpper(),                                      \
+        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, UIObject*>* \
+        {                                                                     \
+            return &ui_object->name;                                          \
+        }                                                                     \
     }
 
-static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, UIObject *> *(UIObject *)> > g_get_delegate_functions_children {
+static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> g_get_delegate_functions_children {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildRemoved)
 };
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
-    { \
-        String(HYP_STR(name)).ToUpper(), \
-        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, const MouseEvent &> * \
-            { return &ui_object->name; } \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                         \
+    {                                                                                 \
+        String(HYP_STR(name)).ToUpper(),                                              \
+        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, const MouseEvent&>* \
+        {                                                                             \
+            return &ui_object->name;                                                  \
+        }                                                                             \
     }
 
-static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, const MouseEvent &> *(UIObject *)> > g_get_delegate_functions_mouse {
+static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> g_get_delegate_functions_mouse {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseUp),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDrag),
@@ -137,14 +145,16 @@ static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, 
 
 #undef UI_OBJECT_GET_DELEGATE_FUNCTION
 
-#define UI_OBJECT_GET_DELEGATE_FUNCTION(name) \
-    { \
-        String(HYP_STR(name)).ToUpper(), \
-        [](UIObject *ui_object) -> Delegate<UIEventHandlerResult, const KeyboardEvent &> * \
-            { return &ui_object->name; } \
+#define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                            \
+    {                                                                                    \
+        String(HYP_STR(name)).ToUpper(),                                                 \
+        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, const KeyboardEvent&>* \
+        {                                                                                \
+            return &ui_object->name;                                                     \
+        }                                                                                \
     }
 
-static const FlatMap<String, std::add_pointer_t< Delegate<UIEventHandlerResult, const KeyboardEvent &> *(UIObject *)> > g_get_delegate_functions_keyboard {
+static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> g_get_delegate_functions_keyboard {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyUp)
 };
@@ -176,26 +186,28 @@ static const Array<String> g_standard_ui_object_attributes {
     "DEPTH"
 };
 
-static UIObjectAlignment ParseUIObjectAlignment(const String &str)
+static UIObjectAlignment ParseUIObjectAlignment(const String& str)
 {
     const String str_upper = str.ToUpper();
 
     const auto alignment_it = g_ui_alignment_strings.Find(str_upper);
 
-    if (alignment_it != g_ui_alignment_strings.End()) {
+    if (alignment_it != g_ui_alignment_strings.End())
+    {
         return alignment_it->second;
     }
 
     return UIObjectAlignment::TOP_LEFT;
 }
 
-static Vec2i ParseVec2i(const String &str)
+static Vec2i ParseVec2i(const String& str)
 {
     Vec2i result = Vec2i::Zero();
 
     Array<String> split = str.Split(' ');
 
-    for (uint32 i = 0; i < split.Size() && i < result.size; i++) {
+    for (uint32 i = 0; i < split.Size() && i < result.size; i++)
+    {
         split[i] = split[i].Trimmed();
 
         result[i] = StringUtil::Parse<int32>(split[i]);
@@ -204,72 +216,83 @@ static Vec2i ParseVec2i(const String &str)
     return result;
 }
 
-static Optional<float> ParseFloat(const String &str)
+static Optional<float> ParseFloat(const String& str)
 {
     float value = 0.0f;
 
-    if (!StringUtil::Parse(str, &value)) {
-        return { };
+    if (!StringUtil::Parse(str, &value))
+    {
+        return {};
     }
 
     return value;
 }
 
-static Optional<Color> ParseColor(const String &str)
+static Optional<Color> ParseColor(const String& str)
 {
     uint8 values[4] = { 0, 0, 0, 255 };
 
     // Parse hex if it starts with #
-    if (str.StartsWith("#")) {
+    if (str.StartsWith("#"))
+    {
         int value_index = 0;
 
-        for (int i = 1; i < str.Length() && value_index < 4; i += 2, value_index++) {
+        for (int i = 1; i < str.Length() && value_index < 4; i += 2, value_index++)
+        {
             const String substr = str.Substr(i, i + 2);
             const long value = std::strtol(substr.Data(), nullptr, 16);
 
-            if (uint32(value) >= 256) {
-                return { };
+            if (uint32(value) >= 256)
+            {
+                return {};
             }
-            
+
             values[value_index] = uint8(value);
         }
-    } else {
-        auto fn = FunctionWrapper<String(String::*)() const>(&String::Trimmed);
+    }
+    else
+    {
+        auto fn = FunctionWrapper<String (String::*)() const>(&String::Trimmed);
 
         // Parse rgba if csv
         Array<String> split = Map(str.Split(','), &String::Trimmed);
 
-        if (split.Size() == 4) {
-        } else if (split.Size() == 3) {
+        if (split.Size() == 4)
+        {
+        }
+        else if (split.Size() == 3)
+        {
             split.PushBack("255");
-        } else {
-            return { };
+        }
+        else
+        {
+            return {};
         }
 
-        if (!StringUtil::Parse<uint8>(split[0], &values[0]) ||
-            !StringUtil::Parse<uint8>(split[1], &values[1]) ||
-            !StringUtil::Parse<uint8>(split[2], &values[2]) ||
-            !StringUtil::Parse<uint8>(split[3], &values[3])) {
-            return { };
+        if (!StringUtil::Parse<uint8>(split[0], &values[0]) || !StringUtil::Parse<uint8>(split[1], &values[1]) || !StringUtil::Parse<uint8>(split[2], &values[2]) || !StringUtil::Parse<uint8>(split[3], &values[3]))
+        {
+            return {};
         }
     }
 
     return Color(Vec4f { float(values[0]) / 255.0f, float(values[1]) / 255.0f, float(values[2]) / 255.0f, float(values[3]) / 255.0f });
 }
 
-static Optional<bool> ParseBool(const String &str)
+static Optional<bool> ParseBool(const String& str)
 {
     const String str_upper = str.ToUpper();
 
-    if (str_upper == "TRUE") {
+    if (str_upper == "TRUE")
+    {
         return true;
     }
 
-    if (str_upper == "FALSE") {
+    if (str_upper == "FALSE")
+    {
         return false;
     }
 
-    return { };
+    return {};
 }
 
 static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
@@ -277,11 +300,13 @@ static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
     str = str.Trimmed();
     str = str.ToUpper();
 
-    if (str == "AUTO") {
+    if (str == "AUTO")
+    {
         return Pair<int32, uint32> { 0, UIObjectSize::AUTO };
     }
 
-    if (str == "FILL") {
+    if (str == "FILL")
+    {
         return Pair<int32, uint32> { 100, UIObjectSize::FILL };
     }
 
@@ -289,61 +314,70 @@ static Optional<Pair<int32, uint32>> ParseUIObjectSizeElement(String str)
 
     int32 parsed_int;
 
-    if (percent_index != String::not_found) {
+    if (percent_index != String::not_found)
+    {
         String sub = str.Substr(0, percent_index);
 
-        if (!StringUtil::Parse<int32>(sub, &parsed_int)) {
-            return { };
+        if (!StringUtil::Parse<int32>(sub, &parsed_int))
+        {
+            return {};
         }
 
         return Pair<int32, uint32> { parsed_int, UIObjectSize::PERCENT };
     }
 
-    if (!StringUtil::Parse<int32>(str, &parsed_int)) {
-        return { };
+    if (!StringUtil::Parse<int32>(str, &parsed_int))
+    {
+        return {};
     }
 
     return Pair<int32, uint32> { parsed_int, UIObjectSize::PIXEL };
 }
 
-static Optional<UIObjectSize> ParseUIObjectSize(const String &str)
+static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
 {
     Array<String> split = str.Split(' ');
 
-    if (split.Empty()) {
-        return { };
+    if (split.Empty())
+    {
+        return {};
     }
 
-    if (split.Size() == 1) {
+    if (split.Size() == 1)
+    {
         Optional<Pair<int32, uint32>> parse_result = ParseUIObjectSizeElement(split[0]);
 
-        if (!parse_result.HasValue()) {
-            return { };
+        if (!parse_result.HasValue())
+        {
+            return {};
         }
-        
+
         return UIObjectSize(*parse_result, *parse_result);
     }
 
-    if (split.Size() == 2) {
+    if (split.Size() == 2)
+    {
         Optional<Pair<int32, uint32>> width_parse_result = ParseUIObjectSizeElement(split[0]);
         Optional<Pair<int32, uint32>> height_parse_result = ParseUIObjectSizeElement(split[1]);
 
-        if (!width_parse_result.HasValue() || !height_parse_result.HasValue()) {
-            return { };
+        if (!width_parse_result.HasValue() || !height_parse_result.HasValue())
+        {
+            return {};
         }
-        
+
         return UIObjectSize(*width_parse_result, *height_parse_result);
     }
 
-    return { };
+    return {};
 }
 
-static json::ParseResult ParseJSON(fbom::FBOMLoadContext &context, const String &str, fbom::FBOMData &out_data)
+static json::ParseResult ParseJSON(fbom::FBOMLoadContext& context, const String& str, fbom::FBOMData& out_data)
 {
     // Read string as JSON
     json::ParseResult parse_result = json::JSON::Parse(str);
 
-    if (!parse_result.ok) {
+    if (!parse_result.ok)
+    {
         return parse_result;
     }
 
@@ -355,7 +389,7 @@ static json::ParseResult ParseJSON(fbom::FBOMLoadContext &context, const String 
 class UISAXHandler : public xml::SAXHandler
 {
 public:
-    UISAXHandler(LoaderState *state, UIStage *ui_stage)
+    UISAXHandler(LoaderState* state, UIStage* ui_stage)
         : m_ui_stage(ui_stage)
     {
         AssertThrow(ui_stage != nullptr);
@@ -363,18 +397,19 @@ public:
         m_ui_object_stack.Push(ui_stage);
     }
 
-    UIObject *LastObject()
+    UIObject* LastObject()
     {
         AssertThrow(m_ui_object_stack.Any());
 
         return m_ui_object_stack.Top();
     }
 
-    virtual void Begin(const String &name, const xml::AttributeMap &attributes) override
+    virtual void Begin(const String& name, const xml::AttributeMap& attributes) override
     {
-        UIObject *parent = LastObject();
+        UIObject* parent = LastObject();
 
-        if (parent == nullptr) {
+        if (parent == nullptr)
+        {
             parent = m_ui_stage;
         }
 
@@ -384,116 +419,153 @@ public:
 
         const auto node_create_functions_it = g_node_create_functions.Find(node_name_upper);
 
-        if (node_create_functions_it != g_node_create_functions.End()) {
+        if (node_create_functions_it != g_node_create_functions.End())
+        {
             Name ui_object_name = Name::Invalid();
 
-            if (const Pair<String, String> *it = attributes.TryGet("name")) {
+            if (const Pair<String, String>* it = attributes.TryGet("name"))
+            {
                 ui_object_name = CreateNameFromDynamicString(ANSIString(it->second));
             }
 
             Vec2i position = Vec2i::Zero();
 
-            if (const Pair<String, String> *it = attributes.TryGet("position")) {
+            if (const Pair<String, String>* it = attributes.TryGet("position"))
+            {
                 position = ParseVec2i(it->second);
             }
 
             UIObjectSize size = UIObjectSize(UIObjectSize::AUTO);
 
-            if (const Pair<String, String> *it = attributes.TryGet("size")) {
-                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("size"))
+            {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue())
+                {
                     size = *parsed_size;
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid size property: {}", it->second);
                 }
             }
 
-            Pair<RC<UIObject>, const HypClass *> create_result = node_create_functions_it->second(parent, ui_object_name, position, size);
+            Pair<RC<UIObject>, const HypClass*> create_result = node_create_functions_it->second(parent, ui_object_name, position, size);
 
-            const RC<UIObject> &ui_object = create_result.first;
-            const HypClass *hyp_class = ui_object->InstanceClass();
+            const RC<UIObject>& ui_object = create_result.first;
+            const HypClass* hyp_class = ui_object->InstanceClass();
 
             // Set properties based on attributes
-            if (const Pair<String, String> *it = attributes.TryGet("parentalignment")) {
+            if (const Pair<String, String>* it = attributes.TryGet("parentalignment"))
+            {
                 UIObjectAlignment alignment = ParseUIObjectAlignment(it->second);
 
                 ui_object->SetParentAlignment(alignment);
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("originalignment")) {
+            if (const Pair<String, String>* it = attributes.TryGet("originalignment"))
+            {
                 UIObjectAlignment alignment = ParseUIObjectAlignment(it->second);
 
                 ui_object->SetOriginAlignment(alignment);
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("visible")) {
-                if (Optional<bool> parsed_bool = ParseBool(it->second); parsed_bool.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("visible"))
+            {
+                if (Optional<bool> parsed_bool = ParseBool(it->second); parsed_bool.HasValue())
+                {
                     ui_object->SetIsVisible(*parsed_bool);
                 }
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("padding")) {
+            if (const Pair<String, String>* it = attributes.TryGet("padding"))
+            {
                 ui_object->SetPadding(ParseVec2i(it->second));
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("text")) {
+            if (const Pair<String, String>* it = attributes.TryGet("text"))
+            {
                 ui_object->SetText(it->second);
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("depth")) {
+            if (const Pair<String, String>* it = attributes.TryGet("depth"))
+            {
                 ui_object->SetDepth(StringUtil::Parse<int32>(it->second));
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("innersize")) {
-                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("innersize"))
+            {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue())
+                {
                     ui_object->SetInnerSize(*parsed_size);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid inner size property: {}", it->second);
                 }
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("maxsize")) {
-                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("maxsize"))
+            {
+                if (Optional<UIObjectSize> parsed_size = ParseUIObjectSize(it->second); parsed_size.HasValue())
+                {
                     ui_object->SetMaxSize(*parsed_size);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid max size property: {}", it->second);
                 }
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("backgroundcolor")) {
-                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("backgroundcolor"))
+            {
+                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue())
+                {
                     ui_object->SetBackgroundColor(*parsed_color);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid background color property: {}", it->second);
                 }
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("textcolor")) {
-                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("textcolor"))
+            {
+                if (Optional<Color> parsed_color = ParseColor(it->second); parsed_color.HasValue())
+                {
                     ui_object->SetTextColor(*parsed_color);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid text color property: {}", it->second);
                 }
             }
 
-            if (const Pair<String, String> *it = attributes.TryGet("textsize")) {
-                if (Optional<float> parsed_float = ParseFloat(it->second); parsed_float.HasValue()) {
+            if (const Pair<String, String>* it = attributes.TryGet("textsize"))
+            {
+                if (Optional<float> parsed_float = ParseFloat(it->second); parsed_float.HasValue())
+                {
                     ui_object->SetTextSize(*parsed_float);
-                } else {
+                }
+                else
+                {
                     HYP_LOG(Assets, Warning, "UI object has invalid text size property: {}", it->second);
                 }
             }
 
-            for (const Pair<String, String> &attribute : attributes) {
-                const String &attribute_name = attribute.first;
-                const String &attribute_value = attribute.second;
+            for (const Pair<String, String>& attribute : attributes)
+            {
+                const String& attribute_name = attribute.first;
+                const String& attribute_value = attribute.second;
 
                 const String attribute_name_upper = attribute_name.ToUpper();
 
-                if (g_standard_ui_object_attributes.Contains(attribute_name_upper)) {
+                if (g_standard_ui_object_attributes.Contains(attribute_name_upper))
+                {
                     continue;
                 }
 
-                if (attribute_name_upper.StartsWith("TAG:")) {
+                if (attribute_name_upper.StartsWith("TAG:"))
+                {
                     // Strip the tag prefix
                     String attribute_name_lower = String(attribute_name_upper.Substr(4)).ToLower();
 
@@ -502,36 +574,41 @@ public:
                     continue;
                 }
 
-                if (attribute_name_upper.StartsWith("ON")) {
+                if (attribute_name_upper.StartsWith("ON"))
+                {
 #if 1
                     // Find a ScriptableDelegate field with the name, bind C# function
                     HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_FIELD);
 
-                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&attribute_name_upper](const IHypMember &member)
-                    {
-                        const HypClassAttributeValue &attr = member.GetAttribute("scriptabledelegate");
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&attribute_name_upper](const IHypMember& member)
+                        {
+                            const HypClassAttributeValue& attr = member.GetAttribute("scriptabledelegate");
 
-                        if (!attr.GetBool()) {
+                            if (!attr.GetBool())
+                            {
+                                return false;
+                            }
+
+                            if (String(member.GetName().LookupString()).ToUpper() == attribute_name_upper)
+                            {
+                                return true;
+                            }
+
                             return false;
-                        }
+                        });
 
-                        if (String(member.GetName().LookupString()).ToUpper() == attribute_name_upper) {
-                            return true;
-                        }
+                    ScriptComponent* script_component = ui_object->GetScriptComponent(true);
 
-                        return false;
-                    });
-
-                    ScriptComponent *script_component = ui_object->GetScriptComponent(true);
-
-                    if (!script_component) {
+                    if (!script_component)
+                    {
                         HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No script component found on UI object \"{}\"",
                             attribute_name_upper, ui_object->GetName());
 
                         continue;
                     }
 
-                    if (!script_component->resource) {
+                    if (!script_component->resource)
+                    {
                         HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No ManagedObjectResource found on ScriptComponent for UIObject \"{}\"",
                             attribute_name_upper, ui_object->GetName());
 
@@ -539,29 +616,33 @@ public:
                     }
 
                     // Bind a C# member function to the delegate
-                    if (member_it != member_list.End()) {
-                        const HypField &field = static_cast<const HypField &>(*member_it);
+                    if (member_it != member_list.End())
+                    {
+                        const HypField& field = static_cast<const HypField&>(*member_it);
 
                         const uintptr_t field_address = uintptr_t(ui_object.Get()) + uintptr_t(field.GetOffset());
 
-                        IScriptableDelegate *scriptable_delegate = reinterpret_cast<IScriptableDelegate *>(field_address);
+                        IScriptableDelegate* scriptable_delegate = reinterpret_cast<IScriptableDelegate*>(field_address);
 
-                        scriptable_delegate->BindManaged(attribute_value, [ui_object_weak = ui_object->WeakRefCountedPtrFromThis()]() -> ManagedObjectResource *
-                        {
-                            RC<UIObject> ui_object = ui_object_weak.Lock();
+                        scriptable_delegate->BindManaged(attribute_value, [ui_object_weak = ui_object->WeakRefCountedPtrFromThis()]() -> ManagedObjectResource*
+                                               {
+                                                   RC<UIObject> ui_object = ui_object_weak.Lock();
 
-                            if (!ui_object) {
-                                return nullptr;
-                            }
+                                                   if (!ui_object)
+                                                   {
+                                                       return nullptr;
+                                                   }
 
-                            ScriptComponent *script_component = ui_object->GetScriptComponent(true);
+                                                   ScriptComponent* script_component = ui_object->GetScriptComponent(true);
 
-                            if (!script_component) {
-                                return nullptr;
-                            }
+                                                   if (!script_component)
+                                                   {
+                                                       return nullptr;
+                                                   }
 
-                            return script_component->resource;
-                        }).Detach();
+                                                   return script_component->resource;
+                                               })
+                            .Detach();
 
                         continue;
                     }
@@ -571,80 +652,92 @@ public:
 
                     const auto get_delegate_functions_it = g_get_delegate_functions.Find(attribute_name_upper);
 
-                    if (get_delegate_functions_it != g_get_delegate_functions.End()) {
-                        Delegate<UIEventHandlerResult> *delegate = get_delegate_functions_it->second(ui_object.Get());
+                    if (get_delegate_functions_it != g_get_delegate_functions.End())
+                    {
+                        Delegate<UIEventHandlerResult>* delegate = get_delegate_functions_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate< > { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
+                        delegate->Bind(UIScriptDelegate<> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
                         found = true;
                     }
 
-                    if (found) {
+                    if (found)
+                    {
                         continue;
                     }
 
                     const auto get_delegate_functions_children_it = g_get_delegate_functions_children.Find(attribute_name_upper);
 
-                    if (get_delegate_functions_children_it != g_get_delegate_functions_children.End()) {
-                        Delegate<UIEventHandlerResult, UIObject *> *delegate = get_delegate_functions_children_it->second(ui_object.Get());
+                    if (get_delegate_functions_children_it != g_get_delegate_functions_children.End())
+                    {
+                        Delegate<UIEventHandlerResult, UIObject*>* delegate = get_delegate_functions_children_it->second(ui_object.Get());
 
-                        delegate->Bind(UIScriptDelegate<UIObject *> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
+                        delegate->Bind(UIScriptDelegate<UIObject*> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
                         found = true;
                     }
 
-                    if (found) {
+                    if (found)
+                    {
                         continue;
                     }
 
                     const auto get_delegate_functions_mouse_it = g_get_delegate_functions_mouse.Find(attribute_name_upper);
 
-                    if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End()) {
-                        Delegate<UIEventHandlerResult, const MouseEvent &> *delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
+                    if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End())
+                    {
+                        Delegate<UIEventHandlerResult, const MouseEvent&>* delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<MouseEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
                         found = true;
                     }
 
-                    if (found) {
+                    if (found)
+                    {
                         continue;
                     }
 
                     const auto get_delegate_functions_keyboard_it = g_get_delegate_functions_keyboard.Find(attribute_name_upper);
 
-                    if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End()) {
-                        Delegate<UIEventHandlerResult, const KeyboardEvent &> *delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
+                    if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End())
+                    {
+                        Delegate<UIEventHandlerResult, const KeyboardEvent&>* delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
                         found = true;
                     }
 
-                    if (found) {
+                    if (found)
+                    {
                         continue;
                     }
 #endif
 
                     HYP_LOG(Assets, Warning, "Unknown event attribute: {}", attribute.first);
                 }
-                
+
                 const String attribute_name_lower = attribute.first.ToLower();
 
                 // Check HypClass attributes
-                auto HandleFoundMember = [ui_object](const IHypMember &member, const String &str) -> bool
+                auto HandleFoundMember = [ui_object](const IHypMember& member, const String& str) -> bool
                 {
                     HypData data;
                     json::ParseResult json_parse_result = json::JSON::Parse(str);
 
-                    if (json_parse_result.ok) {
-                        if (!JSONToHypData(json_parse_result.value, member.GetTypeID(), data)) {
+                    if (json_parse_result.ok)
+                    {
+                        if (!JSONToHypData(json_parse_result.value, member.GetTypeID(), data))
+                        {
                             HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of HypClass \"{}\" from JSON",
                                 member.GetName(), ui_object->GetName());
 
                             return false;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         HYP_LOG(Assets, Error, "Failed to parse JSON for field \"{}\" of HypClass \"{}\": {}",
                             member.GetName(), ui_object->GetName(), json_parse_result.message);
 
@@ -653,12 +746,14 @@ public:
 
                     HypData target_value { ui_object };
 
-                    switch (member.GetMemberType()) {
+                    switch (member.GetMemberType())
+                    {
                     case HypMemberType::TYPE_FIELD:
                     {
-                        const HypField *hyp_field = dynamic_cast<const HypField *>(&member);
+                        const HypField* hyp_field = dynamic_cast<const HypField*>(&member);
 
-                        if (!hyp_field) {
+                        if (!hyp_field)
+                        {
                             HYP_LOG(Assets, Error, "Cannot set HypClass field: {}", member.GetName());
 
                             return false;
@@ -670,9 +765,10 @@ public:
                     }
                     case HypMemberType::TYPE_PROPERTY:
                     {
-                        const HypProperty *hyp_property = dynamic_cast<const HypProperty *>(&member);
+                        const HypProperty* hyp_property = dynamic_cast<const HypProperty*>(&member);
 
-                        if (!hyp_property || !hyp_property->CanSet()) {
+                        if (!hyp_property || !hyp_property->CanSet())
+                        {
                             HYP_LOG(Assets, Error, "Cannot set HypClass property: {}", member.GetName());
 
                             return false;
@@ -688,21 +784,24 @@ public:
 
                     return false;
                 };
-                
+
                 { // find XMLAttribute member
                     HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY | HypMemberType::TYPE_FIELD);
 
-                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto& it)
+                        {
+                            if (const HypClassAttributeValue& attr = it.GetAttribute("xmlattribute"); attr.IsValid())
+                            {
+                                return attr.GetString().ToLower() == attribute_name_lower;
+                            }
+
+                            return false;
+                        });
+
+                    if (member_it != member_list.End())
                     {
-                        if (const HypClassAttributeValue &attr = it.GetAttribute("xmlattribute"); attr.IsValid()) {
-                            return attr.GetString().ToLower() == attribute_name_lower;
-                        }
-
-                        return false;
-                    });
-
-                    if (member_it != member_list.End()) {
-                        if (!HandleFoundMember(*member_it, attribute.second)) {
+                        if (!HandleFoundMember(*member_it, attribute.second))
+                        {
                             HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
                         }
 
@@ -714,21 +813,25 @@ public:
                 { // find XMLAttribute member
                     HypClassMemberList member_list = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY);
 
-                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto &it)
-                    {
-                        if (it.GetAttribute("xmlattribute").IsValid()) {
+                    auto member_it = FindIf(member_list.Begin(), member_list.End(), [&HandleFoundMember, &attribute_name_lower](const auto& it)
+                        {
+                            if (it.GetAttribute("xmlattribute").IsValid())
+                            {
+                                return false;
+                            }
+
+                            if (String(it.GetName().LookupString()).ToLower() == attribute_name_lower)
+                            {
+                                return true;
+                            }
+
                             return false;
-                        }
+                        });
 
-                        if (String(it.GetName().LookupString()).ToLower() == attribute_name_lower) {
-                            return true;
-                        }
-
-                        return false;
-                    });
-
-                    if (member_it != member_list.End()) {
-                        if (!HandleFoundMember(*member_it, attribute.second)) {
+                    if (member_it != member_list.End())
+                    {
+                        if (!HandleFoundMember(*member_it, attribute.second))
+                        {
                             HYP_LOG(Assets, Error, "Failed to set attribute {} on UIObject {}", attribute_name_lower, ui_object->GetName());
                         }
 
@@ -742,39 +845,49 @@ public:
             LastObject()->AddChildUIObject(ui_object);
 
             m_ui_object_stack.Push(ui_object.Get());
-        } else if (node_name_upper == "SCRIPT") {
-            const Pair<String, String> *assembly_it = attributes.TryGet("assembly");
-            const Pair<String, String> *class_it = attributes.TryGet("class");
+        }
+        else if (node_name_upper == "SCRIPT")
+        {
+            const Pair<String, String>* assembly_it = attributes.TryGet("assembly");
+            const Pair<String, String>* class_it = attributes.TryGet("class");
 
-            if (assembly_it && class_it) {
-                ScriptComponent script_component { };
+            if (assembly_it && class_it)
+            {
+                ScriptComponent script_component {};
                 Memory::StrCpy(script_component.script.assembly_path, assembly_it->second.Data(), ArraySize(script_component.script.assembly_path));
                 Memory::StrCpy(script_component.script.class_name, class_it->second.Data(), ArraySize(script_component.script.class_name));
 
-                if (m_ui_object_stack.Any()) {
+                if (m_ui_object_stack.Any())
+                {
                     LastObject()->SetScriptComponent(std::move(script_component));
                 }
-            } else {
+            }
+            else
+            {
                 HYP_LOG(Assets, Warning, "Script node missing assembly or class attribute");
             }
-        } else {
+        }
+        else
+        {
             HYP_LOG(Assets, Warning, "Unknown UI node: {}", name);
         }
     }
 
-    virtual void End(const String &name) override
+    virtual void End(const String& name) override
     {
         const String node_name_upper = name.ToUpper();
 
         const auto node_create_functions_it = g_node_create_functions.Find(node_name_upper);
 
-        if (node_create_functions_it != g_node_create_functions.End()) {
-            UIObject *last_object = LastObject();
+        if (node_create_functions_it != g_node_create_functions.End())
+        {
+            UIObject* last_object = LastObject();
 
             // @TODO: Type check to ensure proper structure.
 
             // must always have one object in stack.
-            if (m_ui_object_stack.Size() <= 1) {
+            if (m_ui_object_stack.Size() <= 1)
+            {
                 HYP_LOG(Assets, Warning, "Invalid UI object structure");
 
                 return;
@@ -786,33 +899,36 @@ public:
         }
     }
 
-    virtual void Characters(const String &value) override
+    virtual void Characters(const String& value) override
     {
-        UIObject *last_object = LastObject();
+        UIObject* last_object = LastObject();
 
         last_object->SetText(value);
     }
 
-    virtual void Comment(const String &comment) override {}
+    virtual void Comment(const String& comment) override
+    {
+    }
 
 private:
-    UIStage             *m_ui_stage;
-    Stack<UIObject *>   m_ui_object_stack;
+    UIStage* m_ui_stage;
+    Stack<UIObject*> m_ui_object_stack;
 };
 
-AssetLoadResult UILoader::LoadAsset(LoaderState &state) const
+AssetLoadResult UILoader::LoadAsset(LoaderState& state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
     RC<UIObject> ui_stage = MakeRefCountedPtr<UIStage>(ThreadID::Current());
     ui_stage->Init();
 
-    UISAXHandler handler(&state, static_cast<UIStage *>(ui_stage.Get()));
+    UISAXHandler handler(&state, static_cast<UIStage*>(ui_stage.Get()));
 
     xml::SAXParser parser(&handler);
     auto sax_result = parser.Parse(&state.stream);
 
-    if (!sax_result) {
+    if (!sax_result)
+    {
         HYP_LOG(Assets, Warning, "Failed to parse UI stage: {}", sax_result.message);
 
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to parse XML: {}", sax_result.message);

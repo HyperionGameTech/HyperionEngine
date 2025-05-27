@@ -19,6 +19,7 @@ class UIStage;
 class Texture;
 
 HYP_CLASS(Abstract)
+
 class HYP_API EditorDebugOverlayBase : public EnableRefCountedPtrFromThis<EditorDebugOverlayBase>
 {
     HYP_OBJECT_BODY(EditorDebugOverlayBase);
@@ -28,16 +29,18 @@ public:
     virtual ~EditorDebugOverlayBase();
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<UIObject> &GetUIObject() const
-        { return m_ui_object; }
+    HYP_FORCE_INLINE const RC<UIObject>& GetUIObject() const
+    {
+        return m_ui_object;
+    }
 
-    void Initialize(UIObject *spawn_parent);
+    void Initialize(UIObject* spawn_parent);
 
     HYP_METHOD(Scriptable)
     void Update(float delta);
 
     HYP_METHOD(Scriptable)
-    RC<UIObject> CreateUIObject(UIObject *spawn_parent);
+    RC<UIObject> CreateUIObject(UIObject* spawn_parent);
 
     HYP_METHOD(Scriptable)
     Name GetName() const;
@@ -46,31 +49,42 @@ public:
     bool IsEnabled() const;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject *spawn_parent);
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject* spawn_parent);
 
-    virtual void Update_Impl(float delta) { }
+    virtual void Update_Impl(float delta)
+    {
+    }
 
-    virtual Name GetName_Impl() const { HYP_PURE_VIRTUAL(); }
+    virtual Name GetName_Impl() const
+    {
+        HYP_PURE_VIRTUAL();
+    }
 
-    virtual bool IsEnabled_Impl() const { return true; }
+    virtual bool IsEnabled_Impl() const
+    {
+        return true;
+    }
 
-    RC<UIObject>    m_ui_object;
+    RC<UIObject> m_ui_object;
 };
 
 HYP_CLASS()
+
 class HYP_API TextureEditorDebugOverlay : public EditorDebugOverlayBase
 {
     HYP_OBJECT_BODY(TextureEditorDebugOverlay);
 
 public:
-    TextureEditorDebugOverlay(const Handle<Texture> &texture);
+    TextureEditorDebugOverlay(const Handle<Texture>& texture);
     virtual ~TextureEditorDebugOverlay() override;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject *spawn_parent) override;
+    virtual RC<UIObject> CreateUIObject_Impl(UIObject* spawn_parent) override;
 
     virtual Name GetName_Impl() const override
-        { return NAME("TextureEditorDebugOverlay"); }
+    {
+        return NAME("TextureEditorDebugOverlay");
+    }
 
     Handle<Texture> m_texture;
 };

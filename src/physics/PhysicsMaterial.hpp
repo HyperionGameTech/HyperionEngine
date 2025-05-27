@@ -11,16 +11,21 @@ namespace hyperion {
 namespace physics {
 
 HYP_STRUCT()
+
 struct PhysicsMaterial
 {
-    HYP_FIELD(Serialize, Property="Mass")
+    HYP_FIELD(Serialize, Property = "Mass")
     float mass = 0.0f;
 
     HYP_FORCE_INLINE float GetMass() const
-        { return mass; }
+    {
+        return mass;
+    }
 
     HYP_FORCE_INLINE void SetMass(float value)
-        { mass = value; }
+    {
+        mass = value;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

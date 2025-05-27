@@ -14,7 +14,7 @@ class FBOMMarshaler<TextureData> : public FBOMObjectMarshalerBase<TextureData>
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const TextureData &data, FBOMObject &out) const override
+    virtual FBOMResult Serialize(const TextureData& data, FBOMObject& out) const override
     {
         out.AddChild(data.desc);
 
@@ -23,22 +23,24 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
+    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         TextureData result;
 
-        const auto desc_it = in.GetChildren().FindIf([](const FBOMObject &item)
-        {
-            return item.GetType().IsOrExtends("TextureDesc");
-        });
+        const auto desc_it = in.GetChildren().FindIf([](const FBOMObject& item)
+            {
+                return item.GetType().IsOrExtends("TextureDesc");
+            });
 
-        if (desc_it == in.GetChildren().End()) {
+        if (desc_it == in.GetChildren().End())
+        {
             return { FBOMResult::FBOM_ERR, "No TextureDesc child object on TextureData" };
         }
 
         result.desc = desc_it->m_deserialized_object->Get<TextureDesc>();
 
-        if (FBOMResult err = in.GetProperty("Buffer").ReadByteBuffer(result.buffer)) {
+        if (FBOMResult err = in.GetProperty("Buffer").ReadByteBuffer(result.buffer))
+        {
             return err;
         }
 

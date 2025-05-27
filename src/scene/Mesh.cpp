@@ -24,7 +24,7 @@ using renderer::GPUBufferType;
 
 #pragma region Mesh
 
-Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &vertices)
+Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& vertices)
 {
     std::unordered_map<Vertex, uint32> index_map;
 
@@ -35,12 +35,14 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &v
     Array<Vertex> new_vertices;
     new_vertices.Reserve(vertices.Size());
 
-    for (const auto &vertex : vertices) {
+    for (const auto& vertex : vertices)
+    {
         /* Check if the vertex already exists in our map */
         auto it = index_map.find(vertex);
 
         /* If it does, push to our indices */
-        if (it != index_map.end()) {
+        if (it != index_map.end())
+        {
             indices.PushBack(it->second);
 
             continue;
@@ -60,56 +62,38 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex> &v
 
 Mesh::Mesh()
     : HypObject(),
-      m_mesh_attributes {
-          .vertex_attributes    = static_mesh_vertex_attributes,
-          .topology             = Topology::TRIANGLES
-      },
+      m_mesh_attributes { .vertex_attributes = static_mesh_vertex_attributes, .topology = Topology::TRIANGLES },
       m_aabb(BoundingBox::Empty()),
       m_render_resource(nullptr)
 {
 }
 
-Mesh::Mesh(
-    RC<StreamedMeshData> streamed_mesh_data,
-    Topology topology,
-    const VertexAttributeSet &vertex_attributes
-) : HypObject(),
-    m_mesh_attributes {
-        .vertex_attributes  = vertex_attributes,
-        .topology           = topology
-    },
-    m_streamed_mesh_data(std::move(streamed_mesh_data)),
-    m_aabb(BoundingBox::Empty()),
-    m_render_resource(nullptr)
+Mesh::Mesh(RC<StreamedMeshData> streamed_mesh_data, Topology topology, const VertexAttributeSet& vertex_attributes)
+    : HypObject(),
+      m_mesh_attributes { .vertex_attributes = vertex_attributes, .topology = topology },
+      m_streamed_mesh_data(std::move(streamed_mesh_data)),
+      m_aabb(BoundingBox::Empty()),
+      m_render_resource(nullptr)
 {
-    if (m_streamed_mesh_data != nullptr) {
+    if (m_streamed_mesh_data != nullptr)
+    {
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
     }
 
     CalculateAABB();
 }
 
-Mesh::Mesh(
-    RC<StreamedMeshData> streamed_mesh_data,
-    Topology topology
-) : Mesh(
-        std::move(streamed_mesh_data),
-        topology,
-        static_mesh_vertex_attributes | skeleton_vertex_attributes
-    )
+Mesh::Mesh(RC<StreamedMeshData> streamed_mesh_data, Topology topology)
+    : Mesh(std::move(streamed_mesh_data), topology, static_mesh_vertex_attributes | skeleton_vertex_attributes)
 {
 }
 
-Mesh::Mesh(
-    Array<Vertex> vertices,
-    Array<uint32> indices,
-    Topology topology
-) : Mesh(
-        std::move(vertices),
-        std::move(indices),
-        topology,
-        static_mesh_vertex_attributes | skeleton_vertex_attributes
-    )
+Mesh::Mesh(Array<Vertex> vertices, Array<uint32> indices, Topology topology)
+    : Mesh(
+          std::move(vertices),
+          std::move(indices),
+          topology,
+          static_mesh_vertex_attributes | skeleton_vertex_attributes)
 {
 }
 
@@ -117,24 +101,21 @@ Mesh::Mesh(
     Array<Vertex> vertices,
     Array<uint32> indices,
     Topology topology,
-    const VertexAttributeSet &vertex_attributes
-) : HypObject(),
-    m_mesh_attributes {
-        .vertex_attributes = vertex_attributes,
-        .topology = topology
-    },
-    m_streamed_mesh_data(MakeRefCountedPtr<StreamedMeshData>(MeshData {
-        std::move(vertices),
-        std::move(indices)
-    }, m_streamed_mesh_data_resource_handle)),
-    m_aabb(BoundingBox::Empty()),
-    m_render_resource(nullptr)
+    const VertexAttributeSet& vertex_attributes)
+    : HypObject(),
+      m_mesh_attributes { .vertex_attributes = vertex_attributes, .topology = topology },
+      m_streamed_mesh_data(
+          MakeRefCountedPtr<StreamedMeshData>(
+              MeshData { std::move(vertices), std::move(indices) },
+              m_streamed_mesh_data_resource_handle)),
+      m_aabb(BoundingBox::Empty()),
+      m_render_resource(nullptr)
 {
     CalculateAABB();
 }
 
-Mesh::Mesh(Mesh &&other) noexcept
-    : HypObject(static_cast<HypObject &&>(other)),
+Mesh::Mesh(Mesh&& other) noexcept
+    : HypObject(static_cast<HypObject&&>(other)),
       m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_streamed_mesh_data_resource_handle(std::move(other.m_streamed_mesh_data_resource_handle)),
@@ -145,13 +126,15 @@ Mesh::Mesh(Mesh &&other) noexcept
     other.m_render_resource = nullptr;
 }
 
-Mesh &Mesh::operator=(Mesh &&other) noexcept
+Mesh& Mesh::operator=(Mesh&& other) noexcept
 {
-    if (&other == this) {
+    if (&other == this)
+    {
         return *this;
     }
 
-    if (m_render_resource != nullptr) {
+    if (m_render_resource != nullptr)
+    {
         FreeResource(m_render_resource);
     }
 
@@ -169,12 +152,14 @@ Mesh &Mesh::operator=(Mesh &&other) noexcept
 
 Mesh::~Mesh()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         SetReady(false);
 
         m_persistent_render_resource_handle.Reset();
 
-        if (m_render_resource != nullptr) {
+        if (m_render_resource != nullptr)
+        {
             FreeResource(m_render_resource);
         }
     }
@@ -183,7 +168,8 @@ Mesh::~Mesh()
 
     // @NOTE Must be after we free the m_render_resource,
     // since m_render_resource would be using our streamed mesh data
-    if (m_streamed_mesh_data != nullptr) {
+    if (m_streamed_mesh_data != nullptr)
+    {
         m_streamed_mesh_data->WaitForFinalization();
         m_streamed_mesh_data.Reset();
     }
@@ -191,30 +177,34 @@ Mesh::~Mesh()
 
 void Mesh::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 
-    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
-    {
-        m_persistent_render_resource_handle.Reset();
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind(
+        [this]()
+        {
+            m_persistent_render_resource_handle.Reset();
 
-        if (m_render_resource != nullptr) {
-            FreeResource(m_render_resource);
+            if (m_render_resource != nullptr)
+            {
+                FreeResource(m_render_resource);
 
-            m_render_resource = nullptr;
-        }
+                m_render_resource = nullptr;
+            }
 
-        m_streamed_mesh_data_resource_handle.Reset();
+            m_streamed_mesh_data_resource_handle.Reset();
 
-        if (m_streamed_mesh_data != nullptr) {
-            m_streamed_mesh_data->WaitForFinalization();
-            m_streamed_mesh_data.Reset();
-        }
-    }));
-    
+            if (m_streamed_mesh_data != nullptr)
+            {
+                m_streamed_mesh_data->WaitForFinalization();
+                m_streamed_mesh_data.Reset();
+            }
+        }));
+
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
     m_render_resource = AllocateResource<MeshRenderResource>(this);
@@ -222,7 +212,8 @@ void Mesh::Init()
     {
         HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-        if (!m_streamed_mesh_data) {
+        if (!m_streamed_mesh_data)
+        {
             m_streamed_mesh_data.Emplace();
         }
 
@@ -242,29 +233,26 @@ void Mesh::SetVertices(Span<const Vertex> vertices)
     Array<uint32> indices;
     indices.Resize(vertices.Size());
 
-    for (SizeType index = 0; index < vertices.Size(); index++) {
+    for (SizeType index = 0; index < vertices.Size(); index++)
+    {
         indices[index] = uint32(index);
     }
 
     ResourceHandle tmp;
 
-    SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(MeshData {
-        Array<Vertex>(vertices),
-        std::move(indices)
-    }, tmp));
+    SetStreamedMeshData(
+        MakeRefCountedPtr<StreamedMeshData>(MeshData { Array<Vertex>(vertices), std::move(indices) }, tmp));
 }
 
 void Mesh::SetVertices(Span<const Vertex> vertices, Span<const uint32> indices)
 {
     ResourceHandle tmp;
 
-    SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(MeshData {
-        Array<Vertex>(vertices),
-        Array<uint32>(indices)
-    }, tmp));
+    SetStreamedMeshData(
+        MakeRefCountedPtr<StreamedMeshData>(MeshData { Array<Vertex>(vertices), Array<uint32>(indices) }, tmp));
 }
 
-const RC<StreamedMeshData> &Mesh::GetStreamedMeshData() const
+const RC<StreamedMeshData>& Mesh::GetStreamedMeshData() const
 {
     HYP_SCOPE;
     HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
@@ -277,16 +265,19 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-    if (m_streamed_mesh_data == streamed_mesh_data) {
+    if (m_streamed_mesh_data == streamed_mesh_data)
+    {
         return;
     }
 
     m_streamed_mesh_data_resource_handle.Reset();
 
-    if (m_streamed_mesh_data != nullptr) {
+    if (m_streamed_mesh_data != nullptr)
+    {
         // Set render resource's streamed mesh data to null first
         // -- FreeResource will wait for usage to finish
-        if (m_render_resource != nullptr) {
+        if (m_render_resource != nullptr)
+        {
             m_render_resource->SetStreamedMeshData(nullptr);
         }
 
@@ -297,13 +288,13 @@ void Mesh::SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data)
 
     CalculateAABB();
 
-    if (IsInitCalled()) {
-        if (!m_streamed_mesh_data) {
+    if (IsInitCalled())
+    {
+        if (!m_streamed_mesh_data)
+        {
             // Create empty streamed data if set to null.
-            m_streamed_mesh_data = MakeRefCountedPtr<StreamedMeshData>(MeshData {
-                Array<Vertex> { },
-                Array<uint32> { }
-            }, m_streamed_mesh_data_resource_handle);
+            m_streamed_mesh_data = MakeRefCountedPtr<StreamedMeshData>(
+                MeshData { Array<Vertex> {}, Array<uint32> {} }, m_streamed_mesh_data_resource_handle);
         }
 
         m_render_resource->SetStreamedMeshData(m_streamed_mesh_data);
@@ -315,31 +306,31 @@ uint32 Mesh::NumIndices() const
     HYP_SCOPE;
     HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
 
-    return m_streamed_mesh_data != nullptr
-        ? m_streamed_mesh_data->NumIndices()
-        : 0;
+    return m_streamed_mesh_data != nullptr ? m_streamed_mesh_data->NumIndices() : 0;
 }
 
-void Mesh::SetVertexAttributes(const VertexAttributeSet &vertex_attributes)
+void Mesh::SetVertexAttributes(const VertexAttributeSet& vertex_attributes)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Attributes");
 
     m_mesh_attributes.vertex_attributes = vertex_attributes;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         m_render_resource->SetVertexAttributes(vertex_attributes);
     }
 }
 
-void Mesh::SetMeshAttributes(const MeshAttributes &attributes)
+void Mesh::SetMeshAttributes(const MeshAttributes& attributes)
 {
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Attributes");
 
     m_mesh_attributes = attributes;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         m_render_resource->SetVertexAttributes(attributes.vertex_attributes);
     }
 }
@@ -350,11 +341,15 @@ void Mesh::SetPersistentRenderResourceEnabled(bool enabled)
 
     HYP_MT_CHECK_RW(m_data_race_detector, "m_persistent_render_resource_handle");
 
-    if (enabled) {
-        if (!m_persistent_render_resource_handle) {
+    if (enabled)
+    {
+        if (!m_persistent_render_resource_handle)
+        {
             m_persistent_render_resource_handle = ResourceHandle(*m_render_resource);
         }
-    } else {
+    }
+    else
+    {
         m_persistent_render_resource_handle.Reset();
     }
 }
@@ -364,19 +359,22 @@ void Mesh::CalculateNormals(bool weighted)
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-    if (!m_streamed_mesh_data) {
+    if (!m_streamed_mesh_data)
+    {
         HYP_LOG(Mesh, Warning, "Cannot calculate normals before mesh data is set!");
 
         return;
     }
 
-    if (!m_streamed_mesh_data_resource_handle) {
+    if (!m_streamed_mesh_data_resource_handle)
+    {
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
     }
-    
+
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
-    if (mesh_data.indices.Empty()) {
+    if (mesh_data.indices.Empty())
+    {
         HYP_LOG(Mesh, Warning, "Cannot calculate normals before indices are generated!");
 
         return;
@@ -385,14 +383,15 @@ void Mesh::CalculateNormals(bool weighted)
     std::unordered_map<uint32, Array<Vec3f>> normals;
 
     // compute per-face normals (facet normals)
-    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3) {
+    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3)
+    {
         const uint32 i0 = mesh_data.indices[i];
         const uint32 i1 = mesh_data.indices[i + 1];
         const uint32 i2 = mesh_data.indices[i + 2];
 
-        const Vec3f &p0 = mesh_data.vertices[i0].GetPosition();
-        const Vec3f &p1 = mesh_data.vertices[i1].GetPosition();
-        const Vec3f &p2 = mesh_data.vertices[i2].GetPosition();
+        const Vec3f& p0 = mesh_data.vertices[i0].GetPosition();
+        const Vec3f& p1 = mesh_data.vertices[i1].GetPosition();
+        const Vec3f& p2 = mesh_data.vertices[i2].GetPosition();
 
         const Vec3f u = p2 - p0;
         const Vec3f v = p1 - p0;
@@ -403,17 +402,22 @@ void Mesh::CalculateNormals(bool weighted)
         normals[i2].PushBack(n);
     }
 
-    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
-        if (weighted) {
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++)
+    {
+        if (weighted)
+        {
             mesh_data.vertices[i].SetNormal(normals[i].Sum());
-        } else {
+        }
+        else
+        {
             mesh_data.vertices[i].SetNormal(normals[i].Sum().Normalize());
         }
     }
 
-    if (!weighted) {
+    if (!weighted)
+    {
         m_streamed_mesh_data_resource_handle.Reset();
-        
+
         m_streamed_mesh_data->WaitForFinalization();
         m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 
@@ -424,18 +428,19 @@ void Mesh::CalculateNormals(bool weighted)
 
     // weighted (smooth) normals
 
-    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3) {
+    for (SizeType i = 0; i < mesh_data.indices.Size(); i += 3)
+    {
         const uint32 i0 = mesh_data.indices[i];
         const uint32 i1 = mesh_data.indices[i + 1];
         const uint32 i2 = mesh_data.indices[i + 2];
 
-        const Vec3f &p0 = mesh_data.vertices[i0].GetPosition();
-        const Vec3f &p1 = mesh_data.vertices[i1].GetPosition();
-        const Vec3f &p2 = mesh_data.vertices[i2].GetPosition();
+        const Vec3f& p0 = mesh_data.vertices[i0].GetPosition();
+        const Vec3f& p1 = mesh_data.vertices[i1].GetPosition();
+        const Vec3f& p2 = mesh_data.vertices[i2].GetPosition();
 
-        const Vec3f &n0 = mesh_data.vertices[i0].GetNormal();
-        const Vec3f &n1 = mesh_data.vertices[i1].GetNormal();
-        const Vec3f &n2 = mesh_data.vertices[i2].GetNormal();
+        const Vec3f& n0 = mesh_data.vertices[i0].GetNormal();
+        const Vec3f& n1 = mesh_data.vertices[i1].GetNormal();
+        const Vec3f& n2 = mesh_data.vertices[i2].GetNormal();
 
         // Vector3 n = FixedArray { n0, n1, n2 }.Avg();
 
@@ -444,8 +449,10 @@ void Mesh::CalculateNormals(bool weighted)
         // nested loop through faces to get weighted neighbours
         // any code that uses this really should bake the normals in
         // especially for any production code. this is an expensive process
-        for (SizeType j = 0; j < mesh_data.indices.Size(); j += 3) {
-            if (j == i) {
+        for (SizeType j = 0; j < mesh_data.indices.Size(); j += 3)
+        {
+            if (j == i)
+            {
                 continue;
             }
 
@@ -453,17 +460,13 @@ void Mesh::CalculateNormals(bool weighted)
             const uint32 j1 = mesh_data.indices[j + 1];
             const uint32 j2 = mesh_data.indices[j + 2];
 
-            const FixedArray<Vec3f, 3> face_positions {
-                mesh_data.vertices[j0].GetPosition(),
+            const FixedArray<Vec3f, 3> face_positions { mesh_data.vertices[j0].GetPosition(),
                 mesh_data.vertices[j1].GetPosition(),
-                mesh_data.vertices[j2].GetPosition()
-            };
+                mesh_data.vertices[j2].GetPosition() };
 
-            const FixedArray<Vec3f, 3> face_normals {
-                mesh_data.vertices[j0].GetNormal(),
+            const FixedArray<Vec3f, 3> face_normals { mesh_data.vertices[j0].GetNormal(),
                 mesh_data.vertices[j1].GetNormal(),
-                mesh_data.vertices[j2].GetNormal()
-            };
+                mesh_data.vertices[j2].GetNormal() };
 
             const Vec3f a = p1 - p0;
             const Vec3f b = p2 - p0;
@@ -471,17 +474,20 @@ void Mesh::CalculateNormals(bool weighted)
 
             const float area = 0.5f * MathUtil::Sqrt(c.Dot(c));
 
-            if (face_positions.Contains(p0)) {
+            if (face_positions.Contains(p0))
+            {
                 const float angle = (p0 - p1).AngleBetween(p0 - p2);
                 weighted_normals[0] += face_normals.Avg() * area * angle;
             }
 
-            if (face_positions.Contains(p1)) {
+            if (face_positions.Contains(p1))
+            {
                 const float angle = (p1 - p0).AngleBetween(p1 - p2);
                 weighted_normals[1] += face_normals.Avg() * area * angle;
             }
 
-            if (face_positions.Contains(p2)) {
+            if (face_positions.Contains(p2))
+            {
                 const float angle = (p2 - p0).AngleBetween(p2 - p1);
                 weighted_normals[2] += face_normals.Avg() * area * angle;
             }
@@ -504,14 +510,15 @@ void Mesh::CalculateNormals(bool weighted)
         normals[i2].PushBack(weighted_normals[2].Normalized());
     }
 
-    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++)
+    {
         mesh_data.vertices[i].SetNormal(normals[i].Sum().Normalized());
     }
 
     normals.clear();
 
     m_streamed_mesh_data_resource_handle.Reset();
-    
+
     m_streamed_mesh_data->WaitForFinalization();
     m_streamed_mesh_data.Emplace(std::move(mesh_data), m_streamed_mesh_data_resource_handle);
 }
@@ -521,16 +528,18 @@ void Mesh::CalculateTangents()
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-    if (!m_streamed_mesh_data) {
+    if (!m_streamed_mesh_data)
+    {
         HYP_LOG(Mesh, Warning, "Cannot calculate normals before mesh data is set!");
 
         return;
     }
 
-    if (!m_streamed_mesh_data_resource_handle) {
+    if (!m_streamed_mesh_data_resource_handle)
+    {
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
     }
-    
+
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
     struct TangentBitangentPair
@@ -541,13 +550,15 @@ void Mesh::CalculateTangents()
 
     std::unordered_map<uint32, Array<TangentBitangentPair>> data;
 
-    for (SizeType i = 0; i < mesh_data.indices.Size();) {
+    for (SizeType i = 0; i < mesh_data.indices.Size();)
+    {
         const SizeType count = MathUtil::Min(3, mesh_data.indices.Size() - i);
 
         Vertex v[3];
         Vec2f uv[3];
 
-        for (uint32 j = 0; j < count; j++) {
+        for (uint32 j = 0; j < count; j++)
+        {
             v[j] = mesh_data.vertices[mesh_data.indices[i + j]];
             uv[j] = v[j].GetTexCoord0();
         }
@@ -563,7 +574,8 @@ void Mesh::CalculateTangents()
 
         const float cp = edge1uv.x * edge2uv.y - edge1uv.y * edge2uv.x;
 
-        if (cp != 0.0f) {
+        if (cp != 0.0f)
+        {
             const float mul = 1.0f / cp;
 
             const TangentBitangentPair tangent_bitangent {
@@ -579,13 +591,15 @@ void Mesh::CalculateTangents()
         i += count;
     }
 
-    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++) {
-        const auto &tangent_bitangents = data[i];
+    for (SizeType i = 0; i < mesh_data.vertices.Size(); i++)
+    {
+        const auto& tangent_bitangents = data[i];
 
         // find average
         Vec3f average_tangent, average_bitangent;
 
-        for (const auto &item : tangent_bitangents) {
+        for (const auto& item : tangent_bitangents)
+        {
             average_tangent += item.tangent * (1.0f / tangent_bitangents.Size());
             average_bitangent += item.bitangent * (1.0f / tangent_bitangents.Size());
         }
@@ -611,22 +625,25 @@ void Mesh::InvertNormals()
     HYP_SCOPE;
     HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
 
-    if (!m_streamed_mesh_data) {
+    if (!m_streamed_mesh_data)
+    {
         HYP_LOG(Mesh, Warning, "Cannot invert normals before mesh data is set!");
 
         return;
     }
 
-    if (!m_streamed_mesh_data_resource_handle) {
+    if (!m_streamed_mesh_data_resource_handle)
+    {
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
     }
-    
+
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
-    for (Vertex &vertex : mesh_data.vertices) {
+    for (Vertex& vertex : mesh_data.vertices)
+    {
         vertex.SetNormal(vertex.GetNormal() * -1.0f);
     }
-    
+
     m_streamed_mesh_data_resource_handle.Reset();
 
     m_streamed_mesh_data->WaitForFinalization();
@@ -638,7 +655,8 @@ void Mesh::CalculateAABB()
     HYP_SCOPE;
     HYP_MT_CHECK_READ(m_data_race_detector, "Streamed mesh data");
 
-    if (!m_streamed_mesh_data) {
+    if (!m_streamed_mesh_data)
+    {
         HYP_LOG(Mesh, Warning, "Cannot calculate Mesh bounds before mesh data is set!");
 
         m_aabb = BoundingBox::Empty();
@@ -647,36 +665,37 @@ void Mesh::CalculateAABB()
     }
 
     ResourceHandle resource_handle(*m_streamed_mesh_data);
-    
-    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
+
+    const MeshData& mesh_data = m_streamed_mesh_data->GetMeshData();
 
     BoundingBox aabb = BoundingBox::Empty();
 
-    for (const Vertex &vertex : mesh_data.vertices) {
+    for (const Vertex& vertex : mesh_data.vertices)
+    {
         aabb = aabb.Union(vertex.GetPosition());
     }
 
     m_aabb = aabb;
 }
 
-bool Mesh::BuildBVH(BVHNode &out_bvh_node, int max_depth)
+bool Mesh::BuildBVH(BVHNode& out_bvh_node, int max_depth)
 {
-    if (!m_streamed_mesh_data) {
+    if (!m_streamed_mesh_data)
+    {
         return false;
     }
 
     ResourceHandle resource_handle(*m_streamed_mesh_data);
 
-    const MeshData &mesh_data = m_streamed_mesh_data->GetMeshData();
-    
+    const MeshData& mesh_data = m_streamed_mesh_data->GetMeshData();
+
     out_bvh_node = BVHNode(m_aabb);
 
-    for (uint32 i = 0; i < mesh_data.indices.Size(); i += 3) {
-        Triangle triangle {
-            mesh_data.vertices[mesh_data.indices[i + 0]],
+    for (uint32 i = 0; i < mesh_data.indices.Size(); i += 3)
+    {
+        Triangle triangle { mesh_data.vertices[mesh_data.indices[i + 0]],
             mesh_data.vertices[mesh_data.indices[i + 1]],
-            mesh_data.vertices[mesh_data.indices[i + 2]]
-        };
+            mesh_data.vertices[mesh_data.indices[i + 2]] };
 
         triangle[0].position = triangle[0].position;
         triangle[1].position = triangle[1].position;

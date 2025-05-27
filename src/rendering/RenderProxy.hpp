@@ -27,26 +27,27 @@ class Material;
 class Skeleton;
 struct MeshInstanceData;
 
-HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData &);
+HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
 
-HYP_STRUCT(PostLoad="MeshInstanceData_PostLoad", Size=104)
+HYP_STRUCT(PostLoad = "MeshInstanceData_PostLoad", Size = 104)
+
 struct MeshInstanceData
 {
     static constexpr uint32 max_buffers = 8;
 
-    HYP_FIELD(Property="NumInstances", Serialize=true)
-    uint32                                  num_instances = 1;
+    HYP_FIELD(Property = "NumInstances", Serialize = true)
+    uint32 num_instances = 1;
 
-    HYP_FIELD(Property="Buffers", Serialize=true)
-    Array<Array<ubyte>, DynamicAllocator>   buffers;
+    HYP_FIELD(Property = "Buffers", Serialize = true)
+    Array<Array<ubyte>, DynamicAllocator> buffers;
 
-    HYP_FIELD(Property="BufferStructSizes", Serialize=true)
-    FixedArray<uint32, max_buffers>         buffer_struct_sizes;
+    HYP_FIELD(Property = "BufferStructSizes", Serialize = true)
+    FixedArray<uint32, max_buffers> buffer_struct_sizes;
 
-    HYP_FIELD(Property="BufferStructAlignments", Serialize=true)
-    FixedArray<uint32, max_buffers>         buffer_struct_alignments;
+    HYP_FIELD(Property = "BufferStructAlignments", Serialize = true)
+    FixedArray<uint32, max_buffers> buffer_struct_alignments;
 
-    HYP_FORCE_INLINE bool operator==(const MeshInstanceData &other) const
+    HYP_FORCE_INLINE bool operator==(const MeshInstanceData& other) const
     {
         return num_instances == other.num_instances
             && buffers == other.buffers
@@ -54,7 +55,7 @@ struct MeshInstanceData
             && buffer_struct_alignments == other.buffer_struct_alignments;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const MeshInstanceData &other) const
+    HYP_FORCE_INLINE bool operator!=(const MeshInstanceData& other) const
     {
         return num_instances != other.num_instances
             || buffers != other.buffers
@@ -63,16 +64,19 @@ struct MeshInstanceData
     }
 
     HYP_FORCE_INLINE uint32 NumInstances() const
-        { return num_instances; }
+    {
+        return num_instances;
+    }
 
     template <class StructType>
-    void SetBufferData(int buffer_index, StructType *ptr, SizeType count)
+    void SetBufferData(int buffer_index, StructType* ptr, SizeType count)
     {
-        static_assert(IsPODType<StructType>, "Struct type must a POD type");
+        static_assert(is_pod_type<StructType>, "Struct type must a POD type");
 
         AssertThrowMsg(buffer_index < max_buffers, "Buffer index %d must be less than maximum number of buffers (%u)", buffer_index, max_buffers);
 
-        if (buffers.Size() <= buffer_index) {
+        if (buffers.Size() <= buffer_index)
+        {
             buffers.Resize(buffer_index + 1);
         }
 
@@ -96,31 +100,32 @@ struct MeshInstanceData
 };
 
 HYP_STRUCT()
+
 struct MeshRaytracingData
 {
     HYP_FIELD()
-    FixedArray<BLASRef, max_frames_in_flight>   bottom_level_acceleration_structures;
+    FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
 };
 
 /*! \brief A proxy for a renderable object in the world. This is used to store the renderable object and its
  *  associated data, such as the mesh, material, and skeleton. */
 struct RenderProxy
 {
-    WeakHandle<Entity>  entity;
-    Handle<Mesh>        mesh;
-    Handle<Material>    material;
-    Handle<Skeleton>    skeleton;
-    Matrix4             model_matrix;
-    Matrix4             previous_model_matrix;
-    BoundingBox         aabb;
-    UserData<32, 16>    user_data;
-    MeshInstanceData    instance_data;
-    uint32              version = 0;
+    WeakHandle<Entity> entity;
+    Handle<Mesh> mesh;
+    Handle<Material> material;
+    Handle<Skeleton> skeleton;
+    Matrix4 model_matrix;
+    Matrix4 previous_model_matrix;
+    BoundingBox aabb;
+    UserData<32, 16> user_data;
+    MeshInstanceData instance_data;
+    uint32 version = 0;
 
     void ClaimRenderResource() const;
     void UnclaimRenderResource() const;
 
-    bool operator==(const RenderProxy &other) const
+    bool operator==(const RenderProxy& other) const
     {
         // Check version first for faster comparison
         return version == other.version
@@ -135,7 +140,7 @@ struct RenderProxy
             && instance_data == other.instance_data;
     }
 
-    bool operator!=(const RenderProxy &other) const
+    bool operator!=(const RenderProxy& other) const
     {
         // Check version first for faster comparison
         return version != other.version
@@ -154,8 +159,8 @@ struct RenderProxy
 /*! \brief The action to take on call to \ref{RenderProxyTracker::Advance}. */
 enum class RenderProxyListAdvanceAction : uint32
 {
-    CLEAR,    //! Clear the 'next' elements, so on next iteration, any elements that have not been re-added are marked for removal.
-    PERSIST   //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
+    CLEAR,  //! Clear the 'next' elements, so on next iteration, any elements that have not been re-added are marked for removal.
+    PERSIST //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
 };
 
 template <class IDType, class ElementType>
@@ -168,12 +173,14 @@ public:
 
     struct Diff
     {
-        uint32  num_added = 0;
-        uint32  num_removed = 0;
-        uint32  num_changed = 0;
+        uint32 num_added = 0;
+        uint32 num_removed = 0;
+        uint32 num_changed = 0;
 
         HYP_FORCE_INLINE bool NeedsUpdate() const
-            { return num_added > 0 || num_removed > 0 || num_changed > 0; }
+        {
+            return num_added > 0 || num_removed > 0 || num_changed > 0;
+        }
     };
 
     ResourceTracker()
@@ -181,24 +188,32 @@ public:
     {
     }
 
-    ResourceTracker(const ResourceTracker &other)                   = delete;
-    ResourceTracker &operator=(const ResourceTracker &other)        = delete;
-    ResourceTracker(ResourceTracker &&other) noexcept               = default;
-    ResourceTracker &operator=(ResourceTracker &&other) noexcept    = default;
-    ~ResourceTracker()                                              = default;
-    
+    ResourceTracker(const ResourceTracker& other) = delete;
+    ResourceTracker& operator=(const ResourceTracker& other) = delete;
+    ResourceTracker(ResourceTracker&& other) noexcept = default;
+    ResourceTracker& operator=(ResourceTracker&& other) noexcept = default;
+    ~ResourceTracker() = default;
+
     /*! \brief Checks if the RenderProxyTracker already has a proxy for the given ID from the previous frame */
     HYP_FORCE_INLINE bool HasElement(IDType id) const
-        { return m_previous.Test(id.ToIndex()); }
+    {
+        return m_previous.Test(id.ToIndex());
+    }
 
-    HYP_FORCE_INLINE const Bitset &GetCurrentBits() const
-        { return m_previous; }
+    HYP_FORCE_INLINE const Bitset& GetCurrentBits() const
+    {
+        return m_previous;
+    }
 
-    HYP_FORCE_INLINE MapType &GetElementMap()
-        { return m_element_map; }
+    HYP_FORCE_INLINE MapType& GetElementMap()
+    {
+        return m_element_map;
+    }
 
-    HYP_FORCE_INLINE const MapType &GetElementMap() const
-        { return m_element_map; }
+    HYP_FORCE_INLINE const MapType& GetElementMap() const
+    {
+        return m_element_map;
+    }
 
     HYP_FORCE_INLINE Bitset GetAdded() const
     {
@@ -214,11 +229,15 @@ public:
         return Bitset(m_previous).Resize(new_num_bits) & ~Bitset(m_next).Resize(new_num_bits);
     }
 
-    HYP_FORCE_INLINE const Bitset &GetChanged() const
-        { return m_changed; }
+    HYP_FORCE_INLINE const Bitset& GetChanged() const
+    {
+        return m_changed;
+    }
 
     HYP_FORCE_INLINE bool WasReset() const
-        { return m_was_reset; }
+    {
+        return m_was_reset;
+    }
 
     Diff GetDiff() const
     {
@@ -232,21 +251,26 @@ public:
     }
 
     HYP_FORCE_INLINE void Reserve(SizeType capacity)
-        { m_element_map.Reserve(capacity); }
+    {
+        m_element_map.Reserve(capacity);
+    }
 
-    typename MapType::Iterator Track(IDType id, const ElementType &element)
+    typename MapType::Iterator Track(IDType id, const ElementType& element)
     {
         typename MapType::Iterator iter = m_element_map.End();
 
         AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
 
-        if (HasElement(id)) {
+        if (HasElement(id))
+        {
             iter = m_element_map.FindAs(id);
         }
 
-        if (iter != m_element_map.End()) {
+        if (iter != m_element_map.End())
+        {
             // Advance if version has changed
-            if (element != iter->second) { //element.version != iter->second.version) {
+            if (element != iter->second)
+            { // element.version != iter->second.version) {
                 // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
                 AssertDebug(!m_changed.Test(id.ToIndex()));
 
@@ -255,7 +279,9 @@ public:
 
                 iter->second = element;
             }
-        } else {
+        }
+        else
+        {
             // sanity check - if not in previous iteration, it must not be in the changed list
             AssertDebug(!m_changed.Test(id.ToIndex()));
 
@@ -267,19 +293,22 @@ public:
         return iter;
     }
 
-    typename MapType::Iterator Track(IDType id, ElementType &&element)
+    typename MapType::Iterator Track(IDType id, ElementType&& element)
     {
         typename MapType::Iterator iter = m_element_map.End();
 
         AssertThrowMsg(!m_next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
 
-        if (HasElement(id)) {
+        if (HasElement(id))
+        {
             iter = m_element_map.FindAs(id);
         }
 
-        if (iter != m_element_map.End()) {
+        if (iter != m_element_map.End())
+        {
             // Advance if version has changed
-            if (element != iter->second) { //element.version != iter->second.version) {
+            if (element != iter->second)
+            { // element.version != iter->second.version) {
                 // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
                 AssertDebug(!m_changed.Test(id.ToIndex()));
 
@@ -288,7 +317,9 @@ public:
 
                 iter->second = std::move(element);
             }
-        } else {
+        }
+        else
+        {
             // sanity check - if not in previous iteration, it must not be in the changed list
             AssertDebug(!m_changed.Test(id.ToIndex()));
 
@@ -302,7 +333,8 @@ public:
 
     bool MarkToKeep(IDType id)
     {
-        if (!m_previous.Test(id.ToIndex())) {
+        if (!m_previous.Test(id.ToIndex()))
+        {
             return false;
         }
 
@@ -317,13 +349,14 @@ public:
     }
 
     template <class AllocatorType>
-    void GetRemoved(Array<IDType, AllocatorType> &out_ids, bool include_changed)
+    void GetRemoved(Array<IDType, AllocatorType>& out_ids, bool include_changed)
     {
         HYP_SCOPE;
 
         Bitset removed_bits = GetRemoved();
 
-        if (include_changed) {
+        if (include_changed)
+        {
             removed_bits |= GetChanged();
         }
 
@@ -331,7 +364,8 @@ public:
 
         SizeType first_set_bit_index;
 
-        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1) {
+        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1)
+        {
             out_ids.PushBack(IDType::FromIndex(first_set_bit_index));
 
             removed_bits.Set(first_set_bit_index, false);
@@ -339,13 +373,14 @@ public:
     }
 
     template <class AllocatorType>
-    void GetAdded(Array<ElementType, AllocatorType> &out, bool include_changed)
+    void GetAdded(Array<ElementType, AllocatorType>& out, bool include_changed)
     {
         HYP_SCOPE;
-        
+
         Bitset newly_added_bits = GetAdded();
 
-        if (include_changed) {
+        if (include_changed)
+        {
             newly_added_bits |= GetChanged();
         }
 
@@ -353,7 +388,8 @@ public:
 
         Bitset::BitIndex first_set_bit_index;
 
-        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
             auto it = m_element_map.Find(id);
@@ -366,13 +402,14 @@ public:
     }
 
     template <class AllocatorType>
-    void GetAdded(Array<ElementType *, AllocatorType> &out, bool include_changed)
+    void GetAdded(Array<ElementType*, AllocatorType>& out, bool include_changed)
     {
         HYP_SCOPE;
-        
+
         Bitset newly_added_bits = GetAdded();
 
-        if (include_changed) {
+        if (include_changed)
+        {
             newly_added_bits |= GetChanged();
         }
 
@@ -380,7 +417,8 @@ public:
 
         Bitset::BitIndex first_set_bit_index;
 
-        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found) {
+        while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
             auto it = m_element_map.Find(id);
@@ -393,7 +431,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetCurrent(Array<ElementType *, AllocatorType> &out)
+    void GetCurrent(Array<ElementType*, AllocatorType>& out)
     {
         HYP_SCOPE;
 
@@ -403,7 +441,8 @@ public:
 
         Bitset::BitIndex first_set_bit_index;
 
-        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
             auto it = m_element_map.Find(id);
@@ -416,7 +455,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetCurrent(Array<ElementType, AllocatorType> &out)
+    void GetCurrent(Array<ElementType, AllocatorType>& out)
     {
         HYP_SCOPE;
 
@@ -426,7 +465,8 @@ public:
 
         Bitset::BitIndex first_set_bit_index;
 
-        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found) {
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
             const IDType id = IDType::FromIndex(first_set_bit_index);
 
             auto it = m_element_map.Find(id);
@@ -438,11 +478,12 @@ public:
         }
     }
 
-    ElementType *GetElement(IDType id)
+    ElementType* GetElement(IDType id)
     {
         const auto it = m_element_map.Find(id);
 
-        if (it == m_element_map.End()) {
+        if (it == m_element_map.End())
+        {
             return nullptr;
         }
 
@@ -456,12 +497,14 @@ public:
         m_was_reset = false;
 
         { // Remove proxies for removed bits
-            for (Bitset::BitIndex index : GetRemoved()) {
+            for (Bitset::BitIndex index : GetRemoved())
+            {
                 const IDType id = IDType::FromIndex(index);
 
                 const auto it = m_element_map.Find(id);
 
-                if (it != m_element_map.End()) {
+                if (it != m_element_map.End())
+                {
                     // g_safe_deleter->SafeRelease(std::move(it->second));
 
                     m_element_map.Erase(it);
@@ -469,7 +512,8 @@ public:
             }
         }
 
-        switch (action) {
+        switch (action)
+        {
         case RenderProxyListAdvanceAction::CLEAR:
             // Next state starts out zeroed out -- and next call to Advance will remove proxies for these objs
             m_previous = std::move(m_next);
@@ -502,11 +546,11 @@ public:
 protected:
     MapType m_element_map;
 
-    Bitset  m_previous;
-    Bitset  m_next;
-    Bitset  m_changed;
+    Bitset m_previous;
+    Bitset m_next;
+    Bitset m_changed;
 
-    bool    m_was_reset;
+    bool m_was_reset;
 };
 
 using RenderProxyTracker = ResourceTracker<ID<Entity>, RenderProxy>;

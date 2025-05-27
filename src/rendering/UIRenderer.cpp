@@ -50,64 +50,68 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-struct alignas(16) EntityInstanceBatch_UI : EntityInstanceBatch
+struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
 {
-    Vec4f   texcoords[max_entities_per_instance_batch];
-    Vec4f   offsets[max_entities_per_instance_batch];
-    Vec4f   sizes[max_entities_per_instance_batch];
+    Vec4f texcoords[max_entities_per_instance_batch];
+    Vec4f offsets[max_entities_per_instance_batch];
+    Vec4f sizes[max_entities_per_instance_batch];
 };
 
-static_assert(sizeof(EntityInstanceBatch_UI) == 6976);
+static_assert(sizeof(UIEntityInstanceBatch) == 6976);
 
 static constexpr uint32 max_ui_entity_instance_batches = 16384;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
+struct RENDER_COMMAND(RebuildProxyGroups_UI)
+    : renderer::RenderCommand
 {
-    RC<EntityDrawCollection>            collection;
-    Array<RenderProxy>                  added_proxies;
-    Array<ID<Entity>>                   removed_entities;
+    RC<EntityDrawCollection> collection;
+    Array<RenderProxy> added_proxies;
+    Array<ID<Entity>> removed_entities;
 
-    Array<Pair<ID<Entity>, int>>        proxy_depths;
+    Array<Pair<ID<Entity>, int>> proxy_depths;
 
-    FramebufferRef                      framebuffer;
+    FramebufferRef framebuffer;
 
-    Optional<RenderableAttributeSet>    override_attributes;
+    Optional<RenderableAttributeSet> override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
-        const RC<EntityDrawCollection> &collection,
-        Array<RenderProxy *> &&added_proxy_ptrs,
-        Array<ID<Entity>> &&removed_entities,
-        const Array<Pair<ID<Entity>, int>> &proxy_depths,
-        const FramebufferRef &framebuffer,
-        const Optional<RenderableAttributeSet> &override_attributes = { }
-    ) : collection(collection),
-        removed_entities(std::move(removed_entities)),
-        proxy_depths(proxy_depths),
-        framebuffer(framebuffer),
-        override_attributes(override_attributes)
+        const RC<EntityDrawCollection>& collection,
+        Array<RenderProxy*>&& added_proxy_ptrs,
+        Array<ID<Entity>>&& removed_entities,
+        const Array<Pair<ID<Entity>, int>>& proxy_depths,
+        const FramebufferRef& framebuffer,
+        const Optional<RenderableAttributeSet>& override_attributes = {})
+        : collection(collection),
+          removed_entities(std::move(removed_entities)),
+          proxy_depths(proxy_depths),
+          framebuffer(framebuffer),
+          override_attributes(override_attributes)
     {
         added_proxies.Reserve(added_proxy_ptrs.Size());
 
-        for (RenderProxy *proxy_ptr : added_proxy_ptrs) {
+        for (RenderProxy* proxy_ptr : added_proxy_ptrs)
+        {
             added_proxies.PushBack(*proxy_ptr);
         }
     }
 
     virtual ~RENDER_COMMAND(RebuildProxyGroups_UI)() override = default;
 
-    RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet &entity_attributes) const
+    RenderableAttributeSet GetMergedRenderableAttributes(const RenderableAttributeSet& entity_attributes) const
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: GetMergedRenderableAttributes");
 
         RenderableAttributeSet attributes = entity_attributes;
 
-        if (override_attributes.HasValue()) {
-            if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
+        if (override_attributes.HasValue())
+        {
+            if (const ShaderDefinition& override_shader_definition = override_attributes->GetShaderDefinition())
+            {
                 attributes.SetShaderDefinition(override_shader_definition);
             }
-            
+
             ShaderDefinition shader_definition = override_attributes->GetShaderDefinition().IsValid()
                 ? override_attributes->GetShaderDefinition()
                 : attributes.GetShaderDefinition();
@@ -121,7 +125,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             // has matching vertex attribs.
             const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
 
-            if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes()) {
+            if (mesh_vertex_attributes != shader_definition.GetProperties().GetRequiredVertexAttributes())
+            {
                 shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
             }
 
@@ -142,49 +147,52 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
 
         collection->ClearProxyGroups();
 
-        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
 
-        for (const Pair<ID<Entity>, int> &pair : proxy_depths) {
-            RenderProxy *proxy = render_proxy_tracker.GetElement(pair.first);
+        for (const Pair<ID<Entity>, int>& pair : proxy_depths)
+        {
+            RenderProxy* proxy = render_proxy_tracker.GetElement(pair.first);
 
-            if (!proxy) {
+            if (!proxy)
+            {
                 continue;
             }
 
-            const Handle<Mesh> &mesh = proxy->mesh;
-            const Handle<Material> &material = proxy->material;
+            const Handle<Mesh>& mesh = proxy->mesh;
+            const Handle<Material>& material = proxy->material;
 
-            if (!mesh.IsValid() || !material.IsValid()) {
+            if (!mesh.IsValid() || !material.IsValid())
+            {
                 continue;
             }
 
             RenderableAttributeSet attributes = GetMergedRenderableAttributes(RenderableAttributeSet {
                 mesh->GetMeshAttributes(),
-                material->GetRenderAttributes()
-            });
+                material->GetRenderAttributes() });
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-            
+
             attributes.SetDrawableLayer(pair.second);
 
-            Handle<RenderGroup> &render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
+            Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
 
-            if (!render_group.IsValid()) {
+            if (!render_group.IsValid())
+            {
                 // Create RenderGroup
                 render_group = CreateObject<RenderGroup>(
                     g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                     attributes,
-                    RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING)
-                );
+                    RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING));
 
-                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch_UI>(max_ui_entity_instance_batches));
+                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<UIEntityInstanceBatch>(max_ui_entity_instance_batches));
 
                 render_group->AddFramebuffer(framebuffer);
 
                 HYP_LOG(UI, Debug, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
 
 #ifdef HYP_DEBUG_MODE
-                if (!render_group.IsValid()) {
+                if (!render_group.IsValid())
+                {
                     HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
 
                     continue;
@@ -200,14 +208,16 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
         collection->RemoveEmptyProxyGroups();
     }
 
-    bool RemoveRenderProxy(RenderProxyTracker &render_proxy_tracker, ID<Entity> entity)
+    bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity)
     {
         HYP_SCOPE;
 
         bool removed = false;
 
-        for (auto &render_groups_by_attributes : collection->GetProxyGroups()) {
-            for (auto &it : render_groups_by_attributes) {
+        for (auto& render_groups_by_attributes : collection->GetProxyGroups())
+        {
+            for (auto& it : render_groups_by_attributes)
+            {
                 removed |= it.second->RemoveRenderProxy(entity);
             }
         }
@@ -221,19 +231,21 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
 
         // Reserve to prevent iterator invalidation
         render_proxy_tracker.Reserve(added_proxies.Size());
 
         // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
         // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
-        for (RenderProxy &proxy : added_proxies) {
+        for (RenderProxy& proxy : added_proxies)
+        {
             proxy.ClaimRenderResource();
         }
 
-        for (ID<Entity> entity : removed_entities) {
-            const RenderProxy *proxy = render_proxy_tracker.GetElement(entity);
+        for (ID<Entity> entity : removed_entities)
+        {
+            const RenderProxy* proxy = render_proxy_tracker.GetElement(entity);
             AssertThrow(proxy != nullptr);
 
             proxy->UnclaimRenderResource();
@@ -241,7 +253,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI) : renderer::RenderCommand
             render_proxy_tracker.MarkToRemove(entity);
         }
 
-        for (RenderProxy &proxy : added_proxies) {
+        for (RenderProxy& proxy : added_proxies)
+        {
             render_proxy_tracker.Track(proxy.entity.GetID(), std::move(proxy));
         }
 
@@ -269,18 +282,18 @@ void UIRenderCollector::ResetOrdering()
     m_proxy_depths.Clear();
 }
 
-void UIRenderCollector::PushRenderProxy(RenderProxyTracker &render_proxy_tracker, const RenderProxy &render_proxy, int computed_depth)
+void UIRenderCollector::PushRenderProxy(RenderProxyTracker& render_proxy_tracker, const RenderProxy& render_proxy, int computed_depth)
 {
     AssertThrow(render_proxy.entity.IsValid());
     AssertThrow(render_proxy.mesh.IsValid());
     AssertThrow(render_proxy.material.IsValid());
-    
+
     render_proxy_tracker.Track(render_proxy.entity, render_proxy);
 
     m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker &render_proxy_tracker, const FramebufferRef &framebuffer, const Optional<RenderableAttributeSet> &override_attributes)
+typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker& render_proxy_tracker, const FramebufferRef& framebuffer, const Optional<RenderableAttributeSet>& override_attributes)
 {
     HYP_SCOPE;
 
@@ -289,14 +302,16 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
 
     typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
-    if (diff.NeedsUpdate()) {
+    if (diff.NeedsUpdate())
+    {
         Array<ID<Entity>> removed_entities;
         render_proxy_tracker.GetRemoved(removed_entities, true /* include_changed */);
 
-        Array<RenderProxy *> added_proxies_ptrs;
+        Array<RenderProxy*> added_proxies_ptrs;
         render_proxy_tracker.GetAdded(added_proxies_ptrs, true /* include_changed */);
 
-        if (added_proxies_ptrs.Any() || removed_entities.Any()) {
+        if (added_proxies_ptrs.Any() || removed_entities.Any())
+        {
             PUSH_RENDER_COMMAND(
                 RebuildProxyGroups_UI,
                 m_draw_collection,
@@ -304,8 +319,7 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
                 std::move(removed_entities),
                 m_proxy_depths,
                 framebuffer,
-                override_attributes
-            );
+                override_attributes);
         }
     }
 
@@ -314,7 +328,7 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
     return diff;
 }
 
-void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
+void UIRenderCollector::CollectDrawCalls(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -323,9 +337,11 @@ void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
 
     Array<IteratorType> iterators;
 
-    for (auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
-        for (auto &it : render_groups_by_attributes) {
-            const RenderableAttributeSet &attributes = it.first;
+    for (auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+    {
+        for (auto& it : render_groups_by_attributes)
+        {
+            const RenderableAttributeSet& attributes = it.first;
 
             iterators.PushBack(&it);
         }
@@ -337,37 +353,38 @@ void UIRenderCollector::CollectDrawCalls(FrameBase *frame)
         iterators,
         [this](IteratorType it, uint32, uint32)
         {
-            Handle<RenderGroup> &render_group = it->second;
+            Handle<RenderGroup>& render_group = it->second;
             AssertThrow(render_group.IsValid());
 
             render_group->CollectDrawCalls();
-        }
-    );
+        });
 }
 
 void UIRenderCollector::ExecuteDrawCalls(
-    FrameBase *frame, 
-    ViewRenderResource *view,
-    const FramebufferRef &framebuffer
-) const
+    FrameBase* frame,
+    ViewRenderResource* view,
+    const FramebufferRef& framebuffer) const
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
-    
+
     AssertThrow(m_draw_collection != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (framebuffer.IsValid()) {
+    if (framebuffer.IsValid())
+    {
         frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
     }
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
-        for (const auto &it : render_groups_by_attributes) {
+    for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+    {
+        for (const auto& it : render_groups_by_attributes)
+        {
             iterators.PushBack(&it);
         }
     }
@@ -376,18 +393,19 @@ void UIRenderCollector::ExecuteDrawCalls(
         HYP_NAMED_SCOPE("Sort proxy groups by layer");
 
         std::sort(iterators.Begin(), iterators.End(), [](IteratorType lhs, IteratorType rhs) -> bool
-        {
-            return lhs->first.GetDrawableLayer() < rhs->first.GetDrawableLayer();
-        });
+            {
+                return lhs->first.GetDrawableLayer() < rhs->first.GetDrawableLayer();
+            });
     }
 
     // HYP_LOG(UI, Debug, " UI rendering {} render groups", iterators.Size());
 
-    for (SizeType index = 0; index < iterators.Size(); index++) {
-        const auto &it = *iterators[index];
+    for (SizeType index = 0; index < iterators.Size(); index++)
+    {
+        const auto& it = *iterators[index];
 
-        const RenderableAttributeSet &attributes = it.first;
-        const Handle<RenderGroup> &render_group = it.second;
+        const RenderableAttributeSet& attributes = it.first;
+        const Handle<RenderGroup>& render_group = it.second;
 
         AssertThrow(render_group.IsValid());
 
@@ -396,8 +414,9 @@ void UIRenderCollector::ExecuteDrawCalls(
 
         render_group->PerformRendering(frame, view);
     }
-    
-    if (framebuffer.IsValid()) {
+
+    if (framebuffer.IsValid())
+    {
         frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
     }
 }
@@ -406,7 +425,7 @@ void UIRenderCollector::ExecuteDrawCalls(
 
 #pragma region UIRenderSubsystem
 
-UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage> &ui_stage)
+UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage>& ui_stage)
     : RenderSubsystem(name),
       m_ui_stage(ui_stage)
 {
@@ -420,11 +439,12 @@ void UIRenderSubsystem::Init()
 {
     HYP_SCOPE;
 
-    struct RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer) : renderer::RenderCommand
+    struct RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)
+        : renderer::RenderCommand
     {
-        RC<UIRenderSubsystem>   ui_render_subsystem;
+        RC<UIRenderSubsystem> ui_render_subsystem;
 
-        RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)(const RC<UIRenderSubsystem> &ui_render_subsystem)
+        RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)(const RC<UIRenderSubsystem>& ui_render_subsystem)
             : ui_render_subsystem(ui_render_subsystem)
         {
             AssertThrow(ui_render_subsystem != nullptr);
@@ -441,25 +461,26 @@ void UIRenderSubsystem::Init()
     };
 
     m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakRefCountedPtrFromThis()]()
-    {
-        Threads::AssertOnThread(g_render_thread);
+        {
+            Threads::AssertOnThread(g_render_thread);
 
-        HYP_LOG(UI, Debug, "UIRenderSubsystem: resizing to {}", g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
+            HYP_LOG(UI, Debug, "UIRenderSubsystem: resizing to {}", g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
 
-        RC<UIRenderSubsystem> subsystem = weak_this.Lock().CastUnsafe<UIRenderSubsystem>();
+            RC<UIRenderSubsystem> subsystem = weak_this.Lock().CastUnsafe<UIRenderSubsystem>();
 
-        if (!subsystem) {
-            HYP_LOG(UI, Warning, "UIRenderSubsystem: subsystem is expired on resize");
+            if (!subsystem)
+            {
+                HYP_LOG(UI, Warning, "UIRenderSubsystem: subsystem is expired on resize");
 
-            return;
-        }
+                return;
+            }
 
-        g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
-        SafeRelease(std::move(subsystem->m_framebuffer));
+            SafeRelease(std::move(subsystem->m_framebuffer));
 
-        PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, subsystem);
-    });
+            PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, subsystem);
+        });
 
     AssertThrow(m_ui_stage != nullptr);
     AssertThrow(m_ui_stage->GetCamera().IsValid());
@@ -468,10 +489,9 @@ void UIRenderSubsystem::Init()
     m_camera_resource_handle = TResourceHandle<CameraRenderResource>(m_ui_stage->GetCamera()->GetRenderResource());
 
     m_view = CreateObject<View>(ViewDesc {
-        .viewport   = Viewport { .extent = m_ui_stage->GetSurfaceSize(), .position = Vec2i::Zero() },
-        .scene      = m_ui_stage->GetScene()->HandleFromThis(),
-        .camera     = m_ui_stage->GetCamera()
-    });
+        .viewport = Viewport { .extent = m_ui_stage->GetSurfaceSize(), .position = Vec2i::Zero() },
+        .scene = m_ui_stage->GetScene()->HandleFromThis(),
+        .camera = m_ui_stage->GetCamera() });
     InitObject(m_view);
 
     m_view_render_resource_handle = TResourceHandle<ViewRenderResource>(m_view->GetRenderResource());
@@ -480,13 +500,15 @@ void UIRenderSubsystem::Init()
 }
 
 // called from game thread
-void UIRenderSubsystem::InitGame() { }
+void UIRenderSubsystem::InitGame()
+{
+}
 
 void UIRenderSubsystem::OnRemoved()
 {
     m_view_render_resource_handle.Reset();
     m_view.Reset();
-    
+
     g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
     SafeRelease(std::move(m_framebuffer));
@@ -499,7 +521,7 @@ void UIRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
     // do nothing
 }
 
-void UIRenderSubsystem::OnRender(FrameBase *frame)
+void UIRenderSubsystem::OnRender(FrameBase* frame)
 {
     HYP_SCOPE;
 
@@ -515,9 +537,8 @@ void UIRenderSubsystem::CreateFramebuffer()
     const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
 
     m_view_render_resource_handle->SetViewport(Viewport {
-        .extent     = surface_size,
-        .position   = Vec2i::Zero()
-    });
+        .extent = surface_size,
+        .position = Vec2i::Zero() });
 
     m_framebuffer = g_rendering_api->MakeFramebuffer(Vec2u(surface_size) * 2);
 
@@ -526,25 +547,23 @@ void UIRenderSubsystem::CreateFramebuffer()
         InternalFormat::RGBA16F,
         ImageType::TEXTURE_TYPE_2D,
         renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE
-    );
+        renderer::StoreOperation::STORE);
 
     m_framebuffer->AddAttachment(
         1,
         g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
         ImageType::TEXTURE_TYPE_2D,
         renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE
-    );
+        renderer::StoreOperation::STORE);
 
     DeferCreate(m_framebuffer);
 
     m_camera_resource_handle->SetFramebuffer(m_framebuffer);
 
-    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager &mgr, GameCounter::TickUnit delta)
-    {
-        ui_stage->SetSurfaceSize(surface_size);
-    });
+    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager& mgr, GameCounter::TickUnit delta)
+        {
+            ui_stage->SetSurfaceSize(surface_size);
+        });
 
     g_engine->GetFinalPass()->SetUILayerImageView(color_attachment->GetImageView());
 }

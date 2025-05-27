@@ -29,7 +29,7 @@ namespace profiling {
 
 #pragma region ProfilerConnectionThread
 
-class ProfilerConnectionThread final : public Thread<Scheduler, ProfilerConnection *>
+class ProfilerConnectionThread final : public Thread<Scheduler, ProfilerConnection*>
 {
 public:
     ProfilerConnectionThread()
@@ -41,18 +41,24 @@ public:
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
-        { return m_is_running.Get(MemoryOrder::RELAXED); }
+    {
+        return m_is_running.Get(MemoryOrder::RELAXED);
+    }
 
     void Stop()
-        { m_stop_requested.Set(true, MemoryOrder::RELAXED); }
+    {
+        m_stop_requested.Set(true, MemoryOrder::RELAXED);
+    }
 
 private:
-    virtual void operator()(ProfilerConnection *profiler_connection) override
+    virtual void operator()(ProfilerConnection* profiler_connection) override
     {
         m_is_running.Set(true, MemoryOrder::RELAXED);
 
-        if (StartConnection(profiler_connection)) {
-            while (!m_stop_requested.Get(MemoryOrder::RELAXED)) {
+        if (StartConnection(profiler_connection))
+        {
+            while (!m_stop_requested.Get(MemoryOrder::RELAXED))
+            {
                 DoWork(profiler_connection);
             }
         }
@@ -60,8 +66,8 @@ private:
         m_is_running.Set(false, MemoryOrder::RELAXED);
     }
 
-    bool StartConnection(ProfilerConnection *profiler_connection);
-    void DoWork(ProfilerConnection *profiler_connection);
+    bool StartConnection(ProfilerConnection* profiler_connection);
+    void DoWork(ProfilerConnection* profiler_connection);
 
     AtomicVar<bool> m_is_running;
     AtomicVar<bool> m_stop_requested;
@@ -74,36 +80,37 @@ private:
 class ProfilerConnection
 {
 public:
-    static ProfilerConnection &GetInstance()
+    static ProfilerConnection& GetInstance()
     {
         static ProfilerConnection instance;
 
         return instance;
     }
 
-    ProfilerConnection()                                                = default;
-    ProfilerConnection(const ProfilerConnection &other)                 = delete;
-    ProfilerConnection &operator=(const ProfilerConnection &other)      = delete;
-    ProfilerConnection(ProfilerConnection &&other) noexcept             = delete;
-    ProfilerConnection &operator=(ProfilerConnection &&other) noexcept  = delete;
-    
+    ProfilerConnection() = default;
+    ProfilerConnection(const ProfilerConnection& other) = delete;
+    ProfilerConnection& operator=(const ProfilerConnection& other) = delete;
+    ProfilerConnection(ProfilerConnection&& other) noexcept = delete;
+    ProfilerConnection& operator=(ProfilerConnection&& other) noexcept = delete;
+
     ~ProfilerConnection()
-    {   
+    {
         StopThread();
 
-        for (Task<HTTPResponse> &task : m_requests) {
+        for (Task<HTTPResponse>& task : m_requests)
+        {
             task.Await();
         }
     }
 
-    const ProfilerConnectionParams &GetParams() const
+    const ProfilerConnectionParams& GetParams() const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_params;
     }
 
-    void SetParams(const ProfilerConnectionParams &params)
+    void SetParams(const ProfilerConnectionParams& params)
     {
         HYP_MT_CHECK_WRITE(m_data_race_detector);
 
@@ -114,7 +121,8 @@ public:
 
     void StartThread()
     {
-        if (m_thread.IsRunning()) {
+        if (m_thread.IsRunning())
+        {
             return;
         }
 
@@ -123,11 +131,13 @@ public:
 
     void StopThread()
     {
-        if (m_thread.IsRunning()) {
+        if (m_thread.IsRunning())
+        {
             m_thread.Stop();
         }
 
-        if (m_thread.CanJoin()) {
+        if (m_thread.CanJoin())
+        {
             m_thread.Join();
         }
     }
@@ -139,8 +149,10 @@ public:
         Threads::AssertOnThread(m_thread.GetID());
 
         // iterate over completed requests
-        for (auto it = m_requests.Begin(); it != m_requests.End();) {
-            if (it->IsCompleted()) {
+        for (auto it = m_requests.Begin(); it != m_requests.End();)
+        {
+            if (it->IsCompleted())
+            {
                 it = m_requests.Erase(it);
                 continue;
             }
@@ -149,18 +161,19 @@ public:
         }
     }
 
-    void Push(Array<json::JSONValue> &&values)
+    void Push(Array<json::JSONValue>&& values)
     {
         const ThreadID current_thread_id = Threads::CurrentThreadID();
 
-        Array<json::JSONValue> *json_values_array = nullptr;
+        Array<json::JSONValue>* json_values_array = nullptr;
 
         { // critical section - may invalidate iterators
             Mutex::Guard guard(m_values_mutex);
 
             auto it = m_per_thread_values.Find(current_thread_id);
 
-            if (it == m_per_thread_values.End()) {
+            if (it == m_per_thread_values.End())
+            {
                 it = m_per_thread_values.Insert(current_thread_id, MakeUnique<Array<json::JSONValue>>()).first;
             }
 
@@ -175,7 +188,8 @@ public:
     {
         Threads::AssertOnThread(m_thread.GetID());
 
-        if (m_params.endpoint_url.Empty()) {
+        if (m_params.endpoint_url.Empty())
+        {
             HYP_LOG(Profile, Error, "Profiler connection endpoint URL not set, cannot start connection.");
 
             return false;
@@ -187,13 +201,14 @@ public:
         object["trace_id"] = m_trace_id.ToString();
 
         Task<HTTPResponse> start_request = HTTPRequest(m_params.endpoint_url + "/start", json::JSONValue(std::move(object)), HTTPMethod::POST)
-            .Send();
+                                               .Send();
 
         HYP_LOG(Profile, Info, "Waiting for profiler connection request to finish");
 
-        HTTPResponse &response = start_request.Await();
+        HTTPResponse& response = start_request.Await();
 
-        if (!response.IsSuccess()) {
+        if (!response.IsSuccess())
+        {
             HYP_LOG(Profile, Error, "Failed to connect to profiler connection endpoint! Status code: {}", response.GetStatusCode());
 
             return false;
@@ -206,7 +221,8 @@ public:
     {
         Threads::AssertOnThread(m_thread.GetID());
 
-        if (m_params.endpoint_url.Empty()) {
+        if (m_params.endpoint_url.Empty())
+        {
             HYP_LOG(Profile, Warning, "Profiler connection endpoint URL not set, cannot submit results.");
 
             return;
@@ -221,7 +237,8 @@ public:
 
             json::JSONArray groups_array;
 
-            for (KeyValuePair<ThreadID, UniquePtr<json::JSONArray>> &it : m_per_thread_values) {
+            for (KeyValuePair<ThreadID, UniquePtr<json::JSONArray>>& it : m_per_thread_values)
+            {
                 json::JSONObject group_object;
                 group_object["name"] = json::JSONString(it.first.GetName().LookupString());
                 group_object["values"] = std::move(*it.second); // move it so it clears current values
@@ -237,20 +254,20 @@ public:
     }
 
 private:
-    ProfilerConnectionParams                        m_params;
+    ProfilerConnectionParams m_params;
 
-    UUID                                            m_trace_id;
-    ProfilerConnectionThread                        m_thread;
+    UUID m_trace_id;
+    ProfilerConnectionThread m_thread;
 
-    FlatMap<ThreadID, UniquePtr<json::JSONArray>>   m_per_thread_values;
-    mutable Mutex                                   m_values_mutex;
+    FlatMap<ThreadID, UniquePtr<json::JSONArray>> m_per_thread_values;
+    mutable Mutex m_values_mutex;
 
-    Array<Task<HTTPResponse>>                       m_requests;
-    
+    Array<Task<HTTPResponse>> m_requests;
+
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
-HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams &params)
+HYP_API void StartProfilerConnectionThread(const ProfilerConnectionParams& params)
 {
 #ifdef HYP_ENABLE_PROFILE
     ProfilerConnection::GetInstance().SetParams(params);
@@ -267,12 +284,12 @@ HYP_API void StopProfilerConnectionThread()
 
 #pragma endregion ProfilerConnection
 
-bool ProfilerConnectionThread::StartConnection(ProfilerConnection *profiler_connection)
+bool ProfilerConnectionThread::StartConnection(ProfilerConnection* profiler_connection)
 {
     return profiler_connection->StartConnection();
 }
 
-void ProfilerConnectionThread::DoWork(ProfilerConnection *profiler_connection)
+void ProfilerConnectionThread::DoWork(ProfilerConnection* profiler_connection)
 {
     profiler_connection->IterateRequests();
 
@@ -285,15 +302,15 @@ void ProfilerConnectionThread::DoWork(ProfilerConnection *profiler_connection)
 
 struct ProfileScopeEntry
 {
-    const ANSIString                label;
-    const ANSIStringView            location;
-    uint64                          start_timestamp_us;
-    uint64                          measured_time_us;
+    const ANSIString label;
+    const ANSIStringView location;
+    uint64 start_timestamp_us;
+    uint64 measured_time_us;
 
-    ProfileScopeEntry               *parent = nullptr;
-    LinkedList<ProfileScopeEntry>   children;
+    ProfileScopeEntry* parent = nullptr;
+    LinkedList<ProfileScopeEntry> children;
 
-    ProfileScopeEntry(ANSIStringView label, ANSIStringView location, ProfileScopeEntry *parent = nullptr)
+    ProfileScopeEntry(ANSIStringView label, ANSIStringView location, ProfileScopeEntry* parent = nullptr)
         : label(label),
           location(location),
           start_timestamp_us(0),
@@ -303,8 +320,8 @@ struct ProfileScopeEntry
         StartMeasure();
     }
 
-    ProfileScopeEntry(const ProfileScopeEntry &other) = delete;
-    ProfileScopeEntry &operator=(const ProfileScopeEntry &other) = delete;
+    ProfileScopeEntry(const ProfileScopeEntry& other) = delete;
+    ProfileScopeEntry& operator=(const ProfileScopeEntry& other) = delete;
 
     HYP_FORCE_INLINE void StartMeasure()
     {
@@ -317,17 +334,18 @@ struct ProfileScopeEntry
         measured_time_us = PerformanceClock::TimeSince(start_timestamp_us);
     }
 
-    json::JSONValue ToJSON(ProfileScopeEntry *parent_scope = nullptr) const
+    json::JSONValue ToJSON(ProfileScopeEntry* parent_scope = nullptr) const
     {
         json::JSONObject object;
         object["label"] = json::JSONString(label);
         object["location"] = json::JSONString(location);
         object["start_timestamp_ms"] = json::JSONNumber(start_timestamp_us / 1000);
         object["measured_time_us"] = json::JSONNumber(measured_time_us);
-        
+
         json::JSONArray children_array;
 
-        for (const ProfileScopeEntry &child : children) {
+        for (const ProfileScopeEntry& child : children)
+        {
             children_array.PushBack(child.ToJSON());
         }
 
@@ -343,21 +361,22 @@ struct ProfileScopeEntry
 
 struct ProfileScopeEntryQueue
 {
-    Time                        start_time;
-    Array<ProfileScopeEntry>    entries;
+    Time start_time;
+    Array<ProfileScopeEntry> entries;
 
     json::JSONValue ToJSON() const
     {
         json::JSONArray array;
 
-        for (const ProfileScopeEntry &entry : entries) {
+        for (const ProfileScopeEntry& entry : entries)
+        {
             array.PushBack(entry.ToJSON());
         }
 
         json::JSONObject object;
         object["start_time"] = uint64(start_time);
         object["entries"] = std::move(array);
-        
+
         return json::JSONValue(std::move(object));
     }
 };
@@ -366,17 +385,20 @@ struct ProfileScopeEntryQueue
 
 #pragma region ProfileScopeStack
 
-static void DebugLogProfileScopeEntry(ProfileScopeEntry *entry, int depth = 0)
+static void DebugLogProfileScopeEntry(ProfileScopeEntry* entry, int depth = 0)
 {
-    if (depth > 0) {
-        for (int i = 0; i < depth; i++) {
+    if (depth > 0)
+    {
+        for (int i = 0; i < depth; i++)
+        {
             putchar(int(' '));
         }
 
         DebugLog(LogType::Debug, "Profile scope entry '%s': %llu us\n", entry->label.Data(), entry->measured_time_us);
     }
 
-    for (ProfileScopeEntry &child : entry->children) {
+    for (ProfileScopeEntry& child : entry->children)
+    {
         DebugLogProfileScopeEntry(&child, depth + 1);
     }
 }
@@ -400,10 +422,12 @@ public:
 
         m_root_entry.SaveDiff();
 
-        if (ProfilerConnection::GetInstance().GetParams().enabled) {
+        if (ProfilerConnection::GetInstance().GetParams().enabled)
+        {
             m_queue.PushBack(m_root_entry.ToJSON());
-            
-            if (m_queue.Size() >= 100) {
+
+            if (m_queue.Size() >= 100)
+            {
                 // DebugLogProfileScopeEntry(&m_root_entry);
 
                 ProfilerConnection::GetInstance().Push(std::move(m_queue));
@@ -416,10 +440,10 @@ public:
         m_head = &m_root_entry;
     }
 
-    ProfileScopeEntry &Open(ANSIStringView label, ANSIStringView location)
+    ProfileScopeEntry& Open(ANSIStringView label, ANSIStringView location)
     {
         Threads::AssertOnThread(m_thread_id);
-        
+
         m_head = &m_head->children.EmplaceBack(label, location, m_head);
         return *m_head;
     }
@@ -430,7 +454,8 @@ public:
 
         m_head->SaveDiff();
 
-        if (m_head != &m_root_entry) {
+        if (m_head != &m_root_entry)
+        {
             // m_head should not be set to nullptr
             AssertThrow(m_head->parent != nullptr);
             m_head = m_head->parent;
@@ -438,17 +463,17 @@ public:
     }
 
 private:
-    ThreadID                        m_thread_id;
-    ProfileScopeEntry               m_root_entry;
-    NotNullPtr<ProfileScopeEntry>   m_head;
-    json::JSONArray                 m_queue;
+    ThreadID m_thread_id;
+    ProfileScopeEntry m_root_entry;
+    NotNullPtr<ProfileScopeEntry> m_head;
+    json::JSONArray m_queue;
 };
 
 #pragma endregion ProfileScopeStack
 
 #pragma region ProfileScope
 
-ProfileScopeStack &ProfileScope::GetProfileScopeStackForCurrentThread()
+ProfileScopeStack& ProfileScope::GetProfileScopeStackForCurrentThread()
 {
     static thread_local ProfileScopeStack profile_scope_stack;
 

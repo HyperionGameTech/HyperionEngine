@@ -60,50 +60,48 @@ static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B
 static const Vec2u env_grid_irradiance_extent { 1024, 768 };
 static const Vec2u env_grid_radiance_extent { 1024, 768 };
 
-static const float16 s_ltc_matrix[] = {
+static const Float16 s_ltc_matrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
 };
 
 static_assert(sizeof(s_ltc_matrix) == 64 * 64 * 4 * 2, "Invalid LTC matrix size");
 
-static const float16 s_ltc_brdf[] = {
+static const Float16 s_ltc_brdf[] = {
 #include <rendering/inl/LTCBRDF.inl>
 };
 
 static_assert(sizeof(s_ltc_brdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
-void GetDeferredShaderProperties(ShaderProperties &out_shader_properties)
+void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
 {
     ShaderProperties properties;
 
     properties.Set(
         "RT_REFLECTIONS_ENABLED",
-        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool()
-    );
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
 
     properties.Set(
         "RT_GI_ENABLED",
-        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool()
-    );
-    
+        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool());
+
     properties.Set(
         "ENV_GRID_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool()
-    );
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool());
 
     properties.Set(
         "HBIL_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool()
-    );
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
 
     properties.Set(
         "HBAO_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool()
-    );
+        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool());
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool()) {
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool())
+    {
         properties.Set("DEBUG_REFLECTIONS");
-    } else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.irradiance").ToBool()) {
+    }
+    else if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.irradiance").ToBool())
+    {
         properties.Set("DEBUG_IRRADIANCE");
     }
 
@@ -112,7 +110,7 @@ void GetDeferredShaderProperties(ShaderProperties &out_shader_properties)
 
 #pragma region Deferred pass
 
-DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer *gbuffer)
+DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer* gbuffer)
     : FullScreenPass(InternalFormat::RGBA16F, gbuffer),
       m_mode(mode)
 {
@@ -140,7 +138,8 @@ void DeferredPass::CreateShader()
         ShaderProperties { { "LIGHT_TYPE_AREA_RECT" } }
     };
 
-    switch (m_mode) {
+    switch (m_mode)
+    {
     case DeferredPassMode::INDIRECT_LIGHTING:
     {
         ShaderProperties shader_properties;
@@ -152,7 +151,8 @@ void DeferredPass::CreateShader()
         break;
     }
     case DeferredPassMode::DIRECT_LIGHTING:
-        for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
+        for (uint32 i = 0; i < uint32(LightType::MAX); i++)
+        {
             ShaderProperties shader_properties;
             GetDeferredShaderProperties(shader_properties);
 
@@ -169,9 +169,10 @@ void DeferredPass::CreateShader()
     }
 }
 
-void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
+void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attributes)
 {
-    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING) {
+    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
+    {
         FullScreenPass::CreatePipeline(renderable_attributes);
         return;
     }
@@ -180,8 +181,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
         m_ltc_sampler = g_rendering_api->MakeSampler(
             renderer::FilterMode::TEXTURE_FILTER_NEAREST,
             renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-        );
+            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE);
 
         DeferCreate(m_ltc_sampler);
 
@@ -194,10 +194,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 Vec3u { 64, 64, 1 },
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-            },
-            std::move(ltc_matrix_data)
-        });
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE },
+            std::move(ltc_matrix_data) });
 
         InitObject(m_ltc_matrix_texture);
 
@@ -212,30 +210,30 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
                 Vec3u { 64, 64, 1 },
                 FilterMode::TEXTURE_FILTER_LINEAR,
                 FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE
-            },
-            std::move(ltc_brdf_data)
-        });
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE },
+            std::move(ltc_brdf_data) });
 
         InitObject(m_ltc_brdf_texture);
 
         m_ltc_brdf_texture->SetPersistentRenderResourceEnabled(true);
     }
 
-    for (uint32 i = 0; i < uint32(LightType::MAX); i++) {
-        ShaderRef &shader = m_direct_light_shaders[i];
+    for (uint32 i = 0; i < uint32(LightType::MAX); i++)
+    {
+        ShaderRef& shader = m_direct_light_shaders[i];
         AssertThrow(shader.IsValid());
 
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-            const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
             AssertThrow(descriptor_set.IsValid());
-            
+
             descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
-            
+
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
             descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetRenderResource().GetImageView());
             descriptor_set->SetElement(NAME("LTCBRDFTexture"), m_ltc_brdf_texture->GetRenderResource().GetImageView());
@@ -247,8 +245,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
             shader,
             renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE
-        );
+            RenderGroupFlags::NONE);
 
         render_group->AddFramebuffer(m_framebuffer);
 
@@ -256,7 +253,8 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet &renderable_attri
 
         m_direct_light_render_groups[i] = render_group;
 
-        if (i == 0) {
+        if (i == 0)
+        {
             m_render_group = render_group;
         }
     }
@@ -267,31 +265,34 @@ void DeferredPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
+void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_SCOPE;
 
-    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING) {
+    if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
+    {
         RenderToFramebuffer(frame, view, nullptr);
 
         return;
     }
 
     // no lights bound, do not render direct shading at all
-    if (view->NumLights() == 0) {
+    if (view->NumLights() == 0)
+    {
         return;
     }
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     // render with each light
-    for (uint32 light_type_index = 0; light_type_index < uint32(LightType::MAX); light_type_index++) {
+    for (uint32 light_type_index = 0; light_type_index < uint32(LightType::MAX); light_type_index++)
+    {
         const LightType light_type = LightType(light_type_index);
 
-        const Handle<RenderGroup> &render_group = m_direct_light_render_groups[light_type_index];
+        const Handle<RenderGroup>& render_group = m_direct_light_render_groups[light_type_index];
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
@@ -300,33 +301,33 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
         render_group->GetPipeline()->SetPushConstants(
             m_push_constant_data.Data(),
-            m_push_constant_data.Size()
-        );
+            m_push_constant_data.Size());
 
         frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
 
         // Bind textures globally (bindless)
-        if (material_descriptor_set_index != ~0u && use_bindless_textures) {
+        if (material_descriptor_set_index != ~0u && use_bindless_textures)
+        {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
-                ArrayMap<Name, uint32> { },
-                material_descriptor_set_index
-            );
+                ArrayMap<Name, uint32> {},
+                material_descriptor_set_index);
         }
 
-        if (deferred_direct_descriptor_set_index != ~0u) {
+        if (deferred_direct_descriptor_set_index != ~0u)
+        {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
-                ArrayMap<Name, uint32> { },
-                deferred_direct_descriptor_set_index
-            );
+                ArrayMap<Name, uint32> {},
+                deferred_direct_descriptor_set_index);
         }
 
-        const auto &lights = view->GetLights(light_type);
+        const auto& lights = view->GetLights(light_type);
 
-        for (LightRenderResource *light_render_resource : lights) {
+        for (LightRenderResource* light_render_resource : lights)
+        {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
@@ -335,32 +336,29 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource) }
-                },
-                global_descriptor_set_index
-            );
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource) } },
+                global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 view->GetDescriptorSets()[frame->GetFrameIndex()],
                 render_group->GetPipeline(),
-                ArrayMap<Name, uint32> { },
-                scene_descriptor_set_index
-            );
-            
+                ArrayMap<Name, uint32> {},
+                scene_descriptor_set_index);
+
             // Bind material descriptor set (for area lights)
-            if (material_descriptor_set_index != ~0u && !use_bindless_textures) {
-                const DescriptorSetRef &material_descriptor_set = light_render_resource->GetMaterial().IsValid()
+            if (material_descriptor_set_index != ~0u && !use_bindless_textures)
+            {
+                const DescriptorSetRef& material_descriptor_set = light_render_resource->GetMaterial().IsValid()
                     ? light_render_resource->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
                     : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
-        
+
                 AssertThrow(material_descriptor_set != nullptr);
 
                 frame->GetCommandList().Add<BindDescriptorSet>(
                     material_descriptor_set,
                     render_group->GetPipeline(),
-                    ArrayMap<Name, uint32> { },
-                    material_descriptor_set_index
-                );
+                    ArrayMap<Name, uint32> {},
+                    material_descriptor_set_index);
             }
 
             m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
@@ -372,11 +370,10 @@ void DeferredPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 #pragma region TonemapPass
 
-TonemapPass::TonemapPass(GBuffer *gbuffer)
+TonemapPass::TonemapPass(GBuffer* gbuffer)
     : FullScreenPass(
-        InternalFormat::R11G11B10F,
-        gbuffer
-      )
+          InternalFormat::R11G11B10F,
+          gbuffer)
 {
 }
 
@@ -398,14 +395,11 @@ void TonemapPass::CreatePipeline()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
+            .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
+            .fill_mode = FillMode::FILL,
             .blend_function = BlendFunction::None(),
-            .flags          = MaterialAttributeFlags::NONE
-        }
-    );
+            .flags = MaterialAttributeFlags::NONE });
 
     m_shader = g_shader_manager->GetOrCreate(NAME("Tonemap"));
 
@@ -417,7 +411,7 @@ void TonemapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void TonemapPass::Render(FrameBase *frame, ViewRenderResource *view)
+void TonemapPass::Render(FrameBase* frame, ViewRenderResource* view)
 {
     FullScreenPass::Render(frame, view);
 }
@@ -426,15 +420,14 @@ void TonemapPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 #pragma region TonemapPass
 
-LightmapPass::LightmapPass(const FramebufferRef &framebuffer, GBuffer *gbuffer)
+LightmapPass::LightmapPass(const FramebufferRef& framebuffer, GBuffer* gbuffer)
     : FullScreenPass(
-        ShaderRef::Null(),
-        DescriptorTableRef::Null(),
-        framebuffer,
-        InternalFormat::RGBA8,
-        framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
-        gbuffer
-      )
+          ShaderRef::Null(),
+          DescriptorTableRef::Null(),
+          framebuffer,
+          InternalFormat::RGBA8,
+          framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
+          gbuffer)
 {
 }
 
@@ -456,15 +449,12 @@ void LightmapPass::CreatePipeline()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
+            .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
+            .fill_mode = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributeFlags::NONE
-        }
-    );
+                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags = MaterialAttributeFlags::NONE });
 
     m_shader = g_shader_manager->GetOrCreate(NAME("ApplyLightmap"));
 
@@ -476,7 +466,7 @@ void LightmapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void LightmapPass::Render(FrameBase *frame, ViewRenderResource *view)
+void LightmapPass::Render(FrameBase* frame, ViewRenderResource* view)
 {
     FullScreenPass::Render(frame, view);
 }
@@ -487,7 +477,8 @@ void LightmapPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
 {
-    switch (type) {
+    switch (type)
+    {
     case EnvGridType::ENV_GRID_TYPE_SH:
         return ApplyEnvGridMode::SH;
     case EnvGridType::ENV_GRID_TYPE_VOXEL:
@@ -499,24 +490,23 @@ static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
     }
 }
 
-EnvGridPass::EnvGridPass(EnvGridPassMode mode, GBuffer *gbuffer)
+EnvGridPass::EnvGridPass(EnvGridPassMode mode, GBuffer* gbuffer)
     : FullScreenPass(
-        mode == EnvGridPassMode::RADIANCE
-            ? env_grid_radiance_format
-            : env_grid_irradiance_format,
-        mode == EnvGridPassMode::RADIANCE
-            ? env_grid_radiance_extent
-            : env_grid_irradiance_extent,
-        gbuffer
-      ),
+          mode == EnvGridPassMode::RADIANCE
+              ? env_grid_radiance_format
+              : env_grid_irradiance_format,
+          mode == EnvGridPassMode::RADIANCE
+              ? env_grid_radiance_extent
+              : env_grid_irradiance_extent,
+          gbuffer),
       m_mode(mode),
       m_is_first_frame(true)
 {
-    if (mode == EnvGridPassMode::RADIANCE) {
+    if (mode == EnvGridPassMode::RADIANCE)
+    {
         SetBlendFunction(BlendFunction(
             BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA
-        ));
+            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
     }
 }
 
@@ -538,17 +528,15 @@ void EnvGridPass::CreatePipeline()
 
     RenderableAttributeSet renderable_attributes(
         MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
+            .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
+            .fill_mode = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributeFlags::NONE
-        }
-    );
+                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags = MaterialAttributeFlags::NONE });
 
-    if (m_mode == EnvGridPassMode::RADIANCE) {
+    if (m_mode == EnvGridPassMode::RADIANCE)
+    {
         m_shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), ShaderProperties { { "MODE_RADIANCE" } });
 
         FullScreenPass::CreatePipeline(renderable_attributes);
@@ -559,22 +547,20 @@ void EnvGridPass::CreatePipeline()
     static const FixedArray<Pair<ApplyEnvGridMode, ShaderProperties>, uint32(ApplyEnvGridMode::MAX)> apply_env_grid_passes = {
         Pair<ApplyEnvGridMode, ShaderProperties> {
             ApplyEnvGridMode::SH,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_SH" } }
-        },
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_SH" } } },
         Pair<ApplyEnvGridMode, ShaderProperties> {
             ApplyEnvGridMode::VOXEL,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_VOXEL" } }
-        },
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_VOXEL" } } },
         Pair<ApplyEnvGridMode, ShaderProperties> {
             ApplyEnvGridMode::LIGHT_FIELD,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_LIGHT_FIELD" } }
-        }
+            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_LIGHT_FIELD" } } }
     };
 
-    for (const auto &it : apply_env_grid_passes) {
+    for (const auto& it : apply_env_grid_passes)
+    {
         ShaderRef shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), it.second);
         AssertThrow(shader.IsValid());
-        
+
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
@@ -584,8 +570,7 @@ void EnvGridPass::CreatePipeline()
             shader,
             renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE
-        );
+            RenderGroupFlags::NONE);
 
         render_group->AddFramebuffer(m_framebuffer);
 
@@ -594,7 +579,7 @@ void EnvGridPass::CreatePipeline()
         m_render_groups[uint32(it.first)] = std::move(render_group);
     }
 
-    m_render_group = m_render_groups[uint32(ApplyEnvGridMode::SH)];    
+    m_render_group = m_render_groups[uint32(ApplyEnvGridMode::SH)];
 }
 
 void EnvGridPass::Resize_Internal(Vec2u new_size)
@@ -602,7 +587,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
+void EnvGridPass::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_SCOPE;
 
@@ -610,17 +595,18 @@ void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const TResourceHandle<EnvGridRenderResource> &env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
     AssertThrow(env_grid_render_resource_handle);
 
     frame->GetCommandList().Add<BeginFramebuffer>(m_framebuffer, frame_index);
 
     // render previous frame's result to screen
-    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
+    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr)
+    {
         RenderPreviousTextureToScreen(frame, view);
     }
 
-    const Handle<RenderGroup> &render_group = m_mode == EnvGridPassMode::RADIANCE
+    const Handle<RenderGroup>& render_group = m_mode == EnvGridPassMode::RADIANCE
         ? m_render_group
         : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid_render_resource_handle->GetEnvGrid()->GetEnvGridType()))];
 
@@ -631,12 +617,15 @@ void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
 
     render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
-    if (ShouldRenderHalfRes()) {
+    if (ShouldRenderHalfRes())
+    {
         const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
         const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline(), viewport_offset, viewport_extent);
-    } else {
+    }
+    else
+    {
         frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
     }
 
@@ -646,28 +635,28 @@ void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
         ArrayMap<Name, uint32> {
             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_grid_render_resource_handle) }
-        },
-        global_descriptor_set_index
-    );
+            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_grid_render_resource_handle) } },
+        global_descriptor_set_index);
 
     frame->GetCommandList().Add<BindDescriptorSet>(
         view->GetDescriptorSets()[frame_index],
         render_group->GetPipeline(),
-        ArrayMap<Name, uint32> { },
-        scene_descriptor_set_index
-    );
+        ArrayMap<Name, uint32> {},
+        scene_descriptor_set_index);
 
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 
     frame->GetCommandList().Add<EndFramebuffer>(m_framebuffer, frame_index);
 
-    if (ShouldRenderHalfRes()) {
+    if (ShouldRenderHalfRes())
+    {
         MergeHalfResTextures(frame, view);
     }
 
-    if (UsesTemporalBlending()) {
-        if (!ShouldRenderHalfRes()) {
+    if (UsesTemporalBlending())
+    {
+        if (!ShouldRenderHalfRes())
+        {
             CopyResultToPreviousTexture(frame, view);
         }
 
@@ -681,7 +670,7 @@ void EnvGridPass::Render(FrameBase *frame, ViewRenderResource *view)
 
 #pragma region ReflectionsPass
 
-ReflectionsPass::ReflectionsPass(GBuffer *gbuffer, const ImageViewRef &mip_chain_image_view, const ImageViewRef &deferred_result_image_view)
+ReflectionsPass::ReflectionsPass(GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view)
     : FullScreenPass(InternalFormat::R10G10B10A2, gbuffer),
       m_mip_chain_image_view(mip_chain_image_view),
       m_deferred_result_image_view(deferred_result_image_view),
@@ -689,8 +678,7 @@ ReflectionsPass::ReflectionsPass(GBuffer *gbuffer, const ImageViewRef &mip_chain
 {
     SetBlendFunction(BlendFunction(
         BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA
-    ));
+        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
 }
 
 ReflectionsPass::~ReflectionsPass()
@@ -713,18 +701,15 @@ void ReflectionsPass::CreatePipeline()
 
     CreatePipeline(RenderableAttributeSet(
         MeshAttributes {
-            .vertex_attributes = static_mesh_vertex_attributes
-        },
+            .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode      = FillMode::FILL,
+            .fill_mode = FillMode::FILL,
             .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                                            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-            .flags          = MaterialAttributeFlags::NONE
-        }
-    ));
+                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .flags = MaterialAttributeFlags::NONE }));
 }
 
-void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_attributes)
+void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderable_attributes)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -734,22 +719,20 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_at
     static const FixedArray<Pair<ApplyReflectionProbeMode, ShaderProperties>, ApplyReflectionProbeMode::MAX> apply_reflection_probe_passes = {
         Pair<ApplyReflectionProbeMode, ShaderProperties> {
             ApplyReflectionProbeMode::DEFAULT,
-            ShaderProperties { }
-        },
+            ShaderProperties {} },
         Pair<ApplyReflectionProbeMode, ShaderProperties> {
             ApplyReflectionProbeMode::PARALLAX_CORRECTED,
-            ShaderProperties { { "ENV_PROBE_PARALLAX_CORRECTED" } }
-        }
+            ShaderProperties { { "ENV_PROBE_PARALLAX_CORRECTED" } } }
     };
 
-    for (const auto &it : apply_reflection_probe_passes) {
+    for (const auto& it : apply_reflection_probe_passes)
+    {
         ShaderRef shader = g_shader_manager->GetOrCreate(
             NAME("ApplyReflectionProbe"),
-            it.second
-        );
+            it.second);
 
         AssertThrow(shader.IsValid());
-        
+
         renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
@@ -759,8 +742,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet &renderable_at
             shader,
             renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE
-        );
+            RenderGroupFlags::NONE);
 
         render_group->AddFramebuffer(m_framebuffer);
 
@@ -782,15 +764,16 @@ void ReflectionsPass::CreateSSRRenderer()
 {
     m_ssr_renderer = MakeUnique<SSRRenderer>(SSRRendererConfig::FromConfig(), m_gbuffer, m_mip_chain_image_view, m_deferred_result_image_view);
     m_ssr_renderer->Create();
-    
+
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InTexture"), m_ssr_renderer->GetFinalResultTexture()->GetRenderResource().GetImageView());
@@ -803,14 +786,12 @@ void ReflectionsPass::CreateSSRRenderer()
         std::move(descriptor_table),
         m_image_format,
         m_extent,
-        m_gbuffer
-    );
+        m_gbuffer);
 
     // Use alpha blending to blend SSR into the reflection probes
     m_render_ssr_to_screen_pass->SetBlendFunction(BlendFunction(
         BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA
-    ));
+        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
 
     m_render_ssr_to_screen_pass->Create();
 }
@@ -821,19 +802,21 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
 
     FullScreenPass::Resize_Internal(new_size);
 
-    if (ShouldRenderSSR()) {
+    if (ShouldRenderSSR())
+    {
         CreateSSRRenderer();
     }
 }
 
-void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
+void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (ShouldRenderSSR()) {
+    if (ShouldRenderSSR())
+    {
         m_ssr_renderer->Render(frame, view);
     }
 
@@ -844,21 +827,23 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
     };
 
     static const FixedArray<ApplyReflectionProbeMode, ApplyReflectionProbeMode::MAX> reflection_probe_modes {
-        ApplyReflectionProbeMode::DEFAULT,              // ENV_PROBE_TYPE_SKY
-        ApplyReflectionProbeMode::PARALLAX_CORRECTED    // ENV_PROBE_TYPE_REFLECTION
+        ApplyReflectionProbeMode::DEFAULT,           // ENV_PROBE_TYPE_SKY
+        ApplyReflectionProbeMode::PARALLAX_CORRECTED // ENV_PROBE_TYPE_REFLECTION
     };
 
-    FixedArray<Pair<Handle<RenderGroup> *, Array<EnvProbeRenderResource *>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
+    FixedArray<Pair<Handle<RenderGroup>*, Array<EnvProbeRenderResource*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
 
-    for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++) {
+    for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++)
+    {
         pass_ptrs[mode_index] = {
             &m_render_groups[mode_index],
-            { }
+            {}
         };
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
-        for (const TResourceHandle<EnvProbeRenderResource> &resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type]) {
+        for (const TResourceHandle<EnvProbeRenderResource>& resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type])
+        {
             pass_ptrs[mode_index].second.PushBack(resource_handle.Get());
         }
     }
@@ -866,41 +851,49 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
     frame->GetCommandList().Add<BeginFramebuffer>(GetFramebuffer(), frame_index);
 
     // render previous frame's result to screen
-    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr) {
+    if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr)
+    {
         RenderPreviousTextureToScreen(frame, view);
     }
-    
+
     uint32 num_rendered_env_probes = 0;
 
-    for (uint32 reflection_probe_type_index = 0; reflection_probe_type_index < ArraySize(reflection_probe_types); reflection_probe_type_index++) {
+    for (uint32 reflection_probe_type_index = 0; reflection_probe_type_index < ArraySize(reflection_probe_types); reflection_probe_type_index++)
+    {
         const EnvProbeType env_probe_type = reflection_probe_types[reflection_probe_type_index];
         const ApplyReflectionProbeMode mode = reflection_probe_modes[reflection_probe_type_index];
 
-        const Pair<Handle<RenderGroup> *, Array<EnvProbeRenderResource *>> &it = pass_ptrs[mode];
+        const Pair<Handle<RenderGroup>*, Array<EnvProbeRenderResource*>>& it = pass_ptrs[mode];
 
-        if (it.second.Empty()) {
+        if (it.second.Empty())
+        {
             continue;
         }
 
-        const Handle<RenderGroup> &render_group = *it.first;
-        const Array<EnvProbeRenderResource *> &env_probe_render_resources = it.second;
+        const Handle<RenderGroup>& render_group = *it.first;
+        const Array<EnvProbeRenderResource*>& env_probe_render_resources = it.second;
 
         render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
-        if (ShouldRenderHalfRes()) {
+        if (ShouldRenderHalfRes())
+        {
             const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (g_engine->GetRenderState()->frame_counter & 1);
             const Vec2i viewport_extent = Vec2i(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
             frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline(), viewport_offset, viewport_extent);
-        } else {
+        }
+        else
+        {
             frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
         }
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        for (EnvProbeRenderResource *env_probe_render_resource : env_probe_render_resources) {
-            if (num_rendered_env_probes >= max_bound_reflection_probes) {
+        for (EnvProbeRenderResource* env_probe_render_resource : env_probe_render_resources)
+        {
+            if (num_rendered_env_probes >= max_bound_reflection_probes)
+            {
                 HYP_LOG(Rendering, Warning, "Attempting to render too many reflection probes.");
 
                 break;
@@ -912,17 +905,14 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
                 ArrayMap<Name, uint32> {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) }
-                },
-                global_descriptor_set_index
-            );
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) } },
+                global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 view->GetDescriptorSets()[frame_index],
                 render_group->GetPipeline(),
-                ArrayMap<Name, uint32> { },
-                scene_descriptor_set_index
-            );
+                ArrayMap<Name, uint32> {},
+                scene_descriptor_set_index);
 
             m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 
@@ -930,18 +920,22 @@ void ReflectionsPass::Render(FrameBase *frame, ViewRenderResource *view)
         }
     }
 
-    if (ShouldRenderSSR()) {
+    if (ShouldRenderSSR())
+    {
         m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, view, GetFramebuffer());
     }
 
     frame->GetCommandList().Add<EndFramebuffer>(GetFramebuffer(), frame_index);
 
-    if (ShouldRenderHalfRes()) {
+    if (ShouldRenderHalfRes())
+    {
         MergeHalfResTextures(frame, view);
     }
 
-    if (UsesTemporalBlending()) {
-        if (!ShouldRenderHalfRes()) {
+    if (UsesTemporalBlending())
+    {
+        if (!ShouldRenderHalfRes())
+        {
             CopyResultToPreviousTexture(frame, view);
         }
 

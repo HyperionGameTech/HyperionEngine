@@ -8,24 +8,27 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void HypConstant_GetName(const HypConstant *constant, Name *out_name)
+extern "C"
 {
-    if (!constant || !out_name) {
-        return;
+
+    HYP_EXPORT void HypConstant_GetName(const HypConstant* constant, Name* out_name)
+    {
+        if (!constant || !out_name)
+        {
+            return;
+        }
+
+        *out_name = constant->GetName();
     }
 
-    *out_name = constant->GetName();
-}
+    HYP_EXPORT void HypConstant_GetTypeID(const HypConstant* constant, TypeID* out_type_id)
+    {
+        if (!constant || !out_type_id)
+        {
+            return;
+        }
 
-HYP_EXPORT void HypConstant_GetTypeID(const HypConstant *constant, TypeID *out_type_id)
-{
-    if (!constant || !out_type_id) {
-        return;
+        *out_type_id = constant->GetTypeID();
     }
-
-    *out_type_id = constant->GetTypeID();
-}
 
 } // extern "C"

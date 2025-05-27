@@ -62,22 +62,26 @@ UIStage::UIStage(ThreadID owner_thread_id)
     m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
         0.0f, -float(m_surface_size.x),
         0.0f, float(m_surface_size.y),
-        float(min_depth), float(max_depth)
-    ));
-    
+        float(g_min_depth), float(g_max_depth)));
+
     InitObject(m_camera);
 }
 
 UIStage::~UIStage()
 {
-    if (m_scene.IsValid()) {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadID())) {
+    if (m_scene.IsValid())
+    {
+        if (Threads::IsOnThread(m_scene->GetOwnerThreadID()))
+        {
             m_scene->RemoveFromWorld();
-        } else {
+        }
+        else
+        {
             Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = m_scene]()
-            {
-                scene->RemoveFromWorld();
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                {
+                    scene->RemoveFromWorld();
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
         }
     }
 }
@@ -88,8 +92,9 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
     AssertOnOwnerThread();
 
     m_surface_size = surface_size;
-    
-    if (m_camera.IsValid()) {
+
+    if (m_camera.IsValid())
+    {
         m_camera->SetWidth(surface_size.x);
         m_camera->SetHeight(surface_size.y);
 
@@ -98,8 +103,7 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
         m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
             0.0f, -float(surface_size.x),
             0.0f, float(surface_size.y),
-            float(min_depth), float(max_depth)
-        ));
+            float(g_min_depth), float(g_max_depth)));
     }
 
     UpdateSize(true);
@@ -108,38 +112,41 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
     SetNeedsRepaintFlag();
 }
 
-Scene *UIStage::GetScene() const
+Scene* UIStage::GetScene() const
 {
-    if (Scene *ui_object_scene = UIObject::GetScene()) {
+    if (Scene* ui_object_scene = UIObject::GetScene())
+    {
         return ui_object_scene;
     }
 
     return m_scene.Get();
 }
 
-void UIStage::SetScene(const Handle<Scene> &scene)
+void UIStage::SetScene(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
     Handle<Scene> new_scene = scene;
 
-    if (!new_scene.IsValid()) {
+    if (!new_scene.IsValid())
+    {
         const ThreadID owner_thread_id = m_scene.IsValid() ? m_scene->GetOwnerThreadID() : ThreadID::Current();
 
         new_scene = CreateObject<Scene>(
             nullptr,
             owner_thread_id,
-            SceneFlags::FOREGROUND | SceneFlags::UI
-        );
+            SceneFlags::FOREGROUND | SceneFlags::UI);
 
         new_scene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
     }
 
-    if (new_scene == m_scene) {
+    if (new_scene == m_scene)
+    {
         return;
     }
 
-    if (m_scene.IsValid()) {
+    if (m_scene.IsValid())
+    {
         Handle<Node> current_root_node;
 
         current_root_node = m_scene->GetRoot();
@@ -152,33 +159,36 @@ void UIStage::SetScene(const Handle<Scene> &scene)
 
     Handle<Node> camera_node = new_scene->GetRoot()->AddChild();
     camera_node->SetName("UICamera");
-    
+
     Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
     new_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { m_camera });
 
     camera_node->SetEntity(camera_entity);
 
     g_engine->GetWorld()->AddScene(new_scene);
-    
+
     InitObject(new_scene);
 
-    if (m_scene.IsValid()) {
+    if (m_scene.IsValid())
+    {
         m_scene->RemoveFromWorld();
     }
-    
+
     m_scene = std::move(new_scene);
 }
 
-const RC<FontAtlas> &UIStage::GetDefaultFontAtlas() const
+const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
 {
     HYP_SCOPE;
 
-    if (m_default_font_atlas != nullptr) {
+    if (m_default_font_atlas != nullptr)
+    {
         return m_default_font_atlas;
     }
 
     // Parent stage
-    if (m_stage != nullptr) {
+    if (m_stage != nullptr)
+    {
         return m_stage->GetDefaultFontAtlas();
     }
 
@@ -191,7 +201,7 @@ void UIStage::SetDefaultFontAtlas(RC<FontAtlas> font_atlas)
     AssertOnOwnerThread();
 
     m_default_font_atlas = std::move(font_atlas);
-    
+
     OnFontAtlasUpdate();
 }
 
@@ -200,10 +210,12 @@ void UIStage::Init()
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (const RC<AppContext> &app_context = g_engine->GetAppContext()) {
-        const auto UpdateSurfaceSize = [this](ApplicationWindow *window)
+    if (const RC<AppContextBase>& app_context = g_engine->GetAppContext())
+    {
+        const auto update_surface_size = [this](ApplicationWindow* window)
         {
-            if (window == nullptr) {
+            if (window == nullptr)
+            {
                 return;
             }
 
@@ -211,25 +223,29 @@ void UIStage::Init()
 
             m_surface_size = Vec2i(size);
 
-            if (m_camera.IsValid()) {
+            if (m_camera.IsValid())
+            {
                 m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
                     0.0f, -float(m_surface_size.x),
                     0.0f, float(m_surface_size.y),
-                    float(min_depth), float(max_depth)
-                ));
+                    float(g_min_depth), float(g_max_depth)));
             }
         };
 
-        UpdateSurfaceSize(app_context->GetMainWindow());
-        m_on_current_window_changed_handler = app_context->OnCurrentWindowChanged.Bind(UpdateSurfaceSize);
+        update_surface_size(app_context->GetMainWindow());
+        m_on_current_window_changed_handler = app_context->OnCurrentWindowChanged.Bind(update_surface_size);
     }
 
-    if (!m_default_font_atlas) {
+    if (!m_default_font_atlas)
+    {
         auto font_atlas_asset = g_asset_manager->Load<RC<FontAtlas>>("fonts/default.json");
 
-        if (font_atlas_asset.HasValue()) {
+        if (font_atlas_asset.HasValue())
+        {
             m_default_font_atlas = font_atlas_asset->Result();
-        } else {
+        }
+        else
+        {
             HYP_LOG(UI, Error, "Failed to load default font atlas! Error was: {}", font_atlas_asset.GetError().GetMessage());
         }
     }
@@ -242,19 +258,21 @@ void UIStage::Init()
     UIObject::Init();
 }
 
-void UIStage::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIStage::AddChildUIObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return;
     }
 
     UIObject::AddChildUIObject(ui_object);
 
     // Check if no parent stage
-    if (m_stage == nullptr) {
+    if (m_stage == nullptr)
+    {
         // Set child object stage to this
         ui_object->SetStage(this);
     }
@@ -267,12 +285,13 @@ void UIStage::Update_Internal(GameCounter::TickUnit delta)
 
     UIObject::Update_Internal(delta);
 
-    for (auto &it : m_mouse_button_pressed_states) {
+    for (auto& it : m_mouse_button_pressed_states)
+    {
         it.second.held_time += delta;
     }
 }
 
-void UIStage::OnAttached_Internal(UIObject *parent)
+void UIStage::OnAttached_Internal(UIObject* parent)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -298,19 +317,19 @@ void UIStage::OnRemoved_Internal()
     OnRemoved();
 }
 
-void UIStage::SetStage_Internal(UIStage *stage)
+void UIStage::SetStage_Internal(UIStage* stage)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
 
     m_stage = stage;
-    
+
     SetNeedsRepaintFlag();
-    
+
     // Do not update children
 }
 
-bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, EnumFlags<UIRayTestFlags> flags)
+bool UIStage::TestRay(const Vec2f& position, Array<RC<UIObject>>& out_objects, EnumFlags<UIRayTestFlags> flags)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -324,23 +343,27 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
     RayTestResults ray_test_results;
 
-    for (auto [entity, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        UIObject *ui_object = ui_component.ui_object;
-        
-        if (!ui_object) {
+    for (auto [entity, ui_component, transform_component, bounding_box_component] : m_scene->GetEntityManager()->GetEntitySet<UIComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        UIObject* ui_object = ui_component.ui_object;
+
+        if (!ui_object)
+        {
             continue;
         }
 
-        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_object->GetComputedVisibility()) {
+        if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !ui_object->GetComputedVisibility())
+        {
             continue;
         }
 
         BoundingBox aabb = ui_object->GetAABBClamped();
         aabb.min.z = -1.0f;
         aabb.max.z = 1.0f;
-     
-        if (aabb.ContainsPoint(direction)) {
-            RayHit hit { };
+
+        if (aabb.ContainsPoint(direction))
+        {
+            RayHit hit {};
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = -float(ui_object->GetComputedDepth());
             hit.id = entity.Value();
@@ -352,8 +375,10 @@ bool UIStage::TestRay(const Vec2f &position, Array<RC<UIObject>> &out_objects, E
 
     out_objects.Reserve(ray_test_results.Size());
 
-    for (const RayHit &hit : ray_test_results) {
-        if (RC<UIObject> ui_object = static_cast<const UIObject *>(hit.user_data)->RefCountedPtrFromThis()) {
+    for (const RayHit& hit : ray_test_results)
+    {
+        if (RC<UIObject> ui_object = static_cast<const UIObject*>(hit.user_data)->RefCountedPtrFromThis())
+        {
             out_objects.PushBack(std::move(ui_object));
         }
     }
@@ -366,8 +391,10 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (UIComponent *ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity)) {
-        if (ui_component->ui_object != nullptr) {
+    if (UIComponent* ui_component = m_scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
+    {
+        if (ui_component->ui_object != nullptr)
+        {
             return ui_component->ui_object->RefCountedPtrFromThis();
         }
     }
@@ -375,12 +402,13 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
     return nullptr;
 }
 
-void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
+void UIStage::SetFocusedObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (ui_object == m_focused_object) {
+    if (ui_object == m_focused_object)
+    {
         return;
     }
 
@@ -390,8 +418,9 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
     // due to Blur() calling SetFocusedObject() again.
     m_focused_object.Reset();
 
-    if (current_focused_ui_object != nullptr) {
-        // Only blur children if 
+    if (current_focused_ui_object != nullptr)
+    {
+        // Only blur children if
         const bool should_blur_children = ui_object == nullptr || !ui_object->IsOrHasParent(current_focused_ui_object);
 
         current_focused_ui_object->Blur(should_blur_children);
@@ -399,25 +428,28 @@ void UIStage::SetFocusedObject(const RC<UIObject> &ui_object)
 
     m_focused_object = ui_object;
 
-    if (UIObject *parent_stage = GetClosestParentUIObject(UIObjectType::STAGE)) {
-        static_cast<UIStage *>(parent_stage)->SetFocusedObject(ui_object);
+    if (UIObject* parent_stage = GetClosestParentUIObject(UIObjectType::STAGE))
+    {
+        static_cast<UIStage*>(parent_stage)->SetFocusedObject(ui_object);
     }
 }
 
-void UIStage::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_size, UpdateSizePhase phase, bool is_inner)
+void UIStage::ComputeActualSize(const UIObjectSize& in_size, Vec2i& out_actual_size, UpdateSizePhase phase, bool is_inner)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
 
     // stage with a parent stage: treat self like a normal UIObject
-    if (m_stage != nullptr) {
+    if (m_stage != nullptr)
+    {
         UIObject::ComputeActualSize(in_size, out_actual_size, phase, is_inner);
 
         return;
     }
 
     // inner calculation is the same
-    if (is_inner) {
+    if (is_inner)
+    {
         UIObject::ComputeActualSize(in_size, out_actual_size, phase, is_inner);
 
         return;
@@ -427,9 +459,8 @@ void UIStage::ComputeActualSize(const UIObjectSize &in_size, Vec2i &out_actual_s
 }
 
 UIEventHandlerResult UIStage::OnInputEvent(
-    InputManager *input_manager,
-    const SystemEvent &event
-)
+    InputManager* input_manager,
+    const SystemEvent& event)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -442,7 +473,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
     const Vec2i previous_mouse_position = input_manager->GetPreviousMousePosition();
     const Vec2f mouse_screen = Vec2f(mouse_position) / Vec2f(m_surface_size);
 
-    switch (event.GetType()) {
+    switch (event.GetType())
+    {
     case SystemEventType::EVENT_MOUSEMOTION:
     {
         // check intersects with objects on mouse movement.
@@ -453,24 +485,28 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> mouse_buttons = input_manager->GetButtonStates();
 
-        if (mouse_buttons != MouseButtonState::NONE) { // mouse drag event
+        if (mouse_buttons != MouseButtonState::NONE)
+        { // mouse drag event
             UIEventHandlerResult mouse_drag_event_handler_result = UIEventHandlerResult::OK;
 
-            for (const Pair<Weak<UIObject>, UIObjectPressedState> &it : m_mouse_button_pressed_states) {
-                if (it.second.held_time >= 0.05f) {
+            for (const Pair<Weak<UIObject>, UIObjectPressedState>& it : m_mouse_button_pressed_states)
+            {
+                if (it.second.held_time >= 0.05f)
+                {
                     // signal mouse drag
-                    if (RC<UIObject> ui_object = it.first.Lock()) {
+                    if (RC<UIObject> ui_object = it.first.Lock())
+                    {
                         UIEventHandlerResult current_result = ui_object->OnMouseDrag(MouseEvent {
-                            .input_manager      = input_manager,
-                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                            .absolute_position  = mouse_position,
-                            .mouse_buttons      = mouse_buttons
-                        });
+                            .input_manager = input_manager,
+                            .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .absolute_position = mouse_position,
+                            .mouse_buttons = mouse_buttons });
 
                         mouse_drag_event_handler_result |= current_result;
 
-                        if (mouse_drag_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                        if (mouse_drag_event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+                        {
                             break;
                         }
                     }
@@ -480,37 +516,45 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         Array<RC<UIObject>> ray_test_results;
 
-        if (TestRay(mouse_screen, ray_test_results)) {
-            UIObject *first_hit = nullptr;
+        if (TestRay(mouse_screen, ray_test_results))
+        {
+            UIObject* first_hit = nullptr;
 
             UIEventHandlerResult mouse_hover_event_handler_result = UIEventHandlerResult::OK;
             UIEventHandlerResult mouse_move_event_handler_result = UIEventHandlerResult::OK;
 
-            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                if (const RC<UIObject> &ui_object = *it) {
-                    if (first_hit != nullptr) {
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+            {
+                if (const RC<UIObject>& ui_object = *it)
+                {
+                    if (first_hit != nullptr)
+                    {
                         // We don't want to check the current object if it's not a child of the first hit object,
                         // since it would be behind the first hit object.
-                        if (!first_hit->IsOrHasParent(ui_object)) {
+                        if (!first_hit->IsOrHasParent(ui_object))
+                        {
                             continue;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         first_hit = ui_object;
                     }
 
-                    if (m_hovered_ui_objects.Contains(ui_object)) {
+                    if (m_hovered_ui_objects.Contains(ui_object))
+                    {
                         // Already hovered, trigger mouse move event instead
                         UIEventHandlerResult current_result = ui_object->OnMouseMove(MouseEvent {
-                            .input_manager      = input_manager,
-                            .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                            .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                            .absolute_position  = mouse_position,
-                            .mouse_buttons      = mouse_buttons
-                        });
+                            .input_manager = input_manager,
+                            .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                            .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                            .absolute_position = mouse_position,
+                            .mouse_buttons = mouse_buttons });
 
                         mouse_move_event_handler_result |= current_result;
 
-                        if (mouse_move_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                        if (mouse_move_event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+                        {
                             break;
                         }
                     }
@@ -519,39 +563,46 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             first_hit = nullptr;
 
-            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                if (const RC<UIObject> &ui_object = *it) {
-                    if (first_hit != nullptr) {
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+            {
+                if (const RC<UIObject>& ui_object = *it)
+                {
+                    if (first_hit != nullptr)
+                    {
                         // We don't want to check the current object if it's not a child of the first hit object,
                         // since it would be behind the first hit object.
-                        if (!first_hit->IsOrHasParent(ui_object)) {
+                        if (!first_hit->IsOrHasParent(ui_object))
+                        {
                             continue;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         first_hit = ui_object;
                     }
 
-                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled()) {
+                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled())
+                    {
                         continue;
                     }
 
-                    if (!m_hovered_ui_objects.Insert(ui_object).second) {
+                    if (!m_hovered_ui_objects.Insert(ui_object).second)
+                    {
                         continue;
                     }
 
                     ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::HOVER);
 
                     UIEventHandlerResult current_result = ui_object->OnMouseHover(MouseEvent {
-                        .input_manager      = input_manager,
-                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                        .absolute_position  = mouse_position,
-                        .mouse_buttons      = mouse_buttons
-                    });
+                        .input_manager = input_manager,
+                        .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position = mouse_position,
+                        .mouse_buttons = mouse_buttons });
 
                     mouse_hover_event_handler_result |= current_result;
 
-                    BoundingBoxComponent &bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
+                    BoundingBoxComponent& bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
                     HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
                         GetClass(ui_object.GetTypeID())->GetName(),
@@ -565,33 +616,40 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         ui_object->GetActualSizeClamped(),
                         ui_object->GetComputedDepth());
 
-                    if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                    if (mouse_hover_event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+                    {
                         break;
                     }
                 }
             }
         }
 
-        for (auto it = m_hovered_ui_objects.Begin(); it != m_hovered_ui_objects.End();) {
+        for (auto it = m_hovered_ui_objects.Begin(); it != m_hovered_ui_objects.End();)
+        {
             const auto ray_test_results_it = ray_test_results.FindAs(*it);
 
-            if (ray_test_results_it == ray_test_results.End()) {
-                if (RC<UIObject> ui_object = it->Lock()) {
+            if (ray_test_results_it == ray_test_results.End())
+            {
+                if (RC<UIObject> ui_object = it->Lock())
+                {
                     ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
                     ui_object->OnMouseLeave(MouseEvent {
-                        .input_manager      = input_manager,
-                        .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                        .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                        .absolute_position  = mouse_position,
-                        .mouse_buttons      = event.GetMouseButtons()
-                    });
-                } else {
+                        .input_manager = input_manager,
+                        .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                        .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                        .absolute_position = mouse_position,
+                        .mouse_buttons = event.GetMouseButtons() });
+                }
+                else
+                {
                     HYP_LOG(UI, Warning, "Focused element has been destroyed");
                 }
 
                 it = m_hovered_ui_objects.Erase(it);
-            } else {
+            }
+            else
+            {
                 ++it;
             }
         }
@@ -605,16 +663,19 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         Array<RC<UIObject>> ray_test_results;
 
-        if (TestRay(mouse_screen, ray_test_results)) {
-            UIObject *first_hit = nullptr;
+        if (TestRay(mouse_screen, ray_test_results))
+        {
+            UIObject* first_hit = nullptr;
 
-            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                const RC<UIObject> &ui_object = *it;
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+            {
+                const RC<UIObject>& ui_object = *it;
 
-                if (!first_hit) {
+                if (!first_hit)
+                {
                     first_hit = ui_object.Get();
                 }
-                
+
                 // if (first_hit != nullptr) {
                 //     // We don't want to check the current object if it's not a child of the first hit object,
                 //     // since it would be behind the first hit object.
@@ -627,42 +688,45 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                 auto mouse_button_pressed_states_it = m_mouse_button_pressed_states.FindAs(ui_object);
 
-                if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End()) {
-                    if ((mouse_button_pressed_states_it->second.mouse_buttons & event.GetMouseButtons()) == event.GetMouseButtons()) {
+                if (mouse_button_pressed_states_it != m_mouse_button_pressed_states.End())
+                {
+                    if ((mouse_button_pressed_states_it->second.mouse_buttons & event.GetMouseButtons()) == event.GetMouseButtons())
+                    {
                         // already holding buttons, go to next
                         continue;
                     }
 
                     mouse_button_pressed_states_it->second.mouse_buttons |= event.GetMouseButtons();
-                } else {
-                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled()) {
+                }
+                else
+                {
+                    if (!ui_object->AcceptsFocus() || !ui_object->IsEnabled())
+                    {
                         continue;
                     }
 
-                    mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object, {
-                        event.GetMouseButtons(),
-                        0.0f
-                    }).first;
+                    mouse_button_pressed_states_it = m_mouse_button_pressed_states.Set(ui_object, { event.GetMouseButtons(), 0.0f }).first;
                 }
 
                 ui_object->SetFocusState(ui_object->GetFocusState() | UIObjectFocusState::PRESSED);
 
                 const UIEventHandlerResult on_mouse_down_result = ui_object->OnMouseDown(MouseEvent {
-                    .input_manager      = input_manager,
-                    .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                    .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                    .absolute_position  = mouse_position,
-                    .mouse_buttons      = mouse_button_pressed_states_it->second.mouse_buttons
-                });
+                    .input_manager = input_manager,
+                    .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                    .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .absolute_position = mouse_position,
+                    .mouse_buttons = mouse_button_pressed_states_it->second.mouse_buttons });
 
                 event_handler_result |= on_mouse_down_result;
 
-                if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+                {
                     break;
                 }
             }
-        
-            if (first_hit != nullptr && first_hit->AcceptsFocus()) {
+
+            if (first_hit != nullptr && first_hit->AcceptsFocus())
+            {
                 first_hit->Focus();
             }
         }
@@ -674,58 +738,65 @@ UIEventHandlerResult UIStage::OnInputEvent(
         Array<RC<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
-        for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-            const RC<UIObject> &ui_object = *it;
+        for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+        {
+            const RC<UIObject>& ui_object = *it;
 
             bool is_clicked = false;
 
-            if (m_mouse_button_pressed_states.Contains(ui_object)) {
+            if (m_mouse_button_pressed_states.Contains(ui_object))
+            {
                 is_clicked = true;
             }
         }
 
-        for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-            const RC<UIObject> &ui_object = *it;
+        for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+        {
+            const RC<UIObject>& ui_object = *it;
 
-            if (m_mouse_button_pressed_states.Contains(ui_object)) {
-                if (!ui_object->IsEnabled()) {
+            if (m_mouse_button_pressed_states.Contains(ui_object))
+            {
+                if (!ui_object->IsEnabled())
+                {
                     continue;
                 }
 
                 const UIEventHandlerResult result = ui_object->OnClick(MouseEvent {
-                    .input_manager      = input_manager,
-                    .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                    .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                    .absolute_position  = mouse_position,
-                    .mouse_buttons      = event.GetMouseButtons()
-                });
+                    .input_manager = input_manager,
+                    .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                    .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .absolute_position = mouse_position,
+                    .mouse_buttons = event.GetMouseButtons() });
 
                 event_handler_result |= result;
 
-                if (result & UIEventHandlerResult::ERR) {
+                if (result & UIEventHandlerResult::ERR)
+                {
                     HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
 
                     break;
                 }
 
-                if (result & UIEventHandlerResult::STOP_BUBBLING) {
+                if (result & UIEventHandlerResult::STOP_BUBBLING)
+                {
                     break;
                 }
             }
         }
 
-        for (auto &it : m_mouse_button_pressed_states) {
+        for (auto& it : m_mouse_button_pressed_states)
+        {
             // trigger mouse up
-            if (RC<UIObject> ui_object = it.first.Lock()) {
+            if (RC<UIObject> ui_object = it.first.Lock())
+            {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
                 UIEventHandlerResult current_result = ui_object->OnMouseUp(MouseEvent {
-                    .input_manager      = input_manager,
-                    .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                    .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                    .absolute_position  = mouse_position,
-                    .mouse_buttons      = it.second.mouse_buttons
-                });
+                    .input_manager = input_manager,
+                    .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                    .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .absolute_position = mouse_position,
+                    .mouse_buttons = it.second.mouse_buttons });
 
                 event_handler_result |= current_result;
             }
@@ -743,11 +814,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         Array<RC<UIObject>> ray_test_results;
 
-        if (TestRay(mouse_screen, ray_test_results)) {
-            UIObject *first_hit = nullptr;
+        if (TestRay(mouse_screen, ray_test_results))
+        {
+            UIObject* first_hit = nullptr;
 
-            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it) {
-                const RC<UIObject> &ui_object = *it;
+            for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
+            {
+                const RC<UIObject>& ui_object = *it;
 
                 // if (first_hit) {
                 //     // We don't want to check the current object if it's not a child of the first hit object,
@@ -760,17 +833,17 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 // }
 
                 UIEventHandlerResult current_result = ui_object->OnScroll(MouseEvent {
-                    .input_manager      = input_manager,
-                    .position           = ui_object->TransformScreenCoordsToRelative(mouse_position),
-                    .previous_position  = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
-                    .absolute_position  = mouse_position,
-                    .mouse_buttons      = event.GetMouseButtons(),
-                    .wheel              = Vec2i { wheel_x, wheel_y }
-                });
+                    .input_manager = input_manager,
+                    .position = ui_object->TransformScreenCoordsToRelative(mouse_position),
+                    .previous_position = ui_object->TransformScreenCoordsToRelative(previous_mouse_position),
+                    .absolute_position = mouse_position,
+                    .mouse_buttons = event.GetMouseButtons(),
+                    .wheel = Vec2i { wheel_x, wheel_y } });
 
                 event_handler_result |= current_result;
 
-                if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+                if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+                {
                     break;
                 }
             }
@@ -784,24 +857,28 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         RC<UIObject> ui_object = m_focused_object.Lock();
 
-        while (ui_object != nullptr) {
+        while (ui_object != nullptr)
+        {
             HYP_LOG(UI, Debug, "Key pressed: {} on {}", uint32(key_code), ui_object->GetName());
             UIEventHandlerResult current_result = ui_object->OnKeyDown(KeyboardEvent {
-                .input_manager  = input_manager,
-                .key_code       = key_code
-            });
+                .input_manager = input_manager,
+                .key_code = key_code });
 
             event_handler_result |= current_result;
 
             m_keyed_down_objects[key_code].PushBack(ui_object);
 
-            if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING) {
+            if (event_handler_result & UIEventHandlerResult::STOP_BUBBLING)
+            {
                 break;
             }
 
-            if (UIObject *parent = ui_object->GetParentUIObject()) {
+            if (UIObject* parent = ui_object->GetParentUIObject())
+            {
                 ui_object = parent->RefCountedPtrFromThis();
-            } else {
+            }
+            else
+            {
                 break;
             }
         }
@@ -814,13 +891,15 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const auto keyed_down_objects_it = m_keyed_down_objects.Find(key_code);
 
-        if (keyed_down_objects_it != m_keyed_down_objects.End()) {
-            for (const Weak<UIObject> &weak_ui_object : keyed_down_objects_it->second) {
-                if (RC<UIObject> ui_object = weak_ui_object.Lock()) {
+        if (keyed_down_objects_it != m_keyed_down_objects.End())
+        {
+            for (const Weak<UIObject>& weak_ui_object : keyed_down_objects_it->second)
+            {
+                if (RC<UIObject> ui_object = weak_ui_object.Lock())
+                {
                     ui_object->OnKeyUp(KeyboardEvent {
-                        .input_manager  = input_manager,
-                        .key_code       = key_code
-                    });
+                        .input_manager = input_manager,
+                        .key_code = key_code });
                 }
             }
         }
@@ -841,19 +920,23 @@ bool UIStage::Remove(ID<Entity> entity)
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (!m_scene.IsValid()) {
+    if (!m_scene.IsValid())
+    {
         return false;
     }
 
-    if (!GetNode()) {
+    if (!GetNode())
+    {
         return false;
     }
 
-    if (!m_scene->GetEntityManager()->HasEntity(entity)) {
+    if (!m_scene->GetEntityManager()->HasEntity(entity))
+    {
         return false;
     }
 
-    if (Handle<Node> child_node = GetNode()->FindChildWithEntity(entity)) {
+    if (Handle<Node> child_node = GetNode()->FindChildWithEntity(entity))
+    {
         child_node->Remove();
 
         return true;

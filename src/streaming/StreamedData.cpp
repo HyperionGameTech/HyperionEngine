@@ -20,11 +20,12 @@
 
 namespace hyperion {
 
-#pragma region StreamedData
+#pragma region StreamedDataBase
 
-StreamedData::StreamedData(StreamedDataState initial_state, ResourceHandle &out_resource_handle)
+StreamedDataBase::StreamedDataBase(StreamedDataState initial_state, ResourceHandle& out_resource_handle)
 {
-    switch (initial_state) {
+    switch (initial_state)
+    {
     case StreamedDataState::LOADED:
         // Setup resource handle so the data stays loaded
         // Initialize can't be called since it is a virtual function and the object is not fully constructed yet
@@ -37,59 +38,60 @@ StreamedData::StreamedData(StreamedDataState initial_state, ResourceHandle &out_
     }
 }
 
-void StreamedData::Initialize()
+void StreamedDataBase::Initialize()
 {
     Load_Internal();
 }
 
-void StreamedData::Destroy()
+void StreamedDataBase::Destroy()
 {
-    HYP_NAMED_SCOPE_FMT("Unpage {} (ResourceBase::Destroy())", InstanceClass()->GetName());
+    HYP_NAMED_SCOPE_FMT("Unpage {} (StreamedDataBase::Destroy())", InstanceClass()->GetName());
 
     Unpage_Internal();
 }
 
-void StreamedData::Update()
+void StreamedDataBase::Update()
 {
 }
 
-void StreamedData::Load() const
+void StreamedDataBase::Load() const
 {
-    const_cast<StreamedData *>(this)->Execute([this]()
-    {
-        if (IsInMemory_Internal()) {
-            return;
-        }
+    const_cast<StreamedDataBase*>(this)->Execute([this]()
+        {
+            if (IsInMemory_Internal())
+            {
+                return;
+            }
 
-        HYP_NAMED_SCOPE("Load {}", InstanceClass()->GetName());
+            HYP_NAMED_SCOPE("Load {}", InstanceClass()->GetName());
 
-        Load_Internal();
-    });
+            Load_Internal();
+        });
 }
 
-void StreamedData::Unpage()
+void StreamedDataBase::Unpage()
 {
     Execute([this]()
-    {
-        HYP_NAMED_SCOPE("Unpage {} (manual)", InstanceClass()->GetName());
+        {
+            HYP_NAMED_SCOPE("Unpage {} (manual)", InstanceClass()->GetName());
 
-        Unpage_Internal();
-    });
+            Unpage_Internal();
+        });
 }
 
-const ByteBuffer &StreamedData::GetByteBuffer() const
+const ByteBuffer& StreamedDataBase::GetByteBuffer() const
 {
-    static const ByteBuffer default_value { };
+    static const ByteBuffer default_value {};
 
     return default_value;
 }
 
-IThread *StreamedData::GetOwnerThread() const
+IThread* StreamedDataBase::GetOwnerThread() const
 {
     return GetGlobalStreamingThread().Get();
 }
 
-#pragma endregion StreamedData
+#pragma endregion StreamedDataBase
 
 #pragma region NullStreamedData
 
@@ -112,8 +114,8 @@ void NullStreamedData::Load_Internal() const
 
 #pragma region MemoryStreamedData
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer &)> &&load_from_memory_proc)
-    : StreamedData(),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer&)>&& load_from_memory_proc)
+    : StreamedDataBase(),
       m_hash_code(hash_code),
       m_load_from_memory_proc(std::move(load_from_memory_proc)),
       m_data_store(&GetDataStore<HYP_STATIC_STRING("streaming"), DSF_RW>()),
@@ -121,35 +123,39 @@ MemoryStreamedData::MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, B
 {
     const bool should_load_unpaged = !m_data_store->Exists(String::ToString(hash_code.Value())) && m_load_from_memory_proc.IsValid();
 
-    if (should_load_unpaged) {
+    if (should_load_unpaged)
+    {
         MemoryStreamedData::Load_Internal();
         MemoryStreamedData::Unpage_Internal();
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
-    : StreamedData(initial_state, out_resource_handle),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, const ByteBuffer& byte_buffer, StreamedDataState initial_state, ResourceHandle& out_resource_handle)
+    : StreamedDataBase(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
-    if (initial_state == StreamedDataState::LOADED) {
+    if (initial_state == StreamedDataState::LOADED)
+    {
         m_byte_buffer.Set(byte_buffer);
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
-    : StreamedData(initial_state, out_resource_handle),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ByteBuffer&& byte_buffer, StreamedDataState initial_state, ResourceHandle& out_resource_handle)
+    : StreamedDataBase(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
-    if (initial_state == StreamedDataState::LOADED) {
+    if (initial_state == StreamedDataState::LOADED)
+    {
         m_byte_buffer.Set(std::move(byte_buffer));
     }
 }
 
-MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle &out_resource_handle)
-    : StreamedData(initial_state, out_resource_handle),
+MemoryStreamedData::MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle& out_resource_handle)
+    : StreamedDataBase(initial_state, out_resource_handle),
       m_hash_code(hash_code)
 {
-    if (initial_state == StreamedDataState::LOADED) {
+    if (initial_state == StreamedDataState::LOADED)
+    {
         m_byte_buffer.Set(ByteBuffer(byte_view));
     }
 }
@@ -161,14 +167,16 @@ bool MemoryStreamedData::IsInMemory_Internal() const
 
 void MemoryStreamedData::Unpage_Internal()
 {
-    if (!m_byte_buffer.HasValue()) {
+    if (!m_byte_buffer.HasValue())
+    {
         return;
     }
 
     ByteBuffer byte_buffer = std::move(*m_byte_buffer);
     m_byte_buffer.Unset();
 
-    if (byte_buffer.Empty()) {
+    if (byte_buffer.Empty())
+    {
         return;
     }
 
@@ -177,30 +185,35 @@ void MemoryStreamedData::Unpage_Internal()
 
 void MemoryStreamedData::Load_Internal() const
 {
-    if (!m_byte_buffer.HasValue()) {
+    if (!m_byte_buffer.HasValue())
+    {
         m_byte_buffer.Emplace();
 
-        if (!m_data_store->Read(String::ToString(m_hash_code.Value()), *m_byte_buffer)) {
-            if (m_load_from_memory_proc.IsValid()) {
-                if (m_load_from_memory_proc(m_hash_code, *m_byte_buffer)) {
+        if (!m_data_store->Read(String::ToString(m_hash_code.Value()), *m_byte_buffer))
+        {
+            if (m_load_from_memory_proc.IsValid())
+            {
+                if (m_load_from_memory_proc(m_hash_code, *m_byte_buffer))
+                {
                     return;
                 }
 
                 HYP_LOG(Streaming, Warning, "Failed to load streamed data with hash code {} from memory", m_hash_code.Value());
             }
-            
+
             m_byte_buffer.Unset();
         }
     }
 }
 
-const ByteBuffer &MemoryStreamedData::GetByteBuffer() const
+const ByteBuffer& MemoryStreamedData::GetByteBuffer() const
 {
-    if (m_byte_buffer.HasValue()) {
+    if (m_byte_buffer.HasValue())
+    {
         return *m_byte_buffer;
     }
 
-    return StreamedData::GetByteBuffer();
+    return StreamedDataBase::GetByteBuffer();
 }
 
 #pragma endregion MemoryStreamedData

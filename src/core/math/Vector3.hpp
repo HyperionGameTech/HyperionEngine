@@ -25,143 +25,258 @@ namespace detail {
 template <class T>
 struct alignas(alignof(T) * 4) HYP_API Vec3
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
+    friend std::ostream& operator<<(std::ostream& out, const Vec3& vec);
 
     static constexpr uint32 size = 3;
-    
+
     using Type = T;
 
-    union {
-        struct { Type x, y, z; };
+    union
+    {
+        struct
+        {
+            Type x, y, z;
+        };
+
         Type values[3];
     };
 
-    constexpr Vec3()                                    : x(0), y(0), z(0) { }
-    constexpr Vec3(Type xyz)                            : x(xyz), y(xyz), z(xyz) { }
-    constexpr Vec3(Type x, Type y, Type z)              : x(x), y(y), z(z) { }
+    constexpr Vec3()
+        : x(0),
+          y(0),
+          z(0)
+    {
+    }
 
-    explicit constexpr Vec3(const Vec2<Type> &xy, Type z)
+    constexpr Vec3(Type xyz)
+        : x(xyz),
+          y(xyz),
+          z(xyz)
+    {
+    }
+
+    constexpr Vec3(Type x, Type y, Type z)
+        : x(x),
+          y(y),
+          z(z)
+    {
+    }
+
+    explicit constexpr Vec3(const Vec2<Type>& xy, Type z)
         : x(xy.x),
           y(xy.y),
           z(z)
     {
     }
 
-    constexpr Vec3(const Vec3 &other)                   = default;
-    constexpr Vec3 &operator=(const Vec3 &other)        = default;
-    constexpr Vec3(Vec3 &&other) noexcept               = default;
-    constexpr Vec3 &operator=(Vec3 &&other) noexcept    = default;
-    ~Vec3()                                             = default;
+    constexpr Vec3(const Vec3& other) = default;
+    constexpr Vec3& operator=(const Vec3& other) = default;
+    constexpr Vec3(Vec3&& other) noexcept = default;
+    constexpr Vec3& operator=(Vec3&& other) noexcept = default;
+    ~Vec3() = default;
 
     Type GetX() const
-        { return x; }
+    {
+        return x;
+    }
 
-    Type &GetX()
-        { return x; }
+    Type& GetX()
+    {
+        return x;
+    }
 
-    Vec3 &SetX(Type x)
-        { this->x = x; return *this; }
+    Vec3& SetX(Type x)
+    {
+        this->x = x;
+        return *this;
+    }
 
     Type GetY() const
-        { return y; }
+    {
+        return y;
+    }
 
-    Type &GetY()
-        { return y; }
+    Type& GetY()
+    {
+        return y;
+    }
 
-    Vec3 &SetY(Type y)
-        { this->y = y; return *this; }
+    Vec3& SetY(Type y)
+    {
+        this->y = y;
+        return *this;
+    }
 
     Type GetZ() const
-        { return z; }
+    {
+        return z;
+    }
 
-    Type &GetZ()
-        { return z; }
+    Type& GetZ()
+    {
+        return z;
+    }
 
-    Vec3 &SetZ(Type z)
-        { this->z = z; return *this; }
+    Vec3& SetZ(Type z)
+    {
+        this->z = z;
+        return *this;
+    }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
     HYP_FORCE_INLINE Vec2<Type> GetXY() const
-        { return Vec2<Type>(x, y); }
+    {
+        return Vec2<Type>(x, y);
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return Sum() != Type(0); }
+    {
+        return Sum() != Type(0);
+    }
 
-    HYP_FORCE_INLINE constexpr Type &operator[](int index)
-        { return values[index]; }
+    HYP_FORCE_INLINE constexpr Type& operator[](int index)
+    {
+        return values[index];
+    }
 
     HYP_FORCE_INLINE constexpr Type operator[](int index) const
-        { return values[index]; }
+    {
+        return values[index];
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator+(const Vec3 &other) const
-        { return { x + other.x, y + other.y, z + other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator+(const Vec3& other) const
+    {
+        return { x + other.x, y + other.y, z + other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator+=(const Vec3 &other)
-        { x += other.x; y += other.y; z += other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator+=(const Vec3& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator-(const Vec3 &other) const
-        { return { x - other.x, y - other.y, z - other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator-(const Vec3& other) const
+    {
+        return { x - other.x, y - other.y, z - other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator-=(const Vec3 &other)
-        { x -= other.x; y -= other.y; z -= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator-=(const Vec3& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE
-    constexpr Vec3 operator*(const Vec3 &other) const
-        { return { x * other.x, y * other.y, z * other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator*(const Vec3& other) const
+    {
+        return { x * other.x, y * other.y, z * other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator*=(const Vec3 &other)
-        { x *= other.x; y *= other.y; z *= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator*=(const Vec3& other)
+    {
+        x *= other.x;
+        y *= other.y;
+        z *= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator/(const Vec3 &other) const
-        { return { x / other.x, y / other.y, z / other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator/(const Vec3& other) const
+    {
+        return { x / other.x, y / other.y, z / other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator/=(const Vec3 &other)
-        { x /= other.x; y /= other.y; z /= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator/=(const Vec3& other)
+    {
+        x /= other.x;
+        y /= other.y;
+        z /= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator%(const Vec3 &other) const
-        { return { x % other.x, y % other.y, z % other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator%(const Vec3& other) const
+    {
+        return { x % other.x, y % other.y, z % other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator%=(const Vec3 &other)
-        { x %= other.x; y %= other.y; z %= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator%=(const Vec3& other)
+    {
+        x %= other.x;
+        y %= other.y;
+        z %= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator&(const Vec3 &other) const
-        { return { x & other.x, y & other.y, z & other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator&(const Vec3& other) const
+    {
+        return { x & other.x, y & other.y, z & other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator&=(const Vec3 &other)
-        { x &= other.x; y &= other.y; z &= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator&=(const Vec3& other)
+    {
+        x &= other.x;
+        y &= other.y;
+        z &= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator|(const Vec3 &other) const
-        { return { x | other.x, y | other.y, z | other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator|(const Vec3& other) const
+    {
+        return { x | other.x, y | other.y, z | other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator|=(const Vec3 &other)
-        { x |= other.x; y |= other.y; z |= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator|=(const Vec3& other)
+    {
+        x |= other.x;
+        y |= other.y;
+        z |= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator^(const Vec3 &other) const
-        { return { x ^ other.x, y ^ other.y, z ^ other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator^(const Vec3& other) const
+    {
+        return { x ^ other.x, y ^ other.y, z ^ other.z };
+    }
 
-    HYP_FORCE_INLINE
-    Vec3 &operator^=(const Vec3 &other)
-        { x ^= other.x; y ^= other.y; z ^= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator^=(const Vec3& other)
+    {
+        x ^= other.x;
+        y ^= other.y;
+        z ^= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const Vec3 &other) const
-        { return x == other.x && y == other.y && z == other.z; }
+    HYP_FORCE_INLINE constexpr bool operator==(const Vec3& other) const
+    {
+        return x == other.x && y == other.y && z == other.z;
+    }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const Vec3 &other) const
-        { return x != other.x || y != other.y || z != other.z; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const Vec3& other) const
+    {
+        return x != other.x || y != other.y || z != other.z;
+    }
 
     HYP_FORCE_INLINE constexpr Vec3 operator-() const
-        { return operator*(Type(-1)); }
+    {
+        return operator*(Type(-1));
+    }
 
     HYP_FORCE_INLINE constexpr Vec3 operator+() const
-        { return { +x, +y, +z }; }
-
-    HYP_FORCE_INLINE constexpr bool operator<(const Vec3 &other) const
     {
-        if (x != other.x) {
+        return { +x, +y, +z };
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator<(const Vec3& other) const
+    {
+        if (x != other.x)
+        {
             return x < other.x;
         }
 
-        if (y != other.y) {
+        if (y != other.y)
+        {
             return y < other.y;
         }
 
@@ -169,19 +284,29 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
     }
 
     HYP_FORCE_INLINE constexpr Type Avg() const
-        { return (x + y + z) / Type(size); }
+    {
+        return (x + y + z) / Type(size);
+    }
 
     HYP_FORCE_INLINE constexpr Type Sum() const
-        { return x + y + z; }
+    {
+        return x + y + z;
+    }
 
     HYP_FORCE_INLINE constexpr Type Volume() const
-        { return x * y * z; }
-    
+    {
+        return x * y * z;
+    }
+
     HYP_FORCE_INLINE constexpr Type Max() const
-        { return x > y ? (x > z ? x : z) : (y > z ? y : z); }
+    {
+        return x > y ? (x > z ? x : z) : (y > z ? y : z);
+    }
 
     HYP_FORCE_INLINE constexpr Type Min() const
-        { return x < y ? (x < z ? x : z) : (y < z ? y : z); }
+    {
+        return x < y ? (x < z ? x : z) : (y < z ? y : z);
+    }
 
     template <class Ty>
     constexpr explicit operator Vec3<Ty>() const
@@ -205,185 +330,298 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
     }
 
     HYP_FORCE_INLINE static Vec3 Zero()
-        { return { Type(0), Type(0), Type(0) }; }
+    {
+        return { Type(0), Type(0), Type(0) };
+    }
 
     HYP_FORCE_INLINE static Vec3 One()
-        { return { Type(1), Type(1), Type(1) }; }
+    {
+        return { Type(1), Type(1), Type(1) };
+    }
 
     HYP_FORCE_INLINE static Vec3 UnitX()
-        { return { Type(1), Type(0), Type(0) }; }
+    {
+        return { Type(1), Type(0), Type(0) };
+    }
 
     HYP_FORCE_INLINE static Vec3 UnitY()
-        { return { Type(0), Type(1), Type(0) }; }
+    {
+        return { Type(0), Type(1), Type(0) };
+    }
 
     HYP_FORCE_INLINE static Vec3 UnitZ()
-        { return { Type(0), Type(0), Type(1) }; }
-
+    {
+        return { Type(0), Type(0), Type(1) };
+    }
 };
 
 template <>
 struct alignas(alignof(float) * 4) HYP_API Vec3<float>
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vec3 &vec);
+    friend std::ostream& operator<<(std::ostream& out, const Vec3& vec);
 
     static constexpr uint32 size = 3;
-    
+
     using Type = float;
 
-    union {
-        struct { Type x, y, z; };
+    union
+    {
+        struct
+        {
+            Type x, y, z;
+        };
+
         Type values[3];
     };
 
-    constexpr Vec3()                                    : x(0), y(0), z(0) { }
-    constexpr Vec3(Type xyz)                            : x(xyz), y(xyz), z(xyz) { }
-    constexpr Vec3(Type x, Type y, Type z)              : x(x), y(y), z(z) { }
+    constexpr Vec3()
+        : x(0),
+          y(0),
+          z(0)
+    {
+    }
 
-    explicit constexpr Vec3(const Vec2<Type> &xy, Type z)
+    constexpr Vec3(Type xyz)
+        : x(xyz),
+          y(xyz),
+          z(xyz)
+    {
+    }
+
+    constexpr Vec3(Type x, Type y, Type z)
+        : x(x),
+          y(y),
+          z(z)
+    {
+    }
+
+    explicit constexpr Vec3(const Vec2<Type>& xy, Type z)
         : x(xy.x),
           y(xy.y),
           z(z)
     {
     }
 
-    constexpr Vec3(const Vec3 &other)                   = default;
-    constexpr Vec3 &operator=(const Vec3 &other)        = default;
-    constexpr Vec3(Vec3 &&other) noexcept               = default;
-    constexpr Vec3 &operator=(Vec3 &&other) noexcept    = default;
-    ~Vec3()                                             = default;
+    constexpr Vec3(const Vec3& other) = default;
+    constexpr Vec3& operator=(const Vec3& other) = default;
+    constexpr Vec3(Vec3&& other) noexcept = default;
+    constexpr Vec3& operator=(Vec3&& other) noexcept = default;
+    ~Vec3() = default;
 
     Type GetX() const
-        { return x; }
+    {
+        return x;
+    }
 
-    Type &GetX()
-        { return x; }
+    Type& GetX()
+    {
+        return x;
+    }
 
-    Vec3 &SetX(Type x)
-        { this->x = x; return *this; }
+    Vec3& SetX(Type x)
+    {
+        this->x = x;
+        return *this;
+    }
 
     Type GetY() const
-        { return y; }
+    {
+        return y;
+    }
 
-    Type &GetY()
-        { return y; }
+    Type& GetY()
+    {
+        return y;
+    }
 
-    Vec3 &SetY(Type y)
-        { this->y = y; return *this; }
+    Vec3& SetY(Type y)
+    {
+        this->y = y;
+        return *this;
+    }
 
     Type GetZ() const
-        { return z; }
+    {
+        return z;
+    }
 
-    Type &GetZ()
-        { return z; }
+    Type& GetZ()
+    {
+        return z;
+    }
 
-    Vec3 &SetZ(Type z)
-        { this->z = z; return *this; }
+    Vec3& SetZ(Type z)
+    {
+        this->z = z;
+        return *this;
+    }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
     HYP_FORCE_INLINE Vec2<Type> GetXY() const
-        { return Vec2<Type>(x, y); }
+    {
+        return Vec2<Type>(x, y);
+    }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return Sum() != Type(0); }
+    {
+        return Sum() != Type(0);
+    }
 
-    HYP_FORCE_INLINE constexpr Type &operator[](int index)
-        { return values[index]; }
+    HYP_FORCE_INLINE constexpr Type& operator[](int index)
+    {
+        return values[index];
+    }
 
     HYP_FORCE_INLINE constexpr Type operator[](int index) const
-        { return values[index]; }
+    {
+        return values[index];
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator+(const Vec3 &other) const
-        { return { x + other.x, y + other.y, z + other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator+(const Vec3& other) const
+    {
+        return { x + other.x, y + other.y, z + other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator+=(const Vec3 &other)
-        { x += other.x; y += other.y; z += other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator+=(const Vec3& other)
+    {
+        x += other.x;
+        y += other.y;
+        z += other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator-(const Vec3 &other) const
-        { return { x - other.x, y - other.y, z - other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator-(const Vec3& other) const
+    {
+        return { x - other.x, y - other.y, z - other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator-=(const Vec3 &other)
-        { x -= other.x; y -= other.y; z -= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator-=(const Vec3& other)
+    {
+        x -= other.x;
+        y -= other.y;
+        z -= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator*(const Vec3 &other) const
-        { return { x * other.x, y * other.y, z * other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator*(const Vec3& other) const
+    {
+        return { x * other.x, y * other.y, z * other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator*=(const Vec3 &other)
-        { x *= other.x; y *= other.y; z *= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator*=(const Vec3& other)
+    {
+        x *= other.x;
+        y *= other.y;
+        z *= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE constexpr Vec3 operator/(const Vec3 &other) const
-        { return { x / other.x, y / other.y, z / other.z }; }
+    HYP_FORCE_INLINE constexpr Vec3 operator/(const Vec3& other) const
+    {
+        return { x / other.x, y / other.y, z / other.z };
+    }
 
-    HYP_FORCE_INLINE Vec3 &operator/=(const Vec3 &other)
-        { x /= other.x; y /= other.y; z /= other.z; return *this; }
+    HYP_FORCE_INLINE Vec3& operator/=(const Vec3& other)
+    {
+        x /= other.x;
+        y /= other.y;
+        z /= other.z;
+        return *this;
+    }
 
-    HYP_FORCE_INLINE
-    constexpr bool operator==(const Vec3 &other) const
-        { return x == other.x && y == other.y && z == other.z; }
+    HYP_FORCE_INLINE constexpr bool operator==(const Vec3& other) const
+    {
+        return x == other.x && y == other.y && z == other.z;
+    }
 
-    HYP_FORCE_INLINE
-    constexpr bool operator!=(const Vec3 &other) const
-        { return x != other.x || y != other.y || z != other.z; }
+    HYP_FORCE_INLINE constexpr bool operator!=(const Vec3& other) const
+    {
+        return x != other.x || y != other.y || z != other.z;
+    }
 
     HYP_FORCE_INLINE constexpr Vec3 operator-() const
-        { return operator*(Type(-1)); }
+    {
+        return operator*(Type(-1));
+    }
 
     HYP_FORCE_INLINE constexpr Vec3 operator+() const
-        { return { +x, +y, +z }; }
-
-    HYP_FORCE_INLINE constexpr bool operator<(const Vec3 &other) const
     {
-        if (x != other.x) {
+        return { +x, +y, +z };
+    }
+
+    HYP_FORCE_INLINE constexpr bool operator<(const Vec3& other) const
+    {
+        if (x != other.x)
+        {
             return x < other.x;
         }
 
-        if (y != other.y) {
+        if (y != other.y)
+        {
             return y < other.y;
         }
 
         return z < other.z;
     }
 
-    Vec3 operator*(const Matrix3 &mat) const;
-    Vec3 &operator*=(const Matrix3 &mat);
-    Vec3 operator*(const Matrix4 &mat) const;
-    Vec3 &operator*=(const Matrix4 &mat);
-    Vec3 operator*(const Quaternion &quat) const;
-    Vec3 &operator*=(const Quaternion &quat);
+    Vec3 operator*(const Matrix3& mat) const;
+    Vec3& operator*=(const Matrix3& mat);
+    Vec3 operator*(const Matrix4& mat) const;
+    Vec3& operator*=(const Matrix4& mat);
+    Vec3 operator*(const Quaternion& quat) const;
+    Vec3& operator*=(const Quaternion& quat);
 
     HYP_FORCE_INLINE constexpr Type Avg() const
-        { return (x + y + z) / Type(size); }
+    {
+        return (x + y + z) / Type(size);
+    }
 
     HYP_FORCE_INLINE constexpr Type Sum() const
-        { return x + y + z; }
+    {
+        return x + y + z;
+    }
 
     HYP_FORCE_INLINE constexpr Type Volume() const
-        { return x * y * z; }
-    
+    {
+        return x * y * z;
+    }
+
     HYP_FORCE_INLINE constexpr Type Max() const
-        { return x > y ? (x > z ? x : z) : (y > z ? y : z); }
+    {
+        return x > y ? (x > z ? x : z) : (y > z ? y : z);
+    }
 
     HYP_FORCE_INLINE constexpr Type Min() const
-        { return x < y ? (x < z ? x : z) : (y < z ? y : z); }
+    {
+        return x < y ? (x < z ? x : z) : (y < z ? y : z);
+    }
 
-    Type DistanceSquared(const Vec3 &other) const;
-    Type Distance(const Vec3 &other) const;
-    
-    constexpr Type LengthSquared() const { return x * x + y * y + z * z; }
-    Type Length() const { return std::sqrt(LengthSquared()); }
-    
+    Type DistanceSquared(const Vec3& other) const;
+    Type Distance(const Vec3& other) const;
+
+    constexpr Type LengthSquared() const
+    {
+        return x * x + y * y + z * z;
+    }
+
+    Type Length() const
+    {
+        return std::sqrt(LengthSquared());
+    }
+
     Vec3 Normalized() const;
-    Vec3 &Normalize();
+    Vec3& Normalize();
 
-    Vec3 Cross(const Vec3 &other) const;
+    Vec3 Cross(const Vec3& other) const;
 
-    Vec3 Reflect(const Vec3 &normal) const;
+    Vec3 Reflect(const Vec3& normal) const;
 
-    Vec3 &Rotate(const Vec3 &axis, Type radians);
-    Vec3 &Rotate(const Quaternion &quaternion);
-    Vec3 &Lerp(const Vec3 &to, Type amt);
-    Type Dot(const Vec3 &other) const;
-    Type AngleBetween(const Vec3 &other) const;
-    
+    Vec3& Rotate(const Vec3& axis, Type radians);
+    Vec3& Rotate(const Quaternion& quaternion);
+    Vec3& Lerp(const Vec3& to, Type amt);
+    Type Dot(const Vec3& other) const;
+    Type AngleBetween(const Vec3& other) const;
+
     template <class Ty>
     constexpr explicit operator Vec3<Ty>() const
     {
@@ -405,26 +643,36 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return hc;
     }
 
-    static Vec3<float> Abs(const Vec3<float> &);
-    static Vec3<float> Round(const Vec3<float> &);
-    static Vec3<float> Clamp(const Vec3<float> &, float min, float max);
-    static Vec3<float> Min(const Vec3<float> &a, const Vec3<float> &b);
-    static Vec3<float> Max(const Vec3<float> &a, const Vec3<float> &b);
+    static Vec3<float> Abs(const Vec3<float>&);
+    static Vec3<float> Round(const Vec3<float>&);
+    static Vec3<float> Clamp(const Vec3<float>&, float min, float max);
+    static Vec3<float> Min(const Vec3<float>& a, const Vec3<float>& b);
+    static Vec3<float> Max(const Vec3<float>& a, const Vec3<float>& b);
 
     static Vec3 Zero()
-        { return { Type(0), Type(0), Type(0) }; }
+    {
+        return { Type(0), Type(0), Type(0) };
+    }
 
     static Vec3 One()
-        { return { Type(1), Type(1), Type(1) }; }
+    {
+        return { Type(1), Type(1), Type(1) };
+    }
 
     static Vec3 UnitX()
-        { return { Type(1), Type(0), Type(0) }; }
+    {
+        return { Type(1), Type(0), Type(0) };
+    }
 
     static Vec3 UnitY()
-        { return { Type(0), Type(1), Type(0) }; }
+    {
+        return { Type(0), Type(1), Type(0) };
+    }
 
     static Vec3 UnitZ()
-        { return { Type(0), Type(0), Type(1) }; }
+    {
+        return { Type(0), Type(0), Type(1) };
+    }
 };
 
 } // namespace detail

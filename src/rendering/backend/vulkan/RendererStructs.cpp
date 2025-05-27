@@ -6,4 +6,4 @@
 
 namespace hyperion::renderer {
 
-} // hyperion::renderer
+} // namespace hyperion::renderer

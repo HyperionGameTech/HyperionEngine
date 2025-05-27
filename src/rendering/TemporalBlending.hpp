@@ -41,51 +41,56 @@ public:
     friend struct RenderCommand_RecreateTemporalBlendingFramebuffer;
 
     TemporalBlending(
-        const Vec2u &extent,
+        const Vec2u& extent,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef &input_image_view,
-        GBuffer *gbuffer
-    );
+        const ImageViewRef& input_image_view,
+        GBuffer* gbuffer);
 
     TemporalBlending(
-        const Vec2u &extent,
+        const Vec2u& extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const FramebufferRef &input_framebuffer,
-        GBuffer *gbuffer
-    );
+        const FramebufferRef& input_framebuffer,
+        GBuffer* gbuffer);
 
     TemporalBlending(
-        const Vec2u &extent,
+        const Vec2u& extent,
         InternalFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef &input_image_view,
-        GBuffer *gbuffer
-    );
+        const ImageViewRef& input_image_view,
+        GBuffer* gbuffer);
 
-    TemporalBlending(const TemporalBlending &other)             = delete;
-    TemporalBlending &operator=(const TemporalBlending &other)  = delete;
+    TemporalBlending(const TemporalBlending& other) = delete;
+    TemporalBlending& operator=(const TemporalBlending& other) = delete;
     ~TemporalBlending();
 
     HYP_FORCE_INLINE TemporalBlendTechnique GetTechnique() const
-        { return m_technique; }
+    {
+        return m_technique;
+    }
 
     HYP_FORCE_INLINE TemporalBlendFeedback GetFeedback() const
-        { return m_feedback; }
+    {
+        return m_feedback;
+    }
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetResultTexture() const
-        { return m_result_texture; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetResultTexture() const
+    {
+        return m_result_texture;
+    }
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetHistoryTexture() const
-        { return m_history_texture; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetHistoryTexture() const
+    {
+        return m_history_texture;
+    }
 
     void ResetProgressiveBlending();
 
     void Create();
-    void Render(FrameBase *frame, ViewRenderResource *view);
+    void Render(FrameBase* frame, ViewRenderResource* view);
 
     void Resize(Vec2u new_size);
 
@@ -98,26 +103,26 @@ private:
     void CreateDescriptorSets();
     void CreateComputePipelines();
 
-    Vec2u                                           m_extent;
-    InternalFormat                                  m_image_format;
-    TemporalBlendTechnique                          m_technique;
-    TemporalBlendFeedback                           m_feedback;
-    GBuffer                                         *m_gbuffer;
+    Vec2u m_extent;
+    InternalFormat m_image_format;
+    TemporalBlendTechnique m_technique;
+    TemporalBlendFeedback m_feedback;
+    GBuffer* m_gbuffer;
 
-    uint16                                          m_blending_frame_counter;
+    uint16 m_blending_frame_counter;
 
-    ComputePipelineRef                              m_perform_blending;
-    DescriptorTableRef                              m_descriptor_table;
+    ComputePipelineRef m_perform_blending;
+    DescriptorTableRef m_descriptor_table;
 
-    ImageViewRef                                    m_input_image_view;
-    FramebufferRef                                  m_input_framebuffer;
+    ImageViewRef m_input_image_view;
+    FramebufferRef m_input_framebuffer;
 
-    Handle<Texture>                                 m_result_texture;
-    Handle<Texture>                                 m_history_texture;
+    Handle<Texture> m_result_texture;
+    Handle<Texture> m_history_texture;
 
-    DelegateHandler                                 m_on_gbuffer_resolution_changed;
+    DelegateHandler m_on_gbuffer_resolution_changed;
 
-    bool                                            m_is_initialized;
+    bool m_is_initialized;
 };
 
 } // namespace hyperion

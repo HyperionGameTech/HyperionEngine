@@ -14,14 +14,14 @@ PerspectiveCameraController::PerspectiveCameraController()
 void PerspectiveCameraController::OnActivated()
 {
     HYP_SCOPE;
-    
+
     CameraController::OnActivated();
 }
 
 void PerspectiveCameraController::OnDeactivated()
 {
     HYP_SCOPE;
-    
+
     CameraController::OnDeactivated();
 }
 
@@ -33,23 +33,21 @@ void PerspectiveCameraController::UpdateLogic(double dt)
 void PerspectiveCameraController::UpdateViewMatrix()
 {
     HYP_SCOPE;
-    
+
     m_camera->m_view_mat = Matrix4::LookAt(
         m_camera->m_translation,
         m_camera->GetTarget(),
-        m_camera->m_up
-    );
+        m_camera->m_up);
 }
 
 void PerspectiveCameraController::UpdateProjectionMatrix()
 {
     HYP_SCOPE;
-    
+
     m_camera->SetToPerspectiveProjection(
         m_camera->m_fov,
         m_camera->m_near,
-        m_camera->m_far
-    );
+        m_camera->m_far);
 }
 
 } // namespace hyperion

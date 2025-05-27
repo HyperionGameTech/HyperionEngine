@@ -12,12 +12,12 @@ namespace hyperion {
 
 using namespace json;
 
-class JSONLoader : public AssetLoader
+class JSONLoader : public AssetLoaderBase
 {
 public:
     virtual ~JSONLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

@@ -31,12 +31,14 @@ WorldGridSubsystem::~WorldGridSubsystem()
 {
 }
 
-WorldGrid *WorldGridSubsystem::GetWorldGrid(ID<Scene> scene_id)
+WorldGrid* WorldGridSubsystem::GetWorldGrid(ID<Scene> scene_id)
 {
     HYP_SCOPE;
 
-    for (const UniquePtr<WorldGrid> &world_grid : m_world_grids) {
-        if (world_grid->GetScene().GetID() == scene_id) {
+    for (const UniquePtr<WorldGrid>& world_grid : m_world_grids)
+    {
+        if (world_grid->GetScene().GetID() == scene_id)
+        {
             return world_grid.Get();
         }
     }
@@ -53,7 +55,8 @@ void WorldGridSubsystem::Shutdown()
 {
     HYP_SCOPE;
 
-    for (UniquePtr<WorldGrid> &world_grid : m_world_grids) {
+    for (UniquePtr<WorldGrid>& world_grid : m_world_grids)
+    {
         world_grid->Shutdown();
     }
 
@@ -66,36 +69,39 @@ void WorldGridSubsystem::Update(GameCounter::TickUnit delta)
 
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    for (const UniquePtr<WorldGrid> &world_grid : m_world_grids) {
+    for (const UniquePtr<WorldGrid>& world_grid : m_world_grids)
+    {
         world_grid->Update(delta);
     }
 }
 
-void WorldGridSubsystem::OnSceneAttached(const Handle<Scene> &scene)
+void WorldGridSubsystem::OnSceneAttached(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
-    if (scene->IsForegroundScene()) {
-        UniquePtr<WorldGrid> &world_grid = m_world_grids.PushBack(MakeUnique<WorldGrid>(
-            WorldGridParams { },
-            scene
-        ));
+    if (scene->IsForegroundScene())
+    {
+        UniquePtr<WorldGrid>& world_grid = m_world_grids.PushBack(MakeUnique<WorldGrid>(
+            WorldGridParams {},
+            scene));
 
         world_grid->Initialize();
     }
 }
 
-void WorldGridSubsystem::OnSceneDetached(const Handle<Scene> &scene)
+void WorldGridSubsystem::OnSceneDetached(const Handle<Scene>& scene)
 {
     HYP_SCOPE;
 
-    if (scene->IsForegroundScene()) {
-        auto it = m_world_grids.FindIf([&scene](const UniquePtr<WorldGrid> &world_grid)
-        {
-            return world_grid->GetScene() == scene;
-        });
+    if (scene->IsForegroundScene())
+    {
+        auto it = m_world_grids.FindIf([&scene](const UniquePtr<WorldGrid>& world_grid)
+            {
+                return world_grid->GetScene() == scene;
+            });
 
-        if (it != m_world_grids.End()) {
+        if (it != m_world_grids.End())
+        {
             (*it)->Shutdown();
 
             m_world_grids.Erase(it);

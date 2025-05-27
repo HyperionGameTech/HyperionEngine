@@ -4,7 +4,7 @@
 
 namespace hyperion::json {
 
-TokenStream::TokenStream(const TokenStreamInfo &info)
+TokenStream::TokenStream(const TokenStreamInfo& info)
     : m_position(0),
       m_info(info)
 {

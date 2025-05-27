@@ -25,6 +25,7 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
+
 class IEditorAction : public EnableRefCountedPtrFromThis<IEditorAction>
 {
     HYP_OBJECT_BODY(IEditorAction);
@@ -42,18 +43,30 @@ public:
     virtual void Revert();
 
 protected:
-    virtual Name GetName_Impl() const { HYP_PURE_VIRTUAL(); }
-    virtual void Execute_Impl() { HYP_PURE_VIRTUAL(); };
-    virtual void Revert_Impl() { HYP_PURE_VIRTUAL(); }
+    virtual Name GetName_Impl() const
+    {
+        HYP_PURE_VIRTUAL();
+    }
+
+    virtual void Execute_Impl()
+    {
+        HYP_PURE_VIRTUAL();
+    };
+
+    virtual void Revert_Impl()
+    {
+        HYP_PURE_VIRTUAL();
+    }
 };
 
 struct EditorActionFunctions
 {
-    Proc<void()>  execute;
-    Proc<void()>  revert;
+    Proc<void()> execute;
+    Proc<void()> revert;
 };
 
 HYP_CLASS()
+
 class HYP_API FunctionalEditorAction : public IEditorAction
 {
     HYP_OBJECT_BODY(FunctionalEditorAction);
@@ -61,7 +74,7 @@ class HYP_API FunctionalEditorAction : public IEditorAction
 public:
     FunctionalEditorAction() = default;
 
-    FunctionalEditorAction(Name name, Proc<EditorActionFunctions()> &&get_state_proc)
+    FunctionalEditorAction(Name name, Proc<EditorActionFunctions()>&& get_state_proc)
         : m_name(name),
           m_get_state_proc(std::move(get_state_proc)),
           m_get_state_proc_result(m_get_state_proc())
@@ -69,27 +82,30 @@ public:
     }
 
     HYP_METHOD()
+
     virtual Name GetName() const override final
     {
         return m_name;
     }
 
     HYP_METHOD()
+
     virtual void Execute() override final
     {
         m_get_state_proc_result.execute();
     }
 
     HYP_METHOD()
+
     virtual void Revert() override final
     {
         m_get_state_proc_result.revert();
     }
 
 private:
-    Name                            m_name;
-    Proc<EditorActionFunctions()>   m_get_state_proc;
-    EditorActionFunctions           m_get_state_proc_result;
+    Name m_name;
+    Proc<EditorActionFunctions()> m_get_state_proc;
+    EditorActionFunctions m_get_state_proc_result;
 };
 
 class IEditorActionFactory;
@@ -97,13 +113,13 @@ class IEditorActionFactory;
 class HYP_API EditorActionFactoryRegistry
 {
 public:
-    static EditorActionFactoryRegistry &GetInstance();
+    static EditorActionFactoryRegistry& GetInstance();
 
-    IEditorActionFactory *GetFactoryByName(Name action_name) const;
-    void RegisterFactory(Name action_name, IEditorActionFactory *factory);
+    IEditorActionFactory* GetFactoryByName(Name action_name) const;
+    void RegisterFactory(Name action_name, IEditorActionFactory* factory);
 
 private:
-    HashMap<Name, IEditorActionFactory *>   m_factories;
+    HashMap<Name, IEditorActionFactory*> m_factories;
 };
 
 class IEditorActionFactory
@@ -131,9 +147,9 @@ namespace detail {
 struct HYP_API EditorActionFactoryRegistrationBase
 {
 protected:
-    IEditorActionFactory    *factory;
+    IEditorActionFactory* m_factory;
 
-    EditorActionFactoryRegistrationBase(Name action_name, IEditorActionFactory *factory);
+    EditorActionFactoryRegistrationBase(Name action_name, IEditorActionFactory* factory);
     ~EditorActionFactoryRegistrationBase();
 };
 
@@ -149,10 +165,9 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
 } // namespace detail
 } // namespace hyperion
 
-#define HYP_DEFINE_EDITOR_ACTION(action_name) \
-    class EditorAction_##action_name; \
-    static ::hyperion::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name { }; \
+#define HYP_DEFINE_EDITOR_ACTION(action_name)                                                                                    \
+    class EditorAction_##action_name;                                                                                            \
+    static ::hyperion::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name {}; \
     class EditorAction_##action_name : public ::hyperion::EditorAction
 
 #endif
-

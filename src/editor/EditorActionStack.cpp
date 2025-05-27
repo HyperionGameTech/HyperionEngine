@@ -17,7 +17,7 @@ EditorActionStack::EditorActionStack()
 {
 }
 
-EditorActionStack::EditorActionStack(EditorActionStack &&other) noexcept
+EditorActionStack::EditorActionStack(EditorActionStack&& other) noexcept
     : m_actions(Move(other.m_actions)),
       m_current_action_index(other.m_current_action_index),
       m_current_state(other.m_current_state)
@@ -26,7 +26,7 @@ EditorActionStack::EditorActionStack(EditorActionStack &&other) noexcept
     other.m_current_state = EditorActionStackState::NONE;
 }
 
-EditorActionStack &EditorActionStack::operator=(EditorActionStack &&other) noexcept
+EditorActionStack& EditorActionStack::operator=(EditorActionStack&& other) noexcept
 {
     m_actions = Move(other.m_actions);
     m_current_action_index = other.m_current_action_index;
@@ -50,7 +50,7 @@ bool EditorActionStack::CanRedo() const
     return m_current_action_index + 1 < m_actions.Size();
 }
 
-void EditorActionStack::Push(const RC<IEditorAction> &action)
+void EditorActionStack::Push(const RC<IEditorAction>& action)
 {
     AssertThrow(action != nullptr);
 
@@ -61,7 +61,8 @@ void EditorActionStack::Push(const RC<IEditorAction> &action)
     action->Execute();
 
     // Chop off any actions that were undone
-    if (m_current_action_index + 1 < m_actions.Size()) {
+    if (m_current_action_index + 1 < m_actions.Size())
+    {
         m_actions.Resize(m_current_action_index + 1);
     }
 
@@ -75,16 +76,17 @@ void EditorActionStack::Push(const RC<IEditorAction> &action)
 
 void EditorActionStack::Undo()
 {
-    if (!CanUndo()) {
+    if (!CanUndo())
+    {
         return;
     }
 
-    IEditorAction *action = m_actions[m_current_action_index].Get();
+    IEditorAction* action = m_actions[m_current_action_index].Get();
 
     OnBeforeActionPop(action);
 
     action->Revert();
-    
+
     --m_current_action_index;
 
     UpdateState();
@@ -94,11 +96,12 @@ void EditorActionStack::Undo()
 
 void EditorActionStack::Redo()
 {
-    if (!CanRedo()) {
+    if (!CanRedo())
+    {
         return;
     }
 
-    IEditorAction *action = m_actions[m_current_action_index + 1].Get();
+    IEditorAction* action = m_actions[m_current_action_index + 1].Get();
 
     OnBeforeActionPush(action);
 
@@ -111,18 +114,20 @@ void EditorActionStack::Redo()
     OnAfterActionPush(action);
 }
 
-IEditorAction *EditorActionStack::GetUndoAction() const
+IEditorAction* EditorActionStack::GetUndoAction() const
 {
-    if (!CanUndo()) {
+    if (!CanUndo())
+    {
         return nullptr;
     }
 
     return m_actions[m_current_action_index].Get();
 }
 
-IEditorAction *EditorActionStack::GetRedoAction() const
+IEditorAction* EditorActionStack::GetRedoAction() const
 {
-    if (!CanRedo()) {
+    if (!CanRedo())
+    {
         return nullptr;
     }
 
@@ -135,7 +140,8 @@ void EditorActionStack::UpdateState()
     new_state[EditorActionStackState::CAN_UNDO] = CanUndo();
     new_state[EditorActionStackState::CAN_REDO] = CanRedo();
 
-    if (m_current_state != new_state) {
+    if (m_current_state != new_state)
+    {
         m_current_state = new_state;
 
         OnStateChange(m_current_state);

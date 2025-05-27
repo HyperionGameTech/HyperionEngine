@@ -17,7 +17,7 @@ AudioSource::AudioSource()
 {
 }
 
-AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer &byte_buffer, uint64 freq)
+AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer& byte_buffer, uint64 freq)
     : HypObject(),
       m_format(format),
       m_data(byte_buffer),
@@ -28,7 +28,7 @@ AudioSource::AudioSource(AudioSourceFormat format, const ByteBuffer &byte_buffer
 {
 }
 
-AudioSource::AudioSource(AudioSource &&other) noexcept
+AudioSource::AudioSource(AudioSource&& other) noexcept
     : HypObject(),
       m_format(other.m_format),
       m_freq(other.m_freq),
@@ -44,9 +44,10 @@ AudioSource::AudioSource(AudioSource &&other) noexcept
     other.m_sample_length = 0;
 }
 
-AudioSource &AudioSource::operator=(AudioSource &&other) noexcept
+AudioSource& AudioSource::operator=(AudioSource&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -70,12 +71,14 @@ AudioSource::~AudioSource()
 {
     Stop();
 
-    if (m_source_id != ~0u) {
+    if (m_source_id != ~0u)
+    {
         alDeleteSources(1, &m_source_id);
         m_source_id = ~0u;
     }
 
-    if (m_buffer_id != ~0u) {
+    if (m_buffer_id != ~0u)
+    {
         alDeleteBuffers(1, &m_buffer_id);
         m_buffer_id = ~0u;
     }
@@ -83,16 +86,19 @@ AudioSource::~AudioSource()
 
 void AudioSource::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         auto al_format = AL_FORMAT_MONO8;
 
-        switch (m_format) {
+        switch (m_format)
+        {
         case AudioSourceFormat::MONO8:
             al_format = AL_FORMAT_MONO8;
             break;
@@ -122,82 +128,96 @@ void AudioSource::Init()
 
 AudioSourceState AudioSource::GetState() const
 {
-    if (!AudioManager::GetInstance().IsInitialized()) {
+    if (!AudioManager::GetInstance().IsInitialized())
+    {
         return AudioSourceState::UNDEFINED;
     }
 
     ALint state;
     alGetSourcei(m_source_id, AL_SOURCE_STATE, &state);
 
-    switch (state) {
+    switch (state)
+    {
     case AL_INITIAL: // fallthrough
-    case AL_STOPPED: return AudioSourceState::STOPPED;
-    case AL_PLAYING: return AudioSourceState::PLAYING;
-    case AL_PAUSED:  return AudioSourceState::PAUSED;
-    default: return AudioSourceState::UNDEFINED;
+    case AL_STOPPED:
+        return AudioSourceState::STOPPED;
+    case AL_PLAYING:
+        return AudioSourceState::PLAYING;
+    case AL_PAUSED:
+        return AudioSourceState::PAUSED;
+    default:
+        return AudioSourceState::UNDEFINED;
     }
 }
 
-
-void AudioSource::SetPosition(const Vec3f &vec)
+void AudioSource::SetPosition(const Vec3f& vec)
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSource3f(m_source_id, AL_POSITION, vec.x, vec.y, vec.z);
     }
 }
 
-void AudioSource::SetVelocity(const Vec3f &vec)
+void AudioSource::SetVelocity(const Vec3f& vec)
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSource3f(m_source_id, AL_VELOCITY, vec.x, vec.y, vec.z);
     }
 }
 
 void AudioSource::SetPitch(float pitch)
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourcef(m_source_id, AL_PITCH, pitch);
     }
 }
 
 void AudioSource::SetGain(float gain)
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourcef(m_source_id, AL_GAIN, gain);
     }
 }
 
 void AudioSource::SetLoop(bool loop)
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourcei(m_source_id, AL_LOOPING, loop);
     }
 }
 
 void AudioSource::Play()
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourcePlay(m_source_id);
     }
 }
 
 void AudioSource::Pause()
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourcePause(m_source_id);
     }
 }
 
 void AudioSource::Stop()
 {
-    if (AudioManager::GetInstance().IsInitialized()) {
+    if (AudioManager::GetInstance().IsInitialized())
+    {
         alSourceStop(m_source_id);
     }
 }
 
 void AudioSource::FindSampleLength()
 {
-    if (!AudioManager::GetInstance().IsInitialized()) {
+    if (!AudioManager::GetInstance().IsInitialized())
+    {
         return;
     }
 

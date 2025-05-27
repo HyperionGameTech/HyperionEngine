@@ -9,11 +9,12 @@
 
 namespace hyperion {
 
-HYP_STRUCT(Component, Editor=false)
+HYP_STRUCT(Component, Editor = false)
+
 struct BVHComponent
 {
     HYP_FIELD()
-    BVHNode     bvh;
+    BVHNode bvh;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

@@ -29,7 +29,7 @@ namespace hyperion {
 
 enum class LogChannelFlags : uint32
 {
-    NONE    = 0x0
+    NONE = 0x0
 };
 
 HYP_MAKE_ENUM_FLAGS(LogChannelFlags)
@@ -38,24 +38,35 @@ namespace logging {
 
 struct LogMessage
 {
-    LogLevel                        level;
-    StringView<StringType::UTF8>    message;
+    LogLevel level;
+    StringView<StringType::UTF8> message;
 };
 
 template <LogLevel Level>
 static constexpr auto LogLevelToString()
 {
-    if constexpr (Level == LogLevel::DEBUG) {
+    if constexpr (Level == LogLevel::DEBUG)
+    {
         return HYP_STATIC_STRING("Debug");
-    } else if constexpr (Level == LogLevel::INFO) {
+    }
+    else if constexpr (Level == LogLevel::INFO)
+    {
         return HYP_STATIC_STRING("Info");
-    } else if constexpr (Level == LogLevel::WARNING) {
+    }
+    else if constexpr (Level == LogLevel::WARNING)
+    {
         return HYP_STATIC_STRING("Warning");
-    } else if constexpr (Level == LogLevel::ERR) {
+    }
+    else if constexpr (Level == LogLevel::ERR)
+    {
         return HYP_STATIC_STRING("Error");
-    } else if constexpr (Level == LogLevel::FATAL) {
+    }
+    else if constexpr (Level == LogLevel::FATAL)
+    {
         return HYP_STATIC_STRING("Fatal");
-    } else {
+    }
+    else
+    {
         return HYP_STATIC_STRING("Unknown");
     }
 }
@@ -66,52 +77,62 @@ public:
     friend class Logger;
 
     HYP_API LogChannel(Name name);
-    HYP_API LogChannel(Name name, LogChannel *parent_channel);
-    LogChannel(const LogChannel &other)                 = delete;
-    LogChannel &operator=(const LogChannel &other)      = delete;
-    LogChannel(LogChannel &&other) noexcept             = delete;
-    LogChannel &operator=(LogChannel &&other) noexcept  = delete;
+    HYP_API LogChannel(Name name, LogChannel* parent_channel);
+    LogChannel(const LogChannel& other) = delete;
+    LogChannel& operator=(const LogChannel& other) = delete;
+    LogChannel(LogChannel&& other) noexcept = delete;
+    LogChannel& operator=(LogChannel&& other) noexcept = delete;
     HYP_API ~LogChannel();
 
     /*! \brief Get the ID of this channel. */
     HYP_FORCE_INLINE uint32 GetID() const
-        { return m_id; }
+    {
+        return m_id;
+    }
 
     /*! \brief Get the name of this channel. */
     HYP_FORCE_INLINE Name GetName() const
-        { return m_name; }
+    {
+        return m_name;
+    }
 
     /*! \brief Get the flags for this channel. */
     HYP_FORCE_INLINE EnumFlags<LogChannelFlags> GetFlags() const
-        { return m_flags; }
+    {
+        return m_flags;
+    }
 
     /*! \brief Get a pointer to the parent channel, if one exists. */
-    HYP_FORCE_INLINE LogChannel *GetParentChannel() const
-        { return m_parent_channel; }
+    HYP_FORCE_INLINE LogChannel* GetParentChannel() const
+    {
+        return m_parent_channel;
+    }
 
-    HYP_FORCE_INLINE const Bitset &GetMaskBitset() const
-        { return m_mask_bitset; }
+    HYP_FORCE_INLINE const Bitset& GetMaskBitset() const
+    {
+        return m_mask_bitset;
+    }
 
 private:
-    uint32                      m_id;
-    Name                        m_name;
-    EnumFlags<LogChannelFlags>  m_flags;
-    LogChannel                  *m_parent_channel;
-    Bitset                      m_mask_bitset;
+    uint32 m_id;
+    Name m_name;
+    EnumFlags<LogChannelFlags> m_flags;
+    LogChannel* m_parent_channel;
+    Bitset m_mask_bitset;
 };
 
-using LoggerWriteFnPtr = void(*)(void *context, const LogChannel &channel, const LogMessage &message);
+using LoggerWriteFnPtr = void (*)(void* context, const LogChannel& channel, const LogMessage& message);
 
 class ILoggerOutputStream
 {
 public:
     virtual ~ILoggerOutputStream() = default;
 
-    virtual int AddRedirect(const Bitset &channel_mask, void *context, LoggerWriteFnPtr write_fnptr, LoggerWriteFnPtr write_error_fnptr) = 0;
+    virtual int AddRedirect(const Bitset& channel_mask, void* context, LoggerWriteFnPtr write_fnptr, LoggerWriteFnPtr write_error_fnptr) = 0;
     virtual void RemoveRedirect(int id) = 0;
 
-    virtual void Write(const LogChannel &channel, const LogMessage &message) = 0;
-    virtual void WriteError(const LogChannel &channel, const LogMessage &message) = 0;
+    virtual void Write(const LogChannel& channel, const LogMessage& message) = 0;
+    virtual void WriteError(const LogChannel& channel, const LogMessage& message) = 0;
 };
 
 class HYP_API Logger
@@ -119,40 +140,42 @@ class HYP_API Logger
 public:
     static constexpr uint32 max_channels = 64;
 
-    static Logger &GetInstance();
+    static Logger& GetInstance();
 
     Logger();
     Logger(NotNullPtr<ILoggerOutputStream> output_stream);
 
-    Logger(const Logger &other)                 = delete;
-    Logger &operator=(const Logger &other)      = delete;
-    Logger(Logger &&other) noexcept             = delete;
-    Logger &operator=(Logger &&other) noexcept  = delete;
+    Logger(const Logger& other) = delete;
+    Logger& operator=(const Logger& other) = delete;
+    Logger(Logger&& other) noexcept = delete;
+    Logger& operator=(Logger&& other) noexcept = delete;
     ~Logger();
 
-    HYP_FORCE_INLINE ILoggerOutputStream *GetOutputStream() const
-        { return m_output_stream; }
+    HYP_FORCE_INLINE ILoggerOutputStream* GetOutputStream() const
+    {
+        return m_output_stream;
+    }
 
-    void RegisterChannel(LogChannel *channel);
+    void RegisterChannel(LogChannel* channel);
 
-    const LogChannel *FindLogChannel(WeakName name) const;
+    const LogChannel* FindLogChannel(WeakName name) const;
 
-    LogChannel *CreateDynamicLogChannel(Name name, LogChannel *parent_channel = nullptr);
+    LogChannel* CreateDynamicLogChannel(Name name, LogChannel* parent_channel = nullptr);
     void DestroyDynamicLogChannel(Name name);
-    void DestroyDynamicLogChannel(LogChannel *channel);
+    void DestroyDynamicLogChannel(LogChannel* channel);
 
-    bool IsChannelEnabled(const LogChannel &channel) const;
+    bool IsChannelEnabled(const LogChannel& channel) const;
 
-    void SetChannelEnabled(const LogChannel &channel, bool enabled);
+    void SetChannelEnabled(const LogChannel& channel, bool enabled);
 
-    void Log(const LogChannel &channel, const LogMessage &message);
+    void Log(const LogChannel& channel, const LogMessage& message);
 
 private:
-    AtomicVar<uint64>                       m_log_mask;
-    FixedArray<LogChannel *, max_channels>  m_log_channels;
-    LinkedList<LogChannel>                  m_dynamic_log_channels;
-    mutable Mutex                           m_dynamic_log_channels_mutex;
-    NotNullPtr<ILoggerOutputStream>         m_output_stream;
+    AtomicVar<uint64> m_log_mask;
+    FixedArray<LogChannel*, max_channels> m_log_channels;
+    LinkedList<LogChannel> m_dynamic_log_channels;
+    mutable Mutex m_dynamic_log_channels_mutex;
+    NotNullPtr<ILoggerOutputStream> m_output_stream;
 };
 
 namespace detail {
@@ -160,13 +183,13 @@ namespace detail {
 struct LogOnceHelper
 {
     template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogCategory Category, auto LogOnceFormatString, class... LogOnceArgTypes>
-    static void ExecuteLogOnce(Logger &logger, const LogChannel &channel, LogOnceArgTypes &&... args)
+    static void ExecuteLogOnce(Logger& logger, const LogChannel& channel, LogOnceArgTypes&&... args)
     {
         static struct LogOnceHelper_Impl
         {
-            LogOnceHelper_Impl(Logger &logger, const LogChannel &channel, LogOnceArgTypes &&... args)
+            LogOnceHelper_Impl(Logger& logger, const LogChannel& channel, LogOnceArgTypes&&... args)
             {
-                Log_Internal< Category, LogOnceFunctionName, LogOnceFormatString >(logger, channel, std::forward<LogOnceArgTypes>(args)...);
+                Log_Internal<Category, LogOnceFunctionName, LogOnceFormatString>(logger, channel, std::forward<LogOnceArgTypes>(args)...);
             }
         } impl { logger, channel, std::forward<LogOnceArgTypes>(args)... };
     }
@@ -175,45 +198,45 @@ struct LogOnceHelper
 } // namespace detail
 
 template <LogCategory Category, auto FunctionNameString, auto FormatString, class... Args>
-static inline void Log_Internal(Logger &logger, const LogChannel &channel, Args &&... args)
+static inline void Log_Internal(Logger& logger, const LogChannel& channel, Args&&... args)
 {
-    if constexpr (!Category.IsEnabled()) {
+    if constexpr (!Category.IsEnabled())
+    {
         return;
     }
 
     static const auto prefix_static_string = containers::helpers::Concat<
         StaticString("["),
-        LogLevelToString< Category.GetLevel() >(),
+        LogLevelToString<Category.GetLevel()>(),
         StaticString("] "),
         FunctionNameString,
-        StaticString(": ")
-    >::value;
+        StaticString(": ")>::value;
 
     static const String prefix_string = String(prefix_static_string.Data());
 
-    if (logger.IsChannelEnabled(channel)) {
+    if (logger.IsChannelEnabled(channel))
+    {
         logger.Log(
             channel,
             LogMessage {
                 Category.GetLevel(),
-                prefix_string + utilities::Format<FormatString>(std::forward<Args>(args)...)
-            }
-        );
+                prefix_string + utilities::Format<FormatString>(std::forward<Args>(args)...) });
     }
 
-    if constexpr (Category.GetFlags() & LogCategory::LOG_CATEGORY_FLAG_FATAL) {
+    if constexpr (Category.GetFlags() & LogCategory::LOG_CATEGORY_FLAG_FATAL)
+    {
         HYP_THROW("Fatal error logged");
     }
 }
 
 } // namespace logging
 
-using logging::Logger;
-using logging::LogChannel;
-using logging::LogLevel;
-using logging::LogCategory;
-using logging::LogMessage;
 using logging::ILoggerOutputStream;
+using logging::LogCategory;
+using logging::LogChannel;
+using logging::Logger;
+using logging::LogLevel;
+using logging::LogMessage;
 
 } // namespace hyperion
 
@@ -231,9 +254,11 @@ using logging::ILoggerOutputStream;
     #undef HYP_LOG_ONCE
 #endif
 
-#define HYP_LOG_ONCE(channel, category, fmt, ...) \
-    do { \
-        ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce< HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, hyperion::logging::category(), HYP_STATIC_STRING(fmt "\n") >(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__); \
-    } while (0)
+#define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                              \
+    do                                                                                                                                                                                                                                                         \
+    {                                                                                                                                                                                                                                                          \
+        ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, hyperion::logging::category(), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__); \
+    }                                                                                                                                                                                                                                                          \
+    while (0)
 
 #endif

@@ -18,45 +18,65 @@ namespace hyperion {
 
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
-#define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parent_class, ...) \
-    static struct HypClassInitializer_##cls \
-    { \
-        using Type = cls; \
-        using RegistrationType = ::hyperion::detail::HypStructRegistration<Type>; \
-        \
-        static RegistrationType s_class_registration; \
-    } g_class_initializer_##cls { }; \
-    \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+#define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parent_class, ...)                                                             \
+    static struct HypClassInitializer_##cls                                                                                                   \
+    {                                                                                                                                         \
+        using Type = cls;                                                                                                                     \
+        using RegistrationType = ::hyperion::detail::HypStructRegistration<Type>;                                                             \
+                                                                                                                                              \
+        static RegistrationType s_class_registration;                                                                                         \
+    } g_class_initializer_##cls {};                                                                                                           \
+                                                                                                                                              \
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration                                               \
+    {                                                                                                                                         \
+        NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> \
+        {                                                                                                                                     \
+            {
 
-#define HYP_END_STRUCT } } };
+#define HYP_END_STRUCT \
+    }                  \
+    }                  \
+    }                  \
+    ;
 
-#define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parent_class, ...) \
-    static struct HypClassInitializer_##cls \
-    { \
-        using Type = cls; \
-        using RegistrationType = ::hyperion::detail::HypClassRegistration<Type>; \
-        \
-        static RegistrationType s_class_registration; \
-    } g_class_initializer_##cls { }; \
-    \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+#define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parent_class, ...)                                                              \
+    static struct HypClassInitializer_##cls                                                                                                   \
+    {                                                                                                                                         \
+        using Type = cls;                                                                                                                     \
+        using RegistrationType = ::hyperion::detail::HypClassRegistration<Type>;                                                              \
+                                                                                                                                              \
+        static RegistrationType s_class_registration;                                                                                         \
+    } g_class_initializer_##cls {};                                                                                                           \
+                                                                                                                                              \
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration                                               \
+    {                                                                                                                                         \
+        NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> \
+        {                                                                                                                                     \
+            {
 
-#define HYP_END_CLASS } } };
+#define HYP_END_CLASS \
+    }                 \
+    }                 \
+    }                 \
+    ;
 
-#define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...) \
-    static struct HypClassInitializer_##cls \
-    { \
-        using Type = cls; \
-        \
+#define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...)               \
+    static struct HypClassInitializer_##cls                                     \
+    {                                                                           \
+        using Type = cls;                                                       \
+                                                                                \
         using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type>; \
-        \
-        static RegistrationType s_class_registration; \
-    } g_class_initializer_##cls { }; \
-    \
+                                                                                \
+        static RegistrationType s_class_registration;                           \
+    } g_class_initializer_##cls {};                                             \
+                                                                                \
     HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration = { NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
-#define HYP_END_ENUM } } };
+#define HYP_END_ENUM \
+    }                \
+    }                \
+    }                \
+    ;
 
 /*! \brief Iterate over the members of a HypEnum.
  *  \tparam EnumType The enum type to iterate over. The enum must have a HypEnum associated with it, otherwise this function will do nothing.
@@ -67,25 +87,28 @@ namespace hyperion {
  *  \endcode
  */
 template <class EnumType, class Function, typename = std::enable_if_t<std::is_enum_v<EnumType>>>
-void ForEachEnumMember(Function &&function)
+void ForEachEnumMember(Function&& function)
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass *hyp_class = GetClass<EnumType>();
-    
-    if (!hyp_class || !hyp_class->IsEnumType()) {
+    const HypClass* hyp_class = GetClass<EnumType>();
+
+    if (!hyp_class || !hyp_class->IsEnumType())
+    {
         return;
     }
 
     bool stop_iteration = false;
 
-    for (IHypMember &member : hyp_class->GetMembers(HypMemberType::TYPE_CONSTANT)) {
-        HypConstant &member_constant = static_cast<HypConstant &>(member);
+    for (IHypMember& member : hyp_class->GetMembers(HypMemberType::TYPE_CONSTANT))
+    {
+        HypConstant& member_constant = static_cast<HypConstant&>(member);
 
         // If the function sets stop_iteration to true, stop iteration
         function(member_constant.GetName(), static_cast<EnumType>(member_constant.Get().Get<EnumUnderlyingType>()), &stop_iteration);
 
-        if (stop_iteration) {
+        if (stop_iteration)
+        {
             return;
         }
     }
@@ -100,17 +123,20 @@ Name GetEnumMemberName(EnumType value)
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass *hyp_class = GetClass<EnumType>();
-    
-    if (!hyp_class || !hyp_class->IsEnumType()) {
+    const HypClass* hyp_class = GetClass<EnumType>();
+
+    if (!hyp_class || !hyp_class->IsEnumType())
+    {
         return Name::Invalid();
     }
 
-    for (IHypMember &member : hyp_class->GetMembers(HypMemberType::TYPE_CONSTANT)) {
-        HypConstant &member_constant = static_cast<HypConstant &>(member);
+    for (IHypMember& member : hyp_class->GetMembers(HypMemberType::TYPE_CONSTANT))
+    {
+        HypConstant& member_constant = static_cast<HypConstant&>(member);
 
         // If the function sets stop_iteration to true, stop iteration
-        if (static_cast<EnumType>(member_constant.Get().Get<EnumUnderlyingType>()) == value) {
+        if (static_cast<EnumType>(member_constant.Get().Get<EnumUnderlyingType>()) == value)
+        {
             return member_constant.GetName();
         }
     }
@@ -128,13 +154,15 @@ EnumType GetEnumMemberValue(WeakName member_name, EnumType error_value = EnumTyp
 {
     using EnumUnderlyingType = std::underlying_type_t<EnumType>;
 
-    const HypClass *hyp_class = GetClass<EnumType>();
-    
-    if (!hyp_class || !hyp_class->IsEnumType()) {
+    const HypClass* hyp_class = GetClass<EnumType>();
+
+    if (!hyp_class || !hyp_class->IsEnumType())
+    {
         return error_value;
     }
 
-    if (HypConstant *member_constant = hyp_class->GetConstant(member_name)) {
+    if (HypConstant* member_constant = hyp_class->GetConstant(member_name))
+    {
         return static_cast<EnumType>(member_constant->Get().Get<EnumUnderlyingType>());
     }
 

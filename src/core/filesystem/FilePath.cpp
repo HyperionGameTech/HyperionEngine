@@ -46,15 +46,16 @@ bool FilePath::Remove() const
 bool FilePath::Exists() const
 {
     struct stat st;
-    
+
     return stat(Data(), &st) == 0;
 }
 
 bool FilePath::IsDirectory() const
 {
     struct stat st;
-    
-    if (stat(Data(), &st) == 0) {
+
+    if (stat(Data(), &st) == 0)
+    {
         return st.st_mode & S_IFDIR;
     }
 
@@ -64,8 +65,9 @@ bool FilePath::IsDirectory() const
 Time FilePath::LastModifiedTimestamp() const
 {
     struct stat st;
-    
-    if (stat(Data(), &st) != 0) {
+
+    if (stat(Data(), &st) != 0)
+    {
         return Time(0);
     }
 
@@ -86,9 +88,10 @@ FilePath FilePath::BasePath() const
     return FilePath(StringUtil::BasePath(Data()).c_str());
 }
 
-bool FilePath::Open(BufferedReader &out) const
+bool FilePath::Open(BufferedReader& out) const
 {
-    if (!Exists()) {
+    if (!Exists())
+    {
         return false;
     }
 
@@ -101,8 +104,10 @@ hyperion::Array<FilePath> FilePath::GetAllFilesInDirectory() const
 {
     hyperion::Array<FilePath> files;
 
-    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
-        if (entry.is_regular_file()) {
+    for (const auto& entry : std::filesystem::directory_iterator(Data()))
+    {
+        if (entry.is_regular_file())
+        {
 #ifdef HYP_WINDOWS
             files.PushBack(WideString(entry.path().c_str()).ToUTF8());
 #else
@@ -118,8 +123,10 @@ hyperion::Array<FilePath> FilePath::GetSubdirectories() const
 {
     hyperion::Array<FilePath> files;
 
-    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
-        if (entry.is_directory()) {
+    for (const auto& entry : std::filesystem::directory_iterator(Data()))
+    {
+        if (entry.is_directory())
+        {
 #ifdef HYP_WINDOWS
             files.PushBack(WideString(entry.path().c_str()).ToUTF8());
 #else
@@ -135,8 +142,10 @@ SizeType FilePath::DirectorySize() const
 {
     SizeType size = 0;
 
-    for (const auto &entry : std::filesystem::directory_iterator(Data())) {
-        if (entry.is_regular_file()) {
+    for (const auto& entry : std::filesystem::directory_iterator(Data()))
+    {
+        if (entry.is_regular_file())
+        {
             size += entry.file_size();
         }
     }
@@ -148,7 +157,8 @@ SizeType FilePath::FileSize() const
 {
     struct stat st;
 
-    if (stat(Data(), &st) != 0) {
+    if (stat(Data(), &st) != 0)
+    {
         return 0;
     }
 

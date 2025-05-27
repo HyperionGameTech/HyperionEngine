@@ -43,53 +43,85 @@ class AttachmentBase : public RenderObject<AttachmentBase>
 public:
     virtual ~AttachmentBase() override = default;
 
-    HYP_FORCE_INLINE const ImageRef &GetImage() const
-        { return m_image; }
+    HYP_FORCE_INLINE const ImageRef& GetImage() const
+    {
+        return m_image;
+    }
 
-    HYP_FORCE_INLINE const ImageViewRef &GetImageView() const
-        { return m_image_view; }
+    HYP_FORCE_INLINE const ImageViewRef& GetImageView() const
+    {
+        return m_image_view;
+    }
 
     HYP_FORCE_INLINE InternalFormat GetFormat() const
-        { return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE; }
+    {
+        return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE;
+    }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
-        { return m_image && m_image->GetTextureDesc().IsDepthStencil(); }
+    {
+        return m_image && m_image->GetTextureDesc().IsDepthStencil();
+    }
 
     HYP_FORCE_INLINE LoadOperation GetLoadOperation() const
-        { return m_load_operation; }
+    {
+        return m_load_operation;
+    }
 
     HYP_FORCE_INLINE StoreOperation GetStoreOperation() const
-        { return m_store_operation; }
+    {
+        return m_store_operation;
+    }
 
-    HYP_FORCE_INLINE const BlendFunction &GetBlendFunction() const
-        { return m_blend_function; }
+    HYP_FORCE_INLINE const BlendFunction& GetBlendFunction() const
+    {
+        return m_blend_function;
+    }
 
-    HYP_FORCE_INLINE void SetBlendFunction(const BlendFunction &blend_function)
-        { m_blend_function = blend_function; }
+    HYP_FORCE_INLINE void SetBlendFunction(const BlendFunction& blend_function)
+    {
+        m_blend_function = blend_function;
+    }
 
     HYP_FORCE_INLINE Vec4f GetClearColor() const
-        { return m_clear_color; }
+    {
+        return m_clear_color;
+    }
 
-    HYP_FORCE_INLINE void SetClearColor(const Vec4f &clear_color)
-        { m_clear_color = clear_color; }
+    HYP_FORCE_INLINE void SetClearColor(const Vec4f& clear_color)
+    {
+        m_clear_color = clear_color;
+    }
 
     HYP_FORCE_INLINE uint32 GetBinding() const
-        { return m_binding; }
-    
-    HYP_FORCE_INLINE void SetBinding(uint32 binding)
-        { m_binding = binding; }
+    {
+        return m_binding;
+    }
 
-    HYP_FORCE_INLINE bool HasBinding() const 
-        { return m_binding != MathUtil::MaxSafeValue<uint32>(); }
+    HYP_FORCE_INLINE void SetBinding(uint32 binding)
+    {
+        m_binding = binding;
+    }
+
+    HYP_FORCE_INLINE bool HasBinding() const
+    {
+        return m_binding != MathUtil::MaxSafeValue<uint32>();
+    }
 
     HYP_FORCE_INLINE bool AllowBlending() const
-        { return m_allow_blending; }
+    {
+        return m_allow_blending;
+    }
 
     HYP_FORCE_INLINE void SetAllowBlending(bool allow_blending)
-        { m_allow_blending = allow_blending; }
+    {
+        m_allow_blending = allow_blending;
+    }
 
-    HYP_FORCE_INLINE const FramebufferWeakRef &GetFramebuffer() const
-        { return m_framebuffer; }
+    HYP_FORCE_INLINE const FramebufferWeakRef& GetFramebuffer() const
+    {
+        return m_framebuffer;
+    }
 
     virtual bool IsCreated() const = 0;
 
@@ -98,35 +130,35 @@ public:
 
 protected:
     AttachmentBase(
-        const ImageRef &image,
-        const FramebufferWeakRef &framebuffer,
+        const ImageRef& image,
+        const FramebufferWeakRef& framebuffer,
         LoadOperation load_operation,
         StoreOperation store_operation,
-        BlendFunction blend_function
-    ) : m_image(image),
-        m_framebuffer(framebuffer),
-        m_load_operation(load_operation),
-        m_store_operation(store_operation),
-        m_blend_function(blend_function),
-        m_clear_color(Vec4f::Zero())
+        BlendFunction blend_function)
+        : m_image(image),
+          m_framebuffer(framebuffer),
+          m_load_operation(load_operation),
+          m_store_operation(store_operation),
+          m_blend_function(blend_function),
+          m_clear_color(Vec4f::Zero())
     {
     }
 
-    ImageRef            m_image;
-    ImageViewRef        m_image_view;
+    ImageRef m_image;
+    ImageViewRef m_image_view;
 
-    FramebufferWeakRef  m_framebuffer;
-    
-    LoadOperation       m_load_operation;
-    StoreOperation      m_store_operation;
+    FramebufferWeakRef m_framebuffer;
 
-    BlendFunction       m_blend_function;
+    LoadOperation m_load_operation;
+    StoreOperation m_store_operation;
 
-    Vec4f               m_clear_color;
+    BlendFunction m_blend_function;
 
-    uint32              m_binding = MathUtil::MaxSafeValue<uint32>();
+    Vec4f m_clear_color;
 
-    bool                m_allow_blending = true;
+    uint32 m_binding = MathUtil::MaxSafeValue<uint32>();
+
+    bool m_allow_blending = true;
 };
 
 } // namespace renderer

@@ -15,8 +15,8 @@ LightmapVolume::LightmapVolume()
     : m_aabb(BoundingBox::Empty())
 {
 }
-    
-LightmapVolume::LightmapVolume(const BoundingBox &aabb)
+
+LightmapVolume::LightmapVolume(const BoundingBox& aabb)
     : m_aabb(aabb)
 {
 }
@@ -29,13 +29,16 @@ bool LightmapVolume::AddElement(LightmapElement element)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    if (IsInitCalled()) {
-        for (LightmapElementTextureEntry &entry : element.entries) {
+    if (IsInitCalled())
+    {
+        for (LightmapElementTextureEntry& entry : element.entries)
+        {
             InitObject(entry.texture);
         }
     }
 
-    if (element.index == ~0u) {
+    if (element.index == ~0u)
+    {
         element.index = uint32(m_elements.Size());
 
         m_elements.PushBack(std::move(element));
@@ -45,11 +48,15 @@ bool LightmapVolume::AddElement(LightmapElement element)
 
     const uint32 index = element.index;
 
-    if (index < m_elements.Size()) {
-        if (m_elements[index].IsValid()) {
+    if (index < m_elements.Size())
+    {
+        if (m_elements[index].IsValid())
+        {
             return false; // cannot overwrite existing element at that index.
         }
-    } else {
+    }
+    else
+    {
         m_elements.Resize(index + 1);
     }
 
@@ -58,11 +65,12 @@ bool LightmapVolume::AddElement(LightmapElement element)
     return true;
 }
 
-const LightmapElement *LightmapVolume::GetElement(uint32 index) const
+const LightmapElement* LightmapVolume::GetElement(uint32 index) const
 {
     Threads::AssertOnThread(g_game_thread);
 
-    if (index >= m_elements.Size()) {
+    if (index >= m_elements.Size())
+    {
         return nullptr;
     }
 
@@ -71,22 +79,26 @@ const LightmapElement *LightmapVolume::GetElement(uint32 index) const
 
 void LightmapVolume::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
-    
+
     HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
-    {
-    }));
+        {
+        }));
 
-    for (LightmapElement &element : m_elements) {
-        if (!element.IsValid()) {
+    for (LightmapElement& element : m_elements)
+    {
+        if (!element.IsValid())
+        {
             continue;
         }
 
-        for (LightmapElementTextureEntry &entry : element.entries) {
+        for (LightmapElementTextureEntry& entry : element.entries)
+        {
             InitObject(entry.texture);
         }
     }

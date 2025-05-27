@@ -35,13 +35,17 @@ struct ResourceMemoryPoolInitInfo : MemoryPoolInitInfo
 
 struct ResourceMemoryPoolHandle
 {
-    uint32  index = ~0u;
+    uint32 index = ~0u;
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return index != ~0u; }
+    {
+        return index != ~0u;
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return index == ~0u; }
+    {
+        return index == ~0u;
+    }
 };
 
 // Represents the objects an engine object (e.g Material) uses while it is currently being rendered, streamed, or otherwise consuming resources.
@@ -78,19 +82,23 @@ protected:
 public:
     ResourceBase();
 
-    ResourceBase(const ResourceBase &other)                 = delete;
-    ResourceBase &operator=(const ResourceBase &other)      = delete;
+    ResourceBase(const ResourceBase& other) = delete;
+    ResourceBase& operator=(const ResourceBase& other) = delete;
 
-    ResourceBase(ResourceBase &&other) noexcept;
-    ResourceBase &operator=(ResourceBase &&other) noexcept  = delete;
+    ResourceBase(ResourceBase&& other) noexcept;
+    ResourceBase& operator=(ResourceBase&& other) noexcept = delete;
 
     virtual ~ResourceBase() override;
 
     HYP_FORCE_INLINE int32 NumClaims() const
-        { return m_claimed_semaphore.GetValue(); }
+    {
+        return m_claimed_semaphore.GetValue();
+    }
 
     virtual bool IsNull() const override final
-        { return false; }
+    {
+        return false;
+    }
 
     virtual int Claim(int count = 1) override final;
     virtual int Unclaim() override final;
@@ -104,10 +112,14 @@ public:
     virtual void WaitForFinalization() const override final;
 
     virtual ResourceMemoryPoolHandle GetPoolHandle() const override final
-        { return m_pool_handle; }
+    {
+        return m_pool_handle;
+    }
 
     virtual void SetPoolHandle(ResourceMemoryPoolHandle pool_handle) override final
-        { m_pool_handle = pool_handle; }
+    {
+        m_pool_handle = pool_handle;
+    }
 
     /*! \brief Performs an transactional operation on this Resource. Executes on the owner thread if the resources are initialized,
      *  otherwise executes it inline on the calling thread. Initialization on the owner thread will not begin until at least the end of the given proc,
@@ -115,15 +127,18 @@ public:
      *  \param proc The operation to perform.
      *  \param force_owner_thread If true, the operation will be performed on the owner thread regardless of initialization state. */
     template <class Function>
-    void Execute(Function &&function, bool force_owner_thread = false)
+    void Execute(Function&& function, bool force_owner_thread = false)
     {
         m_completion_semaphore.Produce(1);
 
-        if (!force_owner_thread) {
-            if (m_claimed_semaphore.IsInSignalState()) {
+        if (!force_owner_thread)
+        {
+            if (m_claimed_semaphore.IsInSignalState())
+            {
                 // Try to add read access - if it can't be acquired, we are in the process of initializing
                 // and thus we will remove our read access and enqueue the operation
-                if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit)) {
+                if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit))
+                {
                     // Check again, as it might have been initialized in between the initial check and the increment
                     HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -143,15 +158,16 @@ public:
             }
         }
 
-        if (!CanExecuteInline()) {
+        if (!CanExecuteInline())
+        {
             EnqueueOp([this, f = std::forward<Function>(function)]() mutable
-            {
-                HYP_MT_CHECK_RW(m_data_race_detector);
-    
-                f();
-    
-                m_completion_semaphore.Release(1);
-            });
+                {
+                    HYP_MT_CHECK_RW(m_data_race_detector);
+
+                    f();
+
+                    m_completion_semaphore.Release(1);
+                });
 
             return;
         }
@@ -170,12 +186,14 @@ protected:
 
     bool IsInitialized() const;
 
-    virtual IThread *GetOwnerThread() const
-        { return nullptr; }
+    virtual IThread* GetOwnerThread() const
+    {
+        return nullptr;
+    }
 
     virtual bool CanExecuteInline() const;
     virtual void FlushScheduledTasks() const;
-    virtual void EnqueueOp(Proc<void()> &&proc);
+    virtual void EnqueueOp(Proc<void()>&& proc);
 
     virtual void Initialize() = 0;
     virtual void Destroy() = 0;
@@ -184,17 +202,17 @@ protected:
     void SetNeedsUpdate();
 
 protected:
-    AtomicVar<int16>            m_update_counter;
+    AtomicVar<int16> m_update_counter;
 
-    ClaimedSemaphore            m_claimed_semaphore;
-    CompletionSemaphore         m_completion_semaphore;
+    ClaimedSemaphore m_claimed_semaphore;
+    CompletionSemaphore m_completion_semaphore;
 
-    ResourceMemoryPoolHandle    m_pool_handle;
-    
+    ResourceMemoryPoolHandle m_pool_handle;
+
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 
 private:
-    AtomicVar<uint64>           m_initialization_mask;
+    AtomicVar<uint64> m_initialization_mask;
 };
 
 class IResourceMemoryPool
@@ -203,7 +221,7 @@ public:
     virtual ~IResourceMemoryPool() = default;
 };
 
-extern HYP_API IResourceMemoryPool *GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool>(*create_fn)(void));
+extern HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void));
 
 template <class T>
 class ResourceMemoryPool final : private MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>, public IResourceMemoryPool
@@ -213,14 +231,14 @@ public:
 
     using Base = MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>;
 
-    static ResourceMemoryPool<T> *GetInstance()
+    static ResourceMemoryPool<T>* GetInstance()
     {
-        static IResourceMemoryPool *pool = GetOrCreateResourceMemoryPool(TypeID::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
-        {
-            return MakeUnique<ResourceMemoryPool<T>>();
-        });
-        
-        return static_cast<ResourceMemoryPool<T> *>(pool);
+        static IResourceMemoryPool* pool = GetOrCreateResourceMemoryPool(TypeID::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
+            {
+                return MakeUnique<ResourceMemoryPool<T>>();
+            });
+
+        return static_cast<ResourceMemoryPool<T>*>(pool);
     }
 
     ResourceMemoryPool()
@@ -231,18 +249,18 @@ public:
     virtual ~ResourceMemoryPool() override = default;
 
     template <class... Args>
-    T *Allocate(Args &&... args)
+    T* Allocate(Args&&... args)
     {
-        ValueStorage<T> *element;
+        ValueStorage<T>* element;
         const uint32 index = Base::AcquireIndex(&element);
 
-        T *ptr = element->Construct(std::forward<Args>(args)...);
+        T* ptr = element->Construct(std::forward<Args>(args)...);
         ptr->SetPoolHandle(ResourceMemoryPoolHandle { index });
 
         return ptr;
     }
 
-    void Free(T *ptr)
+    void Free(T* ptr)
     {
         AssertThrow(ptr != nullptr);
 
@@ -252,7 +270,7 @@ public:
         AssertThrowMsg(pool_handle, "Resource has no pool handle set - the resource was likely not allocated using the pool");
 
         // Invoke the destructor
-        ValueStorage<T> &element = Base::GetElement(pool_handle.index);
+        ValueStorage<T>& element = Base::GetElement(pool_handle.index);
         element.Destruct();
 
         Base::ReleaseIndex(pool_handle.index);
@@ -260,131 +278,158 @@ public:
 };
 
 template <class T, class... Args>
-HYP_FORCE_INLINE static T *AllocateResource(Args &&... args)
+HYP_FORCE_INLINE static T* AllocateResource(Args&&... args)
 {
     return ResourceMemoryPool<T>::GetInstance()->Allocate(std::forward<Args>(args)...);
 }
 
 template <class T>
-HYP_FORCE_INLINE static void FreeResource(T *ptr)
+HYP_FORCE_INLINE static void FreeResource(T* ptr)
 {
-    if (!ptr) {
+    if (!ptr)
+    {
         return;
     }
 
     ResourceMemoryPool<T>::GetInstance()->Free(ptr);
 }
 
-HYP_API IResource &GetNullResource();
+HYP_API IResource& GetNullResource();
 
 class ResourceHandle
 {
 public:
     ResourceHandle()
-        : resource(&GetNullResource())
+        : m_resource(&GetNullResource())
     {
     }
 
     /*! \brief Construct a ResourceHandle using the given resource. The resource will be claimed if it is not null.
      *  If \ref{should_initialize} is true (default), the resource will be initialized.
      *  Otherwise, ClaimWithoutInitialize() will be called (this should only be used when required, like in the constructor of base classes that have Initialize() as a virtual method). */
-    ResourceHandle(IResource &resource, bool should_initialize = true)
-        : resource(&resource)
+    ResourceHandle(IResource& resource, bool should_initialize = true)
+        : m_resource(&resource)
     {
-        if (!resource.IsNull()) {
-            if (should_initialize) {
+        if (!resource.IsNull())
+        {
+            if (should_initialize)
+            {
                 resource.Claim();
-            } else {
+            }
+            else
+            {
                 resource.ClaimWithoutInitialize();
             }
         }
     }
 
-    ResourceHandle(const ResourceHandle &other)
-        : resource(other.resource)
+    ResourceHandle(const ResourceHandle& other)
+        : m_resource(other.m_resource)
     {
-        if (!resource->IsNull()) {
-            resource->Claim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Claim();
         }
     }
 
-    ResourceHandle &operator=(const ResourceHandle &other)
+    ResourceHandle& operator=(const ResourceHandle& other)
     {
-        if (this == &other || resource == other.resource) {
+        if (this == &other || m_resource == other.m_resource)
+        {
             return *this;
         }
 
-        if (!resource->IsNull()) {
-            resource->Unclaim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Unclaim();
         }
 
-        resource = other.resource;
+        m_resource = other.m_resource;
 
-        if (!resource->IsNull()) {
-            resource->Claim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Claim();
         }
 
         return *this;
     }
 
-    ResourceHandle(ResourceHandle &&other) noexcept
-        : resource(other.resource)
+    ResourceHandle(ResourceHandle&& other) noexcept
+        : m_resource(other.m_resource)
     {
-        other.resource = &GetNullResource();
+        other.m_resource = &GetNullResource();
     }
 
-    ResourceHandle &operator=(ResourceHandle &&other) noexcept
+    ResourceHandle& operator=(ResourceHandle&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
-        if (!resource->IsNull()) {
-            resource->Unclaim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Unclaim();
         }
 
-        resource = other.resource;
-        other.resource = &GetNullResource();
+        m_resource = other.m_resource;
+        other.m_resource = &GetNullResource();
 
         return *this;
     }
 
     ~ResourceHandle()
     {
-        if (!resource->IsNull()) {
-            resource->Unclaim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Unclaim();
         }
     }
 
     void Reset()
     {
-        if (!resource->IsNull()) {
-            resource->Unclaim();
+        if (!m_resource->IsNull())
+        {
+            m_resource->Unclaim();
 
-            resource = &GetNullResource();
+            m_resource = &GetNullResource();
         }
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
-        { return !resource->IsNull(); }
+    {
+        return !m_resource->IsNull();
+    }
 
     HYP_FORCE_INLINE bool operator!() const
-        { return resource->IsNull(); }
+    {
+        return m_resource->IsNull();
+    }
 
-    HYP_FORCE_INLINE bool operator==(const ResourceHandle &other) const
-        { return resource == other.resource; }
+    HYP_FORCE_INLINE bool operator==(const ResourceHandle& other) const
+    {
+        return m_resource == other.m_resource;
+    }
 
-    HYP_FORCE_INLINE bool operator!=(const ResourceHandle &other) const
-        { return resource != other.resource; }
+    HYP_FORCE_INLINE bool operator!=(const ResourceHandle& other) const
+    {
+        return m_resource != other.m_resource;
+    }
 
-    HYP_FORCE_INLINE IResource *operator->() const
-        { return resource; }
+    HYP_FORCE_INLINE IResource* operator->() const
+    {
+        return m_resource;
+    }
 
-    HYP_FORCE_INLINE IResource &operator*() const
-        { AssertDebug(!resource->IsNull()); return *resource; }
+    HYP_FORCE_INLINE IResource& operator*() const
+    {
+        AssertDebug(!m_resource->IsNull());
+
+        return *m_resource;
+    }
 
 protected:
-    IResource   *resource;
+    IResource* m_resource;
 };
 
 template <class ResourceType>
@@ -394,67 +439,71 @@ public:
     TResourceHandle() = default;
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<ResourceHandle, NormalizedType<T>>>>
-    TResourceHandle(T &resource)
-        : ResourceHandle(static_cast<IResource &>(resource))
+    TResourceHandle(T& resource)
+        : ResourceHandle(static_cast<IResource&>(resource))
     {
     }
 
-    TResourceHandle(const TResourceHandle &other)
-        : ResourceHandle(static_cast<const ResourceHandle &>(other))
+    TResourceHandle(const TResourceHandle& other)
+        : ResourceHandle(static_cast<const ResourceHandle&>(other))
     {
     }
 
-    TResourceHandle &operator=(const TResourceHandle &other)
+    TResourceHandle& operator=(const TResourceHandle& other)
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
-        ResourceHandle::operator=(static_cast<const ResourceHandle &>(other));
+        ResourceHandle::operator=(static_cast<const ResourceHandle&>(other));
 
         return *this;
     }
 
-    TResourceHandle(TResourceHandle &&other) noexcept
-        : ResourceHandle(static_cast<ResourceHandle &&>(std::move(other)))
+    TResourceHandle(TResourceHandle&& other) noexcept
+        : ResourceHandle(static_cast<ResourceHandle&&>(std::move(other)))
     {
     }
 
-    TResourceHandle &operator=(TResourceHandle &&other) noexcept
+    TResourceHandle& operator=(TResourceHandle&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
-        ResourceHandle::operator=(static_cast<ResourceHandle &&>(std::move(other)));
+        ResourceHandle::operator=(static_cast<ResourceHandle&&>(std::move(other)));
 
         return *this;
     }
 
-    ~TResourceHandle()  = default;
+    ~TResourceHandle() = default;
 
-    HYP_FORCE_INLINE ResourceType *Get() const
+    HYP_FORCE_INLINE ResourceType* Get() const
     {
-        static_assert(std::is_base_of_v<IResource, ResourceType>); 
+        static_assert(std::is_base_of_v<IResource, ResourceType>);
 
-        if (resource->IsNull()) {
+        if (m_resource->IsNull())
+        {
             return nullptr;
         }
 
         // can safely cast to ResourceType since we know it's not NullResource
-        return static_cast<ResourceType *>(resource);
+        return static_cast<ResourceType*>(m_resource);
     }
 
-    HYP_FORCE_INLINE ResourceType *operator->() const
+    HYP_FORCE_INLINE ResourceType* operator->() const
     {
         return Get();
     }
 
-    HYP_FORCE_INLINE ResourceType &operator*() const
+    HYP_FORCE_INLINE ResourceType& operator*() const
     {
-        ResourceType *ptr = Get();
+        ResourceType* ptr = Get();
 
-        if (!ptr) {
+        if (!ptr)
+        {
             HYP_FAIL("Dereferenced null resource handle");
         }
 

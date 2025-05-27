@@ -37,7 +37,7 @@ struct AssetLoaderWrapper;
 template <class T>
 struct Asset;
 
-HYP_API extern void OnPostLoad_Impl(const HypClass *hyp_class, void *object_ptr);
+HYP_API extern void OnPostLoad_Impl(const HypClass* hyp_class, void* object_ptr);
 
 struct LoadedAsset
 {
@@ -45,22 +45,22 @@ struct LoadedAsset
 
     LoadedAsset() = default;
 
-    LoadedAsset(HypData &&value)
+    LoadedAsset(HypData&& value)
         : value(std::move(value))
     {
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_base_of_v<LoadedAsset, T> && !is_hypdata_v<T> && !std::is_same_v< T, TResult<LoadedAsset, AssetLoadError> > > >
-    LoadedAsset(T &&value)
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<LoadedAsset, T> && !is_hypdata_v<T> && !std::is_same_v<T, TResult<LoadedAsset, AssetLoadError>>>>
+    LoadedAsset(T&& value)
         : value(std::forward<T>(value))
     {
     }
 
-    LoadedAsset(const LoadedAsset &other)                   = delete;
-    LoadedAsset &operator=(const LoadedAsset &other)        = delete;
-    LoadedAsset(LoadedAsset &&other) noexcept               = default;
-    LoadedAsset &operator=(LoadedAsset &&other) noexcept    = default;
-    virtual ~LoadedAsset()                                  = default;
+    LoadedAsset(const LoadedAsset& other) = delete;
+    LoadedAsset& operator=(const LoadedAsset& other) = delete;
+    LoadedAsset(LoadedAsset&& other) noexcept = default;
+    LoadedAsset& operator=(LoadedAsset&& other) noexcept = default;
+    virtual ~LoadedAsset() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -78,9 +78,9 @@ struct LoadedAsset
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE auto &ExtractAs()
+    HYP_NODISCARD HYP_FORCE_INLINE auto& ExtractAs()
     {
-        return static_cast<Asset<T> *>(this)->Result();
+        return static_cast<Asset<T>*>(this)->Result();
     }
 
     HYP_API void OnPostLoad();
@@ -95,42 +95,47 @@ struct Asset final : LoadedAsset
     {
     }
 
-    Asset(const Asset &other)                   = delete;
-    Asset &operator=(const Asset &other)        = delete;
+    Asset(const Asset& other) = delete;
+    Asset& operator=(const Asset& other) = delete;
 
-    Asset(Asset &&other) noexcept
-        : LoadedAsset(static_cast<LoadedAsset &&>(other))
+    Asset(Asset&& other) noexcept
+        : LoadedAsset(static_cast<LoadedAsset&&>(other))
     {
     }
 
-    Asset &operator=(Asset &&other) noexcept
+    Asset& operator=(Asset&& other) noexcept
     {
-        static_cast<LoadedAsset &>(*this) = static_cast<LoadedAsset &&>(other);
+        static_cast<LoadedAsset&>(*this) = static_cast<LoadedAsset&&>(other);
 
         return *this;
     }
 
-    Asset(LoadedAsset &&other) noexcept
+    Asset(LoadedAsset&& other) noexcept
         : LoadedAsset(std::move(other))
     {
     }
-    
-    Asset &operator=(LoadedAsset &&other) noexcept
+
+    Asset& operator=(LoadedAsset&& other) noexcept
     {
-        static_cast<LoadedAsset &>(*this) = std::move(other);
+        static_cast<LoadedAsset&>(*this) = std::move(other);
 
         return *this;
     }
 
-    virtual ~Asset() override                   = default;
+    virtual ~Asset() override = default;
 
-    auto &&Result()
+    auto&& Result()
     {
-        if constexpr (has_handle_definition<T>) {
+        if constexpr (has_handle_definition<T>)
+        {
             return value.Get<Handle<T>>();
-        } else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>) {
+        }
+        else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        {
             return value.Get<RC<T>>();
-        } else {
+        }
+        else
+        {
             return value.Get<T>();
         }
     }
@@ -141,12 +146,18 @@ using TAssetLoadResult = TResult<Asset<T>, AssetLoadError>;
 
 // static_assert(sizeof(Asset) == sizeof(LoadedAsset), "sizeof(Asset<T>) must match the size of its parent class, to enable type punning");
 
-class AssetLoaderBase
+class HYP_API AssetLoaderBase
 {
 public:
     virtual ~AssetLoaderBase() = default;
 
-    virtual AssetLoadResult Load(AssetManager &asset_manager, const String &path) const = 0;
+    AssetLoadResult Load(AssetManager& asset_manager, const String& path) const;
+
+protected:
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;
+
+    static FilePath GetRebasedFilepath(const FilePath& base_path, const FilePath& filepath);
+    Array<FilePath> GetTryFilepaths(const FilePath& original_filepath) const;
 };
 
 template <class T>
@@ -156,28 +167,31 @@ template <class T>
 struct AssetLoaderWrapper
 {
 private:
-
 public:
     static constexpr bool is_handle = has_handle_definition<T>;
 
-    using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T &>>;
+    using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T&>>;
 
-    AssetLoaderBase &loader;
+    AssetLoaderBase& loader;
 
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
-    {   
-        if constexpr (is_handle) {
-            if (Handle<T> *handle_ptr = value.TryGet<Handle<T>>()) {
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData& value)
+    {
+        if constexpr (is_handle)
+        {
+            if (Handle<T>* handle_ptr = value.TryGet<Handle<T>>())
+            {
                 return *handle_ptr;
             }
 
             return Handle<T>::empty;
-        } else {
-            return Optional<T &>(value.TryGet<T>());
+        }
+        else
+        {
+            return Optional<T&>(value.TryGet<T>());
         }
     }
 
-    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
+    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase& loader)
         : loader(loader)
     {
     }
@@ -189,34 +203,17 @@ struct AssetLoaderWrapper<RC<T>>
 public:
     using CastedType = RC<T>;
 
-    AssetLoaderBase &loader;
+    AssetLoaderBase& loader;
 
-    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData &value)
-    {   
+    HYP_DEPRECATED static inline CastedType ExtractAssetValue(HypData& value)
+    {
         return value.Get<RC<T>>();
     }
 
-    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase &loader)
+    HYP_DEPRECATED AssetLoaderWrapper(AssetLoaderBase& loader)
         : loader(loader)
     {
     }
-};
-
-// AssetLoader
-class AssetLoader : public AssetLoaderBase
-{
-protected:
-    Array<FilePath> GetTryFilepaths(const FilePath &original_filepath) const;
-
-public:
-    virtual ~AssetLoader() override = default;
-
-    HYP_API virtual AssetLoadResult Load(AssetManager &asset_manager, const String &path) const override final;
-
-protected:
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const = 0;
-
-    static FilePath GetRebasedFilepath(const FilePath &base_path, const FilePath &filepath);
 };
 
 } // namespace hyperion

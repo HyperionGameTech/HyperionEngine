@@ -23,15 +23,15 @@ public:
     using WChar = uint32;
     using GlyphIndex = uint32;
 
-    FontFace()                                                          = default;
+    FontFace() = default;
 
-    HYP_API FontFace(FontEngine::Backend backend, const FilePath &file_path);
+    HYP_API FontFace(FontEngine::Backend backend, const FilePath& file_path);
 
-    FontFace(const FontFace &other)                                     = delete;
-    FontFace &operator=(const FontFace &other)                          = delete;
+    FontFace(const FontFace& other) = delete;
+    FontFace& operator=(const FontFace& other) = delete;
 
-    HYP_API FontFace(FontFace &&other) noexcept;
-    HYP_API FontFace &operator=(FontFace &&other) noexcept;
+    HYP_API FontFace(FontFace&& other) noexcept;
+    HYP_API FontFace& operator=(FontFace&& other) noexcept;
     HYP_API ~FontFace();
 
     HYP_API void Init();
@@ -47,4 +47,4 @@ private:
 
 } // namespace hyperion
 
-#endif //HYP_FONT_FACE_HPP
+#endif // HYP_FONT_FACE_HPP

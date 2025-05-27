@@ -20,23 +20,25 @@ Entity::~Entity()
 {
     const ID<Entity> id = GetID();
 
-    if (!id.IsValid()) {
+    if (!id.IsValid())
+    {
         return;
     }
 
     // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
-    EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity_FireAndForget(id, [weak_this = WeakHandleFromThis()](EntityManager *entity_manager, ID<Entity> id)
-    {
-        HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
+    EntityManager::GetEntityToEntityManagerMap().PerformActionWithEntity_FireAndForget(id, [weak_this = WeakHandleFromThis()](EntityManager* entity_manager, ID<Entity> id)
+        {
+            HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
 
-        HYP_LOG(ECS, Debug, "Removing entity #{} from entity manager", id.Value());
+            HYP_LOG(ECS, Debug, "Removing entity #{} from entity manager", id.Value());
 
-        AssertThrow(entity_manager->HasEntity(id));
+            AssertThrow(entity_manager->HasEntity(id));
 
-        if (!entity_manager->RemoveEntity(id)) {
-            HYP_LOG(ECS, Error, "Failed to remove Entity #{} from EntityManager", id.Value());
-        }
-    });
+            if (!entity_manager->RemoveEntity(id))
+            {
+                HYP_LOG(ECS, Error, "Failed to remove Entity #{} from EntityManager", id.Value());
+            }
+        });
 }
 
 } // namespace hyperion

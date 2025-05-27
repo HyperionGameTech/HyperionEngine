@@ -21,7 +21,8 @@ public:
      *  \return The 32-bit integer packed from the value. */
     static inline uint32 PackFloat(float value)
     {
-        union {
+        union
+        {
             uint32 u;
             float f;
         };
@@ -36,7 +37,8 @@ public:
      *  \return The float unpacked from the value. */
     static inline float UnpackFloat(uint32 value)
     {
-        union {
+        union
+        {
             uint32 u;
             float f;
         };
@@ -49,11 +51,12 @@ public:
     /*! \brief Packs a 4-component vector into a 32-bit integer.
      *  \param vec The vector to pack.
      *  \return The 32-bit integer packed from the vector. */
-    static inline uint32 PackVec4f(const Vec4f &vec)
+    static inline uint32 PackVec4f(const Vec4f& vec)
     {
-        union {
-            uint8   bytes[4];
-            uint32  result;
+        union
+        {
+            uint8 bytes[4];
+            uint32 result;
         };
 
         bytes[0] = MathUtil::Round<float, uint8>(MathUtil::Clamp(vec.values[0], 0.0f, 1.0f) * 255.0f);
@@ -87,12 +90,12 @@ public:
     {
         return ((value + alignment - 1) / alignment) * alignment;
     }
-    
+
     /*! \brief Gets the index of the lowest set bit in a 64-bit integer.
      *  \param bits The bits to get the index of the lowest set bit of.
      *  \return The index of the lowest set bit in the bits. */
     static uint32 LowestSetBitIndex(uint64 bits);
-    
+
     /*! \brief Gets the index of the highest set bit in a 64-bit integer.
      *  \param bits The bits to get the index of the highest set bit of.
      *  \return The index of the highest set bit in the bits. */
@@ -112,7 +115,7 @@ public:
  *  \return The value of type \ref{From} converted to type \ref{To}.
  */
 template <class To, class From>
-static HYP_FORCE_INLINE To BitCast(const From &from)
+static HYP_FORCE_INLINE To BitCast(const From& from)
 {
     return ValueStorage<To>(&from).Get();
 }
@@ -121,8 +124,8 @@ static HYP_FORCE_INLINE To BitCast(const From &from)
 
 } // namespace utilities
 
-using utilities::ByteUtil;
 using utilities::BitCast;
+using utilities::ByteUtil;
 
 } // namespace hyperion
 

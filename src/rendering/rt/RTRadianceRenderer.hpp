@@ -25,14 +25,15 @@ class ViewRenderResource;
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
-HYP_STRUCT(ConfigName="app", JSONPath="rendering.rt.reflections")
+HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.rt.reflections")
+
 struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
 {
     HYP_FIELD()
-    Vec2u   extent = { 1024, 1024 };
-    
+    Vec2u extent = { 1024, 1024 };
+
     HYP_FIELD()
-    bool    path_tracing = false;
+    bool path_tracing = false;
 
     virtual ~RTRadianceConfig() override = default;
 
@@ -47,51 +48,54 @@ class RTRadianceRenderer
 public:
     friend struct RenderCommand_DestroyRTRadianceRenderer;
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
- 
+
     HYP_API RTRadianceRenderer(
-        RTRadianceConfig &&config,
-        GBuffer *gbuffer
-    );
+        RTRadianceConfig&& config,
+        GBuffer* gbuffer);
 
     HYP_API ~RTRadianceRenderer();
 
     HYP_FORCE_INLINE bool IsPathTracer() const
-        { return m_config.path_tracing; }
-    
-    HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight> &tlas)
-        { m_top_level_acceleration_structures = tlas; }
+    {
+        return m_config.path_tracing;
+    }
+
+    HYP_FORCE_INLINE void SetTopLevelAccelerationStructures(const FixedArray<TLASRef, max_frames_in_flight>& tlas)
+    {
+        m_top_level_acceleration_structures = tlas;
+    }
 
     HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
     HYP_API void Create();
     HYP_API void Destroy();
 
-    HYP_API void Render(FrameBase *frame, ViewRenderResource *view);
+    HYP_API void Render(FrameBase* frame, ViewRenderResource* view);
 
 private:
     void CreateImages();
     void CreateUniformBuffer();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
-    void UpdateUniforms(FrameBase *frame, ViewRenderResource *view);
+    void UpdateUniforms(FrameBase* frame, ViewRenderResource* view);
 
-    RTRadianceConfig                                    m_config;
+    RTRadianceConfig m_config;
 
-    GBuffer                                             *m_gbuffer;
+    GBuffer* m_gbuffer;
 
-    FixedArray<TLASRef, max_frames_in_flight>           m_top_level_acceleration_structures;
-    
-    FixedArray<uint32, max_frames_in_flight>            m_updates;
+    FixedArray<TLASRef, max_frames_in_flight> m_top_level_acceleration_structures;
 
-    ShaderRef                                           m_shader;
+    FixedArray<uint32, max_frames_in_flight> m_updates;
 
-    Handle<Texture>                                     m_texture;
-    UniquePtr<TemporalBlending>                         m_temporal_blending;
+    ShaderRef m_shader;
 
-    RaytracingPipelineRef                               m_raytracing_pipeline;
-    FixedArray<GPUBufferRef, max_frames_in_flight>      m_uniform_buffers;
+    Handle<Texture> m_texture;
+    UniquePtr<TemporalBlending> m_temporal_blending;
 
-    Matrix4                                             m_previous_view_matrix;
+    RaytracingPipelineRef m_raytracing_pipeline;
+    FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
+
+    Matrix4 m_previous_view_matrix;
 };
 
 } // namespace hyperion

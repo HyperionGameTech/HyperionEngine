@@ -82,8 +82,10 @@ class ShaderBase : public RenderObject<ShaderBase>
 public:
     HYP_API virtual ~ShaderBase() override = default;
 
-    HYP_FORCE_INLINE const RC<CompiledShader> &GetCompiledShader() const
-        { return m_compiled_shader; }
+    HYP_FORCE_INLINE const RC<CompiledShader>& GetCompiledShader() const
+    {
+        return m_compiled_shader;
+    }
 
     HYP_API virtual bool IsCreated() const = 0;
 
@@ -91,12 +93,12 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
 protected:
-    ShaderBase(const RC<CompiledShader> &compiled_shader)
+    ShaderBase(const RC<CompiledShader>& compiled_shader)
         : m_compiled_shader(compiled_shader)
     {
     }
 
-    RC<CompiledShader>      m_compiled_shader;
+    RC<CompiledShader> m_compiled_shader;
 };
 
 } // namespace renderer

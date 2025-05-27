@@ -17,16 +17,16 @@
 namespace hyperion {
 
 namespace sys {
-class AppContext;
+class AppContextBase;
 } // namespace sys
 
-using sys::AppContext;
+using sys::AppContextBase;
 
 namespace renderer {
 namespace platform {
 
 template <>
-class Instance<Platform::VULKAN>
+class Instance<Platform::vulkan>
 {
     static ExtensionMap GetExtensionMap();
 
@@ -36,46 +36,54 @@ class Instance<Platform::VULKAN>
 
 public:
     Instance();
-    RendererResult Initialize(const AppContext &app_context, bool load_debug_layers = false);
+    RendererResult Initialize(const AppContextBase& app_context, bool load_debug_layers = false);
 
     HYP_FORCE_INLINE VkInstance GetInstance() const
-        { return m_instance; }
+    {
+        return m_instance;
+    }
 
-    HYP_FORCE_INLINE Device<Platform::VULKAN> *GetDevice() const
-        { return m_device; }
+    HYP_FORCE_INLINE Device<Platform::vulkan>* GetDevice() const
+    {
+        return m_device;
+    }
 
-    HYP_FORCE_INLINE const VulkanSwapchainRef &GetSwapchain() const
-        { return m_swapchain; }
+    HYP_FORCE_INLINE const VulkanSwapchainRef& GetSwapchain() const
+    {
+        return m_swapchain;
+    }
 
     HYP_FORCE_INLINE VmaAllocator GetAllocator() const
-        { return allocator; }
+    {
+        return allocator;
+    }
 
-    void SetValidationLayers(Array<const char *> validation_layers);
+    void SetValidationLayers(Array<const char*> validation_layers);
 
     RendererResult CreateDevice(VkPhysicalDevice _physical_device = nullptr);
     RendererResult CreateSwapchain();
     RendererResult RecreateSwapchain();
-    
+
     RendererResult Destroy();
 
-    const char                      *app_name;
-    const char                      *engine_name;
+    const char* app_name;
+    const char* engine_name;
 
 private:
     void CreateSurface();
 
-    VkInstance                      m_instance;
-    VkSurfaceKHR                    m_surface;
+    VkInstance m_instance;
+    VkSurfaceKHR m_surface;
 
-    VmaAllocator                    allocator = nullptr;
+    VmaAllocator allocator = nullptr;
 
-    Device<Platform::VULKAN>        *m_device = nullptr;
-    VulkanSwapchainRef              m_swapchain;
-    
-    Array<const char *>             validation_layers;
+    Device<Platform::vulkan>* m_device = nullptr;
+    VulkanSwapchainRef m_swapchain;
+
+    Array<const char*> validation_layers;
 
 #ifndef HYPERION_BUILD_RELEASE
-    VkDebugUtilsMessengerEXT        debug_messenger;
+    VkDebugUtilsMessengerEXT debug_messenger;
 #endif
 };
 
@@ -83,5 +91,4 @@ private:
 } // namespace renderer
 } // namespace hyperion
 
-#endif //!RENDERER_INSTANCE
-
+#endif //! RENDERER_INSTANCE

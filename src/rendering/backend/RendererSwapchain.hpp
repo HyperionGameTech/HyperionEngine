@@ -23,23 +23,35 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    HYP_FORCE_INLINE const Array<ImageRef> &GetImages() const
-        { return m_images; }
+    HYP_FORCE_INLINE const Array<ImageRef>& GetImages() const
+    {
+        return m_images;
+    }
 
-    HYP_FORCE_INLINE const Array<FramebufferRef> &GetFramebuffers() const
-        { return m_framebuffers; }
+    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
+    {
+        return m_framebuffers;
+    }
 
     HYP_FORCE_INLINE Vec2u GetExtent() const
-        { return m_extent; }
+    {
+        return m_extent;
+    }
 
     HYP_FORCE_INLINE InternalFormat GetImageFormat() const
-        { return m_image_format; }
+    {
+        return m_image_format;
+    }
 
     HYP_FORCE_INLINE uint32 GetAcquiredImageIndex() const
-        { return m_acquired_image_index; }
+    {
+        return m_acquired_image_index;
+    }
 
     HYP_FORCE_INLINE uint32 GetCurrentFrameIndex() const
-        { return m_current_frame_index; }
+    {
+        return m_current_frame_index;
+    }
 
     virtual RendererResult Create() = 0;
     virtual RendererResult Destroy() = 0;
@@ -52,13 +64,12 @@ protected:
     {
     }
 
-    Array<ImageRef>         m_images;
-    Array<FramebufferRef>   m_framebuffers;
-    Vec2u                   m_extent;
-    InternalFormat          m_image_format = InternalFormat::NONE;
-    uint32                  m_acquired_image_index;
-    uint32                  m_current_frame_index;
-
+    Array<ImageRef> m_images;
+    Array<FramebufferRef> m_framebuffers;
+    Vec2u m_extent;
+    InternalFormat m_image_format = InternalFormat::NONE;
+    uint32 m_acquired_image_index;
+    uint32 m_current_frame_index;
 };
 
 } // namespace renderer

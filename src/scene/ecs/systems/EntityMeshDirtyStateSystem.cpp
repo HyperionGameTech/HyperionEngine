@@ -14,11 +14,11 @@
 
 namespace hyperion {
 
-void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity> &entity)
+void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    MeshComponent &mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+    MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
     InitObject(mesh_component.mesh);
     InitObject(mesh_component.material);
@@ -35,25 +35,30 @@ void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
 
-    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
+    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    {
         // Update the material
-        if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty()) {
+        if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty())
+        {
             mesh_component.material->EnqueueRenderUpdates();
         }
 
         // If transform has changed, mark the MeshComponent as dirty
-        if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix()) {
+        if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix())
+        {
             updated_entity_ids.Insert(entity_id);
         }
     }
 
-    if (updated_entity_ids.Any()) {
+    if (updated_entity_ids.Any())
+    {
         AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
-        {
-            for (const ID<Entity> &entity_id : entity_ids) {
-                GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
-            }
-        });
+            {
+                for (const ID<Entity>& entity_id : entity_ids)
+                {
+                    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
+                }
+            });
     }
 }
 

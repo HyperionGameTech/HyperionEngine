@@ -30,11 +30,11 @@ namespace hyperion {
 #pragma region View
 
 View::View()
-    : View(ViewDesc { })
+    : View(ViewDesc {})
 {
 }
 
-View::View(const ViewDesc &view_desc)
+View::View(const ViewDesc& view_desc)
     : m_render_resource(nullptr),
       m_flags(view_desc.flags),
       m_viewport(view_desc.viewport),
@@ -48,7 +48,8 @@ View::View(const ViewDesc &view_desc)
 
 View::~View()
 {
-    if (m_render_resource) {
+    if (m_render_resource)
+    {
         FreeResource(m_render_resource);
         m_render_resource = nullptr;
     }
@@ -56,19 +57,21 @@ View::~View()
 
 void View::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
-    {
-        if (m_render_resource) {
-            FreeResource(m_render_resource);
-            m_render_resource = nullptr;
-        }
-    }));
+        {
+            if (m_render_resource)
+            {
+                FreeResource(m_render_resource);
+                m_render_resource = nullptr;
+            }
+        }));
 
     AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with ID #%u", GetID().Value());
     AssertThrowMsg(m_scene.IsValid(), "Scene is not valid for View with ID #%u", GetID().Value());
@@ -96,11 +99,12 @@ void View::Update(GameCounter::TickUnit delta)
     m_last_collection_result = CollectEntities();
 }
 
-void View::SetViewport(const Viewport &viewport)
+void View::SetViewport(const Viewport& viewport)
 {
     m_viewport = viewport;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         m_render_resource->SetViewport(viewport);
     }
 }
@@ -109,7 +113,8 @@ void View::SetPriority(int priority)
 {
     m_priority = priority;
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         m_render_resource->SetPriority(priority);
     }
 }
@@ -118,7 +123,8 @@ typename RenderProxyTracker::Diff View::CollectEntities()
 {
     AssertReady();
 
-    switch (uint32(m_entity_collection_flags & ViewEntityCollectionFlags::COLLECT_ALL)) {
+    switch (uint32(m_entity_collection_flags & ViewEntityCollectionFlags::COLLECT_ALL))
+    {
     case uint32(ViewEntityCollectionFlags::COLLECT_ALL):
         return CollectAllEntities();
     case uint32(ViewEntityCollectionFlags::COLLECT_DYNAMIC):
@@ -137,13 +143,15 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 
     AssertReady();
 
-    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+    if (m_scene->GetFlags() & SceneFlags::DETACHED)
+    {
         HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
 
-        return { };
+        return {};
     }
 
-    if (!m_camera.IsValid()) {
+    if (!m_camera.IsValid())
+    {
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
@@ -156,20 +164,24 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
     uint32 num_collected_entities = 0;
     uint32 num_skipped_entities = 0;
 
-    for (auto [entity_id, mesh_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
+    for (auto [entity_id, mesh_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+        {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            if (!visibility_state_component.visibility_state)
+            {
+    #ifdef HYP_VISIBILITY_CHECK_DEBUG
                 ++num_skipped_entities;
-#endif
+    #endif
                 continue;
             }
 
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
+            {
+    #ifdef HYP_VISIBILITY_CHECK_DEBUG
                 ++num_skipped_entities;
-#endif
+    #endif
 
                 continue;
             }
@@ -183,10 +195,10 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
         AssertDebug(mesh_component.proxy->entity.IsValid());
         AssertDebug(mesh_component.proxy->mesh.IsValid());
         AssertDebug(mesh_component.proxy->material.IsValid());
-        
+
         m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
     }
-    
+
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
     HYP_LOG(Scene, Debug, "Collected {} entities for camera {}, {} skipped", num_collected_entities, camera->GetName(), num_skipped_entities);
 #endif
@@ -201,36 +213,41 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 
     AssertReady();
 
-    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+    if (m_scene->GetFlags() & SceneFlags::DETACHED)
+    {
         HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
 
-        return { };
+        return {};
     }
 
-    if (!m_camera.IsValid()) {
+    if (!m_camera.IsValid())
+    {
         // if camera is invalid, update without adding any entities
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
-    
+
     const ID<Camera> camera_id = m_camera.GetID();
-    
+
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-    for (auto [entity_id, mesh_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
+    for (auto [entity_id, mesh_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+        {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
+            if (!visibility_state_component.visibility_state)
+            {
                 continue;
             }
 
-
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
+            {
+    #ifdef HYP_VISIBILITY_CHECK_DEBUG
                 HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
                     entity_id.Value(), camera_id.Value());
-#endif
+    #endif
 
                 continue;
             }
@@ -256,35 +273,41 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
 
     AssertReady();
 
-    if (m_scene->GetFlags() & SceneFlags::DETACHED) {
+    if (m_scene->GetFlags() & SceneFlags::DETACHED)
+    {
         HYP_LOG(Scene, Warning, "Scene has DETACHED flag set, cannot collect entities for render collector!");
 
-        return { };
+        return {};
     }
 
-    if (!m_camera.IsValid()) {
+    if (!m_camera.IsValid())
+    {
         // if camera is invalid, update without adding any entities
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
-    
+
     const ID<Camera> camera_id = m_camera.GetID();
-    
+
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-    for (auto [entity_id, mesh_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)) {
+    for (auto [entity_id, mesh_component, visibility_state_component, _] : m_scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+        {
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
-            if (!visibility_state_component.visibility_state) {
+            if (!visibility_state_component.visibility_state)
+            {
                 continue;
             }
 
-            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot)) {
-#ifdef HYP_VISIBILITY_CHECK_DEBUG
+            if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
+            {
+    #ifdef HYP_VISIBILITY_CHECK_DEBUG
                 HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
                     entity_id.Value(), camera_id.Value());
-#endif
+    #endif
 
                 continue;
             }
@@ -307,17 +330,23 @@ void View::CollectLights()
 {
     HYP_SCOPE;
 
-    for (auto [entity_id, light_component, transform_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT)) {
-        if (!light_component.light.IsValid()) {
+    for (auto [entity_id, light_component, transform_component, visibility_state_component] : m_scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!light_component.light.IsValid())
+        {
             continue;
         }
-        
+
         bool is_light_in_frustum = false;
 
-        if (visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE) {
+        if (visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)
+        {
             is_light_in_frustum = true;
-        } else {
-            switch (light_component.light->GetLightType()) {
+        }
+        else
+        {
+            switch (light_component.light->GetLightType())
+            {
             case LightType::DIRECTIONAL:
                 is_light_in_frustum = true;
                 break;
@@ -336,7 +365,8 @@ void View::CollectLights()
             }
         }
 
-        if (is_light_in_frustum) {
+        if (is_light_in_frustum)
+        {
             m_tracked_lights.Track(light_component.light.GetID(), &light_component.light->GetRenderResource());
         }
     }

@@ -41,7 +41,8 @@ public:
     {
         m_vector.Reserve(Sz);
 
-        for (auto it = items; it != items + Sz; ++it) {
+        for (auto it = items; it != items + Sz; ++it)
+        {
             Insert(*it);
         }
     }
@@ -51,7 +52,8 @@ public:
     {
         m_vector.Reserve(Sz);
 
-        for (auto it = items; it != items + Sz; ++it) {
+        for (auto it = items; it != items + Sz; ++it)
+        {
             Insert(std::move(*it));
         }
     }
@@ -60,26 +62,28 @@ public:
     {
         m_vector.Reserve(initializer_list.size());
 
-        for (const auto &it : initializer_list) {
+        for (const auto& it : initializer_list)
+        {
             Insert(it);
         }
     }
 
-    FlatMap(const FlatMap &other);
-    FlatMap &operator=(const FlatMap &other);
-    FlatMap(FlatMap &&other) noexcept;
-    FlatMap &operator=(FlatMap &&other) noexcept;
+    FlatMap(const FlatMap& other);
+    FlatMap& operator=(const FlatMap& other);
+    FlatMap(FlatMap&& other) noexcept;
+    FlatMap& operator=(FlatMap&& other) noexcept;
     ~FlatMap();
-    
-    Iterator Find(const Key &key);
-    ConstIterator Find(const Key &key) const;
+
+    Iterator Find(const Key& key);
+    ConstIterator Find(const Key& key) const;
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE auto FindAs(const TFindAsType &key) -> Iterator
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType& key) -> Iterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
-        if (it == End()) {
+        if (it == End())
+        {
             return it;
         }
 
@@ -87,11 +91,12 @@ public:
     }
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE auto FindAs(const TFindAsType &key) const -> ConstIterator
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType& key) const -> ConstIterator
     {
         const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
-        if (it == End()) {
+        if (it == End())
+        {
             return it;
         }
 
@@ -99,76 +104,111 @@ public:
     }
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE bool Contains(const TFindAsType &key) const
-        { return FindAs(key) != End(); }
+    HYP_FORCE_INLINE bool Contains(const TFindAsType& key) const
+    {
+        return FindAs(key) != End();
+    }
 
-    InsertResult Insert(const Key &key, const Value &value);
-    InsertResult Insert(const Key &key, Value &&value);
-    InsertResult Insert(Pair<Key, Value> &&pair);
-    InsertResult Insert(const Pair<Key, Value> &pair);
+    InsertResult Insert(const Key& key, const Value& value);
+    InsertResult Insert(const Key& key, Value&& value);
+    InsertResult Insert(Pair<Key, Value>&& pair);
+    InsertResult Insert(const Pair<Key, Value>& pair);
 
-    InsertResult Set(const Key &key, const Value &value);
-    InsertResult Set(const Key &key, Value &&value);
+    InsertResult Set(const Key& key, const Value& value);
+    InsertResult Set(const Key& key, Value&& value);
 
     template <class... Args>
-    InsertResult Emplace(const Key &key, Args &&... args)
-        { return Insert(key, Value(std::forward<Args>(args)...)); }
+    InsertResult Emplace(const Key& key, Args&&... args)
+    {
+        return Insert(key, Value(std::forward<Args>(args)...));
+    }
 
     Iterator Erase(ConstIterator it);
-    bool Erase(const Key &key);
+    bool Erase(const Key& key);
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return m_vector.Size(); }
+    {
+        return m_vector.Size();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType *Data()
-        { return m_vector.Data(); }
+    HYP_FORCE_INLINE KeyValuePairType* Data()
+    {
+        return m_vector.Data();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType * const Data() const
-        { return m_vector.Data(); }
+    HYP_FORCE_INLINE KeyValuePairType* const Data() const
+    {
+        return m_vector.Data();
+    }
 
     HYP_FORCE_INLINE bool Any() const
-        { return m_vector.Any(); }
+    {
+        return m_vector.Any();
+    }
 
     HYP_FORCE_INLINE bool Empty() const
-        { return m_vector.Empty(); }
+    {
+        return m_vector.Empty();
+    }
 
     HYP_FORCE_INLINE void Clear()
-        { m_vector.Clear(); }
+    {
+        m_vector.Clear();
+    }
 
     HYP_FORCE_INLINE void Reserve(SizeType size)
-        { m_vector.Reserve(size); }
-    
-    HYP_FORCE_INLINE KeyValuePairType &Front()
-        { return m_vector.Front(); }
+    {
+        m_vector.Reserve(size);
+    }
 
-    HYP_FORCE_INLINE const KeyValuePairType &Front() const
-        { return m_vector.Front(); }
+    HYP_FORCE_INLINE KeyValuePairType& Front()
+    {
+        return m_vector.Front();
+    }
 
-    HYP_FORCE_INLINE KeyValuePairType &Back()
-        { return m_vector.Back(); }
+    HYP_FORCE_INLINE const KeyValuePairType& Front() const
+    {
+        return m_vector.Front();
+    }
 
-    HYP_FORCE_INLINE const KeyValuePairType &Back() const
-        { return m_vector.Back(); }
+    HYP_FORCE_INLINE KeyValuePairType& Back()
+    {
+        return m_vector.Back();
+    }
+
+    HYP_FORCE_INLINE const KeyValuePairType& Back() const
+    {
+        return m_vector.Back();
+    }
 
     HYP_NODISCARD FlatSet<Key> Keys() const;
     HYP_NODISCARD FlatSet<Value> Values() const;
 
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<KeyValuePairType>()
-        { return Span<KeyValuePairType>(Data(), Size()); }
+    {
+        return Span<KeyValuePairType>(Data(), Size());
+    }
 
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<const KeyValuePairType>() const
-        { return Span<const KeyValuePairType>(Data(), Size()); }
+    {
+        return Span<const KeyValuePairType>(Data(), Size());
+    }
 
     HYP_NODISCARD HYP_FORCE_INLINE Span<KeyValuePairType> ToSpan()
-        { return Span<KeyValuePairType>(Data(), Size()); }
+    {
+        return Span<KeyValuePairType>(Data(), Size());
+    }
 
     HYP_NODISCARD HYP_FORCE_INLINE Span<const KeyValuePairType> ToSpan() const
-        { return Span<const KeyValuePairType>(Data(), Size()); }
+    {
+        return Span<const KeyValuePairType>(Data(), Size());
+    }
 
     template <class OtherContainerType>
-    FlatMap &Merge(const OtherContainerType &other)
+    FlatMap& Merge(const OtherContainerType& other)
     {
-        for (const auto &item : other) {
+        for (const auto& item : other)
+        {
             Set_Internal(Pair<Key, Value>(item));
         }
 
@@ -176,9 +216,10 @@ public:
     }
 
     template <class OtherContainerType>
-    FlatMap &Merge(OtherContainerType &&other)
+    FlatMap& Merge(OtherContainerType&& other)
     {
-        for (auto &item : other) {
+        for (auto& item : other)
+        {
             Set_Internal(std::move(item));
         }
 
@@ -187,7 +228,7 @@ public:
         return *this;
     }
 
-    HYP_FORCE_INLINE Value &At(const Key &key)
+    HYP_FORCE_INLINE Value& At(const Key& key)
     {
         const auto it = Find(key);
         AssertDebugMsg(it != End(), "At(): Element not found");
@@ -195,7 +236,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE const Value &At(const Key &key) const
+    HYP_FORCE_INLINE const Value& At(const Key& key) const
     {
         const auto it = Find(key);
         AssertDebugMsg(it != End(), "At(): Element not found");
@@ -203,44 +244,52 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE KeyValuePairType &AtIndex(SizeType index)
-        { AssertDebugMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+    HYP_FORCE_INLINE KeyValuePairType& AtIndex(SizeType index)
+    {
+        AssertDebugMsg(index < Size(), "Out of bounds");
+        return *(Data() + index);
+    }
 
-    HYP_FORCE_INLINE const KeyValuePairType &AtIndex(SizeType index) const
-        { AssertDebugMsg(index < Size(), "Out of bounds"); return *(Data() + index); }
+    HYP_FORCE_INLINE const KeyValuePairType& AtIndex(SizeType index) const
+    {
+        AssertDebugMsg(index < Size(), "Out of bounds");
+        return *(Data() + index);
+    }
 
-    HYP_FORCE_INLINE Value &operator[](const Key &key)
+    HYP_FORCE_INLINE Value& operator[](const Key& key)
     {
         const auto it = Find(key);
 
-        if (it != End()) {
+        if (it != End())
+        {
             return it->second;
         }
 
-        return Insert(key, Value { }).first->second;
+        return Insert(key, Value {}).first->second;
     }
 
     HYP_DEF_STL_BEGIN_END(
         m_vector.Begin(),
-        m_vector.End()
-    )
+        m_vector.End())
 
 private:
-    InsertResult Set_Internal(Pair<Key, Value> &&pair);
-    InsertResult Insert_Internal(Pair<Key, Value> &&pair);
+    InsertResult Set_Internal(Pair<Key, Value>&& pair);
+    InsertResult Insert_Internal(Pair<Key, Value>&& pair);
 };
 
 template <class Key, class Value>
-FlatMap<Key, Value>::FlatMap() {}
+FlatMap<Key, Value>::FlatMap()
+{
+}
 
 template <class Key, class Value>
-FlatMap<Key, Value>::FlatMap(const FlatMap &other)
+FlatMap<Key, Value>::FlatMap(const FlatMap& other)
     : m_vector(other.m_vector)
 {
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::operator=(const FlatMap &other) -> FlatMap &
+auto FlatMap<Key, Value>::operator=(const FlatMap& other) -> FlatMap&
 {
     m_vector = other.m_vector;
 
@@ -248,13 +297,13 @@ auto FlatMap<Key, Value>::operator=(const FlatMap &other) -> FlatMap &
 }
 
 template <class Key, class Value>
-FlatMap<Key, Value>::FlatMap(FlatMap &&other) noexcept
+FlatMap<Key, Value>::FlatMap(FlatMap&& other) noexcept
     : m_vector(std::move(other.m_vector))
 {
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::operator=(FlatMap &&other) noexcept -> FlatMap&
+auto FlatMap<Key, Value>::operator=(FlatMap&& other) noexcept -> FlatMap&
 {
     m_vector = std::move(other.m_vector);
 
@@ -265,11 +314,12 @@ template <class Key, class Value>
 FlatMap<Key, Value>::~FlatMap() = default;
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Find(const Key &key) -> Iterator
+auto FlatMap<Key, Value>::Find(const Key& key) -> Iterator
 {
     const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -277,11 +327,12 @@ auto FlatMap<Key, Value>::Find(const Key &key) -> Iterator
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Find(const Key &key) const -> ConstIterator
+auto FlatMap<Key, Value>::Find(const Key& key) const -> ConstIterator
 {
     const auto it = FlatMap<Key, Value>::Base::LowerBound(key);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -289,11 +340,12 @@ auto FlatMap<Key, Value>::Find(const Key &key) const -> ConstIterator
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value> &&pair) -> InsertResult
+auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value>&& pair) -> InsertResult
 {
     const auto lower_bound = m_vector.LowerBound(pair.first);
 
-    if (lower_bound == End() || !(lower_bound->first == pair.first)) {
+    if (lower_bound == End() || !(lower_bound->first == pair.first))
+    {
         auto it = m_vector.Insert(lower_bound, std::move(pair));
 
         return { it, true };
@@ -303,35 +355,36 @@ auto FlatMap<Key, Value>::Insert_Internal(Pair<Key, Value> &&pair) -> InsertResu
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Key &key, const Value &value) -> InsertResult
+auto FlatMap<Key, Value>::Insert(const Key& key, const Value& value) -> InsertResult
 {
     return Insert_Internal(Pair<Key, Value> { key, value });
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Key &key, Value &&value) -> InsertResult
+auto FlatMap<Key, Value>::Insert(const Key& key, Value&& value) -> InsertResult
 {
     return Insert_Internal(Pair<Key, Value> { key, std::move(value) });
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(const Pair<Key, Value> &pair) -> InsertResult
+auto FlatMap<Key, Value>::Insert(const Pair<Key, Value>& pair) -> InsertResult
 {
     return Insert_Internal(Pair<Key, Value>(pair));
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Insert(Pair<Key, Value> &&pair) -> InsertResult
+auto FlatMap<Key, Value>::Insert(Pair<Key, Value>&& pair) -> InsertResult
 {
     return Insert_Internal(std::move(pair));
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value> &&pair) -> InsertResult
+auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value>&& pair) -> InsertResult
 {
-    const auto lower_bound = m_vector.LowerBound(pair.first);//FlatMap<Key, Value>::Base::LowerBound(key);
+    const auto lower_bound = m_vector.LowerBound(pair.first); // FlatMap<Key, Value>::Base::LowerBound(key);
 
-    if (lower_bound == End() || !(lower_bound->first == pair.first)) {
+    if (lower_bound == End() || !(lower_bound->first == pair.first))
+    {
         auto it = m_vector.Insert(lower_bound, std::move(pair));
 
         return { it, true };
@@ -343,13 +396,13 @@ auto FlatMap<Key, Value>::Set_Internal(Pair<Key, Value> &&pair) -> InsertResult
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Set(const Key &key, const Value &value) -> InsertResult
+auto FlatMap<Key, Value>::Set(const Key& key, const Value& value) -> InsertResult
 {
     return Set_Internal(Pair<Key, Value> { key, value });
 }
 
 template <class Key, class Value>
-auto FlatMap<Key, Value>::Set(const Key &key, Value &&value) -> InsertResult
+auto FlatMap<Key, Value>::Set(const Key& key, Value&& value) -> InsertResult
 {
     return Set_Internal(Pair<Key, Value> { key, std::move(value) });
 }
@@ -361,7 +414,7 @@ auto FlatMap<Key, Value>::Erase(ConstIterator it) -> Iterator
 }
 
 template <class Key, class Value>
-bool FlatMap<Key, Value>::Erase(const Key &value)
+bool FlatMap<Key, Value>::Erase(const Key& value)
 {
     return Erase(Find(value));
 }
@@ -371,8 +424,9 @@ FlatSet<Key> FlatMap<Key, Value>::Keys() const
 {
     FlatSet<Key> keys;
 
-    for (const auto &it : *this) {
-        keys.Insert(it.first);    
+    for (const auto& it : *this)
+    {
+        keys.Insert(it.first);
     }
 
     return keys;
@@ -383,8 +437,9 @@ FlatSet<Value> FlatMap<Key, Value>::Values() const
 {
     FlatSet<Value> values;
 
-    for (const auto &it : *this) {
-        values.Insert(it.second);    
+    for (const auto& it : *this)
+    {
+        values.Insert(it.second);
     }
 
     return values;

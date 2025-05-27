@@ -14,16 +14,18 @@ namespace renderer {
 class VulkanFence : public RenderObject<VulkanFence>
 {
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
     HYP_API VulkanFence();
     HYP_API virtual ~VulkanFence() override;
 
     HYP_FORCE_INLINE VkFence GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
     HYP_FORCE_INLINE VkResult GetLastFrameResult() const
-        { return m_last_frame_result; }
+    {
+        return m_last_frame_result;
+    }
 
     HYP_API RendererResult Create();
     HYP_API RendererResult Destroy();
@@ -31,8 +33,8 @@ public:
     HYP_API RendererResult Reset();
 
 private:
-    VkFence     m_handle = VK_NULL_HANDLE;
-    VkResult    m_last_frame_result = VK_SUCCESS;
+    VkFence m_handle = VK_NULL_HANDLE;
+    VkResult m_last_frame_result = VK_SUCCESS;
 };
 
 using VulkanFenceRef = RenderObjectHandle_Strong<VulkanFence>;

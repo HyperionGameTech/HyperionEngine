@@ -30,7 +30,7 @@
 
 namespace hyperion {
 
-TemporalAA::TemporalAA(const Vec2u &extent, const ImageViewRef &input_image_view, GBuffer *gbuffer)
+TemporalAA::TemporalAA(const Vec2u& extent, const ImageViewRef& input_image_view, GBuffer* gbuffer)
     : m_extent(extent),
       m_input_image_view(input_image_view),
       m_gbuffer(gbuffer),
@@ -46,7 +46,8 @@ TemporalAA::~TemporalAA()
 
 void TemporalAA::Create()
 {
-    if (m_is_initialized) {
+    if (m_is_initialized)
+    {
         return;
     }
 
@@ -56,11 +57,11 @@ void TemporalAA::Create()
     CreateComputePipelines();
 
     m_on_gbuffer_resolution_changed = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u new_size)
-    {
-        SafeRelease(std::move(m_compute_taa));
+        {
+            SafeRelease(std::move(m_compute_taa));
 
-        CreateComputePipelines();
-    });
+            CreateComputePipelines();
+        });
 
     m_is_initialized = true;
 }
@@ -75,9 +76,8 @@ void TemporalAA::CreateImages()
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-    });
-    
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
@@ -90,8 +90,7 @@ void TemporalAA::CreateImages()
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-    });
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
     InitObject(m_history_texture);
 
@@ -107,25 +106,24 @@ void TemporalAA::CreateComputePipelines()
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
 
-    const FixedArray<Handle<Texture> *, 2> textures = {
+    const FixedArray<Handle<Texture>*, 2> textures = {
         &m_result_texture,
         &m_history_texture
     };
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
         // create descriptor sets for depth pyramid generation.
-        const DescriptorSetRef &descriptor_set = descriptor_table->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame_index);
+        const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("InColorTexture"), m_input_image_view);
         descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
-        descriptor_set->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+        descriptor_set->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
-            .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
-    
+        descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+
         descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
 
@@ -136,56 +134,55 @@ void TemporalAA::CreateComputePipelines()
 
     m_compute_taa = g_rendering_api->MakeComputePipeline(
         shader,
-        descriptor_table
-    );
+        descriptor_table);
 
     DeferCreate(m_compute_taa);
 }
 
-void TemporalAA::Render(FrameBase *frame, ViewRenderResource *view)
+void TemporalAA::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const ImageRef &active_image = frame->GetFrameIndex() % 2 == 0
+    const ImageRef& active_image = frame->GetFrameIndex() % 2 == 0
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
 
     frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
 
-    struct alignas(128) {
-        Vec2u   dimensions;
-        Vec2u   depth_texture_dimensions;
-        Vec2f   camera_near_far;
+    struct alignas(128)
+    {
+        Vec2u dimensions;
+        Vec2u depth_texture_dimensions;
+        Vec2f camera_near_far;
     } push_constants;
 
     const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
-        .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImage()->GetExtent();
+                                               .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)
+                                               ->GetImage()
+                                               ->GetExtent();
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
     push_constants.camera_near_far = Vec2f { view->GetCamera()->GetBufferData().camera_near, view->GetCamera()->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
-    
+
     frame->GetCommandList().Add<BindComputePipeline>(m_compute_taa);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
         m_compute_taa->GetDescriptorTable(),
         m_compute_taa,
-        ArrayMap<Name, ArrayMap<Name, uint32>> { },
-        frame_index
-    );
+        ArrayMap<Name, ArrayMap<Name, uint32>> {},
+        frame_index);
 
     frame->GetCommandList().Add<DispatchCompute>(
         m_compute_taa,
         Vec3u {
             (m_extent.x + 7) / 8,
             (m_extent.y + 7) / 8,
-            1
-        }
-    );
+            1 });
 
     frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
 }

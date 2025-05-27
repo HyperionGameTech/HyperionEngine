@@ -22,7 +22,8 @@ Features::Features(VkPhysicalDevice physical_device)
 
 void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
 {
-    if ((m_physical_device = physical_device)) {
+    if ((m_physical_device = physical_device))
+    {
         m_features.samplerAnisotropy = VK_TRUE;
 
         vkGetPhysicalDeviceProperties(physical_device, &m_properties);
@@ -35,13 +36,14 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
         {
             using T = decltype(next_feature);
 
-            VkBaseOutStructure *chain_top = m_features_chain.Empty()
+            VkBaseOutStructure* chain_top = m_features_chain.Empty()
                 ? nullptr
                 : m_features_chain.Back().Get();
 
             m_features_chain.PushBack(MakeUnique<VkBaseOutStructure>(new T(next_feature)));
 
-            if (chain_top != nullptr) {
+            if (chain_top != nullptr)
+            {
                 chain_top->pNext = m_features_chain.Back().Get();
             }
 
@@ -55,12 +57,12 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
             .pNext = VK_NULL_HANDLE
         };
-        
+
         m_raytracing_pipeline_features = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
             .pNext = &m_buffer_device_address_features
         };
-        
+
         m_acceleration_structure_features = {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
             .pNext = &m_raytracing_pipeline_features
@@ -88,7 +90,7 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
         };
 
         vkGetPhysicalDeviceFeatures2(m_physical_device, &m_features2);
-        
+
         // properties
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
@@ -127,20 +129,25 @@ void Features::SetPhysicalDevice(VkPhysicalDevice physical_device)
     }
 }
 
-void Features::LoadDynamicFunctions(Device *device)
+void Features::LoadDynamicFunctions(Device* device)
 {
-#define HYP_LOAD_FN(name) do { \
-        auto proc_addr = vkGetDeviceProcAddr(device->GetDevice(), #name); \
-        if (proc_addr == nullptr) { \
+#define HYP_LOAD_FN(name)                                                            \
+    do                                                                               \
+    {                                                                                \
+        auto proc_addr = vkGetDeviceProcAddr(device->GetDevice(), #name);            \
+        if (proc_addr == nullptr)                                                    \
+        {                                                                            \
             DebugLog(LogType::Error, "Failed to load dynamic function " #name "\n"); \
-        } \
-        dyn_functions.name = reinterpret_cast<PFN_##name>(proc_addr); \
-    } while (0)
+        }                                                                            \
+        dyn_functions.name = reinterpret_cast<PFN_##name>(proc_addr);                \
+    }                                                                                \
+    while (0)
 
 #if defined(HYP_FEATURES_ENABLE_RAYTRACING) && defined(HYP_FEATURES_BINDLESS_TEXTURES)
     HYP_LOAD_FN(vkGetBufferDeviceAddressKHR); // currently only used for RT
 
-    if (IsRaytracingSupported() && !IsRaytracingDisabled()) {
+    if (IsRaytracingSupported() && !IsRaytracingDisabled())
+    {
         DebugLog(LogType::Debug, "Raytracing supported, loading raytracing-specific dynamic functions.\n");
 
         HYP_LOAD_FN(vkCmdBuildAccelerationStructuresKHR);
@@ -155,10 +162,10 @@ void Features::LoadDynamicFunctions(Device *device)
     }
 #endif
 
-    //HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
-    //HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
-    //HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
-    //HYP_LOAD_FN(vkDebugMarkerSetNameEXT);
+    // HYP_LOAD_FN(vkCmdDebugMarkerBeginEXT);
+    // HYP_LOAD_FN(vkCmdDebugMarkerEndEXT);
+    // HYP_LOAD_FN(vkCmdDebugMarkerInsertEXT);
+    // HYP_LOAD_FN(vkDebugMarkerSetNameEXT);
 
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
     HYP_LOAD_FN(vkGetMoltenVKConfigurationMVK);
@@ -168,19 +175,20 @@ void Features::LoadDynamicFunctions(Device *device)
 #undef HYP_LOAD_FN
 }
 
-void Features::SetDeviceFeatures(Device *device)
+void Features::SetDeviceFeatures(Device* device)
 {
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK && HYP_MOLTENVK_LINKED
-    MVKConfiguration *mvk_config = nullptr;
+    MVKConfiguration* mvk_config = nullptr;
     size_t sz = 1;
     dyn_functions.vkGetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
 
     mvk_config = new MVKConfiguration[sz];
 
-    for (size_t i = 0; i < sz; i++) {
-#ifdef HYP_DEBUG_MODE
+    for (size_t i = 0; i < sz; i++)
+    {
+    #ifdef HYP_DEBUG_MODE
         mvk_config[i].debugMode = true;
-#endif
+    #endif
     }
 
     dyn_functions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);

@@ -19,18 +19,18 @@ namespace hyperion {
 class EnvProbeRenderResource;
 
 HYP_CLASS()
+
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ReflectionProbeRenderer);
-    
+
 public:
     ReflectionProbeRenderer(
         Name name,
-        const TResourceHandle<EnvProbeRenderResource> &env_probe_render_resource_handle
-    );
+        const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle);
 
-    ReflectionProbeRenderer(const ReflectionProbeRenderer &other)               = delete;
-    ReflectionProbeRenderer &operator=(const ReflectionProbeRenderer &other)    = delete;
+    ReflectionProbeRenderer(const ReflectionProbeRenderer& other) = delete;
+    ReflectionProbeRenderer& operator=(const ReflectionProbeRenderer& other) = delete;
     virtual ~ReflectionProbeRenderer();
 
 private:
@@ -38,13 +38,12 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRender(FrameBase* frame) override;
 
     TResourceHandle<EnvProbeRenderResource> m_env_probe_render_resource_handle;
 
-    bool                                    m_last_visibility_state = false;
+    bool m_last_visibility_state = false;
 };
-
 
 } // namespace hyperion
 

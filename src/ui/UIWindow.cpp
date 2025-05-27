@@ -51,45 +51,53 @@ void UIWindow::Init()
         title_bar_text->SetText(GetText());
         m_title_bar->AddChildUIObject(title_bar_text);
 
-        m_title_bar->OnMouseDown.Bind([this](const MouseEvent &event)
+        m_title_bar->OnMouseDown.Bind([this](const MouseEvent& event)
+                                    {
+                                        if (m_window_flags & UIWindowFlags::ALLOW_DRAG)
+                                        {
+                                            m_mouse_drag_start = event.absolute_position;
+
+                                            return UIEventHandlerResult::STOP_BUBBLING;
+                                        }
+
+                                        return UIEventHandlerResult::OK;
+                                    })
+            .Detach();
+
+        m_title_bar->OnMouseUp.Bind([this](const MouseEvent& event)
+                                  {
+                                      if (m_window_flags & UIWindowFlags::ALLOW_DRAG)
+                                      {
+                                          m_mouse_drag_start.Unset();
+
+                                          return UIEventHandlerResult::STOP_BUBBLING;
+                                      }
+
+                                      return UIEventHandlerResult::OK;
+                                  })
+            .Detach();
+
+        m_title_bar->OnMouseDrag.Bind([this](const MouseEvent& event)
+                                    {
+                                        if (m_window_flags & UIWindowFlags::ALLOW_DRAG)
+                                        {
+                                            if (m_mouse_drag_start.HasValue())
+                                            {
+                                                Vec2i delta = event.absolute_position - *m_mouse_drag_start;
+                                                SetPosition(GetPosition() + delta);
+
+                                                m_mouse_drag_start = event.absolute_position;
+                                            }
+
+                                            return UIEventHandlerResult::STOP_BUBBLING;
+                                        }
+
+                                        return UIEventHandlerResult::OK;
+                                    })
+            .Detach();
+
+        if (m_window_flags & UIWindowFlags::TITLE_BAR)
         {
-            if (m_window_flags & UIWindowFlags::ALLOW_DRAG) {
-                m_mouse_drag_start = event.absolute_position;
-
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
-
-            return UIEventHandlerResult::OK;
-        }).Detach();
-
-        m_title_bar->OnMouseUp.Bind([this](const MouseEvent &event)
-        {
-            if (m_window_flags & UIWindowFlags::ALLOW_DRAG) {
-                m_mouse_drag_start.Unset();
-
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
-
-            return UIEventHandlerResult::OK;
-        }).Detach();
-
-        m_title_bar->OnMouseDrag.Bind([this](const MouseEvent &event)
-        {
-            if (m_window_flags & UIWindowFlags::ALLOW_DRAG) {
-                if (m_mouse_drag_start.HasValue()) {
-                    Vec2i delta = event.absolute_position - *m_mouse_drag_start;
-                    SetPosition(GetPosition() + delta);
-
-                    m_mouse_drag_start = event.absolute_position;
-                }
-
-                return UIEventHandlerResult::STOP_BUBBLING;
-            }
-
-            return UIEventHandlerResult::OK;
-        }).Detach();
-
-        if (m_window_flags & UIWindowFlags::TITLE_BAR) {
             UIPanel::AddChildUIObject(m_title_bar);
         }
     }
@@ -102,25 +110,63 @@ void UIWindow::Init()
     m_content->SetPadding(Vec2i { 5, 5 });
     m_content->SetBackgroundColor(Vec4f::Zero()); // Transparent
 
-    OnMouseDown.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnMouseUp.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnMouseDrag.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnMouseHover.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnMouseLeave.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnScroll.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnClick.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnKeyDown.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    OnKeyUp.Bind([](...) { return UIEventHandlerResult::STOP_BUBBLING; }).Detach();
-    
+    OnMouseDown.Bind([](...)
+                   {
+                       return UIEventHandlerResult::STOP_BUBBLING;
+                   })
+        .Detach();
+    OnMouseUp.Bind([](...)
+                 {
+                     return UIEventHandlerResult::STOP_BUBBLING;
+                 })
+        .Detach();
+    OnMouseDrag.Bind([](...)
+                   {
+                       return UIEventHandlerResult::STOP_BUBBLING;
+                   })
+        .Detach();
+    OnMouseHover.Bind([](...)
+                    {
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    })
+        .Detach();
+    OnMouseLeave.Bind([](...)
+                    {
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    })
+        .Detach();
+    OnScroll.Bind([](...)
+                {
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                })
+        .Detach();
+    OnClick.Bind([](...)
+               {
+                   return UIEventHandlerResult::STOP_BUBBLING;
+               })
+        .Detach();
+    OnKeyDown.Bind([](...)
+                 {
+                     return UIEventHandlerResult::STOP_BUBBLING;
+                 })
+        .Detach();
+    OnKeyUp.Bind([](...)
+               {
+                   return UIEventHandlerResult::STOP_BUBBLING;
+               })
+        .Detach();
+
     UIPanel::AddChildUIObject(m_content);
 }
 
-void UIWindow::SetText(const String &text)
+void UIWindow::SetText(const String& text)
 {
     HYP_SCOPE;
 
-    if (m_title_bar != nullptr) {
-        if (RC<UIObject> title_bar_text = m_title_bar->FindChildUIObject(NAME("TitleBarText"))) {
+    if (m_title_bar != nullptr)
+    {
+        if (RC<UIObject> title_bar_text = m_title_bar->FindChildUIObject(NAME("TitleBarText")))
+        {
             title_bar_text->SetText(text);
         }
     }
@@ -128,11 +174,12 @@ void UIWindow::SetText(const String &text)
     UIObject::SetText(text);
 }
 
-void UIWindow::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIWindow::AddChildUIObject(const RC<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return;
     }
 
@@ -141,15 +188,17 @@ void UIWindow::AddChildUIObject(const RC<UIObject> &ui_object)
     UpdateSize(false);
 }
 
-bool UIWindow::RemoveChildUIObject(UIObject *ui_object)
+bool UIWindow::RemoveChildUIObject(UIObject* ui_object)
 {
     HYP_SCOPE;
 
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
-    
-    if (m_content->RemoveChildUIObject(ui_object)) {
+
+    if (m_content->RemoveChildUIObject(ui_object))
+    {
         UpdateSize(false);
 
         return true;
@@ -169,14 +218,19 @@ void UIWindow::SetWindowFlags(EnumFlags<UIWindowFlags> window_flags)
 {
     HYP_SCOPE;
 
-    if (m_window_flags == window_flags) {
+    if (m_window_flags == window_flags)
+    {
         return;
     }
 
-    if ((window_flags & UIWindowFlags::TITLE_BAR) != m_window_flags) {
-        if (window_flags & UIWindowFlags::TITLE_BAR) {
+    if ((window_flags & UIWindowFlags::TITLE_BAR) != m_window_flags)
+    {
+        if (window_flags & UIWindowFlags::TITLE_BAR)
+        {
             UIPanel::AddChildUIObject(m_title_bar);
-        } else {
+        }
+        else
+        {
             UIPanel::RemoveChildUIObject(m_title_bar);
         }
     }

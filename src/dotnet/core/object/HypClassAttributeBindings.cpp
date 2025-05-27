@@ -10,34 +10,35 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT const char *HypClassAttribute_GetName(HypClassAttribute *attribute)
+extern "C"
 {
-    AssertThrow(attribute != nullptr);
 
-    return attribute->GetName().Data();
-}
+    HYP_EXPORT const char* HypClassAttribute_GetName(HypClassAttribute* attribute)
+    {
+        AssertThrow(attribute != nullptr);
 
-HYP_EXPORT const char *HypClassAttribute_GetString(HypClassAttribute *attribute)
-{
-    AssertThrow(attribute != nullptr);
+        return attribute->GetName().Data();
+    }
 
-    return attribute->GetValue().GetString().Data();
-}
+    HYP_EXPORT const char* HypClassAttribute_GetString(HypClassAttribute* attribute)
+    {
+        AssertThrow(attribute != nullptr);
 
-HYP_EXPORT int8 HypClassAttribute_GetBool(HypClassAttribute *attribute)
-{
-    AssertThrow(attribute != nullptr);
+        return attribute->GetValue().GetString().Data();
+    }
 
-    return attribute->GetValue().GetBool();
-}
+    HYP_EXPORT int8 HypClassAttribute_GetBool(HypClassAttribute* attribute)
+    {
+        AssertThrow(attribute != nullptr);
 
-HYP_EXPORT int8 HypClassAttribute_GetInt(HypClassAttribute *attribute)
-{
-    AssertThrow(attribute != nullptr);
+        return attribute->GetValue().GetBool();
+    }
 
-    return attribute->GetValue().GetInt();
-}
+    HYP_EXPORT int8 HypClassAttribute_GetInt(HypClassAttribute* attribute)
+    {
+        AssertThrow(attribute != nullptr);
+
+        return attribute->GetValue().GetInt();
+    }
 
 } // extern "C"

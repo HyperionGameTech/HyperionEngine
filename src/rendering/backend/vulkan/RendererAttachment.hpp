@@ -19,23 +19,22 @@ namespace renderer {
 class VulkanAttachment final : public AttachmentBase
 {
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
     HYP_API VulkanAttachment(
-        const VulkanImageRef &image,
-        const VulkanFramebufferWeakRef &framebuffer,
+        const VulkanImageRef& image,
+        const VulkanFramebufferWeakRef& framebuffer,
         RenderPassStage stage,
         LoadOperation load_operation = LoadOperation::CLEAR,
         StoreOperation store_operation = StoreOperation::STORE,
-        BlendFunction blend_function = BlendFunction::None()
-    );
+        BlendFunction blend_function = BlendFunction::None());
     HYP_API virtual ~VulkanAttachment() override;
 
     HYP_API VkAttachmentReference GetVulkanHandle() const;
     HYP_API VkAttachmentDescription GetVulkanAttachmentDescription() const;
 
     HYP_FORCE_INLINE RenderPassStage GetRenderPassStage() const
-        { return m_stage; }
+    {
+        return m_stage;
+    }
 
     HYP_API virtual bool IsCreated() const override;
 
@@ -43,7 +42,7 @@ public:
     HYP_API virtual RendererResult Destroy() override;
 
 private:
-    RenderPassStage     m_stage;
+    RenderPassStage m_stage;
 };
 
 } // namespace renderer

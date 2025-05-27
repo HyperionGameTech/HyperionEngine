@@ -47,8 +47,10 @@ void GraphicsPipelineCache::Destroy()
 
     Mutex::Guard guard(m_mutex);
 
-    for (auto &it : m_cached_pipelines) {
-        for (GraphicsPipelineRef &pipeline : it.second) {
+    for (auto& it : m_cached_pipelines)
+    {
+        for (GraphicsPipelineRef& pipeline : it.second)
+        {
             SafeRelease(std::move(pipeline));
         }
     }
@@ -57,11 +59,10 @@ void GraphicsPipelineCache::Destroy()
 }
 
 GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
-    const ShaderRef &shader,
-    const DescriptorTableRef &descriptor_table,
-    const Array<FramebufferRef> &framebuffers,
-    const RenderableAttributeSet &attributes
-)
+    const ShaderRef& shader,
+    const DescriptorTableRef& descriptor_table,
+    const Array<FramebufferRef>& framebuffers,
+    const RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
 
@@ -69,14 +70,14 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         shader,
         descriptor_table,
         framebuffers,
-        attributes
-    );
+        attributes);
 
-    if (graphics_pipeline.IsValid()) {
+    if (graphics_pipeline.IsValid())
+    {
         return graphics_pipeline;
     }
 
-    Proc<void(const GraphicsPipelineRef &)> new_callback = [this, attributes](const GraphicsPipelineRef &graphics_pipeline)
+    Proc<void(const GraphicsPipelineRef&)> new_callback = [this, attributes](const GraphicsPipelineRef& graphics_pipeline)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -87,19 +88,19 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         shader,
         descriptor_table,
         framebuffers,
-        attributes
-    );
+        attributes);
 
-    struct RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache) : renderer::RenderCommand
+    struct RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)
+        : renderer::RenderCommand
     {
-        GraphicsPipelineRef                     graphics_pipeline;
-        Proc<void(const GraphicsPipelineRef &)> callback;
+        GraphicsPipelineRef graphics_pipeline;
+        Proc<void(const GraphicsPipelineRef&)> callback;
 
         RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)(
-            const GraphicsPipelineRef &graphics_pipeline,
-            Proc<void(const GraphicsPipelineRef &)> &&callback
-        ) : graphics_pipeline(graphics_pipeline),
-            callback(std::move(callback))
+            const GraphicsPipelineRef& graphics_pipeline,
+            Proc<void(const GraphicsPipelineRef&)>&& callback)
+            : graphics_pipeline(graphics_pipeline),
+              callback(std::move(callback))
         {
             AssertThrow(graphics_pipeline.IsValid());
         }
@@ -113,11 +114,12 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         {
             HYPERION_BUBBLE_ERRORS(graphics_pipeline->Create());
 
-            if (callback.IsValid()) {
+            if (callback.IsValid())
+            {
                 callback(graphics_pipeline);
             }
 
-            return RendererResult { };
+            return RendererResult {};
         }
     };
 
@@ -127,11 +129,10 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
 }
 
 GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
-    const ShaderRef &shader,
-    const DescriptorTableRef &descriptor_table,
-    const Array<FramebufferRef> &framebuffers,
-    const RenderableAttributeSet &attributes
-)
+    const ShaderRef& shader,
+    const DescriptorTableRef& descriptor_table,
+    const Array<FramebufferRef>& framebuffers,
+    const RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
 
@@ -141,20 +142,24 @@ GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
 
     auto it = m_cached_pipelines.Find(key);
 
-    if (it == m_cached_pipelines.End()) {
+    if (it == m_cached_pipelines.End())
+    {
         return nullptr;
     }
 
     const HashCode shader_hash_code = shader->GetCompiledShader()->GetHashCode();
     const HashCode descriptor_table_hash_code = descriptor_table->GetDeclaration().GetHashCode();
 
-    for (const GraphicsPipelineRef &pipeline : it->second) {
+    for (const GraphicsPipelineRef& pipeline : it->second)
+    {
         if (pipeline->MatchesSignature(
-            shader,
-            descriptor_table,
-            Map(framebuffers, [](const FramebufferRef &framebuffer) { return static_cast<const FramebufferBase *>(framebuffer.Get()); }),
-            attributes
-        ))
+                shader,
+                descriptor_table,
+                Map(framebuffers, [](const FramebufferRef& framebuffer)
+                    {
+                        return static_cast<const FramebufferBase*>(framebuffer.Get());
+                    }),
+                attributes))
         {
             return pipeline;
         }

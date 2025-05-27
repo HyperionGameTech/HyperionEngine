@@ -38,32 +38,44 @@ public:
 
     virtual TypeID GetTypeID() const = 0;
 
-    virtual bool ShouldCreateForScene(Scene *scene) const
-        { return true; }
+    virtual bool ShouldCreateForScene(Scene* scene) const
+    {
+        return true;
+    }
 
     virtual bool AllowParallelExecution() const
-        { return true; }
+    {
+        return true;
+    }
 
     virtual bool RequiresGameThread() const
-        { return false; }
+    {
+        return false;
+    }
 
     virtual bool AllowUpdate() const
-        { return true; }
+    {
+        return true;
+    }
 
     /*! \brief Returns the TypeIDs of the components this System operates on.
      *  To be used by the EntityManager in order to properly order the Systems based on their dependencies.
      *
      *  \return The TypeIDs of the components this System operates on.
      */
-    HYP_FORCE_INLINE const Array<TypeID> &GetComponentTypeIDs() const
-        { return m_component_type_ids; }
+    HYP_FORCE_INLINE const Array<TypeID>& GetComponentTypeIDs() const
+    {
+        return m_component_type_ids;
+    }
 
     /*! \brief Returns the ComponentInfo objects of the components this System operates on.
      *
      *  \return The ComponentInfos of the components this System operates on.
      */
-    HYP_FORCE_INLINE const Array<ComponentInfo> &GetComponentInfos() const
-        { return m_component_infos; }
+    HYP_FORCE_INLINE const Array<ComponentInfo>& GetComponentInfos() const
+    {
+        return m_component_infos;
+    }
 
     /*! \brief Returns true if all given TypeIDs are operated on by this System, false otherwise.
      *
@@ -72,21 +84,25 @@ public:
      *
      *  \return True if all given TypeIDs are operated on by this System, false otherwise.
      */
-    bool ActsOnComponents(const Array<TypeID> &component_type_ids, bool receive_events_context) const
+    bool ActsOnComponents(const Array<TypeID>& component_type_ids, bool receive_events_context) const
     {
-        for (const TypeID component_type_id : m_component_type_ids) {
-            const ComponentInfo &component_info = GetComponentInfo(component_type_id);
+        for (const TypeID component_type_id : m_component_type_ids)
+        {
+            const ComponentInfo& component_info = GetComponentInfo(component_type_id);
 
             // skip observe-only components
-            if (!(component_info.rw_flags & COMPONENT_RW_FLAGS_READ) && !(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE)) {
+            if (!(component_info.rw_flags & COMPONENT_RW_FLAGS_READ) && !(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE))
+            {
                 continue;
             }
 
-            if (receive_events_context && !component_info.receives_events) {
+            if (receive_events_context && !component_info.receives_events)
+            {
                 continue;
             }
-            
-            if (!component_type_ids.Contains(component_type_id)) {
+
+            if (!component_type_ids.Contains(component_type_id))
+            {
                 return false;
             }
         }
@@ -106,15 +122,17 @@ public:
     {
         const bool has_component_type_id = m_component_type_ids.Contains(component_type_id);
 
-        if (!has_component_type_id) {
+        if (!has_component_type_id)
+        {
             return false;
         }
 
-        if (include_read_only) {
+        if (include_read_only)
+        {
             return true;
         }
 
-        const ComponentInfo &component_info = GetComponentInfo(component_type_id);
+        const ComponentInfo& component_info = GetComponentInfo(component_type_id);
 
         return !!(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE);
     }
@@ -125,7 +143,7 @@ public:
      *
      *  \return The ComponentInfo of the component with the given TypeID.
      */
-    const ComponentInfo &GetComponentInfo(TypeID component_type_id) const
+    const ComponentInfo& GetComponentInfo(TypeID component_type_id) const
     {
         const auto it = m_component_type_ids.Find(component_type_id);
         AssertThrowMsg(it != m_component_type_ids.End(), "Component type ID not found");
@@ -136,7 +154,7 @@ public:
         return m_component_infos[index];
     }
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity)
+    virtual void OnEntityAdded(const Handle<Entity>& entity)
     {
     }
 
@@ -147,7 +165,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) = 0;
 
 protected:
-    SystemBase(EntityManager &entity_manager, Array<TypeID> &&component_type_ids, Array<ComponentInfo> &&component_infos)
+    SystemBase(EntityManager& entity_manager, Array<TypeID>&& component_type_ids, Array<ComponentInfo>&& component_infos)
         : m_entity_manager(entity_manager),
           m_component_type_ids(std::move(component_type_ids)),
           m_component_infos(std::move(component_infos))
@@ -155,8 +173,10 @@ protected:
         AssertThrowMsg(m_component_type_ids.Size() == m_component_infos.Size(), "Component type ID count and component infos count mismatch");
     }
 
-    HYP_FORCE_INLINE EntityManager &GetEntityManager()
-        { return m_entity_manager; }
+    HYP_FORCE_INLINE EntityManager& GetEntityManager()
+    {
+        return m_entity_manager;
+    }
 
     /*! \brief Set a Proc<void()> to be called once after the System has processed.
      *  The Proc<void()> will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
@@ -164,29 +184,29 @@ protected:
      *
      *  \param proc The Proc<void()> to call after the System has processed.
      */
-    void AfterProcess(Proc<void()> &&proc)
+    void AfterProcess(Proc<void()>&& proc)
     {
         m_after_process_procs.PushBack(std::move(proc));
     }
 
-    Scene *GetScene() const;
-    World *GetWorld() const;
+    Scene* GetScene() const;
+    World* GetWorld() const;
 
-    Delegate<void, World * /* new */, World * /* previous */>   OnWorldChanged;
+    Delegate<void, World* /* new */, World* /* previous */> OnWorldChanged;
 
-    EntityManager                                               &m_entity_manager;
+    EntityManager& m_entity_manager;
 
-    DelegateHandlerSet                                          m_delegate_handlers;
+    DelegateHandlerSet m_delegate_handlers;
 
 private:
-    void SetWorld(World *world);
+    void SetWorld(World* world);
 
-    HashSet<WeakHandle<Entity>>                                 m_initialized_entities;
+    HashSet<WeakHandle<Entity>> m_initialized_entities;
 
-    Array<TypeID>                                               m_component_type_ids;
-    Array<ComponentInfo>                                        m_component_infos;
+    Array<TypeID> m_component_type_ids;
+    Array<ComponentInfo> m_component_infos;
 
-    Array<Proc<void()>, DynamicAllocator>                       m_after_process_procs;
+    Array<Proc<void()>, DynamicAllocator> m_after_process_procs;
 };
 
 /*! \brief A System is a class that operates on a set of components.
@@ -197,22 +217,21 @@ template <class Derived, class... ComponentDescriptors>
 class System : public SystemBase
 {
 public:
-    using ComponentDescriptorTypes = Tuple< ComponentDescriptors... >;
+    using ComponentDescriptorTypes = Tuple<ComponentDescriptors...>;
 
-    System(EntityManager &entity_manager)
+    System(EntityManager& entity_manager)
         : SystemBase(
               entity_manager,
               { TypeID::ForType<typename ComponentDescriptors::Type>()... },
-              { ComponentInfo(ComponentDescriptors())... }
-          )
+              { ComponentInfo(ComponentDescriptors())... })
     {
     }
 
-    System(const System &other)                 = delete;
-    System &operator=(const System &other)      = delete;
-    System(System &&other) noexcept             = delete;
-    System &operator=(System &&other) noexcept  = delete;
-    virtual ~System() override                  = default;
+    System(const System& other) = delete;
+    System& operator=(const System& other) = delete;
+    System(System&& other) noexcept = delete;
+    System& operator=(System&& other) noexcept = delete;
+    virtual ~System() override = default;
 
     virtual ANSIStringView GetName() const override final
     {

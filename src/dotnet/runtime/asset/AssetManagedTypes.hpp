@@ -7,7 +7,8 @@
 
 namespace hyperion {
 
-extern "C" {
+extern "C"
+{
 } // extern "C"
 
 } // namespace hyperion

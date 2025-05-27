@@ -4,15 +4,17 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT uint32 Entity_GetID(const Entity *entity)
+extern "C"
 {
-    if (!entity) {
-        return 0;
-    }
 
-    return entity->GetID().Value();
-}
+    HYP_EXPORT uint32 Entity_GetID(const Entity* entity)
+    {
+        if (!entity)
+        {
+            return 0;
+        }
+
+        return entity->GetID().Value();
+    }
 
 } // extern "C"

@@ -6,9 +6,10 @@
 
 using namespace hyperion;
 
-extern "C" {
-HYP_EXPORT void Transform_UpdateMatrix(Transform *transform)
+extern "C"
 {
-    transform->UpdateMatrix();
-}
+    HYP_EXPORT void Transform_UpdateMatrix(Transform* transform)
+    {
+        transform->UpdateMatrix();
+    }
 } // extern "C"

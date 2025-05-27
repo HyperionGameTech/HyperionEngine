@@ -27,36 +27,40 @@ public:
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     FlatSet();
+
     FlatSet(std::initializer_list<T> initializer_list)
         : Base()
     {
-        for (const auto &item : initializer_list) {
+        for (const auto& item : initializer_list)
+        {
             Insert(item);
         }
     }
 
-    FlatSet(const T *begin, const T *end)
+    FlatSet(const T* begin, const T* end)
     {
-        for (const T *it = begin; it != end; ++it) {
+        for (const T* it = begin; it != end; ++it)
+        {
             Insert(*it);
         }
     }
 
-    FlatSet(const FlatSet &other);
-    FlatSet &operator=(const FlatSet &other);
-    FlatSet(FlatSet &&other) noexcept;
-    FlatSet &operator=(FlatSet &&other) noexcept;
+    FlatSet(const FlatSet& other);
+    FlatSet& operator=(const FlatSet& other);
+    FlatSet(FlatSet&& other) noexcept;
+    FlatSet& operator=(FlatSet&& other) noexcept;
     ~FlatSet();
-    
-    Iterator Find(const T &value);
-    ConstIterator Find(const T &value) const;
+
+    Iterator Find(const T& value);
+    ConstIterator Find(const T& value) const;
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE auto FindAs(const TFindAsType &value) -> Iterator
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType& value) -> Iterator
     {
         const auto it = FlatSet<T>::Base::LowerBound(value);
 
-        if (it == End()) {
+        if (it == End())
+        {
             return it;
         }
 
@@ -64,11 +68,12 @@ public:
     }
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE auto FindAs(const TFindAsType &value) const -> ConstIterator
+    HYP_FORCE_INLINE auto FindAs(const TFindAsType& value) const -> ConstIterator
     {
         const auto it = FlatSet<T>::Base::LowerBound(value);
 
-        if (it == End()) {
+        if (it == End())
+        {
             return it;
         }
 
@@ -76,56 +81,83 @@ public:
     }
 
     template <class TFindAsType>
-    HYP_FORCE_INLINE bool Contains(const TFindAsType &value) const
-        { return FindAs<TFindAsType>(value) != End(); }
-    
-    InsertResult Insert(const T &value);
-    InsertResult Insert(T &&value);
+    HYP_FORCE_INLINE bool Contains(const TFindAsType& value) const
+    {
+        return FindAs<TFindAsType>(value) != End();
+    }
+
+    InsertResult Insert(const T& value);
+    InsertResult Insert(T&& value);
 
     template <class... Args>
-    InsertResult Emplace(Args &&... args)
-        { return Insert(T(std::forward<Args>(args)...)); }
+    InsertResult Emplace(Args&&... args)
+    {
+        return Insert(T(std::forward<Args>(args)...));
+    }
 
     Iterator Erase(ConstIterator it);
-    Iterator Erase(const T &value);
+    Iterator Erase(const T& value);
 
     HYP_FORCE_INLINE SizeType Size() const
-        { return Base::Size(); }
+    {
+        return Base::Size();
+    }
 
-    HYP_FORCE_INLINE T *Data()
-        { return Base::Data(); }
+    HYP_FORCE_INLINE T* Data()
+    {
+        return Base::Data();
+    }
 
-    HYP_FORCE_INLINE const T *Data() const
-        { return Base::Data(); }
+    HYP_FORCE_INLINE const T* Data() const
+    {
+        return Base::Data();
+    }
 
     HYP_FORCE_INLINE bool Any() const
-        { return Base::Any(); }
+    {
+        return Base::Any();
+    }
 
     HYP_FORCE_INLINE bool Empty() const
-        { return Base::Empty(); }
+    {
+        return Base::Empty();
+    }
 
     HYP_FORCE_INLINE void Clear()
-        { Base::Clear(); }
+    {
+        Base::Clear();
+    }
 
     HYP_FORCE_INLINE void Reserve(SizeType size)
-        { Base::Reserve(size); }
-    
-    HYP_FORCE_INLINE T &Front()
-        { return Base::Front(); }
+    {
+        Base::Reserve(size);
+    }
 
-    HYP_FORCE_INLINE const T &Front() const
-        { return Base::Front(); }
+    HYP_FORCE_INLINE T& Front()
+    {
+        return Base::Front();
+    }
 
-    HYP_FORCE_INLINE T &Back()
-        { return Base::Back(); }
-        
-    HYP_FORCE_INLINE const T &Back() const
-        { return Base::Back(); }
+    HYP_FORCE_INLINE const T& Front() const
+    {
+        return Base::Front();
+    }
+
+    HYP_FORCE_INLINE T& Back()
+    {
+        return Base::Back();
+    }
+
+    HYP_FORCE_INLINE const T& Back() const
+    {
+        return Base::Back();
+    }
 
     template <class OtherContainerType>
-    FlatSet &Merge(const OtherContainerType &other)
+    FlatSet& Merge(const OtherContainerType& other)
     {
-        for (const auto &item : other) {
+        for (const auto& item : other)
+        {
             Insert(item);
         }
 
@@ -133,9 +165,10 @@ public:
     }
 
     template <class OtherContainerType>
-    FlatSet &Merge(OtherContainerType &&other)
+    FlatSet& Merge(OtherContainerType&& other)
     {
-        for (auto &item : other) {
+        for (auto& item : other)
+        {
             Insert(std::move(item));
         }
 
@@ -145,7 +178,7 @@ public:
     }
 
     template <class OtherContainerType>
-    FlatSet Union(const OtherContainerType &other) const
+    FlatSet Union(const OtherContainerType& other) const
     {
         FlatSet result(*this);
         result.Merge(other);
@@ -154,7 +187,7 @@ public:
     }
 
     template <class OtherContainerType>
-    FlatSet Union(OtherContainerType &&other) const
+    FlatSet Union(OtherContainerType&& other) const
     {
         FlatSet result(*this);
         result.Merge(std::move(other));
@@ -163,12 +196,14 @@ public:
     }
 
     template <class OtherContainerType>
-    FlatSet Intersection(const OtherContainerType &other) const
+    FlatSet Intersection(const OtherContainerType& other) const
     {
         FlatSet result;
 
-        for (auto it = Begin(); it != End(); ++it) {
-            if (other.Contains(*it)) {
+        for (auto it = Begin(); it != End(); ++it)
+        {
+            if (other.Contains(*it))
+            {
                 result.Insert(*it);
             }
         }
@@ -177,12 +212,13 @@ public:
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE Array<T> ToArray() const
-        { return Array<T>(Begin(), End()); }
+    {
+        return Array<T>(Begin(), End());
+    }
 
     HYP_DEF_STL_BEGIN_END(
         Base::Begin(),
-        Base::End()
-    )
+        Base::End())
 };
 
 template <class T>
@@ -192,13 +228,13 @@ FlatSet<T>::FlatSet()
 }
 
 template <class T>
-FlatSet<T>::FlatSet(const FlatSet &other)
+FlatSet<T>::FlatSet(const FlatSet& other)
     : Base(other)
 {
 }
 
 template <class T>
-auto FlatSet<T>::operator=(const FlatSet &other) -> FlatSet&
+auto FlatSet<T>::operator=(const FlatSet& other) -> FlatSet&
 {
     Base::operator=(other);
 
@@ -206,13 +242,13 @@ auto FlatSet<T>::operator=(const FlatSet &other) -> FlatSet&
 }
 
 template <class T>
-FlatSet<T>::FlatSet(FlatSet &&other) noexcept
+FlatSet<T>::FlatSet(FlatSet&& other) noexcept
     : Base(std::move(other))
 {
 }
 
 template <class T>
-auto FlatSet<T>::operator=(FlatSet &&other) noexcept -> FlatSet&
+auto FlatSet<T>::operator=(FlatSet&& other) noexcept -> FlatSet&
 {
     Base::operator=(std::move(other));
 
@@ -223,11 +259,12 @@ template <class T>
 FlatSet<T>::~FlatSet() = default;
 
 template <class T>
-auto FlatSet<T>::Find(const T &value) -> Iterator
+auto FlatSet<T>::Find(const T& value) -> Iterator
 {
     const auto it = Base::LowerBound(value);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -235,11 +272,12 @@ auto FlatSet<T>::Find(const T &value) -> Iterator
 }
 
 template <class T>
-auto FlatSet<T>::Find(const T &value) const -> ConstIterator
+auto FlatSet<T>::Find(const T& value) const -> ConstIterator
 {
     const auto it = Base::LowerBound(value);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return it;
     }
 
@@ -247,31 +285,33 @@ auto FlatSet<T>::Find(const T &value) const -> ConstIterator
 }
 
 template <class T>
-auto FlatSet<T>::Insert(const T &value) -> InsertResult
+auto FlatSet<T>::Insert(const T& value) -> InsertResult
 {
     Iterator it = Base::LowerBound(value);
 
-    if (it == End() || !(*it == value)) {
+    if (it == End() || !(*it == value))
+    {
         it = Base::Base::Insert(it, value);
 
-        return {it, true};
+        return { it, true };
     }
 
-    return {it, false};
+    return { it, false };
 }
 
 template <class T>
-auto FlatSet<T>::Insert(T &&value) -> InsertResult
+auto FlatSet<T>::Insert(T&& value) -> InsertResult
 {
     Iterator it = Base::LowerBound(value);
 
-    if (it == End() || !(*it == value)) {
+    if (it == End() || !(*it == value))
+    {
         it = Base::Base::Insert(it, std::forward<T>(value));
 
-        return {it, true};
+        return { it, true };
     }
 
-    return {it, false};
+    return { it, false };
 }
 
 template <class T>
@@ -281,11 +321,12 @@ auto FlatSet<T>::Erase(ConstIterator it) -> Iterator
 }
 
 template <class T>
-auto FlatSet<T>::Erase(const T &value) -> Iterator
+auto FlatSet<T>::Erase(const T& value) -> Iterator
 {
     const auto it = Find(value);
 
-    if (it == End()) {
+    if (it == End())
+    {
         return End();
     }
 

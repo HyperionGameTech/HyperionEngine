@@ -35,42 +35,50 @@ using RenderEnvironmentUpdates = uint64;
 
 enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 {
-    RENDER_ENVIRONMENT_UPDATES_NONE                 = 0x0,
-    RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS    = 0x1,
-    RENDER_ENVIRONMENT_UPDATES_PLACEHOLDER          = 0x2,
+    RENDER_ENVIRONMENT_UPDATES_NONE = 0x0,
+    RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS = 0x1,
+    RENDER_ENVIRONMENT_UPDATES_PLACEHOLDER = 0x2,
 
-    RENDER_ENVIRONMENT_UPDATES_CONTAINERS           = RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS,
+    RENDER_ENVIRONMENT_UPDATES_CONTAINERS = RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS,
 
-    RENDER_ENVIRONMENT_UPDATES_TLAS                 = 0x4,
+    RENDER_ENVIRONMENT_UPDATES_TLAS = 0x4,
 
-    RENDER_ENVIRONMENT_UPDATES_THREAD_MASK          = 0x10 // use mask shifted by ThreadType value to issue unique updates for a specific thread
+    RENDER_ENVIRONMENT_UPDATES_THREAD_MASK = 0x10 // use mask shifted by ThreadType value to issue unique updates for a specific thread
 };
 
 // @TODO Move RenderEnvironment stuff to SceneRenderResource
 
 HYP_CLASS()
+
 class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 {
     HYP_OBJECT_BODY(RenderEnvironment);
 
 public:
     RenderEnvironment();
-    RenderEnvironment(const RenderEnvironment &other)               = delete;
-    RenderEnvironment &operator=(const RenderEnvironment &other)    = delete;
+    RenderEnvironment(const RenderEnvironment& other) = delete;
+    RenderEnvironment& operator=(const RenderEnvironment& other) = delete;
     ~RenderEnvironment();
 
-    const FixedArray<TLASRef, max_frames_in_flight> &GetTopLevelAccelerationStructures() const
-        { return m_top_level_acceleration_structures; }
-
-    const Handle<ParticleSystem> &GetParticleSystem() const
-        { return m_particle_system; }
-
-    const Handle<GaussianSplatting> &GetGaussianSplatting() const
-        { return m_gaussian_splatting; }
-
-    RC<RenderSubsystem> AddRenderSubsystem(const RC<RenderSubsystem> &render_subsystem)
+    const FixedArray<TLASRef, max_frames_in_flight>& GetTopLevelAccelerationStructures() const
     {
-        if (!render_subsystem) {
+        return m_top_level_acceleration_structures;
+    }
+
+    const Handle<ParticleSystem>& GetParticleSystem() const
+    {
+        return m_particle_system;
+    }
+
+    const Handle<GaussianSplatting>& GetGaussianSplatting() const
+    {
+        return m_gaussian_splatting;
+    }
+
+    RC<RenderSubsystem> AddRenderSubsystem(const RC<RenderSubsystem>& render_subsystem)
+    {
+        if (!render_subsystem)
+        {
             return nullptr;
         }
 
@@ -80,12 +88,13 @@ public:
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<T, RenderSubsystem>>>
-    RC<T> AddRenderSubsystem(const RC<T> &render_subsystem)
+    RC<T> AddRenderSubsystem(const RC<T>& render_subsystem)
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
             "T should be a derived class of RenderSubsystem");
-        
-        if (!render_subsystem) {
+
+        if (!render_subsystem)
+        {
             return nullptr;
         }
 
@@ -95,49 +104,57 @@ public:
     }
 
     template <class T, class... Args>
-    RC<T> AddRenderSubsystem(Name name, Args &&... args)
+    RC<T> AddRenderSubsystem(Name name, Args&&... args)
     {
         return AddRenderSubsystem(MakeRefCountedPtr<T>(name, std::forward<Args>(args)...));
     }
 
     template <class T>
-    T *GetRenderSubsystem(Name name = Name::Invalid())
+    T* GetRenderSubsystem(Name name = Name::Invalid())
     {
         Mutex::Guard guard(m_render_subsystems_mutex);
 
         const TypeID type_id = GetRenderSubsystemTypeID<T>();
 
-        if (!m_render_subsystems.Contains(type_id)) {
+        if (!m_render_subsystems.Contains(type_id))
+        {
             return nullptr;
         }
 
-        auto &items = m_render_subsystems.At(type_id);
+        auto& items = m_render_subsystems.At(type_id);
 
-        if (items.Empty()) {
+        if (items.Empty())
+        {
             return nullptr;
         }
 
-        RenderSubsystem *render_subsystem = nullptr;
+        RenderSubsystem* render_subsystem = nullptr;
 
-        if (name) {
+        if (name)
+        {
             const auto it = items.Find(name);
 
-            if (it == items.End()) {
+            if (it == items.End())
+            {
                 return nullptr;
             }
 
             render_subsystem = it->second.Get();
-        } else {
+        }
+        else
+        {
             render_subsystem = items.Front().second.Get();
         }
 
-        if (type_id != TypeID::ForType<T>()) {
-            if (!render_subsystem->IsInstanceOf(T::Class())) {
+        if (type_id != TypeID::ForType<T>())
+        {
+            if (!render_subsystem->IsInstanceOf(T::Class()))
+            {
                 return nullptr;
             }
         }
 
-        return static_cast<T *>(render_subsystem);
+        return static_cast<T*>(render_subsystem);
     }
 
     template <class T>
@@ -150,18 +167,22 @@ public:
 
         Mutex::Guard guard(m_render_subsystems_mutex);
 
-        if (!m_render_subsystems.Contains(type_id)) {
+        if (!m_render_subsystems.Contains(type_id))
+        {
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At(type_id);
+        const FlatMap<Name, RC<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
 
-        if (type_id == TypeID::ForType<T>()) {
+        if (type_id == TypeID::ForType<T>())
+        {
             return items.Any();
         }
 
-        for (const auto &it : items) {
-            if (it.second->IsInstanceOf(T::Class())) {
+        for (const auto& it : items)
+        {
+            if (it.second->IsInstanceOf(T::Class()))
+            {
                 return true;
             }
         }
@@ -179,18 +200,22 @@ public:
 
         Mutex::Guard guard(m_render_subsystems_mutex);
 
-        if (!m_render_subsystems.Contains(type_id)) {
+        if (!m_render_subsystems.Contains(type_id))
+        {
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>> &items = m_render_subsystems.At(type_id);
+        const FlatMap<Name, RC<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
 
-        if (type_id == TypeID::ForType<T>()) {
+        if (type_id == TypeID::ForType<T>())
+        {
             return items.Contains(name);
         }
 
-        for (const auto &it : items) {
-            if (it.first == name && it.second->IsInstanceOf(T::Class())) {
+        for (const auto& it : items)
+        {
+            if (it.first == name && it.second->IsInstanceOf(T::Class()))
+            {
                 return true;
             }
         }
@@ -210,22 +235,26 @@ public:
         RemoveRenderSubsystem(GetRenderSubsystemTypeID<T>(), T::Class(), name);
     }
 
-    void RemoveRenderSubsystem(const RenderSubsystem *render_subsystem);
+    void RemoveRenderSubsystem(const RenderSubsystem* render_subsystem);
 
     // only touch from render thread!
     uint32 GetEnabledRenderSubsystemsMask() const
-        { return m_current_enabled_render_subsystems_mask; }
+    {
+        return m_current_enabled_render_subsystems_mask;
+    }
 
     uint32 GetFrameCounter() const
-        { return m_frame_counter; }
+    {
+        return m_frame_counter;
+    }
 
     void Init();
     void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(FrameBase *frame, ViewRenderResource *view);
-    void RenderDDGIProbes(FrameBase *frame);
+    void RenderRTRadiance(FrameBase* frame, ViewRenderResource* view);
+    void RenderDDGIProbes(FrameBase* frame);
 
-    void RenderSubsystems(FrameBase *frame);
+    void RenderSubsystems(FrameBase* frame);
 
 private:
     HYP_FORCE_INLINE void AddUpdateMarker(RenderEnvironmentUpdates value, ThreadType thread_type)
@@ -246,45 +275,45 @@ private:
     /*! \brief Finds the TypeID to use to group an instance in for a given clas extending RenderSubsystem.
      *  The type will be the highest HypClass in the heirarchy that is not \ref{RenderSubsystem}.
      *  E.g for a class FooBarThingy -> ThingyBase -> RenderSubsystem, the type will be ThingyBase.
-     */ 
+     */
     template <class T>
     static TypeID GetRenderSubsystemTypeID()
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T> && !std::is_same_v<RenderSubsystem, T>, "T should be a derived class of RenderSubsystem");
-        
+
         return GetRenderSubsystemTypeID(T::Class());
     }
 
-    static TypeID GetRenderSubsystemTypeID(const HypClass *hyp_class);
+    static TypeID GetRenderSubsystemTypeID(const HypClass* hyp_class);
 
-    void AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem> &render_subsystem);
-    void RemoveRenderSubsystem(TypeID type_id, const HypClass *hyp_class, Name name);
+    void AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem>& render_subsystem);
+    void RemoveRenderSubsystem(TypeID type_id, const HypClass* hyp_class, Name name);
 
-    void ApplyTLASUpdates(FrameBase *frame, RTUpdateStateFlags flags);
+    void ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags flags);
 
     void InitializeRT();
     bool CreateTopLevelAccelerationStructures();
 
-    AtomicVar<RenderEnvironmentUpdates>                                 m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
+    AtomicVar<RenderEnvironmentUpdates> m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
-    mutable Mutex                                                       m_render_subsystems_mutex;
-    TypeMap<FlatMap<Name, RC<RenderSubsystem>>>                         m_render_subsystems;
+    mutable Mutex m_render_subsystems_mutex;
+    TypeMap<FlatMap<Name, RC<RenderSubsystem>>> m_render_subsystems;
     FixedArray<Array<RC<RenderSubsystem>>, ThreadType::THREAD_TYPE_MAX> m_enabled_render_subsystems;
-    uint32                                                              m_current_enabled_render_subsystems_mask;
-    uint32                                                              m_next_enabled_render_subsystems_mask;
+    uint32 m_current_enabled_render_subsystems_mask;
+    uint32 m_next_enabled_render_subsystems_mask;
 
-    Handle<ParticleSystem>                                              m_particle_system;
+    Handle<ParticleSystem> m_particle_system;
 
-    Handle<GaussianSplatting>                                           m_gaussian_splatting;
+    Handle<GaussianSplatting> m_gaussian_splatting;
 
-    UniquePtr<RTRadianceRenderer>                                       m_rt_radiance;
-    DDGI                                                                m_ddgi;
-    bool                                                                m_has_rt_radiance;
-    bool                                                                m_has_ddgi_probes;
-    bool                                                                m_rt_initialized;
-    FixedArray<TLASRef, max_frames_in_flight>                           m_top_level_acceleration_structures;
-    
-    uint32                                                              m_frame_counter;
+    UniquePtr<RTRadianceRenderer> m_rt_radiance;
+    DDGI m_ddgi;
+    bool m_has_rt_radiance;
+    bool m_has_ddgi_probes;
+    bool m_rt_initialized;
+    FixedArray<TLASRef, max_frames_in_flight> m_top_level_acceleration_structures;
+
+    uint32 m_frame_counter;
 };
 
 } // namespace hyperion

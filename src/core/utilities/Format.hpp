@@ -34,7 +34,7 @@ namespace utilities {
 
 // Int types
 template <class StringType, class T>
-struct Formatter< StringType, T, std::enable_if_t< std::is_integral_v< T > > >
+struct Formatter<StringType, T, std::enable_if_t<std::is_integral_v<T>>>
 {
     auto operator()(T value) const
     {
@@ -43,7 +43,7 @@ struct Formatter< StringType, T, std::enable_if_t< std::is_integral_v< T > > >
 };
 
 template <class StringType>
-struct Formatter< StringType, char >
+struct Formatter<StringType, char>
 {
     auto operator()(char value) const
     {
@@ -54,7 +54,7 @@ struct Formatter< StringType, char >
 };
 
 template <class StringType>
-struct Formatter< StringType, bool >
+struct Formatter<StringType, bool>
 {
     auto operator()(bool value) const
     {
@@ -63,19 +63,20 @@ struct Formatter< StringType, bool >
 };
 
 template <class StringType>
-struct Formatter< StringType, float >
+struct Formatter<StringType, float>
 {
     auto operator()(float value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(10);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -83,19 +84,20 @@ struct Formatter< StringType, float >
 };
 
 template <class StringType>
-struct Formatter< StringType, double >
+struct Formatter<StringType, double>
 {
     auto operator()(double value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(10);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "%f", value) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -104,37 +106,37 @@ struct Formatter< StringType, double >
 
 // Enum specialization
 template <class StringType, class T>
-struct Formatter< StringType, T, std::enable_if_t< std::is_enum_v< T > > >
+struct Formatter<StringType, T, std::enable_if_t<std::is_enum_v<T>>>
 {
     auto operator()(T value) const
     {
-        return Formatter< StringType, std::underlying_type_t< T > >{}(static_cast<std::underlying_type_t< T > >(value));
+        return Formatter<StringType, std::underlying_type_t<T>> {}(static_cast<std::underlying_type_t<T>>(value));
     }
 };
 
 // StaticString< Size >
 template <class StringType, SizeType Size>
-struct Formatter< StringType, StaticString< Size > >
+struct Formatter<StringType, StaticString<Size>>
 {
-    auto operator()(const StaticString< Size > &value) const
+    auto operator()(const StaticString<Size>& value) const
     {
         return StringType(value.Data());
     }
 };
 
 template <class StringType, int OtherStringType>
-struct Formatter< StringType, containers::detail::String< OtherStringType > >
+struct Formatter<StringType, containers::detail::String<OtherStringType>>
 {
-    auto operator()(const containers::detail::String< OtherStringType > &value) const
+    auto operator()(const containers::detail::String<OtherStringType>& value) const
     {
         return value.ToUTF8();
     }
 };
 
 template <class StringType, int OtherStringType>
-struct Formatter< StringType, utilities::detail::StringView< OtherStringType > >
+struct Formatter<StringType, utilities::detail::StringView<OtherStringType>>
 {
-    auto operator()(const utilities::detail::StringView< OtherStringType > &value) const
+    auto operator()(const utilities::detail::StringView<OtherStringType>& value) const
     {
         return StringType(value);
     }
@@ -149,12 +151,13 @@ struct PrintfFormatter
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(FormatString.Size());
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), FormatString.data, value) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -163,14 +166,14 @@ struct PrintfFormatter
 } // namespace detail
 
 template <class StringType>
-struct Formatter<StringType, void *> : detail::PrintfFormatter<StringType, const void *, StaticString("%p")>
+struct Formatter<StringType, void*> : detail::PrintfFormatter<StringType, const void*, StaticString("%p")>
 {
 };
 
 template <class StringType>
-struct Formatter<StringType, char *>
+struct Formatter<StringType, char*>
 {
-    auto operator()(const char *value) const
+    auto operator()(const char* value) const
     {
         return StringType(value);
     }
@@ -181,60 +184,72 @@ struct Formatter<StringType, char[Size]>
 {
     auto operator()(const char (&value)[Size]) const
     {
-        return StringType(static_cast<const char *>(value));
+        return StringType(static_cast<const char*>(value));
     }
 };
 
 template <class StringType>
-struct Formatter<StringType, wchar_t *>
+struct Formatter<StringType, wchar_t*>
 {
-    auto operator()(const wchar_t *value) const
+    auto operator()(const wchar_t* value) const
     {
         return StringType(WideStringView(value));
     }
 };
 
 template <class StringType, class T>
-struct Formatter< StringType, math::detail::Vec2< T > >
+struct Formatter<StringType, math::detail::Vec2<T>>
 {
-    HYP_FORCE_INLINE static const char *GetFormatString()
+    HYP_FORCE_INLINE static const char* GetFormatString()
     {
-        if constexpr (std::is_floating_point_v< T >) {
-            static const char *format_string = "[%f %f]";
+        if constexpr (std::is_floating_point_v<T>)
+        {
+            static const char* format_string = "[%f %f]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%d %d]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%d %d]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%lld %lld]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%lld %lld]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%u %u]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%u %u]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%llu %llu]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%llu %llu]";
 
             return format_string;
-        } else {
-            static_assert(resolution_failure< T >, "Cannot format Vec2 type: unknown inner type");
+        }
+        else
+        {
+            static_assert(resolution_failure<T>, "Cannot format Vec2 type: unknown inner type");
         }
     }
 
-    auto operator()(const math::detail::Vec2< T > &value) const
+    auto operator()(const math::detail::Vec2<T>& value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(32);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -242,47 +257,58 @@ struct Formatter< StringType, math::detail::Vec2< T > >
 };
 
 template <class StringType, class T>
-struct Formatter< StringType, math::detail::Vec3< T > >
+struct Formatter<StringType, math::detail::Vec3<T>>
 {
-    HYP_FORCE_INLINE
-    static const char *GetFormatString()
+    HYP_FORCE_INLINE static const char* GetFormatString()
     {
-        if constexpr (std::is_floating_point_v< T >) {
-            static const char *format_string = "[%f %f %f]";
+        if constexpr (std::is_floating_point_v<T>)
+        {
+            static const char* format_string = "[%f %f %f]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%d %d %d]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%d %d %d]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%lld %lld %lld]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%lld %lld %lld]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%u %u %u]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%u %u %u]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%llu %llu %llu]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%llu %llu %llu]";
 
             return format_string;
-        } else {
-            static_assert(resolution_failure< T >, "Cannot format Vec3 type: unknown inner type");
+        }
+        else
+        {
+            static_assert(resolution_failure<T>, "Cannot format Vec3 type: unknown inner type");
         }
     }
 
-    auto operator()(const math::detail::Vec3< T > &value) const
+    auto operator()(const math::detail::Vec3<T>& value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(48);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -290,47 +316,58 @@ struct Formatter< StringType, math::detail::Vec3< T > >
 };
 
 template <class StringType, class T>
-struct Formatter< StringType, math::detail::Vec4< T > >
+struct Formatter<StringType, math::detail::Vec4<T>>
 {
-    HYP_FORCE_INLINE
-    static const char *GetFormatString()
+    HYP_FORCE_INLINE static const char* GetFormatString()
     {
-        if constexpr (std::is_floating_point_v< T >) {
-            static const char *format_string = "[%f %f %f %f]";
+        if constexpr (std::is_floating_point_v<T>)
+        {
+            static const char* format_string = "[%f %f %f %f]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%d %d %d %d]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%d %d %d %d]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_signed_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%lld %lld %lld %lld]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_signed_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%lld %lld %lld %lld]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 4) {
-            static const char *format_string = "[%u %u %u %u]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 4)
+        {
+            static const char* format_string = "[%u %u %u %u]";
 
             return format_string;
-        } else if constexpr (std::is_integral_v< T > && std::is_unsigned_v< T > && sizeof(T) <= 8) {
-            static const char *format_string = "[%llu %llu %llu %llu]";
+        }
+        else if constexpr (std::is_integral_v<T> && std::is_unsigned_v<T> && sizeof(T) <= 8)
+        {
+            static const char* format_string = "[%llu %llu %llu %llu]";
 
             return format_string;
-        } else {
+        }
+        else
+        {
             static_assert(resolution_failure<T>, "Cannot format Vec4 type: unknown inner type");
         }
     }
 
-    auto operator()(const math::detail::Vec4< T > &value) const
+    auto operator()(const math::detail::Vec4<T>& value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(64);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), GetFormatString(), value.x, value.y, value.z, value.w) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -338,19 +375,20 @@ struct Formatter< StringType, math::detail::Vec4< T > >
 };
 
 template <class StringType>
-struct Formatter< StringType, Quaternion >
+struct Formatter<StringType, Quaternion>
 {
-    auto operator()(const Quaternion &value) const
+    auto operator()(const Quaternion& value) const
     {
         memory::ByteBuffer byte_buffer;
         byte_buffer.SetSize(64);
 
-        int result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
+        int result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
 
-        if (result_size > byte_buffer.Size()) {
+        if (result_size > byte_buffer.Size())
+        {
             byte_buffer.SetSize(result_size);
 
-            result_size = std::snprintf(reinterpret_cast<char *>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
+            result_size = std::snprintf(reinterpret_cast<char*>(byte_buffer.Data()), byte_buffer.Size(), "[%f %f %f %f]", value.x, value.y, value.z, value.w) + 1;
         }
 
         return StringType(byte_buffer.ToByteView());
@@ -368,49 +406,63 @@ template <int StringType>
 struct ConcatRuntimeStrings_Impl
 {
     template <class SecondStringType>
-    constexpr auto Impl(const containers::detail::String< StringType > &str0, SecondStringType &&str1) const
+    constexpr auto Impl(const containers::detail::String<StringType>& str0, SecondStringType&& str1) const
     {
         return str0 + str1;
     }
 
-    constexpr auto operator()(const containers::detail::String< StringType > &str0) const
+    constexpr auto operator()(const containers::detail::String<StringType>& str0) const
     {
         return str0;
     }
 
     template <class SecondStringType>
-    constexpr auto operator()(const containers::detail::String< StringType > &str0, SecondStringType &&str1) const
+    constexpr auto operator()(const containers::detail::String<StringType>& str0, SecondStringType&& str1) const
     {
-        if (str0.Empty() && str1.Empty()) {
+        if (str0.Empty() && str1.Empty())
+        {
             return containers::detail::String<StringType>::empty;
-        } else if (str0.Empty()) {
+        }
+        else if (str0.Empty())
+        {
             return str1;
-        } else if (str1.Empty()) {
+        }
+        else if (str1.Empty())
+        {
             return str0;
-        } else {
+        }
+        else
+        {
             return Impl(str0, str1);
         }
     }
 
-    template <class SecondStringType, class ...OtherStringType>
-    constexpr auto operator()(const containers::detail::String< StringType > &str0, SecondStringType &&str1, OtherStringType &&... other) const
+    template <class SecondStringType, class... OtherStringType>
+    constexpr auto operator()(const containers::detail::String<StringType>& str0, SecondStringType&& str1, OtherStringType&&... other) const
     {
-        if (str0.Empty() && str1.Empty()) {
-            return ConcatRuntimeStrings_Impl()(containers::detail::String< StringType >::empty, other...);
-        } else if (str0.Empty()) {
+        if (str0.Empty() && str1.Empty())
+        {
+            return ConcatRuntimeStrings_Impl()(containers::detail::String<StringType>::empty, other...);
+        }
+        else if (str0.Empty())
+        {
             return ConcatRuntimeStrings_Impl()(str1, other...);
-        } else if (str1.Empty()) {
+        }
+        else if (str1.Empty())
+        {
             return ConcatRuntimeStrings_Impl()(str0, other...);
-        } else {
-            return ConcatRuntimeStrings_Impl()(Impl(str0, str1), std::forward< OtherStringType >(other)...);
+        }
+        else
+        {
+            return ConcatRuntimeStrings_Impl()(Impl(str0, str1), std::forward<OtherStringType>(other)...);
         }
     }
 };
 
 template <int StringType, class... Args>
-constexpr auto ConcatRuntimeStrings(Args &&... strings)
+constexpr auto ConcatRuntimeStrings(Args&&... strings)
 {
-    return ConcatRuntimeStrings_Impl< StringType >()(std::forward< Args >(strings)...);
+    return ConcatRuntimeStrings_Impl<StringType>()(std::forward<Args>(strings)...);
 }
 
 #pragma endregion ConcatRuntimeStrings
@@ -432,21 +484,23 @@ struct FormatString_BadFormat_IndexOutOfBounds : std::false_type
 #pragma region FormatString_FormatElement
 
 template <int StringType, class T>
-containers::detail::String< StringType > FormatString_FormatElement_Runtime(const T &element)
+containers::detail::String<StringType> FormatString_FormatElement_Runtime(const T& element)
 {
     using FormatterSpecializationType = std::conditional_t<
-        std::is_pointer_v< std::remove_cvref_t< T > >,
-        std::add_pointer_t< std::remove_cvref_t< std::remove_pointer_t< T > > >,
-        std::remove_cvref_t< T >
-    >;
+        std::is_pointer_v<std::remove_cvref_t<T>>,
+        std::add_pointer_t<std::remove_cvref_t<std::remove_pointer_t<T>>>,
+        std::remove_cvref_t<T>>;
 
-    static_assert(implementation_exists< Formatter< containers::detail::String< StringType >, FormatterSpecializationType > >, "No Formatter specialization exists for type");
+    static_assert(implementation_exists<Formatter<containers::detail::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
 
     // if-constexpr is to prevent a huge swath of errors preventing the user from seeing the assertion failure.
-    if constexpr (implementation_exists< Formatter< containers::detail::String< StringType >, FormatterSpecializationType > >) {
-        return Formatter< containers::detail::String< StringType >, FormatterSpecializationType >{}(element);
-    } else {
-        return containers::detail::String< StringType >::empty;
+    if constexpr (implementation_exists<Formatter<containers::detail::String<StringType>, FormatterSpecializationType>>)
+    {
+        return Formatter<containers::detail::String<StringType>, FormatterSpecializationType> {}(element);
+    }
+    else
+    {
+        return containers::detail::String<StringType>::empty;
     }
 }
 
@@ -461,10 +515,10 @@ template <auto Str, class Transformer, SizeType StringIndexStart = 0, SizeType S
 struct FormatString_BuildTuple_Impl;
 
 template <auto Str, class Transformer, SizeType SubIndex>
-struct FormatString_BuildTuple_Impl< Str, Transformer, SizeType(-1), SizeType(-1), SubIndex >
+struct FormatString_BuildTuple_Impl<Str, Transformer, SizeType(-1), SizeType(-1), SubIndex>
 {
     template <class... Args>
-    constexpr auto operator()(Args &&... args) const
+    constexpr auto operator()(Args&&... args) const
     {
         return MakeTuple(Str);
     }
@@ -474,35 +528,39 @@ template <auto Str, class Transformer, SizeType StringIndexStart, SizeType Strin
 struct FormatString_BuildTuple_Impl
 {
     template <class... Args>
-    constexpr auto operator()(Args &&... args) const
+    constexpr auto operator()(Args&&... args) const
     {
-        constexpr auto inner_value = containers::helpers::Substr< Str, StringIndexStart + 1, StringIndexEnd >::value;
+        constexpr auto inner_value = containers::helpers::Substr<Str, StringIndexStart + 1, StringIndexEnd>::value;
 
-        if constexpr (inner_value.Size() > 1 /* NUL */) {
+        if constexpr (inner_value.Size() > 1 /* NUL */)
+        {
             // Parse string to integer, use it as SubIndex.
-            constexpr SizeType parsed_integer = SizeType(containers::helpers::ParseInteger< inner_value >::value);
+            constexpr SizeType parsed_integer = SizeType(containers::helpers::ParseInteger<inner_value>::value);
 
-            if constexpr (parsed_integer < sizeof...(Args)) {
+            if constexpr (parsed_integer < sizeof...(Args))
+            {
                 return ConcatTuples(
-                    MakeTuple(containers::helpers::Substr< Str, 0, StringIndexStart >::value),
+                    MakeTuple(containers::helpers::Substr<Str, 0, StringIndexStart>::value),
                     ConcatTuples(
-                        ForwardAsTuple(ForwardAsTuple(std::forward< Args >(args)...).template GetElement< parsed_integer >()),
-                        FormatString_BuildTuple< containers::helpers::Substr< Str, StringIndexEnd + 1, Str.Size() - 1 >::value, Transformer, parsed_integer >{}(std::forward< Args >(args)...)
-                    )
-                );
-            } else {
-                static_assert(FormatString_BadFormat_IndexOutOfBounds< Str, inner_value >{}, "String interpolation attempted to access out of range element. Explicitly provided index value was outside of the number of arguments.");
+                        ForwardAsTuple(ForwardAsTuple(std::forward<Args>(args)...).template GetElement<parsed_integer>()),
+                        FormatString_BuildTuple<containers::helpers::Substr<Str, StringIndexEnd + 1, Str.Size() - 1>::value, Transformer, parsed_integer> {}(std::forward<Args>(args)...)));
             }
-        } else if constexpr (SubIndex < sizeof...(Args)) {
+            else
+            {
+                static_assert(FormatString_BadFormat_IndexOutOfBounds<Str, inner_value> {}, "String interpolation attempted to access out of range element. Explicitly provided index value was outside of the number of arguments.");
+            }
+        }
+        else if constexpr (SubIndex < sizeof...(Args))
+        {
             return ConcatTuples(
-                MakeTuple(containers::helpers::Substr< Str, 0, StringIndexStart >::value),
+                MakeTuple(containers::helpers::Substr<Str, 0, StringIndexStart>::value),
                 ConcatTuples(
-                    ForwardAsTuple(ForwardAsTuple(std::forward< Args >(args)...).template GetElement< SubIndex >()),
-                    FormatString_BuildTuple< containers::helpers::Substr< Str, StringIndexEnd + 1, Str.Size() - 1 >::value, Transformer, SubIndex + 1 >{}(std::forward< Args >(args)...)
-                )
-            );
-        } else {
-            static_assert(FormatString_BadFormat_IndexOutOfBounds< Str, SubIndex >{}, "String interpolation attempted to access out of range element. Does the number of arguments match the number of replacement tokens?");
+                    ForwardAsTuple(ForwardAsTuple(std::forward<Args>(args)...).template GetElement<SubIndex>()),
+                    FormatString_BuildTuple<containers::helpers::Substr<Str, StringIndexEnd + 1, Str.Size() - 1>::value, Transformer, SubIndex + 1> {}(std::forward<Args>(args)...)));
+        }
+        else
+        {
+            static_assert(FormatString_BadFormat_IndexOutOfBounds<Str, SubIndex> {}, "String interpolation attempted to access out of range element. Does the number of arguments match the number of replacement tokens?");
 
             return MakeTuple(Str);
         }
@@ -513,15 +571,14 @@ template <auto Str, class Transformer, SizeType SubIndex>
 struct FormatString_BuildTuple
 {
     template <class... Args>
-    constexpr auto operator()(Args &&... args) const
+    constexpr auto operator()(Args&&... args) const
     {
         return FormatString_BuildTuple_Impl<
             Str,
             Transformer,
-            Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString { { '{', '\0' } } > >(),
-            Str.template FindFirst< containers::detail::IntegerSequenceFromString< StaticString { { '}', '\0' } } > >(),
-            SubIndex
-        >{}(std::forward< Args >(args)...);
+            Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString { { '{', '\0' } }>>(),
+            Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString { { '}', '\0' } }>>(),
+            SubIndex> {}(std::forward<Args>(args)...);
     }
 };
 
@@ -538,17 +595,17 @@ constexpr auto FormatString_ProcessTuple_ProcessElements_CompileTime(const Tuple
 #endif
 
 template <int StringType, class... Ts, SizeType... Indices>
-containers::detail::String<StringType> FormatString_ProcessTuple_ProcessElements_Runtime(const Tuple< Ts... > &args, std::index_sequence< Indices... >)
+containers::detail::String<StringType> FormatString_ProcessTuple_ProcessElements_Runtime(const Tuple<Ts...>& args, std::index_sequence<Indices...>)
 {
-    return ConcatRuntimeStrings< StringType >(FormatString_FormatElement_Runtime< StringType >(args.template GetElement< Indices >())...);
+    return ConcatRuntimeStrings<StringType>(FormatString_FormatElement_Runtime<StringType>(args.template GetElement<Indices>())...);
 }
 
 template <int StringType, class... Ts>
 struct FormatString_ProcessTuple_Impl
 {
-    using Types = Tuple< Ts... >;
+    using Types = Tuple<Ts...>;
 
-    Tuple< Ts... >  args;
+    Tuple<Ts...> args;
 
     constexpr auto operator()() const
     {
@@ -557,14 +614,14 @@ struct FormatString_ProcessTuple_Impl
             return FormatString_ProcessTuple_ProcessElements_CompileTime(args, std::make_index_sequence<sizeof...(Ts)>());
         else
 #endif
-            return FormatString_ProcessTuple_ProcessElements_Runtime< StringType >(args, std::make_index_sequence< sizeof...(Ts) >());
+        return FormatString_ProcessTuple_ProcessElements_Runtime<StringType>(args, std::make_index_sequence<sizeof...(Ts)>());
     }
 };
 
-template <int StringType, class ... Ts>
-constexpr auto FormatString_ProcessTuple(Tuple< Ts... > &&tup)
+template <int StringType, class... Ts>
+constexpr auto FormatString_ProcessTuple(Tuple<Ts...>&& tup)
 {
-    return FormatString_ProcessTuple_Impl< StringType, Ts... > { std::move(tup) };
+    return FormatString_ProcessTuple_Impl<StringType, Ts...> { std::move(tup) };
 }
 
 #pragma endregion FormatString_ProcessTuple
@@ -579,19 +636,18 @@ struct FormatTransformer
 };
 
 template <auto Str, class... Args>
-constexpr auto Format_Impl(Args &&... args)
+constexpr auto Format_Impl(Args&&... args)
 {
-    return (FormatString_ProcessTuple< containers::StringType::UTF8 >(
-        FormatString_BuildTuple< Str, FormatTransformer >{}(std::forward< Args >(args)...)
-    ))();
+    return (FormatString_ProcessTuple<containers::StringType::UTF8>(
+        FormatString_BuildTuple<Str, FormatTransformer> {}(std::forward<Args>(args)...)))();
 }
 
 } // namespace detail
 
-template <auto Str, class ... Args>
-constexpr auto Format(Args &&... args)
+template <auto Str, class... Args>
+constexpr auto Format(Args&&... args)
 {
-    return detail::Format_Impl< Str >(std::forward< Args >(args)...);
+    return detail::Format_Impl<Str>(std::forward<Args>(args)...);
 }
 
 } // namespace utilities
@@ -601,6 +657,6 @@ using utilities::Format;
 } // namespace hyperion
 
 // Helper macro for utilities::Format< FormatString >(...)
-#define HYP_FORMAT(fmt, ...) Format< HYP_STATIC_STRING(fmt) >(__VA_ARGS__)
+#define HYP_FORMAT(fmt, ...) Format<HYP_STATIC_STRING(fmt)>(__VA_ARGS__)
 
 #endif

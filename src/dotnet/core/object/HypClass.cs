@@ -128,7 +128,7 @@ namespace Hyperion
             }
         }
 
-        public bool IsPODType
+        public bool is_pod_type
         {
             get
             {

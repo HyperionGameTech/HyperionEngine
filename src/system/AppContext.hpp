@@ -4,8 +4,8 @@
 #define HYPERION_APP_CONTEXT_HPP
 
 #ifdef HYP_SDL
-#include <SDL2/SDL_vulkan.h>
-#include <SDL2/SDL.h>
+    #include <SDL2/SDL_vulkan.h>
+    #include <SDL2/SDL.h>
 #endif
 
 #include <core/memory/UniquePtr.hpp>
@@ -46,20 +46,19 @@ class Instance;
 
 } // namespace platform
 
-using Instance = platform::Instance<Platform::CURRENT>;
+using Instance = platform::Instance<Platform::current>;
 
 } // namespace renderer
 
 enum class WindowFlags : uint32
 {
-    NONE        = 0x0,
-    HEADLESS    = 0x1,
-    NO_GFX      = 0x2,
-    HIGH_DPI    = 0x4
+    NONE = 0x0,
+    HEADLESS = 0x1,
+    NO_GFX = 0x2,
+    HIGH_DPI = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(WindowFlags)
-
 
 namespace cli {
 
@@ -68,10 +67,10 @@ struct CommandLineArgumentDefinitions;
 
 } // namespace cli
 
-using cli::CommandLineArguments;
 using cli::CommandLineArgumentDefinitions;
+using cli::CommandLineArguments;
 
-extern HYP_API const CommandLineArgumentDefinitions &DefaultCommandLineArgumentDefinitions();
+extern HYP_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions();
 
 namespace sys {
 
@@ -79,21 +78,22 @@ class SystemEvent;
 
 struct WindowOptions
 {
-    ANSIString  title;
-    Vec2i       size;
+    ANSIString title;
+    Vec2i size;
     WindowFlags flags = WindowFlags::NONE;
 };
 
 HYP_CLASS(Abstract)
+
 class HYP_API ApplicationWindow : public EnableRefCountedPtrFromThis<ApplicationWindow>
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
 public:
     ApplicationWindow(ANSIString title, Vec2i size);
-    ApplicationWindow(const ApplicationWindow &other)               = delete;
-    ApplicationWindow &operator=(const ApplicationWindow &other)    = delete;
-    virtual ~ApplicationWindow()                                    = default;
+    ApplicationWindow(const ApplicationWindow& other) = delete;
+    ApplicationWindow& operator=(const ApplicationWindow& other) = delete;
+    virtual ~ApplicationWindow() = default;
 
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
@@ -105,20 +105,23 @@ public:
     virtual bool HasMouseFocus() const = 0;
 
     virtual bool IsHighDPI() const
-        { return false; }
+    {
+        return false;
+    }
 
 #ifdef HYP_VULKAN
-    virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) = 0;
+    virtual VkSurfaceKHR CreateVkSurface(renderer::Instance* instance) = 0;
 #endif
 
-    Delegate<void, Vec2i>   OnWindowSizeChanged;
+    Delegate<void, Vec2i> OnWindowSizeChanged;
 
 protected:
-    ANSIString              m_title;
-    Vec2i                   m_size;
+    ANSIString m_title;
+    Vec2i m_size;
 };
 
 HYP_CLASS()
+
 class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
     HYP_OBJECT_BODY(SDLApplicationWindow);
@@ -136,88 +139,101 @@ public:
     virtual bool HasMouseFocus() const override;
 
     virtual bool IsHighDPI() const override;
-    
+
     void Initialize(WindowOptions);
 
-    void *GetInternalWindowHandle() const
-        { return m_window_handle; }
+    void* GetInternalWindowHandle() const
+    {
+        return m_window_handle;
+    }
 
 #ifdef HYP_VULKAN
-    virtual VkSurfaceKHR CreateVkSurface(renderer::Instance *instance) override;
+    virtual VkSurfaceKHR CreateVkSurface(renderer::Instance* instance) override;
 #endif
-    
+
 private:
-    void    *m_window_handle = nullptr;
+    void* m_window_handle = nullptr;
 };
 
 HYP_CLASS()
-class HYP_API AppContext : public EnableRefCountedPtrFromThis<AppContext>
+
+class HYP_API AppContextBase : public EnableRefCountedPtrFromThis<AppContextBase>
 {
-    HYP_OBJECT_BODY(AppContext);
+    HYP_OBJECT_BODY(AppContextBase);
 
 public:
-    AppContext(ANSIString name, const CommandLineArguments &arguments);
-    virtual ~AppContext();
+    AppContextBase(ANSIString name, const CommandLineArguments& arguments);
+    virtual ~AppContextBase();
 
-    HYP_FORCE_INLINE const ANSIString &GetAppName() const
-        { return m_name; }
+    HYP_FORCE_INLINE const ANSIString& GetAppName() const
+    {
+        return m_name;
+    }
 
-    const CommandLineArguments &GetArguments() const;
+    const CommandLineArguments& GetArguments() const;
 
-    HYP_FORCE_INLINE GlobalConfig &GetConfiguration()
-        { return m_configuration; }
+    HYP_FORCE_INLINE GlobalConfig& GetConfiguration()
+    {
+        return m_configuration;
+    }
 
-    HYP_FORCE_INLINE const GlobalConfig &GetConfiguration() const
-        { return m_configuration; }
+    HYP_FORCE_INLINE const GlobalConfig& GetConfiguration() const
+    {
+        return m_configuration;
+    }
 
-    HYP_FORCE_INLINE ApplicationWindow *GetMainWindow() const
-        { return m_main_window.Get(); }
+    HYP_FORCE_INLINE ApplicationWindow* GetMainWindow() const
+    {
+        return m_main_window.Get();
+    }
 
-    void SetMainWindow(const RC<ApplicationWindow> &window);
+    void SetMainWindow(const RC<ApplicationWindow>& window);
 
-    HYP_FORCE_INLINE const Handle<InputManager> &GetInputManager() const
-        { return m_input_manager; }
+    HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
+    {
+        return m_input_manager;
+    }
 
-    void SetGame(Game *game);
-    Game *GetGame() const;
+    void SetGame(Game* game);
+    Game* GetGame() const;
 
     virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
-    virtual int PollEvent(SystemEvent &event) = 0;
+    virtual int PollEvent(SystemEvent& event) = 0;
 
     virtual void UpdateConfigurationOverrides();
 
 #ifdef HYP_VULKAN
-    virtual bool GetVkExtensions(Array<const char *> &out_extensions) const = 0;
+    virtual bool GetVkExtensions(Array<const char*>& out_extensions) const = 0;
 #endif
 
-    Delegate<void, ApplicationWindow *> OnCurrentWindowChanged;
-    
+    Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
+
 protected:
-    RC<ApplicationWindow>           m_main_window;
-    Handle<InputManager>            m_input_manager;
-    ANSIString                      m_name;
+    RC<ApplicationWindow> m_main_window;
+    Handle<InputManager> m_input_manager;
+    ANSIString m_name;
     UniquePtr<CommandLineArguments> m_arguments;
-    GlobalConfig                    m_configuration;
-    Game                            *m_game;
+    GlobalConfig m_configuration;
+    Game* m_game;
 };
 
 HYP_CLASS()
-class HYP_API SDLAppContext : public AppContext
+
+class HYP_API SDLAppContext : public AppContextBase
 {
     HYP_OBJECT_BODY(SDLAppContext);
 
 public:
-    SDLAppContext(ANSIString name, const CommandLineArguments &arguments);
+    SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
     virtual ~SDLAppContext() override;
 
     virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
 
-    virtual int PollEvent(SystemEvent &event) override;
+    virtual int PollEvent(SystemEvent& event) override;
 
 #ifdef HYP_VULKAN
-    virtual bool GetVkExtensions(Array<const char *> &out_extensions) const override;
+    virtual bool GetVkExtensions(Array<const char*>& out_extensions) const override;
 #endif
-
 };
 
 } // namespace sys
@@ -226,7 +242,7 @@ using sys::SystemEvent;
 
 using sys::WindowOptions;
 
-using sys::AppContext;
+using sys::AppContextBase;
 using sys::ApplicationWindow;
 
 using sys::SDLAppContext;

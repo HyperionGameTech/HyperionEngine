@@ -4,28 +4,30 @@
 #include <core/Defines.hpp>
 
 #ifdef HYP_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-#include <dlfcn.h>
+    #include <dlfcn.h>
 #endif
 
 namespace hyperion {
 
-UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString &path)
+UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString& path)
 {
 #ifdef HYP_WINDOWS
     HMODULE handle = LoadLibraryW(path.Data());
 
-    if (handle == nullptr) {
+    if (handle == nullptr)
+    {
         return nullptr;
     }
 
-    return MakeUnique<DynamicLibrary>(path, reinterpret_cast<void *>(handle));
+    return MakeUnique<DynamicLibrary>(path, reinterpret_cast<void*>(handle));
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
-    void *handle = dlopen(path.Data(), RTLD_NOW);
+    void* handle = dlopen(path.Data(), RTLD_NOW);
 
-    if (handle == nullptr) {
+    if (handle == nullptr)
+    {
         return nullptr;
     }
 
@@ -33,7 +35,7 @@ UniquePtr<DynamicLibrary> DynamicLibrary::Load(const PlatformString &path)
 #endif
 }
 
-DynamicLibrary::DynamicLibrary(const PlatformString &path, void *handle)
+DynamicLibrary::DynamicLibrary(const PlatformString& path, void* handle)
     : m_path(path),
       m_handle(handle)
 {
@@ -41,7 +43,8 @@ DynamicLibrary::DynamicLibrary(const PlatformString &path, void *handle)
 
 DynamicLibrary::~DynamicLibrary()
 {
-    if (!m_handle) {
+    if (!m_handle)
+    {
         return;
     }
 
@@ -52,14 +55,15 @@ DynamicLibrary::~DynamicLibrary()
 #endif
 }
 
-void *DynamicLibrary::GetFunction(const char *name) const
+void* DynamicLibrary::GetFunction(const char* name) const
 {
-    if (!m_handle) {
+    if (!m_handle)
+    {
         return nullptr;
     }
 
 #ifdef HYP_WINDOWS
-    return reinterpret_cast<void *>(GetProcAddress(reinterpret_cast<HMODULE>(m_handle), name));
+    return reinterpret_cast<void*>(GetProcAddress(reinterpret_cast<HMODULE>(m_handle), name));
 #elif defined(HYP_LINUX) || defined(HYP_MACOS)
     return dlsym(m_handle, name);
 #endif

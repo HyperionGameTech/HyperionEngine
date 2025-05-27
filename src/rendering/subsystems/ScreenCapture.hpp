@@ -30,35 +30,40 @@ enum class ScreenCaptureMode
 };
 
 HYP_CLASS()
+
 class HYP_API ScreenCaptureRenderSubsystem : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ScreenCaptureRenderSubsystem);
 
 public:
-    ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource> &view, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
-    ScreenCaptureRenderSubsystem(const ScreenCaptureRenderSubsystem &other)                 = delete;
-    ScreenCaptureRenderSubsystem &operator=(const ScreenCaptureRenderSubsystem &other)      = delete;
-    ScreenCaptureRenderSubsystem(ScreenCaptureRenderSubsystem &&other) noexcept             = delete;
-    ScreenCaptureRenderSubsystem &operator=(ScreenCaptureRenderSubsystem &&other) noexcept  = delete;
+    ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource>& view, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
+    ScreenCaptureRenderSubsystem(const ScreenCaptureRenderSubsystem& other) = delete;
+    ScreenCaptureRenderSubsystem& operator=(const ScreenCaptureRenderSubsystem& other) = delete;
+    ScreenCaptureRenderSubsystem(ScreenCaptureRenderSubsystem&& other) noexcept = delete;
+    ScreenCaptureRenderSubsystem& operator=(ScreenCaptureRenderSubsystem&& other) noexcept = delete;
     virtual ~ScreenCaptureRenderSubsystem() override;
 
-    HYP_FORCE_INLINE const GPUBufferRef &GetBuffer() const
-        { return m_buffer; }
+    HYP_FORCE_INLINE const GPUBufferRef& GetBuffer() const
+    {
+        return m_buffer;
+    }
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
-        { return m_texture; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetTexture() const
+    {
+        return m_texture;
+    }
 
 private:
     virtual void Init() override;
     virtual void InitGame() override;
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRender(FrameBase* frame) override;
 
     TResourceHandle<ViewRenderResource> m_view;
-    ScreenCaptureMode                   m_screen_capture_mode;
-    Handle<Texture>                     m_texture;
-    GPUBufferRef                        m_buffer;
+    ScreenCaptureMode m_screen_capture_mode;
+    Handle<Texture> m_texture;
+    GPUBufferRef m_buffer;
 };
 
 } // namespace hyperion

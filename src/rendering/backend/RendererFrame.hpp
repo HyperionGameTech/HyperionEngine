@@ -28,15 +28,21 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
-        { return m_frame_index; }
+    {
+        return m_frame_index;
+    }
 
-    HYP_FORCE_INLINE RHICommandList &GetCommandList()
-        { return m_command_list; }
+    HYP_FORCE_INLINE RHICommandList& GetCommandList()
+    {
+        return m_command_list;
+    }
 
-    HYP_FORCE_INLINE const RHICommandList &GetCommandList() const
-        { return m_command_list; }
+    HYP_FORCE_INLINE const RHICommandList& GetCommandList() const
+    {
+        return m_command_list;
+    }
 
-    Delegate<void, FrameBase *> OnFrameEnd;
+    Delegate<void, FrameBase*> OnFrameEnd;
 
 protected:
     FrameBase(uint32 frame_index)
@@ -44,8 +50,8 @@ protected:
     {
     }
 
-    uint32              m_frame_index;
-    RHICommandList      m_command_list;
+    uint32 m_frame_index;
+    RHICommandList m_command_list;
 };
 
 } // namespace renderer

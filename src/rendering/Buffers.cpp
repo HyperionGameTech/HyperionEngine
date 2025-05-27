@@ -8,7 +8,6 @@
 
 #include <Engine.hpp>
 
-
 namespace hyperion {
 
 #pragma region GPUBufferHolderBase
@@ -20,7 +19,8 @@ GPUBufferHolderBase::~GPUBufferHolderBase()
 
 void GPUBufferHolderBase::CreateBuffers(GPUBufferType type, SizeType count, SizeType size, SizeType alignment)
 {
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
         m_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(type, size * count, alignment);
 
         DeferCreate(m_buffers[frame_index]);

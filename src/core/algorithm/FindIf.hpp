@@ -13,12 +13,14 @@ namespace hyperion {
 namespace algorithm {
 
 template <class IteratorType, class Predicate>
-IteratorType FindIf(IteratorType begin, IteratorType end, Predicate &&predicate)
+IteratorType FindIf(IteratorType begin, IteratorType end, Predicate&& predicate)
 {
     FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
 
-    for (auto it = begin; it != end; ++it) {
-        if (fn(*it)) {
+    for (auto it = begin; it != end; ++it)
+    {
+        if (fn(*it))
+        {
             return it;
         }
     }
@@ -27,15 +29,17 @@ IteratorType FindIf(IteratorType begin, IteratorType end, Predicate &&predicate)
 }
 
 template <class ContainerType, class Predicate>
-typename ContainerType::Iterator FindIf(ContainerType &container, Predicate &&predicate)
+typename ContainerType::Iterator FindIf(ContainerType& container, Predicate&& predicate)
 {
     FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
 
     typename ContainerType::Iterator begin = container.Begin();
     typename ContainerType::Iterator end = container.End();
 
-    for (auto it = begin; it != end; ++it) {
-        if (fn(*it)) {
+    for (auto it = begin; it != end; ++it)
+    {
+        if (fn(*it))
+        {
             return it;
         }
     }
@@ -44,15 +48,17 @@ typename ContainerType::Iterator FindIf(ContainerType &container, Predicate &&pr
 }
 
 template <class ContainerType, class Predicate>
-typename ContainerType::ConstIterator FindIf(const ContainerType &container, Predicate &&predicate)
+typename ContainerType::ConstIterator FindIf(const ContainerType& container, Predicate&& predicate)
 {
     FunctionWrapper<NormalizedType<Predicate>> fn { std::forward<Predicate>(predicate) };
 
     typename ContainerType::ConstIterator begin = container.Begin();
     typename ContainerType::ConstIterator end = container.End();
 
-    for (auto it = begin; it != end; ++it) {
-        if (fn(*it)) {
+    for (auto it = begin; it != end; ++it)
+    {
+        if (fn(*it))
+        {
             return it;
         }
     }

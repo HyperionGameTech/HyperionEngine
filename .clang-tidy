@@ -1,0 +1,57 @@
+Checks:          '-*,readability-identifier-naming,readability-inconsistent-declaration-parameter-name,cppcoreguidelines-misleading-capture-default-by-value,bugprone-use-after-move,bugprone-unused-raii,bugprone-unhandled-self-assignment,bugprone-undelegated-constructor,cppcoreguidelines-virtual-class-destructor,bugprone-parent-virtual-call,bugprone-pointer-arithmetic-on-polymorphic-object,bugprone-copy-constructor-init,bugprone-undefined-memory-manipulation,readability-duplicate-include'
+SystemHeaders: false
+CheckOptions:
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions,   value: true }
+  - { key: readability-inconsistent-declaration-parameter-name.Strict,    value: true }
+  - { key: readability-identifier-naming.FunctionIgnoredRegexp,           value: "(.*_.*)|(.*_Impl)|(.*_Internal)|(.*_KeyByFunction)|(.*_Proc)|(^get$)" }
+  - { key: readability-identifier-naming.GlobalVariableIgnoredRegexp,     value: "(HYP_DECLARE_LOG_CHANNEL.*)|(RENDER_COMMAND.*)$" }
+  - { key: readability-identifier-naming.LocalVariableCase,               value: lower_case }
+  - { key: readability-identifier-naming.LocalVariableIgnoredRegexp,      value: "^_(.*)$" }
+  - { key: readability-identifier-naming.LocalConstantCase,               value: lower_case }
+  - { key: readability-identifier-naming.LocalConstantIgnoredRegexp,      value: "^_(.*)$" }
+  - { key: readability-identifier-naming.FunctionCase,                    value: CamelCase }
+  - { key: readability-identifier-naming.ClassCase,                       value: CamelCase }
+  - { key: readability-identifier-naming.ClassIgnoredRegexp,              value: "(.*_.*)|(^float16$)" }
+  # - { key: readability-identifier-naming.AbstractClassSuffix,             value: Base } # come back to this
+  - { key: readability-identifier-naming.AbstractClassIgnoredRegexp,      value: "^(I(.*))|(HypEnum)|(HypClass)|(HypStruct)$" }
+  - { key: readability-identifier-naming.StructCase,                      value: CamelCase }
+  - { key: readability-identifier-naming.StructIgnoredRegexp,             value: "(.*_.*)|(^float16$)" }
+  - { key: readability-identifier-naming.EnumCase,                        value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,                value: UPPER_CASE }
+  - { key: readability-identifier-naming.EnumConstantIgnoredRegexp,       value: "^((.*)_$)|(Info)|(Warn)|(Error)|(Fatal)|(Debug)|(RenInfo)|(RenWarn)|(RenError)|(RenDebug)|(^UUIDv.*$)|(^value$)" }
+  - { key: readability-identifier-naming.NamespaceCase,                   value: lower_case }
+  - { key: readability-identifier-naming.ParameterCase,                   value: lower_case }
+  - { key: readability-identifier-naming.ParameterIgnoredRegexp,          value: "^_(.*)$" }
+  - { key: readability-identifier-naming.GlobalVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalVariablePrefix,            value: "" } # come back to these
+  - { key: readability-identifier-naming.GlobalConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,            value: "" } # come back to these
+  - { key: readability-identifier-naming.PublicMemberCase,                value: lower_case }
+  - { key: readability-identifier-naming.PublicMemberIgnoredRegexp,       value: "(^[A-Z].*$)|(^On(.*))|(.*Callback.*)|(^_.*)|(Span)|(Pair)|(NotNullPtr)$" } # Span, Pair etc types are breaking with clang-tidy when used as a parameter
+  - { key: readability-identifier-naming.ProtectedMemberCase,             value: lower_case }
+  - { key: readability-identifier-naming.ProtectedMemberPrefix,           value: m_ }
+  - { key: readability-identifier-naming.ProtectedMemberIgnoredRegexp,    value: "(^On(.*))|(.*Callback.*)|(^_.*)" }
+  - { key: readability-identifier-naming.PrivateMemberCase,               value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberPrefix,             value: m_ }
+  - { key: readability-identifier-naming.PrivateMemberIgnoredRegexp,      value: "(^On(.*))|(.*Callback.*)|(^_.*)" }
+  - { key: readability-identifier-naming.ClassMemberCase,                 value: lower_case }
+  - { key: readability-identifier-naming.ClassMemberPrefix,               value: s_ }
+  - { key: readability-identifier-naming.ClassMemberIgnoredRegexp,        value: "^g_(.*)$" }
+  - { key: readability-identifier-naming.ClassMethodCase,                 value: CamelCase }
+  - { key: readability-identifier-naming.ClassMethodIgnoredRegexp,        value: "(.*_Impl$)|(.*_.*)" }
+  - { key: readability-identifier-naming.PublicMethodCase,                value: CamelCase }
+  - { key: readability-identifier-naming.PublicMethodIgnoredRegexp,       value: "(.*_Impl$)|(.*_.*)|(^begin$)|(^end$)|(^cbegin$)|(^cend$)|(^rbegin$)|(^rend$)|(^get$)" }
+  - { key: readability-identifier-naming.ProtectedMethodCase,             value: CamelCase }
+  - { key: readability-identifier-naming.ProtectedMethodIgnoredRegexp,    value: "(.*_Impl$)|(.*_.*)" }
+  - { key: readability-identifier-naming.PrivateMethodCase,               value: CamelCase }
+  - { key: readability-identifier-naming.PrivateMethodIgnoredRegexp,      value: "(.*_Impl$)|(.*_.*)" }
+  - { key: readability-identifier-naming.StaticConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.StaticConstantPrefix,            value: "" }
+  - { key: readability-identifier-naming.StaticVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.StaticVariablePrefix,            value: "" }
+  - { key: readability-identifier-naming.TemplateParameterCase,           value: CamelCase }
+  - { key: readability-identifier-naming.TemplateParameterIgnoredRegexp,  value: "^(string_type)|(.*_.*)$" }
+  - { key: readability-identifier-naming.TemplateTypeCase,                value: CamelCase }
+  - { key: readability-identifier-naming.ConstexprVariableCase,           value: lower_case }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix,         value: "" }
+

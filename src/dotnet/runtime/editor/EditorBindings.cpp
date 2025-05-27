@@ -6,6 +6,7 @@
 using namespace hyperion;
 using namespace hyperion::editor;
 
-extern "C" {
+extern "C"
+{
 
 } // extern "C"

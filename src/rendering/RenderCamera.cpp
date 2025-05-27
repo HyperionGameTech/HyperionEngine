@@ -19,9 +19,9 @@ namespace hyperion {
 
 #pragma region CameraRenderResource
 
-CameraRenderResource::CameraRenderResource(Camera *camera)
+CameraRenderResource::CameraRenderResource(Camera* camera)
     : m_camera(camera),
-      m_buffer_data { }
+      m_buffer_data {}
 {
 }
 
@@ -35,7 +35,8 @@ void CameraRenderResource::Initialize_Internal()
 
     UpdateBufferData();
 
-    if (m_framebuffer.IsValid()) {
+    if (m_framebuffer.IsValid())
+    {
         DeferCreate(m_framebuffer);
     }
 }
@@ -43,7 +44,7 @@ void CameraRenderResource::Initialize_Internal()
 void CameraRenderResource::Destroy_Internal()
 {
     HYP_SCOPE;
-    
+
     SafeRelease(std::move(m_framebuffer));
 }
 
@@ -52,7 +53,7 @@ void CameraRenderResource::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase *CameraRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* CameraRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->cameras;
 }
@@ -61,39 +62,41 @@ void CameraRenderResource::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    *static_cast<CameraShaderData *>(m_buffer_address) = m_buffer_data;
+    *static_cast<CameraShaderData*>(m_buffer_address) = m_buffer_data;
 
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void CameraRenderResource::SetBufferData(const CameraShaderData &buffer_data)
+void CameraRenderResource::SetBufferData(const CameraShaderData& buffer_data)
 {
     HYP_SCOPE;
 
     Execute([this, buffer_data]()
-    {
-        m_buffer_data = buffer_data;
-        
-        if (IsInitialized()) {
-            UpdateBufferData();
-        }
-    });
+        {
+            m_buffer_data = buffer_data;
+
+            if (IsInitialized())
+            {
+                UpdateBufferData();
+            }
+        });
 }
 
-void CameraRenderResource::SetFramebuffer(const FramebufferRef &framebuffer)
+void CameraRenderResource::SetFramebuffer(const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
 
     Execute([this, framebuffer]()
-    {
-        SafeRelease(std::move(m_framebuffer));
+        {
+            SafeRelease(std::move(m_framebuffer));
 
-        m_framebuffer = framebuffer;
+            m_framebuffer = framebuffer;
 
-        if (IsInitialized() && m_framebuffer.IsValid()) {
-            DeferCreate(m_framebuffer);
-        }
-    });
+            if (IsInitialized() && m_framebuffer.IsValid())
+            {
+                DeferCreate(m_framebuffer);
+            }
+        });
 }
 
 void CameraRenderResource::EnqueueBind()
@@ -101,9 +104,10 @@ void CameraRenderResource::EnqueueBind()
     HYP_SCOPE;
 
     Execute([this]()
-    {
-        g_engine->GetRenderState()->BindCamera(TResourceHandle<CameraRenderResource>(*this));
-    }, /* force_render_thread */ true);
+        {
+            g_engine->GetRenderState()->BindCamera(TResourceHandle<CameraRenderResource>(*this));
+        },
+        /* force_render_thread */ true);
 }
 
 void CameraRenderResource::EnqueueUnbind()
@@ -111,9 +115,10 @@ void CameraRenderResource::EnqueueUnbind()
     HYP_SCOPE;
 
     Execute([this]()
-    {
-        g_engine->GetRenderState()->UnbindCamera(this);
-    }, /* force_render_thread */ true);
+        {
+            g_engine->GetRenderState()->UnbindCamera(this);
+        },
+        /* force_render_thread */ true);
 }
 
 void CameraRenderResource::ApplyJitter()
@@ -127,9 +132,10 @@ void CameraRenderResource::ApplyJitter()
 
     const uint32 frame_counter = g_engine->GetRenderState()->frame_counter + 1;
 
-    CameraShaderData &buffer_data = *static_cast<CameraShaderData *>(m_buffer_address);
+    CameraShaderData& buffer_data = *static_cast<CameraShaderData*>(m_buffer_address);
 
-    if (buffer_data.projection[3][3] < MathUtil::epsilon_f) {
+    if (buffer_data.projection[3][3] < MathUtil::epsilon_f)
+    {
         Vec4f jitter = Vec4f::Zero();
 
         Matrix4::Jitter(frame_counter, buffer_data.dimensions.x, buffer_data.dimensions.y, jitter);

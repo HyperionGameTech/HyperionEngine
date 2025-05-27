@@ -6,14 +6,13 @@
 
 namespace hyperion::fbom {
 
-FBOMObjectType::FBOMObjectType(const HypClass *hyp_class)
+FBOMObjectType::FBOMObjectType(const HypClass* hyp_class)
     : FBOMType(
           hyp_class->GetName().LookupString(),
           hyp_class->GetSize(),
           hyp_class->GetTypeID(),
           FBOMTypeFlags::CONTAINER,
-          hyp_class->GetParent() ? FBOMObjectType(hyp_class->GetParent()) : FBOMBaseObjectType()
-      )
+          hyp_class->GetParent() ? FBOMObjectType(hyp_class->GetParent()) : FBOMBaseObjectType())
 {
 }
 

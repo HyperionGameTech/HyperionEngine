@@ -23,14 +23,19 @@ namespace detail {
 template <class T>
 struct alignas(alignof(T) * 4) HYP_API Vec4
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vec4 &vec);
+    friend std::ostream& operator<<(std::ostream& out, const Vec4& vec);
 
     using Type = T;
 
     static constexpr uint32 size = 4;
 
-    union {
-        struct { Type x, y, z, w; };
+    union
+    {
+        struct
+        {
+            Type x, y, z, w;
+        };
+
         Type values[4];
     };
 
@@ -58,7 +63,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     {
     }
 
-    explicit Vec4(const Vec2<Type> &xy, Type z, Type w)
+    explicit Vec4(const Vec2<Type>& xy, Type z, Type w)
         : x(xy.x),
           y(xy.y),
           z(z),
@@ -66,7 +71,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     {
     }
 
-    explicit Vec4(const Vec2<Type> &xy, const Vec2<Type> &zw)
+    explicit Vec4(const Vec2<Type>& xy, const Vec2<Type>& zw)
         : x(xy.x),
           y(xy.y),
           z(zw.x),
@@ -74,7 +79,7 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     {
     }
 
-    explicit Vec4(const Vec3<Type> &xyz, Type w)
+    explicit Vec4(const Vec3<Type>& xyz, Type w)
         : x(xyz.x),
           y(xyz.y),
           z(xyz.z),
@@ -82,47 +87,105 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
     {
     }
 
-    Vec4(const Vec4 &other)             = default;
-    Vec4 &operator=(const Vec4 &other)  = default;
+    Vec4(const Vec4& other) = default;
+    Vec4& operator=(const Vec4& other) = default;
 
-    Type GetX() const       { return x; }
-    Type &GetX()            { return x; }
-    Vec4 &SetX(Type x)      { this->x = x; return *this; }
-    Type GetY() const       { return y; }
-    Type &GetY()            { return y; }
-    Vec4 &SetY(Type y)      { this->y = y; return *this; }
-    Type GetZ() const       { return z; }
-    Type &GetZ()            { return z; }
-    Vec4 &SetZ(Type z)      { this->z = z; return *this; }
-    Type GetW() const       { return w; }
-    Type &GetW()            { return w; }
-    Vec4 &SetW(Type w)      { this->w = w; return *this; }
+    Type GetX() const
+    {
+        return x;
+    }
+
+    Type& GetX()
+    {
+        return x;
+    }
+
+    Vec4& SetX(Type x)
+    {
+        this->x = x;
+        return *this;
+    }
+
+    Type GetY() const
+    {
+        return y;
+    }
+
+    Type& GetY()
+    {
+        return y;
+    }
+
+    Vec4& SetY(Type y)
+    {
+        this->y = y;
+        return *this;
+    }
+
+    Type GetZ() const
+    {
+        return z;
+    }
+
+    Type& GetZ()
+    {
+        return z;
+    }
+
+    Vec4& SetZ(Type z)
+    {
+        this->z = z;
+        return *this;
+    }
+
+    Type GetW() const
+    {
+        return w;
+    }
+
+    Type& GetW()
+    {
+        return w;
+    }
+
+    Vec4& SetW(Type w)
+    {
+        this->w = w;
+        return *this;
+    }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
     HYP_FORCE_INLINE Vec2<Type> GetXY() const
-        { return Vec2<Type>(x, y); }
+    {
+        return Vec2<Type>(x, y);
+    }
 
     /*! \brief Get the XYZ components of this vector as a Vector3. */
     HYP_FORCE_INLINE Vec3<Type> GetXYZ() const
-        { return Vec3<Type>(x, y, z); }
+    {
+        return Vec3<Type>(x, y, z);
+    }
 
-    constexpr Type &operator[](SizeType index)
-        { return values[index]; }
-    
+    constexpr Type& operator[](SizeType index)
+    {
+        return values[index];
+    }
+
     constexpr Type operator[](SizeType index) const
-        { return values[index]; }
+    {
+        return values[index];
+    }
 
-    Vec4 operator+(const Vec4 &other) const
+    Vec4 operator+(const Vec4& other) const
     {
         return Vec4(
             x + other.x,
             y + other.y,
             z + other.z,
-            w + other.w
-        );
+            w + other.w);
     }
 
-    Vec4 &operator+=(const Vec4 &other)
+    Vec4& operator+=(const Vec4& other)
     {
         x += other.x;
         y += other.y;
@@ -132,17 +195,16 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return *this;
     }
 
-    Vec4 operator-(const Vec4 &other) const
+    Vec4 operator-(const Vec4& other) const
     {
         return Vec4(
             x - other.x,
             y - other.y,
             z - other.z,
-            w - other.w
-        );
+            w - other.w);
     }
 
-    Vec4 &operator-=(const Vec4 &other)
+    Vec4& operator-=(const Vec4& other)
     {
         x -= other.x;
         y -= other.y;
@@ -152,17 +214,16 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return *this;
     }
 
-    Vec4 operator*(const Vec4 &other) const
+    Vec4 operator*(const Vec4& other) const
     {
         return Vec4(
             x * other.x,
             y * other.y,
             z * other.z,
-            w * other.w
-        );
+            w * other.w);
     }
 
-    Vec4 &operator*=(const Vec4 &other)
+    Vec4& operator*=(const Vec4& other)
     {
         x *= other.x;
         y *= other.y;
@@ -172,17 +233,16 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return *this;
     }
 
-    Vec4 operator/(const Vec4 &other) const
+    Vec4 operator/(const Vec4& other) const
     {
         return Vec4(
             x / other.x,
             y / other.y,
             z / other.z,
-            w / other.w
-        );
+            w / other.w);
     }
 
-    Vec4 &operator/=(const Vec4 &other)
+    Vec4& operator/=(const Vec4& other)
     {
         x /= other.x;
         y /= other.y;
@@ -192,66 +252,103 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
         return *this;
     }
 
-    bool operator==(const Vec4 &other) const
-        { return x == other.x && y == other.y && z == other.z && w == other.w; }
+    bool operator==(const Vec4& other) const
+    {
+        return x == other.x && y == other.y && z == other.z && w == other.w;
+    }
 
-    bool operator!=(const Vec4 &other) const
-        { return !operator==(other); }
+    bool operator!=(const Vec4& other) const
+    {
+        return !operator==(other);
+    }
 
     Vec4 operator-() const
-        { return operator*(Type(-1)); }
-
-    bool operator<(const Vec4 &other) const
     {
-        if (x != other.x) return x < other.x;
-        if (y != other.y) return y < other.y;
-        if (z != other.z) return z < other.z;
-        if (w != other.w) return w < other.w;
+        return operator*(Type(-1));
+    }
+
+    bool operator<(const Vec4& other) const
+    {
+        if (x != other.x)
+            return x < other.x;
+        if (y != other.y)
+            return y < other.y;
+        if (z != other.z)
+            return z < other.z;
+        if (w != other.w)
+            return w < other.w;
 
         return false;
     }
 
     constexpr Type LengthSquared() const
-        { return x * x + y * y + z * z + w * w; }
+    {
+        return x * x + y * y + z * z + w * w;
+    }
 
-    Type Length() const { return std::sqrt(LengthSquared()); }
+    Type Length() const
+    {
+        return std::sqrt(LengthSquared());
+    }
 
     HYP_FORCE_INLINE constexpr Type Avg() const
-        { return (x + y + z + w) / Type(size); }
+    {
+        return (x + y + z + w) / Type(size);
+    }
 
     HYP_FORCE_INLINE constexpr Type Sum() const
-        { return x + y + z + w; }
+    {
+        return x + y + z + w;
+    }
 
     HYP_FORCE_INLINE constexpr Type Volume() const
-        { return x * y * z * w; }
+    {
+        return x * y * z * w;
+    }
 
     HYP_FORCE_INLINE constexpr Type Max() const
-        { return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w)); }
+    {
+        return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w));
+    }
 
     HYP_FORCE_INLINE constexpr Type Min() const
-        { return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w)); }
+    {
+        return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w));
+    }
 
-    static Vec4 Abs(const Vec4 &);
-    static Vec4 Min(const Vec4 &a, const Vec4 &b);
-    static Vec4 Max(const Vec4 &a, const Vec4 &b);
+    static Vec4 Abs(const Vec4&);
+    static Vec4 Min(const Vec4& a, const Vec4& b);
+    static Vec4 Max(const Vec4& a, const Vec4& b);
 
     static Vec4 Zero()
-        { return Vec4(0, 0, 0, 0); }
+    {
+        return Vec4(0, 0, 0, 0);
+    }
 
     static Vec4 One()
-        { return Vec4(1, 1, 1, 1); }
+    {
+        return Vec4(1, 1, 1, 1);
+    }
 
     static Vec4 UnitX()
-        { return Vec4(1, 0, 0, 0); }
+    {
+        return Vec4(1, 0, 0, 0);
+    }
 
     static Vec4 UnitY()
-        { return Vec4(0, 1, 0, 0); }
-    
+    {
+        return Vec4(0, 1, 0, 0);
+    }
+
     static Vec4 UnitZ()
-        { return Vec4(0, 0, 1, 0); }
+    {
+        return Vec4(0, 0, 1, 0);
+    }
 
     static Vec4 UnitW()
-        { return Vec4(0, 0, 0, 1); }
+    {
+        return Vec4(0, 0, 0, 1);
+    }
 
     HashCode GetHashCode() const
     {
@@ -269,14 +366,19 @@ struct alignas(alignof(T) * 4) HYP_API Vec4
 template <>
 struct alignas(alignof(float) * 4) HYP_API Vec4<float>
 {
-    friend std::ostream &operator<<(std::ostream &out, const Vec4 &vec);
+    friend std::ostream& operator<<(std::ostream& out, const Vec4& vec);
 
     using Type = float;
 
     static constexpr uint32 size = 4;
 
-    union {
-        struct { Type x, y, z, w; };
+    union
+    {
+        struct
+        {
+            Type x, y, z, w;
+        };
+
         Type values[4];
     };
 
@@ -304,7 +406,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     {
     }
 
-    explicit Vec4(const Vec2<Type> &xy, Type z, Type w)
+    explicit Vec4(const Vec2<Type>& xy, Type z, Type w)
         : x(xy.x),
           y(xy.y),
           z(z),
@@ -312,7 +414,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     {
     }
 
-    explicit Vec4(const Vec2<Type> &xy, const Vec2<Type> &zw)
+    explicit Vec4(const Vec2<Type>& xy, const Vec2<Type>& zw)
         : x(xy.x),
           y(xy.y),
           z(zw.x),
@@ -320,7 +422,7 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     {
     }
 
-    explicit Vec4(const Vec3<Type> &xyz, Type w)
+    explicit Vec4(const Vec3<Type>& xyz, Type w)
         : x(xyz.x),
           y(xyz.y),
           z(xyz.z),
@@ -328,45 +430,105 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
     {
     }
 
-    Vec4(const Vec4 &other)             = default;
-    Vec4 &operator=(const Vec4 &other)  = default;
+    Vec4(const Vec4& other) = default;
+    Vec4& operator=(const Vec4& other) = default;
 
-    Type GetX() const           { return x; }
-    Type &GetX()                { return x; }
-    Vec4 &SetX(Type x)          { this->x = x; return *this; }
-    Type GetY() const           { return y; }
-    Type &GetY()                { return y; }
-    Vec4 &SetY(Type y)          { this->y = y; return *this; }
-    Type GetZ() const           { return z; }
-    Type &GetZ()                { return z; }
-    Vec4 &SetZ(Type z)          { this->z = z; return *this; }
-    Type GetW() const           { return w; }
-    Type &GetW()                { return w; }
-    Vec4 &SetW(Type w)          { this->w = w; return *this; }
+    Type GetX() const
+    {
+        return x;
+    }
+
+    Type& GetX()
+    {
+        return x;
+    }
+
+    Vec4& SetX(Type x)
+    {
+        this->x = x;
+        return *this;
+    }
+
+    Type GetY() const
+    {
+        return y;
+    }
+
+    Type& GetY()
+    {
+        return y;
+    }
+
+    Vec4& SetY(Type y)
+    {
+        this->y = y;
+        return *this;
+    }
+
+    Type GetZ() const
+    {
+        return z;
+    }
+
+    Type& GetZ()
+    {
+        return z;
+    }
+
+    Vec4& SetZ(Type z)
+    {
+        this->z = z;
+        return *this;
+    }
+
+    Type GetW() const
+    {
+        return w;
+    }
+
+    Type& GetW()
+    {
+        return w;
+    }
+
+    Vec4& SetW(Type w)
+    {
+        this->w = w;
+        return *this;
+    }
 
     /*! \brief Get the XY components of this vector as a Vector2. */
-    Vec2<Type> GetXY() const    { return Vec2<Type>(x, y); }
+    Vec2<Type> GetXY() const
+    {
+        return Vec2<Type>(x, y);
+    }
 
     /*! \brief Get the XYZ components of this vector as a Vector3. */
-    Vec3<Type> GetXYZ() const   { return Vec3<Type>(x, y, z); }
+    Vec3<Type> GetXYZ() const
+    {
+        return Vec3<Type>(x, y, z);
+    }
 
-    constexpr Type &operator[](SizeType index)
-        { return values[index]; }
-    
+    constexpr Type& operator[](SizeType index)
+    {
+        return values[index];
+    }
+
     constexpr Type operator[](SizeType index) const
-        { return values[index]; }
+    {
+        return values[index];
+    }
 
-    Vec4 operator+(const Vec4 &other) const
+    Vec4 operator+(const Vec4& other) const
     {
         return Vec4(
             x + other.x,
             y + other.y,
             z + other.z,
-            w + other.w
-        );
+            w + other.w);
     }
 
-    Vec4 &operator+=(const Vec4 &other)
+    Vec4& operator+=(const Vec4& other)
     {
         x += other.x;
         y += other.y;
@@ -376,17 +538,16 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return *this;
     }
 
-    Vec4 operator-(const Vec4 &other) const
+    Vec4 operator-(const Vec4& other) const
     {
         return Vec4(
             x - other.x,
             y - other.y,
             z - other.z,
-            w - other.w
-        );
+            w - other.w);
     }
 
-    Vec4 &operator-=(const Vec4 &other)
+    Vec4& operator-=(const Vec4& other)
     {
         x -= other.x;
         y -= other.y;
@@ -396,17 +557,16 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return *this;
     }
 
-    Vec4 operator*(const Vec4 &other) const
+    Vec4 operator*(const Vec4& other) const
     {
         return Vec4(
             x * other.x,
             y * other.y,
             z * other.z,
-            w * other.w
-        );
+            w * other.w);
     }
 
-    Vec4 &operator*=(const Vec4 &other)
+    Vec4& operator*=(const Vec4& other)
     {
         x *= other.x;
         y *= other.y;
@@ -416,17 +576,16 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return *this;
     }
 
-    Vec4 operator/(const Vec4 &other) const
+    Vec4 operator/(const Vec4& other) const
     {
         return Vec4(
             x / other.x,
             y / other.y,
             z / other.z,
-            w / other.w
-        );
+            w / other.w);
     }
 
-    Vec4 &operator/=(const Vec4 &other)
+    Vec4& operator/=(const Vec4& other)
     {
         x /= other.x;
         y /= other.y;
@@ -436,80 +595,117 @@ struct alignas(alignof(float) * 4) HYP_API Vec4<float>
         return *this;
     }
 
-    bool operator==(const Vec4 &other) const
-        { return x == other.x && y == other.y && z == other.z && w == other.w; }
+    bool operator==(const Vec4& other) const
+    {
+        return x == other.x && y == other.y && z == other.z && w == other.w;
+    }
 
-    bool operator!=(const Vec4 &other) const
-        { return !operator==(other); }
+    bool operator!=(const Vec4& other) const
+    {
+        return !operator==(other);
+    }
 
     Vec4 operator-() const
-        { return operator*(Type(-1)); }
-
-    bool operator<(const Vec4 &other) const
     {
-        if (x != other.x) return x < other.x;
-        if (y != other.y) return y < other.y;
-        if (z != other.z) return z < other.z;
-        if (w != other.w) return w < other.w;
+        return operator*(Type(-1));
+    }
+
+    bool operator<(const Vec4& other) const
+    {
+        if (x != other.x)
+            return x < other.x;
+        if (y != other.y)
+            return y < other.y;
+        if (z != other.z)
+            return z < other.z;
+        if (w != other.w)
+            return w < other.w;
 
         return false;
     }
 
     constexpr Type LengthSquared() const
-        { return x * x + y * y + z * z + w * w; }
+    {
+        return x * x + y * y + z * z + w * w;
+    }
 
-    Type Length() const { return std::sqrt(LengthSquared()); }
+    Type Length() const
+    {
+        return std::sqrt(LengthSquared());
+    }
 
     HYP_FORCE_INLINE constexpr Type Avg() const
-        { return (x + y + z + w) / Type(size); }
+    {
+        return (x + y + z + w) / Type(size);
+    }
 
     HYP_FORCE_INLINE constexpr Type Sum() const
-        { return x + y + z + w; }
+    {
+        return x + y + z + w;
+    }
 
     HYP_FORCE_INLINE constexpr Type Volume() const
-        { return x * y * z * w; }
+    {
+        return x * y * z * w;
+    }
 
     HYP_FORCE_INLINE constexpr Type Max() const
-        { return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w)); }
+    {
+        return x > y ? (x > z ? (x > w ? x : w) : (z > w ? z : w)) : (y > z ? (y > w ? y : w) : (z > w ? z : w));
+    }
 
     HYP_FORCE_INLINE constexpr Type Min() const
-        { return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w)); }
+    {
+        return x < y ? (x < z ? (x < w ? x : w) : (z < w ? z : w)) : (y < z ? (y < w ? y : w) : (z < w ? z : w));
+    }
 
-    Vec4 operator*(const Matrix4 &mat) const;
-    Vec4 &operator*=(const Matrix4 &mat);
+    Vec4 operator*(const Matrix4& mat) const;
+    Vec4& operator*=(const Matrix4& mat);
 
-    Type DistanceSquared(const Vec4 &other) const;
-    Type Distance(const Vec4 &other) const;
-    
+    Type DistanceSquared(const Vec4& other) const;
+    Type Distance(const Vec4& other) const;
+
     Vec4 Normalized() const;
-    Vec4 &Normalize();
-    Vec4 &Rotate(const Vec3<float> &axis, float radians);
-    Vec4 &Lerp(const Vec4 &to, float amt);
-    float Dot(const Vec4 &other) const;
+    Vec4& Normalize();
+    Vec4& Rotate(const Vec3<float>& axis, float radians);
+    Vec4& Lerp(const Vec4& to, float amt);
+    float Dot(const Vec4& other) const;
 
-    static Vec4 Abs(const Vec4 &);
-    static Vec4 Round(const Vec4 &);
-    static Vec4 Clamp(const Vec4 &, float min, float max);
-    static Vec4 Min(const Vec4 &a, const Vec4 &b);
-    static Vec4 Max(const Vec4 &a, const Vec4 &b);
+    static Vec4 Abs(const Vec4&);
+    static Vec4 Round(const Vec4&);
+    static Vec4 Clamp(const Vec4&, float min, float max);
+    static Vec4 Min(const Vec4& a, const Vec4& b);
+    static Vec4 Max(const Vec4& a, const Vec4& b);
 
     static Vec4 Zero()
-        { return Vec4(0, 0, 0, 0); }
+    {
+        return Vec4(0, 0, 0, 0);
+    }
 
     static Vec4 One()
-        { return Vec4(1, 1, 1, 1); }
+    {
+        return Vec4(1, 1, 1, 1);
+    }
 
     static Vec4 UnitX()
-        { return Vec4(1, 0, 0, 0); }
+    {
+        return Vec4(1, 0, 0, 0);
+    }
 
     static Vec4 UnitY()
-        { return Vec4(0, 1, 0, 0); }
+    {
+        return Vec4(0, 1, 0, 0);
+    }
 
     static Vec4 UnitZ()
-        { return Vec4(0, 0, 1, 0); }
-    
+    {
+        return Vec4(0, 0, 1, 0);
+    }
+
     static Vec4 UnitW()
-        { return Vec4(0, 0, 0, 1); }
+    {
+        return Vec4(0, 0, 0, 1);
+    }
 
     HashCode GetHashCode() const
     {

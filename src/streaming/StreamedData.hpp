@@ -33,9 +33,7 @@ using filesystem::DataStore;
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
-// @TODO Abstract RenderResources into IResource and RenderResource, and change StreamedData to StreamingResource (implementing IResource)
-// so it can use memory pooling and a unified interface
-class StreamedData;
+class StreamedDataBase;
 class StreamingThread;
 
 enum class StreamedDataState : uint32
@@ -46,39 +44,40 @@ enum class StreamedDataState : uint32
 };
 
 HYP_CLASS(Abstract)
-class HYP_API StreamedData : public EnableRefCountedPtrFromThis<StreamedData>, public ResourceBase
+
+class HYP_API StreamedDataBase : public EnableRefCountedPtrFromThis<StreamedDataBase>, public ResourceBase
 {
-    HYP_OBJECT_BODY(StreamedData);
+    HYP_OBJECT_BODY(StreamedDataBase);
 
     using UnpagingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
-    /*! \brief Construct the StreamedData with the given initial state. If the state is LOADED, \ref{out_resource_handle} will be set to a resource handle for this. */
-    StreamedData(StreamedDataState initial_state, ResourceHandle &out_resource_handle);
+    /*! \brief Construct the StreamedDataBase with the given initial state. If the state is LOADED, \ref{out_resource_handle} will be set to a resource handle for this. */
+    StreamedDataBase(StreamedDataState initial_state, ResourceHandle& out_resource_handle);
 
 public:
-    StreamedData()                                      = default;
-    StreamedData(const StreamedData &)                  = delete;
-    StreamedData &operator=(const StreamedData &)       = delete;
-    StreamedData(StreamedData &&) noexcept              = delete;
-    StreamedData &operator=(StreamedData &&) noexcept   = delete;
-    virtual ~StreamedData()                             = default;
+    StreamedDataBase() = default;
+    StreamedDataBase(const StreamedDataBase&) = delete;
+    StreamedDataBase& operator=(const StreamedDataBase&) = delete;
+    StreamedDataBase(StreamedDataBase&&) noexcept = delete;
+    StreamedDataBase& operator=(StreamedDataBase&&) noexcept = delete;
+    virtual ~StreamedDataBase() = default;
 
     void Unpage();
     void Load() const;
 
     virtual HashCode GetDataHashCode() const = 0;
 
-    virtual const ByteBuffer &GetByteBuffer() const;
+    virtual const ByteBuffer& GetByteBuffer() const;
 
 protected:
     virtual void Initialize() override final;
     virtual void Destroy() override final;
     virtual void Update() override final;
 
-    virtual IThread *GetOwnerThread() const override final;
+    virtual IThread* GetOwnerThread() const override final;
 
-    mutable Mutex   m_mutex;
+    mutable Mutex m_mutex;
 
 private:
     virtual bool IsInMemory_Internal() const = 0;
@@ -88,17 +87,20 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API NullStreamedData final : public StreamedData
+
+class HYP_API NullStreamedData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(NullStreamedData);
 
 public:
-    NullStreamedData()                      = default;
-    virtual ~NullStreamedData() override    = default;
+    NullStreamedData() = default;
+    virtual ~NullStreamedData() override = default;
 
 protected:
     virtual HashCode GetDataHashCode() const override
-        { return HashCode(0); }
+    {
+        return HashCode(0);
+    }
 
 private:
     virtual bool IsInMemory_Internal() const override;
@@ -108,42 +110,45 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API MemoryStreamedData final : public StreamedData
+
+class HYP_API MemoryStreamedData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(MemoryStreamedData);
 
 public:
-    MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer &)> &&load_from_memory_proc = {});
-    MemoryStreamedData(HashCode hash_code, const ByteBuffer &byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
-    MemoryStreamedData(HashCode hash_code, ByteBuffer &&byte_buffer, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
-    MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle &out_resource_handle);
+    MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer&)>&& load_from_memory_proc = {});
+    MemoryStreamedData(HashCode hash_code, const ByteBuffer& byte_buffer, StreamedDataState initial_state, ResourceHandle& out_resource_handle);
+    MemoryStreamedData(HashCode hash_code, ByteBuffer&& byte_buffer, StreamedDataState initial_state, ResourceHandle& out_resource_handle);
+    MemoryStreamedData(HashCode hash_code, ConstByteView byte_view, StreamedDataState initial_state, ResourceHandle& out_resource_handle);
 
-    MemoryStreamedData(const MemoryStreamedData &other)                 = delete;
-    MemoryStreamedData &operator=(const MemoryStreamedData &other)      = delete;
+    MemoryStreamedData(const MemoryStreamedData& other) = delete;
+    MemoryStreamedData& operator=(const MemoryStreamedData& other) = delete;
 
-    MemoryStreamedData(MemoryStreamedData &&other) noexcept             = delete;
-    MemoryStreamedData &operator=(MemoryStreamedData &&other) noexcept  = delete;
+    MemoryStreamedData(MemoryStreamedData&& other) noexcept = delete;
+    MemoryStreamedData& operator=(MemoryStreamedData&& other) noexcept = delete;
 
-    virtual ~MemoryStreamedData() override                              = default;
+    virtual ~MemoryStreamedData() override = default;
 
 protected:
-    virtual const ByteBuffer &GetByteBuffer() const override;
+    virtual const ByteBuffer& GetByteBuffer() const override;
 
     virtual HashCode GetDataHashCode() const override
-        { return m_hash_code; }
-    
+    {
+        return m_hash_code;
+    }
+
 private:
     virtual bool IsInMemory_Internal() const override;
 
     virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
 
-    HashCode                            m_hash_code;
-    mutable Optional<ByteBuffer>        m_byte_buffer;
-    Proc<bool(HashCode, ByteBuffer &)>  m_load_from_memory_proc;
+    HashCode m_hash_code;
+    mutable Optional<ByteBuffer> m_byte_buffer;
+    Proc<bool(HashCode, ByteBuffer&)> m_load_from_memory_proc;
 
-    DataStore                           *m_data_store;
-    ResourceHandle                      m_data_store_resource_handle;
+    DataStore* m_data_store;
+    ResourceHandle m_data_store_resource_handle;
 };
 
 } // namespace hyperion

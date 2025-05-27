@@ -12,9 +12,9 @@ namespace renderer {
 } // namespace hyperion
 
 #if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererFeatures.hpp>
+    #include <rendering/backend/vulkan/RendererFeatures.hpp>
 #else
-#error Unsupported rendering backend
+    #error Unsupported rendering backend
 #endif
 
 #endif

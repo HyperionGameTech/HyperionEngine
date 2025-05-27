@@ -46,49 +46,51 @@ static constexpr bool do_parallel_collection = true;
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
+struct RENDER_COMMAND(RebuildProxyGroups)
+    : renderer::RenderCommand
 {
     TResourceHandle<ViewRenderResource> view_render_resource_handle;
 
-    RC<EntityDrawCollection>            collection;
-    Array<RenderProxy>                  added_proxies;
-    Array<ID<Entity>>                   removed_proxies;
+    RC<EntityDrawCollection> collection;
+    Array<RenderProxy> added_proxies;
+    Array<ID<Entity>> removed_proxies;
 
-    Handle<Camera>                      camera;
-    Optional<RenderableAttributeSet>    override_attributes;
+    Handle<Camera> camera;
+    Optional<RenderableAttributeSet> override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups)(
-        const TResourceHandle<ViewRenderResource> &view_render_resource_handle,
-        const RC<EntityDrawCollection> &collection,
-        Array<RenderProxy *> &&added_proxy_ptrs,
-        Array<ID<Entity>> &&removed_proxies,
-        const Handle<Camera> &camera = Handle<Camera>::empty,
-        const Optional<RenderableAttributeSet> &override_attributes = { }
-    ) : view_render_resource_handle(view_render_resource_handle),
-        collection(collection),
-        removed_proxies(std::move(removed_proxies)),
-        camera(camera),
-        override_attributes(override_attributes)
+        const TResourceHandle<ViewRenderResource>& view_render_resource_handle,
+        const RC<EntityDrawCollection>& collection,
+        Array<RenderProxy*>&& added_proxy_ptrs,
+        Array<ID<Entity>>&& removed_proxies,
+        const Handle<Camera>& camera = Handle<Camera>::empty,
+        const Optional<RenderableAttributeSet>& override_attributes = {})
+        : view_render_resource_handle(view_render_resource_handle),
+          collection(collection),
+          removed_proxies(std::move(removed_proxies)),
+          camera(camera),
+          override_attributes(override_attributes)
     {
         AssertThrow(view_render_resource_handle);
 
         added_proxies.Reserve(added_proxy_ptrs.Size());
 
-        for (RenderProxy *proxy_ptr : added_proxy_ptrs) {
+        for (RenderProxy* proxy_ptr : added_proxy_ptrs)
+        {
             added_proxies.PushBack(*proxy_ptr);
         }
     }
 
     virtual ~RENDER_COMMAND(RebuildProxyGroups)() override = default;
 
-    RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy &proxy) const
+    RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy& proxy) const
     {
         HYP_SCOPE;
-        
-        const Handle<Mesh> &mesh = proxy.mesh;
+
+        const Handle<Mesh>& mesh = proxy.mesh;
         AssertThrow(mesh.IsValid());
 
-        const Handle<Material> &material = proxy.material;
+        const Handle<Material>& material = proxy.material;
         AssertThrow(material.IsValid());
 
         RenderableAttributeSet attributes {
@@ -96,12 +98,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             material->GetRenderAttributes()
         };
 
-        if (override_attributes.HasValue()) {
-            if (const ShaderDefinition &override_shader_definition = override_attributes->GetShaderDefinition()) {
+        if (override_attributes.HasValue())
+        {
+            if (const ShaderDefinition& override_shader_definition = override_attributes->GetShaderDefinition())
+            {
                 attributes.SetShaderDefinition(override_shader_definition);
             }
-            
-            const ShaderDefinition &shader_definition = override_attributes->GetShaderDefinition().IsValid()
+
+            const ShaderDefinition& shader_definition = override_attributes->GetShaderDefinition().IsValid()
                 ? override_attributes->GetShaderDefinition()
                 : attributes.GetShaderDefinition();
 
@@ -117,7 +121,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
             new_material_attributes.shader_definition = shader_definition;
 
-            if (mesh_vertex_attributes != new_material_attributes.shader_definition.GetProperties().GetRequiredVertexAttributes()) {
+            if (mesh_vertex_attributes != new_material_attributes.shader_definition.GetProperties().GetRequiredVertexAttributes())
+            {
                 new_material_attributes.shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
             }
 
@@ -130,23 +135,24 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         return attributes;
     }
 
-    void AddRenderProxy(RenderProxyTracker &render_proxy_tracker, RenderProxy &&proxy, const RenderableAttributeSet &attributes, Bucket bucket)
+    void AddRenderProxy(RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, const RenderableAttributeSet& attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
         const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
-        Handle<RenderGroup> &render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
+        Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
 
-        if (!render_group.IsValid()) {
+        if (!render_group.IsValid())
+        {
             HYP_LOG(RenderCollection, Debug, "Creating RenderGroup for attributes:\n"
-                "\tVertex Attributes: {}\n"
-                "\tBucket: {}\n"
-                "\tShader Definition: {}  {}\n"
-                "\tCull Mode: {}\n"
-                "\tFlags: {}\n"
-                "\tDrawable layer: {}",
+                                             "\tVertex Attributes: {}\n"
+                                             "\tBucket: {}\n"
+                                             "\tShader Definition: {}  {}\n"
+                                             "\tCull Mode: {}\n"
+                                             "\tFlags: {}\n"
+                                             "\tDrawable layer: {}",
                 attributes.GetMeshAttributes().vertex_attributes.flag_mask,
                 uint32(attributes.GetMaterialAttributes().bucket),
                 attributes.GetShaderDefinition().GetName(),
@@ -160,7 +166,8 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             // Disable occlusion culling for translucent objects
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            if (bucket == BUCKET_TRANSLUCENT || bucket == BUCKET_DEBUG) {
+            if (bucket == BUCKET_TRANSLUCENT || bucket == BUCKET_DEBUG)
+            {
                 render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
             }
 
@@ -168,24 +175,27 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             render_group = CreateObject<RenderGroup>(
                 g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                 attributes,
-                render_group_flags
-            );
+                render_group_flags);
 
             FramebufferRef framebuffer;
 
-            if (camera.IsValid()) {
+            if (camera.IsValid())
+            {
                 framebuffer = camera->GetRenderResource().GetFramebuffer();
             }
 
-            if (framebuffer != nullptr) {
+            if (framebuffer != nullptr)
+            {
                 render_group->AddFramebuffer(framebuffer);
-            } else {
+            }
+            else
+            {
                 AssertThrow(view_render_resource_handle->GetView()->GetFlags() & ViewFlags::GBUFFER);
 
-                GBuffer *gbuffer = view_render_resource_handle->GetGBuffer();
+                GBuffer* gbuffer = view_render_resource_handle->GetGBuffer();
                 AssertThrow(gbuffer != nullptr);
 
-                const FramebufferRef &bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+                const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
                 AssertThrow(bucket_framebuffer != nullptr);
 
                 render_group->AddFramebuffer(bucket_framebuffer);
@@ -199,16 +209,16 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         render_group->AddRenderProxy(iter->second);
     }
 
-    bool RemoveRenderProxy(RenderProxyTracker &render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet &attributes, Bucket bucket)
+    bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
-        auto &render_groups_by_attributes = collection->GetProxyGroups()[uint32(bucket)];
+        auto& render_groups_by_attributes = collection->GetProxyGroups()[uint32(bucket)];
 
         auto it = render_groups_by_attributes.Find(attributes);
         AssertThrow(it != render_groups_by_attributes.End());
 
-        const Handle<RenderGroup> &render_group = it->second;
+        const Handle<RenderGroup>& render_group = it->second;
         AssertThrow(render_group.IsValid());
 
         const bool removed = render_group->RemoveRenderProxy(entity);
@@ -222,7 +232,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
     {
         HYP_SCOPE;
 
-        RenderProxyTracker &render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
         render_proxy_tracker.Reserve(added_proxies.Size());
@@ -254,12 +264,14 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             );
         }
 #endif
-        for (RenderProxy &proxy : added_proxies) {
+        for (RenderProxy& proxy : added_proxies)
+        {
             proxy.ClaimRenderResource();
         }
 
-        for (ID<Entity> entity_id : removed_proxies) {
-            const RenderProxy *proxy = render_proxy_tracker.GetElement(entity_id);
+        for (ID<Entity> entity_id : removed_proxies)
+        {
+            const RenderProxy* proxy = render_proxy_tracker.GetElement(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
             proxy->UnclaimRenderResource();
@@ -270,12 +282,13 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
             AssertThrow(RemoveRenderProxy(render_proxy_tracker, entity_id, attributes, bucket));
         }
 
-        for (RenderProxy &proxy : added_proxies) {
-            const Handle<Mesh> &mesh = proxy.mesh;
+        for (RenderProxy& proxy : added_proxies)
+        {
+            const Handle<Mesh>& mesh = proxy.mesh;
             AssertThrow(mesh.IsValid());
             AssertThrow(mesh->IsReady());
 
-            const Handle<Material> &material = proxy.material;
+            const Handle<Material>& material = proxy.material;
             AssertThrow(material.IsValid());
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
@@ -285,7 +298,7 @@ struct RENDER_COMMAND(RebuildProxyGroups) : renderer::RenderCommand
         }
 
         render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
-        
+
         // Clear out groups that are no longer used
         collection->RemoveEmptyProxyGroups();
 
@@ -305,8 +318,10 @@ void EntityDrawCollection::ClearProxyGroups()
 
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    for (auto &render_groups_by_attributes : GetProxyGroups()) {
-        for (auto &it : render_groups_by_attributes) {
+    for (auto& render_groups_by_attributes : GetProxyGroups())
+    {
+        for (auto& it : render_groups_by_attributes)
+        {
             it.second->ClearProxies();
         }
     }
@@ -318,9 +333,12 @@ void EntityDrawCollection::RemoveEmptyProxyGroups()
 
     Threads::AssertOnThread(g_render_thread);
 
-    for (auto &render_groups_by_attributes : GetProxyGroups()) {
-        for (auto it = render_groups_by_attributes.Begin(); it != render_groups_by_attributes.End();) {
-            if (it->second->GetRenderProxies().Any()) {
+    for (auto& render_groups_by_attributes : GetProxyGroups())
+    {
+        for (auto it = render_groups_by_attributes.Begin(); it != render_groups_by_attributes.End();)
+        {
+            if (it->second->GetRenderProxies().Any())
+            {
                 ++it;
 
                 continue;
@@ -337,9 +355,12 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 
     uint32 count = 0;
 
-    for (const auto &render_groups_by_attributes : m_proxy_groups) {
-        for (const auto &it : render_groups_by_attributes) {
-            if (it.second.IsValid()) {
+    for (const auto& render_groups_by_attributes : m_proxy_groups)
+    {
+        for (const auto& it : render_groups_by_attributes)
+        {
+            if (it.second.IsValid())
+            {
                 ++count;
             }
         }
@@ -360,16 +381,16 @@ RenderCollector::RenderCollector()
 RenderCollector::~RenderCollector() = default;
 
 void RenderCollector::CollectDrawCalls(
-    FrameBase *frame,
-    ViewRenderResource *view,
-    const Bitset &bucket_bits,
-    const CullData *cull_data
-)
+    FrameBase* frame,
+    ViewRenderResource* view,
+    const Bitset& bucket_bits,
+    const CullData* cull_data)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    if (bucket_bits.Count() == 0) {
+    if (bucket_bits.Count() == 0)
+    {
         return;
     }
 
@@ -381,47 +402,57 @@ void RenderCollector::CollectDrawCalls(
 
     Array<IteratorType> iterators;
 
-    for (Bitset::BitIndex bit_index : bucket_bits) {
-        auto &render_groups_by_attributes = m_draw_collection->GetProxyGroups()[bit_index];
+    for (Bitset::BitIndex bit_index : bucket_bits)
+    {
+        auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[bit_index];
 
-        if (render_groups_by_attributes.Empty()) {
+        if (render_groups_by_attributes.Empty())
+        {
             continue;
         }
 
-        for (auto &it : render_groups_by_attributes) {
+        for (auto& it : render_groups_by_attributes)
+        {
             iterators.PushBack(&it);
         }
     }
 
-    if (iterators.Empty()) {
+    if (iterators.Empty())
+    {
         return;
     }
 
-    if (do_parallel_collection && iterators.Size() > 1) {
+    if (do_parallel_collection && iterators.Size() > 1)
+    {
         TaskSystem::GetInstance().ParallelForEach(
             HYP_STATIC_MESSAGE("RenderCollector::CollectDrawCalls"),
             TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
             iterators,
             [this](IteratorType it, uint32, uint32)
             {
-                Handle<RenderGroup> &render_group = it->second;
+                Handle<RenderGroup>& render_group = it->second;
                 AssertThrow(render_group.IsValid());
 
                 render_group->CollectDrawCalls();
-            }
-        );
-    } else {
-        for (IteratorType it : iterators) {
-            Handle<RenderGroup> &render_group = it->second;
+            });
+    }
+    else
+    {
+        for (IteratorType it : iterators)
+        {
+            Handle<RenderGroup>& render_group = it->second;
             AssertThrow(render_group.IsValid());
 
             render_group->CollectDrawCalls();
         }
     }
 
-    if (is_indirect_rendering_enabled && cull_data != nullptr) {
-        for (SizeType index = 0; index < iterators.Size(); index++) {
-            if (!(iterators[index]->second->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)) {
+    if (is_indirect_rendering_enabled && cull_data != nullptr)
+    {
+        for (SizeType index = 0; index < iterators.Size(); index++)
+        {
+            if (!(iterators[index]->second->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING))
+            {
                 continue;
             }
 
@@ -431,29 +462,27 @@ void RenderCollector::CollectDrawCalls(
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    FrameBase *frame,
-    ViewRenderResource *view,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
+    FrameBase* frame,
+    ViewRenderResource* view,
+    const Bitset& bucket_bits,
+    const CullData* cull_data,
+    PushConstantData push_constant) const
 {
     AssertThrow(view != nullptr);
 
-    const FramebufferRef &framebuffer = view->GetCamera()->GetFramebuffer();
+    const FramebufferRef& framebuffer = view->GetCamera()->GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
     ExecuteDrawCalls(frame, view, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
-    FrameBase *frame,
-    ViewRenderResource *view,
-    const FramebufferRef &framebuffer,
-    const Bitset &bucket_bits,
-    const CullData *cull_data,
-    PushConstantData push_constant
-) const
+    FrameBase* frame,
+    ViewRenderResource* view,
+    const FramebufferRef& framebuffer,
+    const Bitset& bucket_bits,
+    const CullData* cull_data,
+    PushConstantData push_constant) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -461,90 +490,114 @@ void RenderCollector::ExecuteDrawCalls(
     HYP_MT_CHECK_READ(m_data_race_detector);
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
-    
+
     AssertThrow(m_draw_collection != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    if (bucket_bits.Count() == 0) {
+    if (bucket_bits.Count() == 0)
+    {
         return;
     }
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
-    if (bucket_bits.Count() == 1) {
+    if (bucket_bits.Count() == 1)
+    {
         const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits.ToUInt64()));
 
-        const auto &render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
+        const auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
 
-        if (render_groups_by_attributes.Empty()) {
+        if (render_groups_by_attributes.Empty())
+        {
             return;
         }
 
-        if (framebuffer) {
+        if (framebuffer)
+        {
             frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
 
-        for (const auto &it : render_groups_by_attributes) {
-            const RenderableAttributeSet &attributes = it.first;
-            const Handle<RenderGroup> &render_group = it.second;
+        for (const auto& it : render_groups_by_attributes)
+        {
+            const RenderableAttributeSet& attributes = it.first;
+            const Handle<RenderGroup>& render_group = it.second;
 
-            if (push_constant) {
+            if (push_constant)
+            {
                 render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
             }
 
-            if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
+            if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
+            {
                 render_group->PerformRenderingIndirect(frame, view);
-            } else {
+            }
+            else
+            {
                 render_group->PerformRendering(frame, view);
             }
         }
 
-        if (framebuffer) {
+        if (framebuffer)
+        {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
-    } else {
+    }
+    else
+    {
         bool all_empty = false;
 
-        for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
-            if (render_groups_by_attributes.Any()) {
+        for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+        {
+            if (render_groups_by_attributes.Any())
+            {
                 all_empty = false;
 
                 break;
             }
         }
 
-        if (all_empty) {
+        if (all_empty)
+        {
             return;
         }
 
-        if (framebuffer) {
+        if (framebuffer)
+        {
             frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
         }
 
-        for (const auto &render_groups_by_attributes : m_draw_collection->GetProxyGroups()) {
-            for (const auto &it : render_groups_by_attributes) {
-                const RenderableAttributeSet &attributes = it.first;
-                const Handle<RenderGroup> &render_group = it.second;
+        for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+        {
+            for (const auto& it : render_groups_by_attributes)
+            {
+                const RenderableAttributeSet& attributes = it.first;
+                const Handle<RenderGroup>& render_group = it.second;
 
                 const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                if (!bucket_bits.Test(uint32(bucket))) {
+                if (!bucket_bits.Test(uint32(bucket)))
+                {
                     continue;
                 }
 
-                if (push_constant) {
+                if (push_constant)
+                {
                     render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
                 }
 
-                if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)) {
+                if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
+                {
                     render_group->PerformRenderingIndirect(frame, view);
-                } else {
+                }
+                else
+                {
                     render_group->PerformRendering(frame, view);
                 }
             }
         }
 
-        if (framebuffer) {
+        if (framebuffer)
+        {
             frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
         }
     }

@@ -24,9 +24,10 @@ SuppressEngineRenderStatsScope::~SuppressEngineRenderStatsScope()
 
 #pragma region EngineRenderStatsCalculator
 
-void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts &counts)
+void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& counts)
 {
-    if (m_suppress_count > 0) {
+    if (m_suppress_count > 0)
+    {
         return;
     }
 
@@ -36,7 +37,8 @@ void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts &count
 
 void EngineRenderStatsCalculator::AddSample(double delta)
 {
-    if (m_suppress_count > 0) {
+    if (m_suppress_count > 0)
+    {
         return;
     }
 
@@ -45,7 +47,7 @@ void EngineRenderStatsCalculator::AddSample(double delta)
     m_samples[sample_index % max_samples] = delta;
 }
 
-void EngineRenderStatsCalculator::Advance(EngineRenderStats &render_stats)
+void EngineRenderStatsCalculator::Advance(EngineRenderStats& render_stats)
 {
     m_counter.NextTick();
     m_delta_accum += m_counter.delta;
@@ -65,26 +67,29 @@ void EngineRenderStatsCalculator::Advance(EngineRenderStats &render_stats)
         ? new_render_stats.milliseconds_per_frame
         : MathUtil::Min(render_stats.milliseconds_per_frame_min, new_render_stats.milliseconds_per_frame);
     new_render_stats.counts = m_counts;
-    
+
     render_stats = new_render_stats;
 
-    if (reset_min_max) {
+    if (reset_min_max)
+    {
         m_delta_accum = 0.0;
     }
 
-    m_counts = { };
+    m_counts = {};
 }
 
 double EngineRenderStatsCalculator::CalculateFramesPerSecond() const
 {
-    if (m_num_samples == 0) {
+    if (m_num_samples == 0)
+    {
         return 0.0;
     }
 
     const uint32 count = m_num_samples < max_samples ? m_num_samples : max_samples;
     double total = 0.0;
 
-    for (uint32 i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i)
+    {
         total += 1.0 / m_samples[i];
     }
 
@@ -93,14 +98,16 @@ double EngineRenderStatsCalculator::CalculateFramesPerSecond() const
 
 double EngineRenderStatsCalculator::CalculateMillisecondsPerFrame() const
 {
-    if (m_num_samples == 0) {
+    if (m_num_samples == 0)
+    {
         return 0.0;
     }
 
     const uint32 count = m_num_samples < max_samples ? m_num_samples : max_samples;
     double total = 0.0;
 
-    for (uint32 i = 0; i < count; ++i) {
+    for (uint32 i = 0; i < count; ++i)
+    {
         total += m_samples[i] * 1000.0;
     }
 

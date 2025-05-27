@@ -24,15 +24,15 @@ public:
 } // namespace hyperion
 
 #if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererDevice.hpp>
+    #include <rendering/backend/vulkan/RendererDevice.hpp>
 #else
-#error Unsupported rendering backend
+    #error Unsupported rendering backend
 #endif
 
 namespace hyperion {
 namespace renderer {
 
-using Device = platform::Device<Platform::CURRENT>;
+using Device = platform::Device<Platform::current>;
 
 } // namespace renderer
 } // namespace hyperion

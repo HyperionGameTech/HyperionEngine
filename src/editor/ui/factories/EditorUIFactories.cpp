@@ -39,12 +39,13 @@ HYP_DECLARE_LOG_CHANNEL(Editor);
 class HypDataUIElementFactory : public UIElementFactory<HypData, HypDataUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const HypData &value) const
+    RC<UIObject> Create(UIObject* parent, const HypData& value) const
     {
-        const HypClass *hyp_class = GetClass(value.GetTypeID());
+        const HypClass* hyp_class = GetClass(value.GetTypeID());
         AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
 
-        if (value.IsNull()) {
+        if (value.IsNull())
+        {
             RC<UIText> empty_value_text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             empty_value_text->SetText("Object is null");
 
@@ -53,25 +54,32 @@ public:
 
         RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-        HashMap<String, HypProperty *> properties_by_name;
+        HashMap<String, HypProperty*> properties_by_name;
 
-        for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it) {
-            if (HypProperty *property = dynamic_cast<HypProperty *>(&*it)) {
-                if (!property->GetAttribute("editor")) {
+        for (auto it = hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).Begin(); it != hyp_class->GetMembers(HypMemberType::TYPE_PROPERTY).End(); ++it)
+        {
+            if (HypProperty* property = dynamic_cast<HypProperty*>(&*it))
+            {
+                if (!property->GetAttribute("editor"))
+                {
                     continue;
                 }
 
-                if (!property->CanGet()) {
+                if (!property->CanGet())
+                {
                     continue;
                 }
 
                 properties_by_name[property->GetName().LookupString()] = property;
-            } else {
+            }
+            else
+            {
                 HYP_UNREACHABLE();
             }
         }
 
-        for (auto &it : properties_by_name) {
+        for (auto& it : properties_by_name)
+        {
             RC<UIGridRow> row = grid->AddRow();
 
             RC<UIGridColumn> column = row->AddColumn();
@@ -80,16 +88,17 @@ public:
             panel->SetPadding({ 1, 1 });
 
             HypData getter_result = it.second->Get(value);
-            
-            UIElementFactoryBase *factory = GetEditorUIElementFactory(getter_result.GetTypeID());
-            
-            if (!factory) {
+
+            UIElementFactoryBase* factory = GetEditorUIElementFactory(getter_result.GetTypeID());
+
+            if (!factory)
+            {
                 HYP_LOG(Editor, Warning, "No factory registered for TypeID {} when creating UI element for attribute \"{}\"", getter_result.GetTypeID().Value(), it.first);
 
                 continue;
             }
 
-            RC<UIObject> element = factory->CreateUIObject(parent, getter_result, { });
+            RC<UIObject> element = factory->CreateUIObject(parent, getter_result, {});
             AssertThrow(element != nullptr);
             panel->AddChildUIObject(element);
 
@@ -99,27 +108,26 @@ public:
         return grid;
     }
 
-    void Update(UIObject *ui_object, const HypData &value) const
+    void Update(UIObject* ui_object, const HypData& value) const
     {
     }
 };
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIElementFactory);
 
-
 template <int StringType>
 class StringUIElementFactory : public UIElementFactory<containers::detail::String<StringType>, StringUIElementFactory<StringType>>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const containers::detail::String<StringType> &value) const
+    RC<UIObject> Create(UIObject* parent, const containers::detail::String<StringType>& value) const
     {
         RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         textbox->SetText(value.ToUTF8());
-        
+
         return textbox;
     }
 
-    void Update(UIObject *ui_object, const containers::detail::String<StringType> &value) const
+    void Update(UIObject* ui_object, const containers::detail::String<StringType>& value) const
     {
         ui_object->SetText(value.ToUTF8());
     }
@@ -134,7 +142,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::WIDE_CHAR>,
 class Vec3fUIElementFactory : public UIElementFactory<Vec3f, Vec3fUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const Vec3f &value) const
+    RC<UIObject> Create(UIObject* parent, const Vec3f& value) const
     {
         RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
@@ -145,10 +153,10 @@ public:
 
             RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("Vec3fPanel_X"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
-            
+
             RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Vec3fPanel_X_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.x));
-            panel->AddChildUIObject(textbox); 
+            panel->AddChildUIObject(textbox);
 
             col->AddChildUIObject(panel);
         }
@@ -182,7 +190,7 @@ public:
         return grid;
     }
 
-    void Update(UIObject *ui_object, const Vec3f &value) const
+    void Update(UIObject* ui_object, const Vec3f& value) const
     {
         ui_object->FindChildUIObject(NAME("Vec3fPanel_X_Value"))
             .Cast<UITextbox>()
@@ -200,11 +208,10 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIElementFactory);
 
-
 class Uint32UIElementFactory : public UIElementFactory<uint32, Uint32UIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const uint32 &value) const
+    RC<UIObject> Create(UIObject* parent, const uint32& value) const
     {
         RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
@@ -212,7 +219,7 @@ public:
 
         {
             RC<UIGridColumn> col = row->AddColumn();
-            
+
             RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value));
 
@@ -222,7 +229,7 @@ public:
         return grid;
     }
 
-    void Update(UIObject *ui_object, const uint32 &value) const
+    void Update(UIObject* ui_object, const uint32& value) const
     {
         ui_object->FindChildUIObject(NAME("Value"))
             .Cast<UITextbox>()
@@ -235,7 +242,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIElementFactory);
 class QuaternionUIElementFactory : public UIElementFactory<Quaternion, QuaternionUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const Quaternion &value) const
+    RC<UIObject> Create(UIObject* parent, const Quaternion& value) const
     {
         RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
@@ -246,10 +253,10 @@ public:
 
             RC<UIPanel> panel = parent->CreateUIObject<UIPanel>(NAME("QuaternionPanel_Roll"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             panel->SetPadding({ 1, 1 });
-            
+
             RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(NAME("QuaternionPanel_Roll_Value"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
             textbox->SetText(HYP_FORMAT("{}", value.Roll()));
-            panel->AddChildUIObject(textbox); 
+            panel->AddChildUIObject(textbox);
 
             col->AddChildUIObject(panel);
         }
@@ -283,7 +290,7 @@ public:
         return grid;
     }
 
-    void Update(UIObject *ui_object, const Quaternion &value) const
+    void Update(UIObject* ui_object, const Quaternion& value) const
     {
         ui_object->FindChildUIObject(NAME("QuaternionPanel_Roll_Value"))
             .Cast<UITextbox>()
@@ -304,9 +311,9 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Quaternion, QuaternionUIElementFactory);
 class TransformUIElementFactory : public UIElementFactory<Transform, TransformUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const Transform &value) const
+    RC<UIObject> Create(UIObject* parent, const Transform& value) const
     {
-        const HypClass *hyp_class = GetClass<Transform>();
+        const HypClass* hyp_class = GetClass<Transform>();
 
         RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
@@ -320,9 +327,10 @@ public:
 
             RC<UIGridRow> translation_value_row = grid->AddRow();
             RC<UIGridColumn> translation_value_column = translation_value_row->AddColumn();
-            
-            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Vec3f>()) {
-                RC<UIObject> translation_element = factory->CreateUIObject(parent, HypData(value.GetTranslation()), { });
+
+            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Vec3f>())
+            {
+                RC<UIObject> translation_element = factory->CreateUIObject(parent, HypData(value.GetTranslation()), {});
                 translation_value_column->AddChildUIObject(translation_element);
             }
         }
@@ -337,9 +345,10 @@ public:
 
             RC<UIGridRow> rotation_value_row = grid->AddRow();
             RC<UIGridColumn> rotation_value_column = rotation_value_row->AddColumn();
-            
-            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Quaternion>()) {
-                RC<UIObject> rotation_element = factory->CreateUIObject(parent, HypData(value.GetRotation()), { });
+
+            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Quaternion>())
+            {
+                RC<UIObject> rotation_element = factory->CreateUIObject(parent, HypData(value.GetRotation()), {});
                 rotation_value_column->AddChildUIObject(rotation_element);
             }
         }
@@ -354,9 +363,10 @@ public:
 
             RC<UIGridRow> scale_value_row = grid->AddRow();
             RC<UIGridColumn> scale_value_column = scale_value_row->AddColumn();
-            
-            if (UIElementFactoryBase *factory = GetEditorUIElementFactory<Vec3f>()) {
-                RC<UIObject> scale_element = factory->CreateUIObject(parent, HypData(value.GetScale()), { });
+
+            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Vec3f>())
+            {
+                RC<UIObject> scale_element = factory->CreateUIObject(parent, HypData(value.GetScale()), {});
                 scale_value_column->AddChildUIObject(scale_element);
             }
         }
@@ -364,7 +374,7 @@ public:
         return grid;
     }
 
-    void Update(UIObject *ui_object, const Transform &value) const
+    void Update(UIObject* ui_object, const Transform& value) const
     {
         HYP_NOT_IMPLEMENTED_VOID();
 
@@ -387,32 +397,39 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIElementFactory);
 class EditorWeakNodeFactory : public UIElementFactory<WeakHandle<Node>, EditorWeakNodeFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const WeakHandle<Node> &value) const
+    RC<UIObject> Create(UIObject* parent, const WeakHandle<Node>& value) const
     {
         String node_name = "Invalid";
         UUID node_uuid = UUID::Invalid();
 
-        if (Handle<Node> node = value.Lock()) {
+        if (Handle<Node> node = value.Lock())
+        {
             node_name = node->GetName();
             node_uuid = node->GetUUID();
-        } else {
+        }
+        else
+        {
             node_uuid = UUID();
         }
 
         RC<UIText> text = parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("Node_") + node_uuid.ToString()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         text->SetText(node_name);
-        
+
         return text;
     }
 
-    void Update(UIObject *ui_object, const WeakHandle<Node> &value) const
+    void Update(UIObject* ui_object, const WeakHandle<Node>& value) const
     {
         static const String invalid_node_name = "<Invalid>";
 
-        if (UIText *text = dynamic_cast<UIText *>(ui_object)) {
-            if (Handle<Node> node = value.Lock()) {
+        if (UIText* text = dynamic_cast<UIText*>(ui_object))
+        {
+            if (Handle<Node> node = value.Lock())
+            {
                 text->SetText(node->GetName());
-            } else {
+            }
+            else
+            {
                 text->SetText(invalid_node_name);
             }
         }
@@ -424,12 +441,13 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Node>, EditorWeakNodeFactory);
 class EntityUIElementFactory : public UIElementFactory<Handle<Entity>, EntityUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const Handle<Entity> &entity) const
+    RC<UIObject> Create(UIObject* parent, const Handle<Entity>& entity) const
     {
-        const EditorNodePropertyRef *context = GetContext<EditorNodePropertyRef>();
+        const EditorNodePropertyRef* context = GetContext<EditorNodePropertyRef>();
         AssertThrow(context != nullptr);
 
-        if (!entity.IsValid()) {
+        if (!entity.IsValid())
+        {
             RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
             RC<UIGridRow> row = grid->AddRow();
@@ -439,65 +457,70 @@ public:
             add_entity_button->SetText("Add Entity");
 
             add_entity_button->OnClick.Bind([world = Handle<World>(parent->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
-            {
-                HYP_LOG(Editor, Debug, "Add Entity clicked");
+                                          {
+                                              HYP_LOG(Editor, Debug, "Add Entity clicked");
 
-                if (Handle<Node> node = node_weak.Lock()) {
-                    world->GetSubsystem<EditorSubsystem>()->GetCurrentProject()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
-                        NAME("AddEntity"),
-                        [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
-                        {
-                            return {
-                                [&]()
-                                {
-                                    Scene *scene = node->GetScene();
+                                              if (Handle<Node> node = node_weak.Lock())
+                                              {
+                                                  world->GetSubsystem<EditorSubsystem>()->GetCurrentProject()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
+                                                      NAME("AddEntity"),
+                                                      [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
+                                                      {
+                                                          return {
+                                                              [&]()
+                                                              {
+                                                                  Scene* scene = node->GetScene();
 
-                                    if (!scene) {
-                                        HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node->GetName());
+                                                                  if (!scene)
+                                                                  {
+                                                                      HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node->GetName());
 
-                                        return;
-                                    }
+                                                                      return;
+                                                                  }
 
-                                    if (!entity.IsValid()) {
-                                        entity = scene->GetEntityManager()->AddEntity();
-                                    }
+                                                                  if (!entity.IsValid())
+                                                                  {
+                                                                      entity = scene->GetEntityManager()->AddEntity();
+                                                                  }
 
-                                    node->SetEntity(entity);
-                                },
-                                [&]()
-                                {
-                                    node->SetEntity(Handle<Entity>::empty);
-                                }
-                            };
-                        }
-                    ));
+                                                                  node->SetEntity(entity);
+                                                              },
+                                                              [&]()
+                                                              {
+                                                                  node->SetEntity(Handle<Entity>::empty);
+                                                              }
+                                                          };
+                                                      }));
 
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+                                                  return UIEventHandlerResult::STOP_BUBBLING;
+                                              }
 
-                HYP_LOG(Editor, Error, "Cannot add Entity to Node, Node reference could not be obtained");
+                                              HYP_LOG(Editor, Error, "Cannot add Entity to Node, Node reference could not be obtained");
 
-                return UIEventHandlerResult::ERR;
-            }).Detach();
+                                              return UIEventHandlerResult::ERR;
+                                          })
+                .Detach();
 
             column->AddChildUIObject(add_entity_button);
 
             return grid;
         }
 
-        EntityManager *entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+        EntityManager* entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
 
-        if (!entity_manager) {
+        if (!entity_manager)
+        {
             HYP_LOG(Editor, Error, "No EntityManager found for Entity #{}", entity->GetID().Value());
-            
+
             return nullptr;
         }
 
-        auto CreateComponentsGrid = [&]() -> RC<UIObject>
+        auto create_components_grid = [&]() -> RC<UIObject>
         {
-            Optional<const TypeMap<ComponentID> &> all_components = entity_manager->GetAllComponents(entity);
+            Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(entity);
 
-            if (!all_components.HasValue()) {
+            if (!all_components.HasValue())
+            {
                 HYP_LOG(Editor, Error, "No component map found for Entity #{}", entity->GetID().Value());
 
                 return nullptr;
@@ -505,42 +528,49 @@ public:
 
             RC<UIGrid> grid = parent->CreateUIObject<UIGrid>(Name::Unique("EditorComponentsGrid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-            for (const auto &it : *all_components) {
+            for (const auto& it : *all_components)
+            {
                 const TypeID component_type_id = it.first;
 
-                const IComponentInterface *component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
+                const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
-                if (!component_interface) {
+                if (!component_interface)
+                {
                     HYP_LOG(Editor, Error, "No ComponentInterface registered for component with TypeID {}", component_type_id.Value());
 
                     continue;
                 }
 
-                ComponentContainerBase *component_container = entity_manager->TryGetContainer(component_type_id);
+                ComponentContainerBase* component_container = entity_manager->TryGetContainer(component_type_id);
                 AssertThrow(component_container != nullptr);
 
                 HypData component_hyp_data;
 
-                if (!component_container->TryGetComponent(it.second, component_hyp_data)) {
+                if (!component_container->TryGetComponent(it.second, component_hyp_data))
+                {
                     HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity->GetID().Value());
 
                     continue;
                 }
 
-                const HypClass *property_panel_class = nullptr;
+                const HypClass* property_panel_class = nullptr;
 
-                if (component_interface->GetClass()) {
-                    if (!component_interface->GetClass()->GetAttribute("editor", true)) {
+                if (component_interface->GetClass())
+                {
+                    if (!component_interface->GetClass()->GetAttribute("editor", true))
+                    {
                         // Skip components that are not meant to be edited in the editor
                         continue;
                     }
 
-                    const HypClassAttributeValue &attr = component_interface->GetClass()->GetAttribute("editorpropertypanelclass");
+                    const HypClassAttributeValue& attr = component_interface->GetClass()->GetAttribute("editorpropertypanelclass");
 
-                    if (attr.IsValid()) {
+                    if (attr.IsValid())
+                    {
                         property_panel_class = GetClass(CreateNameFromDynamicString(attr.GetString()));
 
-                        if (!property_panel_class) {
+                        if (!property_panel_class)
+                        {
                             HYP_LOG(Editor, Error, "No HypClass registered for editor property panel class \"{}\"", attr.GetString());
 
                             continue;
@@ -550,8 +580,10 @@ public:
 
                 RC<UIObject> element;
 
-                if (property_panel_class) {
-                    if (!property_panel_class->HasParent(EditorPropertyPanelBase::Class())) {
+                if (property_panel_class)
+                {
+                    if (!property_panel_class->HasParent(EditorPropertyPanelBase::Class()))
+                    {
                         HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", property_panel_class->GetName());
 
                         continue;
@@ -568,7 +600,8 @@ public:
 
                     RC<UIObject> property_panel = parent->CreateUIObject(property_panel_class, Name::Unique(property_panel_class->GetName().LookupString()), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-                    if (!property_panel) {
+                    if (!property_panel)
+                    {
                         HYP_LOG(Editor, Error, "Failed to create editor property panel instance of class \"{}\"", property_panel_class->GetName());
 
                         continue;
@@ -576,7 +609,8 @@ public:
 
                     RC<EditorPropertyPanelBase> property_panel_casted = std::move(property_panel).Cast<EditorPropertyPanelBase>();
 
-                    if (!property_panel_casted) {
+                    if (!property_panel_casted)
+                    {
                         HYP_LOG(Editor, Error, "Failed to cast editor property panel instance to EditorPropertyPanelBase");
 
                         continue;
@@ -585,19 +619,23 @@ public:
                     property_panel_casted->Build(component_hyp_data);
 
                     element = std::move(property_panel_casted);
-                } else {
-                    UIElementFactoryBase *factory = GetEditorUIElementFactory(component_type_id);
+                }
+                else
+                {
+                    UIElementFactoryBase* factory = GetEditorUIElementFactory(component_type_id);
 
-                    if (!factory) {
+                    if (!factory)
+                    {
                         HYP_LOG(Editor, Error, "No editor UI component factory registered for component of type \"{}\"", component_interface->GetTypeName());
 
                         continue;
                     }
 
-                    element = factory->CreateUIObject(parent, component_hyp_data, { });
+                    element = factory->CreateUIObject(parent, component_hyp_data, {});
                 }
 
-                if (!element) {
+                if (!element)
+                {
                     HYP_LOG(Editor, Error, "Failed to create UI object for component of type \"{}\"", component_interface->GetTypeName());
 
                     continue;
@@ -611,17 +649,21 @@ public:
                 Optional<String> component_header_text_opt;
                 Optional<String> component_description_opt;
 
-                if (component_interface->GetClass()) {
-                    if (const HypClassAttributeValue &attr = component_interface->GetClass()->GetAttribute("label")) {
+                if (component_interface->GetClass())
+                {
+                    if (const HypClassAttributeValue& attr = component_interface->GetClass()->GetAttribute("label"))
+                    {
                         component_header_text_opt = attr.GetString();
                     }
 
-                    if (const HypClassAttributeValue &attr = component_interface->GetClass()->GetAttribute("description")) {
+                    if (const HypClassAttributeValue& attr = component_interface->GetClass()->GetAttribute("description"))
+                    {
                         component_description_opt = attr.GetString();
                     }
                 }
-            
-                if (!component_header_text_opt.HasValue()) {
+
+                if (!component_header_text_opt.HasValue())
+                {
                     component_header_text_opt = component_interface->GetTypeName();
                 }
 
@@ -629,7 +671,8 @@ public:
                 component_header->SetTextSize(12);
                 header_column->AddChildUIObject(component_header);
 
-                if (component_description_opt.HasValue()) {
+                if (component_description_opt.HasValue())
+                {
                     RC<UIGridRow> description_row = grid->AddRow();
                     RC<UIGridColumn> description_column = description_row->AddColumn();
 
@@ -654,7 +697,7 @@ public:
         };
 
         RC<UIGrid> components_grid_container = parent->CreateUIObject<UIGrid>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-        
+
         {
             RC<UIGridRow> components_grid_container_header_row = components_grid_container->AddRow();
 
@@ -671,7 +714,7 @@ public:
                 RC<UIGridColumn> components_grid_container_add_component_button_column = components_grid_container_header_row->AddColumn();
                 components_grid_container_add_component_button_column->SetColumnSize(6);
 
-                #if 0
+#if 0
                 RC<UIButton> add_component_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 add_component_button->SetText("Add Component");
                 add_component_button->OnClick.Bind([stage_weak = parent->GetStage()->WeakRefCountedPtrFromThis()](...)
@@ -698,7 +741,7 @@ public:
                 }).Detach();
 
                 components_grid_container_add_component_button_column->AddChildUIObject(add_component_button);
-                #endif
+#endif
             }
         }
 
@@ -706,7 +749,7 @@ public:
             RC<UIGridRow> components_grid_container_script_row = components_grid_container->AddRow();
             RC<UIGridColumn> components_grid_container_script_column = components_grid_container_script_row->AddColumn();
 
-            #if 0
+#if 0
             // @TODO: Rewrite this once working
             if (entity_manager->HasComponent<ScriptComponent>(entity)) {
                 RC<UIButton> edit_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
@@ -800,18 +843,21 @@ public:
 
                 components_grid_container_script_column->AddChildUIObject(attach_script_button);
             }
-            #endif
+#endif
         }
 
         RC<UIGridRow> components_grid_container_content_row = components_grid_container->AddRow();
         RC<UIGridColumn> components_grid_container_content_column = components_grid_container_content_row->AddColumn();
 
-        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID())) {
-            components_grid_container_content_column->AddChildUIObject(CreateComponentsGrid());
-        } else {
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+        {
+            components_grid_container_content_column->AddChildUIObject(create_components_grid());
+        }
+        else
+        {
             HYP_NAMED_SCOPE("Awaiting async component UI element creation");
 
-            Task<RC<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(CreateComponentsGrid);
+            Task<RC<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(create_components_grid);
 
             components_grid_container_content_column->AddChildUIObject(task.Await());
         }
@@ -819,7 +865,7 @@ public:
         return components_grid_container;
     }
 
-    void Update(UIObject *ui_object, const Handle<Entity> &entity) const
+    void Update(UIObject* ui_object, const Handle<Entity>& entity) const
     {
         // @TODO
 
@@ -832,19 +878,21 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIElementFactory);
 class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const EditorNodePropertyRef &value) const
+    RC<UIObject> Create(UIObject* parent, const EditorNodePropertyRef& value) const
     {
         Handle<Node> node = value.node.Lock();
-        
-        if (!node) {
+
+        if (!node)
+        {
             HYP_LOG(Editor, Error, "Node reference is invalid, cannot create UI element for property \"{}\"", value.title);
 
             return nullptr;
         }
 
-        UIElementFactoryBase *factory = GetEditorUIElementFactory(value.property->GetTypeID());
+        UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeID());
 
-        if (!factory) {
+        if (!factory)
+        {
             HYP_LOG(Editor, Error, "No factory registered for TypeID {} when creating UI element for property \"{}\"", value.property->GetTypeID().Value(), value.title);
 
             return nullptr;
@@ -865,7 +913,8 @@ public:
             component_header->SetTextSize(12);
             header_column->AddChildUIObject(component_header);
 
-            if (value.description.HasValue()) {
+            if (value.description.HasValue())
+            {
                 RC<UIGridRow> description_row = grid->AddRow();
                 RC<UIGridColumn> description_column = description_row->AddColumn();
 
@@ -885,7 +934,8 @@ public:
         {
             RC<UIPanel> content = parent->CreateUIObject<UIPanel>(NAME("PropertyPanel_Content"), Vec2i { 0, 25 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
 
-            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node)), HypData(AnyRef(const_cast<EditorNodePropertyRef &>(value))))) {
+            if (RC<UIObject> element = factory->CreateUIObject(parent, value.property->Get(HypData(node)), HypData(AnyRef(const_cast<EditorNodePropertyRef&>(value)))))
+            {
                 content->AddChildUIObject(element);
             }
 
@@ -895,7 +945,7 @@ public:
         return panel;
     }
 
-    void Update(UIObject *ui_object, const EditorNodePropertyRef &value) const
+    void Update(UIObject* ui_object, const EditorNodePropertyRef& value) const
     {
         // @TODO Implement without recreating the UI element
 
@@ -907,7 +957,7 @@ public:
 
         // RC<UIPanel> content = ui_object->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();
         // AssertThrow(content != nullptr);
-        
+
         // content->RemoveAllChildUIObjects();
 
         // RC<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef &>(value)));
@@ -922,7 +972,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(EditorNodePropertyRef, EditorNodePropertyFactory);
 class AssetPackageUIElementFactory : public UIElementFactory<AssetPackage, AssetPackageUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const AssetPackage &value) const
+    RC<UIObject> Create(UIObject* parent, const AssetPackage& value) const
     {
         RC<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
@@ -932,7 +982,7 @@ public:
         return text;
     }
 
-    void Update(UIObject *ui_object, const AssetPackage &value) const
+    void Update(UIObject* ui_object, const AssetPackage& value) const
     {
         ui_object->SetText(value.GetName().LookupString());
     }
@@ -943,7 +993,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIElementFactory);
 class AssetObjectUIElementFactory : public UIElementFactory<AssetObject, AssetObjectUIElementFactory>
 {
 public:
-    RC<UIObject> Create(UIObject *parent, const AssetObject &value) const
+    RC<UIObject> Create(UIObject* parent, const AssetObject& value) const
     {
         RC<UIText> text = parent->CreateUIObject<UIText>();
         text->SetText(value.GetName().LookupString());
@@ -953,7 +1003,7 @@ public:
         return text;
     }
 
-    void Update(UIObject *ui_object, const AssetObject &value) const
+    void Update(UIObject* ui_object, const AssetObject& value) const
     {
         ui_object->SetText(value.GetName().LookupString());
     }

@@ -11,7 +11,7 @@ const Matrix4 Matrix4::identity = Matrix4::Identity();
 const Matrix4 Matrix4::zeros = Matrix4::Zeros();
 const Matrix4 Matrix4::ones = Matrix4::Ones();
 
-Matrix4 Matrix4::Translation(const Vec3f &translation)
+Matrix4 Matrix4::Translation(const Vec3f& translation)
 {
     Matrix4 mat;
 
@@ -22,19 +22,19 @@ Matrix4 Matrix4::Translation(const Vec3f &translation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Quaternion &rotation)
+Matrix4 Matrix4::Rotation(const Quaternion& rotation)
 {
     Matrix4 mat;
 
     const float xx = rotation.x * rotation.x,
-        xy = rotation.x * rotation.y,
-        xz = rotation.x * rotation.z,
-        xw = rotation.x * rotation.w,
-        yy = rotation.y * rotation.y,
-        yz = rotation.y * rotation.z,
-        yw = rotation.y * rotation.w,
-        zz = rotation.z * rotation.z,
-        zw = rotation.z * rotation.w;
+                xy = rotation.x * rotation.y,
+                xz = rotation.x * rotation.z,
+                xw = rotation.x * rotation.w,
+                yy = rotation.y * rotation.y,
+                yz = rotation.y * rotation.z,
+                yw = rotation.y * rotation.w,
+                zz = rotation.z * rotation.z,
+                zw = rotation.z * rotation.w;
 
     mat[0] = {
         1.0f - 2.0f * (yy + zz),
@@ -60,12 +60,12 @@ Matrix4 Matrix4::Rotation(const Quaternion &rotation)
     return mat;
 }
 
-Matrix4 Matrix4::Rotation(const Vec3f &axis, float radians)
+Matrix4 Matrix4::Rotation(const Vec3f& axis, float radians)
 {
     return Rotation(Quaternion(axis, radians));
 }
 
-Matrix4 Matrix4::Scaling(const Vec3f &scale)
+Matrix4 Matrix4::Scaling(const Vec3f& scale)
 {
     Matrix4 mat;
 
@@ -85,29 +85,29 @@ Matrix4 Matrix4::Perspective(float fov, int w, int h, float n, float f)
     float range = n - f;
 
     mat[0][0] = 1.0f / (tan_half_fov * ar);
-    
+
     mat[1][1] = -(1.0f / (tan_half_fov));
-    
+
     mat[2][2] = (-n - f) / range;
     mat[2][3] = (2.0f * f * n) / range;
-    
+
     mat[3][2] = 1.0f;
     mat[3][3] = 0.0f;
-    
+
     return mat;
 }
 
 Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float f)
 {
     Matrix4 mat = zeros;
-    
+
     float x_orth = 2.0f / (r - l);
     float y_orth = 2.0f / (t - b);
     float z_orth = 1.0f / (n - f);
     float tx = -((r + l) / (r - l));
     float ty = -((t + b) / (t - b));
     float tz = ((n) / (n - f));
-    
+
     mat[0] = { x_orth, 0.0f, 0.0f, tx };
     mat[1] = { 0.0f, y_orth, 0.0f, ty };
     mat[2] = { 0.0f, 0.0f, z_orth, tz };
@@ -116,7 +116,7 @@ Matrix4 Matrix4::Orthographic(float l, float r, float b, float t, float n, float
     return mat;
 }
 
-Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f &out_jitter)
+Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f& out_jitter)
 {
     static const HaltonSequence halton;
 
@@ -128,7 +128,8 @@ Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f &out_ji
     Vec2f jitter = halton.sequence[halton_index];
     Vec2f previous_jitter;
 
-    if (frame_counter != 0) {
+    if (frame_counter != 0)
+    {
         previous_jitter = halton.sequence[(frame_counter - 1) % HaltonSequence::size];
     }
 
@@ -145,7 +146,7 @@ Matrix4 Matrix4::Jitter(uint32 index, uint32 width, uint32 height, Vec4f &out_ji
     return offset_matrix;
 }
 
-Matrix4 Matrix4::LookAt(const Vec3f &direction, const Vec3f &up)
+Matrix4 Matrix4::LookAt(const Vec3f& direction, const Vec3f& up)
 {
     auto mat = Identity();
 
@@ -160,7 +161,7 @@ Matrix4 Matrix4::LookAt(const Vec3f &direction, const Vec3f &up)
     return mat;
 }
 
-Matrix4 Matrix4::LookAt(const Vec3f &pos, const Vec3f &target, const Vec3f &up)
+Matrix4 Matrix4::LookAt(const Vec3f& pos, const Vec3f& target, const Vec3f& up)
 {
     return LookAt(target - pos, up) * Translation(pos * -1);
 }
@@ -175,7 +176,7 @@ Matrix4::Matrix4()
 {
 }
 
-Matrix4::Matrix4(const Matrix3 &matrix3)
+Matrix4::Matrix4(const Matrix3& matrix3)
     : rows {
           { matrix3.rows[0][0], matrix3.rows[0][1], matrix3.rows[0][2], 0.0f },
           { matrix3.rows[1][0], matrix3.rows[1][1], matrix3.rows[1][2], 0.0f },
@@ -185,7 +186,7 @@ Matrix4::Matrix4(const Matrix3 &matrix3)
 {
 }
 
-Matrix4::Matrix4(const Vec4f *rows)
+Matrix4::Matrix4(const Vec4f* rows)
     : rows {
           rows[0],
           rows[1],
@@ -195,28 +196,22 @@ Matrix4::Matrix4(const Vec4f *rows)
 {
 }
 
-Matrix4::Matrix4(const float *v)
+Matrix4::Matrix4(const float* v)
 {
-    rows[0] = { v[0],  v[1],  v[2],  v[3] };
-    rows[1] = { v[4],  v[5],  v[6],  v[7] };
-    rows[2] = { v[8],  v[9],  v[10], v[11] };
+    rows[0] = { v[0], v[1], v[2], v[3] };
+    rows[1] = { v[4], v[5], v[6], v[7] };
+    rows[2] = { v[8], v[9], v[10], v[11] };
     rows[3] = { v[12], v[13], v[14], v[15] };
 }
 
 float Matrix4::Determinant() const
 {
-    return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1]
-         * rows[2][2] * rows[0][3] + rows[1][0] * rows[3][1] * rows[2][2] * rows[0][3] + rows[2][0] * rows[1][1] * rows[3][2] * rows[0][3] - rows[1][0]
-         * rows[2][1] * rows[3][2] * rows[0][3] - rows[3][0] * rows[2][1] * rows[0][2] * rows[1][3] + rows[2][0] * rows[3][1] * rows[0][2] * rows[1][3]
-         + rows[3][0] * rows[0][1] * rows[2][2] * rows[1][3] - rows[0][0] * rows[3][1] * rows[2][2] * rows[1][3] - rows[2][0] * rows[0][1] * rows[3][2]
-         * rows[1][3] + rows[0][0] * rows[2][1] * rows[3][2] * rows[1][3] + rows[3][0] * rows[1][1] * rows[0][2] * rows[2][3] - rows[1][0] * rows[3][1]
-         * rows[0][2] * rows[2][3] - rows[3][0] * rows[0][1] * rows[1][2] * rows[2][3] + rows[0][0] * rows[3][1] * rows[1][2] * rows[2][3] + rows[1][0]
-         * rows[0][1] * rows[3][2] * rows[2][3] - rows[0][0] * rows[1][1] * rows[3][2] * rows[2][3] - rows[2][0] * rows[1][1] * rows[0][2] * rows[3][3]
-         + rows[1][0] * rows[2][1] * rows[0][2] * rows[3][3] + rows[2][0] * rows[0][1] * rows[1][2] * rows[3][3] - rows[0][0] * rows[2][1] * rows[1][2]
-         * rows[3][3] - rows[1][0] * rows[0][1] * rows[2][2] * rows[3][3] + rows[0][0] * rows[1][1] * rows[2][2] * rows[3][3];
+    return rows[3][0] * rows[2][1] * rows[1][2] * rows[0][3] - rows[2][0] * rows[3][1] * rows[1][2] * rows[0][3] - rows[3][0] * rows[1][1] * rows[2][2] * rows[0][3] + rows[1][0] * rows[3][1] * rows[2][2] * rows[0][3] + rows[2][0] * rows[1][1] * rows[3][2] * rows[0][3] - rows[1][0] * rows[2][1] * rows[3][2] * rows[0][3] - rows[3][0] * rows[2][1] * rows[0][2] * rows[1][3] + rows[2][0] * rows[3][1] * rows[0][2] * rows[1][3]
+        + rows[3][0] * rows[0][1] * rows[2][2] * rows[1][3] - rows[0][0] * rows[3][1] * rows[2][2] * rows[1][3] - rows[2][0] * rows[0][1] * rows[3][2] * rows[1][3] + rows[0][0] * rows[2][1] * rows[3][2] * rows[1][3] + rows[3][0] * rows[1][1] * rows[0][2] * rows[2][3] - rows[1][0] * rows[3][1] * rows[0][2] * rows[2][3] - rows[3][0] * rows[0][1] * rows[1][2] * rows[2][3] + rows[0][0] * rows[3][1] * rows[1][2] * rows[2][3] + rows[1][0] * rows[0][1] * rows[3][2] * rows[2][3] - rows[0][0] * rows[1][1] * rows[3][2] * rows[2][3] - rows[2][0] * rows[1][1] * rows[0][2] * rows[3][3]
+        + rows[1][0] * rows[2][1] * rows[0][2] * rows[3][3] + rows[2][0] * rows[0][1] * rows[1][2] * rows[3][3] - rows[0][0] * rows[2][1] * rows[1][2] * rows[3][3] - rows[1][0] * rows[0][1] * rows[2][2] * rows[3][3] + rows[0][0] * rows[1][1] * rows[2][2] * rows[3][3];
 }
 
-Matrix4 &Matrix4::Transpose()
+Matrix4& Matrix4::Transpose()
 {
     return operator=(Transposed());
 }
@@ -244,7 +239,7 @@ Matrix4 Matrix4::Transposed() const
     return transposed;
 }
 
-Matrix4 &Matrix4::Invert()
+Matrix4& Matrix4::Invert()
 {
     return operator=(Inverted());
 }
@@ -256,74 +251,58 @@ Matrix4 Matrix4::Inverted() const
 
     float tmp[4][4];
 
-    tmp[0][0] = (rows[1][2] * rows[2][3] * rows[3][1] - rows[1][3] * rows[2][2] * rows[3][1] + rows[1][3] * rows[2][1] * rows[3][2] - rows[1][1]
-              * rows[2][3] * rows[3][2] - rows[1][2] * rows[2][1] * rows[3][3] + rows[1][1] * rows[2][2] * rows[3][3])
-              * inv_det;
+    tmp[0][0] = (rows[1][2] * rows[2][3] * rows[3][1] - rows[1][3] * rows[2][2] * rows[3][1] + rows[1][3] * rows[2][1] * rows[3][2] - rows[1][1] * rows[2][3] * rows[3][2] - rows[1][2] * rows[2][1] * rows[3][3] + rows[1][1] * rows[2][2] * rows[3][3])
+        * inv_det;
 
-    tmp[0][1] = (rows[0][3] * rows[2][2] * rows[3][1] - rows[0][2] * rows[2][3] * rows[3][1] - rows[0][3] * rows[2][1] * rows[3][2] + rows[0][1]
-              * rows[2][3] * rows[3][2] + rows[0][2] * rows[2][1] * rows[3][3] - rows[0][1] * rows[2][2] * rows[3][3])
-              * inv_det;
+    tmp[0][1] = (rows[0][3] * rows[2][2] * rows[3][1] - rows[0][2] * rows[2][3] * rows[3][1] - rows[0][3] * rows[2][1] * rows[3][2] + rows[0][1] * rows[2][3] * rows[3][2] + rows[0][2] * rows[2][1] * rows[3][3] - rows[0][1] * rows[2][2] * rows[3][3])
+        * inv_det;
 
-    tmp[0][2] = (rows[0][2] * rows[1][3] * rows[3][1] - rows[0][3] * rows[1][2] * rows[3][1] + rows[0][3] * rows[1][1] * rows[3][2] - rows[0][1]
-              * rows[1][3] * rows[3][2] - rows[0][2] * rows[1][1] * rows[3][3] + rows[0][1] * rows[1][2] * rows[3][3])
-              * inv_det;
+    tmp[0][2] = (rows[0][2] * rows[1][3] * rows[3][1] - rows[0][3] * rows[1][2] * rows[3][1] + rows[0][3] * rows[1][1] * rows[3][2] - rows[0][1] * rows[1][3] * rows[3][2] - rows[0][2] * rows[1][1] * rows[3][3] + rows[0][1] * rows[1][2] * rows[3][3])
+        * inv_det;
 
-    tmp[0][3] = (rows[0][3] * rows[1][2] * rows[2][1] - rows[0][2] * rows[1][3] * rows[2][1] - rows[0][3] * rows[1][1] * rows[2][2] + rows[0][1]
-              * rows[1][3] * rows[2][2] + rows[0][2] * rows[1][1] * rows[2][3] - rows[0][1] * rows[1][2] * rows[2][3])
-              * inv_det;
+    tmp[0][3] = (rows[0][3] * rows[1][2] * rows[2][1] - rows[0][2] * rows[1][3] * rows[2][1] - rows[0][3] * rows[1][1] * rows[2][2] + rows[0][1] * rows[1][3] * rows[2][2] + rows[0][2] * rows[1][1] * rows[2][3] - rows[0][1] * rows[1][2] * rows[2][3])
+        * inv_det;
 
-    tmp[1][0] = (rows[1][3] * rows[2][2] * rows[3][0] - rows[1][2] * rows[2][3] * rows[3][0] - rows[1][3] * rows[2][0] * rows[3][2] + rows[1][0]
-              * rows[2][3] * rows[3][2] + rows[1][2] * rows[2][0] * rows[3][3] - rows[1][0] * rows[2][2] * rows[3][3])
-              * inv_det;
+    tmp[1][0] = (rows[1][3] * rows[2][2] * rows[3][0] - rows[1][2] * rows[2][3] * rows[3][0] - rows[1][3] * rows[2][0] * rows[3][2] + rows[1][0] * rows[2][3] * rows[3][2] + rows[1][2] * rows[2][0] * rows[3][3] - rows[1][0] * rows[2][2] * rows[3][3])
+        * inv_det;
 
-    tmp[1][1] = (rows[0][2] * rows[2][3] * rows[3][0] - rows[0][3] * rows[2][2] * rows[3][0] + rows[0][3] * rows[2][0] * rows[3][2] - rows[0][0]
-              * rows[2][3] * rows[3][2] - rows[0][2] * rows[2][0] * rows[3][3] + rows[0][0] * rows[2][2] * rows[3][3])
-              * inv_det;
+    tmp[1][1] = (rows[0][2] * rows[2][3] * rows[3][0] - rows[0][3] * rows[2][2] * rows[3][0] + rows[0][3] * rows[2][0] * rows[3][2] - rows[0][0] * rows[2][3] * rows[3][2] - rows[0][2] * rows[2][0] * rows[3][3] + rows[0][0] * rows[2][2] * rows[3][3])
+        * inv_det;
 
-    tmp[1][2] = (rows[0][3] * rows[1][2] * rows[3][0] - rows[0][2] * rows[1][3] * rows[3][0] - rows[0][3] * rows[1][0] * rows[3][2] + rows[0][0]
-              * rows[1][3] * rows[3][2] + rows[0][2] * rows[1][0] * rows[3][3] - rows[0][0] * rows[1][2] * rows[3][3])
-              * inv_det;
+    tmp[1][2] = (rows[0][3] * rows[1][2] * rows[3][0] - rows[0][2] * rows[1][3] * rows[3][0] - rows[0][3] * rows[1][0] * rows[3][2] + rows[0][0] * rows[1][3] * rows[3][2] + rows[0][2] * rows[1][0] * rows[3][3] - rows[0][0] * rows[1][2] * rows[3][3])
+        * inv_det;
 
-    tmp[1][3] = (rows[0][2] * rows[1][3] * rows[2][0] - rows[0][3] * rows[1][2] * rows[2][0] + rows[0][3] * rows[1][0] * rows[2][2] - rows[0][0]
-              * rows[1][3] * rows[2][2] - rows[0][2] * rows[1][0] * rows[2][3] + rows[0][0] * rows[1][2] * rows[2][3])
-              * inv_det;
+    tmp[1][3] = (rows[0][2] * rows[1][3] * rows[2][0] - rows[0][3] * rows[1][2] * rows[2][0] + rows[0][3] * rows[1][0] * rows[2][2] - rows[0][0] * rows[1][3] * rows[2][2] - rows[0][2] * rows[1][0] * rows[2][3] + rows[0][0] * rows[1][2] * rows[2][3])
+        * inv_det;
 
-    tmp[2][0] = (rows[1][1] * rows[2][3] * rows[3][0] - rows[1][3] * rows[2][1] * rows[3][0] + rows[1][3] * rows[2][0] * rows[3][1] - rows[1][0]
-              * rows[2][3] * rows[3][1] - rows[1][1] * rows[2][0] * rows[3][3] + rows[1][0] * rows[2][1] * rows[3][3])
-              * inv_det;
+    tmp[2][0] = (rows[1][1] * rows[2][3] * rows[3][0] - rows[1][3] * rows[2][1] * rows[3][0] + rows[1][3] * rows[2][0] * rows[3][1] - rows[1][0] * rows[2][3] * rows[3][1] - rows[1][1] * rows[2][0] * rows[3][3] + rows[1][0] * rows[2][1] * rows[3][3])
+        * inv_det;
 
-    tmp[2][1] = (rows[0][3] * rows[2][1] * rows[3][0] - rows[0][1] * rows[2][3] * rows[3][0] - rows[0][3] * rows[2][0] * rows[3][1] + rows[0][0]
-              * rows[2][3] * rows[3][1] + rows[0][1] * rows[2][0] * rows[3][3] - rows[0][0] * rows[2][1] * rows[3][3])
-              * inv_det;
+    tmp[2][1] = (rows[0][3] * rows[2][1] * rows[3][0] - rows[0][1] * rows[2][3] * rows[3][0] - rows[0][3] * rows[2][0] * rows[3][1] + rows[0][0] * rows[2][3] * rows[3][1] + rows[0][1] * rows[2][0] * rows[3][3] - rows[0][0] * rows[2][1] * rows[3][3])
+        * inv_det;
 
-    tmp[2][2] = (rows[0][1] * rows[1][3] * rows[3][0] - rows[0][3] * rows[1][1] * rows[3][0] + rows[0][3] * rows[1][0] * rows[3][1] - rows[0][0]
-              * rows[1][3] * rows[3][1] - rows[0][1] * rows[1][0] * rows[3][3] + rows[0][0] * rows[1][1] * rows[3][3])
-              * inv_det;
+    tmp[2][2] = (rows[0][1] * rows[1][3] * rows[3][0] - rows[0][3] * rows[1][1] * rows[3][0] + rows[0][3] * rows[1][0] * rows[3][1] - rows[0][0] * rows[1][3] * rows[3][1] - rows[0][1] * rows[1][0] * rows[3][3] + rows[0][0] * rows[1][1] * rows[3][3])
+        * inv_det;
 
-    tmp[2][3] = (rows[0][3] * rows[1][1] * rows[2][0] - rows[0][1] * rows[1][3] * rows[2][0] - rows[0][3] * rows[1][0] * rows[2][1] + rows[0][0]
-              * rows[1][3] * rows[2][1] + rows[0][1] * rows[1][0] * rows[2][3] - rows[0][0] * rows[1][1] * rows[2][3])
-              * inv_det;
+    tmp[2][3] = (rows[0][3] * rows[1][1] * rows[2][0] - rows[0][1] * rows[1][3] * rows[2][0] - rows[0][3] * rows[1][0] * rows[2][1] + rows[0][0] * rows[1][3] * rows[2][1] + rows[0][1] * rows[1][0] * rows[2][3] - rows[0][0] * rows[1][1] * rows[2][3])
+        * inv_det;
 
-    tmp[3][0] = (rows[1][2] * rows[2][1] * rows[3][0] - rows[1][1] * rows[2][2] * rows[3][0] - rows[1][2] * rows[2][0] * rows[3][1] + rows[1][0]
-              * rows[2][2] * rows[3][1] + rows[1][1] * rows[2][0] * rows[3][2] - rows[1][0] * rows[2][1] * rows[3][2])
-              * inv_det;
+    tmp[3][0] = (rows[1][2] * rows[2][1] * rows[3][0] - rows[1][1] * rows[2][2] * rows[3][0] - rows[1][2] * rows[2][0] * rows[3][1] + rows[1][0] * rows[2][2] * rows[3][1] + rows[1][1] * rows[2][0] * rows[3][2] - rows[1][0] * rows[2][1] * rows[3][2])
+        * inv_det;
 
-    tmp[3][1] = (rows[0][1] * rows[2][2] * rows[3][0] - rows[0][2] * rows[2][1] * rows[3][0] + rows[0][2] * rows[2][0] * rows[3][1] - rows[0][0]
-              * rows[2][2] * rows[3][1] - rows[0][1] * rows[2][0] * rows[3][2] + rows[0][0] * rows[2][1] * rows[3][2])
-              * inv_det;
+    tmp[3][1] = (rows[0][1] * rows[2][2] * rows[3][0] - rows[0][2] * rows[2][1] * rows[3][0] + rows[0][2] * rows[2][0] * rows[3][1] - rows[0][0] * rows[2][2] * rows[3][1] - rows[0][1] * rows[2][0] * rows[3][2] + rows[0][0] * rows[2][1] * rows[3][2])
+        * inv_det;
 
-    tmp[3][2] = (rows[0][2] * rows[1][1] * rows[3][0] - rows[0][1] * rows[1][2] * rows[3][0] - rows[0][2] * rows[1][0] * rows[3][1] + rows[0][0]
-              * rows[1][2] * rows[3][1] + rows[0][1] * rows[1][0] * rows[3][2] - rows[0][0] * rows[1][1] * rows[3][2])
-              * inv_det;
+    tmp[3][2] = (rows[0][2] * rows[1][1] * rows[3][0] - rows[0][1] * rows[1][2] * rows[3][0] - rows[0][2] * rows[1][0] * rows[3][1] + rows[0][0] * rows[1][2] * rows[3][1] + rows[0][1] * rows[1][0] * rows[3][2] - rows[0][0] * rows[1][1] * rows[3][2])
+        * inv_det;
 
-    tmp[3][3] = (rows[0][1] * rows[1][2] * rows[2][0] - rows[0][2] * rows[1][1] * rows[2][0] + rows[0][2] * rows[1][0] * rows[2][1] - rows[0][0]
-              * rows[1][2] * rows[2][1] - rows[0][1] * rows[1][0] * rows[2][2] + rows[0][0] * rows[1][1] * rows[2][2])
-              * inv_det;
+    tmp[3][3] = (rows[0][1] * rows[1][2] * rows[2][0] - rows[0][2] * rows[1][1] * rows[2][0] + rows[0][2] * rows[1][0] * rows[2][1] - rows[0][0] * rows[1][2] * rows[2][1] - rows[0][1] * rows[1][0] * rows[2][2] + rows[0][0] * rows[1][1] * rows[2][2])
+        * inv_det;
 
-    return Matrix4(reinterpret_cast<const float *>(tmp));
+    return Matrix4(reinterpret_cast<const float*>(tmp));
 }
 
-Matrix4 &Matrix4::Orthonormalize()
+Matrix4& Matrix4::Orthonormalize()
 {
     return operator=(Orthonormalized());
 }
@@ -331,23 +310,23 @@ Matrix4 &Matrix4::Orthonormalize()
 Matrix4 Matrix4::Orthonormalized() const
 {
     Matrix4 mat = *this;
-    
-    float length = MathUtil::Sqrt(mat[0][0]*mat[0][0] + mat[0][1]*mat[0][1] + mat[0][2]*mat[0][2]);
+
+    float length = MathUtil::Sqrt(mat[0][0] * mat[0][0] + mat[0][1] * mat[0][1] + mat[0][2] * mat[0][2]);
     mat[0][0] /= length;
     mat[0][1] /= length;
     mat[0][2] /= length;
-    
+
     float dot_product = mat[0][0] * mat[1][0] + mat[0][1] * mat[1][1] + mat[0][2] * mat[1][2];
 
     mat[1][0] -= dot_product * mat[0][0];
     mat[1][1] -= dot_product * mat[0][1];
     mat[1][2] -= dot_product * mat[0][2];
-    
+
     length = MathUtil::Sqrt((mat[1][0] * mat[1][0] + mat[1][1] * mat[1][1] + mat[1][2] * mat[1][2]));
     mat[1][0] /= length;
     mat[1][1] /= length;
     mat[1][2] /= length;
-    
+
     dot_product = mat[0][0] * mat[2][0] + mat[0][1] * mat[2][1] + mat[0][2] * mat[2][2];
     mat[2][0] -= dot_product * mat[0][0];
     mat[2][1] -= dot_product * mat[0][1];
@@ -357,7 +336,7 @@ Matrix4 Matrix4::Orthonormalized() const
     mat[2][0] -= dot_product * mat[1][0];
     mat[2][1] -= dot_product * mat[1][1];
     mat[2][2] -= dot_product * mat[1][2];
-    
+
     length = MathUtil::Sqrt((mat[2][0] * mat[2][0] + mat[2][1] * mat[2][1] + mat[2][2] * mat[2][2]));
     mat[2][0] /= length;
     mat[2][1] /= length;
@@ -381,7 +360,7 @@ float Matrix4::GetRoll() const
     return Quaternion(*this).Roll();
 }
 
-Matrix4 Matrix4::operator+(const Matrix4 &other) const
+Matrix4 Matrix4::operator+(const Matrix4& other) const
 {
     Matrix4 result(*this);
     result += other;
@@ -389,16 +368,17 @@ Matrix4 Matrix4::operator+(const Matrix4 &other) const
     return result;
 }
 
-Matrix4 &Matrix4::operator+=(const Matrix4 &other)
+Matrix4& Matrix4::operator+=(const Matrix4& other)
 {
-    for (int i = 0; i < std::size(values); i++) {
+    for (int i = 0; i < std::size(values); i++)
+    {
         values[i] += other.values[i];
     }
 
     return *this;
 }
 
-Matrix4 Matrix4::operator*(const Matrix4 &other) const
+Matrix4 Matrix4::operator*(const Matrix4& other) const
 {
     const float fv[] = {
         values[0] * other.values[0] + values[1] * other.values[4] + values[2] * other.values[8] + values[3] * other.values[12],
@@ -425,7 +405,7 @@ Matrix4 Matrix4::operator*(const Matrix4 &other) const
     return Matrix4(fv);
 }
 
-Matrix4 &Matrix4::operator*=(const Matrix4 &other)
+Matrix4& Matrix4::operator*=(const Matrix4& other)
 {
     return (*this) = operator*(other);
 }
@@ -438,33 +418,34 @@ Matrix4 Matrix4::operator*(float scalar) const
     return result;
 }
 
-Matrix4 &Matrix4::operator*=(float scalar)
+Matrix4& Matrix4::operator*=(float scalar)
 {
-    for (float &value : values) {
+    for (float& value : values)
+    {
         value *= scalar;
     }
 
     return *this;
 }
 
-Vec3f Matrix4::operator*(const Vec3f &vec) const
+Vec3f Matrix4::operator*(const Vec3f& vec) const
 {
     const Vec4f product {
-        vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + values[3],
-        vec.x * values[4]  + vec.y * values[5]  + vec.z * values[6]  + values[7],
-        vec.x * values[8]  + vec.y * values[9]  + vec.z * values[10] + values[11],
+        vec.x * values[0] + vec.y * values[1] + vec.z * values[2] + values[3],
+        vec.x * values[4] + vec.y * values[5] + vec.z * values[6] + values[7],
+        vec.x * values[8] + vec.y * values[9] + vec.z * values[10] + values[11],
         vec.x * values[12] + vec.y * values[13] + vec.z * values[14] + values[15]
     };
 
     return product.GetXYZ() / product.w;
 }
 
-Vec4f Matrix4::operator*(const Vec4f &vec) const
+Vec4f Matrix4::operator*(const Vec4f& vec) const
 {
     return {
-        vec.x * values[0]  + vec.y * values[1]  + vec.z * values[2]  + vec.w * values[3],
-        vec.x * values[4]  + vec.y * values[5]  + vec.z * values[6]  + vec.w * values[7],
-        vec.x * values[8]  + vec.y * values[9]  + vec.z * values[10] + vec.w * values[11],
+        vec.x * values[0] + vec.y * values[1] + vec.z * values[2] + vec.w * values[3],
+        vec.x * values[4] + vec.y * values[5] + vec.z * values[6] + vec.w * values[7],
+        vec.x * values[8] + vec.y * values[9] + vec.z * values[10] + vec.w * values[11],
         vec.x * values[12] + vec.y * values[13] + vec.z * values[14] + vec.w * values[15]
     };
 }
@@ -521,16 +502,21 @@ Matrix4 Matrix4::Identity()
     return Matrix4(); // constructor fills out identity matrix
 }
 
-std::ostream &operator<<(std::ostream &os, const Matrix4 &mat)
+std::ostream& operator<<(std::ostream& os, const Matrix4& mat)
 {
     os << "[";
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
             os << mat.values[i * 4 + j];
 
-            if (i != 3 && j == 3) {
+            if (i != 3 && j == 3)
+            {
                 os << "\n";
-            } else if (!(i == 3 && j == 3)) {
+            }
+            else if (!(i == 3 && j == 3))
+            {
                 os << ", ";
             }
         }

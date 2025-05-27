@@ -10,14 +10,10 @@
 
 namespace hyperion {
 
-class ScenePrimaryCameraSystem final : public System<
-    ScenePrimaryCameraSystem,
-    ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::CAMERA_PRIMARY>, COMPONENT_RW_FLAGS_READ>
->
+class ScenePrimaryCameraSystem final : public System<ScenePrimaryCameraSystem, ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ>, ComponentDescriptor<EntityTagComponent<EntityTag::CAMERA_PRIMARY>, COMPONENT_RW_FLAGS_READ>>
 {
 public:
-    ScenePrimaryCameraSystem(EntityManager &entity_manager)
+    ScenePrimaryCameraSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
@@ -25,9 +21,11 @@ public:
     virtual ~ScenePrimaryCameraSystem() override = default;
 
     virtual bool AllowUpdate() const override
-        { return false; }
+    {
+        return false;
+    }
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

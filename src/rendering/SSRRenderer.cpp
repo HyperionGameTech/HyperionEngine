@@ -34,30 +34,31 @@ static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
 
 struct SSRUniforms
 {
-    Vec4u   dimensions;
-    float   ray_step,
-            num_iterations,
-            max_ray_distance,
-            distance_bias,
-            offset,
-            eye_fade_start,
-            eye_fade_end,
-            screen_edge_fade_start,
-            screen_edge_fade_end;
+    Vec4u dimensions;
+    float ray_step,
+        num_iterations,
+        max_ray_distance,
+        distance_bias,
+        offset,
+        eye_fade_start,
+        eye_fade_end,
+        screen_edge_fade_start,
+        screen_edge_fade_end;
 };
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
+struct RENDER_COMMAND(CreateSSRUniformBuffer)
+    : renderer::RenderCommand
 {
-    SSRUniforms     uniforms;
-    GPUBufferRef    uniform_buffer;
+    SSRUniforms uniforms;
+    GPUBufferRef uniform_buffer;
 
     RENDER_COMMAND(CreateSSRUniformBuffer)(
-        const SSRUniforms &uniforms,
-        const GPUBufferRef &uniform_buffer
-    ) : uniforms(uniforms),
-        uniform_buffer(uniform_buffer)
+        const SSRUniforms& uniforms,
+        const GPUBufferRef& uniform_buffer)
+        : uniforms(uniforms),
+          uniform_buffer(uniform_buffer)
     {
         AssertThrow(uniforms.dimensions.x * uniforms.dimensions.y != 0);
 
@@ -67,9 +68,9 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
     virtual ~RENDER_COMMAND(CreateSSRUniformBuffer)() override = default;
 
     virtual RendererResult operator()() override
-    {   
+    {
         HYPERION_BUBBLE_ERRORS(uniform_buffer->Create());
-        
+
         uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
         HYPERION_RETURN_OK;
@@ -81,15 +82,15 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer) : renderer::RenderCommand
 #pragma region SSRRenderer
 
 SSRRenderer::SSRRenderer(
-    SSRRendererConfig &&config,
-    GBuffer *gbuffer,
-    const ImageViewRef &mip_chain_image_view,
-    const ImageViewRef &deferred_result_image_view
-) : m_config(std::move(config)),
-    m_gbuffer(gbuffer),
-    m_mip_chain_image_view(mip_chain_image_view),
-    m_deferred_result_image_view(deferred_result_image_view),
-    m_is_rendered(false)
+    SSRRendererConfig&& config,
+    GBuffer* gbuffer,
+    const ImageViewRef& mip_chain_image_view,
+    const ImageViewRef& deferred_result_image_view)
+    : m_config(std::move(config)),
+      m_gbuffer(gbuffer),
+      m_mip_chain_image_view(mip_chain_image_view),
+      m_deferred_result_image_view(deferred_result_image_view),
+      m_is_rendered(false)
 {
 }
 
@@ -98,10 +99,11 @@ SSRRenderer::~SSRRenderer()
     SafeRelease(std::move(m_write_uvs));
     SafeRelease(std::move(m_sample_gbuffer));
 
-    if (m_temporal_blending) {
+    if (m_temporal_blending)
+    {
         m_temporal_blending.Reset();
     }
-    
+
     SafeRelease(std::move(m_uniform_buffer));
 }
 
@@ -115,8 +117,7 @@ void SSRRenderer::Create()
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-    });
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
     InitObject(m_uvs_texture);
 
@@ -130,8 +131,7 @@ void SSRRenderer::Create()
         FilterMode::TEXTURE_FILTER_NEAREST,
         WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED
-    });
+        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
 
     InitObject(m_sampled_result_texture);
 
@@ -139,15 +139,15 @@ void SSRRenderer::Create()
 
     CreateUniformBuffers();
 
-    if (use_temporal_blending) {
+    if (use_temporal_blending)
+    {
         m_temporal_blending = MakeUnique<TemporalBlending>(
             m_config.extent,
             InternalFormat::RGBA16F,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             m_sampled_result_texture->GetRenderResource().GetImageView(),
-            m_gbuffer
-        );
+            m_gbuffer);
 
         m_temporal_blending->Create();
     }
@@ -158,12 +158,12 @@ void SSRRenderer::Create()
     // {
     //     SafeRelease(std::move(m_write_uvs));
     //     SafeRelease(std::move(m_sample_gbuffer));
-        
+
     //     CreateComputePipelines();
     // });
 }
 
-const Handle<Texture> &SSRRenderer::GetFinalResultTexture() const
+const Handle<Texture>& SSRRenderer::GetFinalResultTexture() const
 {
     return m_temporal_blending
         ? m_temporal_blending->GetResultTexture()
@@ -176,7 +176,8 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     shader_properties.Set("CONE_TRACING", m_config.cone_tracing);
     shader_properties.Set("ROUGHNESS_SCATTERING", m_config.roughness_scattering);
 
-    switch (ssr_format) {
+    switch (ssr_format)
+    {
     case InternalFormat::RGBA8:
         shader_properties.Set("OUTPUT_RGBA8");
         break;
@@ -193,7 +194,7 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
 
 void SSRRenderer::CreateUniformBuffers()
 {
-    SSRUniforms uniforms { };
+    SSRUniforms uniforms {};
     uniforms.dimensions = Vec4u(m_config.extent, 0, 0);
     uniforms.ray_step = m_config.ray_step;
     uniforms.num_iterations = m_config.num_iterations;
@@ -206,7 +207,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.screen_edge_fade_end = m_config.screen_edge_fade.y;
 
     m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
-    
+
     PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniform_buffer);
 }
 
@@ -222,8 +223,9 @@ void SSRRenderer::CreateComputePipelines()
     const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(write_uvs_shader_descriptor_table_decl);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = write_uvs_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetRenderResource().GetImageView());
@@ -241,8 +243,7 @@ void SSRRenderer::CreateComputePipelines()
 
     m_write_uvs = g_rendering_api->MakeComputePipeline(
         g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties),
-        write_uvs_shader_descriptor_table
-    );
+        write_uvs_shader_descriptor_table);
 
     DeferCreate(m_write_uvs);
 
@@ -254,8 +255,9 @@ void SSRRenderer::CreateComputePipelines()
     const renderer::DescriptorTableDeclaration sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
     DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(sample_gbuffer_shader_descriptor_table_decl);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-        const DescriptorSetRef &descriptor_set = sample_gbuffer_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = sample_gbuffer_shader_descriptor_table->GetDescriptorSet(NAME("SSRDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("UVImage"), m_uvs_texture->GetRenderResource().GetImageView());
@@ -274,13 +276,12 @@ void SSRRenderer::CreateComputePipelines()
 
     m_sample_gbuffer = g_rendering_api->MakeComputePipeline(
         sample_gbuffer_shader,
-        sample_gbuffer_shader_descriptor_table
-    );
+        sample_gbuffer_shader_descriptor_table);
 
     DeferCreate(m_sample_gbuffer);
 }
 
-void SSRRenderer::Render(FrameBase *frame, ViewRenderResource *view)
+void SSRRenderer::Render(FrameBase* frame, ViewRenderResource* view)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
@@ -301,32 +302,25 @@ void SSRRenderer::Render(FrameBase *frame, ViewRenderResource *view)
             m_write_uvs->GetDescriptorTable(),
             m_write_uvs,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
-                {
-                    NAME("Global"),
-                    {
-                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) }
-                    }
-                }
-            },
-            frame_index
-        );
+                { NAME("Global"),
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) } } } },
+            frame_index);
 
         const uint32 scene_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (view != nullptr && scene_descriptor_set_index != ~0u) {
+        if (view != nullptr && scene_descriptor_set_index != ~0u)
+        {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 view->GetDescriptorSets()[frame->GetFrameIndex()],
                 m_write_uvs,
-                ArrayMap<Name, uint32> { },
-                scene_descriptor_set_index
-            );
+                ArrayMap<Name, uint32> {},
+                scene_descriptor_set_index);
         }
 
         frame->GetCommandList().Add<DispatchCompute>(
             m_write_uvs,
-            Vec3u { num_dispatch_calls, 1, 1 }
-        );
+            Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition the UV image back into read state
         frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
@@ -342,38 +336,32 @@ void SSRRenderer::Render(FrameBase *frame, ViewRenderResource *view)
             m_sample_gbuffer->GetDescriptorTable(),
             m_sample_gbuffer,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
-                {
-                    NAME("Global"),
-                    {
-                        { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) }
-                    }
-                }
-            },
-            frame_index
-        );
+                { NAME("Global"),
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) } } } },
+            frame_index);
 
         const uint32 scene_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (view != nullptr && scene_descriptor_set_index != ~0u) {
+        if (view != nullptr && scene_descriptor_set_index != ~0u)
+        {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 view->GetDescriptorSets()[frame->GetFrameIndex()],
                 m_sample_gbuffer,
-                ArrayMap<Name, uint32> { },
-                scene_descriptor_set_index
-            );
+                ArrayMap<Name, uint32> {},
+                scene_descriptor_set_index);
         }
 
         frame->GetCommandList().Add<DispatchCompute>(
             m_sample_gbuffer,
-            Vec3u { num_dispatch_calls, 1, 1 }
-        );
+            Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition sample image back into read state
         frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
     }
 
-    if (use_temporal_blending && m_temporal_blending != nullptr) {
+    if (use_temporal_blending && m_temporal_blending != nullptr)
+    {
         m_temporal_blending->Render(frame, view);
     }
 

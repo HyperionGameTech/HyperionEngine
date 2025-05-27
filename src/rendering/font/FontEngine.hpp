@@ -20,20 +20,22 @@ class FontFace;
 class FontEngine
 {
 public:
-    static FontEngine &GetInstance();
+    static FontEngine& GetInstance();
 
-    using Backend = FT_LibraryRec_ *;
-    using Font = FT_FaceRec_ *;
-    using Glyph = FT_GlyphSlotRec_ *;
+    using Backend = FT_LibraryRec_*;
+    using Font = FT_FaceRec_*;
+    using Glyph = FT_GlyphSlotRec_*;
 
     FontEngine();
     ~FontEngine();
 
     HYP_NODISCARD
-    FontFace LoadFont(const FilePath &path);
+    FontFace
+    LoadFont(const FilePath& path);
 
     HYP_NODISCARD
-    Backend GetFontBackend();
+    Backend
+    GetFontBackend();
 
 private:
     Backend m_backend;
@@ -41,5 +43,4 @@ private:
 
 } // namespace hyperion
 
-
-#endif //HYP_FONT_FONTENGINE_HPP
+#endif // HYP_FONT_FONTENGINE_HPP

@@ -25,18 +25,20 @@ UIMenuItem::UIMenuItem()
     SetBackgroundColor(Color::Transparent());
 
     OnEnabled.Bind([this]()
-    {
-        UpdateMaterial(false);
+                 {
+                     UpdateMaterial(false);
 
-        return UIEventHandlerResult::OK;
-    }).Detach();
+                     return UIEventHandlerResult::OK;
+                 })
+        .Detach();
 
     OnDisabled.Bind([this]()
-    {
-        UpdateMaterial(false);
+                  {
+                      UpdateMaterial(false);
 
-        return UIEventHandlerResult::OK;
-    }).Detach();
+                      return UIEventHandlerResult::OK;
+                  })
+        .Detach();
 }
 
 void UIMenuItem::Init()
@@ -71,15 +73,17 @@ void UIMenuItem::Init()
     m_drop_down_menu = drop_down_menu;
 }
 
-void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIMenuItem::AddChildUIObject(const RC<UIObject>& ui_object)
 {
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return;
     }
 
     auto it = m_menu_items.Find(ui_object);
 
-    if (it != m_menu_items.End()) {
+    if (it != m_menu_items.End())
+    {
         HYP_LOG(UI, Warning, "UIMenuItem::AddChildUIObject() called with a UIMenuItem that is already in the menu item");
 
         return;
@@ -89,30 +93,34 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
 
     UpdateDropDownMenu();
 
-    if (ui_object.Is<UIMenuItem>()) {
+    if (ui_object.Is<UIMenuItem>())
+    {
         RC<UIMenuItem> menu_item = ui_object.CastUnsafe<UIMenuItem>();
-        
-        menu_item->OnMouseHover.Bind([weak_this = WeakRefCountedPtrFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent &event) -> UIEventHandlerResult
-        {
-            RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
-            RC<UIMenuItem> sub_menu_item = sub_menu_item_weak.Lock();
 
-            if (!menu_item || !sub_menu_item) {
-                menu_item->SetSelectedSubItem(nullptr);
-                
-                return UIEventHandlerResult::OK;
-            }
+        menu_item->OnMouseHover.Bind([weak_this = WeakRefCountedPtrFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
+                                   {
+                                       RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
+                                       RC<UIMenuItem> sub_menu_item = sub_menu_item_weak.Lock();
 
-            if (!sub_menu_item->GetDropDownMenuElement() || !sub_menu_item->GetDropDownMenuElement()->HasChildUIObjects()) {
-                menu_item->SetSelectedSubItem(nullptr);
+                                       if (!menu_item || !sub_menu_item)
+                                       {
+                                           menu_item->SetSelectedSubItem(nullptr);
 
-                return UIEventHandlerResult::OK;
-            }
-            
-            menu_item->SetSelectedSubItem(sub_menu_item);
+                                           return UIEventHandlerResult::OK;
+                                       }
 
-            return UIEventHandlerResult::STOP_BUBBLING;
-        }).Detach();
+                                       if (!sub_menu_item->GetDropDownMenuElement() || !sub_menu_item->GetDropDownMenuElement()->HasChildUIObjects())
+                                       {
+                                           menu_item->SetSelectedSubItem(nullptr);
+
+                                           return UIEventHandlerResult::OK;
+                                       }
+
+                                       menu_item->SetSelectedSubItem(sub_menu_item);
+
+                                       return UIEventHandlerResult::STOP_BUBBLING;
+                                   })
+            .Detach();
 
         // menu_item->OnMouseLeave.Bind([weak_this = WeakRefCountedPtrFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent &event) -> UIEventHandlerResult
         // {
@@ -126,7 +134,7 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
         //     if (menu_item->GetSelectedSubItem() != sub_menu_item) {
         //         return UIEventHandlerResult::OK;
         //     }
-            
+
         //     menu_item->SetSelectedSubItem(nullptr);
 
         //     return UIEventHandlerResult::STOP_BUBBLING;
@@ -136,16 +144,19 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject> &ui_object)
     HYP_LOG(UI, Info, "Add child UI object with name {} to menu item", ui_object->GetName());
 }
 
-bool UIMenuItem::RemoveChildUIObject(UIObject *ui_object)
+bool UIMenuItem::RemoveChildUIObject(UIObject* ui_object)
 {
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
-    if (ui_object->IsInstanceOf<UIMenuItem>()) {
+    if (ui_object->IsInstanceOf<UIMenuItem>())
+    {
         auto it = m_menu_items.FindAs(ui_object);
 
-        if (it != m_menu_items.End()) {
+        if (it != m_menu_items.End())
+        {
             m_menu_items.Erase(it);
         }
 
@@ -172,26 +183,30 @@ bool UIMenuItem::RemoveChildUIObject(UIObject *ui_object)
     // return true;
 }
 
-void UIMenuItem::SetIconTexture(const Handle<Texture> &texture)
+void UIMenuItem::SetIconTexture(const Handle<Texture>& texture)
 {
     m_icon_element->SetTexture(texture);
-    
-    if (texture.IsValid()) {
+
+    if (texture.IsValid())
+    {
         m_icon_element->SetIsVisible(true);
 
         m_text_element->SetPosition(Vec2i { m_icon_element->GetActualSize().x + 5, 0 });
-    } else {
+    }
+    else
+    {
         m_icon_element->SetIsVisible(false);
 
         m_text_element->SetPosition(Vec2i { 0, 0 });
     }
 }
 
-void UIMenuItem::SetText(const String &text)
+void UIMenuItem::SetText(const String& text)
 {
     UIObject::SetText(text);
 
-    if (m_text_element != nullptr) {
+    if (m_text_element != nullptr)
+    {
         m_text_element->SetText(m_text);
     }
 
@@ -204,18 +219,20 @@ void UIMenuItem::UpdateDropDownMenu()
 
     m_drop_down_menu->RemoveAllChildUIObjects();
 
-    if (m_menu_items.Empty()) {
+    if (m_menu_items.Empty())
+    {
         return;
     }
 
     Vec2i offset = { 0, 0 };
 
-    for (const RC<UIObject> &menu_item : m_menu_items) {
+    for (const RC<UIObject>& menu_item : m_menu_items)
+    {
         menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         menu_item->SetPosition(offset);
 
         m_drop_down_menu->AddChildUIObject(menu_item);
-        
+
         offset += { 0, menu_item->GetActualSize().y };
     }
 
@@ -226,8 +243,10 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
 {
     RC<UIMenuItem> selected_sub_item = m_selected_sub_item.Lock();
 
-    if (!selected_sub_item.IsValid()) {
-        if (m_sub_items_drop_down_menu != nullptr) {
+    if (!selected_sub_item.IsValid())
+    {
+        if (m_sub_items_drop_down_menu != nullptr)
+        {
             m_sub_items_drop_down_menu->RemoveFromParent();
             m_sub_items_drop_down_menu = nullptr;
         }
@@ -235,7 +254,8 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
         return;
     }
 
-    if (m_sub_items_drop_down_menu == nullptr) {
+    if (m_sub_items_drop_down_menu == nullptr)
+    {
         m_sub_items_drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_SubItemsDropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
         m_sub_items_drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
         m_sub_items_drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
@@ -244,7 +264,8 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
 
     m_sub_items_drop_down_menu->RemoveAllChildUIObjects();
 
-    if (!selected_sub_item->GetDropDownMenuElement()) {
+    if (!selected_sub_item->GetDropDownMenuElement())
+    {
         return;
     }
 
@@ -258,35 +279,40 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
     m_sub_items_drop_down_menu->Focus();
 
     m_sub_items_drop_down_menu->OnClick.RemoveAllDetached();
-    m_sub_items_drop_down_menu->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis()](const MouseEvent &data) -> UIEventHandlerResult
+    m_sub_items_drop_down_menu->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis()](const MouseEvent& data) -> UIEventHandlerResult
+                                           {
+                                               RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
+
+                                               if (!menu_item)
+                                               {
+                                                   return UIEventHandlerResult::OK;
+                                               }
+
+                                               RC<UIMenuBar> menu_bar = menu_item->GetClosestSpawnParent<UIMenuBar>();
+
+                                               if (!menu_bar)
+                                               {
+                                                   return UIEventHandlerResult::OK;
+                                               }
+
+                                               menu_bar->SetSelectedMenuItemIndex(~0u);
+
+                                               return UIEventHandlerResult::STOP_BUBBLING;
+                                           })
+        .Detach();
+
+    if (m_stage != nullptr)
     {
-        RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
-
-        if (!menu_item) {
-            return UIEventHandlerResult::OK;
-        }
-
-        RC<UIMenuBar> menu_bar = menu_item->GetClosestSpawnParent<UIMenuBar>();
-
-        if (!menu_bar) {
-            return UIEventHandlerResult::OK;
-        }
-
-        menu_bar->SetSelectedMenuItemIndex(~0u);
-
-        return UIEventHandlerResult::STOP_BUBBLING;
-    }).Detach();
-
-    if (m_stage != nullptr) {
         m_stage->AddChildUIObject(m_sub_items_drop_down_menu);
     }
 }
 
-void UIMenuItem::SetSelectedSubItem(const RC<UIMenuItem> &selected_sub_item)
+void UIMenuItem::SetSelectedSubItem(const RC<UIMenuItem>& selected_sub_item)
 {
     HYP_SCOPE;
 
-    if (m_selected_sub_item == selected_sub_item) {
+    if (m_selected_sub_item == selected_sub_item)
+    {
         return;
     }
 
@@ -301,8 +327,10 @@ void UIMenuItem::SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_stat
 
     UIObject::SetFocusState_Internal(focus_state);
 
-    if ((previous_focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) != (focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED))) {
-        if (!(GetFocusState() & UIObjectFocusState::TOGGLED)) {
+    if ((previous_focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) != (focus_state & (UIObjectFocusState::HOVER | UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)))
+    {
+        if (!(GetFocusState() & UIObjectFocusState::TOGGLED))
+        {
             SetSelectedSubItem(nullptr);
         }
 
@@ -315,14 +343,16 @@ void UIMenuItem::OnFontAtlasUpdate_Internal()
     UpdateDropDownMenu();
 }
 
-void UIMenuItem::SetStage_Internal(UIStage *stage)
+void UIMenuItem::SetStage_Internal(UIStage* stage)
 {
     UIObject::SetStage_Internal(stage);
 
-    if (m_sub_items_drop_down_menu != nullptr) {
+    if (m_sub_items_drop_down_menu != nullptr)
+    {
         m_sub_items_drop_down_menu->RemoveFromParent();
 
-        if (m_stage != nullptr) {
+        if (m_stage != nullptr)
+        {
             m_stage->AddChildUIObject(m_sub_items_drop_down_menu);
         }
     }
@@ -332,12 +362,16 @@ Material::ParameterTable UIMenuItem::GetMaterialParameters() const
 {
     Color color = GetBackgroundColor();
 
-    if (IsEnabled()) {
+    if (IsEnabled())
+    {
         const EnumFlags<UIObjectFocusState> focus_state = GetFocusState();
 
-        if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED)) {
+        if (focus_state & (UIObjectFocusState::TOGGLED | UIObjectFocusState::PRESSED))
+        {
             color = Color(Vec4f { 0.5f, 0.5f, 0.5f, 1.0f });
-        } else if (focus_state & UIObjectFocusState::HOVER) {
+        }
+        else if (focus_state & UIObjectFocusState::HOVER)
+        {
             color = Color(Vec4f { 0.3f, 0.3f, 0.3f, 1.0f });
         }
     }
@@ -377,15 +411,16 @@ void UIMenuBar::Init()
 
     // @TODO: OnRemoved_Internal() , remove m_container from stage
 
-    m_container->OnClick.Bind([this](const MouseEvent &data) -> UIEventHandlerResult
-    {
-        // Hide container on any item clicked
-        SetSelectedMenuItemIndex(~0u);
-        // Lose focus of the container (otherwise hovering over other menu items will cause the menu strips to reappear)
-        Blur();
+    m_container->OnClick.Bind([this](const MouseEvent& data) -> UIEventHandlerResult
+                            {
+                                // Hide container on any item clicked
+                                SetSelectedMenuItemIndex(~0u);
+                                // Lose focus of the container (otherwise hovering over other menu items will cause the menu strips to reappear)
+                                Blur();
 
-        return UIEventHandlerResult::STOP_BUBBLING;
-    }).Detach();
+                                return UIEventHandlerResult::STOP_BUBBLING;
+                            })
+        .Detach();
 
     // m_container->OnLoseFocus.Bind([this](const MouseEvent &data) -> UIEventHandlerResult
     // {
@@ -397,21 +432,24 @@ void UIMenuBar::Init()
     //     return UIEventHandlerResult::STOP_BUBBLING;
     // }).Detach();
 
-    if (m_stage != nullptr) {
+    if (m_stage != nullptr)
+    {
         m_stage->AddChildUIObject(m_container);
     }
 
     // AddChildUIObject(m_container);
 }
 
-void UIMenuBar::SetStage_Internal(UIStage *stage)
+void UIMenuBar::SetStage_Internal(UIStage* stage)
 {
     UIPanel::SetStage_Internal(stage);
 
-    if (m_container != nullptr) {
+    if (m_container != nullptr)
+    {
         m_container->RemoveFromParent();
 
-        if (m_stage != nullptr) {
+        if (m_stage != nullptr)
+        {
             m_stage->AddChildUIObject(m_container);
         }
     }
@@ -421,7 +459,8 @@ void UIMenuBar::OnRemoved_Internal()
 {
     UIPanel::OnRemoved_Internal();
 
-    if (m_container != nullptr) {
+    if (m_container != nullptr)
+    {
         m_container->RemoveFromParent();
     }
 }
@@ -430,15 +469,20 @@ void UIMenuBar::SetDropDirection(UIMenuBarDropDirection drop_direction)
 {
     m_drop_direction = drop_direction;
 
-    if (m_container != nullptr) {
-        if (m_drop_direction == UIMenuBarDropDirection::DOWN) {
+    if (m_container != nullptr)
+    {
+        if (m_drop_direction == UIMenuBarDropDirection::DOWN)
+        {
             m_container->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
-        } else {
+        }
+        else
+        {
             m_container->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
         }
 
-        if (m_selected_menu_item_index != ~0u) {
-            UIMenuItem *selected_menu_item = m_menu_items[m_selected_menu_item_index];
+        if (m_selected_menu_item_index != ~0u)
+        {
+            UIMenuItem* selected_menu_item = m_menu_items[m_selected_menu_item_index];
             AssertThrow(selected_menu_item != nullptr);
 
             const Vec2i drop_down_menu_position = GetDropDownMenuPosition(selected_menu_item);
@@ -452,7 +496,8 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    if (index == m_selected_menu_item_index) {
+    if (index == m_selected_menu_item_index)
+    {
         return;
     }
 
@@ -461,29 +506,34 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
     m_container->SetIsVisible(false);
     m_container->RemoveAllChildUIObjects();
 
-    for (SizeType i = 0; i < m_menu_items.Size(); i++) {
-        if (i == m_selected_menu_item_index) {
+    for (SizeType i = 0; i < m_menu_items.Size(); i++)
+    {
+        if (i == m_selected_menu_item_index)
+        {
             continue;
         }
 
-        UIMenuItem *menu_item = m_menu_items[i];
+        UIMenuItem* menu_item = m_menu_items[i];
 
-        if (!menu_item) {
+        if (!menu_item)
+        {
             continue;
         }
 
         menu_item->SetFocusState(menu_item->GetFocusState() & ~UIObjectFocusState::TOGGLED);
     }
 
-    if (m_selected_menu_item_index >= m_menu_items.Size()) {
+    if (m_selected_menu_item_index >= m_menu_items.Size())
+    {
         m_selected_menu_item_index = ~0u;
 
         return;
     }
 
-    UIMenuItem *menu_item = m_menu_items[m_selected_menu_item_index];
+    UIMenuItem* menu_item = m_menu_items[m_selected_menu_item_index];
 
-    if (!menu_item || !menu_item->GetDropDownMenuElement()) {
+    if (!menu_item || !menu_item->GetDropDownMenuElement())
+    {
         return;
     }
 
@@ -496,9 +546,10 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
     m_container->Focus();
 }
 
-void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
+void UIMenuBar::AddChildUIObject(const RC<UIObject>& ui_object)
 {
-    if (!ui_object->IsInstanceOf<UIMenuItem>()) {
+    if (!ui_object->IsInstanceOf<UIMenuItem>())
+    {
         HYP_LOG(UI, Warning, "UIMenuBar::AddChildUIObject() called with a UIObject that is not a UIMenuItem");
 
         return;
@@ -506,7 +557,8 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 
     auto it = m_menu_items.FindAs(ui_object.Get());
 
-    if (it != m_menu_items.End()) {
+    if (it != m_menu_items.End())
+    {
         HYP_LOG(UI, Warning, "UIMenuBar::AddChildUIObject() called with a UIMenuItem that is already in the menu bar");
 
         return;
@@ -514,10 +566,10 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 
     UIPanel::AddChildUIObject(ui_object);
 
-    RC<UIObject> ui_object_rc = FindChildUIObject([ui_object](UIObject *child)
-    {
-        return child == ui_object;
-    });
+    RC<UIObject> ui_object_rc = FindChildUIObject([ui_object](UIObject* child)
+        {
+            return child == ui_object;
+        });
 
     AssertThrow(ui_object_rc != nullptr);
 
@@ -530,63 +582,74 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject> &ui_object)
 
     // Mouse hover: set selected menu item index if this menu bar has focus
     menu_item->OnMouseHover.RemoveAllDetached();
-    menu_item->OnMouseHover.Bind([this, name](const MouseEvent &data) -> UIEventHandlerResult
-    {
-        if (m_container->HasFocus(true)) {
-            const uint32 menu_item_index = GetMenuItemIndex(name);
+    menu_item->OnMouseHover.Bind([this, name](const MouseEvent& data) -> UIEventHandlerResult
+                               {
+                                   if (m_container->HasFocus(true))
+                                   {
+                                       const uint32 menu_item_index = GetMenuItemIndex(name);
 
-            SetSelectedMenuItemIndex(menu_item_index);
-        }
+                                       SetSelectedMenuItemIndex(menu_item_index);
+                                   }
 
-        return UIEventHandlerResult::STOP_BUBBLING;
-    }).Detach();
+                                   return UIEventHandlerResult::STOP_BUBBLING;
+                               })
+        .Detach();
 
     // Mouse click: toggle selected menu item index
     // menu_item->OnClick.RemoveAllDetached();
 
-    menu_item->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis(), name](const MouseEvent &data) -> UIEventHandlerResult
-    {
-        RC<UIMenuBar> menu_bar = weak_this.Lock().CastUnsafe<UIMenuBar>();
-        
-        if (!menu_bar) {
-            return UIEventHandlerResult::OK;
-        }
+    menu_item->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis(), name](const MouseEvent& data) -> UIEventHandlerResult
+                          {
+                              RC<UIMenuBar> menu_bar = weak_this.Lock().CastUnsafe<UIMenuBar>();
 
-        if (data.mouse_buttons == MouseButtonState::LEFT) {
-            const uint32 menu_item_index = menu_bar->GetMenuItemIndex(name);
+                              if (!menu_bar)
+                              {
+                                  return UIEventHandlerResult::OK;
+                              }
 
-            if (menu_bar->GetSelectedMenuItemIndex() == menu_item_index) {
-                menu_bar->SetSelectedMenuItemIndex(~0u);
+                              if (data.mouse_buttons == MouseButtonState::LEFT)
+                              {
+                                  const uint32 menu_item_index = menu_bar->GetMenuItemIndex(name);
 
-                menu_bar->m_container->Blur();
-            } else {
-                menu_bar->SetSelectedMenuItemIndex(menu_item_index);
-            }
-        }
+                                  if (menu_bar->GetSelectedMenuItemIndex() == menu_item_index)
+                                  {
+                                      menu_bar->SetSelectedMenuItemIndex(~0u);
 
-        return UIEventHandlerResult::STOP_BUBBLING;
-    }).Detach();
+                                      menu_bar->m_container->Blur();
+                                  }
+                                  else
+                                  {
+                                      menu_bar->SetSelectedMenuItemIndex(menu_item_index);
+                                  }
+                              }
+
+                              return UIEventHandlerResult::STOP_BUBBLING;
+                          })
+        .Detach();
 
     m_menu_items.PushBack(menu_item);
 
     UpdateMenuItemSizes();
 }
 
-bool UIMenuBar::RemoveChildUIObject(UIObject *ui_object)
+bool UIMenuBar::RemoveChildUIObject(UIObject* ui_object)
 {
-    if (!ui_object) {
+    if (!ui_object)
+    {
         return false;
     }
 
     auto menu_items_it = m_menu_items.FindAs(ui_object);
 
-    if (menu_items_it == m_menu_items.End()) {
+    if (menu_items_it == m_menu_items.End())
+    {
         return UIPanel::RemoveChildUIObject(ui_object);
     }
 
     const bool removed = UIPanel::RemoveChildUIObject(ui_object);
 
-    if (!removed) {
+    if (!removed)
+    {
         return false;
     }
 
@@ -596,7 +659,8 @@ bool UIMenuBar::RemoveChildUIObject(UIObject *ui_object)
 
     UpdateMenuItemSizes();
 
-    if (m_selected_menu_item_index == index) {
+    if (m_selected_menu_item_index == index)
+    {
         SetSelectedMenuItemIndex(m_menu_items.Any() ? m_menu_items.Size() - 1 : ~0u);
     }
 
@@ -610,7 +674,7 @@ void UIMenuBar::UpdateSize_Internal(bool update_children)
     UpdateMenuItemSizes();
 }
 
-RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
+RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String& text)
 {
     RC<UIMenuItem> menu_item = CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
     menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
@@ -622,12 +686,14 @@ RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String &text)
     return menu_item;
 }
 
-UIMenuItem *UIMenuBar::GetMenuItem(Name name) const
+UIMenuItem* UIMenuBar::GetMenuItem(Name name) const
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (UIMenuItem *menu_item : m_menu_items) {
-        if (menu_item->GetName() == name) {
+    for (UIMenuItem* menu_item : m_menu_items)
+    {
+        if (menu_item->GetName() == name)
+        {
             return menu_item;
         }
     }
@@ -639,8 +705,10 @@ uint32 UIMenuBar::GetMenuItemIndex(Name name) const
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (SizeType i = 0; i < m_menu_items.Size(); i++) {
-        if (m_menu_items[i]->GetName() == name) {
+    for (SizeType i = 0; i < m_menu_items.Size(); i++)
+    {
+        if (m_menu_items[i]->GetName() == name)
+        {
             return i;
         }
     }
@@ -652,12 +720,13 @@ bool UIMenuBar::RemoveMenuItem(Name name)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    const auto it = m_menu_items.FindIf([name](UIMenuItem *menu_item)
-    {
-        return menu_item->GetName() == name;
-    });
+    const auto it = m_menu_items.FindIf([name](UIMenuItem* menu_item)
+        {
+            return menu_item->GetName() == name;
+        });
 
-    if (it == m_menu_items.End()) {
+    if (it == m_menu_items.End())
+    {
         return false;
     }
 
@@ -666,13 +735,15 @@ bool UIMenuBar::RemoveMenuItem(Name name)
 
 void UIMenuBar::UpdateMenuItemSizes()
 {
-    if (m_menu_items.Empty()) {
+    if (m_menu_items.Empty())
+    {
         return;
     }
 
     Vec2i offset = { 0, 0 };
 
-    for (SizeType i = 0; i < m_menu_items.Size(); i++) {
+    for (SizeType i = 0; i < m_menu_items.Size(); i++)
+    {
         m_menu_items[i]->SetPosition(offset);
         m_menu_items[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
@@ -680,14 +751,17 @@ void UIMenuBar::UpdateMenuItemSizes()
     }
 }
 
-Vec2i UIMenuBar::GetDropDownMenuPosition(UIMenuItem *menu_item) const
+Vec2i UIMenuBar::GetDropDownMenuPosition(UIMenuItem* menu_item) const
 {
     AssertThrow(menu_item != nullptr);
     Vec2f absolute_position = menu_item->GetAbsolutePosition();
 
-    if (m_drop_direction == UIMenuBarDropDirection::DOWN) {
+    if (m_drop_direction == UIMenuBarDropDirection::DOWN)
+    {
         return Vec2i { int(absolute_position.x), int(absolute_position.y + menu_item->GetActualSize().y) };
-    } else {
+    }
+    else
+    {
         return Vec2i { int(absolute_position.x), int(absolute_position.y) };
     }
 }

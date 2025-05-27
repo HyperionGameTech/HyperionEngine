@@ -3,10 +3,10 @@
 #include <core/utilities/Time.hpp>
 
 #ifdef HYP_UNIX
-#include <sys/time.h>
-#elif defined (HYP_WINDOWS)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+    #include <sys/time.h>
+#elif defined(HYP_WINDOWS)
+    #define WIN32_LEAN_AND_MEAN
+    #include <Windows.h>
 #endif
 
 namespace hyperion {
@@ -21,7 +21,7 @@ uint64 PerformanceClock::Now()
 
     return uint64(ts.tv_sec) * 1000000 + uint64(ts.tv_nsec) / 1000;
 #else
-    // @TODO 
+    // @TODO
 
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
@@ -54,6 +54,6 @@ void PerformanceClock::Stop()
 {
     m_end_time_us = Now();
 }
-    
+
 } // namespace profiling
 } // namespace hyperion

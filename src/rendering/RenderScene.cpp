@@ -15,7 +15,7 @@
 
 namespace hyperion {
 
-SceneRenderResource::SceneRenderResource(Scene *scene)
+SceneRenderResource::SceneRenderResource(Scene* scene)
     : m_scene(scene)
 {
     m_environment = CreateObject<RenderEnvironment>();
@@ -24,12 +24,12 @@ SceneRenderResource::SceneRenderResource(Scene *scene)
 
 SceneRenderResource::~SceneRenderResource() = default;
 
-void SceneRenderResource::SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource> &camera_render_resource_handle)
+void SceneRenderResource::SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource>& camera_render_resource_handle)
 {
     Execute([this, camera_render_resource_handle]()
-    {
-        m_camera_render_resource_handle = std::move(camera_render_resource_handle);
-    });
+        {
+            m_camera_render_resource_handle = std::move(camera_render_resource_handle);
+        });
 }
 
 void SceneRenderResource::Initialize_Internal()
@@ -56,26 +56,27 @@ void SceneRenderResource::UpdateBufferData()
     m_buffer_data.frame_counter = m_environment->GetFrameCounter();
     m_buffer_data.enabled_render_subsystems_mask = m_environment->GetEnabledRenderSubsystemsMask();
 
-    *static_cast<SceneShaderData *>(m_buffer_address) = m_buffer_data;
+    *static_cast<SceneShaderData*>(m_buffer_address) = m_buffer_data;
 
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void SceneRenderResource::SetBufferData(const SceneShaderData &buffer_data)
+void SceneRenderResource::SetBufferData(const SceneShaderData& buffer_data)
 {
     HYP_SCOPE;
 
     Execute([this, buffer_data]()
-    {
-        m_buffer_data = buffer_data;
+        {
+            m_buffer_data = buffer_data;
 
-        if (IsInitialized()) {
-            UpdateBufferData();
-        }
-    });
+            if (IsInitialized())
+            {
+                UpdateBufferData();
+            }
+        });
 }
 
-GPUBufferHolderBase *SceneRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* SceneRenderResource::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->scenes;
 }

@@ -11,7 +11,8 @@ uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
     const int bit_index = __builtin_ffsll(bits) - 1;
 #elif defined(HYP_MSVC)
     unsigned long bit_index = 0;
-    if (!_BitScanForward64(&bit_index, bits)) {
+    if (!_BitScanForward64(&bit_index, bits))
+    {
         return uint32(-1);
     }
 #else
@@ -27,7 +28,8 @@ uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
     const int bit_index = 63 - __builtin_clzll(bits);
 #elif defined(HYP_MSVC)
     unsigned long bit_index = 0;
-    if (!_BitScanReverse64(&bit_index, bits)) {
+    if (!_BitScanReverse64(&bit_index, bits))
+    {
         return uint32(-1);
     }
 #else
@@ -42,10 +44,10 @@ uint64 ByteUtil::BitCount(uint64 value)
     return __popcnt64(value);
 #else
     // https://graphics.stanford.edu/~seander/bithacks.html
-    value = value - ((value >> 1) & (uint64)~(uint64)0/3); 
-    value = (value & (uint64)~(uint64)0/15*3) + ((value >> 2) & (uint64)~(uint64)0/15*3);
-    value = (value + (value >> 4)) & (uint64)~(uint64)0/255*15;
-    return (uint64)(value * ((uint64)~(uint64)0/255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
+    value = value - ((value >> 1) & (uint64) ~(uint64)0 / 3);
+    value = (value & (uint64) ~(uint64)0 / 15 * 3) + ((value >> 2) & (uint64) ~(uint64)0 / 15 * 3);
+    value = (value + (value >> 4)) & (uint64) ~(uint64)0 / 255 * 15;
+    return (uint64)(value * ((uint64) ~(uint64)0 / 255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
 #endif
 }
 

@@ -4,24 +4,27 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT ManagedScript *ManagedScript_AllocateNativeObject(ManagedScript *in_managed_script)
+extern "C"
 {
-    if (!in_managed_script) {
-        return nullptr;
+
+    HYP_EXPORT ManagedScript* ManagedScript_AllocateNativeObject(ManagedScript* in_managed_script)
+    {
+        if (!in_managed_script)
+        {
+            return nullptr;
+        }
+
+        return new ManagedScript(*in_managed_script);
     }
 
-    return new ManagedScript(*in_managed_script);
-}
+    HYP_EXPORT void ManagedScript_FreeNativeObject(ManagedScript* in_managed_script)
+    {
+        if (!in_managed_script)
+        {
+            return;
+        }
 
-HYP_EXPORT void ManagedScript_FreeNativeObject(ManagedScript *in_managed_script)
-{
-    if (!in_managed_script) {
-        return;
+        delete in_managed_script;
     }
-
-    delete in_managed_script;
-}
 
 } // extern "C"

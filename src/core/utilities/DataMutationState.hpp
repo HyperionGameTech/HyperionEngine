@@ -18,41 +18,62 @@ struct DataMutationState
         DIRTY = 0x1
     };
 
-    DataMutationState(State value = CLEAN) : state(value) {}
-    DataMutationState(const DataMutationState &other) = default;
-    DataMutationState &operator=(const DataMutationState &other) = default;
-
-    DataMutationState &operator=(State value)
+    DataMutationState(State value = CLEAN)
+        : m_state(value)
     {
-        state = value;
+    }
+
+    DataMutationState(const DataMutationState& other) = default;
+    DataMutationState& operator=(const DataMutationState& other) = default;
+
+    DataMutationState& operator=(State value)
+    {
+        m_state = value;
 
         return *this;
     }
 
-    operator bool() const { return state == CLEAN; }
-
-    bool operator==(const DataMutationState &other) const { return state == other.state; }
-    bool operator!=(const DataMutationState &other) const { return state != other.state; }
-
-    DataMutationState &operator|=(State value)
+    operator bool() const
     {
-        state |= uint32(value);
+        return m_state == CLEAN;
+    }
+
+    bool operator==(const DataMutationState& other) const
+    {
+        return m_state == other.m_state;
+    }
+
+    bool operator!=(const DataMutationState& other) const
+    {
+        return m_state != other.m_state;
+    }
+
+    DataMutationState& operator|=(State value)
+    {
+        m_state |= uint32(value);
 
         return *this;
     }
 
-    DataMutationState &operator&=(State value)
+    DataMutationState& operator&=(State value)
     {
-        state &= uint32(value);
+        m_state &= uint32(value);
 
         return *this;
     }
 
-    bool IsClean() const { return state == CLEAN; }
-    bool IsDirty() const { return state & DIRTY; }
+    bool IsClean() const
+    {
+        return m_state == CLEAN;
+    }
+
+    bool IsDirty() const
+    {
+        return m_state & DIRTY;
+    }
 
 private:
-    uint32  state;
+    uint32 m_state;
 };
 
 } // namespace utilities

@@ -15,16 +15,16 @@ using PlatformType = int;
 class Platform
 {
 public:
-    static constexpr PlatformType UNKNOWN = 0;
-    static constexpr PlatformType VULKAN = 1;
-    static constexpr PlatformType WEBGPU = 2;
+    static constexpr PlatformType unknown = 0;
+    static constexpr PlatformType vulkan = 1;
+    static constexpr PlatformType webgpu = 2;
 
 #if HYP_VULKAN
-    static constexpr PlatformType CURRENT = VULKAN;
+    static constexpr PlatformType current = vulkan;
 #elif HYP_WEBGPU
-    static constexpr PlatformType CURRENT = WEBGPU;
+    static constexpr PlatformType current = webgpu;
 #else
-    static constexpr PlatformType CURRENT = UNKNOWN;
+    static constexpr PlatformType current = unknown;
 #endif
 };
 } // namespace renderer

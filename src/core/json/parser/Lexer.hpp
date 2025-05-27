@@ -12,14 +12,14 @@
 
 namespace hyperion::json {
 
-class Lexer {
+class Lexer
+{
 public:
     Lexer(
-        const SourceStream &source_stream,
-        TokenStream *token_stream,
-        CompilationUnit *compilation_unit
-    );
-    Lexer(const Lexer &other);
+        const SourceStream& source_stream,
+        TokenStream* token_stream,
+        CompilationUnit* compilation_unit);
+    Lexer(const Lexer& other);
 
     /** Forms the given TokenStream from the given SourceStream */
     void Analyze();
@@ -44,8 +44,8 @@ public:
 
 private:
     SourceStream m_source_stream;
-    TokenStream *m_token_stream;
-    CompilationUnit *m_compilation_unit;
+    TokenStream* m_token_stream;
+    CompilationUnit* m_compilation_unit;
     SourceLocation m_source_location;
 
     /** Adds an end-of-file error if at the end, returns true if not */

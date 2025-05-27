@@ -31,14 +31,13 @@ namespace hyperion {
 
 namespace containers {
 
-
 namespace detail {
 
 template <class T, class T2 = void>
 struct ArrayDefaultAllocatorSelector;
 
 template <class T>
-struct ArrayDefaultAllocatorSelector<T, std::enable_if_t< !implementation_exists<T> >>
+struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<!implementation_exists<T>>>
 {
     using Type = DynamicAllocator;
 };
@@ -73,7 +72,6 @@ public:
     static constexpr bool is_contiguous = true;
 
 private:
-
 protected:
     // on PushFront() we can pad the start with this number,
     // so when multiple successive calls to PushFront() happen,
@@ -81,8 +79,8 @@ protected:
     static constexpr SizeType push_front_padding = 4;
 
 public:
-    using Iterator = T *;
-    using ConstIterator = const T *;
+    using Iterator = T*;
+    using ConstIterator = const T*;
     using InsertResult = Pair<Iterator, bool>; // iterator, was inserted
 
     Array();
@@ -108,10 +106,11 @@ public:
         : Array()
     {
         ResizeUninitialized(Sz);
-        
-        auto *storage_ptr = Data();
 
-        for (SizeType i = 0; i < Sz; ++i) {
+        auto* storage_ptr = Data();
+
+        for (SizeType i = 0; i < Sz; ++i)
+        {
             Memory::Construct<T>(storage_ptr++, items[i]);
         }
     }
@@ -121,44 +120,47 @@ public:
         : Array()
     {
         ResizeUninitialized(Sz);
-        
-        auto *storage_ptr = Data();
 
-        for (SizeType i = 0; i < Sz; ++i) {
+        auto* storage_ptr = Data();
+
+        for (SizeType i = 0; i < Sz; ++i)
+        {
             Memory::Construct<T>(storage_ptr++, std::move(items[i]));
         }
     }
 
     template <SizeType Sz>
-    Array(const FixedArray<T, Sz> &items)
+    Array(const FixedArray<T, Sz>& items)
         : Array(items.Begin(), items.End())
     {
     }
 
     template <SizeType Sz>
-    Array(FixedArray<T, Sz> &&items)
+    Array(FixedArray<T, Sz>&& items)
         : Array()
     {
         ResizeUninitialized(Sz);
 
-        auto *storage_ptr = Data();
+        auto* storage_ptr = Data();
 
-        for (SizeType i = 0; i < Sz; ++i) {
+        for (SizeType i = 0; i < Sz; ++i)
+        {
             Memory::Construct<T>(storage_ptr++, std::move(items[i]));
         }
     }
 
-    Array(T *ptr, SizeType size)
+    Array(T* ptr, SizeType size)
         : Array()
     {
         ResizeUninitialized(size);
-        
-        auto *storage_ptr = Data();
 
-        const T *first = ptr;
-        const T *last = ptr + size;
+        auto* storage_ptr = Data();
 
-        for (auto it = first; it != last; ++it) {
+        const T* first = ptr;
+        const T* last = ptr + size;
+
+        for (auto it = first; it != last; ++it)
+        {
             Memory::Construct<T>(storage_ptr++, *it);
         }
     }
@@ -168,10 +170,11 @@ public:
     {
         const SizeType dist = last - first;
         ResizeUninitialized(dist);
-        
-        auto *storage_ptr = Data();
 
-        for (auto it = first; it != last; ++it) {
+        auto* storage_ptr = Data();
+
+        for (auto it = first; it != last; ++it)
+        {
             Memory::Construct<T>(storage_ptr++, *it);
         }
     }
@@ -181,54 +184,57 @@ public:
     {
         const SizeType dist = last - first;
         ResizeUninitialized(dist);
-        
-        auto *storage_ptr = Data();
 
-        for (auto it = first; it != last; ++it) {
+        auto* storage_ptr = Data();
+
+        for (auto it = first; it != last; ++it)
+        {
             Memory::Construct<T>(storage_ptr++, *it);
         }
     }
 
-    Array(const T *ptr, SizeType size)
+    Array(const T* ptr, SizeType size)
         : Array(ptr, ptr + size)
     {
     }
-    
+
     Array(std::initializer_list<T> initializer_list)
         : Array(initializer_list.begin(), initializer_list.end())
     {
     }
 
-    Array(const Array &other);
+    Array(const Array& other);
 
     template <class OtherAllocatorType>
-    Array(const Array<T, OtherAllocatorType> &other)
+    Array(const Array<T, OtherAllocatorType>& other)
         : Array()
     {
         const SizeType size = other.Size();
 
         SetCapacity(size);
 
-        T *buffer = GetBuffer();
+        T* buffer = GetBuffer();
 
-        for (SizeType i = 0; i < size; i++) {
+        for (SizeType i = 0; i < size; i++)
+        {
             Memory::Construct<T>(&buffer[m_size++], other.Data()[i]);
         }
     }
 
-    Array(Array &&other) noexcept;
+    Array(Array&& other) noexcept;
 
     template <class OtherAllocatorType>
-    Array(Array<T, OtherAllocatorType> &&other)
+    Array(Array<T, OtherAllocatorType>&& other)
         : Array()
     {
         const SizeType size = other.Size();
 
         SetCapacity(size);
 
-        T *buffer = GetBuffer();
+        T* buffer = GetBuffer();
 
-        for (SizeType i = 0; i < size; i++) {
+        for (SizeType i = 0; i < size; i++)
+        {
             Memory::Construct<T>(&buffer[m_size++], std::move(other.Data()[i]));
         }
 
@@ -237,56 +243,80 @@ public:
 
     ~Array();
 
-    Array &operator=(const Array &other);
-    Array &operator=(Array &&other) noexcept;
+    Array& operator=(const Array& other);
+    Array& operator=(Array&& other) noexcept;
 
     /*! \brief Returns the number of elements in the array. */
     HYP_FORCE_INLINE SizeType Size() const
-        { return m_size - m_start_offset; }
+    {
+        return m_size - m_start_offset;
+    }
 
     /*! \brief Returns the size in bytes of the array. */
     HYP_FORCE_INLINE SizeType ByteSize() const
-        { return (m_size - m_start_offset) * sizeof(T); }
+    {
+        return (m_size - m_start_offset) * sizeof(T);
+    }
 
     /*! \brief Returns a pointer to the first element in the array. */
-    HYP_FORCE_INLINE ValueType *Data()
-        { return &GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE ValueType* Data()
+    {
+        return &GetBuffer()[m_start_offset];
+    }
 
     /*! \brief Returns a pointer to the first element in the array. */
-    HYP_FORCE_INLINE const ValueType *Data() const
-        { return &GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE const ValueType* Data() const
+    {
+        return &GetBuffer()[m_start_offset];
+    }
 
     /*! \brief Returns a reference to the first element in the array. */
-    HYP_FORCE_INLINE ValueType &Front()
-        { return GetBuffer()[m_start_offset]; }
-    
+    HYP_FORCE_INLINE ValueType& Front()
+    {
+        return GetBuffer()[m_start_offset];
+    }
+
     /*! \brief Returns a reference to the first element in the array. */
-    HYP_FORCE_INLINE const ValueType &Front() const
-        { return GetBuffer()[m_start_offset]; }
+    HYP_FORCE_INLINE const ValueType& Front() const
+    {
+        return GetBuffer()[m_start_offset];
+    }
 
     /*! \brief Returns a reference to the last element in the array.  */
-    HYP_FORCE_INLINE ValueType &Back()
-        { return GetBuffer()[m_size - 1]; }
+    HYP_FORCE_INLINE ValueType& Back()
+    {
+        return GetBuffer()[m_size - 1];
+    }
 
     /*! \brief Returns a reference to the last element in the array. */
-    HYP_FORCE_INLINE const ValueType &Back() const
-        { return GetBuffer()[m_size - 1]; }
+    HYP_FORCE_INLINE const ValueType& Back() const
+    {
+        return GetBuffer()[m_size - 1];
+    }
 
     /*! \brief Returns true if the array has no elements. */
     HYP_FORCE_INLINE bool Empty() const
-        { return Size() == 0; }
+    {
+        return Size() == 0;
+    }
 
     /*! \brief Returns true if the array has any elements. */
     HYP_FORCE_INLINE bool Any() const
-        { return Size() != 0; }
+    {
+        return Size() != 0;
+    }
 
     /*! \brief Returns the element at the given index. No bounds checking is performed. */
-    HYP_FORCE_INLINE ValueType &operator[](KeyType index)
-        { return GetBuffer()[m_start_offset + index]; }
+    HYP_FORCE_INLINE ValueType& operator[](KeyType index)
+    {
+        return GetBuffer()[m_start_offset + index];
+    }
 
     /*! \brief Returns the element at the given index. No bounds checking is performed. */
-    HYP_FORCE_INLINE const ValueType &operator[](KeyType index) const
-        { return GetBuffer()[m_start_offset + index]; }
+    HYP_FORCE_INLINE const ValueType& operator[](KeyType index) const
+    {
+        return GetBuffer()[m_start_offset + index];
+    }
 
     /*! \brief Reserves enough space for {capacity} elements. If the capacity is smaller than the current capacity, nothing happens. */
     void Reserve(SizeType capacity);
@@ -304,17 +334,19 @@ public:
     void SetCapacity(SizeType capacity, SizeType copy_offset = 0);
 
     HYP_FORCE_INLINE SizeType Capacity() const
-        { return m_allocation.GetCapacity(); }
+    {
+        return m_allocation.GetCapacity();
+    }
 
     /*! \brief Push an item to the back of the container.
      *  \param value The value to push back.
      *  \return Reference to the newly pushed back item. */
-    ValueType &PushBack(const ValueType &value);
+    ValueType& PushBack(const ValueType& value);
 
     /*! \brief Push an item to the back of the container.
      *  \param value The value to push back.
      *  \return Reference to the newly pushed back item. */
-    ValueType &PushBack(ValueType &&value);
+    ValueType& PushBack(ValueType&& value);
 
     /*! \brief Push an item to the front of the container.
         If any free spaces are available, they are used.
@@ -322,32 +354,36 @@ public:
         Some padding is added so that successive calls to PushFront() do not incur an allocation
         each time.
         */
-    ValueType &PushFront(const ValueType &value);
+    ValueType& PushFront(const ValueType& value);
 
     /*! \brief Push an item to the front of the container.
         If any free spaces are available, they are used.
         Else, new space is allocated and all current elements are shifted to the right.
         Some padding is added so that successive calls to PushFront() do not incur an allocation
         each time. */
-    ValueType &PushFront(ValueType &&value);
+    ValueType& PushFront(ValueType&& value);
 
     /*! \brief Construct an item in place at the back of the array.
      *  \param args Arguments to forward to the constructor of the item.
      *  \return Reference to the newly constructed item. */
-    template <class ... Args>
-    ValueType &EmplaceBack(Args &&... args)
+    template <class... Args>
+    ValueType& EmplaceBack(Args&&... args)
     {
-        if (m_size + 1 >= Capacity()) {
-            if (Capacity() >= Size() + 1) {
+        if (m_size + 1 >= Capacity())
+        {
+            if (Capacity() >= Size() + 1)
+            {
                 ResetOffsets();
-            } else {
+            }
+            else
+            {
                 SetCapacity(CalculateDesiredCapacity(Size() + 1));
             }
         }
 
         // set item at index
-        T *buffer = GetBuffer();
-        T *element = &buffer[m_size++];
+        T* buffer = GetBuffer();
+        T* element = &buffer[m_size++];
 
         Memory::Construct<T>(element, std::forward<Args>(args)...);
 
@@ -358,21 +394,26 @@ public:
      *  If there is no space at the front, the array is resized and all elements are shifted to the right.
      *  \param args Arguments to forward to the constructor of the item.
      *  \return Reference to the newly constructed item. */
-    template <class ... Args>
-    ValueType &EmplaceFront(Args &&... args)
+    template <class... Args>
+    ValueType& EmplaceFront(Args&&... args)
     {
-        if (m_start_offset == 0) {
+        if (m_start_offset == 0)
+        {
             // have to push everything else over by 1
-            if (m_size + push_front_padding >= Capacity()) {
+            if (m_size + push_front_padding >= Capacity())
+            {
                 SetCapacity(
                     CalculateDesiredCapacity(Size() + push_front_padding),
                     push_front_padding // copy_offset is 1 so we have a space for 1 at the start
                 );
-            } else {
-                T *buffer = GetBuffer();
+            }
+            else
+            {
+                T* buffer = GetBuffer();
 
                 // shift over without realloc
-                for (SizeType index = Size(); index > 0;) {
+                for (SizeType index = Size(); index > 0;)
+                {
                     --index;
 
                     const auto move_index = index + push_front_padding;
@@ -390,8 +431,8 @@ public:
 
         --m_start_offset;
 
-        T *buffer = GetBuffer();
-        T *element = &buffer[m_start_offset];
+        T* buffer = GetBuffer();
+        T* element = &buffer[m_start_offset];
 
         Memory::Construct<T>(element, std::forward<Args>(args)...);
 
@@ -404,32 +445,34 @@ public:
     HYP_NODISCARD Array<T, AllocatorType> Slice(int first, int last) const;
 
     /*! \brief Modify the array by appending all items in \ref{other} to the current array. */
-    void Concat(const Array &other);
-    
+    void Concat(const Array& other);
+
     /*! \brief Modify the array by appending all items in \ref{other} to the current array.
      *  All items from the other array are moved over, thus \ref{other} will be empty after the call.
      */
-    void Concat(Array &&other);
+    void Concat(Array&& other);
 
     /*! \brief Reverse the order of the elements in the array in place. */
     void Reverse();
 
     /*! \brief Build a new array with the elements in reverse order. Does not modify the original array. */
     template <class OtherAllocatorType>
-    void Reverse(Array<T, OtherAllocatorType> &out_array) const
+    void Reverse(Array<T, OtherAllocatorType>& out_array) const
     {
         const SizeType size = Size();
 
-        if (size < 2) {
+        if (size < 2)
+        {
             return;
         }
 
         out_array.ResizeUninitialized(size);
 
-        T *buffer = GetBuffer();
-        T *out_buffer = out_array.GetBuffer();
+        T* buffer = GetBuffer();
+        T* out_buffer = out_array.GetBuffer();
 
-        for (SizeType i = 0; i < size; ++i) {
+        for (SizeType i = 0; i < size; ++i)
+        {
             Memory::Construct<T>(&out_buffer[i], buffer[size - 1 - i]);
         }
     }
@@ -439,24 +482,26 @@ public:
 
     /*! \brief Erase an element by value. A Find() is performed, and if the result is not equal to End(),
      *  the element is removed. */
-    Iterator Erase(const T &value);
+    Iterator Erase(const T& value);
     Iterator EraseAt(typename Base::KeyType index);
-    Iterator Insert(ConstIterator where, const ValueType &value);
-    Iterator Insert(ConstIterator where, ValueType &&value);
+    Iterator Insert(ConstIterator where, const ValueType& value);
+    Iterator Insert(ConstIterator where, ValueType&& value);
 
     ValueType PopFront();
     ValueType PopBack();
-    
+
     void Clear();
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator==(const Array<T, OtherAllocatorType> &other) const
+    HYP_FORCE_INLINE bool operator==(const Array<T, OtherAllocatorType>& other) const
     {
-        if (std::addressof(other) == this) {
+        if (std::addressof(other) == this)
+        {
             return true;
         }
 
-        if (Size() != other.Size()) {
+        if (Size() != other.Size())
+        {
             return false;
         }
 
@@ -464,8 +509,10 @@ public:
         auto other_it = other.Begin();
         const auto _end = End();
 
-        for (; it != _end; ++it, ++other_it) {
-            if (!(*it == *other_it)) {
+        for (; it != _end; ++it, ++other_it)
+        {
+            if (!(*it == *other_it))
+            {
                 return false;
             }
         }
@@ -474,13 +521,15 @@ public:
     }
 
     template <class OtherAllocatorType>
-    HYP_FORCE_INLINE bool operator!=(const Array<T, OtherAllocatorType> &other) const
+    HYP_FORCE_INLINE bool operator!=(const Array<T, OtherAllocatorType>& other) const
     {
-        if (std::addressof(other) == this) {
+        if (std::addressof(other) == this)
+        {
             return false;
         }
 
-        if (Size() != other.Size()) {
+        if (Size() != other.Size())
+        {
             return true;
         }
 
@@ -488,8 +537,10 @@ public:
         auto other_it = other.Begin();
         const auto _end = End();
 
-        for (; it != _end; ++it, ++other_it) {
-            if (!(*it == *other_it)) {
+        for (; it != _end; ++it, ++other_it)
+        {
+            if (!(*it == *other_it))
+            {
                 return true;
             }
         }
@@ -501,66 +552,77 @@ public:
      *  The span is only valid as long as the Array is not modified.
      *  \return A Span<T> of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<T>()
-        { return Span<T>(Data(), Size()); }
+    {
+        return Span<T>(Data(), Size());
+    }
 
     /*! \brief Creates a Span<const T> from the Array's data.
      *  The span is only valid as long as the Array is not modified.
      *  \return A Span<const T> of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE operator Span<const T>() const
-        { return Span<const T>(Data(), Size()); }
+    {
+        return Span<const T>(Data(), Size());
+    }
 
     /*! \brief Creates a Span<T> from the Array's data.
      *  The span is only valid as long as the Array is not modified.
      *  \return A Span<T> of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
-        { return Span<T>(Data(), Size()); }
+    {
+        return Span<T>(Data(), Size());
+    }
 
     /*! \brief Creates a Span<const T> from the Array's data.
      *  The span is only valid as long as the Array is not modified.
      *  \return A Span<const T> of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<const T> ToSpan() const
-        { return Span<const T>(Data(), Size()); }
+    {
+        return Span<const T>(Data(), Size());
+    }
 
     /*! \brief Returns a ByteView of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE ByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull)
     {
-        if (offset >= Size()) {
+        if (offset >= Size())
+        {
             return ByteView();
         }
 
-        if (size > Size()) {
+        if (size > Size())
+        {
             size = Size();
         }
 
-        return ByteView(reinterpret_cast<ubyte *>(Data()) + offset, size * sizeof(T));
+        return ByteView(reinterpret_cast<ubyte*>(Data()) + offset, size * sizeof(T));
     }
 
     /*! \brief Returns a ConstByteView of the Array's data. */
     HYP_NODISCARD HYP_FORCE_INLINE ConstByteView ToByteView(SizeType offset = 0, SizeType size = ~0ull) const
     {
-        if (offset >= Size()) {
+        if (offset >= Size())
+        {
             return ConstByteView();
         }
 
-        if (size > Size()) {
+        if (size > Size())
+        {
             size = Size();
         }
 
-        return ConstByteView(reinterpret_cast<const ubyte *>(Data()) + offset, size * sizeof(T));
+        return ConstByteView(reinterpret_cast<const ubyte*>(Data()) + offset, size * sizeof(T));
     }
-    
+
     HYP_DEF_STL_BEGIN_END(
         GetBuffer() + m_start_offset,
-        GetBuffer() + m_size
-    )
+        GetBuffer() + m_size)
 
 protected:
-    HYP_FORCE_INLINE T *GetBuffer()
+    HYP_FORCE_INLINE T* GetBuffer()
     {
         return m_allocation.GetBuffer();
     }
 
-    HYP_FORCE_INLINE const T *GetBuffer() const
+    HYP_FORCE_INLINE const T* GetBuffer() const
     {
         return m_allocation.GetBuffer();
     }
@@ -575,9 +637,9 @@ protected:
     SizeType m_size;
 
 protected:
-    SizeType                        m_start_offset;
+    SizeType m_start_offset;
 
-    Allocation<T, AllocatorType>    m_allocation;
+    Allocation<T, AllocatorType> m_allocation;
 };
 
 template <class T, class AllocatorType>
@@ -589,7 +651,7 @@ Array<T, AllocatorType>::Array()
 }
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType>::Array(const Array &other)
+Array<T, AllocatorType>::Array(const Array& other)
     : m_size(other.m_size - other.m_start_offset),
       m_start_offset(0)
 {
@@ -599,16 +661,19 @@ Array<T, AllocatorType>::Array(const Array &other)
 }
 
 template <class T, class AllocatorType>
-Array<T, AllocatorType>::Array(Array &&other) noexcept
+Array<T, AllocatorType>::Array(Array&& other) noexcept
 {
     m_allocation.SetToInitialState();
 
-    if (other.m_allocation.IsDynamic()) {
+    if (other.m_allocation.IsDynamic())
+    {
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
 
         m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
-    } else {
+    }
+    else
+    {
         m_size = other.m_size - other.m_start_offset;
         m_start_offset = 0;
 
@@ -630,9 +695,10 @@ Array<T, AllocatorType>::~Array()
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::operator=(const Array &other) -> Array&
+auto Array<T, AllocatorType>::operator=(const Array& other) -> Array&
 {
-    if (this == std::addressof(other)) {
+    if (this == std::addressof(other))
+    {
         return *this;
     }
 
@@ -649,21 +715,25 @@ auto Array<T, AllocatorType>::operator=(const Array &other) -> Array&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::operator=(Array &&other) noexcept -> Array&
+auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
 {
-    if (this == std::addressof(other)) {
+    if (this == std::addressof(other))
+    {
         return *this;
     }
 
     m_allocation.DestructInRange(m_start_offset, m_size);
     m_allocation.Free();
-    
-    if (other.m_allocation.IsDynamic()) {
+
+    if (other.m_allocation.IsDynamic())
+    {
         m_size = other.m_size;
         m_start_offset = other.m_start_offset;
-        
+
         m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
-    } else {
+    }
+    else
+    {
         m_size = other.m_size - other.m_start_offset;
         m_start_offset = 0;
 
@@ -685,19 +755,24 @@ auto Array<T, AllocatorType>::operator=(Array &&other) noexcept -> Array&
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::ResetOffsets()
 {
-    if (m_start_offset == 0) {
+    if (m_start_offset == 0)
+    {
         return;
     }
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
     // shift all items to left
-    for (SizeType index = m_start_offset; index < m_size; ++index) {
+    for (SizeType index = m_start_offset; index < m_size; ++index)
+    {
         const auto move_index = index - m_start_offset;
 
-        if constexpr (std::is_move_constructible_v<T>) {
+        if constexpr (std::is_move_constructible_v<T>)
+        {
             Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
-        } else {
+        }
+        else
+        {
             Memory::Construct<T>(&buffer[move_index], buffer[index]);
         }
 
@@ -712,7 +787,8 @@ void Array<T, AllocatorType>::ResetOffsets()
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
 {
-    if (capacity == Capacity() && offset == m_start_offset) {
+    if (capacity == Capacity() && offset == m_start_offset)
+    {
         return;
     }
 
@@ -731,14 +807,15 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
     m_size += offset;
 
     m_start_offset = offset;
-    
+
     m_allocation = new_allocation;
 }
 
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Reserve(SizeType capacity)
 {
-    if (Capacity() >= capacity) {
+    if (Capacity() >= capacity)
+    {
         return;
     }
 
@@ -750,39 +827,52 @@ void Array<T, AllocatorType>::Resize(SizeType new_size)
 {
     const SizeType current_size = Size();
 
-    if (new_size == current_size) {
+    if (new_size == current_size)
+    {
         return;
     }
 
-    if (new_size > current_size) {
+    if (new_size > current_size)
+    {
         const SizeType diff = new_size - current_size;
 
-        if (m_size + diff >= Capacity()) {
-            if (Capacity() >= current_size + diff) {
+        if (m_size + diff >= Capacity())
+        {
+            if (Capacity() >= current_size + diff)
+            {
                 ResetOffsets();
-            } else {
+            }
+            else
+            {
                 SetCapacity(CalculateDesiredCapacity(current_size + diff));
             }
         }
 
-        T *buffer = GetBuffer();
+        T* buffer = GetBuffer();
 
-        if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>) {
+        if constexpr (std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>)
+        {
             Memory::MemSet(&buffer[m_size], 0, sizeof(T) * diff);
 
             m_size += diff;
-        } else {
-            while (Size() < new_size) {
+        }
+        else
+        {
+            while (Size() < new_size)
+            {
                 // construct item at index
                 Memory::Construct<T>(&buffer[m_size++]);
             }
         }
-    } else {
-        T *buffer = GetBuffer();
+    }
+    else
+    {
+        T* buffer = GetBuffer();
 
         const SizeType diff = current_size - new_size;
 
-        for (SizeType i = m_size; i > m_start_offset;) {
+        for (SizeType i = m_size; i > m_start_offset;)
+        {
             Memory::Destruct(buffer[--i]);
         }
 
@@ -795,28 +885,37 @@ void Array<T, AllocatorType>::ResizeUninitialized(SizeType new_size)
 {
     const SizeType current_size = Size();
 
-    if (new_size == current_size) {
+    if (new_size == current_size)
+    {
         return;
     }
 
-    if (new_size > current_size) {
+    if (new_size > current_size)
+    {
         const SizeType diff = new_size - current_size;
 
-        if (m_size + diff >= Capacity()) {
-            if (Capacity() >= current_size + diff) {
+        if (m_size + diff >= Capacity())
+        {
+            if (Capacity() >= current_size + diff)
+            {
                 ResetOffsets();
-            } else {
+            }
+            else
+            {
                 SetCapacity(CalculateDesiredCapacity(current_size + diff));
             }
         }
 
         m_size += diff;
-    } else {
-        T *buffer = GetBuffer();
+    }
+    else
+    {
+        T* buffer = GetBuffer();
 
         const SizeType diff = current_size - new_size;
 
-        for (SizeType i = m_size; i > m_start_offset;) {
+        for (SizeType i = m_size; i > m_start_offset;)
+        {
             Memory::Destruct(buffer[--i]);
         }
 
@@ -827,7 +926,8 @@ void Array<T, AllocatorType>::ResizeUninitialized(SizeType new_size)
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Refit()
 {
-    if (Capacity() == Size()) {
+    if (Capacity() == Size())
+    {
         return;
     }
 
@@ -835,19 +935,23 @@ void Array<T, AllocatorType>::Refit()
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushBack(const ValueType &value) -> ValueType&
+auto Array<T, AllocatorType>::PushBack(const ValueType& value) -> ValueType&
 {
-    if (m_size + 1 >= Capacity()) {
-        if (Capacity() >= Size() + 1) {
+    if (m_size + 1 >= Capacity())
+    {
+        if (Capacity() >= Size() + 1)
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + 1));
         }
     }
 
     // set item at index
-    T *buffer = GetBuffer();
-    T *element = &buffer[m_size++];
+    T* buffer = GetBuffer();
+    T* element = &buffer[m_size++];
 
     Memory::Construct<T>(element, value);
 
@@ -855,19 +959,23 @@ auto Array<T, AllocatorType>::PushBack(const ValueType &value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushBack(ValueType &&value) -> ValueType&
+auto Array<T, AllocatorType>::PushBack(ValueType&& value) -> ValueType&
 {
-    if (m_size + 1 >= Capacity()) {
-        if (Capacity() >= Size() + 1) {
+    if (m_size + 1 >= Capacity())
+    {
+        if (Capacity() >= Size() + 1)
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + 1));
         }
     }
 
     // set item at index
-    T *buffer = GetBuffer();
-    T *element = &buffer[m_size++];
+    T* buffer = GetBuffer();
+    T* element = &buffer[m_size++];
 
     Memory::Construct<T>(element, std::move(value));
 
@@ -875,27 +983,35 @@ auto Array<T, AllocatorType>::PushBack(ValueType &&value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushFront(const ValueType &value) -> ValueType&
+auto Array<T, AllocatorType>::PushFront(const ValueType& value) -> ValueType&
 {
-    if (m_start_offset == 0) {
+    if (m_start_offset == 0)
+    {
         // have to push everything else over by 1
-        if (m_size + push_front_padding >= Capacity()) {
+        if (m_size + push_front_padding >= Capacity())
+        {
             SetCapacity(
                 CalculateDesiredCapacity(Size() + push_front_padding),
                 push_front_padding // copy_offset is 1 so we have a space for 1 at the start
             );
-        } else {
-            T *buffer = GetBuffer();
+        }
+        else
+        {
+            T* buffer = GetBuffer();
 
             // shift over without realloc
-            for (SizeType index = Size(); index > 0;) {
+            for (SizeType index = Size(); index > 0;)
+            {
                 --index;
 
                 const auto move_index = index + push_front_padding;
 
-                if constexpr (std::is_move_constructible_v<T>) {
+                if constexpr (std::is_move_constructible_v<T>)
+                {
                     Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
-                } else {
+                }
+                else
+                {
                     Memory::Construct<T>(&buffer[move_index], buffer[index]);
                 }
 
@@ -917,27 +1033,35 @@ auto Array<T, AllocatorType>::PushFront(const ValueType &value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::PushFront(ValueType &&value) -> ValueType&
+auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 {
-    if (m_start_offset == 0) {
+    if (m_start_offset == 0)
+    {
         // have to push everything else over by 1
-        if (m_size + push_front_padding >= Capacity()) {
+        if (m_size + push_front_padding >= Capacity())
+        {
             SetCapacity(
                 CalculateDesiredCapacity(Size() + push_front_padding),
                 push_front_padding // copy_offset is 1 so we have a space for 1 at the start
             );
-        } else {
-            T *buffer = GetBuffer();
+        }
+        else
+        {
+            T* buffer = GetBuffer();
 
             // shift over without realloc
-            for (SizeType index = Size(); index > 0;) {
+            for (SizeType index = Size(); index > 0;)
+            {
                 --index;
 
                 const auto move_index = index + push_front_padding;
 
-                if constexpr (std::is_move_constructible_v<T>) {
+                if constexpr (std::is_move_constructible_v<T>)
+                {
                     Memory::Construct<T>(&buffer[move_index], std::move(buffer[index]));
-                } else {
+                }
+                else
+                {
                     Memory::Construct<T>(&buffer[move_index], buffer[index]);
                 }
 
@@ -953,8 +1077,8 @@ auto Array<T, AllocatorType>::PushFront(ValueType &&value) -> ValueType&
     // in-place
     --m_start_offset;
 
-    T *buffer = GetBuffer();
-    T *element = &buffer[m_start_offset];
+    T* buffer = GetBuffer();
+    T* element = &buffer[m_start_offset];
 
     Memory::Construct<T>(element, std::move(value));
 
@@ -962,38 +1086,48 @@ auto Array<T, AllocatorType>::PushFront(ValueType &&value) -> ValueType&
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Concat(const Array &other)
+void Array<T, AllocatorType>::Concat(const Array& other)
 {
-    if (m_size + other.Size() >= Capacity()) {
-        if (Capacity() >= Size() + other.Size()) {
+    if (m_size + other.Size() >= Capacity())
+    {
+        if (Capacity() >= Size() + other.Size())
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + other.Size()));
         }
     }
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (SizeType i = 0; i < other.Size(); ++i) {
+    for (SizeType i = 0; i < other.Size(); ++i)
+    {
         // set item at index
         Memory::Construct<T>(&buffer[m_size++], other[i]);
     }
 }
 
 template <class T, class AllocatorType>
-void Array<T, AllocatorType>::Concat(Array &&other)
+void Array<T, AllocatorType>::Concat(Array&& other)
 {
-    if (m_size + other.Size() >= Capacity()) {
-        if (Capacity() >= Size() + other.Size()) {
+    if (m_size + other.Size() >= Capacity())
+    {
+        if (Capacity() >= Size() + other.Size())
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + other.Size()));
         }
     }
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (SizeType i = 0; i < other.Size(); ++i) {
+    for (SizeType i = 0; i < other.Size(); ++i)
+    {
         // set item at index
         Memory::Construct<T>(&buffer[m_size++], std::move(other[i]));
     }
@@ -1006,19 +1140,26 @@ void Array<T, AllocatorType>::Shift(SizeType count)
 {
     SizeType new_size = 0;
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (SizeType index = m_start_offset; index < m_size; ++index, ++new_size) {
-        if (index + count >= m_size) {
+    for (SizeType index = m_start_offset; index < m_size; ++index, ++new_size)
+    {
+        if (index + count >= m_size)
+        {
             break;
         }
 
-        if constexpr (std::is_move_assignable_v<T>) {
+        if constexpr (std::is_move_assignable_v<T>)
+        {
             buffer[index] = std::move(buffer[index + count]);
-        } else if constexpr (std::is_move_constructible_v<T>) {
+        }
+        else if constexpr (std::is_move_constructible_v<T>)
+        {
             Memory::Destruct(buffer[index]);
             Memory::Construct<T>(&buffer[index], std::move(buffer[index + count]));
-        } else {
+        }
+        else
+        {
             buffer[index] = buffer[index + count];
         }
 
@@ -1029,45 +1170,52 @@ void Array<T, AllocatorType>::Shift(SizeType count)
     m_size = new_size;
 }
 
-
 template <class T, class AllocatorType>
 Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) const
 {
-    if (first < 0) {
+    if (first < 0)
+    {
         first = Size() + first;
     }
 
-    if (last < 0) {
+    if (last < 0)
+    {
         last = Size() + last;
     }
 
-    if (first < 0) {
+    if (first < 0)
+    {
         first = 0;
     }
 
-    if (last < 0) {
+    if (last < 0)
+    {
         last = 0;
     }
 
-    if (first > last) {
+    if (first > last)
+    {
         return Array<T, AllocatorType>();
     }
 
-    if (first >= Size()) {
+    if (first >= Size())
+    {
         return Array<T, AllocatorType>();
     }
 
-    if (last >= Size()) {
+    if (last >= Size())
+    {
         last = Size() - 1;
     }
 
     Array<T, AllocatorType> result;
     result.ResizeUninitialized(last - first + 1);
 
-    const T *buffer = GetBuffer();
-    T *result_buffer = result.GetBuffer();
+    const T* buffer = GetBuffer();
+    T* result_buffer = result.GetBuffer();
 
-    for (SizeType i = 0; i < result.m_size; ++i) {
+    for (SizeType i = 0; i < result.m_size; ++i)
+    {
         Memory::Construct<T>(&result_buffer[i], buffer[first + i]);
     }
 
@@ -1077,16 +1225,18 @@ Array<T, AllocatorType> Array<T, AllocatorType>::Slice(int first, int last) cons
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Reverse()
 {
-    if (Size() < 2) {
+    if (Size() < 2)
+    {
         return;
     }
-    
-    T *buffer = GetBuffer();
+
+    T* buffer = GetBuffer();
 
     SizeType left = m_start_offset;
     SizeType right = m_size - 1;
 
-    while (left < right) {
+    while (left < right)
+    {
         std::swap(buffer[left], buffer[right]);
 
         ++left;
@@ -1101,19 +1251,24 @@ auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
     const Iterator end = End();
     const SizeType size_offset = Size();
 
-    if (iter < begin || iter >= end) {
+    if (iter < begin || iter >= end)
+    {
         return end;
     }
 
     const SizeType dist = iter - begin;
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (SizeType index = dist; index < size_offset - 1; ++index) {
-        if constexpr (std::is_move_constructible_v<T>) {
+    for (SizeType index = dist; index < size_offset - 1; ++index)
+    {
+        if constexpr (std::is_move_constructible_v<T>)
+        {
             Memory::Destruct(buffer[m_start_offset + index]);
             Memory::Construct<T>(&buffer[m_start_offset + index], std::move(buffer[m_start_offset + index + 1]));
-        } else {
+        }
+        else
+        {
             Memory::Destruct(buffer[m_start_offset + index]);
             Memory::Construct<T>(&buffer[m_start_offset + index], buffer[m_start_offset + index + 1]);
         }
@@ -1121,16 +1276,17 @@ auto Array<T, AllocatorType>::Erase(ConstIterator iter) -> Iterator
 
     Memory::Destruct(buffer[m_size - 1]);
     --m_size;
-    
+
     return begin + dist;
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Erase(const T &value) -> Iterator
+auto Array<T, AllocatorType>::Erase(const T& value) -> Iterator
 {
     ConstIterator iter = Base::Find(value);
 
-    if (iter != End()) {
+    if (iter != End())
+    {
         return Erase(iter);
     }
 
@@ -1144,15 +1300,18 @@ auto Array<T, AllocatorType>::EraseAt(typename Array::Base::KeyType index) -> It
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType &value) -> Iterator
+auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType& value) -> Iterator
 {
     const SizeType dist = where - Begin();
 
-    if (where == End()) {
+    if (where == End())
+    {
         PushBack(std::move(value));
-        
+
         return &GetBuffer()[m_size - 1];
-    } else if (where == Begin() && dist <= m_start_offset) {
+    }
+    else if (where == Begin() && dist <= m_start_offset)
+    {
         PushFront(std::move(value));
 
         return Begin();
@@ -1162,10 +1321,14 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType &value
     AssertThrow(where >= Begin() && where <= End());
 #endif
 
-    if (m_size + 1 >= Capacity()) {
-        if (Capacity() >= Size() + 1) {
+    if (m_size + 1 >= Capacity())
+    {
+        if (Capacity() >= Size() + 1)
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + 1));
         }
     }
@@ -1176,12 +1339,16 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType &value
 
     SizeType index;
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (index = Size(); index > dist; --index) {
-        if constexpr (std::is_move_constructible_v<T>) {
+    for (index = Size(); index > dist; --index)
+    {
+        if constexpr (std::is_move_constructible_v<T>)
+        {
             Memory::Construct<T>(&buffer[index + m_start_offset], std::move(buffer[index + m_start_offset - 1]));
-        } else {
+        }
+        else
+        {
             Memory::Construct<T>(&buffer[index + m_start_offset], buffer[index + m_start_offset - 1]);
         }
 
@@ -1196,15 +1363,18 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, const ValueType &value
 }
 
 template <class T, class AllocatorType>
-auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType &&value) -> Iterator
+auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType&& value) -> Iterator
 {
     const SizeType dist = where - Begin();
 
-    if (where == End()) {
+    if (where == End())
+    {
         PushBack(std::move(value));
-        
+
         return &GetBuffer()[m_size - 1];
-    } else if (where == Begin() && dist <= m_start_offset) {
+    }
+    else if (where == Begin() && dist <= m_start_offset)
+    {
         PushFront(std::move(value));
 
         return Begin();
@@ -1214,10 +1384,14 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType &&value) -> 
     AssertThrow(where >= Begin() && where <= End());
 #endif
 
-    if (m_size + 1 >= Capacity()) {
-        if (Capacity() >= Size() + 1) {
+    if (m_size + 1 >= Capacity())
+    {
+        if (Capacity() >= Size() + 1)
+        {
             ResetOffsets();
-        } else {
+        }
+        else
+        {
             SetCapacity(CalculateDesiredCapacity(Size() + 1));
         }
     }
@@ -1228,12 +1402,16 @@ auto Array<T, AllocatorType>::Insert(ConstIterator where, ValueType &&value) -> 
 
     SizeType index;
 
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    for (index = Size(); index > dist; --index) {
-        if constexpr (std::is_move_constructible_v<T>) {
+    for (index = Size(); index > dist; --index)
+    {
+        if constexpr (std::is_move_constructible_v<T>)
+        {
             Memory::Construct<T>(&buffer[index + m_start_offset], std::move(buffer[index + m_start_offset - 1]));
-        } else {
+        }
+        else
+        {
             Memory::Construct<T>(&buffer[index + m_start_offset], buffer[index + m_start_offset - 1]);
         }
 
@@ -1282,9 +1460,10 @@ auto Array<T, AllocatorType>::PopBack() -> ValueType
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Clear()
 {
-    T *buffer = GetBuffer();
+    T* buffer = GetBuffer();
 
-    while (m_size - m_start_offset) {
+    while (m_size - m_start_offset)
+    {
         // manual destructor call
         Memory::Destruct(buffer[m_size - 1]);
         --m_size;
@@ -1293,7 +1472,7 @@ void Array<T, AllocatorType>::Clear()
     m_size = 0;
     m_start_offset = 0;
 
-    //Refit();
+    // Refit();
 }
 
 } // namespace containers
@@ -1303,10 +1482,22 @@ using Array = containers::Array<T, AllocatorType>;
 
 // traits
 template <class T>
-struct IsArray { enum { value = false }; };
+struct IsArray
+{
+    enum
+    {
+        value = false
+    };
+};
 
 template <class T, class AllocatorType>
-struct IsArray<Array<T, AllocatorType>> { enum { value = true }; };
+struct IsArray<Array<T, AllocatorType>>
+{
+    enum
+    {
+        value = true
+    };
+};
 
 } // namespace hyperion
 

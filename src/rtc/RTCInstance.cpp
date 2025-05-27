@@ -13,7 +13,7 @@ RTCInstance::RTCInstance(RTCServerParams server_params)
 #endif // HYP_LIBDATACHANNEL
 }
 
-RC<RTCTrack> RTCInstance::CreateTrack(RTCTrackType track_type)
+RC<RTCTrackBase> RTCInstance::CreateTrack(RTCTrackType track_type)
 {
 #ifdef HYP_LIBDATACHANNEL
     return MakeRefCountedPtr<LibDataChannelRTCTrack>(track_type);
@@ -22,7 +22,7 @@ RC<RTCTrack> RTCInstance::CreateTrack(RTCTrackType track_type)
 #endif // HYP_LIBDATACHANNEL
 }
 
-RC<RTCStream> RTCInstance::CreateStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder> &&encoder)
+RC<RTCStream> RTCInstance::CreateStream(RTCStreamType stream_type, UniquePtr<RTCStreamEncoder>&& encoder)
 {
 #ifdef HYP_LIBDATACHANNEL
     return MakeRefCountedPtr<LibDataChannelRTCStream>(stream_type, std::move(encoder));

@@ -26,24 +26,26 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Shadows);
 
-ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager &entity_manager)
+ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager& entity_manager)
     : System(entity_manager)
 {
 }
 
-void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity> &entity)
+void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    ShadowMapComponent &shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
-    LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
+    ShadowMapComponent& shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
+    LightComponent& light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
-    if (shadow_map_component.render_subsystem) {
+    if (shadow_map_component.render_subsystem)
+    {
         shadow_map_component.render_subsystem->RemoveFromEnvironment();
         shadow_map_component.render_subsystem.Reset();
     }
 
-    if (!light_component.light) {
+    if (!light_component.light)
+    {
         HYP_LOG(Shadows, Warning, "LightComponent is not valid for Entity #{}", entity->GetID().Value());
 
         return;
@@ -56,10 +58,11 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    ShadowMapComponent &shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
-    LightComponent &light_component = GetEntityManager().GetComponent<LightComponent>(entity);
+    ShadowMapComponent& shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
+    LightComponent& light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
-    if (shadow_map_component.render_subsystem) {
+    if (shadow_map_component.render_subsystem)
+    {
         shadow_map_component.render_subsystem->RemoveFromEnvironment();
         shadow_map_component.render_subsystem.Reset();
     }
@@ -67,30 +70,37 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
-        if (!light_component.light) {
+    for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    {
+        if (!light_component.light)
+        {
             continue;
         }
 
-        if (!shadow_map_component.render_subsystem) {
+        if (!shadow_map_component.render_subsystem)
+        {
             continue;
         }
 
         // only update shadow map every 10 ticks
-        if (shadow_map_component.update_counter++ % 10 != 0) {
+        if (shadow_map_component.update_counter++ % 10 != 0)
+        {
             continue;
         }
 
-        switch (light_component.light->GetLightType()) {
-        case LightType::DIRECTIONAL: {
-            DirectionalLightShadowRenderer *shadow_renderer = static_cast<DirectionalLightShadowRenderer *>(shadow_map_component.render_subsystem.Get());
+        switch (light_component.light->GetLightType())
+        {
+        case LightType::DIRECTIONAL:
+        {
+            DirectionalLightShadowRenderer* shadow_renderer = static_cast<DirectionalLightShadowRenderer*>(shadow_map_component.render_subsystem.Get());
 
-            const Vec3f &center = transform_component.transform.GetTranslation();
+            const Vec3f& center = transform_component.transform.GetTranslation();
             const Vec3f light_direction = light_component.light->GetPosition().Normalized() * -1.0f;
 
-            const Handle<Camera> &shadow_camera = shadow_renderer->GetCamera();
+            const Handle<Camera>& shadow_camera = shadow_renderer->GetCamera();
 
-            if (!shadow_camera) {
+            if (!shadow_camera)
+            {
                 continue;
             }
 
@@ -101,7 +111,8 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
 
             FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
-            for (Vec3f &corner : corners) {
+            for (Vec3f& corner : corners)
+            {
                 corner = shadow_camera->GetViewMatrix() * corner;
 
                 aabb.max = MathUtil::Max(aabb.max, corner);
@@ -125,24 +136,25 @@ void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
     }
 }
 
-void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component)
+void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent& shadow_map_component, LightComponent& light_component)
 {
     AssertThrow(light_component.light->IsReady());
 
-    if (shadow_map_component.render_subsystem) {
+    if (shadow_map_component.render_subsystem)
+    {
         shadow_map_component.render_subsystem->RemoveFromEnvironment();
         shadow_map_component.render_subsystem.Reset();
     }
 
-    switch (light_component.light->GetLightType()) {
+    switch (light_component.light->GetLightType())
+    {
     case LightType::DIRECTIONAL:
         shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
             GetScene()->HandleFromThis(),
             TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
             shadow_map_component.resolution,
-            shadow_map_component.mode
-        );
+            shadow_map_component.mode);
 
         break;
     case LightType::POINT:
@@ -150,8 +162,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent 
             Name::Unique("shadow_map_renderer_point"),
             GetScene()->HandleFromThis(),
             TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
-            shadow_map_component.resolution
-        );
+            shadow_map_component.resolution);
 
         break;
     default:

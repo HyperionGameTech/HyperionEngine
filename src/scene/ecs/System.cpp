@@ -7,17 +7,17 @@
 
 namespace hyperion {
 
-Scene *SystemBase::GetScene() const
+Scene* SystemBase::GetScene() const
 {
     return m_entity_manager.GetScene();
 }
 
-World *SystemBase::GetWorld() const
+World* SystemBase::GetWorld() const
 {
     return m_entity_manager.GetWorld();
 }
 
-void SystemBase::SetWorld(World *world)
+void SystemBase::SetWorld(World* world)
 {
     OnWorldChanged(world, GetWorld());
 }

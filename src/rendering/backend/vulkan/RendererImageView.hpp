@@ -15,24 +15,22 @@ class VulkanImage;
 class VulkanImageView final : public ImageViewBase
 {
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
     HYP_API VulkanImageView(
-        const VulkanImageRef &image
-    );
+        const VulkanImageRef& image);
 
     HYP_API VulkanImageView(
-        const VulkanImageRef &image,
+        const VulkanImageRef& image,
         uint32 mip_index,
         uint32 num_mips,
         uint32 face_index,
-        uint32 num_faces
-    );
+        uint32 num_faces);
 
     HYP_API virtual ~VulkanImageView() override;
-    
+
     HYP_FORCE_INLINE VkImageView GetVulkanHandle() const
-        { return m_handle; }
+    {
+        return m_handle;
+    }
 
     HYP_API virtual bool IsCreated() const override;
 

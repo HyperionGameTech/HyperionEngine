@@ -11,18 +11,18 @@
 #include <core/profiling/ProfileScope.hpp>
 
 #if defined(HYP_CURL) && HYP_CURL
-#include <curl/curl.h>
+    #include <curl/curl.h>
 #endif
 
 namespace hyperion {
 namespace net {
 
-static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
-    HTTPResponse *response = static_cast<HTTPResponse *>(userp);
+    HTTPResponse* response = static_cast<HTTPResponse*>(userp);
     const size_t realsize = size * nmemb;
 
-    response->OnDataReceived(Span<char>(static_cast<char *>(contents), realsize));
+    response->OnDataReceived(Span<char>(static_cast<char*>(contents), realsize));
 
     return realsize;
 }
@@ -34,7 +34,7 @@ HTTPResponse::HTTPResponse()
 {
 }
 
-HTTPResponse::HTTPResponse(HTTPResponse &&other) noexcept
+HTTPResponse::HTTPResponse(HTTPResponse&& other) noexcept
     : m_body(std::move(other.m_body)),
       m_status_code(other.m_status_code),
       OnDataReceivedDelegate(std::move(other.OnDataReceivedDelegate)),
@@ -64,7 +64,7 @@ void HTTPResponse::OnDataReceived(Span<char> data)
 void HTTPResponse::OnComplete(int status_code)
 {
     HYP_SCOPE;
-    
+
     m_status_code = status_code;
 
     OnCompleteDelegate(m_status_code);
@@ -76,14 +76,16 @@ Optional<json::JSONValue> HTTPResponse::ToJSON() const
 
     Mutex::Guard guard(m_mutex);
 
-    if (m_body.Empty()) {
-        return { };
+    if (m_body.Empty())
+    {
+        return {};
     }
 
     const json::ParseResult parse_result = json::JSON::Parse(String(m_body.ToByteView()));
 
-    if (!parse_result.ok) {
-        return { };
+    if (!parse_result.ok)
+    {
+        return {};
     }
 
     return parse_result.value;
@@ -93,13 +95,13 @@ Optional<json::JSONValue> HTTPResponse::ToJSON() const
 
 #pragma region HTTPRequest
 
-HTTPRequest::HTTPRequest(const String &url, HTTPMethod method)
+HTTPRequest::HTTPRequest(const String& url, HTTPMethod method)
     : m_url(url),
       m_method(method)
 {
 }
 
-HTTPRequest::HTTPRequest(const String &url, const json::JSONValue &body, HTTPMethod method)
+HTTPRequest::HTTPRequest(const String& url, const json::JSONValue& body, HTTPMethod method)
     : m_url(url),
       m_method(method),
       m_content_type("application/json")
@@ -108,7 +110,7 @@ HTTPRequest::HTTPRequest(const String &url, const json::JSONValue &body, HTTPMet
     m_body = ByteBuffer(body_string.Size(), body_string.Data());
 }
 
-HTTPRequest::HTTPRequest(const HTTPRequest &other)
+HTTPRequest::HTTPRequest(const HTTPRequest& other)
     : m_url(other.m_url),
       m_method(other.m_method),
       m_body(other.m_body),
@@ -116,9 +118,10 @@ HTTPRequest::HTTPRequest(const HTTPRequest &other)
 {
 }
 
-HTTPRequest &HTTPRequest::operator=(const HTTPRequest &other)
+HTTPRequest& HTTPRequest::operator=(const HTTPRequest& other)
 {
-    if (this != &other) {
+    if (this != &other)
+    {
         m_url = other.m_url;
         m_method = other.m_method;
         m_body = other.m_body;
@@ -128,7 +131,7 @@ HTTPRequest &HTTPRequest::operator=(const HTTPRequest &other)
     return *this;
 }
 
-HTTPRequest::HTTPRequest(HTTPRequest &&other) noexcept
+HTTPRequest::HTTPRequest(HTTPRequest&& other) noexcept
     : m_url(std::move(other.m_url)),
       m_method(other.m_method),
       m_body(std::move(other.m_body)),
@@ -136,9 +139,10 @@ HTTPRequest::HTTPRequest(HTTPRequest &&other) noexcept
 {
 }
 
-HTTPRequest &HTTPRequest::operator=(HTTPRequest &&other) noexcept
+HTTPRequest& HTTPRequest::operator=(HTTPRequest&& other) noexcept
 {
-    if (this != &other) {
+    if (this != &other)
+    {
         m_url = std::move(other.m_url);
         m_method = other.m_method;
         m_body = std::move(other.m_body);
@@ -158,95 +162,102 @@ Task<HTTPResponse> HTTPRequest::Send()
 
     RC<NetRequestThread> net_request_thread = GetGlobalNetRequestThread();
 
-    if (!net_request_thread) {
+    if (!net_request_thread)
+    {
         HYP_LOG(Net, Error, "No global NetRequestThread set!");
 
         return Task<HTTPResponse>();
     }
-    
+
     return net_request_thread->GetScheduler().Enqueue([url = m_url, content_type = m_content_type, body = m_body, method = m_method]() -> HTTPResponse
-    {
-        HYP_SCOPE;
-    
-        HTTPResponse response;
+        {
+            HYP_SCOPE;
+
+            HTTPResponse response;
 
 #if defined(HYP_CURL) && HYP_CURL
-        CURL *curl = curl_easy_init();
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, url.Data());
+            CURL* curl = curl_easy_init();
+            if (curl)
+            {
+                curl_easy_setopt(curl, CURLOPT_URL, url.Data());
 
-            // Set the request body
-            if (!body.Empty()) {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.Data());
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.Size());
+                // Set the request body
+                if (!body.Empty())
+                {
+                    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.Data());
+                    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.Size());
+                }
+
+                // set headers
+                struct curl_slist* headers = nullptr;
+
+                if (!content_type.Empty())
+                {
+                    headers = curl_slist_append(headers, HYP_FORMAT("Content-Type: {}", content_type).Data());
+                }
+
+                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+                switch (method)
+                {
+                case HTTPMethod::GET:
+                    curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+                    break;
+                case HTTPMethod::POST:
+                    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+                    break;
+                case HTTPMethod::PUT:
+                    curl_easy_setopt(curl, CURLOPT_PUT, 1L);
+                    break;
+                case HTTPMethod::PATCH:
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+                    break;
+                case HTTPMethod::DELETE_:
+                    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+                    break;
+                default:
+                    break;
+                }
+
+                // Set the write callback function
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+
+                // Set the response object as the user data
+                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+
+                // Perform the request
+                CURLcode res = curl_easy_perform(curl);
+                if (res != CURLE_OK)
+                {
+                    HYP_LOG(Net, Error, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
+                }
+
+                // Get the response code
+                long response_code = 0;
+                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+                curl_easy_cleanup(curl);
+
+                response.OnComplete(int(response_code));
+
+                return response;
             }
+            else
+            {
+                HYP_LOG(Net, Error, "curl_easy_init() failed");
 
-            // set headers
-            struct curl_slist *headers = nullptr;
+                response.OnComplete(-1);
 
-            if (!content_type.Empty()) {
-                headers = curl_slist_append(headers, HYP_FORMAT("Content-Type: {}", content_type).Data());
+                return response;
             }
-
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-            switch (method) {
-            case HTTPMethod::GET:
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
-                break;
-            case HTTPMethod::POST:
-                curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                break;
-            case HTTPMethod::PUT:
-                curl_easy_setopt(curl, CURLOPT_PUT, 1L);
-                break;
-            case HTTPMethod::PATCH:
-                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-                break;
-            case HTTPMethod::DELETE_:
-                curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-                break;
-            default:
-                break;
-            }
-
-            // Set the write callback function
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-
-            // Set the response object as the user data
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-
-            // Perform the request
-            CURLcode res = curl_easy_perform(curl);
-            if (res != CURLE_OK) {
-                HYP_LOG(Net, Error, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
-            }
-
-            // Get the response code
-            long response_code = 0;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-
-            curl_easy_cleanup(curl);
-
-            response.OnComplete(int(response_code));
-
-            return response;
-
-        } else {
-            HYP_LOG(Net, Error, "curl_easy_init() failed");
+#else
+            HYP_LOG(Net, Error, "No HTTP request implementation available");
 
             response.OnComplete(-1);
 
             return response;
-        }
-#else
-        HYP_LOG(Net, Error, "No HTTP request implementation available");
-
-        response.OnComplete(-1);
-
-        return response;
 #endif
-    });
+        });
 }
 
 #pragma endregion HTTPRequest

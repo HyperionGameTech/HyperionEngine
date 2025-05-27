@@ -18,7 +18,8 @@ struct HaltonSequence
 
     HaltonSequence()
     {
-        for (uint32 index = 0; index < size; index++) {
+        for (uint32 index = 0; index < size; index++)
+        {
             sequence[index].x = GetHalton(index + 1, 2);
             sequence[index].y = GetHalton(index + 1, 3);
         }
@@ -32,11 +33,13 @@ struct HaltonSequence
         float r = 0.0f;
         uint32 current = index;
 
-        do {
+        do
+        {
             f = f / float(base);
             r = r + f * (current % base);
             current = current / base;
-        } while (current != 0);
+        }
+        while (current != 0);
 
         return r;
     }

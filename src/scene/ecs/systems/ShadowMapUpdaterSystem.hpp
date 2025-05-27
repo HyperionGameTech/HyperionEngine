@@ -13,26 +13,21 @@
 
 namespace hyperion {
 
-class ShadowMapUpdaterSystem : public System<
-    ShadowMapUpdaterSystem,
-    ComponentDescriptor<ShadowMapComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-    ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
+class ShadowMapUpdaterSystem : public System<ShadowMapUpdaterSystem, ComponentDescriptor<ShadowMapComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
 
-    ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false>
->
+                                   ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    ShadowMapUpdaterSystem(EntityManager &entity_manager);
+    ShadowMapUpdaterSystem(EntityManager& entity_manager);
     virtual ~ShadowMapUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    void AddRenderSubsystemToEnvironment(ShadowMapComponent &shadow_map_component, LightComponent &light_component);
+    void AddRenderSubsystemToEnvironment(ShadowMapComponent& shadow_map_component, LightComponent& light_component);
 };
 
 } // namespace hyperion

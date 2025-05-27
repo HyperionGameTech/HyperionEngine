@@ -22,10 +22,10 @@ namespace hyperion {
 
 enum class DataAccessFlags : uint32
 {
-    ACCESS_NONE     = 0x0,
-    ACCESS_READ     = 0x1,
-    ACCESS_WRITE    = 0x2,
-    ACCESS_RW       = ACCESS_READ | ACCESS_WRITE
+    ACCESS_NONE = 0x0,
+    ACCESS_READ = 0x1,
+    ACCESS_WRITE = 0x2,
+    ACCESS_RW = ACCESS_READ | ACCESS_WRITE
 };
 
 HYP_MAKE_ENUM_FLAGS(DataAccessFlags)
@@ -41,10 +41,10 @@ struct SuppressDataRaceDetectorContext
 class HYP_API DataRaceDetector
 {
     struct ThreadAccessState;
-    
+
     static constexpr SizeType num_preallocated_states = g_max_static_thread_ids;
 
-    static const FixedArray<ThreadAccessState, num_preallocated_states> &GetPreallocatedStates();
+    static const FixedArray<ThreadAccessState, num_preallocated_states>& GetPreallocatedStates();
 
 public:
     struct DataAccessState
@@ -56,18 +56,18 @@ public:
     class DataAccessScope
     {
     public:
-        DataAccessScope(EnumFlags<DataAccessFlags> flags, const DataRaceDetector &detector, const DataAccessState &state = { });
+        DataAccessScope(EnumFlags<DataAccessFlags> flags, const DataRaceDetector& detector, const DataAccessState& state = {});
         ~DataAccessScope();
 
     private:
-        EnumFlags<DataAccessFlags>  m_flags;
-        DataRaceDetector            &m_detector;
-        ThreadID                    m_thread_id;
+        EnumFlags<DataAccessFlags> m_flags;
+        DataRaceDetector& m_detector;
+        ThreadID m_thread_id;
     };
 
     DataRaceDetector();
-    
-    DataRaceDetector(const DataRaceDetector &other)
+
+    DataRaceDetector(const DataRaceDetector& other)
         : m_preallocated_states(other.m_preallocated_states),
           m_dynamic_states(other.m_dynamic_states),
           m_writers(other.m_writers.Get(MemoryOrder::ACQUIRE)),
@@ -75,9 +75,9 @@ public:
     {
     }
 
-    DataRaceDetector &operator=(const DataRaceDetector &other)  = delete;
+    DataRaceDetector& operator=(const DataRaceDetector& other) = delete;
 
-    DataRaceDetector(DataRaceDetector &&other) noexcept
+    DataRaceDetector(DataRaceDetector&& other) noexcept
         : m_preallocated_states(std::move(other.m_preallocated_states)),
           m_dynamic_states(std::move(other.m_dynamic_states)),
           m_writers(other.m_writers.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
@@ -85,39 +85,41 @@ public:
     {
     }
 
-    DataRaceDetector &operator=(DataRaceDetector &&other)       = delete;
+    DataRaceDetector& operator=(DataRaceDetector&& other) = delete;
     ~DataRaceDetector();
 
-    EnumFlags<DataAccessFlags> AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState &state = { });
+    EnumFlags<DataAccessFlags> AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state = {});
     void RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags);
 
 private:
     void LogDataRace(uint64 readers_mask, uint64 writers_mask) const;
-    void GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>> &out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>> &out_writer_thread_ids) const;
+    void GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>>& out_writer_thread_ids) const;
 
     struct ThreadAccessState
     {
-        ThreadID                    thread_id;
-        EnumFlags<DataAccessFlags>  access = DataAccessFlags::ACCESS_NONE;
-        uint32                      original_index = ~0u;
-        DataAccessState             state;
+        ThreadID thread_id;
+        EnumFlags<DataAccessFlags> access = DataAccessFlags::ACCESS_NONE;
+        uint32 original_index = ~0u;
+        DataAccessState state;
     };
 
-    FixedArray<ThreadAccessState, num_preallocated_states>  m_preallocated_states;
+    FixedArray<ThreadAccessState, num_preallocated_states> m_preallocated_states;
 
-    Array<ThreadAccessState>                                m_dynamic_states;
-    mutable Mutex                                           m_dynamic_states_mutex;
+    Array<ThreadAccessState> m_dynamic_states;
+    mutable Mutex m_dynamic_states_mutex;
 
     // Indices of ThreadAccessState
-    AtomicVar<uint64>                                       m_writers;
-    AtomicVar<uint64>                                       m_readers;
+    AtomicVar<uint64> m_writers;
+    AtomicVar<uint64> m_readers;
 };
 #else
 
 class DataRaceDetector
 {
 public:
-    class DataAccessScope { };
+    class DataAccessScope
+    {
+    };
 };
 
 #endif

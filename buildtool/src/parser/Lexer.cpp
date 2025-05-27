@@ -193,7 +193,7 @@ Token Lexer::NextToken()
         int pos_change = 0;
         utf::u32char bad_token = m_source_stream.Next(pos_change);
         utf::u8char bad_token_str[sizeof(bad_token)] = { '\0' };
-        utf::char32to8(bad_token, bad_token_str);
+        utf::Char32to8(bad_token, bad_token_str);
         
         m_compilation_unit->GetErrorList().AddError(CompilerError(
             LEVEL_ERROR,
@@ -523,7 +523,7 @@ Token Lexer::ReadDocumentation()
             break;
         } else {
             utf::u8char ch[4] = {'\0'};
-            utf::char32to8(m_source_stream.Peek(), ch);
+            utf::Char32to8(m_source_stream.Peek(), ch);
             // append value
             value += reinterpret_cast<const String::CharType *>(ch);
             

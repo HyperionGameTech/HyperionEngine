@@ -19,6 +19,7 @@
 namespace hyperion {
 
 HYP_CLASS()
+
 class HYP_API SkydomeRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(SkydomeRenderer);
@@ -27,25 +28,29 @@ public:
     SkydomeRenderer(Name name, Vec2u dimensions = { 1024, 1024 });
     virtual ~SkydomeRenderer() override = default;
 
-    HYP_FORCE_INLINE const Handle<Texture> &GetCubemap() const
-        { return m_cubemap; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetCubemap() const
+    {
+        return m_cubemap;
+    }
 
-    HYP_FORCE_INLINE const Handle<EnvProbe> &GetEnvProbe() const
-        { return m_env_probe; }
+    HYP_FORCE_INLINE const Handle<EnvProbe>& GetEnvProbe() const
+    {
+        return m_env_probe;
+    }
 
 private:
     virtual void Init() override;
     virtual void InitGame() override;
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase *frame) override;
+    virtual void OnRender(FrameBase* frame) override;
 
-    Vec2u               m_dimensions;
-    Handle<Texture>     m_cubemap;
-    Handle<Camera>      m_camera;
+    Vec2u m_dimensions;
+    Handle<Texture> m_cubemap;
+    Handle<Camera> m_camera;
 
-    Handle<Scene>       m_virtual_scene;
-    Handle<EnvProbe>    m_env_probe;
+    Handle<Scene> m_virtual_scene;
+    Handle<EnvProbe> m_env_probe;
 };
 
 } // namespace hyperion

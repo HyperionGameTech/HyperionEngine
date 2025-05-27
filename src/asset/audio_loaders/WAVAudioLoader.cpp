@@ -7,36 +7,41 @@ namespace hyperion {
 
 using WAVAudio = WAVAudioLoader::WAVAudio;
 
-AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState &state) const
+AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState& state) const
 {
     WAVAudio object;
 
     state.stream.Read(&object.riff_header);
 
-    if (std::strncmp(reinterpret_cast<const char *>(object.riff_header.chunk_id), "RIFF", 4) != 0) {
+    if (std::strncmp(reinterpret_cast<const char*>(object.riff_header.chunk_id), "RIFF", 4) != 0)
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "invalid RIFF header");
     }
 
-    if (std::strncmp(reinterpret_cast<const char *>(object.riff_header.format), "WAVE", 4) != 0) {
+    if (std::strncmp(reinterpret_cast<const char*>(object.riff_header.format), "WAVE", 4) != 0)
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "invalid WAVE header");
     }
-    
+
     state.stream.Read(&object.wave_format);
 
-    if (std::strncmp(reinterpret_cast<const char *>(object.wave_format.sub_chunk_id), "fmt ", 4) != 0) {
+    if (std::strncmp(reinterpret_cast<const char*>(object.wave_format.sub_chunk_id), "fmt ", 4) != 0)
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "invalid wave sub chunk id");
     }
 
-    if (object.wave_format.sub_chunk_size > 16) {
+    if (object.wave_format.sub_chunk_size > 16)
+    {
         state.stream.Skip(sizeof(uint16));
     }
 
     state.stream.Read(&object.wave_data);
 
-    if (std::strncmp(reinterpret_cast<const char *>(object.wave_data.sub_chunk_id), "data", 4) != 0) {
+    if (std::strncmp(reinterpret_cast<const char*>(object.wave_data.sub_chunk_id), "data", 4) != 0)
+    {
         return HYP_MAKE_ERROR(AssetLoadError, "invalid data header");
     }
-    
+
     object.wave_bytes.SetSize(object.wave_data.sub_chunk_2_size);
 
     state.stream.Read(object.wave_bytes.Data(), object.wave_data.sub_chunk_2_size);
@@ -44,16 +49,25 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState &state) const
     object.size = object.wave_data.sub_chunk_2_size;
     object.frequency = object.wave_format.sample_rate;
 
-    if (object.wave_format.num_channels == 1) {
-        if (object.wave_format.bits_per_sample == 8) {
+    if (object.wave_format.num_channels == 1)
+    {
+        if (object.wave_format.bits_per_sample == 8)
+        {
             object.format = AudioSourceFormat::MONO8;
-        } else if (object.wave_format.bits_per_sample == 16) {
+        }
+        else if (object.wave_format.bits_per_sample == 16)
+        {
             object.format = AudioSourceFormat::MONO16;
         }
-    } else if (object.wave_format.num_channels == 2) {
-        if (object.wave_format.bits_per_sample == 8) {
+    }
+    else if (object.wave_format.num_channels == 2)
+    {
+        if (object.wave_format.bits_per_sample == 8)
+        {
             object.format = AudioSourceFormat::STEREO8;
-        } else if (object.wave_format.bits_per_sample == 16) {
+        }
+        else if (object.wave_format.bits_per_sample == 16)
+        {
             object.format = AudioSourceFormat::STEREO16;
         }
     }
@@ -63,8 +77,7 @@ AssetLoadResult WAVAudioLoader::LoadAsset(LoaderState &state) const
     Handle<AudioSource> audio_source = CreateObject<AudioSource>(
         object.format,
         byte_buffer,
-        object.frequency
-    );
+        object.frequency);
 
     return LoadedAsset { audio_source };
 }

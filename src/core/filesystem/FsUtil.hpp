@@ -21,38 +21,46 @@ class FilePath;
 
 class FileSystem
 {
-    static std::mutex mtx;
-    static Array<FilePath> filepaths;
+    static std::mutex s_mtx;
+    static Array<FilePath> s_filepaths;
 
 public:
-    static void PushDirectory(const FilePath &path);
-    static FilePath PopDirectory();
+    HYP_DEPRECATED static void PushDirectory(const FilePath& path);
+    HYP_DEPRECATED static FilePath PopDirectory();
 
-    static bool DirExists(const std::string &path);
-    static int MkDir(const std::string &path);
+    static bool DirExists(const std::string& path);
+    static int MkDir(const std::string& path);
     static std::string CurrentPath();
-    static std::string RelativePath(const std::string &path, const std::string &base);
+    static std::string RelativePath(const std::string& path, const std::string& base);
 
-    template <class ...String>
-    static inline std::string Join(String &&... args)
+    template <class... String>
+    static inline std::string Join(String&&... args)
     {
         std::array<std::string, sizeof...(args)> args_array = { args... };
 
-        enum {
+        enum
+        {
             SEPARATOR_MODE_WINDOWS,
             SEPARATOR_MODE_UNIX
         } separator_mode;
 
-        if (!std::strcmp(HYP_FILESYSTEM_SEPARATOR, "\\")) {
+        if (!std::strcmp(HYP_FILESYSTEM_SEPARATOR, "\\"))
+        {
             separator_mode = SEPARATOR_MODE_WINDOWS;
-        } else {
+        }
+        else
+        {
             separator_mode = SEPARATOR_MODE_UNIX;
         }
 
-        for (auto &arg : args_array) {
-            if (separator_mode == SEPARATOR_MODE_WINDOWS) {
+        for (auto& arg : args_array)
+        {
+            if (separator_mode == SEPARATOR_MODE_WINDOWS)
+            {
                 arg = StringUtil::ReplaceAll(arg, "/", "\\");
-            } else {
+            }
+            else
+            {
                 arg = StringUtil::ReplaceAll(arg, "\\", "/");
             }
         }

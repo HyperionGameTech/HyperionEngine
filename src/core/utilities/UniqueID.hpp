@@ -18,44 +18,54 @@ struct UniqueID
 {
 public:
     UniqueID()
-        : value(Generate().value)
+        : m_value(Generate().m_value)
     {
     }
 
-    UniqueID(const HashCode &hash_code)
-        : value(hash_code.Value())
+    UniqueID(const HashCode& hash_code)
+        : m_value(hash_code.Value())
     {
     }
 
-    template <class T, typename = std::enable_if_t< !std::is_same_v< NormalizedType< T >, UniqueID > > >
-    UniqueID(const T &value)
-        : value(HashCode::GetHashCode(value).Value())
+    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, UniqueID>>>
+    UniqueID(const T& value)
+        : m_value(HashCode::GetHashCode(value).Value())
     {
     }
 
-    UniqueID(const UniqueID &other)                 = default;
-    UniqueID &operator=(const UniqueID &other)      = default;
-    UniqueID(UniqueID &&other) noexcept             = default;
-    UniqueID &operator=(UniqueID &&other) noexcept  = default;
+    UniqueID(const UniqueID& other) = default;
+    UniqueID& operator=(const UniqueID& other) = default;
+    UniqueID(UniqueID&& other) noexcept = default;
+    UniqueID& operator=(UniqueID&& other) noexcept = default;
 
-    bool operator==(const UniqueID &other) const
-        { return value == other.value; }
+    bool operator==(const UniqueID& other) const
+    {
+        return m_value == other.m_value;
+    }
 
-    bool operator!=(const UniqueID &other) const
-        { return value != other.value; }
+    bool operator!=(const UniqueID& other) const
+    {
+        return m_value != other.m_value;
+    }
 
-    bool operator<(const UniqueID &other) const
-        { return value < other.value; }
+    bool operator<(const UniqueID& other) const
+    {
+        return m_value < other.m_value;
+    }
 
     operator uint64() const
-        { return value; }
+    {
+        return m_value;
+    }
 
     HashCode GetHashCode() const
-        { return HashCode(value); }
+    {
+        return HashCode(m_value);
+    }
 
     static inline UniqueID Generate()
     {
-        return { UUID { } };
+        return { UUID {} };
     }
 
     static inline UniqueID Invalid()
@@ -64,7 +74,7 @@ public:
     }
 
 private:
-    uint64 value;
+    uint64 m_value;
 };
 
 } // namespace utilities

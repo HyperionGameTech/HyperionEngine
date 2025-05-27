@@ -13,6 +13,7 @@ namespace hyperion {
 class WorldGrid;
 
 HYP_CLASS()
+
 class HYP_API WorldGridSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(WorldGridSubsystem);
@@ -21,17 +22,17 @@ public:
     WorldGridSubsystem();
     virtual ~WorldGridSubsystem() override;
 
-    WorldGrid *GetWorldGrid(ID<Scene> scene_id);
+    WorldGrid* GetWorldGrid(ID<Scene> scene_id);
 
     virtual void Initialize() override;
     virtual void Shutdown() override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
-    virtual void OnSceneAttached(const Handle<Scene> &scene) override;
-    virtual void OnSceneDetached(const Handle<Scene> &scene) override;
+    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
+    virtual void OnSceneDetached(const Handle<Scene>& scene) override;
 
 private:
-    void UpdateScene(const Handle<Scene> &scene);
+    void UpdateScene(const Handle<Scene>& scene);
 
     Array<UniquePtr<WorldGrid>> m_world_grids;
 };

@@ -22,12 +22,12 @@ Color::Color(float r, float g, float b, float a)
 {
 }
 
-Color::Color(const Color &other)
+Color::Color(const Color& other)
 {
     Memory::MemCpy(bytes, other.bytes, size);
 }
 
-Color::Color(const Vec4f &vec)
+Color::Color(const Vec4f& vec)
 {
     bytes[0] = ubyte(vec.x * 255.0f);
     bytes[1] = ubyte(vec.y * 255.0f);
@@ -35,24 +35,23 @@ Color::Color(const Vec4f &vec)
     bytes[3] = ubyte(vec.w * 255.0f);
 }
 
-Color &Color::operator=(const Color &other)
+Color& Color::operator=(const Color& other)
 {
     Memory::MemCpy(bytes, other.bytes, size);
 
     return *this;
 }
 
-Color Color::operator+(const Color &other) const
+Color Color::operator+(const Color& other) const
 {
     return Color(
         GetRed() + other.GetRed(),
         GetGreen() + other.GetGreen(),
         GetBlue() + other.GetBlue(),
-        GetAlpha() + other.GetAlpha()
-    );
+        GetAlpha() + other.GetAlpha());
 }
 
-Color &Color::operator+=(const Color &other)
+Color& Color::operator+=(const Color& other)
 {
     SetRed(GetRed() + other.GetRed());
     SetGreen(GetGreen() + other.GetGreen());
@@ -62,17 +61,16 @@ Color &Color::operator+=(const Color &other)
     return *this;
 }
 
-Color Color::operator-(const Color &other) const
+Color Color::operator-(const Color& other) const
 {
     return Color(
         GetRed() - other.GetRed(),
         GetGreen() - other.GetGreen(),
         GetBlue() - other.GetBlue(),
-        GetAlpha() - other.GetAlpha()
-    );
+        GetAlpha() - other.GetAlpha());
 }
 
-Color &Color::operator-=(const Color &other)
+Color& Color::operator-=(const Color& other)
 {
     SetRed(GetRed() - other.GetRed());
     SetGreen(GetGreen() - other.GetGreen());
@@ -82,17 +80,16 @@ Color &Color::operator-=(const Color &other)
     return *this;
 }
 
-Color Color::operator*(const Color &other) const
+Color Color::operator*(const Color& other) const
 {
     return Color(
         GetRed() * other.GetRed(),
         GetGreen() * other.GetGreen(),
         GetBlue() * other.GetBlue(),
-        GetAlpha() * other.GetAlpha()
-    );
+        GetAlpha() * other.GetAlpha());
 }
 
-Color &Color::operator*=(const Color &other)
+Color& Color::operator*=(const Color& other)
 {
     SetRed(GetRed() * other.GetRed());
     SetGreen(GetGreen() * other.GetGreen());
@@ -102,17 +99,16 @@ Color &Color::operator*=(const Color &other)
     return *this;
 }
 
-Color Color::operator/(const Color &other) const
+Color Color::operator/(const Color& other) const
 {
     return Color(
         GetRed() / MathUtil::Max(other.GetRed(), MathUtil::epsilon_f),
         GetGreen() / MathUtil::Max(other.GetGreen(), MathUtil::epsilon_f),
         GetBlue() / MathUtil::Max(other.GetBlue(), MathUtil::epsilon_f),
-        GetAlpha() / MathUtil::Max(other.GetAlpha(), MathUtil::epsilon_f)
-    );
+        GetAlpha() / MathUtil::Max(other.GetAlpha(), MathUtil::epsilon_f));
 }
 
-Color &Color::operator/=(const Color &other)
+Color& Color::operator/=(const Color& other)
 {
     SetRed(GetRed() / MathUtil::Max(other.GetRed(), MathUtil::epsilon_f));
     SetGreen(GetGreen() / MathUtil::Max(other.GetGreen(), MathUtil::epsilon_f));
@@ -122,17 +118,17 @@ Color &Color::operator/=(const Color &other)
     return *this;
 }
 
-bool Color::operator==(const Color &other) const
+bool Color::operator==(const Color& other) const
 {
     return Memory::MemCmp(bytes, other.bytes, size) == 0;
 }
 
-bool Color::operator!=(const Color &other) const
+bool Color::operator!=(const Color& other) const
 {
     return Memory::MemCmp(bytes, other.bytes, size) != 0;
 }
 
-Color &Color::Lerp(const Color &to, float amt)
+Color& Color::Lerp(const Color& to, float amt)
 {
     SetRed(MathUtil::Lerp(GetRed(), to.GetRed(), amt));
     SetGreen(MathUtil::Lerp(GetGreen(), to.GetGreen(), amt));

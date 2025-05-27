@@ -13,30 +13,33 @@ class Texture;
 #pragma region UIImage
 
 HYP_CLASS()
+
 class HYP_API UIImage : public UIObject
 {
     HYP_OBJECT_BODY(UIImage);
 
 public:
     UIImage();
-    UIImage(const UIImage &other)                   = delete;
-    UIImage &operator=(const UIImage &other)        = delete;
-    UIImage(UIImage &&other) noexcept               = delete;
-    UIImage &operator=(UIImage &&other) noexcept    = delete;
-    virtual ~UIImage() override                     = default;
+    UIImage(const UIImage& other) = delete;
+    UIImage& operator=(const UIImage& other) = delete;
+    UIImage(UIImage&& other) noexcept = delete;
+    UIImage& operator=(UIImage&& other) noexcept = delete;
+    virtual ~UIImage() override = default;
 
     virtual void Init() override;
 
     /*! \brief Gets the texture of the image.
-     * 
+     *
      * \return A handle to the texture of the image. */
-    HYP_FORCE_INLINE const Handle<Texture> &GetTexture() const
-        { return m_texture; }
+    HYP_FORCE_INLINE const Handle<Texture>& GetTexture() const
+    {
+        return m_texture;
+    }
 
     /*! \brief Sets the texture of the image.
-     * 
+     *
      * \param texture A handle to the texture to set. */
-    void SetTexture(const Handle<Texture> &texture);
+    void SetTexture(const Handle<Texture>& texture);
 
 protected:
     virtual MaterialAttributes GetMaterialAttributes() const override;

@@ -24,46 +24,47 @@ class Object;
 
 enum class CompiledScriptState : uint32
 {
-    UNINITIALIZED   = 0x0,
-    COMPILED        = 0x1,
-    DIRTY           = 0x2,
-    PROCESSING      = 0x4,
-    ERRORED         = 0x8
+    UNINITIALIZED = 0x0,
+    COMPILED = 0x1,
+    DIRTY = 0x2,
+    PROCESSING = 0x4,
+    ERRORED = 0x8
 };
 
 HYP_MAKE_ENUM_FLAGS(CompiledScriptState)
 
 struct ScriptDesc
 {
-    FilePath    path;
+    FilePath path;
 };
 
 static constexpr SizeType script_max_path_length = 1024;
 static constexpr SizeType script_max_class_name_length = 1024;
 
 HYP_STRUCT()
+
 struct ManagedScript
 {
-    HYP_FIELD(Serialize, Property="UUID")
-    UUID    uuid;
+    HYP_FIELD(Serialize, Property = "UUID")
+    UUID uuid;
 
-    HYP_FIELD(Serialize, Property="Path")
-    char    path[script_max_path_length];
+    HYP_FIELD(Serialize, Property = "Path")
+    char path[script_max_path_length];
 
-    HYP_FIELD(Serialize, Property="AssemblyPath")
-    char    assembly_path[script_max_path_length];
+    HYP_FIELD(Serialize, Property = "AssemblyPath")
+    char assembly_path[script_max_path_length];
 
-    HYP_FIELD(Serialize, Property="ClassName")
-    char    class_name[script_max_class_name_length];
+    HYP_FIELD(Serialize, Property = "ClassName")
+    char class_name[script_max_class_name_length];
 
-    HYP_FIELD(Serialize, Property="State")
-    uint32  state;
-    
-    HYP_FIELD(Serialize, Property="HotReloadVersion")
-    int32   hot_reload_version;
+    HYP_FIELD(Serialize, Property = "State")
+    uint32 state;
 
-    HYP_FIELD(Serialize, Property="LastModifiedTimestamp")
-    uint64  last_modified_timestamp;
+    HYP_FIELD(Serialize, Property = "HotReloadVersion")
+    int32 hot_reload_version;
+
+    HYP_FIELD(Serialize, Property = "LastModifiedTimestamp")
+    uint64 last_modified_timestamp;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -84,36 +85,45 @@ static_assert(std::is_trivially_copyable_v<ManagedScript>, "ManagedScript struct
 static_assert(sizeof(ManagedScript) == 3104, "ManagedScript struct size must match C# struct size");
 
 HYP_CLASS()
+
 class HYP_API Script : public HypObject<Script>
 {
     HYP_OBJECT_BODY(Script);
 
 public:
     Script();
-    Script(const ScriptDesc &desc);
-    Script(const Script &other)                 = delete;
-    Script &operator=(const Script &other)      = delete;
-    Script(Script &&other) noexcept             = delete;
-    Script &operator=(Script &&other) noexcept  = delete;
+    Script(const ScriptDesc& desc);
+    Script(const Script& other) = delete;
+    Script& operator=(const Script& other) = delete;
+    Script(Script&& other) noexcept = delete;
+    Script& operator=(Script&& other) noexcept = delete;
     ~Script();
 
-    HYP_FORCE_INLINE const ScriptDesc &GetDescriptor() const
-        { return m_desc; }
+    HYP_FORCE_INLINE const ScriptDesc& GetDescriptor() const
+    {
+        return m_desc;
+    }
 
-    HYP_FORCE_INLINE ManagedScript &GetManagedScript()
-        { return m_managed_script; }
+    HYP_FORCE_INLINE ManagedScript& GetManagedScript()
+    {
+        return m_managed_script;
+    }
 
-    HYP_FORCE_INLINE const ManagedScript &GetManagedScript() const
-        { return m_managed_script; }
+    HYP_FORCE_INLINE const ManagedScript& GetManagedScript() const
+    {
+        return m_managed_script;
+    }
 
-    HYP_FORCE_INLINE void SetManagedScript(const ManagedScript &managed_script)
-        { m_managed_script = managed_script; }
+    HYP_FORCE_INLINE void SetManagedScript(const ManagedScript& managed_script)
+    {
+        m_managed_script = managed_script;
+    }
 
     EnumFlags<CompiledScriptState> GetState() const;
 
 private:
-    ScriptDesc      m_desc;
-    ManagedScript   m_managed_script;
+    ScriptDesc m_desc;
+    ManagedScript m_managed_script;
 };
 
 } // namespace hyperion

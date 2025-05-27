@@ -12,13 +12,14 @@
 
 namespace hyperion {
 
-void AudioSystem::OnEntityAdded(const Handle<Entity> &entity)
+void AudioSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    AudioComponent &audio_component = GetEntityManager().GetComponent<AudioComponent>(entity);
+    AudioComponent& audio_component = GetEntityManager().GetComponent<AudioComponent>(entity);
 
-    if (audio_component.audio_source.IsValid()) {
+    if (audio_component.audio_source.IsValid())
+    {
         InitObject(audio_component.audio_source);
 
         audio_component.flags |= AUDIO_COMPONENT_FLAG_INIT;
@@ -27,31 +28,39 @@ void AudioSystem::OnEntityAdded(const Handle<Entity> &entity)
 
 void AudioSystem::Process(GameCounter::TickUnit delta)
 {
-    if (!AudioManager::GetInstance().IsInitialized()) {
+    if (!AudioManager::GetInstance().IsInitialized())
+    {
         return;
     }
 
-    if (GetEntityManager().GetScene()->IsAudioListener()) {
-        const Handle<Camera> &camera = GetEntityManager().GetScene()->GetPrimaryCamera();
+    if (GetEntityManager().GetScene()->IsAudioListener())
+    {
+        const Handle<Camera>& camera = GetEntityManager().GetScene()->GetPrimaryCamera();
 
-        if (camera.IsValid()) {
+        if (camera.IsValid())
+        {
             AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
             AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
         }
     }
 
-    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos())) {
-        if (!audio_component.audio_source.IsValid()) {
+    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    {
+        if (!audio_component.audio_source.IsValid())
+        {
             audio_component.playback_state.status = AUDIO_PLAYBACK_STATUS_STOPPED;
             audio_component.playback_state.current_time = 0.0f;
 
             continue;
         }
 
-        if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PLAYING) {
-            switch (audio_component.playback_state.loop_mode) {
+        if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PLAYING)
+        {
+            switch (audio_component.playback_state.loop_mode)
+            {
             case AUDIO_LOOP_MODE_ONCE:
-                if (audio_component.playback_state.current_time > audio_component.audio_source->GetDuration()) {
+                if (audio_component.playback_state.current_time > audio_component.audio_source->GetDuration())
+                {
                     audio_component.playback_state.status = AUDIO_PLAYBACK_STATUS_STOPPED;
                     audio_component.playback_state.current_time = 0.0f;
 
@@ -60,10 +69,10 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
 
                 continue;
 
-
                 break;
             case AUDIO_LOOP_MODE_REPEAT:
-                if (audio_component.playback_state.current_time > audio_component.audio_source->GetDuration()) {
+                if (audio_component.playback_state.current_time > audio_component.audio_source->GetDuration())
+                {
                     audio_component.playback_state.current_time = 0.0f;
                 }
 
@@ -72,7 +81,8 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
 
             audio_component.playback_state.current_time += delta * audio_component.playback_state.speed;
 
-            switch (audio_component.audio_source->GetState()) {
+            switch (audio_component.audio_source->GetState())
+            {
             case AudioSourceState::PLAYING:
                 break;
             case AudioSourceState::PAUSED: // fallthrough
@@ -86,9 +96,10 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
                 break;
             }
 
-            const Vec3f &position = transform_component.transform.GetTranslation();
+            const Vec3f& position = transform_component.transform.GetTranslation();
 
-            if (!MathUtil::ApproxEqual(position, audio_component.last_position)) {
+            if (!MathUtil::ApproxEqual(position, audio_component.last_position))
+            {
                 const Vec3f position_change = position - audio_component.last_position;
                 const GameCounter::TickUnit time_change = (audio_component.timer + delta) - audio_component.timer;
                 const Vec3f velocity = position_change / time_change;
@@ -98,12 +109,18 @@ void AudioSystem::Process(GameCounter::TickUnit delta)
 
                 audio_component.last_position = position;
             }
-        } else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PAUSED) {
-            if (audio_component.audio_source->GetState() != AudioSourceState::PAUSED) {
+        }
+        else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_PAUSED)
+        {
+            if (audio_component.audio_source->GetState() != AudioSourceState::PAUSED)
+            {
                 audio_component.audio_source->Pause();
             }
-        } else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_STOPPED) {
-            if (audio_component.audio_source->GetState() != AudioSourceState::STOPPED) {
+        }
+        else if (audio_component.playback_state.status == AUDIO_PLAYBACK_STATUS_STOPPED)
+        {
+            if (audio_component.audio_source->GetState() != AudioSourceState::STOPPED)
+            {
                 audio_component.audio_source->Stop();
             }
         }

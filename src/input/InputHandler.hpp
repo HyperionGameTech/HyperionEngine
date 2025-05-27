@@ -18,38 +18,39 @@ namespace hyperion {
 struct InputState;
 
 HYP_CLASS(Abstract)
+
 class HYP_API InputHandlerBase : public EnableRefCountedPtrFromThis<InputHandlerBase>
 {
     HYP_OBJECT_BODY(InputHandlerBase);
 
 public:
     InputHandlerBase();
-    InputHandlerBase(const InputHandlerBase &other)                 = delete;
-    InputHandlerBase &operator=(const InputHandlerBase &other)      = delete;
-    InputHandlerBase(InputHandlerBase &&other) noexcept             = delete;
-    InputHandlerBase &operator=(InputHandlerBase &&other) noexcept  = delete;
+    InputHandlerBase(const InputHandlerBase& other) = delete;
+    InputHandlerBase& operator=(const InputHandlerBase& other) = delete;
+    InputHandlerBase(InputHandlerBase&& other) noexcept = delete;
+    InputHandlerBase& operator=(InputHandlerBase&& other) noexcept = delete;
     virtual ~InputHandlerBase();
 
     HYP_METHOD(Scriptable)
-    bool OnKeyDown(const KeyboardEvent &evt);
+    bool OnKeyDown(const KeyboardEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnKeyUp(const KeyboardEvent &evt);
+    bool OnKeyUp(const KeyboardEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnMouseDown(const MouseEvent &evt);
+    bool OnMouseDown(const MouseEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnMouseUp(const MouseEvent &evt);
+    bool OnMouseUp(const MouseEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnMouseMove(const MouseEvent &evt);
+    bool OnMouseMove(const MouseEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnMouseDrag(const MouseEvent &evt);
+    bool OnMouseDrag(const MouseEvent& evt);
 
     HYP_METHOD(Scriptable)
-    bool OnClick(const MouseEvent &evt);
+    bool OnClick(const MouseEvent& evt);
 
     bool IsKeyDown(KeyCode key) const;
     bool IsKeyUp(KeyCode key) const;
@@ -58,47 +59,75 @@ public:
 
 protected:
     HYP_METHOD()
-    virtual bool OnKeyDown_Impl(const KeyboardEvent &evt);
+    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt);
 
     HYP_METHOD()
-    virtual bool OnKeyUp_Impl(const KeyboardEvent &evt);
+    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt);
 
     HYP_METHOD()
-    virtual bool OnMouseDown_Impl(const MouseEvent &evt);
+    virtual bool OnMouseDown_Impl(const MouseEvent& evt);
 
     HYP_METHOD()
-    virtual bool OnMouseUp_Impl(const MouseEvent &evt);
+    virtual bool OnMouseUp_Impl(const MouseEvent& evt);
 
     HYP_METHOD()
-    virtual bool OnMouseMove_Impl(const MouseEvent &evt) = 0;
+    virtual bool OnMouseMove_Impl(const MouseEvent& evt) = 0;
 
     HYP_METHOD()
-    virtual bool OnMouseDrag_Impl(const MouseEvent &evt) = 0;
+    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) = 0;
 
     HYP_METHOD()
-    virtual bool OnClick_Impl(const MouseEvent &evt) = 0;
-    
+    virtual bool OnClick_Impl(const MouseEvent& evt) = 0;
+
 private:
-    Pimpl<InputState>   m_input_state;
+    Pimpl<InputState> m_input_state;
 };
 
 HYP_CLASS()
+
 class NullInputHandler final : public InputHandlerBase
 {
     HYP_OBJECT_BODY(NullInputHandler);
 
 public:
-    NullInputHandler()                      = default;
-    virtual ~NullInputHandler() override    = default;
+    NullInputHandler() = default;
+    virtual ~NullInputHandler() override = default;
 
 protected:
-    virtual bool OnKeyDown_Impl(const KeyboardEvent &evt) override    { return false; }
-    virtual bool OnKeyUp_Impl(const KeyboardEvent &evt) override      { return false; }
-    virtual bool OnMouseDown_Impl(const MouseEvent &evt) override     { return false; }
-    virtual bool OnMouseUp_Impl(const MouseEvent &evt) override       { return false; }
-    virtual bool OnMouseMove_Impl(const MouseEvent &evt) override     { return false; }
-    virtual bool OnMouseDrag_Impl(const MouseEvent &evt) override     { return false; }
-    virtual bool OnClick_Impl(const MouseEvent &evt) override         { return false; }
+    virtual bool OnKeyDown_Impl(const KeyboardEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnKeyUp_Impl(const KeyboardEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnMouseDown_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnMouseUp_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnMouseMove_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnMouseDrag_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
+
+    virtual bool OnClick_Impl(const MouseEvent& evt) override
+    {
+        return false;
+    }
 };
 
 } // namespace hyperion

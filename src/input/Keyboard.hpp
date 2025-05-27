@@ -64,12 +64,12 @@ enum class KeyCode : uint16
     KEY_F11,
     KEY_F12,
 
-    LEFT_CTRL = 224, // SDL_SCANCODE_LCTRL,
-    LEFT_SHIFT = 225, // SDL_SCANCODE_LSHIFT,
-    LEFT_ALT = 226, // SDL_SCANCODE_LALT
-    RIGHT_CTRL = 228, // SDL_SCANCODE_RCTRL,
+    LEFT_CTRL = 224,   // SDL_SCANCODE_LCTRL,
+    LEFT_SHIFT = 225,  // SDL_SCANCODE_LSHIFT,
+    LEFT_ALT = 226,    // SDL_SCANCODE_LALT
+    RIGHT_CTRL = 228,  // SDL_SCANCODE_RCTRL,
     RIGHT_SHIFT = 229, // SDL_SCANCODE_RSHIFT,
-    RIGHT_ALT = 230, // SDL_SCANCODE_RALT
+    RIGHT_ALT = 230,   // SDL_SCANCODE_RALT
 
     SPACE = 32, // SDL_SCANCODE_SPACE,
     COMMA = 44,
@@ -89,16 +89,17 @@ enum class KeyCode : uint16
     ESC = 27
 };
 
-HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char &out_char);
+HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char& out_char);
 
-HYP_STRUCT(Size=16)
+HYP_STRUCT(Size = 16)
+
 struct KeyboardEvent
 {
     HYP_FIELD()
-    InputManager    *input_manager = nullptr;
+    InputManager* input_manager = nullptr;
 
     HYP_FIELD()
-    KeyCode         key_code = KeyCode::UNKNOWN;
+    KeyCode key_code = KeyCode::UNKNOWN;
 };
 
 } // namespace hyperion

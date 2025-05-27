@@ -14,34 +14,35 @@
 
 namespace hyperion::dotnet {
 
-extern "C" {
-
-struct ManagedGuid
+extern "C"
 {
-    uint64  low;
-    uint64  high;
 
-    bool operator==(const ManagedGuid &other) const = default;
-    bool operator!=(const ManagedGuid &other) const = default;
-
-    HYP_FORCE_INLINE bool IsValid() const
+    struct ManagedGuid
     {
-        return low != 0 || high != 0;
-    }
+        uint64 low;
+        uint64 high;
 
-    HYP_FORCE_INLINE UUID ToUUID() const
-    {
-        return UUID(low, high);
-    }
+        bool operator==(const ManagedGuid& other) const = default;
+        bool operator!=(const ManagedGuid& other) const = default;
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode(low).Combine(high);
-    }
-};
+        HYP_FORCE_INLINE bool IsValid() const
+        {
+            return low != 0 || high != 0;
+        }
 
-static_assert(sizeof(ManagedGuid) == 16, "ManagedGuid size mismatch with C#");
-static_assert(std::is_standard_layout_v<ManagedGuid>, "ManagedGuid is not standard layout");
+        HYP_FORCE_INLINE UUID ToUUID() const
+        {
+            return UUID(low, high);
+        }
+
+        HYP_FORCE_INLINE HashCode GetHashCode() const
+        {
+            return HashCode(low).Combine(high);
+        }
+    };
+
+    static_assert(sizeof(ManagedGuid) == 16, "ManagedGuid size mismatch with C#");
+    static_assert(std::is_standard_layout_v<ManagedGuid>, "ManagedGuid is not standard layout");
 
 } // extern "C"
 
@@ -55,7 +56,7 @@ namespace utilities {
 template <class StringType>
 struct Formatter<StringType, dotnet::ManagedGuid>
 {
-    constexpr auto operator()(const dotnet::ManagedGuid &value) const
+    constexpr auto operator()(const dotnet::ManagedGuid& value) const
     {
         return StringType(value.ToUUID().ToString());
     }

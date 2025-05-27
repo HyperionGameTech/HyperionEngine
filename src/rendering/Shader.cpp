@@ -14,23 +14,26 @@
 
 namespace hyperion {
 
-ShaderManager *ShaderManager::GetInstance()
+ShaderManager* ShaderManager::GetInstance()
 {
     return g_shader_manager;
 }
 
-ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
+ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
 {
     HYP_NAMED_SCOPE("Get shader from cache or create");
 
-    const auto EnsureContainsProperties = [](const ShaderProperties &expected, const ShaderProperties &received) -> bool
+    const auto ensure_contains_properties = [](const ShaderProperties& expected, const ShaderProperties& received) -> bool
     {
-        if (!received.HasRequiredVertexAttributes(expected.GetRequiredVertexAttributes())) {
+        if (!received.HasRequiredVertexAttributes(expected.GetRequiredVertexAttributes()))
+        {
             return false;
         }
 
-        for (const ShaderProperty &property : expected.GetPropertySet()) {
-            if (!received.Has(property)) {
+        for (const ShaderProperty& property : expected.GetPropertySet())
+        {
+            if (!received.Has(property))
+            {
                 return false;
             }
         }
@@ -46,30 +49,35 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
 
         auto it = m_map.Find(definition);
 
-        if (it != m_map.End()) {
+        if (it != m_map.End())
+        {
             entry = it->second;
             AssertThrow(entry != nullptr);
-        } else {
+        }
+        else
+        {
             should_add_entry_to_cache = true;
         }
     }
 
-    if (entry != nullptr) {
+    if (entry != nullptr)
+    {
         constexpr int max_spins = 1024;
         int num_spins = 0;
 
         // loading from another thread -- wait until state is no longer LOADING
-        while (entry->state.Get(MemoryOrder::SEQUENTIAL) == ShaderMapEntry::State::LOADING) {
+        while (entry->state.Get(MemoryOrder::SEQUENTIAL) == ShaderMapEntry::State::LOADING)
+        {
             // sanity check - should never happen
             AssertThrow(entry->loading_thread_id != Threads::CurrentThreadID());
 
-            if (num_spins == max_spins) {
+            if (num_spins == max_spins)
+            {
                 HYP_LOG(Shader, Warning,
                     "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
                     definition.GetName(),
                     entry->loading_thread_id.GetName(),
-                    Threads::CurrentThreadID().GetName()
-                );
+                    Threads::CurrentThreadID().GetName());
 
                 entry = MakeRefCountedPtr<ShaderMapEntry>();
                 entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
@@ -83,25 +91,29 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
             num_spins++;
         }
 
-        if (ShaderRef shader = entry->shader.Lock()) {
-            if (EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetProperties())) {
+        if (ShaderRef shader = entry->shader.Lock())
+        {
+            if (ensure_contains_properties(definition.GetProperties(), shader->GetCompiledShader()->GetProperties()))
+            {
                 return shader;
-            } else {
+            }
+            else
+            {
                 HYP_LOG(Shader, Error,
                     "Loaded shader from cache (Name: {}, Properties: {}) does not contain the requested properties!\n\tRequested: {}",
                     definition.GetName(),
                     shader->GetCompiledShader()->GetProperties().ToString(),
-                    definition.GetProperties().ToString()
-                );
-
+                    definition.GetProperties().ToString());
             }
         }
 
         // @TODO: remove bad value from cache?
     }
 
-    if (should_add_entry_to_cache) { // lock here, to add new entry to cache
-        if (!entry) {
+    if (should_add_entry_to_cache)
+    { // lock here, to add new entry to cache
+        if (!entry)
+        {
             entry = MakeRefCountedPtr<ShaderMapEntry>();
             entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
             entry->loading_thread_id = Threads::CurrentThreadID();
@@ -118,26 +130,24 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
         CompiledShader compiled_shader;
 
         bool is_valid_compiled_shader = true;
-        
+
         is_valid_compiled_shader &= g_engine->GetShaderCompiler().GetCompiledShader(
             definition.GetName(),
             definition.GetProperties(),
-            compiled_shader
-        );
+            compiled_shader);
 
         is_valid_compiled_shader &= compiled_shader.GetDefinition().IsValid();
-        
+
         AssertThrowMsg(
             is_valid_compiled_shader,
             "Failed to get compiled shader with name %s and props hash %llu!\n",
             definition.GetName().LookupString(),
-            definition.GetProperties().GetHashCode().Value()
-        );
+            definition.GetProperties().GetHashCode().Value());
 
         shader = g_rendering_api->MakeShader(MakeRefCountedPtr<CompiledShader>(std::move(compiled_shader)));
 
 #ifdef HYP_DEBUG_MODE
-        AssertThrow(EnsureContainsProperties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));
+        AssertThrow(ensure_contains_properties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));
 #endif
 
         DeferCreate(shader);
@@ -152,13 +162,11 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition &definition)
 
 ShaderRef ShaderManager::GetOrCreate(
     Name name,
-    const ShaderProperties &props
-)
+    const ShaderProperties& props)
 {
     return GetOrCreate(ShaderDefinition {
         name,
-        props
-    });
+        props });
 }
 
 } // namespace hyperion

@@ -35,24 +35,24 @@ template <PlatformType PLATFORM>
 class DescriptorSetManager;
 
 template <>
-class Device<Platform::VULKAN> final
+class Device<Platform::vulkan> final
 {
     static QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice physical_device, VkSurfaceKHR surface);
 
 public:
-    static constexpr PlatformType platform = Platform::VULKAN;
-    
+    static constexpr PlatformType platform = Platform::vulkan;
+
     Device(VkPhysicalDevice physical, VkSurfaceKHR surface);
-    Device(const Device &)                  = delete;
-    Device &operator=(const Device &)       = delete;
-    Device(Device &&) noexcept              = delete;
-    Device &operator=(Device &&) noexcept   = delete;
+    Device(const Device&) = delete;
+    Device& operator=(const Device&) = delete;
+    Device(Device&&) noexcept = delete;
+    Device& operator=(Device&&) noexcept = delete;
     ~Device();
 
     void Destroy();
-    
-    void SetRenderSurface(const VkSurfaceKHR &surface);
-    void SetRequiredExtensions(const ExtensionMap &extensions);
+
+    void SetRenderSurface(const VkSurfaceKHR& surface);
+    void SetRequiredExtensions(const ExtensionMap& extensions);
 
     VkDevice GetDevice();
     VkSurfaceKHR GetRenderSurface();
@@ -60,56 +60,98 @@ public:
 
     void DebugLogAllocatorStats() const;
 
-    RendererResult SetupAllocator(Instance<Platform::VULKAN> *instance);
+    RendererResult SetupAllocator(Instance<Platform::vulkan>* instance);
     RendererResult DestroyAllocator();
-    VmaAllocator GetAllocator() const { return m_allocator; }
 
-    const QueueFamilyIndices &GetQueueFamilyIndices() const { return m_queue_family_indices; }
-    const Features &GetFeatures() const { return *m_features; }
-                                                          
-    VulkanDeviceQueue &GetGraphicsQueue() { return m_queue_graphics; }
-    const VulkanDeviceQueue &GetGraphicsQueue() const { return m_queue_graphics; }
-    VulkanDeviceQueue &GetTransferQueue() { return m_queue_transfer; }
-    const VulkanDeviceQueue &GetTransferQueue() const { return m_queue_transfer; }
-    VulkanDeviceQueue &GetPresentQueue() { return m_queue_present; }
-    const VulkanDeviceQueue &GetPresentQueue() const { return m_queue_present; }
-    VulkanDeviceQueue &GetComputeQueue() { return m_queue_compute; }
-    const VulkanDeviceQueue &GetComputeQueue() const { return m_queue_compute; }
+    VmaAllocator GetAllocator() const
+    {
+        return m_allocator;
+    }
+
+    const QueueFamilyIndices& GetQueueFamilyIndices() const
+    {
+        return m_queue_family_indices;
+    }
+
+    const Features& GetFeatures() const
+    {
+        return *m_features;
+    }
+
+    VulkanDeviceQueue& GetGraphicsQueue()
+    {
+        return m_queue_graphics;
+    }
+
+    const VulkanDeviceQueue& GetGraphicsQueue() const
+    {
+        return m_queue_graphics;
+    }
+
+    VulkanDeviceQueue& GetTransferQueue()
+    {
+        return m_queue_transfer;
+    }
+
+    const VulkanDeviceQueue& GetTransferQueue() const
+    {
+        return m_queue_transfer;
+    }
+
+    VulkanDeviceQueue& GetPresentQueue()
+    {
+        return m_queue_present;
+    }
+
+    const VulkanDeviceQueue& GetPresentQueue() const
+    {
+        return m_queue_present;
+    }
+
+    VulkanDeviceQueue& GetComputeQueue()
+    {
+        return m_queue_compute;
+    }
+
+    const VulkanDeviceQueue& GetComputeQueue() const
+    {
+        return m_queue_compute;
+    }
 
     VkQueue GetQueue(uint32 queue_family_index, uint32 queue_index = 0);
 
-    RendererResult Create(const std::set<uint32_t> &required_queue_families);
-    RendererResult CheckDeviceSuitable(const ExtensionMap &unsupported_extensions);
+    RendererResult Create(const std::set<uint32_t>& required_queue_families);
+    RendererResult CheckDeviceSuitable(const ExtensionMap& unsupported_extensions);
 
     /*! \brief Wait for the device to be idle */
     RendererResult Wait() const;
-    
+
     /*! \brief Check if the set required extensions extensions are supported. Any unsupported extensions are returned. */
     ExtensionMap GetUnsupportedExtensions();
 
     Array<VkExtensionProperties> GetSupportedExtensions();
 
 private:
-    VkDevice                    m_device;
-    VkPhysicalDevice            m_physical;
-    VkSurfaceKHR                m_surface;
-    VmaAllocator                m_allocator;
+    VkDevice m_device;
+    VkPhysicalDevice m_physical;
+    VkSurfaceKHR m_surface;
+    VmaAllocator m_allocator;
 
-    UniquePtr<Features>         m_features;
-    QueueFamilyIndices          m_queue_family_indices;
+    UniquePtr<Features> m_features;
+    QueueFamilyIndices m_queue_family_indices;
 
-    VulkanDeviceQueue           m_queue_graphics;
-    VulkanDeviceQueue           m_queue_transfer;
-    VulkanDeviceQueue           m_queue_present;
-    VulkanDeviceQueue           m_queue_compute;
+    VulkanDeviceQueue m_queue_graphics;
+    VulkanDeviceQueue m_queue_transfer;
+    VulkanDeviceQueue m_queue_present;
+    VulkanDeviceQueue m_queue_compute;
 
-    ExtensionMap                m_required_extensions;
+    ExtensionMap m_required_extensions;
 
-    UniquePtr<DescriptorPool>   m_descriptor_pool;
+    UniquePtr<DescriptorPool> m_descriptor_pool;
 };
 
 } // namespace platform
 } // namespace renderer
 } // namespace hyperion
 
-#endif //HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP
+#endif // HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP

@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-void SerializationWrapper<Node>::OnPostLoad(const Type &value)
+void SerializationWrapper<Node>::OnPostLoad(const Type& value)
 {
     // Sets scene to be detached scene, owned by the thread this was invoked on
     value->SetScene(nullptr);

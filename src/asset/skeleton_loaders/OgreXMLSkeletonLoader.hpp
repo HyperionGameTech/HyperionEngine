@@ -11,38 +11,38 @@
 
 namespace hyperion {
 
-class OgreXMLSkeletonLoader : public AssetLoader
+class OgreXMLSkeletonLoader : public AssetLoaderBase
 {
 public:
     struct OgreXMLSkeleton
     {
         struct BoneData
         {
-            String      name;
-            uint32      id;
+            String name;
+            uint32 id;
 
-            String      parent_name;
-            Vector3     binding_translation;
-            Quaternion  binding_rotation;
+            String parent_name;
+            Vector3 binding_translation;
+            Quaternion binding_rotation;
         };
 
         struct KeyframeData
         {
-            float       time;
-            Vector3     translation;
-            Quaternion  rotation;
+            float time;
+            Vector3 translation;
+            Quaternion rotation;
         };
 
         struct AnimationTrackData
         {
-            String              bone_name;
+            String bone_name;
             Array<KeyframeData> keyframes;
         };
 
         struct AnimationData
         {
-            String                      name;
-            Array<AnimationTrackData>   tracks;
+            String name;
+            Array<AnimationTrackData> tracks;
         };
 
         Array<BoneData> bones;
@@ -51,7 +51,7 @@ public:
 
     virtual ~OgreXMLSkeletonLoader() = default;
 
-    virtual AssetLoadResult LoadAsset(LoaderState &state) const override;
+    virtual AssetLoadResult LoadAsset(LoaderState& state) const override;
 };
 
 } // namespace hyperion

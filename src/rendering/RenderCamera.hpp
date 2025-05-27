@@ -20,19 +20,19 @@ class Camera;
 
 struct alignas(256) CameraShaderData
 {
-    Matrix4     view;
-    Matrix4     projection;
-    Matrix4     previous_view;
+    Matrix4 view;
+    Matrix4 projection;
+    Matrix4 previous_view;
 
-    Vec4u       dimensions;
-    Vec4f       camera_position;
-    Vec4f       camera_direction;
-    Vec4f       jitter;
-    
-    float       camera_near;
-    float       camera_far;
-    float       camera_fov;
-    uint32      id;
+    Vec4u dimensions;
+    Vec4f camera_position;
+    Vec4f camera_direction;
+    Vec4f jitter;
+
+    float camera_near;
+    float camera_far;
+    float camera_fov;
+    uint32 id;
 };
 
 static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderData);
@@ -40,22 +40,28 @@ static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderDat
 class CameraRenderResource final : public RenderResourceBase
 {
 public:
-    CameraRenderResource(Camera *camera);
+    CameraRenderResource(Camera* camera);
     virtual ~CameraRenderResource() override;
 
-    HYP_FORCE_INLINE Camera *GetCamera() const
-        { return m_camera; }
+    HYP_FORCE_INLINE Camera* GetCamera() const
+    {
+        return m_camera;
+    }
 
-    void SetBufferData(const CameraShaderData &buffer_data);
+    void SetBufferData(const CameraShaderData& buffer_data);
 
     /*! \note This method is only safe to call from the render thread. */
-    HYP_FORCE_INLINE const CameraShaderData &GetBufferData() const
-        { return m_buffer_data; }
+    HYP_FORCE_INLINE const CameraShaderData& GetBufferData() const
+    {
+        return m_buffer_data;
+    }
 
-    HYP_FORCE_INLINE const FramebufferRef &GetFramebuffer() const
-        { return m_framebuffer; }
+    HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
+    {
+        return m_framebuffer;
+    }
 
-    void SetFramebuffer(const FramebufferRef &framebuffer);
+    void SetFramebuffer(const FramebufferRef& framebuffer);
 
     void ApplyJitter();
 
@@ -67,15 +73,15 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase *GetGPUBufferHolder() const override;
+    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
 
 private:
     void UpdateBufferData();
 
-    Camera              *m_camera;
-    CameraShaderData    m_buffer_data;
+    Camera* m_camera;
+    CameraShaderData m_buffer_data;
 
-    FramebufferRef      m_framebuffer;
+    FramebufferRef m_framebuffer;
 };
 
 } // namespace hyperion

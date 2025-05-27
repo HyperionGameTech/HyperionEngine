@@ -12,17 +12,12 @@
 
 namespace hyperion {
 
-class CameraSystem final : public System<
-    CameraSystem,
-    ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
+class CameraSystem final : public System<CameraSystem, ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
 
-    ComponentDescriptor<NodeLinkComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false>,
-    ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_CAMERA_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>
->
+                               ComponentDescriptor<NodeLinkComponent, COMPONENT_RW_FLAGS_READ, false>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ, false>, ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_CAMERA_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>>
 {
 public:
-    CameraSystem(EntityManager &entity_manager)
+    CameraSystem(EntityManager& entity_manager)
         : System(entity_manager)
     {
     }
@@ -30,9 +25,11 @@ public:
     virtual ~CameraSystem() override = default;
 
     virtual bool RequiresGameThread() const override
-        { return true; }
+    {
+        return true;
+    }
 
-    virtual void OnEntityAdded(const Handle<Entity> &entity) override;
+    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
     virtual void Process(GameCounter::TickUnit delta) override;

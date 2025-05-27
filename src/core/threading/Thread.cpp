@@ -19,27 +19,27 @@
 #include <util/UTF8.hpp>
 
 #ifdef HYP_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <processthreadsapi.h>
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <processthreadsapi.h>
 #elif defined(HYP_UNIX)
-#include <pthread.h>
+    #include <pthread.h>
 #endif
 
 namespace hyperion {
 namespace threading {
 
-HYP_API void RegisterThread(const ThreadID &id, IThread *thread)
+HYP_API void RegisterThread(const ThreadID& id, IThread* thread)
 {
     Threads::RegisterThread(id, thread);
 }
 
-HYP_API void UnregisterThread(const ThreadID &id)
+HYP_API void UnregisterThread(const ThreadID& id)
 {
     Threads::UnregisterThread(id);
 }
 
-HYP_API void SetCurrentThreadObject(IThread *thread)
+HYP_API void SetCurrentThreadObject(IThread* thread)
 {
     Threads::SetCurrentThreadObject(thread);
 }

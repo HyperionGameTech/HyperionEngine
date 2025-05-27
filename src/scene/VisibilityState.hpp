@@ -13,23 +13,25 @@ class Camera;
 
 struct VisibilityStateSnapshot
 {
-    uint16  validity_marker { 0u };
+    uint16 validity_marker { 0u };
 
-    HYP_FORCE_INLINE bool ValidToParent(const VisibilityStateSnapshot &parent) const
-        { return validity_marker == parent.validity_marker; }
+    HYP_FORCE_INLINE bool ValidToParent(const VisibilityStateSnapshot& parent) const
+    {
+        return validity_marker == parent.validity_marker;
+    }
 };
 
 struct VisibilityState
 {
-    uint16                                          validity_marker { 0u };
-    HashMap<ID<Camera>, VisibilityStateSnapshot>    snapshots;
+    uint16 validity_marker { 0u };
+    HashMap<ID<Camera>, VisibilityStateSnapshot> snapshots;
 
-    VisibilityState()                                               = default;
-    VisibilityState(const VisibilityState &other)                   = default;
-    VisibilityState &operator=(const VisibilityState &other)        = default;
-    VisibilityState(VisibilityState &&other) noexcept               = default;
-    VisibilityState &operator=(VisibilityState &&other) noexcept    = default;
-    ~VisibilityState()                                              = default;
+    VisibilityState() = default;
+    VisibilityState(const VisibilityState& other) = default;
+    VisibilityState& operator=(const VisibilityState& other) = default;
+    VisibilityState(VisibilityState&& other) noexcept = default;
+    VisibilityState& operator=(VisibilityState&& other) noexcept = default;
+    ~VisibilityState() = default;
 
     HYP_FORCE_INLINE void Next()
     {
@@ -40,8 +42,9 @@ struct VisibilityState
     {
         auto it = snapshots.Find(id);
 
-        if (it == snapshots.End()) {
-            return { };
+        if (it == snapshots.End())
+        {
+            return {};
         }
 
         return it->second;
@@ -51,9 +54,12 @@ struct VisibilityState
     {
         auto it = snapshots.Find(id);
 
-        if (it == snapshots.End()) {
+        if (it == snapshots.End())
+        {
             snapshots.Insert(id, VisibilityStateSnapshot { validity_marker });
-        } else {
+        }
+        else
+        {
             it->second.validity_marker = validity_marker;
         }
     }

@@ -17,19 +17,21 @@ HYP_DECLARE_LOG_CHANNEL(GameThread);
 class Engine;
 class Game;
 
-class GameThread final : public Thread<Scheduler, Game *>
+class GameThread final : public Thread<Scheduler, Game*>
 {
 public:
     GameThread();
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
-        { return m_is_running.Get(MemoryOrder::RELAXED); }
+    {
+        return m_is_running.Get(MemoryOrder::RELAXED);
+    }
 
     void Stop();
 
 private:
-    virtual void operator()(Game *game) override;
+    virtual void operator()(Game* game) override;
 
     AtomicVar<bool> m_is_running;
     AtomicVar<bool> m_stop_requested;

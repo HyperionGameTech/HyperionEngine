@@ -19,10 +19,12 @@ struct GameCounter
     using TimePoint = Clock::time_point;
 
     TimePoint last_time_point = Now();
-    TickUnit delta { };
+    TickUnit delta {};
 
     HYP_FORCE_INLINE static TimePoint Now()
-        { return Clock::now(); }
+    {
+        return Clock::now();
+    }
 
     void NextTick()
     {
@@ -59,7 +61,10 @@ struct LockstepGameCounter : GameCounter
     {
     }
 
-     HYP_FORCE_INLINE bool Waiting() const { return Interval(Now()) < target_interval - padding; }
+    HYP_FORCE_INLINE bool Waiting() const
+    {
+        return Interval(Now()) < target_interval - padding;
+    }
 };
 
 } // namespace hyperion

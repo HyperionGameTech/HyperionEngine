@@ -9,11 +9,12 @@
 
 using namespace hyperion;
 
-extern "C" {
-struct ManagedAssetMap
+extern "C"
 {
-    AssetMap *map;
-};
+    struct ManagedAssetMap
+    {
+        AssetMap* map;
+    };
 } // extern "C"
 
 #endif

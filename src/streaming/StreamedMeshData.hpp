@@ -18,13 +18,14 @@
 namespace hyperion {
 
 HYP_STRUCT()
+
 struct MeshData
 {
     HYP_FIELD()
-    Array<Vertex>   vertices;
+    Array<Vertex> vertices;
 
     HYP_FIELD()
-    Array<uint32>   indices;
+    Array<uint32> indices;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -39,49 +40,56 @@ struct MeshData
 };
 
 HYP_CLASS()
-class HYP_API StreamedMeshData final : public StreamedData
+
+class HYP_API StreamedMeshData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(StreamedMeshData);
 
-    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle &out_resource_handle);
+    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle& out_resource_handle);
 
 public:
     StreamedMeshData();
-    StreamedMeshData(const MeshData &mesh_data, ResourceHandle &out_resource_handle);
-    StreamedMeshData(MeshData &&mesh_data, ResourceHandle &out_resource_handle);
+    StreamedMeshData(const MeshData& mesh_data, ResourceHandle& out_resource_handle);
+    StreamedMeshData(MeshData&& mesh_data, ResourceHandle& out_resource_handle);
 
-    StreamedMeshData(const StreamedMeshData &other)                 = delete;
-    StreamedMeshData &operator=(const StreamedMeshData &other)      = delete;
-    StreamedMeshData(StreamedMeshData &&other) noexcept             = delete;
-    StreamedMeshData &operator=(StreamedMeshData &&other) noexcept  = delete;
+    StreamedMeshData(const StreamedMeshData& other) = delete;
+    StreamedMeshData& operator=(const StreamedMeshData& other) = delete;
+    StreamedMeshData(StreamedMeshData&& other) noexcept = delete;
+    StreamedMeshData& operator=(StreamedMeshData&& other) noexcept = delete;
     virtual ~StreamedMeshData() override;
 
-    const MeshData &GetMeshData() const;
+    const MeshData& GetMeshData() const;
 
     HYP_FORCE_INLINE SizeType NumVertices() const
-        { return m_num_vertices; }
+    {
+        return m_num_vertices;
+    }
 
     HYP_FORCE_INLINE SizeType NumIndices() const
-        { return m_num_indices; }
+    {
+        return m_num_indices;
+    }
 
     virtual HashCode GetDataHashCode() const override
-        { return m_streamed_data ? m_streamed_data->GetDataHashCode() : HashCode(0); }
+    {
+        return m_streamed_data ? m_streamed_data->GetDataHashCode() : HashCode(0);
+    }
 
 protected:
     virtual bool IsInMemory_Internal() const override;
-    
+
     virtual void Load_Internal() const override;
     virtual void Unpage_Internal() override;
-    
+
 private:
-    void LoadMeshData(const ByteBuffer &byte_buffer) const;
-    
-    RC<StreamedData>            m_streamed_data;
+    void LoadMeshData(const ByteBuffer& byte_buffer) const;
 
-    SizeType                    m_num_vertices;
-    SizeType                    m_num_indices;
+    RC<StreamedDataBase> m_streamed_data;
 
-    mutable Optional<MeshData>  m_mesh_data;
+    SizeType m_num_vertices;
+    SizeType m_num_indices;
+
+    mutable Optional<MeshData> m_mesh_data;
 };
 
 } // namespace hyperion

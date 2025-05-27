@@ -35,16 +35,18 @@ void UIButton::Init()
     AddChildUIObject(text_element);
 }
 
-void UIButton::SetText(const String &text)
+void UIButton::SetText(const String& text)
 {
     UIObject::SetText(text);
 
-    if (m_text_element != nullptr) {
+    if (m_text_element != nullptr)
+    {
         m_text_element->SetText(m_text);
     }
 
     // If the size is set to AUTO, we need to update the size of the button as the text changes.
-    if (m_size.GetAllFlags() & UIObjectSize::AUTO) {
+    if (m_size.GetAllFlags() & UIObjectSize::AUTO)
+    {
         UpdateSize();
     }
 }
@@ -61,11 +63,16 @@ Material::ParameterTable UIButton::GetMaterialParameters() const
 {
     Color color;
 
-    if (GetFocusState() & UIObjectFocusState::PRESSED) {
+    if (GetFocusState() & UIObjectFocusState::PRESSED)
+    {
         color = Vec4f(0.35f, 0.35f, 0.35f, 1.0f);
-    } else if (GetFocusState() & UIObjectFocusState::HOVER) {
+    }
+    else if (GetFocusState() & UIObjectFocusState::HOVER)
+    {
         color = Vec4f(0.5f, 0.5f, 0.5f, 1.0f);
-    } else {
+    }
+    else
+    {
         color = m_background_color;
     }
 

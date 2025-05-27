@@ -10,7 +10,7 @@ namespace hyperion {
 
 class RTCServer;
 
-class HYP_API RTCServerThread final : public Thread<Scheduler, RTCServer *>
+class HYP_API RTCServerThread final : public Thread<Scheduler, RTCServer*>
 {
 public:
     RTCServerThread();
@@ -20,10 +20,12 @@ public:
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
     bool IsRunning() const
-        { return m_is_running.Get(MemoryOrder::RELAXED); }
+    {
+        return m_is_running.Get(MemoryOrder::RELAXED);
+    }
 
 private:
-    virtual void operator()(RTCServer *) override;
+    virtual void operator()(RTCServer*) override;
 
     AtomicVar<bool> m_is_running;
 };

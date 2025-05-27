@@ -22,68 +22,70 @@ namespace hyperion {
 
 #pragma region Light
 
-Light::Light() : Light(
-    LightType::DIRECTIONAL,
-    Vec3f::Zero(),
-    Color { 1.0f, 1.0f, 1.0f, 1.0f },
-    1.0f,
-    1.0f
-)
+Light::Light()
+    : Light(
+          LightType::DIRECTIONAL,
+          Vec3f::Zero(),
+          Color { 1.0f, 1.0f, 1.0f, 1.0f },
+          1.0f,
+          1.0f)
 {
 }
 
 Light::Light(
     LightType type,
-    const Vec3f &position,
-    const Color &color,
+    const Vec3f& position,
+    const Color& color,
     float intensity,
-    float radius
-) : HypObject(),
-    m_type(type),
-    m_position(position),
-    m_color(color),
-    m_intensity(intensity),
-    m_radius(radius),
-    m_falloff(1.0f),
-    m_spot_angles(Vec2f::Zero()),
-    m_mutation_state(DataMutationState::CLEAN),
-    m_render_resource(nullptr)
+    float radius)
+    : HypObject(),
+      m_type(type),
+      m_position(position),
+      m_color(color),
+      m_intensity(intensity),
+      m_radius(radius),
+      m_falloff(1.0f),
+      m_spot_angles(Vec2f::Zero()),
+      m_mutation_state(DataMutationState::CLEAN),
+      m_render_resource(nullptr)
 {
 }
 
 Light::Light(
     LightType type,
-    const Vec3f &position,
-    const Vec3f &normal,
-    const Vec2f &area_size,
-    const Color &color,
+    const Vec3f& position,
+    const Vec3f& normal,
+    const Vec2f& area_size,
+    const Color& color,
     float intensity,
-    float radius
-) : HypObject(),
-    m_type(type),
-    m_position(position),
-    m_normal(normal),
-    m_area_size(area_size),
-    m_color(color),
-    m_intensity(intensity),
-    m_radius(radius),
-    m_falloff(1.0f),
-    m_spot_angles(Vec2f::Zero()),
-    m_mutation_state(DataMutationState::CLEAN),
-    m_render_resource(nullptr)
+    float radius)
+    : HypObject(),
+      m_type(type),
+      m_position(position),
+      m_normal(normal),
+      m_area_size(area_size),
+      m_color(color),
+      m_intensity(intensity),
+      m_radius(radius),
+      m_falloff(1.0f),
+      m_spot_angles(Vec2f::Zero()),
+      m_mutation_state(DataMutationState::CLEAN),
+      m_render_resource(nullptr)
 {
 }
 
 Light::~Light()
 {
-    if (m_render_resource != nullptr) {
+    if (m_render_resource != nullptr)
+    {
         FreeResource(m_render_resource);
     }
 }
 
 void Light::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
@@ -91,7 +93,8 @@ void Light::Init()
 
     m_render_resource = AllocateResource<LightRenderResource>(this);
 
-    if (m_material.IsValid()) {
+    if (m_material.IsValid())
+    {
         InitObject(m_material);
 
         m_render_resource->SetMaterial(m_material);
@@ -108,31 +111,33 @@ void Light::EnqueueRenderUpdates()
 {
     AssertReady();
 
-    if (m_material.IsValid() && m_material->GetMutationState().IsDirty()) {
+    if (m_material.IsValid() && m_material->GetMutationState().IsDirty())
+    {
         m_mutation_state |= DataMutationState::DIRTY;
 
         m_material->EnqueueRenderUpdates();
     }
 
-    if (!m_mutation_state.IsDirty()) {
+    if (!m_mutation_state.IsDirty())
+    {
         return;
     }
 
     const BoundingBox aabb = GetAABB();
 
     LightShaderData buffer_data {
-        .light_id           = GetID().Value(),
-        .light_type         = uint32(m_type),
-        .color_packed       = uint32(m_color),
-        .radius             = m_radius,
-        .falloff            = m_falloff,
-        .area_size          = m_area_size,
+        .light_id = GetID().Value(),
+        .light_type = uint32(m_type),
+        .color_packed = uint32(m_color),
+        .radius = m_radius,
+        .falloff = m_falloff,
+        .area_size = m_area_size,
         .position_intensity = Vec4f(m_position, m_intensity),
-        .normal             = Vec4f(m_normal, 0.0f),
-        .spot_angles        = m_spot_angles,
-        .material_index     = ~0u, // set later
-        .aabb_min           = Vec4f(aabb.min, 1.0f),
-        .aabb_max           = Vec4f(aabb.max, 1.0f)
+        .normal = Vec4f(m_normal, 0.0f),
+        .spot_angles = m_spot_angles,
+        .material_index = ~0u, // set later
+        .aabb_min = Vec4f(aabb.min, 1.0f),
+        .aabb_max = Vec4f(aabb.max, 1.0f)
     };
 
     m_render_resource->SetBufferData(buffer_data);
@@ -142,13 +147,15 @@ void Light::EnqueueRenderUpdates()
 
 void Light::SetMaterial(Handle<Material> material)
 {
-    if (material == m_material) {
+    if (material == m_material)
+    {
         return;
     }
 
     m_material = std::move(material);
 
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         InitObject(m_material);
 
         m_render_resource->SetMaterial(m_material);
@@ -178,11 +185,13 @@ Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
 
 BoundingBox Light::GetAABB() const
 {
-    if (m_type == LightType::DIRECTIONAL) {
+    if (m_type == LightType::DIRECTIONAL)
+    {
         return BoundingBox::Infinity();
     }
 
-    if (m_type == LightType::AREA_RECT) {
+    if (m_type == LightType::AREA_RECT)
+    {
         const Pair<Vec3f, Vec3f> rect = CalculateAreaLightRect();
 
         return BoundingBox::Empty()
@@ -191,7 +200,8 @@ BoundingBox Light::GetAABB() const
             .Union(m_position + m_normal * m_radius);
     }
 
-    if (m_type == LightType::POINT) {
+    if (m_type == LightType::POINT)
+    {
         return BoundingBox(GetBoundingSphere());
     }
 
@@ -200,7 +210,8 @@ BoundingBox Light::GetAABB() const
 
 BoundingSphere Light::GetBoundingSphere() const
 {
-    if (m_type == LightType::DIRECTIONAL) {
+    if (m_type == LightType::DIRECTIONAL)
+    {
         return BoundingSphere::infinity;
     }
 

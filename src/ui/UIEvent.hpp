@@ -18,33 +18,33 @@ class IUIEvent
 public:
     virtual ~IUIEvent() = default;
 
-    virtual InputManager *GetInputManager() = 0;
+    virtual InputManager* GetInputManager() = 0;
 
-    virtual MouseEvent *GetMouseEvent() = 0;
-    virtual KeyboardEvent *GetKeyboardEvent() = 0;
+    virtual MouseEvent* GetMouseEvent() = 0;
+    virtual KeyboardEvent* GetKeyboardEvent() = 0;
 };
 
 class UIMouseEvent : public IUIEvent
 {
 public:
-    UIMouseEvent(const MouseEvent &mouse_event)
+    UIMouseEvent(const MouseEvent& mouse_event)
         : m_mouse_event(mouse_event)
     {
     }
 
     virtual ~UIMouseEvent() override = default;
 
-    virtual InputManager *GetInputManager() override
+    virtual InputManager* GetInputManager() override
     {
         return m_mouse_event.input_manager;
     }
 
-    virtual MouseEvent *GetMouseEvent() override
+    virtual MouseEvent* GetMouseEvent() override
     {
         return &m_mouse_event;
     }
 
-    virtual KeyboardEvent *GetKeyboardEvent() override
+    virtual KeyboardEvent* GetKeyboardEvent() override
     {
         return nullptr;
     }
@@ -56,24 +56,24 @@ private:
 class UIKeyboardEvent : public IUIEvent
 {
 public:
-    UIKeyboardEvent(const KeyboardEvent &keyboard_event)
+    UIKeyboardEvent(const KeyboardEvent& keyboard_event)
         : m_keyboard_event(keyboard_event)
     {
     }
 
     virtual ~UIKeyboardEvent() override = default;
 
-    virtual InputManager *GetInputManager() override
+    virtual InputManager* GetInputManager() override
     {
         return m_keyboard_event.input_manager;
     }
 
-    virtual MouseEvent *GetMouseEvent() override
+    virtual MouseEvent* GetMouseEvent() override
     {
         return nullptr;
     }
 
-    virtual KeyboardEvent *GetKeyboardEvent() override
+    virtual KeyboardEvent* GetKeyboardEvent() override
     {
         return &m_keyboard_event;
     }

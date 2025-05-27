@@ -8,9 +8,10 @@
 
 using namespace hyperion;
 
-extern "C" {
-HYP_EXPORT void TypeID_ForManagedType(const char *type_name, TypeID *out_type_id)
+extern "C"
 {
-    *out_type_id = TypeID::ForManagedType(type_name);
-}
+    HYP_EXPORT void TypeID_ForManagedType(const char* type_name, TypeID* out_type_id)
+    {
+        *out_type_id = TypeID::ForManagedType(type_name);
+    }
 } // extern "C"

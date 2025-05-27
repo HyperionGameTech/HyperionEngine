@@ -20,12 +20,13 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
-StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, TextureData texture_data, ResourceHandle &out_resource_handle)
-    : StreamedData(initial_state, out_resource_handle),
+StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, TextureData texture_data, ResourceHandle& out_resource_handle)
+    : StreamedDataBase(initial_state, out_resource_handle),
       m_texture_desc(texture_data.desc),
       m_buffer_size(texture_data.buffer.Size())
 {
-    switch (initial_state) {
+    switch (initial_state)
+    {
     case StreamedDataState::NONE:
         m_streamed_data.EmplaceAs<NullStreamedData>();
 
@@ -34,34 +35,37 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
     case StreamedDataState::UNPAGED:
         m_texture_data.Set(std::move(texture_data));
 
-        m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), [this](HashCode hc, ByteBuffer &out) -> bool
-        {
-            if (!m_texture_data) {
-                HYP_LOG(Streaming, Error, "Texture data is unset when trying to load from memory");
+        m_streamed_data.EmplaceAs<MemoryStreamedData>(m_texture_data->GetHashCode(), [this](HashCode hc, ByteBuffer& out) -> bool
+            {
+                if (!m_texture_data)
+                {
+                    HYP_LOG(Streaming, Error, "Texture data is unset when trying to load from memory");
 
-                return false;
-            }
+                    return false;
+                }
 
-            MemoryByteWriter writer;
+                MemoryByteWriter writer;
 
-            fbom::FBOMWriter serializer { fbom::FBOMWriterConfig { } };
-            
-            if (fbom::FBOMResult err = serializer.Append(*m_texture_data)) {
-                HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
+                fbom::FBOMWriter serializer { fbom::FBOMWriterConfig {} };
 
-                return false;
-            }
+                if (fbom::FBOMResult err = serializer.Append(*m_texture_data))
+                {
+                    HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
-            if (fbom::FBOMResult err = serializer.Emit(&writer)) {
-                HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
+                    return false;
+                }
 
-                return false;
-            }
+                if (fbom::FBOMResult err = serializer.Emit(&writer))
+                {
+                    HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
-            out = std::move(writer.GetBuffer());
+                    return false;
+                }
 
-            return true;
-        });
+                out = std::move(writer.GetBuffer());
+
+                return true;
+            });
 
         break;
     default:
@@ -70,17 +74,17 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
 }
 
 StreamedTextureData::StreamedTextureData()
-    : StreamedData(),
+    : StreamedDataBase(),
       m_streamed_data(MakeRefCountedPtr<NullStreamedData>())
 {
 }
 
-StreamedTextureData::StreamedTextureData(const TextureData &texture_data, ResourceHandle &out_resource_handle)
+StreamedTextureData::StreamedTextureData(const TextureData& texture_data, ResourceHandle& out_resource_handle)
     : StreamedTextureData(StreamedDataState::LOADED, texture_data, out_resource_handle)
 {
 }
 
-StreamedTextureData::StreamedTextureData(TextureData &&texture_data, ResourceHandle &out_resource_handle)
+StreamedTextureData::StreamedTextureData(TextureData&& texture_data, ResourceHandle& out_resource_handle)
     : StreamedTextureData(StreamedDataState::LOADED, std::move(texture_data), out_resource_handle)
 {
 }
@@ -92,7 +96,8 @@ bool StreamedTextureData::IsInMemory_Internal() const
 
 void StreamedTextureData::Unpage_Internal()
 {
-    if (m_streamed_data) {
+    if (m_streamed_data)
+    {
         m_streamed_data->Unpage();
     }
 
@@ -104,67 +109,72 @@ void StreamedTextureData::Load_Internal() const
     AssertThrow(m_streamed_data != nullptr);
     m_streamed_data->Load();
 
-    if (!m_texture_data.HasValue()) {
+    if (!m_texture_data.HasValue())
+    {
         LoadTextureData(m_streamed_data->GetByteBuffer());
     }
 }
 
-void StreamedTextureData::LoadTextureData(const ByteBuffer &byte_buffer) const
+void StreamedTextureData::LoadTextureData(const ByteBuffer& byte_buffer) const
 {
     m_texture_data.Unset();
 
     BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(byte_buffer.ToByteView()));
 
-    if (!reader.IsOpen()) {
+    if (!reader.IsOpen())
+    {
         return;
     }
 
     HypData value;
 
-    fbom::FBOMReader deserializer { fbom::FBOMReaderConfig { } };
+    fbom::FBOMReader deserializer { fbom::FBOMReaderConfig {} };
     fbom::FBOMLoadContext context;
 
-    if (fbom::FBOMResult err = deserializer.Deserialize(context, reader, value)) {
+    if (fbom::FBOMResult err = deserializer.Deserialize(context, reader, value))
+    {
         HYP_LOG(Streaming, Warning, "StreamedTextureData: Error deserializing texture data for StreamedTextureData with hash: {}\tError: {}", GetDataHashCode().Value(), err.message);
         return;
     }
 
     m_texture_data = value.Get<TextureData>();
-    
+
     m_texture_desc = m_texture_data->desc;
     m_buffer_size = m_texture_data->buffer.Size();
 }
 
-const TextureData &StreamedTextureData::GetTextureData() const
+const TextureData& StreamedTextureData::GetTextureData() const
 {
     WaitForTaskCompletion();
 
-    if (!m_texture_data.HasValue()) {
-        static const TextureData default_value { };
-    
+    if (!m_texture_data.HasValue())
+    {
+        static const TextureData default_value {};
+
         return default_value;
     }
 
     return m_texture_data.Get();
 }
 
-void StreamedTextureData::SetTextureData(TextureData &&texture_data)
+void StreamedTextureData::SetTextureData(TextureData&& texture_data)
 {
     Execute([this, texture_data = std::move(texture_data)]()
-    {
-        m_texture_desc = texture_data.desc;
-        m_buffer_size = texture_data.buffer.Size();
-        
-        m_texture_data.Set(std::move(texture_data));
-    });
+        {
+            m_texture_desc = texture_data.desc;
+            m_buffer_size = texture_data.buffer.Size();
+
+            m_texture_data.Set(std::move(texture_data));
+        });
 }
 
-const TextureDesc &StreamedTextureData::GetTextureDesc() const
+const TextureDesc& StreamedTextureData::GetTextureDesc() const
 {
     WaitForTaskCompletion();
 
-    if (!m_texture_data.HasValue()) {
-        static const TextureDesc default_value { };
+    if (!m_texture_data.HasValue())
+    {
+        static const TextureDesc default_value {};
 
         return default_value;
     }
@@ -172,16 +182,17 @@ const TextureDesc &StreamedTextureData::GetTextureDesc() const
     return m_texture_data->desc;
 }
 
-void StreamedTextureData::SetTextureDesc(const TextureDesc &texture_desc)
+void StreamedTextureData::SetTextureDesc(const TextureDesc& texture_desc)
 {
     Execute([this, texture_desc]()
-    {
-        m_texture_desc = texture_desc;
+        {
+            m_texture_desc = texture_desc;
 
-        if (m_texture_data.HasValue()) {
-            m_texture_data->desc = texture_desc;
-        }
-    });
+            if (m_texture_data.HasValue())
+            {
+                m_texture_data->desc = texture_desc;
+            }
+        });
 }
 
 } // namespace hyperion

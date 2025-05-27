@@ -6,16 +6,18 @@
 
 namespace hyperion {
 
-HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char &out_char)
+HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, char& out_char)
 {
     DebugLog(LogType::Debug, "KeyCodeToChar: key_code = %u\n", uint32(key_code));
 
-    if (uint32(key_code) >= uint32(KeyCode::KEY_A) && uint32(key_code) <= uint32(KeyCode::KEY_Z)) {
+    if (uint32(key_code) >= uint32(KeyCode::KEY_A) && uint32(key_code) <= uint32(KeyCode::KEY_Z))
+    {
         out_char = char(uint32(key_code) - uint32(KeyCode::KEY_A)) + (shift ? 'A' : 'a');
         return true;
     }
 
-    if (uint32(key_code) >= uint32(KeyCode::KEY_0) && uint32(key_code) <= uint32(KeyCode::KEY_9)) {
+    if (uint32(key_code) >= uint32(KeyCode::KEY_0) && uint32(key_code) <= uint32(KeyCode::KEY_9))
+    {
         static const char num_codes[] = {
             ')', '!', '@', '#', '$', '%', '^', '&', '*', '('
         };
@@ -24,7 +26,8 @@ HYP_API bool KeyCodeToChar(KeyCode key_code, bool shift, bool alt, bool ctrl, ch
         return true;
     }
 
-    switch ((int)key_code) {
+    switch ((int)key_code)
+    {
     case (int)' ':
         out_char = ' ';
         return true;

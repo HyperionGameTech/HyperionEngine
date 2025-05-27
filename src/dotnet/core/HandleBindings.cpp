@@ -4,86 +4,94 @@
 
 using namespace hyperion;
 
-extern "C" {
-
-HYP_EXPORT void Handle_Get(HypObjectBase *ptr, ValueStorage<HypData> *out_hyp_data)
+extern "C"
 {
-    AssertThrow(out_hyp_data != nullptr);
-    AssertThrow(ptr != nullptr);
 
-    HypObjectHeader *header = ptr->GetObjectHeader_Internal();
+    HYP_EXPORT void Handle_Get(HypObjectBase* ptr, ValueStorage<HypData>* out_hyp_data)
+    {
+        AssertThrow(out_hyp_data != nullptr);
+        AssertThrow(ptr != nullptr);
 
-    IObjectContainer *container = header->container;
-    AssertThrow(container != nullptr);
+        HypObjectHeader* header = ptr->GetObjectHeader_Internal();
 
-    out_hyp_data->Construct(AnyRef(container->GetObjectTypeID(), container->GetObjectPointer(header)));
-}
+        IObjectContainer* container = header->container;
+        AssertThrow(container != nullptr);
 
-HYP_EXPORT void Handle_Set(HypData *hyp_data, HypObjectBase **out_ptr)
-{
-    AssertThrow(out_ptr != nullptr);
+        out_hyp_data->Construct(AnyRef(container->GetObjectTypeID(), container->GetObjectPointer(header)));
+    }
 
-    if (hyp_data != nullptr) {
-        AnyHandle &handle = hyp_data->Get<AnyHandle>();
+    HYP_EXPORT void Handle_Set(HypData* hyp_data, HypObjectBase** out_ptr)
+    {
+        AssertThrow(out_ptr != nullptr);
 
-        if (handle.IsValid()) {
-            *out_ptr = handle.ptr;
+        if (hyp_data != nullptr)
+        {
+            AnyHandle& handle = hyp_data->Get<AnyHandle>();
 
-            (void)handle.Release();
+            if (handle.IsValid())
+            {
+                *out_ptr = handle.ptr;
 
-            return;
+                (void)handle.Release();
+
+                return;
+            }
+        }
+
+        *out_ptr = nullptr;
+    }
+
+    HYP_EXPORT void Handle_Destruct(HypObjectBase* ptr)
+    {
+        if (ptr != nullptr)
+        {
+            ptr->GetObjectHeader_Internal()->DecRefStrong();
         }
     }
 
-    *out_ptr = nullptr;
-}
+    HYP_EXPORT uint8 WeakHandle_Lock(HypObjectBase* ptr)
+    {
+        AssertThrow(ptr != nullptr);
 
-HYP_EXPORT void Handle_Destruct(HypObjectBase *ptr)
-{
-    if (ptr != nullptr) {
-        ptr->GetObjectHeader_Internal()->DecRefStrong();
-    }
-}
+        if (ptr->GetObjectHeader_Internal()->GetRefCountStrong() == 0)
+        {
+            return 0;
+        }
 
-HYP_EXPORT uint8 WeakHandle_Lock(HypObjectBase *ptr)
-{
-    AssertThrow(ptr != nullptr);
+        ptr->GetObjectHeader_Internal()->IncRefStrong();
 
-    if (ptr->GetObjectHeader_Internal()->GetRefCountStrong() == 0) {
-        return 0;
+        return 1;
     }
 
-    ptr->GetObjectHeader_Internal()->IncRefStrong();
+    HYP_EXPORT void WeakHandle_Set(HypData* hyp_data, HypObjectBase** out_ptr)
+    {
+        AssertThrow(out_ptr != nullptr);
 
-    return 1;
-}
+        if (hyp_data != nullptr)
+        {
+            AnyHandle& handle = hyp_data->Get<AnyHandle>();
 
-HYP_EXPORT void WeakHandle_Set(HypData *hyp_data, HypObjectBase **out_ptr)
-{
-    AssertThrow(out_ptr != nullptr);
+            if (handle.IsValid())
+            {
+                handle.ptr->GetObjectHeader_Internal()->IncRefWeak();
 
-    if (hyp_data != nullptr) {
-        AnyHandle &handle = hyp_data->Get<AnyHandle>();
+                *out_ptr = handle.ptr;
 
-        if (handle.IsValid()) {
-            handle.ptr->GetObjectHeader_Internal()->IncRefWeak();
+                handle.Reset();
 
-            *out_ptr = handle.ptr;
+                return;
+            }
+        }
 
-            handle.Reset();
+        *out_ptr = nullptr;
+    }
 
-            return;
+    HYP_EXPORT void WeakHandle_Destruct(HypObjectBase* ptr)
+    {
+        if (ptr != nullptr)
+        {
+            ptr->GetObjectHeader_Internal()->DecRefWeak();
         }
     }
-
-    *out_ptr = nullptr;
-}
-
-HYP_EXPORT void WeakHandle_Destruct(HypObjectBase *ptr)
-{
-    if (ptr != nullptr) {
-        ptr->GetObjectHeader_Internal()->DecRefWeak();
-    }
-}
 
 } // extern "C"

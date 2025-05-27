@@ -43,35 +43,40 @@ namespace hyperion {
 
 AssetCollector::~AssetCollector()
 {
-    if (IsWatching()) {
+    if (IsWatching())
+    {
         StopWatching();
     }
 }
 
 void AssetCollector::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
     HypObject::Init();
 
-    if (!m_base_path.Any()) {
+    if (!m_base_path.Any())
+    {
         m_base_path = FilePath::Current();
     }
 
-    if (!m_base_path.IsDirectory()) {
+    if (!m_base_path.IsDirectory())
+    {
         m_base_path = m_base_path.BasePath();
     }
 
-    if (!m_base_path.Exists()) {
+    if (!m_base_path.Exists())
+    {
         m_base_path.MkDir();
     }
 
     SetReady(true);
 }
 
-void AssetCollector::NotifyAssetChanged(const FilePath &path, AssetChangeType change_type)
+void AssetCollector::NotifyAssetChanged(const FilePath& path, AssetChangeType change_type)
 {
     AssertReady();
 
@@ -82,7 +87,7 @@ void AssetCollector::NotifyAssetChanged(const FilePath &path, AssetChangeType ch
 
 #pragma region AssetManager
 
-const Handle<AssetManager> &AssetManager::GetInstance()
+const Handle<AssetManager>& AssetManager::GetInstance()
 {
     return g_asset_manager;
 }
@@ -97,7 +102,8 @@ FilePath AssetManager::GetBasePath() const
 {
     Mutex::Guard guard(m_asset_collectors_mutex);
 
-    if (Handle<AssetCollector> asset_collector = m_base_asset_collector.Lock()) {
+    if (Handle<AssetCollector> asset_collector = m_base_asset_collector.Lock())
+    {
         return asset_collector->GetBasePath();
     }
 
@@ -111,20 +117,23 @@ Handle<AssetCollector> AssetManager::GetBaseAssetCollector() const
     return m_base_asset_collector.Lock();
 }
 
-void AssetManager::SetBasePath(const FilePath &base_path)
+void AssetManager::SetBasePath(const FilePath& base_path)
 {
     Mutex::Guard guard(m_asset_collectors_mutex);
 
     Handle<AssetCollector> asset_collector;
 
-    auto asset_collectors_it = m_asset_collectors.FindIf([base_path](const Handle<AssetCollector> &asset_collector)
-    {
-        return asset_collector->GetBasePath() == base_path;
-    });
+    auto asset_collectors_it = m_asset_collectors.FindIf([base_path](const Handle<AssetCollector>& asset_collector)
+        {
+            return asset_collector->GetBasePath() == base_path;
+        });
 
-    if (asset_collectors_it != m_asset_collectors.End()) {
+    if (asset_collectors_it != m_asset_collectors.End())
+    {
         asset_collector = *asset_collectors_it;
-    } else {
+    }
+    else
+    {
         asset_collector = CreateObject<AssetCollector>(base_path);
         InitObject(asset_collector);
 
@@ -133,7 +142,8 @@ void AssetManager::SetBasePath(const FilePath &base_path)
         OnAssetCollectorAdded(asset_collector);
     }
 
-    if (m_base_asset_collector == asset_collector) {
+    if (m_base_asset_collector == asset_collector)
+    {
         return;
     }
 
@@ -142,27 +152,30 @@ void AssetManager::SetBasePath(const FilePath &base_path)
     OnBaseAssetCollectorChanged(asset_collector);
 }
 
-void AssetManager::ForEachAssetCollector(const ProcRef<void(const Handle<AssetCollector> &)> &callback) const
+void AssetManager::ForEachAssetCollector(const ProcRef<void(const Handle<AssetCollector>&)>& callback) const
 {
     HYP_SCOPE;
 
     Mutex::Guard guard(m_asset_collectors_mutex);
 
-    for (const Handle<AssetCollector> &asset_collector : m_asset_collectors) {
+    for (const Handle<AssetCollector>& asset_collector : m_asset_collectors)
+    {
         callback(asset_collector);
     }
 }
 
-void AssetManager::AddAssetCollector(const Handle<AssetCollector> &asset_collector)
+void AssetManager::AddAssetCollector(const Handle<AssetCollector>& asset_collector)
 {
-    if (!asset_collector.IsValid()) {
+    if (!asset_collector.IsValid())
+    {
         return;
     }
 
     {
         Mutex::Guard guard(m_asset_collectors_mutex);
 
-        if (m_asset_collectors.Contains(asset_collector)) {
+        if (m_asset_collectors.Contains(asset_collector))
+        {
             return;
         }
 
@@ -172,16 +185,18 @@ void AssetManager::AddAssetCollector(const Handle<AssetCollector> &asset_collect
     OnAssetCollectorAdded(asset_collector);
 }
 
-void AssetManager::RemoveAssetCollector(const Handle<AssetCollector> &asset_collector)
+void AssetManager::RemoveAssetCollector(const Handle<AssetCollector>& asset_collector)
 {
-    if (!asset_collector.IsValid()) {
+    if (!asset_collector.IsValid())
+    {
         return;
     }
 
     {
         Mutex::Guard guard(m_asset_collectors_mutex);
-        
-        if (!m_asset_collectors.Erase(asset_collector)) {
+
+        if (!m_asset_collectors.Erase(asset_collector))
+        {
             return;
         }
     }
@@ -189,12 +204,14 @@ void AssetManager::RemoveAssetCollector(const Handle<AssetCollector> &asset_coll
     OnAssetCollectorRemoved(asset_collector);
 }
 
-const Handle<AssetCollector> &AssetManager::FindAssetCollector(ProcRef<bool(const Handle<AssetCollector> &)> proc) const
+const Handle<AssetCollector>& AssetManager::FindAssetCollector(ProcRef<bool(const Handle<AssetCollector>&)> proc) const
 {
     Mutex::Guard guard(m_asset_collectors_mutex);
 
-    for (const Handle<AssetCollector> &asset_collector : m_asset_collectors) {
-        if (proc(asset_collector)) {
+    for (const Handle<AssetCollector>& asset_collector : m_asset_collectors)
+    {
+        if (proc(asset_collector))
+        {
             return asset_collector;
         }
     }
@@ -216,8 +233,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<OgreXMLSkeletonLoader, Skeleton>("skeleton.xml");
     Register<TextureLoader, Texture>(
         "png", "jpg", "jpeg", "tga",
-        "bmp", "psd", "gif", "hdr", "tif"
-    );
+        "bmp", "psd", "gif", "hdr", "tif");
     Register<MTLMaterialLoader, MaterialGroup>("mtl");
     Register<WAVAudioLoader, AudioSource>("wav");
     Register<FBOMModelLoader, Node>("hypmodel");
@@ -226,48 +242,54 @@ void AssetManager::RegisterDefaultLoaders()
     Register<JSONLoader, JSONValue>("json");
     // freetype font loader
     Register<FontFaceLoader, RC<FontFace>>(
-        "ttf", "otf", "ttc", "dfont"
-    );
+        "ttf", "otf", "ttc", "dfont");
     Register<FontAtlasLoader, RC<FontAtlas>>();
     Register<UILoader, UIObject>();
 }
 
-const AssetLoaderDefinition *AssetManager::GetLoaderDefinition(const FilePath &path, TypeID desired_type_id)
+const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& path, TypeID desired_type_id)
 {
     HYP_SCOPE;
 
     const String extension = StringUtil::GetExtension(path).ToLower();
 
-    AssetLoaderBase *loader = nullptr;
+    AssetLoaderBase* loader = nullptr;
 
-    SortedArray<KeyValuePair<uint32, const AssetLoaderDefinition *>> loader_ptrs;
+    SortedArray<KeyValuePair<uint32, const AssetLoaderDefinition*>> loader_ptrs;
 
-    for (const AssetLoaderDefinition &asset_loader_definition : m_loaders) {
+    for (const AssetLoaderDefinition& asset_loader_definition : m_loaders)
+    {
         uint32 rank = 0;
 
-        if (desired_type_id != TypeID::Void()) {
-            if (!asset_loader_definition.HandlesResultType(desired_type_id)) {
+        if (desired_type_id != TypeID::Void())
+        {
+            if (!asset_loader_definition.HandlesResultType(desired_type_id))
+            {
                 continue;
             }
 
             // Result type is required to be provided for wildcard loaders to be considered
-            if (asset_loader_definition.IsWildcardExtensionLoader()) {
+            if (asset_loader_definition.IsWildcardExtensionLoader())
+            {
                 rank += 1;
             }
         }
 
-        if (!extension.Empty() && asset_loader_definition.HandlesExtension(path)) {
+        if (!extension.Empty() && asset_loader_definition.HandlesExtension(path))
+        {
             rank += 2;
         }
 
-        if (rank == 0) {
+        if (rank == 0)
+        {
             continue;
         }
 
         loader_ptrs.Insert({ rank, &asset_loader_definition });
     }
 
-    if (!loader_ptrs.Empty()) {
+    if (!loader_ptrs.Empty())
+    {
         return loader_ptrs.Front().second;
     }
 
@@ -276,7 +298,8 @@ const AssetLoaderDefinition *AssetManager::GetLoaderDefinition(const FilePath &p
 
 void AssetManager::Init()
 {
-    if (IsInitCalled()) {
+    if (IsInitCalled())
+    {
         return;
     }
 
@@ -293,52 +316,62 @@ void AssetManager::Update(GameCounter::TickUnit delta)
 
     uint32 num_pending_batches;
 
-    if ((num_pending_batches = m_num_pending_batches.Get(MemoryOrder::ACQUIRE)) != 0) {
+    if ((num_pending_batches = m_num_pending_batches.Get(MemoryOrder::ACQUIRE)) != 0)
+    {
         HYP_NAMED_SCOPE_FMT("Update pending batches ({})", num_pending_batches);
 
         Mutex::Guard guard(m_pending_batches_mutex);
 
-        for (auto it = m_pending_batches.Begin(); it != m_pending_batches.End();) {
-            if ((*it)->IsCompleted()) {
+        for (auto it = m_pending_batches.Begin(); it != m_pending_batches.End();)
+        {
+            if ((*it)->IsCompleted())
+            {
                 m_completed_batches.PushBack(std::move(*it));
 
                 it = m_pending_batches.Erase(it);
 
                 m_num_pending_batches.Decrement(1, MemoryOrder::RELEASE);
-            } else {
+            }
+            else
+            {
                 ++it;
             }
         }
     }
 
-    if (m_completed_batches.Empty()) {
+    if (m_completed_batches.Empty())
+    {
         return;
     }
 
-    for (const RC<AssetBatch> &batch : m_completed_batches) {
+    for (const RC<AssetBatch>& batch : m_completed_batches)
+    {
         HYP_NAMED_SCOPE("Process completed batch");
 
         AssetMap results = batch->AwaitResults();
 
-        for (auto &it : results) {
+        for (auto& it : results)
+        {
             it.second.OnPostLoad();
         }
-        
+
         batch->OnComplete(results);
     }
 
     m_completed_batches.Clear();
 }
 
-void AssetManager::AddPendingBatch(const RC<AssetBatch> &batch)
+void AssetManager::AddPendingBatch(const RC<AssetBatch>& batch)
 {
-    if (!batch) {
+    if (!batch)
+    {
         return;
     }
 
     Mutex::Guard guard(m_pending_batches_mutex);
 
-    if (m_pending_batches.Contains(batch)) {
+    if (m_pending_batches.Contains(batch))
+    {
         return;
     }
 

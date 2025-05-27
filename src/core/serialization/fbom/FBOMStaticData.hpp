@@ -32,7 +32,7 @@ namespace hyperion {
 
 enum class FBOMStaticDataFlags : uint32
 {
-    NONE    = 0x0,
+    NONE = 0x0,
     WRITTEN = 0x1
 };
 
@@ -44,17 +44,17 @@ struct FBOMStaticData
 {
     enum Type
     {
-        FBOM_STATIC_DATA_NONE       = 0x00,
-        FBOM_STATIC_DATA_OBJECT     = 0x01,
-        FBOM_STATIC_DATA_TYPE       = 0x02,
-        FBOM_STATIC_DATA_DATA       = 0x04,
-        FBOM_STATIC_DATA_ARRAY      = 0x08,
+        FBOM_STATIC_DATA_NONE = 0x00,
+        FBOM_STATIC_DATA_OBJECT = 0x01,
+        FBOM_STATIC_DATA_TYPE = 0x02,
+        FBOM_STATIC_DATA_DATA = 0x04,
+        FBOM_STATIC_DATA_ARRAY = 0x08,
         FBOM_STATIC_DATA_NAME_TABLE = 0x10
     } type;
 
-    int64                           offset;
-    UniquePtr<FBOMSerializableBase>    data;
-    EnumFlags<FBOMStaticDataFlags>  flags;
+    int64 offset;
+    UniquePtr<FBOMSerializableBase> data;
+    EnumFlags<FBOMStaticDataFlags> flags;
 
     FBOMStaticData()
         : type(FBOM_STATIC_DATA_NONE),
@@ -63,7 +63,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMObject &value, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMObject& value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_OBJECT),
           data(MakeUnique<FBOMObject>(value)),
           offset(offset),
@@ -71,7 +71,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMType &value, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMType& value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_TYPE),
           data(MakeUnique<FBOMType>(value)),
           offset(offset),
@@ -79,7 +79,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMData &value, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMData& value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_DATA),
           data(MakeUnique<FBOMData>(value)),
           offset(offset),
@@ -87,7 +87,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(const FBOMArray &value, int64 offset = -1)
+    explicit FBOMStaticData(const FBOMArray& value, int64 offset = -1)
         : type(FBOM_STATIC_DATA_ARRAY),
           data(MakeUnique<FBOMArray>(value)),
           offset(offset),
@@ -95,7 +95,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(FBOMObject &&value, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMObject&& value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_OBJECT),
           data(MakeUnique<FBOMObject>(std::move(value))),
           offset(offset),
@@ -103,7 +103,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(FBOMType &&value, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMType&& value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_TYPE),
           data(MakeUnique<FBOMType>(std::move(value))),
           offset(offset),
@@ -111,7 +111,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(FBOMData &&value, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMData&& value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_DATA),
           data(MakeUnique<FBOMData>(std::move(value))),
           offset(offset),
@@ -119,7 +119,7 @@ struct FBOMStaticData
     {
     }
 
-    explicit FBOMStaticData(FBOMArray &&value, int64 offset = -1) noexcept
+    explicit FBOMStaticData(FBOMArray&& value, int64 offset = -1) noexcept
         : type(FBOM_STATIC_DATA_ARRAY),
           data(MakeUnique<FBOMArray>(std::move(value))),
           offset(offset),
@@ -127,10 +127,10 @@ struct FBOMStaticData
     {
     }
 
-    FBOMStaticData(const FBOMStaticData &other)             = delete;
-    FBOMStaticData &operator=(const FBOMStaticData &other)  = delete;
+    FBOMStaticData(const FBOMStaticData& other) = delete;
+    FBOMStaticData& operator=(const FBOMStaticData& other) = delete;
 
-    FBOMStaticData(FBOMStaticData &&other) noexcept
+    FBOMStaticData(FBOMStaticData&& other) noexcept
         : type(other.type),
           data(std::move(other.data)),
           offset(other.offset),
@@ -142,9 +142,10 @@ struct FBOMStaticData
         other.flags = FBOMStaticDataFlags::NONE;
     }
 
-    FBOMStaticData &operator=(FBOMStaticData &&other) noexcept
+    FBOMStaticData& operator=(FBOMStaticData&& other) noexcept
     {
-        if (this == &other) {
+        if (this == &other)
+        {
             return *this;
         }
 
@@ -163,32 +164,43 @@ struct FBOMStaticData
 
     ~FBOMStaticData() = default;
 
-    HYP_FORCE_INLINE bool operator<(const FBOMStaticData &other) const
-        { return offset < other.offset; }
+    HYP_FORCE_INLINE bool operator<(const FBOMStaticData& other) const
+    {
+        return offset < other.offset;
+    }
 
     HYP_FORCE_INLINE bool IsWritten() const
-        { return flags & FBOMStaticDataFlags::WRITTEN; }
+    {
+        return flags & FBOMStaticDataFlags::WRITTEN;
+    }
 
     HYP_FORCE_INLINE void SetIsWritten(bool is_written)
     {
-        if (is_written) {
+        if (is_written)
+        {
             flags |= FBOMStaticDataFlags::WRITTEN;
-        } else {
+        }
+        else
+        {
             flags &= ~FBOMStaticDataFlags::WRITTEN;
         }
     }
 
     /*! \brief Set a custom identifier for this object (overrides the underlying data's unique identifier) */
     HYP_FORCE_INLINE void SetUniqueID(UniqueID id)
-        { m_id.Set(id); }
+    {
+        m_id.Set(id);
+    }
 
     HYP_FORCE_INLINE UniqueID GetUniqueID() const
     {
-        if (m_id.HasValue()) {
+        if (m_id.HasValue())
+        {
             return *m_id;
         }
 
-        if (data != nullptr) {
+        if (data != nullptr)
+        {
             return data->GetUniqueID();
         }
 
@@ -197,7 +209,8 @@ struct FBOMStaticData
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        if (data != nullptr) {
+        if (data != nullptr)
+        {
             return data->GetHashCode();
         }
 
@@ -206,7 +219,8 @@ struct FBOMStaticData
 
     HYP_FORCE_INLINE String ToString() const
     {
-        if (data != nullptr) {
+        if (data != nullptr)
+        {
             return data->ToString();
         }
 
@@ -215,7 +229,7 @@ struct FBOMStaticData
 
 private:
     // Optional custom set ID
-    Optional<UniqueID>  m_id;
+    Optional<UniqueID> m_id;
 };
 
 } // namespace fbom

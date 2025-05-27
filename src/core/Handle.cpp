@@ -5,18 +5,18 @@
 
 namespace hyperion {
 
-#define DEF_HANDLE(T) \
-    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< T >()); \
-    IObjectContainer *HandleDefinition< T >::GetAllottedContainerPointer() \
-    { \
-        return g_container_ptr_##T; \
+#define DEF_HANDLE(T)                                                                                          \
+    IObjectContainer* g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType<T>()); \
+    IObjectContainer* HandleDefinition<T>::GetAllottedContainerPointer()                                       \
+    {                                                                                                          \
+        return g_container_ptr_##T;                                                                            \
     }
 
-#define DEF_HANDLE_NS(ns, T) \
-    IObjectContainer *g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType< ns::T >()); \
-    IObjectContainer *HandleDefinition< ns::T >::GetAllottedContainerPointer() \
-    { \
-        return g_container_ptr_##T; \
+#define DEF_HANDLE_NS(ns, T)                                                                                       \
+    IObjectContainer* g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType<ns::T>()); \
+    IObjectContainer* HandleDefinition<ns::T>::GetAllottedContainerPointer()                                       \
+    {                                                                                                              \
+        return g_container_ptr_##T;                                                                                \
     }
 
 #include <core/inl/HandleDefinitions.inl>
@@ -26,49 +26,55 @@ namespace hyperion {
 
 #pragma region AnyHandle
 
-const AnyHandle AnyHandle::empty = { };
+const AnyHandle AnyHandle::empty = {};
 
-AnyHandle::AnyHandle(HypObjectBase *hyp_object_ptr)
+AnyHandle::AnyHandle(HypObjectBase* hyp_object_ptr)
     : ptr(hyp_object_ptr),
       type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void())
 {
-    if (IsValid()) {
+    if (IsValid())
+    {
         ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
-AnyHandle::AnyHandle(const HypClass *hyp_class, HypObjectBase *ptr)
+AnyHandle::AnyHandle(const HypClass* hyp_class, HypObjectBase* ptr)
     : ptr(ptr),
       type_id(hyp_class ? hyp_class->GetTypeID() : TypeID::Void())
 {
-    if (IsValid()) {
+    if (IsValid())
+    {
         AssertThrowMsg(IsInstanceOfHypClass(hyp_class, ptr->InstanceClass()),
             "HypClass %s does not match the type of the object %s",
             *hyp_class->GetName(), *ptr->InstanceClass()->GetName());
-            
+
         this->ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
-AnyHandle::AnyHandle(const AnyHandle &other)
+AnyHandle::AnyHandle(const AnyHandle& other)
     : type_id(other.type_id),
       ptr(other.ptr)
 {
-    if (IsValid()) {
+    if (IsValid())
+    {
         ptr->GetObjectHeader_Internal()->IncRefStrong();
     }
 }
 
-AnyHandle &AnyHandle::operator=(const AnyHandle &other)
+AnyHandle& AnyHandle::operator=(const AnyHandle& other)
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
     const bool was_same_ptr = ptr == other.ptr;
 
-    if (!was_same_ptr) {
-        if (IsValid()) {
+    if (!was_same_ptr)
+    {
+        if (IsValid())
+        {
             ptr->GetObjectHeader_Internal()->DecRefStrong();
         }
     }
@@ -76,8 +82,10 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
     ptr = other.ptr;
     type_id = other.type_id;
 
-    if (!was_same_ptr) {
-        if (IsValid()) {
+    if (!was_same_ptr)
+    {
+        if (IsValid())
+        {
             ptr->GetObjectHeader_Internal()->IncRefStrong();
         }
     }
@@ -85,20 +93,22 @@ AnyHandle &AnyHandle::operator=(const AnyHandle &other)
     return *this;
 }
 
-AnyHandle::AnyHandle(AnyHandle &&other) noexcept
+AnyHandle::AnyHandle(AnyHandle&& other) noexcept
     : type_id(other.type_id),
       ptr(other.ptr)
 {
     other.ptr = nullptr;
 }
 
-AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
+AnyHandle& AnyHandle::operator=(AnyHandle&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
-    if (IsValid()) {
+    if (IsValid())
+    {
         ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 
@@ -112,14 +122,16 @@ AnyHandle &AnyHandle::operator=(AnyHandle &&other) noexcept
 
 AnyHandle::~AnyHandle()
 {
-    if (IsValid()) {
+    if (IsValid())
+    {
         ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 }
 
 AnyHandle::IDType AnyHandle::GetID() const
 {
-    if (!IsValid()) {
+    if (!IsValid())
+    {
         return IDType();
     }
 
@@ -133,32 +145,35 @@ TypeID AnyHandle::GetTypeID() const
 
 AnyRef AnyHandle::ToRef() const
 {
-    if (!IsValid()) {
+    if (!IsValid())
+    {
         return AnyRef(type_id, nullptr);
     }
 
-    HypObjectHeader *header = ptr->GetObjectHeader_Internal();
+    HypObjectHeader* header = ptr->GetObjectHeader_Internal();
 
     return AnyRef(type_id, header->container->GetObjectPointer(header));
 }
 
 void AnyHandle::Reset()
 {
-    if (IsValid()) {
+    if (IsValid())
+    {
         ptr->GetObjectHeader_Internal()->DecRefStrong();
     }
 
     ptr = nullptr;
 }
 
-void *AnyHandle::Release()
+void* AnyHandle::Release()
 {
-    if (!IsValid()) {
+    if (!IsValid())
+    {
         return nullptr;
     }
 
-    HypObjectHeader *header = ptr->GetObjectHeader_Internal();
-    void *address = header->container->GetObjectPointer(header);
+    HypObjectHeader* header = ptr->GetObjectHeader_Internal();
+    void* address = header->container->GetObjectPointer(header);
 
     ptr = nullptr;
 

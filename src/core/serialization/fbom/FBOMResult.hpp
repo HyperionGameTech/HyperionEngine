@@ -13,8 +13,8 @@ struct FBOMResult
 {
     enum
     {
-        FBOM_OK     = 0,
-        FBOM_ERR    = 1
+        FBOM_OK = 0,
+        FBOM_ERR = 1
     } value;
 
     String message;
@@ -25,16 +25,20 @@ struct FBOMResult
     {
     }
 
-    FBOMResult(const FBOMResult &other)                 = default;
-    FBOMResult &operator=(const FBOMResult &other)      = default;
-    FBOMResult(FBOMResult &&other) noexcept             = default;
-    FBOMResult &operator=(FBOMResult &&other) noexcept  = default;
+    FBOMResult(const FBOMResult& other) = default;
+    FBOMResult& operator=(const FBOMResult& other) = default;
+    FBOMResult(FBOMResult&& other) noexcept = default;
+    FBOMResult& operator=(FBOMResult&& other) noexcept = default;
 
     HYP_FORCE_INLINE operator int() const
-        { return int(value); }
+    {
+        return int(value);
+    }
 
     HYP_FORCE_INLINE bool IsOK() const
-        { return value == FBOM_OK; }
+    {
+        return value == FBOM_OK;
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

@@ -35,13 +35,13 @@ class SingleTimeCommands
 {
 public:
     HYP_API SingleTimeCommands();
-    SingleTimeCommands(const SingleTimeCommands &other)                 = delete;
-    SingleTimeCommands &operator=(const SingleTimeCommands &other)      = delete;
-    SingleTimeCommands(SingleTimeCommands &&other) noexcept             = delete;
-    SingleTimeCommands &operator=(SingleTimeCommands &&other) noexcept  = delete;
+    SingleTimeCommands(const SingleTimeCommands& other) = delete;
+    SingleTimeCommands& operator=(const SingleTimeCommands& other) = delete;
+    SingleTimeCommands(SingleTimeCommands&& other) noexcept = delete;
+    SingleTimeCommands& operator=(SingleTimeCommands&& other) noexcept = delete;
     HYP_API ~SingleTimeCommands();
 
-    void Push(Proc<void(RHICommandList &command_list)> &&fn)
+    void Push(Proc<void(RHICommandList& command_list)>&& fn)
     {
         m_functions.PushBack(std::move(fn));
     }
@@ -49,10 +49,10 @@ public:
     RendererResult Execute();
 
 private:
-    SingleTimeCommandsPlatformImpl<PLATFORM>        m_platform_impl;
+    SingleTimeCommandsPlatformImpl<PLATFORM> m_platform_impl;
 
-    Device<PLATFORM>                                *m_device;
-    Array<Proc<void(RHICommandList &command_list)>> m_functions;
+    Device<PLATFORM>* m_device;
+    Array<Proc<void(RHICommandList& command_list)>> m_functions;
 };
 
 } // namespace platform
@@ -61,15 +61,15 @@ private:
 } // namespace hyperion
 
 #if HYP_VULKAN
-#include <rendering/backend/vulkan/RendererHelpers.hpp>
+    #include <rendering/backend/vulkan/RendererHelpers.hpp>
 #else
-#error Unsupported rendering backend
+    #error Unsupported rendering backend
 #endif
 
 namespace hyperion {
 namespace renderer {
 
-using SingleTimeCommands = platform::SingleTimeCommands<Platform::CURRENT>;
+using SingleTimeCommands = platform::SingleTimeCommands<Platform::current>;
 
 } // namespace renderer
 } // namespace hyperion

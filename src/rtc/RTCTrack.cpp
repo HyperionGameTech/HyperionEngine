@@ -3,13 +3,13 @@
 #include <rtc/RTCClient.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
-#include <rtc/description.hpp>
-#include <rtc/peerconnection.hpp>
-#include <rtc/rtppacketizationconfig.hpp>
-#include <rtc/h264rtppacketizer.hpp>
-#include <rtc/h264packetizationhandler.hpp>
-#include <rtc/rtcpsrreporter.hpp>
-#include <rtc/rtcpnackresponder.hpp>
+    #include <rtc/description.hpp>
+    #include <rtc/peerconnection.hpp>
+    #include <rtc/rtppacketizationconfig.hpp>
+    #include <rtc/h264rtppacketizer.hpp>
+    #include <rtc/h264packetizationhandler.hpp>
+    #include <rtc/rtcpsrreporter.hpp>
+    #include <rtc/rtcpnackresponder.hpp>
 #endif // HYP_LIBDATACHANNEL
 
 namespace hyperion {
@@ -19,14 +19,13 @@ bool NullRTCTrack::IsOpen() const
     return true;
 }
 
-void NullRTCTrack::SendData(const ByteBuffer &data, uint64 sample_timestamp)
+void NullRTCTrack::SendData(const ByteBuffer& data, uint64 sample_timestamp)
 {
 }
 
-void NullRTCTrack::PrepareTrack(RTCClient *client)
+void NullRTCTrack::PrepareTrack(RTCClient* client)
 {
 }
-
 
 #ifdef HYP_LIBDATACHANNEL
 
@@ -35,21 +34,23 @@ bool LibDataChannelRTCTrack::IsOpen() const
     return m_track != nullptr && m_track->isOpen();
 }
 
-void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
+void LibDataChannelRTCTrack::PrepareTrack(RTCClient* client)
 {
     AssertThrow(client != nullptr);
 
-    const auto *lib_data_channel_client = dynamic_cast<LibDataChannelRTCClient *>(client);
+    const auto* lib_data_channel_client = dynamic_cast<LibDataChannelRTCClient*>(client);
     AssertThrowMsg(lib_data_channel_client != nullptr,
         "client must be a LibDataChannelRTCClient instance to use on LibDataChannelRTCTrack");
 
     AssertThrowMsg(lib_data_channel_client->m_peer_connection != nullptr,
         "m_peer_connection is nullptr on the RTCClient -- make sure PrepareTrack() is being called in the right place");
 
-    switch (m_track_type) {
+    switch (m_track_type)
+    {
     case RTC_TRACK_TYPE_AUDIO:
         break;
-    case RTC_TRACK_TYPE_VIDEO: {
+    case RTC_TRACK_TYPE_VIDEO:
+    {
         auto video_description = rtc::Description::Video();
         video_description.addH264Codec(102);
         video_description.addSSRC(1, "video-stream", "stream1");
@@ -68,19 +69,19 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
 
         m_track->setMediaHandler(h264_handler);
         m_track->onOpen([this]
-        {
-            DebugLog(LogType::Debug, "Video channel opened\n");
-        });
+            {
+                DebugLog(LogType::Debug, "Video channel opened\n");
+            });
 
         m_track->onClosed([this]
-        {
-            DebugLog(LogType::Debug, "Video channel closed\n");
-        });
+            {
+                DebugLog(LogType::Debug, "Video channel closed\n");
+            });
 
         m_track->onError([this](std::string message)
-        {
-            DebugLog(LogType::Debug, "Video channel error: %s\n", message.c_str());
-        });
+            {
+                DebugLog(LogType::Debug, "Video channel error: %s\n", message.c_str());
+            });
 
         break;
     }
@@ -90,36 +91,37 @@ void LibDataChannelRTCTrack::PrepareTrack(RTCClient *client)
     }
 }
 
-
-void LibDataChannelRTCTrack::SendData(const ByteBuffer &data, uint64 sample_timestamp)
+void LibDataChannelRTCTrack::SendData(const ByteBuffer& data, uint64 sample_timestamp)
 {
-    if (!m_track) {
+    if (!m_track)
+    {
         DebugLog(LogType::Warn, "Track in undefined state, not sending data\n");
 
         return;
     }
 
-    if (!m_track->isOpen()) {
+    if (!m_track->isOpen())
+    {
         DebugLog(LogType::Warn, "Track closed, not sending data\n");
 
         return;
     }
 
     const double elapsed_time_seconds = double(sample_timestamp) / double(1000 * 1000);
-    
+
     const uint32 elapsed_timestamp = m_rtp_config->secondsToTimestamp(elapsed_time_seconds);
     m_rtp_config->timestamp = m_rtp_config->startTimestamp + elapsed_timestamp;
 
     const uint32 report_elapsed_timestamp = m_rtp_config->timestamp - m_rtcp_sr_reporter->lastReportedTimestamp();
 
-    if (m_rtp_config->timestampToSeconds(report_elapsed_timestamp) > 1) {
+    if (m_rtp_config->timestampToSeconds(report_elapsed_timestamp) > 1)
+    {
         m_rtcp_sr_reporter->setNeedsToReport();
     }
 
-    m_track->send(reinterpret_cast<const rtc::byte *>(data.Data()), data.Size());
+    m_track->send(reinterpret_cast<const rtc::byte*>(data.Data()), data.Size());
 }
-
 
 #endif // HYP_LIBDATACHANNEL
 
-}  // namespace hyperion
+} // namespace hyperion

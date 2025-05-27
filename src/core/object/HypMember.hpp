@@ -19,35 +19,35 @@ namespace hyperion {
 
 struct HypMember
 {
-    Variant<HypProperty, HypMethod, HypField, HypConstant>  value;
+    Variant<HypProperty, HypMethod, HypField, HypConstant> value;
 
-    HypMember(HypProperty &&property)
+    HypMember(HypProperty&& property)
         : value(std::move(property))
     {
     }
 
-    HypMember(HypMethod &&method)
+    HypMember(HypMethod&& method)
         : value(std::move(method))
     {
     }
 
-    HypMember(HypField &&field)
+    HypMember(HypField&& field)
         : value(std::move(field))
     {
     }
 
-    HypMember(HypConstant &&field)
+    HypMember(HypConstant&& field)
         : value(std::move(field))
     {
     }
 
-    HypMember(const HypMember &other)                   = delete;
-    HypMember &operator=(const HypMember &other)        = delete;
+    HypMember(const HypMember& other) = delete;
+    HypMember& operator=(const HypMember& other) = delete;
 
-    HypMember(HypMember &&other) noexcept               = delete;
-    HypMember &operator=(HypMember &&other) noexcept    = delete;
+    HypMember(HypMember&& other) noexcept = delete;
+    HypMember& operator=(HypMember&& other) noexcept = delete;
 
-    ~HypMember()                                        = default;
+    ~HypMember() = default;
 };
 
 } // namespace hyperion

@@ -14,39 +14,40 @@ static const float movement_blending = 0.01f;
 
 #pragma region FirstPersonCameraInputHandler
 
-FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(CameraController *controller)
-    : m_controller(dynamic_cast<FirstPersonCameraController *>(controller))
+FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(CameraController* controller)
+    : m_controller(dynamic_cast<FirstPersonCameraController*>(controller))
 {
     AssertThrowMsg(m_controller != nullptr, "Null camera controller or not of type FirstPersonCameraInputHandler");
 }
 
-bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent &evt)
+bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
 {
     return InputHandlerBase::OnKeyDown_Impl(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent &evt)
+bool FirstPersonCameraInputHandler::OnKeyUp_Impl(const KeyboardEvent& evt)
 {
     return InputHandlerBase::OnKeyUp_Impl(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent &evt)
+bool FirstPersonCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
     return InputHandlerBase::OnMouseDown_Impl(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseUp_Impl(const MouseEvent &evt)
+bool FirstPersonCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 {
     return InputHandlerBase::OnMouseUp_Impl(evt);
 }
 
-bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent &evt)
+bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    Camera *camera = m_controller->GetCamera();
-    
-    if (!camera) {
+    Camera* camera = m_controller->GetCamera();
+
+    if (!camera)
+    {
         return false;
     }
 
@@ -57,21 +58,22 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent &evt)
     camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x));
     camera->Rotate(dir_cross_y, MathUtil::DegToRad(delta.y));
 
-    if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f) {
+    if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
+    {
         camera->Rotate(dir_cross_y, MathUtil::DegToRad(-delta.y));
     }
 
     return true;
 }
 
-bool FirstPersonCameraInputHandler::OnMouseDrag_Impl(const MouseEvent &evt)
+bool FirstPersonCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
     return false;
 }
 
-bool FirstPersonCameraInputHandler::OnClick_Impl(const MouseEvent &evt)
+bool FirstPersonCameraInputHandler::OnClick_Impl(const MouseEvent& evt)
 {
     return false;
 }
@@ -94,22 +96,23 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
 void FirstPersonCameraController::OnActivated()
 {
     HYP_SCOPE;
-    
+
     PerspectiveCameraController::OnActivated();
 }
 
 void FirstPersonCameraController::OnDeactivated()
 {
     HYP_SCOPE;
-    
+
     PerspectiveCameraController::OnDeactivated();
 }
 
 void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
 {
     HYP_SCOPE;
-    
-    switch (mode) {
+
+    switch (mode)
+    {
     case FirstPersonCameraControllerMode::MOUSE_FREE:
         CameraController::SetIsMouseLockRequested(false);
 
@@ -128,45 +131,46 @@ void FirstPersonCameraController::UpdateLogic(double dt)
     HYP_SCOPE;
 }
 
-void FirstPersonCameraController::RespondToCommand(const CameraCommand &command, GameCounter::TickUnit dt)
+void FirstPersonCameraController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
 {
     HYP_SCOPE;
-    
-    switch (command.command) {
+
+    switch (command.command)
+    {
     case CameraCommand::CAMERA_COMMAND_MAG:
     {
         m_mouse_x = command.mag_data.mouse_x;
         m_mouse_y = command.mag_data.mouse_y;
-    
+
         break;
     }
     case CameraCommand::CAMERA_COMMAND_MOVEMENT:
     {
-        const float speed = movement_speed;// * static_cast<float>(dt);
+        const float speed = movement_speed; // * static_cast<float>(dt);
 
-        switch (command.movement_data.movement_type) {
+        switch (command.movement_data.movement_type)
+        {
         case CameraCommand::CAMERA_MOVEMENT_FORWARD:
-            m_move_deltas += m_camera->m_direction;// * speed;
+            m_move_deltas += m_camera->m_direction; // * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_BACKWARD:
-            m_move_deltas -= m_camera->m_direction;// * speed;
+            m_move_deltas -= m_camera->m_direction; // * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_LEFT:
-            m_move_deltas -= m_dir_cross_y;// * speed;
+            m_move_deltas -= m_dir_cross_y; // * speed;
 
             break;
         case CameraCommand::CAMERA_MOVEMENT_RIGHT:
-            m_move_deltas += m_dir_cross_y;// * speed;
+            m_move_deltas += m_dir_cross_y; // * speed;
 
             break;
         default:
             break;
         }
-    
-        break;
 
+        break;
     }
 
     default:

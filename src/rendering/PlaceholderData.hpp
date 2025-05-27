@@ -26,18 +26,25 @@ class HYP_API PlaceholderData
 {
 public:
     PlaceholderData();
-    PlaceholderData(const PlaceholderData &other)               = delete;
-    PlaceholderData(PlaceholderData &&other)                    = delete;
-    PlaceholderData &operator=(const PlaceholderData &other)    = delete;
-    PlaceholderData &operator=(PlaceholderData &&other)         = delete;
+    PlaceholderData(const PlaceholderData& other) = delete;
+    PlaceholderData(PlaceholderData&& other) = delete;
+    PlaceholderData& operator=(const PlaceholderData& other) = delete;
+    PlaceholderData& operator=(PlaceholderData&& other) = delete;
     ~PlaceholderData();
 
 #define HYP_DEF_DUMMY_DATA(type, getter, member) \
-    public: \
-        type##Ref &Get##getter() { return member; } \
-        const type##Ref &Get##getter() const { return member; } \
-    private: \
-        type##Ref member
+public:                                          \
+    type##Ref& Get##getter()                     \
+    {                                            \
+        return member;                           \
+    }                                            \
+    const type##Ref& Get##getter() const         \
+    {                                            \
+        return member;                           \
+    }                                            \
+                                                 \
+private:                                         \
+    type##Ref member
 
     HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8, m_image_2d_1x1_r8);
     HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8, m_image_view_2d_1x1_r8);
@@ -68,32 +75,39 @@ public:
     {
         // Threads::AssertOnThread(g_render_thread);
 
-        if (!m_buffers.Contains(buffer_type)) {
-            m_buffers.Set(buffer_type, { });
+        if (!m_buffers.Contains(buffer_type))
+        {
+            m_buffers.Set(buffer_type, {});
         }
 
-        auto &buffer_container = m_buffers.At(buffer_type);
+        auto& buffer_container = m_buffers.At(buffer_type);
 
         // typename FlatMap<SizeType, GPUBufferWeakRef>::Iterator it;
         typename FlatMap<SizeType, GPUBufferRef>::Iterator it;
-        
-        if (exact_size) {
+
+        if (exact_size)
+        {
             it = buffer_container.Find(required_size);
-        } else {
+        }
+        else
+        {
             it = buffer_container.LowerBound(required_size);
         }
 
-        if (it != buffer_container.End()) {
+        if (it != buffer_container.End())
+        {
             // if (auto ref = it->second.Lock(); ref.IsValid()) {
             //     return ref;
             // }
 
-            if (it->second.IsValid()) {
+            if (it->second.IsValid())
+            {
                 return it->second;
             }
         }
 
-        if (!exact_size) {
+        if (!exact_size)
+        {
             // use next power of 2 if exact size is not required,
             // this will allow this placeholder buffer to be re-used more.
             required_size = MathUtil::NextPowerOf2(required_size);
@@ -101,7 +115,8 @@ public:
 
         GPUBufferRef buffer = CreateGPUBuffer(buffer_type, required_size);
 
-        if (buffer->IsCPUAccessible()) {
+        if (buffer->IsCPUAccessible())
+        {
             buffer->Memset(required_size, 0); // fill with zeros
         }
 

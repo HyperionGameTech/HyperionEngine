@@ -25,80 +25,97 @@ public:
     using ConstIterator = typename Base::ConstIterator;
 
     Queue();
-    Queue(const Queue &other);
-    Queue(Queue &&other) noexcept;
+    Queue(const Queue& other);
+    Queue(Queue&& other) noexcept;
     ~Queue();
 
-    Queue &operator=(const Queue &other);
-    Queue &operator=(Queue &&other) noexcept;
+    Queue& operator=(const Queue& other);
+    Queue& operator=(Queue&& other) noexcept;
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        return Base::Size();
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    SizeType Size() const
-        { return Base::Size(); }
+        typename Base::ValueType*
+        Data()
+    {
+        return Base::Data();
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE const typename Base::ValueType* Data() const
+    {
+        return Base::Data();
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    typename Base::ValueType *Data()
-        { return Base::Data(); }
+        typename Base::ValueType&
+        Front()
+    {
+        return Base::Front();
+    }
+
+    [[nodiscard]]
+    HYP_FORCE_INLINE const typename Base::ValueType& Front() const
+    {
+        return Base::Front();
+    }
 
     [[nodiscard]]
     HYP_FORCE_INLINE
-    const typename Base::ValueType *Data() const
-        { return Base::Data(); }
+        typename Base::ValueType&
+        Back()
+    {
+        return Base::Back();
+    }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    typename Base::ValueType &Front()
-        { return Base::Front(); }
+    HYP_FORCE_INLINE const typename Base::ValueType& Back() const
+    {
+        return Base::Back();
+    }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    const typename Base::ValueType &Front() const
-        { return Base::Front(); }
+    HYP_FORCE_INLINE bool Empty() const
+    {
+        return Base::Empty();
+    }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    typename Base::ValueType &Back()
-        { return Base::Back(); }
+    HYP_FORCE_INLINE bool Any() const
+    {
+        return Base::Any();
+    }
 
     [[nodiscard]]
-    HYP_FORCE_INLINE
-    const typename Base::ValueType &Back() const
-        { return Base::Back(); }
+    HYP_FORCE_INLINE bool Contains(const T& value) const
+    {
+        return Base::Contains(value);
+    }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Empty() const
-        { return Base::Empty(); }
+    HYP_FORCE_INLINE void Reserve(SizeType capacity)
+    {
+        Base::Reserve(capacity);
+    }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Any() const
-        { return Base::Any(); }
+    HYP_FORCE_INLINE void Refit()
+    {
+        Base::Refit();
+    }
 
-    [[nodiscard]]
-    HYP_FORCE_INLINE
-    bool Contains(const T &value) const
-        { return Base::Contains(value); }
-
-    HYP_FORCE_INLINE
-    void Reserve(SizeType capacity)
-        { Base::Reserve(capacity); }
-
-    HYP_FORCE_INLINE
-    void Refit()
-        { Base::Refit(); }
-
-    void Push(const typename Base::ValueType &value);
-    void Push(typename Base::ValueType &&value);
+    void Push(const typename Base::ValueType& value);
+    void Push(typename Base::ValueType&& value);
     typename Base::ValueType Pop();
     void Clear();
 
     HYP_DEF_STL_BEGIN_END(
         Base::Begin(),
-        Base::End()
-    )
+        Base::End())
 };
 
 template <class T>
@@ -108,13 +125,13 @@ Queue<T>::Queue()
 }
 
 template <class T>
-Queue<T>::Queue(const Queue &other)
+Queue<T>::Queue(const Queue& other)
     : Base(other)
 {
 }
 
 template <class T>
-Queue<T>::Queue(Queue &&other) noexcept
+Queue<T>::Queue(Queue&& other) noexcept
     : Base(std::move(other))
 {
 }
@@ -125,7 +142,7 @@ Queue<T>::~Queue()
 }
 
 template <class T>
-auto Queue<T>::operator=(const Queue &other) -> Queue&
+auto Queue<T>::operator=(const Queue& other) -> Queue&
 {
     Base::operator=(other);
 
@@ -133,7 +150,7 @@ auto Queue<T>::operator=(const Queue &other) -> Queue&
 }
 
 template <class T>
-auto Queue<T>::operator=(Queue &&other) noexcept -> Queue&
+auto Queue<T>::operator=(Queue&& other) noexcept -> Queue&
 {
     Base::operator=(std::move(other));
 
@@ -141,13 +158,13 @@ auto Queue<T>::operator=(Queue &&other) noexcept -> Queue&
 }
 
 template <class T>
-void Queue<T>::Push(const typename Base::ValueType &value)
+void Queue<T>::Push(const typename Base::ValueType& value)
 {
     Base::PushBack(value);
 }
 
 template <class T>
-void Queue<T>::Push(typename Base::ValueType &&value)
+void Queue<T>::Push(typename Base::ValueType&& value)
 {
     Base::PushBack(std::move(value));
 }

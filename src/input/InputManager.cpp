@@ -16,13 +16,15 @@ namespace hyperion {
 
 #pragma region InputMouseLockScope
 
-InputMouseLockScope &InputMouseLockScope::operator=(InputMouseLockScope &&other) noexcept
+InputMouseLockScope& InputMouseLockScope::operator=(InputMouseLockScope&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
-    if (mouse_lock_state) {
+    if (mouse_lock_state)
+    {
         mouse_lock_state->input_manager->RemoveMouseLockState(mouse_lock_state);
     }
 
@@ -34,14 +36,16 @@ InputMouseLockScope &InputMouseLockScope::operator=(InputMouseLockScope &&other)
 
 InputMouseLockScope::~InputMouseLockScope()
 {
-    if (mouse_lock_state) {
+    if (mouse_lock_state)
+    {
         mouse_lock_state->input_manager->RemoveMouseLockState(mouse_lock_state);
     }
 }
 
 void InputMouseLockScope::Reset()
 {
-    if (mouse_lock_state) {
+    if (mouse_lock_state)
+    {
         mouse_lock_state->input_manager->RemoveMouseLockState(mouse_lock_state);
 
         mouse_lock_state = nullptr;
@@ -62,11 +66,12 @@ InputManager::~InputManager()
 {
 }
 
-void InputManager::CheckEvent(SystemEvent *event)
+void InputManager::CheckEvent(SystemEvent* event)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    switch (event->GetType()) {
+    switch (event->GetType())
+    {
     case SystemEventType::EVENT_KEYDOWN:
         HYP_LOG(Input, Debug, "Key down: {}", uint32(event->GetKeyCode()));
         KeyDown(event->GetNormalizedKeyCode());
@@ -75,13 +80,15 @@ void InputManager::CheckEvent(SystemEvent *event)
         KeyUp(event->GetNormalizedKeyCode());
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons())) {
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        {
             MouseButtonDown(MouseButton(index));
         }
-        
+
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_UP:
-        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons())) {
+        for (Bitset::BitIndex index : Bitset(event->GetMouseButtons()))
+        {
             MouseButtonUp(MouseButton(index));
         }
 
@@ -93,7 +100,8 @@ void InputManager::CheckEvent(SystemEvent *event)
     {
         const auto window_event_type = event->GetWindowEventType();
 
-        switch (window_event_type) {
+        switch (window_event_type)
+        {
         case SystemWindowEventType::EVENT_WINDOW_RESIZED:
             UpdateWindowSize(event->GetWindowResizeDimensions());
             break;
@@ -113,10 +121,9 @@ void InputManager::PushMouseLockState(bool mouse_locked)
 {
     Mutex::Guard guard(m_mouse_lock_states_mutex);
 
-    InputMouseLockState &mouse_lock_state = m_mouse_lock_states.PushBack(InputMouseLockState {
+    InputMouseLockState& mouse_lock_state = m_mouse_lock_states.PushBack(InputMouseLockState {
         this,
-        mouse_locked
-    });
+        mouse_locked });
 
     ApplyMouseLockState(&mouse_lock_state);
 }
@@ -125,7 +132,8 @@ void InputManager::PopMouseLockState()
 {
     Mutex::Guard guard(m_mouse_lock_states_mutex);
 
-    if (m_mouse_lock_states.Empty()) {
+    if (m_mouse_lock_states.Empty())
+    {
         return;
     }
 
@@ -138,10 +146,9 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 {
     Mutex::Guard guard(m_mouse_lock_states_mutex);
 
-    InputMouseLockState &mouse_lock_state = m_mouse_lock_states.PushBack(InputMouseLockState {
+    InputMouseLockState& mouse_lock_state = m_mouse_lock_states.PushBack(InputMouseLockState {
         this,
-        true
-    });
+        true });
 
     ApplyMouseLockState(&mouse_lock_state);
 
@@ -150,16 +157,22 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 
 void InputManager::SetIsMouseLocked(bool is_mouse_locked)
 {
-    if (m_is_mouse_locked == is_mouse_locked) {
+    if (m_is_mouse_locked == is_mouse_locked)
+    {
         return;
     }
 
-    if (is_mouse_locked) {
-        if (m_window) {
+    if (is_mouse_locked)
+    {
+        if (m_window)
+        {
             m_window->SetIsMouseLocked(true);
         }
-    } else {
-        if (m_window) {
+    }
+    else
+    {
+        if (m_window)
+        {
             m_window->SetIsMouseLocked(false);
         }
     }
@@ -169,21 +182,23 @@ void InputManager::SetIsMouseLocked(bool is_mouse_locked)
 
 void InputManager::SetMousePosition(Vec2i position)
 {
-    if (!m_window) {
+    if (!m_window)
+    {
         return;
     }
 
     m_previous_mouse_position = m_mouse_position;
     m_mouse_position = position;
-    
+
     m_window->SetMousePosition(position);
 }
 
 void InputManager::UpdateMousePosition()
 {
     Threads::AssertOnThread(g_game_thread);
-    
-    if (!m_window) {
+
+    if (!m_window)
+    {
         return;
     }
 
@@ -193,7 +208,8 @@ void InputManager::UpdateMousePosition()
 
 void InputManager::UpdateWindowSize(Vec2i new_size)
 {
-    if (!m_window) {
+    if (!m_window)
+    {
         return;
     }
 
@@ -204,21 +220,24 @@ void InputManager::UpdateWindowSize(Vec2i new_size)
 
 void InputManager::SetKey(KeyCode key, bool pressed)
 {
-    if (uint32(key) < NUM_KEYBOARD_KEYS) {
+    if (uint32(key) < NUM_KEYBOARD_KEYS)
+    {
         m_input_state.key_states[uint32(key)] = pressed;
     }
 }
 
 void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 {
-    if (uint32(btn) < NUM_MOUSE_BUTTONS) {
+    if (uint32(btn) < NUM_MOUSE_BUTTONS)
+    {
         m_input_state.mouse_button_states[uint32(btn)] = pressed;
     }
 }
 
 bool InputManager::IsKeyDown(KeyCode key) const
 {
-    if (uint32(key) < NUM_KEYBOARD_KEYS) {
+    if (uint32(key) < NUM_KEYBOARD_KEYS)
+    {
         return m_input_state.key_states[uint32(key)];
     }
 
@@ -227,7 +246,8 @@ bool InputManager::IsKeyDown(KeyCode key) const
 
 bool InputManager::IsButtonDown(MouseButton btn) const
 {
-    if (uint32(btn) < NUM_MOUSE_BUTTONS) {
+    if (uint32(btn) < NUM_MOUSE_BUTTONS)
+    {
         return m_input_state.mouse_button_states[uint32(btn)];
     }
 
@@ -238,8 +258,10 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 {
     EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
 
-    for (uint32 i = 0; i < NUM_MOUSE_BUTTONS; i++) {
-        if (m_input_state.mouse_button_states[i]) {
+    for (uint32 i = 0; i < NUM_MOUSE_BUTTONS; i++)
+    {
+        if (m_input_state.mouse_button_states[i])
+        {
             state |= MouseButtonState(1u << i);
         }
     }
@@ -247,9 +269,10 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
     return state;
 }
 
-void InputManager::ApplyMouseLockState(const InputMouseLockState *mouse_lock_state)
+void InputManager::ApplyMouseLockState(const InputMouseLockState* mouse_lock_state)
 {
-    if (!mouse_lock_state) {
+    if (!mouse_lock_state)
+    {
         // apply default state
 
         SetIsMouseLocked(false);
@@ -260,9 +283,10 @@ void InputManager::ApplyMouseLockState(const InputMouseLockState *mouse_lock_sta
     SetIsMouseLocked(mouse_lock_state->locked);
 }
 
-void InputManager::RemoveMouseLockState(const InputMouseLockState *mouse_lock_state)
+void InputManager::RemoveMouseLockState(const InputMouseLockState* mouse_lock_state)
 {
-    if (!mouse_lock_state) {
+    if (!mouse_lock_state)
+    {
         return;
     }
 
@@ -273,7 +297,8 @@ void InputManager::RemoveMouseLockState(const InputMouseLockState *mouse_lock_st
 
     auto erase_it = m_mouse_lock_states.Erase(it);
 
-    if (erase_it == m_mouse_lock_states.End()) {
+    if (erase_it == m_mouse_lock_states.End())
+    {
         // Update mouse lock state since last was removed
         ApplyMouseLockState(m_mouse_lock_states.Any() ? &m_mouse_lock_states.Back() : nullptr);
     }

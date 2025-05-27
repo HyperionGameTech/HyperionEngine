@@ -17,23 +17,23 @@ public:
     {
         static const Element empty;
 
-        String          name;
-        String          value;
-        Array<String>   sub_elements;
+        String name;
+        String value;
+        Array<String> sub_elements;
     };
 
     struct Value
     {
         Array<Element> elements;
 
-        const Element &GetValue() const
+        const Element& GetValue() const
         {
             return elements.Any()
                 ? elements.Front()
                 : Element::empty;
         }
 
-        const Element &GetValue(SizeType index) const
+        const Element& GetValue(SizeType index) const
         {
             return index < elements.Size()
                 ? elements[index]
@@ -48,7 +48,8 @@ public:
 
         void SetValue(SizeType index, Element value)
         {
-            if (index >= elements.Size()) {
+            if (index >= elements.Size())
+            {
                 elements.Resize(index + 1);
             }
 
@@ -58,31 +59,41 @@ public:
 
     using Section = HashMap<String, Value>;
 
-    INIFile(const FilePath &path);
+    INIFile(const FilePath& path);
     ~INIFile() = default;
 
     HYP_FORCE_INLINE bool IsValid() const
-        { return m_is_valid; }
+    {
+        return m_is_valid;
+    }
 
-    HYP_FORCE_INLINE const FilePath &GetFilePath() const
-        { return m_path; }
+    HYP_FORCE_INLINE const FilePath& GetFilePath() const
+    {
+        return m_path;
+    }
 
-    HYP_FORCE_INLINE const HashMap<String, Section> &GetSections() const
-        { return m_sections; }
+    HYP_FORCE_INLINE const HashMap<String, Section>& GetSections() const
+    {
+        return m_sections;
+    }
 
     HYP_FORCE_INLINE bool HasSection(UTF8StringView key) const
-        { return m_sections.Contains(key); }
+    {
+        return m_sections.Contains(key);
+    }
 
-    HYP_FORCE_INLINE Section &GetSection(UTF8StringView key)
-        { return m_sections[key]; }
+    HYP_FORCE_INLINE Section& GetSection(UTF8StringView key)
+    {
+        return m_sections[key];
+    }
 
 private:
     void Parse();
 
-    bool                        m_is_valid;
-    FilePath                    m_path;
+    bool m_is_valid;
+    FilePath m_path;
 
-    HashMap<String, Section>    m_sections;
+    HashMap<String, Section> m_sections;
 };
 
 } // namespace hyperion
