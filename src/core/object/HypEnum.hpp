@@ -25,8 +25,8 @@ constexpr auto MakeEnumStaticArray(std::index_sequence<Indices...>)
 class HypEnum : public HypClass
 {
 public:
-    HypEnum(TypeID type_id, Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(type_id, name, parent_name, attributes, flags, members)
+    HypEnum(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(type_id, name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
 
@@ -71,15 +71,15 @@ template <class T>
 class HypEnumInstance final : public HypEnum
 {
 public:
-    static HypEnumInstance &GetInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    static HypEnumInstance &GetInstance(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     {
-        static HypEnumInstance instance { name, parent_name, attributes, flags, members };
+        static HypEnumInstance instance { name, static_index, num_descendants, parent_name, attributes, flags, members };
 
         return instance;
     }
 
-    HypEnumInstance(Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypEnum(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
+    HypEnumInstance(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypEnum(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
 

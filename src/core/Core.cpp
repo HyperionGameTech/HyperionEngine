@@ -39,6 +39,10 @@ bool IsInstanceOfHypClass(const HypClass *hyp_class, const void *ptr, TypeID typ
     const HypClass *other_hyp_class = GetClass(type_id);
 
     if (other_hyp_class != nullptr) {
+        if (other_hyp_class->GetStaticIndex() != -1) {
+            return uint32(other_hyp_class->GetStaticIndex() - hyp_class->GetStaticIndex()) <= hyp_class->GetNumDescendants();
+        }
+
         // Try to get the initializer. If we can get it, use the instance class rather than just the class for the type ID.
         if (const IHypObjectInitializer *initializer = other_hyp_class->GetObjectInitializer(ptr)) {
             other_hyp_class = initializer->GetClass();
@@ -62,13 +66,17 @@ bool IsInstanceOfHypClass(const HypClass *hyp_class, const HypClass *instance_hy
         return false;
     }
 
-    while (instance_hyp_class != nullptr) {
+    if (instance_hyp_class->GetStaticIndex() != -1) {
+        return uint32(instance_hyp_class->GetStaticIndex() - hyp_class->GetStaticIndex()) <= hyp_class->GetNumDescendants();
+    }
+
+    do {
         if (instance_hyp_class == hyp_class) {
             return true;
         }
 
         instance_hyp_class = instance_hyp_class->GetParent();
-    }
+    } while (instance_hyp_class != nullptr);
 
     return false;
 }

@@ -10,6 +10,10 @@
 #include <core/utilities/StringView.hpp>
 
 #include <core/containers/HashMap.hpp>
+#include <core/containers/HashSet.hpp>
+#include <core/containers/Forest.hpp>
+
+#include <core/functional/Proc.hpp>
 
 #include <core/logging/Logger.hpp>
 
@@ -296,12 +300,12 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
         return HYP_MAKE_ERROR(AnalyzerError, "Failed to open module", mod.GetPath());
     }
 
-    Array<HypClassDefinition> results;
+    Array<HypClassDefinition> hyp_class_definitions;
 
     Array<String> lines = reader.ReadAllLines();
 
     for (SizeType i = 0; i < lines.Size(); i++) {
-        HypClassDefinition result;
+        HypClassDefinition hyp_class_definition;
 
         SizeType macro_start_index;
         SizeType macro_end_index;
@@ -316,27 +320,28 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
             continue;
         }
 
-        result.type = parse_macro_result.GetValue().first;
-        result.attributes = parse_macro_result.GetValue().second;
+        hyp_class_definition.type = parse_macro_result.GetValue().first;
+        hyp_class_definition.attributes = parse_macro_result.GetValue().second;
+        hyp_class_definition.static_index = -1;
 
         const String content_to_end = String::Join(lines.Slice(i, lines.Size()), '\n');
 
         const SizeType brace_index = content_to_end.FindFirstIndex("{");
 
-        result.source = content_to_end.Substr(0, brace_index);
+        hyp_class_definition.source = content_to_end.Substr(0, brace_index);
 
-        Optional<String> class_name_opt = ExtractCXXClassName(result.source);
+        Optional<String> class_name_opt = ExtractCXXClassName(hyp_class_definition.source);
         if (!class_name_opt.HasValue()) {
-            HYP_LOG(BuildTool, Error, "Failed to extract class name from source: {}", result.source);
+            HYP_LOG(BuildTool, Error, "Failed to extract class name from source: {}", hyp_class_definition.source);
 
             return HYP_MAKE_ERROR(AnalyzerError, "Failed to extract class name", mod.GetPath());
         }
 
-        result.name = *class_name_opt;
+        hyp_class_definition.name = *class_name_opt;
 
-        Array<String> base_class_names = ExtractCXXBaseClasses(result.source);
+        Array<String> base_class_names = ExtractCXXBaseClasses(hyp_class_definition.source);
         for (const String &base_class_name : base_class_names) {
-            result.base_class_names.PushBack(base_class_name);
+            hyp_class_definition.base_class_names.PushBack(base_class_name);
         }
 
         if (brace_index != String::not_found) {
@@ -350,7 +355,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
             for (SizeType j = 0; j < remaining_content.Size(); j++) {
                 const char ch = remaining_content[j];
 
-                result.source.Append(ch);
+                hyp_class_definition.source.Append(ch);
 
                 if (is_escaped) {
                     is_escaped = false;
@@ -383,7 +388,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
                         brace_depth--;
 
                         if (brace_depth <= 0) {
-                            result.source.Append(';');
+                            hyp_class_definition.source.Append(';');
 
                             break;
                         }
@@ -392,10 +397,49 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
             }
         }
 
-        results.PushBack(std::move(result));
+        hyp_class_definitions.PushBack(std::move(hyp_class_definition));
     }
 
-    return results;
+    // // debuggin'
+    // Array<Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>>> hyp_class_descendants;
+    // hyp_class_descendants.Reserve(hyp_class_definitions.Size());
+
+    // for (HypClassDefinition &hyp_class_definition : hyp_class_definitions) {
+    //     hyp_class_descendants.EmplaceBack(&hyp_class_definition, HashSet<const HypClassDefinition *>());
+    // }
+
+    // Proc<void(const HypClassDefinition &hyp_class_definition)> AddToDescendantsMap;
+
+    // AddToDescendantsMap = [&analyzer, &hyp_class_descendants, &AddToDescendantsMap](const HypClassDefinition &hyp_class_definition)
+    // {
+    //     for (const String &base_class_name : hyp_class_definition.base_class_names) {
+    //         const HypClassDefinition *base_class_definition = analyzer.FindHypClassDefinition(base_class_name);
+
+    //         if (base_class_definition) {
+    //             auto it = hyp_class_descendants.FindIf([base_class_definition](const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &pair)
+    //             {
+    //                 return pair.first == base_class_definition;
+    //             });
+    //             AssertThrow(it != hyp_class_descendants.End());
+
+    //             it->second.Insert(&hyp_class_definition);
+
+    //             AddToDescendantsMap(*base_class_definition);
+    //         }
+    //     }
+    // };
+
+    // for (HypClassDefinition &hyp_class_definition : hyp_class_definitions) {
+    //     AddToDescendantsMap(hyp_class_definition);
+    // }
+
+    // std::sort(hyp_class_descendants.begin(), hyp_class_descendants.end(), [](const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &lhs,
+    //     const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &rhs)
+    // {
+    //     return lhs.second.Size() > rhs.second.Size();
+    // });
+
+    return hyp_class_definitions;
 }
 
 // Add attributes to allow the runtime to access metadata on the member

@@ -28,6 +28,9 @@ public:
     HYP_FORCE_INLINE const FilePath &GetPath() const
         { return m_path; }
 
+    HYP_FORCE_INLINE HashMap<String, HypClassDefinition> &GetHypClasses()
+        { return m_hyp_classes; }
+
     HYP_FORCE_INLINE const HashMap<String, HypClassDefinition> &GetHypClasses() const
         { return m_hyp_classes; }
 

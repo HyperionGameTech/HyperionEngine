@@ -190,6 +190,17 @@ public:
     {
     }
 
+    Iterator Add(T &&value, const T &parent)
+    {
+        auto parent_it = Find(parent);
+
+        if (parent_it == End()) {
+            return Add(std::move(value), Iterator(nullptr));
+        }
+
+        return Add(std::move(value), parent_it);
+    }
+
     Iterator Add(T &&value, ConstIterator parent_iterator = Iterator(nullptr))
     {
         UniquePtr<Node> new_node = MakeUnique<Node>(std::move(value));

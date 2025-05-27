@@ -84,7 +84,7 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer &analyzer, const Mod
             class_attributes.PushBack(HYP_FORMAT("HypClassAttribute(\"{}\", {})", name.ToLower(), value.ToString()));
         }
 
-        writer.WriteString(HYP_FORMAT("{}({}", g_start_macro_names.At(hyp_class.type), hyp_class.name));
+        writer.WriteString(HYP_FORMAT("{}({}, {}, {}", g_start_macro_names.At(hyp_class.type), hyp_class.name, hyp_class.static_index, hyp_class.num_descendants));
 
         HashSet<const HypClassDefinition *> base_class_definitions;
 

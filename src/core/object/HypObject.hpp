@@ -32,6 +32,9 @@ struct HypData;
 template <class T>
 class HypClassInstance;
 
+template <class T>
+struct HypClassDefinition;
+
 enum class HypClassFlags : uint32;
 
 template <class T>
@@ -43,22 +46,6 @@ struct WeakHandle;
 namespace dotnet {
 class Class;
 } // namespace dotnet
-
-template<typename T, typename FieldType, FieldType T::*Member>
-struct offset_helper
-{
-    static T value;
-    static char size_helper[
-        (char *)&(value.*Member) -
-        (char *)&(value)
-    ];
-};
-
-template<typename T, typename FieldType, FieldType T::*Member>
-constexpr SizeType offset_of()
-{
-    return sizeof(offset_helper<T, FieldType, Member>::size_helper);
-}
 
 extern HYP_API const HypClass *GetClass(TypeID type_id);
 

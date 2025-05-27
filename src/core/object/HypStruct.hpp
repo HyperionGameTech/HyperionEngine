@@ -23,8 +23,8 @@ class FBOMLoadContext;
 class HypStruct : public HypClass
 {
 public:
-    HypStruct(TypeID type_id, Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypClass(type_id, name, parent_name, attributes, flags, members)
+    HypStruct(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+        : HypClass(type_id, name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
 
@@ -82,29 +82,33 @@ public:
 
     static HypStructInstance &GetInstance(
         Name name,
+        int static_index,
+        uint32 num_descendants,
         Name parent_name,
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members
     )
     {
-        static HypStructInstance instance { name, parent_name, attributes, flags, members };
+        static HypStructInstance instance { name, static_index, num_descendants, parent_name, attributes, flags, members };
 
         return instance;
     }
 
     HypStructInstance(
         Name name,
+        int static_index,
+        uint32 num_descendants,
         Name parent_name,
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members
-    ) : HypStruct(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
+    ) : HypStruct(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
 
     virtual ~HypStructInstance() override = default;
-
+    
     virtual SizeType GetSize() const override
     {
         return sizeof(T);

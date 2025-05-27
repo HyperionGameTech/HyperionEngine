@@ -4,6 +4,7 @@
 #define HYPERION_HASH_MAP_HPP
 
 #include <core/containers/Array.hpp>
+#include <core/containers/HashSet.hpp>
 #include <core/containers/ContainerBase.hpp>
 
 #include <HashCode.hpp>

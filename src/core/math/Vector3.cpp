@@ -11,19 +11,19 @@
 
 namespace hyperion {
 
-HYP_BEGIN_STRUCT(Vec3f, {})
+HYP_BEGIN_STRUCT(Vec3f, -1, 0, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec3i, {})
+HYP_BEGIN_STRUCT(Vec3i, -1, 0, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
 HYP_END_STRUCT
 
-HYP_BEGIN_STRUCT(Vec3u, {})
+HYP_BEGIN_STRUCT(Vec3u, -1, 0, {})
     HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))

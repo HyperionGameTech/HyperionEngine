@@ -305,7 +305,7 @@ class HYP_API HypClass
 public:
     friend struct detail::HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass &other)                 = delete;
     HypClass &operator=(const HypClass &other)      = delete;
     HypClass(HypClass &&other) noexcept             = delete;
@@ -333,6 +333,12 @@ public:
 
     HYP_FORCE_INLINE Name GetName() const
         { return m_name; }
+
+    HYP_FORCE_INLINE int GetStaticIndex() const
+        { return m_static_index; }
+
+    HYP_FORCE_INLINE uint32 GetNumDescendants() const
+        { return m_num_descendants; }
 
     HYP_FORCE_INLINE const HypClass *GetParent() const
         { return m_parent; }
@@ -481,6 +487,8 @@ protected:
 
     TypeID                                  m_type_id;
     Name                                    m_name;
+    int                                     m_static_index;
+    uint32                                  m_num_descendants;
     Name                                    m_parent_name;
     const HypClass                          *m_parent;
     HypClassAttributeSet                    m_attributes;
@@ -504,24 +512,28 @@ public:
 
     static HypClassInstance &GetInstance(
         Name name,
+        int static_index,
+        uint32 num_descendants,
         Name parent_name,
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members
     )
     {
-        static HypClassInstance instance { name, parent_name, attributes, flags, members };
+        static HypClassInstance instance { name, static_index, num_descendants, parent_name, attributes, flags, members };
 
         return instance;
     }
 
     HypClassInstance(
         Name name,
+        int static_index,
+        uint32 num_descendants,
         Name parent_name,
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members
-    ) : HypClass(TypeID::ForType<T>(), name, parent_name, attributes, flags, members)
+    ) : HypClass(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
 

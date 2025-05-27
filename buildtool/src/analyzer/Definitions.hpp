@@ -74,6 +74,8 @@ struct HypClassDefinition
 {
     HypClassDefinitionType                      type;
     String                                      name;
+    int                                         static_index = -1;
+    uint32                                      num_descendants = 0;
     Array<Pair<String, HypClassAttributeValue>> attributes;
     Array<String>                               base_class_names;
     Array<HypMemberDefinition>                  members;

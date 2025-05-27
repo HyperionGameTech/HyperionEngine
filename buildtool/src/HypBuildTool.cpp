@@ -87,6 +87,9 @@ public:
         Task process_modules = ProcessModules();
         WaitWhileTaskRunning(process_modules);
 
+        Task build_class_tree = BuildClassTree();
+        WaitWhileTaskRunning(build_class_tree);
+
         Task generate_output_files = GenerateOutputFiles();
         WaitWhileTaskRunning(generate_output_files);
 
@@ -204,6 +207,114 @@ private:
         TaskSystem::GetInstance().EnqueueBatch(batch);
 
         return task;
+    }
+
+    Task<void> BuildClassTree()
+    {
+        return TaskSystem::GetInstance().Enqueue([this]()
+        {
+            Array<HypClassDefinition *> hyp_class_definitions;
+            HashMap<String, uint32> hyp_class_definition_ids;
+
+            for (const UniquePtr<Module> &mod : m_analyzer.GetModules()) {
+                for (auto &it : mod->GetHypClasses()) {
+                    if (hyp_class_definition_ids.Contains(it.second.name)) {
+                        m_analyzer.AddError(HYP_MAKE_ERROR(AnalyzerError, "Duplicate HypClassDefinition name found: {}", mod->GetPath(), 0, it.second.name));
+
+                        continue;
+                    }
+
+                    AssertThrow(it.second.static_index == -1);
+                    AssertThrow(it.second.num_descendants == 0);
+
+                    const uint32 hyp_class_definition_id = uint32(hyp_class_definitions.Size());
+
+                    hyp_class_definition_ids[it.second.name] = hyp_class_definition_id;
+
+                    hyp_class_definitions.PushBack(&it.second);
+                }
+            }
+
+            Array<Array<uint32>, DynamicAllocator> derived;
+            derived.Resize(hyp_class_definitions.Size());
+
+            for (const HypClassDefinition *hyp_class_definition : hyp_class_definitions) {
+                const uint32 child = hyp_class_definition_ids.At(hyp_class_definition->name);
+
+                for (const String &base_class_name : hyp_class_definition->base_class_names) {
+                    const auto parent_it = hyp_class_definition_ids.Find(base_class_name);
+
+                    if (parent_it == hyp_class_definition_ids.End()) {
+                        continue;
+                    }
+
+                    const uint32 parent = parent_it->second;
+                    AssertThrow(parent < hyp_class_definitions.Size());
+
+                    derived[parent].PushBack(child);
+                }
+            }
+
+            Array<uint32> indeg;
+            indeg.Resize(hyp_class_definitions.Size());
+
+            for (const Array<uint32> &children : derived) {
+                for (uint32 child : children) {
+                    indeg[child]++;
+                }
+            }
+
+            Array<uint32> roots;
+
+            for (SizeType i = 0; i < indeg.Size(); i++) {
+                if (indeg[i] == 0) {
+                    roots.PushBack(i);
+                }
+            }
+
+            Array<uint32> stack;
+            stack.Reserve(hyp_class_definitions.Size());
+
+            uint32 next_out = 0;
+
+            Proc<void(uint32)> TopologicalSort;
+            TopologicalSort = [&](uint32 id)
+            {
+                AssertThrow(id < hyp_class_definitions.Size());
+
+                HypClassDefinition *hyp_class_definition = hyp_class_definitions[id];
+
+                uint32 start = next_out;
+
+                hyp_class_definition->static_index = int(next_out++);
+
+                stack.PushBack(id);
+
+                for (uint32 child : derived[id]) {
+                    if (hyp_class_definitions[child]->static_index == -1) {
+                        TopologicalSort(child);
+                    }
+                }
+
+                stack.PopBack();
+
+                hyp_class_definition->num_descendants = next_out - start - 1;
+                hyp_class_definition->static_index = int(start + 1);
+            };
+
+            for (uint32 root : roots) {
+                TopologicalSort(root);
+            }
+
+            // Log out the class hierarchy with static indices
+            for (const HypClassDefinition *hyp_class_definition : hyp_class_definitions) {
+                HYP_LOG(BuildTool, Info, "Class: {}, Static Index: {}, Num Descendants: {}, Parent: {}",
+                    hyp_class_definition->name,
+                    hyp_class_definition->static_index,
+                    hyp_class_definition->num_descendants,
+                    String::Join(hyp_class_definition->base_class_names, ", "));
+            }
+        });
     }
 
     Task<void> GenerateOutputFiles()

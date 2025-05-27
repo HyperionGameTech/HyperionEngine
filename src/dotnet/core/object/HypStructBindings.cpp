@@ -17,7 +17,7 @@ class DynamicHypStructInstance final : public HypStruct
 {
 public:
     DynamicHypStructInstance(TypeID type_id, Name name, uint32 size, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members, DynamicHypStructInstance_DestructFunction destruct_function)
-        : HypStruct(type_id, name, Name::Invalid(), attributes, flags, members),
+        : HypStruct(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members),
           m_size(size),
           m_destruct_function(destruct_function)
     {

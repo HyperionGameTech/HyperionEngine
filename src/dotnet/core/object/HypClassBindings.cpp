@@ -24,7 +24,7 @@ namespace hyperion {
 #pragma region DynamicHypClassInstance
 
 DynamicHypClassInstance::DynamicHypClassInstance(TypeID type_id, Name name, const HypClass *parent_class, dotnet::Class *class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(type_id, name, Name::Invalid(), attributes, flags, members),
+    : HypClass(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members),
       m_class_ptr(class_ptr ? class_ptr->RefCountedPtrFromThis() : RC<dotnet::Class>())
 {
     AssertThrowMsg(parent_class != nullptr, "Parent class cannot be null for DynamicHypClassInstance");

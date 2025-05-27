@@ -18,34 +18,34 @@ namespace hyperion {
 
 #define HYP_FUNCTION(name, fn) HypMethod(NAME(HYP_STR(name)), fn)
 
-
-#define HYP_BEGIN_STRUCT(cls, parent_class, ...) static struct HypClassInitializer_##cls \
+#define HYP_BEGIN_STRUCT(cls, _static_index, _num_descendants, parent_class, ...) \
+    static struct HypClassInitializer_##cls \
     { \
         using Type = cls; \
-        \
         using RegistrationType = ::hyperion::detail::HypStructRegistration<Type>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_STRUCT } } };
 
-#define HYP_BEGIN_CLASS(cls, parent_class, ...) static struct HypClassInitializer_##cls \
+#define HYP_BEGIN_CLASS(cls, _static_index, _num_descendants, parent_class, ...) \
+    static struct HypClassInitializer_##cls \
     { \
         using Type = cls; \
-        \
         using RegistrationType = ::hyperion::detail::HypClassRegistration<Type>; \
         \
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration { NAME(HYP_STR(cls)), _static_index, _num_descendants, parent_class, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_CLASS } } };
 
-#define HYP_BEGIN_ENUM(cls, ...) static struct HypClassInitializer_##cls \
+#define HYP_BEGIN_ENUM(cls, _static_index, _num_descendants, ...) \
+    static struct HypClassInitializer_##cls \
     { \
         using Type = cls; \
         \
@@ -54,7 +54,7 @@ namespace hyperion {
         static RegistrationType s_class_registration; \
     } g_class_initializer_##cls { }; \
     \
-    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration = { NAME(HYP_STR(cls)), Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
+    HypClassInitializer_##cls::RegistrationType HypClassInitializer_##cls::s_class_registration = { NAME(HYP_STR(cls)), _static_index, _num_descendants, Span<const HypClassAttribute> { { __VA_ARGS__ } }, Span<HypMember> { {
 
 #define HYP_END_ENUM } } };
 

@@ -109,9 +109,11 @@ void HypClassMemberIterator::Advance()
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, Name name, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+HypClass::HypClass(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_type_id(type_id),
       m_name(name),
+      m_static_index(static_index),
+      m_num_descendants(num_descendants),
       m_parent_name(parent_name),
       m_parent(nullptr),
       m_attributes(attributes),

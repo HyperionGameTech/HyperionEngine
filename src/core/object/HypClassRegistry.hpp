@@ -32,12 +32,15 @@ class HypEnum;
 struct HypMember;
 
 template <class T>
+struct HypClassDefinition;
+
+template <class THypClassDefinition>
 class HypClassInstance;
 
-template <class T>
+template <class THypClassDefinition>
 class HypStructInstance;
 
-template <class T>
+template <class THypClassDefinition>
 class HypEnumInstance;
 
 template <class T>
@@ -168,8 +171,8 @@ struct HypClassRegistration : public HypClassRegistrationBase
         | (IsPODType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
-    HypClassRegistration(Name name, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    HypClassRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
@@ -181,8 +184,8 @@ struct HypStructRegistration : public HypClassRegistrationBase
         | (IsPODType<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
-    HypStructRegistration(Name name, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    HypStructRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
@@ -192,8 +195,8 @@ struct HypEnumRegistration : public HypClassRegistrationBase
 {
     static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::ENUM_TYPE;
 
-    HypEnumRegistration(Name name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, {}, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+    HypEnumRegistration(Name name, int static_index, uint32 num_descendants, Span<const HypClassAttribute> attributes, Span<HypMember> members)
+        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, static_index, num_descendants, Name::Invalid(), attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
