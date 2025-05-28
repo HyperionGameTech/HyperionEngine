@@ -71,7 +71,7 @@ Texture::Texture(const RC<StreamedTextureData>& streamed_texture_data)
 
 Texture::~Texture()
 {
-    m_persistent_render_resource_handle.Reset();
+    m_render_persistent.Reset();
 
     if (m_render_resource)
     {
@@ -99,7 +99,7 @@ void Texture::Init()
 
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
-            m_persistent_render_resource_handle.Reset();
+            m_render_persistent.Reset();
 
             if (m_render_resource)
             {
@@ -116,7 +116,7 @@ void Texture::Init()
             }
         }));
 
-    m_render_resource = AllocateResource<TextureRenderResource>(this);
+    m_render_resource = AllocateResource<RenderTexture>(this);
 
     m_streamed_texture_data_resource_handle.Reset();
 
@@ -196,9 +196,9 @@ void Texture::GenerateMipmaps()
 {
     AssertReady();
 
-    m_render_resource->Claim();
+    m_render_resource->IncRef();
     m_render_resource->RenderMipmaps();
-    m_render_resource->Unclaim();
+    m_render_resource->DecRef();
 }
 
 void Texture::Readback()
@@ -446,14 +446,14 @@ void Texture::SetPersistentRenderResourceEnabled(bool enabled)
 
     if (enabled)
     {
-        if (!m_persistent_render_resource_handle)
+        if (!m_render_persistent)
         {
-            m_persistent_render_resource_handle = ResourceHandle(*m_render_resource);
+            m_render_persistent = ResourceHandle(*m_render_resource);
         }
     }
     else
     {
-        m_persistent_render_resource_handle.Reset();
+        m_render_persistent.Reset();
     }
 }
 

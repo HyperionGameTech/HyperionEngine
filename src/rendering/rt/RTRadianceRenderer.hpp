@@ -20,7 +20,7 @@ using renderer::RTUpdateStateFlags;
 
 class Engine;
 class GBuffer;
-class ViewRenderResource;
+class RenderView;
 
 struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
@@ -70,14 +70,14 @@ public:
     HYP_API void Create();
     HYP_API void Destroy();
 
-    HYP_API void Render(FrameBase* frame, ViewRenderResource* view);
+    HYP_API void Render(FrameBase* frame, RenderView* view);
 
 private:
     void CreateImages();
     void CreateUniformBuffer();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
-    void UpdateUniforms(FrameBase* frame, ViewRenderResource* view);
+    void UpdateUniforms(FrameBase* frame, RenderView* view);
 
     RTRadianceConfig m_config;
 

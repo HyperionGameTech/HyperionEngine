@@ -54,7 +54,7 @@ ResourceBase::ResourceBase(ResourceBase&& other) noexcept
 ResourceBase::~ResourceBase()
 {
     // Ensure that the resources are no longer being used
-    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Resource destroyed while still in use, was WaitForFinalization() called?");
+    AssertThrowMsg(m_ref_counter.IsInSignalState(), "Resource destroyed while still in use, was WaitForFinalization() called?");
 }
 
 bool ResourceBase::IsInitialized() const
@@ -62,13 +62,13 @@ bool ResourceBase::IsInitialized() const
     return m_initialization_mask.Get(MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit;
 }
 
-int ResourceBase::ClaimWithoutInitialize()
+int ResourceBase::IncRefNoInitialize()
 {
-    return m_claimed_semaphore.Produce(1, [this](bool)
+    return m_ref_counter.Produce(1, [this](bool)
         {
             // loop until we have exclusive access.
             uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::ClaimWithoutInitialize() called on a resource that is already initialized");
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::IncRefNoInitialize() called on a resource that is already initialized");
 
             while (state & g_initialization_mask_read_mask)
             {
@@ -78,7 +78,7 @@ int ResourceBase::ClaimWithoutInitialize()
         });
 }
 
-int ResourceBase::Claim(int count)
+int ResourceBase::IncRef(int count)
 {
     if (count <= 0)
     {
@@ -93,7 +93,7 @@ int ResourceBase::Claim(int count)
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
             uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Claim() called on a resource that is already initialized");
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::IncRef() called on a resource that is already initialized");
 
             // loop until we have exclusive access.
             while (state & g_initialization_mask_read_mask)
@@ -131,7 +131,7 @@ int ResourceBase::Claim(int count)
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Produce(count, [this, owner_thread, &impl, &should_release](bool state)
+    int result = m_ref_counter.Produce(count, [this, owner_thread, &impl, &should_release](bool state)
         {
             AssertDebug(!state);
 
@@ -157,14 +157,14 @@ int ResourceBase::Claim(int count)
     return result;
 }
 
-int ResourceBase::Unclaim()
+int ResourceBase::DecRef()
 {
     auto impl = [this]()
     {
         HYP_NAMED_SCOPE("Destroying Resource");
 
         uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-        AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::Unclaim() called on a resource that is not initialized");
+        AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::DecRef() called on a resource that is not initialized");
 
         // Wait till all reads are complete before we continue
         while (state & g_initialization_mask_read_mask)
@@ -180,11 +180,13 @@ int ResourceBase::Unclaim()
 
         // DEBUGGING
         state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
-        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::Unclaim() called on a resource that is still initialized");
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::DecRef() called on a resource that is still initialized");
 
-        HYP_MT_CHECK_RW(m_data_race_detector);
+        {
+            HYP_MT_CHECK_RW(m_data_race_detector);
 
-        Destroy();
+            Destroy();
+        }
 
         // Done with destroying, we can now remove our read access
         m_initialization_mask.Decrement(2, MemoryOrder::RELEASE);
@@ -197,7 +199,7 @@ int ResourceBase::Unclaim()
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Release(1, [this, &impl, &should_release](bool state)
+    int result = m_ref_counter.Release(1, [this, &impl, &should_release](bool state)
         {
             AssertDebug(state);
 
@@ -229,19 +231,22 @@ void ResourceBase::SetNeedsUpdate()
     auto impl = [this]()
     {
         HYP_NAMED_SCOPE("Applying Resource updates");
-        HYP_MT_CHECK_READ(m_data_race_detector);
 
-        int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
-
-        while (current_count != 0)
         {
-            AssertDebug(current_count > 0);
+            HYP_MT_CHECK_READ(m_data_race_detector);
 
-            HYP_MT_CHECK_RW(m_data_race_detector);
+            int16 current_count = m_update_counter.Get(MemoryOrder::ACQUIRE);
 
-            Update();
+            while (current_count != 0)
+            {
+                AssertDebug(current_count > 0);
 
-            current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
+                HYP_MT_CHECK_RW(m_data_race_detector);
+
+                Update();
+
+                current_count = m_update_counter.Decrement(current_count, MemoryOrder::ACQUIRE_RELEASE) - current_count;
+            }
         }
 
         m_completion_semaphore.Release(1);
@@ -251,7 +256,7 @@ void ResourceBase::SetNeedsUpdate()
 
     m_completion_semaphore.Produce(1);
 
-    if (m_claimed_semaphore.IsInSignalState())
+    if (m_ref_counter.IsInSignalState())
     {
         // Check initialization state -- if it is not initialized, we increment the update counter
         // without waiting for the owner thread to finish
@@ -323,7 +328,7 @@ void ResourceBase::WaitForFinalization() const
 
     WaitForTaskCompletion();
 
-    m_claimed_semaphore.Acquire();
+    m_ref_counter.Acquire();
 }
 
 bool ResourceBase::CanExecuteInline() const
@@ -367,17 +372,17 @@ public:
         return true;
     }
 
-    virtual int Claim(int count) override
+    virtual int IncRef(int count) override
     {
         return 0;
     }
 
-    virtual int ClaimWithoutInitialize() override
+    virtual int IncRefNoInitialize() override
     {
         return 0;
     }
 
-    virtual int Unclaim() override
+    virtual int DecRef() override
     {
         return 0;
     }

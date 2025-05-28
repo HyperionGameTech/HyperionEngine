@@ -20,7 +20,7 @@
 
 namespace hyperion {
 
-ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource>& view, ScreenCaptureMode screen_capture_mode)
+ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<RenderView>& view, ScreenCaptureMode screen_capture_mode)
     : RenderSubsystem(name),
       m_view(view),
       m_texture(CreateObject<Texture>(TextureDesc {

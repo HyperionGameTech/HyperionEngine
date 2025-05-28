@@ -37,11 +37,11 @@
 
 #ifdef HYP_GLSLANG
 
-    #include <glslang/Include/glslang_c_interface.h>
-    #include <glslang/Include/ResourceLimits.h>
-    #include <glslang/Include/Types.h>
-    #include <glslang/Public/ShaderLang.h>
-    #include <glslang/MachineIndependent/reflection.h>
+#include <glslang/Include/glslang_c_interface.h>
+#include <glslang/Include/ResourceLimits.h>
+#include <glslang/Include/Types.h>
+#include <glslang/Public/ShaderLang.h>
+#include <glslang/MachineIndependent/reflection.h>
 
 #endif
 
@@ -260,11 +260,11 @@ static bool PreprocessShaderSource(
     Array<String>& out_error_messages)
 {
 
-    #define GLSL_ERROR(level, error_message, ...)                                  \
-        {                                                                          \
-            HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__);          \
-            out_error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
-        }
+#define GLSL_ERROR(level, error_message, ...)                                  \
+    {                                                                          \
+        HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__);          \
+        out_error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
+    }
 
     auto default_resources = DefaultResources();
 
@@ -447,7 +447,7 @@ static bool PreprocessShaderSource(
 
     glslang_shader_delete(shader);
 
-    #undef GLSL_ERROR
+#undef GLSL_ERROR
 
     return true;
 }
@@ -462,11 +462,11 @@ static ByteBuffer CompileToSPIRV(
     Array<String>& error_messages)
 {
 
-    #define GLSL_ERROR(level, error_message, ...)                              \
-        {                                                                      \
-            HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__);      \
-            error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
-        }
+#define GLSL_ERROR(level, error_message, ...)                              \
+    {                                                                      \
+        HYP_LOG(ShaderCompiler, level, error_message, ##__VA_ARGS__);      \
+        error_messages.PushBack(HYP_FORMAT(error_message, ##__VA_ARGS__)); \
+    }
 
     auto default_resources = DefaultResources();
 
@@ -675,7 +675,7 @@ static ByteBuffer CompileToSPIRV(
     glslang_program_delete(program);
     glslang_shader_delete(shader);
 
-    #undef GLSL_ERROR
+#undef GLSL_ERROR
 
     return shader_module;
 }
@@ -1127,11 +1127,11 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties& properties)
     case VK_API_VERSION_1_2:
         properties.Set(ShaderProperty("HYP_VULKAN_1_2", false));
         break;
-    #ifdef VK_API_VERSION_1_3
+#ifdef VK_API_VERSION_1_3
     case VK_API_VERSION_1_3:
         properties.Set(ShaderProperty("HYP_VULKAN_1_3", false));
         break;
-    #endif
+#endif
     default:
         break;
     }
@@ -1476,6 +1476,8 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
     {
         return true;
     }
+
+    HYP_LOG(ShaderCompiler, Info, "Precompiling shaders...");
 
     Array<Bundle> bundles;
 

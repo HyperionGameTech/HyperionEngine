@@ -26,6 +26,10 @@ public:
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Destroy() override;
 
+    HYP_API virtual RendererResult ResetFrameState() override;
+
+    HYP_API RendererResult Submit(VulkanDeviceQueue* device_queue, const VulkanCommandBufferRef& command_buffer);
+
     HYP_FORCE_INLINE const VulkanFenceRef& GetFence() const
     {
         return m_queue_submit_fence;

@@ -209,12 +209,12 @@ void SSGI::CreateComputePipelines()
     DeferCreate(m_compute_pipeline);
 }
 
-void SSGI::Render(FrameBase* frame, ViewRenderResource* view)
+void SSGI::Render(FrameBase* frame, RenderView* view)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
     // Used for sky
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -267,7 +267,7 @@ void SSGI::Render(FrameBase* frame, ViewRenderResource* view)
     m_is_rendered = true;
 }
 
-void SSGI::FillUniformBufferData(ViewRenderResource* view, SSGIUniforms& out_uniforms) const
+void SSGI::FillUniformBufferData(RenderView* view, SSGIUniforms& out_uniforms) const
 {
     out_uniforms = SSGIUniforms();
     out_uniforms.dimensions = Vec4u(m_config.extent, 0, 0);

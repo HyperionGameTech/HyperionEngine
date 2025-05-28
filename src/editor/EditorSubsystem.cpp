@@ -1179,7 +1179,7 @@ void EditorSubsystem::InitViewport()
 
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
         m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
 
         m_scene_texture = screen_capture_render_subsystem->GetTexture();

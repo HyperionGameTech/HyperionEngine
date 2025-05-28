@@ -30,7 +30,7 @@ class Object;
 class Engine;
 class GameThread;
 class UISubsystem;
-class SceneRenderResource;
+class RenderScene;
 
 struct ManagedGameInfo
 {
@@ -104,8 +104,8 @@ private:
 
     UniquePtr<GameThread> m_game_thread;
 
-    SceneRenderResource* m_scene_render_resource;
-    ResourceHandle m_scene_render_resource_handle;
+    RenderScene* m_render_scene;
+    ResourceHandle m_render_scene_handle;
 };
 
 } // namespace hyperion

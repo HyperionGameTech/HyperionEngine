@@ -545,7 +545,7 @@ void FullScreenPass::CreateDescriptors()
 {
 }
 
-void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -594,7 +594,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, ViewRenderR
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 }
 
-void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -615,7 +615,7 @@ void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, ViewRenderRes
     frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
-void FullScreenPass::MergeHalfResTextures(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::MergeHalfResTextures(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -627,7 +627,7 @@ void FullScreenPass::MergeHalfResTextures(FrameBase* frame, ViewRenderResource* 
     m_merge_half_res_textures_pass->Render(frame, view);
 }
 
-void FullScreenPass::Render(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -656,7 +656,7 @@ void FullScreenPass::Render(FrameBase* frame, ViewRenderResource* view)
     }
 }
 
-void FullScreenPass::RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer)
+void FullScreenPass::RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -667,8 +667,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, ViewRenderResource* v
         RenderPreviousTextureToScreen(frame, view);
     }
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
@@ -696,8 +696,8 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, ViewRenderResource* v
             { NAME("Global"),
                 { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
     const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
@@ -716,7 +716,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, ViewRenderResource* v
     m_is_first_frame = false;
 }
 
-void FullScreenPass::Begin(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::Begin(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -741,7 +741,7 @@ void FullScreenPass::Begin(FrameBase* frame, ViewRenderResource* view)
     }
 }
 
-void FullScreenPass::End(FrameBase* frame, ViewRenderResource* view)
+void FullScreenPass::End(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

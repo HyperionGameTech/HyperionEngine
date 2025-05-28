@@ -60,6 +60,34 @@ RendererResult VulkanFrame::Destroy()
     return result;
 }
 
+RendererResult VulkanFrame::ResetFrameState()
+{
+    RendererResult result;
+
+    HYPERION_PASS_ERRORS(m_queue_submit_fence->Reset(), result);
+
+    return result;
+}
+
+RendererResult VulkanFrame::Submit(VulkanDeviceQueue* device_queue, const VulkanCommandBufferRef& command_buffer)
+{
+    m_command_list.Prepare(this);
+
+    UpdateUsedDescriptorSets();
+
+    if (OnPresent.AnyBound())
+    {
+        OnPresent(this);
+        OnPresent.RemoveAllDetached();
+    }
+
+    command_buffer->Begin();
+    m_command_list.Execute(command_buffer);
+    command_buffer->End();
+
+    return command_buffer->SubmitPrimary(device_queue, m_queue_submit_fence, &m_present_semaphores);
+}
+
 RendererResult VulkanFrame::RecreateFence()
 {
     if (m_queue_submit_fence.IsValid())

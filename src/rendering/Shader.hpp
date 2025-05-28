@@ -28,6 +28,8 @@ public:
     ShaderRef GetOrCreate(const ShaderDefinition& definition);
     ShaderRef GetOrCreate(Name name, const ShaderProperties& props = {});
 
+    SizeType CalculateMemoryUsage() const;
+
 private:
     struct ShaderMapEntry
     {
@@ -44,7 +46,7 @@ private:
     };
 
     HashMap<ShaderDefinition, RC<ShaderMapEntry>> m_map;
-    Mutex m_mutex;
+    mutable Mutex m_mutex;
 };
 
 } // namespace hyperion

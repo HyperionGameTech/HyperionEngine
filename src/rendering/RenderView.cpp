@@ -100,8 +100,8 @@ static void AddRenderProxy(
     EntityDrawCollection* collection,
     RenderProxyTracker& render_proxy_tracker,
     RenderProxy&& proxy,
-    CameraRenderResource* camera_render_resource,
-    ViewRenderResource* view_render_resource,
+    RenderCamera* render_camera,
+    RenderView* render_view,
     const RenderableAttributeSet& attributes,
     Bucket bucket)
 {
@@ -114,21 +114,6 @@ static void AddRenderProxy(
 
     if (!render_group.IsValid())
     {
-        HYP_LOG(RenderCollection, Debug, "Creating RenderGroup for attributes:\n"
-                                         "\tVertex Attributes: {}\n"
-                                         "\tBucket: {}\n"
-                                         "\tShader Definition: {}  {}\n"
-                                         "\tCull Mode: {}\n"
-                                         "\tFlags: {}\n"
-                                         "\tDrawable layer: {}",
-            attributes.GetMeshAttributes().vertex_attributes.flag_mask,
-            uint32(attributes.GetMaterialAttributes().bucket),
-            attributes.GetShaderDefinition().GetName(),
-            attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
-            uint32(attributes.GetMaterialAttributes().cull_faces),
-            uint32(attributes.GetMaterialAttributes().flags),
-            attributes.GetDrawableLayer());
-
         EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
         // Disable occlusion culling for translucent objects
@@ -147,9 +132,9 @@ static void AddRenderProxy(
 
         FramebufferRef framebuffer;
 
-        if (camera_render_resource != nullptr)
+        if (render_camera != nullptr)
         {
-            framebuffer = camera_render_resource->GetFramebuffer();
+            framebuffer = render_camera->GetFramebuffer();
         }
 
         if (framebuffer != nullptr)
@@ -158,10 +143,10 @@ static void AddRenderProxy(
         }
         else
         {
-            AssertThrow(view_render_resource != nullptr);
-            AssertThrow(view_render_resource->GetView()->GetFlags() & ViewFlags::GBUFFER);
+            AssertThrow(render_view != nullptr);
+            AssertThrow(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER);
 
-            GBuffer* gbuffer = view_render_resource->GetGBuffer();
+            GBuffer* gbuffer = render_view->GetGBuffer();
             AssertThrow(gbuffer != nullptr);
 
             const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
@@ -175,7 +160,7 @@ static void AddRenderProxy(
 
     auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
-    render_group->AddRenderProxy(iter->second);
+    render_group->AddRenderProxy(&iter->second);
 }
 
 static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
@@ -199,9 +184,9 @@ static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTrack
 
 #pragma endregion RenderCollector helpers
 
-#pragma region ViewRenderResource
+#pragma region RenderView
 
-ViewRenderResource::ViewRenderResource(View* view)
+RenderView::RenderView(View* view)
     : m_view(view),
       m_renderer_config(RendererConfig::FromConfig()),
       m_viewport(view ? view->GetViewport() : Viewport {}),
@@ -210,11 +195,11 @@ ViewRenderResource::ViewRenderResource(View* view)
     m_lights.Resize(uint32(LightType::MAX));
 }
 
-ViewRenderResource::~ViewRenderResource()
+RenderView::~RenderView()
 {
 }
 
-void ViewRenderResource::Initialize_Internal()
+void RenderView::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -227,7 +212,7 @@ void ViewRenderResource::Initialize_Internal()
 
     for (RenderProxy* proxy : proxies)
     {
-        proxy->ClaimRenderResource();
+        proxy->IncRefs();
     }
 
     if (!m_view || (m_view->GetFlags() & ViewFlags::GBUFFER))
@@ -238,7 +223,7 @@ void ViewRenderResource::Initialize_Internal()
     }
 }
 
-void ViewRenderResource::Destroy_Internal()
+void RenderView::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -252,17 +237,17 @@ void ViewRenderResource::Destroy_Internal()
 
         for (RenderProxy* proxy : proxies)
         {
-            proxy->UnclaimRenderResource();
+            proxy->DecRefs();
         }
     }
 
     { // lights
-        Array<LightRenderResource*> lights;
+        Array<RenderLight*> lights;
         m_tracked_lights.GetCurrent(lights);
 
-        for (LightRenderResource* light : lights)
+        for (RenderLight* light : lights)
         {
-            light->Unclaim();
+            light->DecRef();
         }
 
         m_tracked_lights.Reset();
@@ -282,12 +267,12 @@ void ViewRenderResource::Destroy_Internal()
     }
 }
 
-void ViewRenderResource::Update_Internal()
+void RenderView::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-void ViewRenderResource::CreateRenderer()
+void RenderView::CreateRenderer()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -360,7 +345,7 @@ void ViewRenderResource::CreateRenderer()
     CreateFinalPassDescriptorSet();
 }
 
-void ViewRenderResource::CreateDescriptorSets()
+void RenderView::CreateDescriptorSets()
 {
     HYP_SCOPE;
 
@@ -474,7 +459,7 @@ void ViewRenderResource::CreateDescriptorSets()
     m_descriptor_sets = std::move(descriptor_sets);
 }
 
-void ViewRenderResource::CreateCombinePass()
+void RenderView::CreateCombinePass()
 {
     HYP_SCOPE;
 
@@ -511,7 +496,7 @@ void ViewRenderResource::CreateCombinePass()
     m_combine_pass->Create();
 }
 
-void ViewRenderResource::CreateFinalPassDescriptorSet()
+void RenderView::CreateFinalPassDescriptorSet()
 {
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
@@ -539,7 +524,7 @@ void ViewRenderResource::CreateFinalPassDescriptorSet()
     m_final_pass_descriptor_set = std::move(descriptor_set);
 }
 
-void ViewRenderResource::DestroyRenderer()
+void RenderView::DestroyRenderer()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -576,7 +561,7 @@ void ViewRenderResource::DestroyRenderer()
     m_gbuffer->Destroy();
 }
 
-void ViewRenderResource::SetViewport(const Viewport& viewport)
+void RenderView::SetViewport(const Viewport& viewport)
 {
     HYP_SCOPE;
 
@@ -635,7 +620,7 @@ void ViewRenderResource::SetViewport(const Viewport& viewport)
         });
 }
 
-void ViewRenderResource::SetPriority(int priority)
+void RenderView::SetPriority(int priority)
 {
     HYP_SCOPE;
 
@@ -645,7 +630,7 @@ void ViewRenderResource::SetPriority(int priority)
         });
 }
 
-typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker)
+typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
@@ -672,7 +657,7 @@ typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies
 
             Execute([this, added_proxies = std::move(added_proxies), removed_proxies = std::move(removed_proxies)]() mutable
                 {
-                    AssertDebugMsg(IsInitialized(), "UpdateTrackedRenderProxies can only be called on an initialized ViewRenderResource");
+                    AssertDebugMsg(IsInitialized(), "UpdateTrackedRenderProxies can only be called on an initialized RenderView");
 
                     EntityDrawCollection* collection = m_render_collector.GetDrawCollection();
                     const RenderableAttributeSet* override_attributes = m_render_collector.GetOverrideAttributes().TryGet();
@@ -685,7 +670,7 @@ typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies
                     // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
                     for (RenderProxy& proxy : added_proxies)
                     {
-                        proxy.ClaimRenderResource();
+                        proxy.IncRefs();
                     }
 
                     for (ID<Entity> entity_id : removed_proxies)
@@ -693,7 +678,7 @@ typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies
                         const RenderProxy* proxy = render_proxy_tracker.GetElement(entity_id);
                         AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
-                        proxy->UnclaimRenderResource();
+                        proxy->DecRefs();
 
                         const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -713,7 +698,7 @@ typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies
                         const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy, override_attributes);
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                        AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_camera_render_resource_handle.Get(), this, attributes, bucket);
+                        AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);
                     }
 
                     render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
@@ -729,7 +714,7 @@ typename RenderProxyTracker::Diff ViewRenderResource::UpdateTrackedRenderProxies
     return diff;
 }
 
-void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource*>& tracked_lights)
+void RenderView::UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights)
 {
     if (!tracked_lights.GetDiff().NeedsUpdate())
     {
@@ -741,13 +726,13 @@ void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRen
     Array<ID<Light>, DynamicAllocator> removed;
     tracked_lights.GetRemoved(removed, true /* include_changed */);
 
-    Array<LightRenderResource*, DynamicAllocator> added;
+    Array<RenderLight*, DynamicAllocator> added;
     tracked_lights.GetAdded(added, true /* include_changed */);
 
-    for (LightRenderResource* light_render_resource : added)
+    for (RenderLight* render_light : added)
     {
         // Ensure it doesn't get deleted while we queue the update txn
-        light_render_resource->Claim();
+        render_light->IncRef();
     }
 
     Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
@@ -756,33 +741,33 @@ void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRen
             {
                 for (ID<Light> id : removed)
                 {
-                    LightRenderResource** element_ptr = m_tracked_lights.GetElement(id);
+                    RenderLight** element_ptr = m_tracked_lights.GetElement(id);
                     AssertDebug(element_ptr != nullptr);
 
-                    LightRenderResource* light_render_resource = *element_ptr;
-                    AssertDebug(light_render_resource);
+                    RenderLight* render_light = *element_ptr;
+                    AssertDebug(render_light);
 
-                    const LightType light_type = light_render_resource->GetLight()->GetLightType();
+                    const LightType light_type = render_light->GetLight()->GetLightType();
 
-                    auto it = m_lights[uint32(light_type)].Find(light_render_resource);
+                    auto it = m_lights[uint32(light_type)].Find(render_light);
                     AssertDebug(it != m_lights[uint32(light_type)].End());
 
                     m_lights[uint32(light_type)].Erase(it);
 
-                    light_render_resource->Unclaim();
+                    render_light->DecRef();
 
                     m_tracked_lights.MarkToRemove(id);
                 }
             }
 
-            for (LightRenderResource* light_render_resource : added)
+            for (RenderLight* render_light : added)
             {
-                const LightType light_type = light_render_resource->GetLight()->GetLightType();
-                AssertDebug(!m_lights[uint32(light_type)].Contains(light_render_resource));
+                const LightType light_type = render_light->GetLight()->GetLightType();
+                AssertDebug(!m_lights[uint32(light_type)].Contains(render_light));
 
-                m_lights[uint32(light_type)].PushBack(light_render_resource);
+                m_lights[uint32(light_type)].PushBack(render_light);
 
-                m_tracked_lights.Track(light_render_resource->GetLight()->GetID(), light_render_resource);
+                m_tracked_lights.Track(render_light->GetLight()->GetID(), render_light);
             }
 
             m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
@@ -791,7 +776,7 @@ void ViewRenderResource::UpdateTrackedLights(ResourceTracker<ID<Light>, LightRen
     tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
-void ViewRenderResource::PreFrameUpdate(FrameBase* frame)
+void RenderView::PreRender(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -804,7 +789,7 @@ void ViewRenderResource::PreFrameUpdate(FrameBase* frame)
     }
 }
 
-void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_render_resource)
+void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -815,17 +800,17 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
     {
         const uint32 frame_index = frame->GetFrameIndex();
 
-        g_engine->GetRenderState()->BindCamera(m_camera_render_resource_handle);
-        g_engine->GetRenderState()->SetActiveScene(m_scene_render_resource_handle->GetScene());
+        g_engine->GetRenderState()->BindCamera(m_render_camera);
+        g_engine->GetRenderState()->SetActiveScene(m_render_scene->GetScene());
 
-        const Handle<RenderEnvironment>& environment = m_scene_render_resource_handle->GetEnvironment();
+        const Handle<RenderEnvironment>& environment = m_render_scene->GetEnvironment();
 
         const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
         const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
         const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
-        const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-        const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+        const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+        const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
         const bool is_render_environment_ready = environment && environment->IsReady();
 
@@ -838,8 +823,8 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
         const bool use_hbil = m_renderer_config.hbil_enabled;
         const bool use_ssgi = m_renderer_config.ssgi_enabled;
 
-        const bool use_env_grid_irradiance = env_grid_render_resource_handle && m_renderer_config.env_grid_gi_enabled;
-        const bool use_env_grid_radiance = env_grid_render_resource_handle && m_renderer_config.env_grid_radiance_enabled;
+        const bool use_env_grid_irradiance = env_render_grid && m_renderer_config.env_grid_gi_enabled;
+        const bool use_env_grid_radiance = env_render_grid && m_renderer_config.env_grid_radiance_enabled;
 
         const bool use_temporal_aa = m_temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
@@ -848,7 +833,7 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
 
         if (use_temporal_aa)
         {
-            m_camera_render_resource_handle->ApplyJitter();
+            m_render_camera->ApplyJitter();
         }
 
         struct alignas(128)
@@ -915,7 +900,7 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
         // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
         // otherwise the same pass will be executed for each view (shared).
         // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
-        // so it is rendered with the WorldRenderResource rather than the ViewRenderResource.
+        // so it is rendered with the RenderWorld rather than the RenderView.
         if (is_render_environment_ready)
         {
             if (use_rt_radiance)
@@ -941,7 +926,7 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
             // Bind sky env probe for SSGI.
             if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
             {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
                 is_sky_set = true;
             }
@@ -1006,7 +991,7 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
             // Bind sky env probe
             if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
             {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
                 is_sky_set = true;
             }
@@ -1063,10 +1048,10 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
                     {
                         NAME("Global"),
                         {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*m_scene_render_resource_handle) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_camera_render_resource_handle) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
+                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*m_render_scene) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_render_camera) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
                         }
                     }
                 },
@@ -1109,11 +1094,11 @@ void ViewRenderResource::Render(FrameBase* frame, WorldRenderResource* world_ren
         // m_dof_blur->Render(frame);
 
         g_engine->GetRenderState()->UnsetActiveScene();
-        g_engine->GetRenderState()->UnbindCamera(m_camera_render_resource_handle.Get());
+        g_engine->GetRenderState()->UnbindCamera(m_render_camera.Get());
     }
 }
 
-void ViewRenderResource::CollectDrawCalls(FrameBase* frame)
+void RenderView::CollectDrawCalls(FrameBase* frame)
 {
     HYP_SCOPE;
 
@@ -1124,7 +1109,11 @@ void ViewRenderResource::CollectDrawCalls(FrameBase* frame)
         &m_cull_data);
 }
 
-void ViewRenderResource::ExecuteDrawCalls(FrameBase* frame, uint64 bucket_mask)
+void RenderView::PostRender(FrameBase* frame)
+{
+}
+
+void RenderView::ExecuteDrawCalls(FrameBase* frame, uint64 bucket_mask)
 {
     HYP_SCOPE;
 
@@ -1136,7 +1125,7 @@ void ViewRenderResource::ExecuteDrawCalls(FrameBase* frame, uint64 bucket_mask)
         &m_cull_data);
 }
 
-void ViewRenderResource::GenerateMipChain(FrameBase* frame, const ImageRef& src_image)
+void RenderView::GenerateMipChain(FrameBase* frame, const ImageRef& src_image)
 {
     HYP_SCOPE;
 
@@ -1160,6 +1149,6 @@ void ViewRenderResource::GenerateMipChain(FrameBase* frame, const ImageRef& src_
     frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
-#pragma endregion ViewRenderResource
+#pragma endregion RenderView
 
 } // namespace hyperion

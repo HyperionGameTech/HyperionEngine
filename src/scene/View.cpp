@@ -79,9 +79,9 @@ void View::Init()
     InitObject(m_scene);
     InitObject(m_camera);
 
-    m_render_resource = AllocateResource<ViewRenderResource>(this);
-    m_render_resource->SetScene(TResourceHandle<SceneRenderResource>(m_scene->GetRenderResource()));
-    m_render_resource->SetCamera(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
+    m_render_resource = AllocateResource<RenderView>(this);
+    m_render_resource->SetScene(TResourceHandle<RenderScene>(m_scene->GetRenderResource()));
+    m_render_resource->SetCamera(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
     m_render_resource->SetViewport(m_viewport);
     m_render_resource->GetRenderCollector().SetOverrideAttributes(m_override_attributes);
 
@@ -171,17 +171,17 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 #ifndef HYP_DISABLE_VISIBILITY_CHECK
             if (!visibility_state_component.visibility_state)
             {
-    #ifdef HYP_VISIBILITY_CHECK_DEBUG
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
                 ++num_skipped_entities;
-    #endif
+#endif
                 continue;
             }
 
             if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
             {
-    #ifdef HYP_VISIBILITY_CHECK_DEBUG
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
                 ++num_skipped_entities;
-    #endif
+#endif
 
                 continue;
             }
@@ -244,10 +244,10 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 
             if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
             {
-    #ifdef HYP_VISIBILITY_CHECK_DEBUG
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
                 HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
                     entity_id.Value(), camera_id.Value());
-    #endif
+#endif
 
                 continue;
             }
@@ -304,10 +304,10 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
 
             if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
             {
-    #ifdef HYP_VISIBILITY_CHECK_DEBUG
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
                 HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
                     entity_id.Value(), camera_id.Value());
-    #endif
+#endif
 
                 continue;
             }

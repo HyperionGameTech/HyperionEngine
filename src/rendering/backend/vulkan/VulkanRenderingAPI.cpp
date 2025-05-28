@@ -496,18 +496,14 @@ void VulkanRenderingAPI::PresentFrame(FrameBase* frame)
     const CommandBufferRef& command_buffer = m_instance->GetSwapchain()->GetCurrentCommandBuffer();
 
     VulkanFrame* vulkan_frame = static_cast<VulkanFrame*>(frame);
-    VulkanCommandBuffer* vulkan_command_buffer = static_cast<VulkanCommandBuffer*>(command_buffer.Get());
+    VulkanCommandBufferRef vulkan_command_buffer = VulkanCommandBufferRef(command_buffer);
     VulkanAsyncCompute* vulkan_async_compute = static_cast<VulkanAsyncCompute*>(m_async_compute);
 
-    vulkan_command_buffer->Begin();
-    vulkan_frame->GetCommandList().Execute(command_buffer);
-    vulkan_command_buffer->End();
+    RendererResult submit_result = vulkan_frame->Submit(&m_instance->GetDevice()->GetGraphicsQueue(), vulkan_command_buffer);
 
-    RendererResult frame_result = vulkan_command_buffer->SubmitPrimary(&m_instance->GetDevice()->GetGraphicsQueue(), vulkan_frame->GetFence(), &vulkan_frame->GetPresentSemaphores());
-
-    if (!frame_result)
+    if (!submit_result)
     {
-        m_crash_handler.HandleGPUCrash(frame_result);
+        m_crash_handler.HandleGPUCrash(submit_result);
 
         return;
     }

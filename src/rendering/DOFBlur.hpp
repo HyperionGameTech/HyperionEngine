@@ -36,7 +36,7 @@ public:
     void Create();
     void Destroy();
 
-    void Render(FrameBase* frame, ViewRenderResource* view);
+    void Render(FrameBase* frame, RenderView* view);
 
 private:
     GBuffer* m_gbuffer;

@@ -67,7 +67,7 @@ struct StringTypeImpl<WIDE_CHAR>
     using WidestCharType = wchar_t;
 };
 
-template <int string_type>
+template <int TStringType>
 class String;
 
 } // namespace detail
@@ -77,7 +77,7 @@ class String;
 namespace utilities {
 namespace detail {
 
-template <int string_type>
+template <int TStringType>
 class StringView;
 
 } // namespace detail
@@ -92,8 +92,8 @@ using UTF32String = containers::detail::String<StringType::UTF32>;
 using UTF16String = containers::detail::String<StringType::UTF16>;
 using PlatformString = containers::detail::String<std::is_same_v<TChar, wchar_t> ? StringType::WIDE_CHAR : StringType::UTF8>;
 
-template <int string_type>
-using StringView = utilities::detail::StringView<string_type>;
+template <int TStringType>
+using StringView = utilities::detail::StringView<TStringType>;
 
 using ANSIStringView = StringView<StringType::ANSI>;
 using UTF8StringView = StringView<StringType::UTF8>;
@@ -108,8 +108,8 @@ struct IsString
     static constexpr bool value = false;
 };
 
-template <int string_type>
-struct IsString<containers::detail::String<string_type>>
+template <int TStringType>
+struct IsString<containers::detail::String<TStringType>>
 {
     static constexpr bool value = true;
 };

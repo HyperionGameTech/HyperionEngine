@@ -12,6 +12,8 @@
 
 #include <core/Defines.hpp>
 
+#include <core/containers/HashSet.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <Types.hpp>
@@ -26,6 +28,10 @@ public:
 
     HYP_API virtual RendererResult Create() = 0;
     HYP_API virtual RendererResult Destroy() = 0;
+
+    HYP_API virtual RendererResult ResetFrameState() = 0;
+
+    void UpdateUsedDescriptorSets();
 
     HYP_FORCE_INLINE uint32 GetFrameIndex() const
     {
@@ -42,6 +48,14 @@ public:
         return m_command_list;
     }
 
+    HYP_FORCE_INLINE void MarkDescriptorSetUsed(const DescriptorSetRef& descriptor_set)
+    {
+        AssertThrow(descriptor_set != nullptr);
+
+        m_used_descriptor_sets.Insert(descriptor_set);
+    }
+
+    Delegate<void, FrameBase*> OnPresent;
     Delegate<void, FrameBase*> OnFrameEnd;
 
 protected:
@@ -52,6 +66,7 @@ protected:
 
     uint32 m_frame_index;
     RHICommandList m_command_list;
+    HashSet<DescriptorSetRef> m_used_descriptor_sets;
 };
 
 } // namespace renderer

@@ -22,11 +22,11 @@ namespace hyperion {
 
 class Texture;
 
-class TextureRenderResource final : public RenderResourceBase
+class RenderTexture final : public RenderResourceBase
 {
 public:
-    TextureRenderResource(Texture* texture);
-    virtual ~TextureRenderResource() override;
+    RenderTexture(Texture* texture);
+    virtual ~RenderTexture() override;
 
     HYP_FORCE_INLINE Texture* GetTexture() const
     {

@@ -27,15 +27,15 @@
 
 namespace hyperion {
 
-#pragma region MaterialRenderResource
+#pragma region RenderMaterial
 
-MaterialRenderResource::MaterialRenderResource(Material* material)
+RenderMaterial::RenderMaterial(Material* material)
     : m_material(material),
       m_buffer_data {}
 {
 }
 
-MaterialRenderResource::MaterialRenderResource(MaterialRenderResource&& other) noexcept
+RenderMaterial::RenderMaterial(RenderMaterial&& other) noexcept
     : RenderResourceBase(static_cast<RenderResourceBase&&>(other)),
       m_material(other.m_material),
       m_textures(std::move(other.m_textures)),
@@ -45,15 +45,15 @@ MaterialRenderResource::MaterialRenderResource(MaterialRenderResource&& other) n
     other.m_material = nullptr;
 }
 
-MaterialRenderResource::~MaterialRenderResource() = default;
+RenderMaterial::~RenderMaterial() = default;
 
-void MaterialRenderResource::Initialize_Internal()
+void RenderMaterial::Initialize_Internal()
 {
     HYP_SCOPE;
 
     AssertThrow(m_material != nullptr);
 
-    m_texture_render_resources.Reserve(m_textures.Size());
+    m_render_textures.Reserve(m_textures.Size());
 
     for (const Pair<MaterialTextureKey, Handle<Texture>>& it : m_textures)
     {
@@ -61,13 +61,13 @@ void MaterialRenderResource::Initialize_Internal()
         {
             AssertThrow(texture->IsReady());
 
-            m_texture_render_resources.Set(texture->GetID(), TResourceHandle<TextureRenderResource>(texture->GetRenderResource()));
+            m_render_textures.Set(texture->GetID(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
         }
     }
 
     UpdateBufferData();
 
-    HYP_LOG(Material, Debug, "Initializing MaterialRenderResource: {}", (void*)this);
+    HYP_LOG(Material, Debug, "Initializing RenderMaterial: {}", (void*)this);
 
     if (!g_rendering_api->GetRenderConfig().IsBindlessSupported())
     {
@@ -75,15 +75,15 @@ void MaterialRenderResource::Initialize_Internal()
     }
 }
 
-void MaterialRenderResource::Destroy_Internal()
+void RenderMaterial::Destroy_Internal()
 {
     HYP_SCOPE;
 
     AssertThrow(m_material != nullptr);
 
-    m_texture_render_resources.Clear();
+    m_render_textures.Clear();
 
-    HYP_LOG(Material, Debug, "Destroying MaterialRenderResource: {}", (void*)this);
+    HYP_LOG(Material, Debug, "Destroying RenderMaterial: {}", (void*)this);
 
     if (!g_rendering_api->GetRenderConfig().IsBindlessSupported())
     {
@@ -91,7 +91,7 @@ void MaterialRenderResource::Destroy_Internal()
     }
 }
 
-void MaterialRenderResource::Update_Internal()
+void RenderMaterial::Update_Internal()
 {
     HYP_SCOPE;
 
@@ -145,12 +145,12 @@ void MaterialRenderResource::Update_Internal()
     }
 }
 
-GPUBufferHolderBase* MaterialRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderMaterial::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->materials;
 }
 
-void MaterialRenderResource::CreateDescriptorSets()
+void RenderMaterial::CreateDescriptorSets()
 {
     HYP_SCOPE;
 
@@ -176,7 +176,7 @@ void MaterialRenderResource::CreateDescriptorSets()
     m_descriptor_sets = g_engine->GetMaterialDescriptorSetManager()->AddMaterial(m_material->HandleFromThis(), std::move(texture_bindings));
 }
 
-void MaterialRenderResource::DestroyDescriptorSets()
+void RenderMaterial::DestroyDescriptorSets()
 {
     HYP_SCOPE;
 
@@ -186,7 +186,7 @@ void MaterialRenderResource::DestroyDescriptorSets()
     m_descriptor_sets = {};
 }
 
-void MaterialRenderResource::UpdateBufferData()
+void RenderMaterial::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -222,7 +222,7 @@ void MaterialRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Handle<Texture>& texture)
+void RenderMaterial::SetTexture(MaterialTextureKey texture_key, const Handle<Texture>& texture)
 {
     HYP_SCOPE;
 
@@ -237,7 +237,7 @@ void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Ha
                     return;
                 }
 
-                m_texture_render_resources.Erase(it->second->GetID());
+                m_render_textures.Erase(it->second->GetID());
             }
 
             m_textures.Set(texture_key, texture);
@@ -248,7 +248,7 @@ void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Ha
                 {
                     AssertThrow(texture->IsReady());
 
-                    m_texture_render_resources.Set(texture->GetID(), TResourceHandle<TextureRenderResource>(texture->GetRenderResource()));
+                    m_render_textures.Set(texture->GetID(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
                 }
 
                 UpdateBufferData();
@@ -256,13 +256,13 @@ void MaterialRenderResource::SetTexture(MaterialTextureKey texture_key, const Ha
         });
 }
 
-void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& textures)
+void RenderMaterial::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& textures)
 {
     HYP_SCOPE;
 
     Execute([this, textures = std::move(textures)]()
         {
-            m_texture_render_resources.Clear();
+            m_render_textures.Clear();
 
             m_textures = std::move(textures);
 
@@ -274,7 +274,7 @@ void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Text
                     {
                         AssertThrow(it.second->IsReady());
 
-                        m_texture_render_resources.Set(it.second->GetID(), TResourceHandle<TextureRenderResource>(it.second->GetRenderResource()));
+                        m_render_textures.Set(it.second->GetID(), TResourceHandle<RenderTexture>(it.second->GetRenderResource()));
                     }
                 }
 
@@ -283,7 +283,7 @@ void MaterialRenderResource::SetTextures(FlatMap<MaterialTextureKey, Handle<Text
         });
 }
 
-void MaterialRenderResource::SetBoundTextureIDs(const Array<ID<Texture>>& bound_texture_ids)
+void RenderMaterial::SetBoundTextureIDs(const Array<ID<Texture>>& bound_texture_ids)
 {
     HYP_SCOPE;
 
@@ -298,7 +298,7 @@ void MaterialRenderResource::SetBoundTextureIDs(const Array<ID<Texture>>& bound_
         });
 }
 
-void MaterialRenderResource::SetBufferData(const MaterialShaderData& buffer_data)
+void RenderMaterial::SetBufferData(const MaterialShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -313,7 +313,7 @@ void MaterialRenderResource::SetBufferData(const MaterialShaderData& buffer_data
         });
 }
 
-#pragma endregion MaterialRenderResource
+#pragma endregion RenderMaterial
 
 #pragma region MaterialDescriptorSetManager
 
@@ -695,7 +695,7 @@ void MaterialDescriptorSetManager::Update(FrameBase* frame)
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData) * max_materials, false, !g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
 
 } // namespace renderer

@@ -46,7 +46,7 @@ struct RENDER_COMMAND(BindEnvProbe)
             HYPERION_RETURN_OK;
         }
 
-        g_engine->GetRenderState()->BindEnvProbe(env_probe_type, TResourceHandle<EnvProbeRenderResource>(probe->GetRenderResource()));
+        g_engine->GetRenderState()->BindEnvProbe(env_probe_type, TResourceHandle<RenderEnvProbe>(probe->GetRenderResource()));
 
         HYPERION_RETURN_OK;
     }
@@ -160,8 +160,8 @@ void EnvProbe::Init()
 
     AssertThrow(m_parent_scene.IsValid());
 
-    m_render_resource = AllocateResource<EnvProbeRenderResource>(this);
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
+    m_render_resource = AllocateResource<RenderEnvProbe>(this);
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(m_parent_scene->GetRenderResource()));
 
     if (!IsControlledByEnvGrid())
     {
@@ -175,11 +175,11 @@ void EnvProbe::Init()
 
         InitObject(m_camera);
 
-        m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
+        m_render_resource->SetCameraResourceHandle(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
 
         CreateView();
 
-        m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
+        m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
     }
 
     EnvProbeShaderData buffer_data {};
@@ -275,15 +275,15 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
 
             if (m_view.IsValid())
             {
-                m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
+                m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
             }
 
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
         }
         else
         {
-            m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>());
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
+            m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>());
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
 
             m_view.Reset();
         }

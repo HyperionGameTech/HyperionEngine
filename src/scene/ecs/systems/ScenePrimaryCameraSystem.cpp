@@ -43,7 +43,7 @@ void ScenePrimaryCameraSystem::OnEntityAdded(const Handle<Entity>& entity)
         return;
     }
 
-    GetScene()->GetRenderResource().SetCameraRenderResourceHandle(TResourceHandle<CameraRenderResource>(camera_component.camera->GetRenderResource()));
+    GetScene()->GetRenderResource().SetCameraRenderResourceHandle(TResourceHandle<RenderCamera>(camera_component.camera->GetRenderResource()));
 }
 
 void ScenePrimaryCameraSystem::OnEntityRemoved(ID<Entity> entity)

@@ -225,6 +225,20 @@ public:
 
     /*! \brief Creates a Span<T> from the FixedArray's data.
      *  \return A Span<T> of the FixedArray's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE operator Span<T>()
+    {
+        return Span<T>(&m_values[0], Sz);
+    }
+
+    /*! \brief Creates a Span<T> from the FixedArray's data.
+     *  \return A Span<T> of the FixedArray's data. */
+    HYP_NODISCARD HYP_FORCE_INLINE operator Span<const T>() const
+    {
+        return Span<const T>(&m_values[0], Sz);
+    }
+
+    /*! \brief Creates a Span<T> from the FixedArray's data.
+     *  \return A Span<T> of the FixedArray's data. */
     HYP_NODISCARD HYP_FORCE_INLINE Span<T> ToSpan()
     {
         return Span<T>(Data(), Size());

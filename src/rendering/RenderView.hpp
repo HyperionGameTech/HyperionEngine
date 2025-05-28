@@ -20,10 +20,10 @@ namespace hyperion {
 
 class View;
 class DeferredRenderer;
-class WorldRenderResource;
-class SceneRenderResource;
-class CameraRenderResource;
-class LightRenderResource;
+class RenderWorld;
+class RenderScene;
+class RenderCamera;
+class RenderLight;
 class GBuffer;
 class EnvGridPass;
 class ReflectionsPass;
@@ -40,13 +40,13 @@ class DOFBlur;
 class Texture;
 enum class LightType : uint32;
 
-class ViewRenderResource : public RenderResourceBase
+class RenderView : public RenderResourceBase
 {
 public:
-    ViewRenderResource(View* view);
-    ViewRenderResource(const ViewRenderResource& other) = delete;
-    ViewRenderResource& operator=(const ViewRenderResource& other) = delete;
-    virtual ~ViewRenderResource() override;
+    RenderView(View* view);
+    RenderView(const RenderView& other) = delete;
+    RenderView& operator=(const RenderView& other) = delete;
+    virtual ~RenderView() override;
 
     HYP_FORCE_INLINE View* GetView() const
     {
@@ -75,7 +75,7 @@ public:
     /*! \brief Get the currently bound Lights with the given LightType.
      *  \note Only call from render thread or from task on a task thread that is initiated by the render thread.
      *  \param type The type of light to get. */
-    HYP_FORCE_INLINE const Array<LightRenderResource*>& GetLights(LightType type) const
+    HYP_FORCE_INLINE const Array<RenderLight*>& GetLights(LightType type) const
     {
         AssertDebug(uint32(type) < m_lights.Size());
 
@@ -94,24 +94,24 @@ public:
         return num_lights;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<SceneRenderResource>& GetScene() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetScene() const
     {
-        return m_scene_render_resource_handle;
+        return m_render_scene;
     }
 
-    HYP_FORCE_INLINE void SetScene(const TResourceHandle<SceneRenderResource>& scene)
+    HYP_FORCE_INLINE void SetScene(const TResourceHandle<RenderScene>& scene)
     {
-        m_scene_render_resource_handle = scene;
+        m_render_scene = scene;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<CameraRenderResource>& GetCamera() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCamera() const
     {
-        return m_camera_render_resource_handle;
+        return m_render_camera;
     }
 
-    HYP_FORCE_INLINE void SetCamera(const TResourceHandle<CameraRenderResource>& camera)
+    HYP_FORCE_INLINE void SetCamera(const TResourceHandle<RenderCamera>& camera)
     {
-        m_camera_render_resource_handle = camera;
+        m_render_camera = camera;
     }
 
     HYP_FORCE_INLINE const DescriptorSetRef& GetFinalPassDescriptorSet() const
@@ -177,11 +177,11 @@ public:
 
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
     typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker);
-    void UpdateTrackedLights(ResourceTracker<ID<Light>, LightRenderResource*>& tracked_lights);
+    void UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
 
-    virtual void PreFrameUpdate(FrameBase* frame);
-
-    virtual void Render(FrameBase* frame, WorldRenderResource* world_render_resource);
+    virtual void PreRender(FrameBase* frame);
+    virtual void Render(FrameBase* frame, RenderWorld* render_world);
+    virtual void PostRender(FrameBase* frame);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -211,14 +211,14 @@ protected:
     // Descriptor set used when rendering the View using FinalPass.
     DescriptorSetRef m_final_pass_descriptor_set;
 
-    TResourceHandle<SceneRenderResource> m_scene_render_resource_handle;
-    TResourceHandle<CameraRenderResource> m_camera_render_resource_handle;
+    TResourceHandle<RenderScene> m_render_scene;
+    TResourceHandle<RenderCamera> m_render_camera;
 
-    Array<Array<LightRenderResource*>> m_lights;
+    Array<Array<RenderLight*>> m_lights;
 
     RenderCollector m_render_collector;
 
-    ResourceTracker<ID<Light>, LightRenderResource*> m_tracked_lights;
+    ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
 
     UniquePtr<GBuffer> m_gbuffer;
 

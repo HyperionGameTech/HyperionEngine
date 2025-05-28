@@ -17,7 +17,7 @@ namespace hyperion {
 
 class Scene;
 class RenderEnvironment;
-class CameraRenderResource;
+class RenderCamera;
 
 struct SceneShaderData
 {
@@ -35,25 +35,23 @@ struct SceneShaderData
 
 static_assert(sizeof(SceneShaderData) == 256);
 
-static constexpr uint32 max_scenes = (32ull * 1024ull) / sizeof(SceneShaderData);
-
-class SceneRenderResource final : public RenderResourceBase
+class RenderScene final : public RenderResourceBase
 {
 public:
-    SceneRenderResource(Scene* scene);
-    virtual ~SceneRenderResource() override;
+    RenderScene(Scene* scene);
+    virtual ~RenderScene() override;
 
     HYP_FORCE_INLINE Scene* GetScene() const
     {
         return m_scene;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<CameraRenderResource>& GetCameraRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
     {
-        return m_camera_render_resource_handle;
+        return m_render_camera;
     }
 
-    void SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource>& camera_render_resource_handle);
+    void SetCameraRenderResourceHandle(const TResourceHandle<RenderCamera>& render_camera);
 
     HYP_FORCE_INLINE const Handle<RenderEnvironment>& GetEnvironment() const
     {
@@ -80,7 +78,7 @@ private:
 
     Scene* m_scene;
 
-    TResourceHandle<CameraRenderResource> m_camera_render_resource_handle;
+    TResourceHandle<RenderCamera> m_render_camera;
 
     Handle<RenderEnvironment> m_environment;
 
@@ -91,10 +89,10 @@ private:
 };
 
 template <>
-struct ResourceMemoryPoolInitInfo<SceneRenderResource> : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo<RenderScene> : MemoryPoolInitInfo
 {
-    static constexpr uint32 num_elements_per_block = 16;
-    static constexpr uint32 num_initial_elements = 16;
+    static constexpr uint32 num_elements_per_block = 8;
+    static constexpr uint32 num_initial_elements = 8;
 };
 
 } // namespace hyperion

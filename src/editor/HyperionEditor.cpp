@@ -107,6 +107,22 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
+    // Calculate memory pool usage
+    Array<SizeType> memory_usage_per_pool;
+    CalculateMemoryPoolUsage(memory_usage_per_pool);
+
+    SizeType total_memory_pool_usage = 0;
+    for (SizeType i = 0; i < memory_usage_per_pool.Size(); i++)
+    {
+        DebugLog(LogType::Debug, "Memory Usage for pool %d : %f MiB\n", i, double(memory_usage_per_pool[i]) / 1024 / 1024);
+        total_memory_pool_usage += memory_usage_per_pool[i];
+    }
+
+    DebugLog(LogType::Debug, "Total Memory Usage for pools : %f MiB\n", double(total_memory_pool_usage) / 1024 / 1024);
+
+    DebugLog(LogType::Debug, "ShaderManager memory usage: %f MiB\n",
+        double(ShaderManager::GetInstance()->CalculateMemoryUsage()) / 1024 / 1024);
+
     // return;
 
     auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
@@ -160,7 +176,7 @@ void HyperionEditor::Init()
 
 #if 1
 
-    #if 0 // point light test
+#if 0 // point light test
 
     const Vec3f positions[] = {
         Vec3f(0.0f, 5.5f, 2.0f),
@@ -198,10 +214,10 @@ void HyperionEditor::Init()
         m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(point_light_entity, ShadowMapComponent { });
     }
 
-    #endif
+#endif
 
-    // add sun
-    #if 1
+// add sun
+#if 1
     auto sun = CreateObject<Light>(
         LightType::DIRECTIONAL,
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
@@ -221,7 +237,7 @@ void HyperionEditor::Init()
     m_scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent { sun });
 
     m_scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent { .mode = ShadowMapFilterMode::PCF, .radius = 80.0f, .resolution = { 1024, 1024 } });
-    #endif
+#endif
 
     // Add Skybox
     if (true)
@@ -239,29 +255,22 @@ void HyperionEditor::Init()
         skydome_node->SetName("Sky");
     }
 
-    #if 1
+#if 1
     // temp
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
     // batch->Add("test_model", "models/pica_pica/pica_pica.obj");
     // batch->Add("test_model", "models/testbed/testbed.obj");
     // batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-    batch->Add("house", "models/house.obj");
+    // batch->Add("house", "models/house.obj");
 
     Handle<Entity> root_entity = GetScene()->GetEntityManager()->AddEntity();
     GetScene()->GetRoot()->SetEntity(root_entity);
 
     batch->OnComplete.Bind([this](AssetMap& results)
                          {
-        #if 0
-        if (Handle<Node> house = results["house"].ExtractAs<Node>(); house.IsValid()) {
-            house->Translate(Vec3f(0.0f, 0.0f, -1.0f));
-            house->SetName("house");
-            m_scene->GetRoot()->AddChild(house);
-        }
-        #endif
 
-        #if 1
+#if 1
                              Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
                              // node->Scale(3.0f);
@@ -271,7 +280,7 @@ void HyperionEditor::Init()
 
                              GetScene()->GetRoot()->AddChild(node);
 
-            #if 1
+#if 1
                              Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
                              m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {});
@@ -287,9 +296,9 @@ void HyperionEditor::Init()
                              Handle<Node> env_grid_node = m_scene->GetRoot()->AddChild();
                              env_grid_node->SetEntity(env_grid_entity);
                              env_grid_node->SetName("EnvGrid2");
-            #endif
+#endif
 
-                             if (true)
+                             if (false)
                              {
                                  // testing reflection capture
                                  Handle<Entity> reflection_probe_entity = m_scene->GetEntityManager()->AddEntity();
@@ -306,7 +315,7 @@ void HyperionEditor::Init()
                                  reflection_probe_node->SetLocalTranslation(Vec3f(0.0f, 4.0f, 0.0f));
                              }
 
-        #endif
+#endif
 
                              if (auto& zombie_asset = results["zombie"]; zombie_asset.IsValid())
                              {
@@ -335,7 +344,7 @@ void HyperionEditor::Init()
                                  zombie->SetName("zombie");
                              }
 
-        #if 0
+#if 0
         // testing serialization / deserialization
         FileByteWriter byte_writer("Scene2.hyp");
         fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
@@ -346,12 +355,12 @@ void HyperionEditor::Init()
         if (write_err != fbom::FBOMResult::FBOM_OK) {
             HYP_FAIL("Failed to save scene: %s", write_err.message.Data());
         }
-        #endif
+#endif
                          })
         .Detach();
 
     batch->LoadAsync();
-    #endif
+#endif
 
 #elif 0
     HypData loaded_scene_data;

@@ -4,7 +4,7 @@
 #include <scene/View.hpp>
 
 #ifdef HYP_EDITOR
-    #include <editor/EditorSubsystem.hpp>
+#include <editor/EditorSubsystem.hpp>
 #endif
 
 #include <scene/ecs/EntityManager.hpp>
@@ -88,7 +88,7 @@ World::~World()
 
     if (m_render_resource != nullptr)
     {
-        m_render_resource->Unclaim();
+        m_render_resource->DecRef();
 
         FreeResource(m_render_resource);
 
@@ -119,7 +119,7 @@ void World::Init()
 
                 m_views.Clear();
 
-                m_render_resource->Unclaim();
+                m_render_resource->DecRef();
 
                 FreeResource(m_render_resource);
 
@@ -127,7 +127,7 @@ void World::Init()
             }
         }));
 
-    // Update WorldRenderResource's RenderStats - done on the game thread so both the game thread and render thread can access it.
+    // Update RenderWorld's RenderStats - done on the game thread so both the game thread and render thread can access it.
     // It is copied, so it will be delayed by 1-2 frames for the render thread to see the updated stats.
     AddDelegateHandler(g_engine->OnRenderStatsUpdated.Bind([this_weak = WeakHandleFromThis()](EngineRenderStats render_stats)
         {
@@ -149,7 +149,7 @@ void World::Init()
         },
         g_game_thread));
 
-    m_render_resource = AllocateResource<WorldRenderResource>(this);
+    m_render_resource = AllocateResource<RenderWorld>(this);
 
     for (auto& it : m_subsystems)
     {
@@ -167,17 +167,17 @@ void World::Init()
             it.second->OnSceneAttached(scene);
         }
 
-        m_render_resource->AddScene(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
+        m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
     }
 
     for (const Handle<View>& view : m_views)
     {
         InitObject(view);
 
-        m_render_resource->AddView(TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+        m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
     }
 
-    m_render_resource->Claim();
+    m_render_resource->IncRef();
 
     HypObject::Init();
 
@@ -486,7 +486,7 @@ void World::AddScene(const Handle<Scene>& scene)
             it.second->OnSceneAttached(scene);
         }
 
-        m_render_resource->AddScene(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
+        m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
     }
 
     m_scenes.PushBack(scene);
@@ -574,7 +574,7 @@ void World::AddView(const Handle<View>& view)
         {
             InitObject(view);
 
-            m_render_resource->AddView(TResourceHandle<ViewRenderResource>(view->GetRenderResource()));
+            m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
         }
     }
 }

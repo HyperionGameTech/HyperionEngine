@@ -23,7 +23,7 @@ namespace hyperion {
 class Engine;
 class Bone;
 class Animation;
-class SkeletonRenderResource;
+class RenderSkeleton;
 
 struct SkeletonBoneData
 {
@@ -70,7 +70,7 @@ public:
     Skeleton& operator=(const Skeleton& other) = delete;
     ~Skeleton();
 
-    HYP_FORCE_INLINE SkeletonRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderSkeleton& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -181,7 +181,7 @@ private:
 
     mutable DataMutationState m_mutation_state;
 
-    SkeletonRenderResource* m_render_resource;
+    RenderSkeleton* m_render_resource;
 };
 
 } // namespace hyperion

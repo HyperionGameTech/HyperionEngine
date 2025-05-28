@@ -26,7 +26,7 @@
 namespace hyperion {
 
 class BVHNode;
-class MeshRenderResource;
+class RenderMesh;
 
 HYP_CLASS()
 
@@ -81,7 +81,7 @@ public:
         m_name = name;
     }
 
-    HYP_FORCE_INLINE MeshRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderMesh& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -164,8 +164,8 @@ private:
 
     mutable BoundingBox m_aabb;
 
-    MeshRenderResource* m_render_resource;
-    ResourceHandle m_persistent_render_resource_handle;
+    RenderMesh* m_render_resource;
+    ResourceHandle m_render_persistent;
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

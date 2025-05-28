@@ -9,10 +9,13 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 #include <core/threading/DataRaceDetector.hpp>
+#include <core/threading/Threads.hpp>
 
 #include <core/memory/Memory.hpp>
 
 #include <core/memory/allocator/Allocator.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
 
 #include <core/IDGenerator.hpp>
 
@@ -23,8 +26,8 @@ namespace memory {
 
 struct MemoryPoolInitInfo
 {
-    static constexpr uint32 num_elements_per_block = 2048;
-    static constexpr uint32 num_initial_elements = 16 * num_elements_per_block;
+    static constexpr uint32 num_elements_per_block = 16;
+    static constexpr uint32 num_initial_elements = num_elements_per_block;
 };
 
 template <class ElementType, class TInitInfo, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 start_index, uint32 count) = nullptr>
@@ -70,8 +73,32 @@ struct MemoryPoolBlock
     }
 };
 
+class MemoryPoolManager;
+
+extern HYP_API MemoryPoolManager& GetMemoryPoolManager();
+extern HYP_API void CalculateMemoryPoolUsage(Array<SizeType>& out_bytes_per_pool);
+
+class HYP_API MemoryPoolBase
+{
+public:
+    MemoryPoolBase(const MemoryPoolBase& other) = delete;
+    MemoryPoolBase& operator=(const MemoryPoolBase& other) = delete;
+    MemoryPoolBase(MemoryPoolBase&& other) noexcept = delete;
+    MemoryPoolBase& operator=(MemoryPoolBase&& other) noexcept = delete;
+    ~MemoryPoolBase(); // non-virtual intentionally
+
+protected:
+    MemoryPoolBase(ThreadID owner_thread_id, SizeType (*get_num_allocated_bytes)(MemoryPoolBase*));
+
+    ThreadID m_owner_thread_id;
+    IDGenerator m_id_generator;
+
+private:
+    void RegisterMemoryPool();
+};
+
 template <class ElementType, class TInitInfo = MemoryPoolInitInfo, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 start_index, uint32 count) = nullptr>
-class MemoryPool
+class MemoryPool : MemoryPoolBase
 {
 public:
     using InitInfo = TInitInfo;
@@ -82,6 +109,11 @@ protected:
     using Block = MemoryPoolBlock<ElementType, TInitInfo, OnBlockAllocated>;
 
 protected:
+    static SizeType CalculateMemoryUsage(MemoryPoolBase* memory_pool)
+    {
+        return static_cast<MemoryPool*>(memory_pool)->NumAllocatedBytes();
+    }
+
     void CreateInitialBlocks()
     {
         m_num_blocks.Set(m_initial_num_blocks, MemoryOrder::RELEASE);
@@ -96,7 +128,8 @@ public:
     static constexpr uint32 s_invalid_index = ~0u;
 
     MemoryPool(uint32 initial_count = InitInfo::num_initial_elements, bool create_initial_blocks = true, void* block_init_ctx = nullptr)
-        : m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
+        : MemoryPoolBase(ThreadID::Current(), &CalculateMemoryUsage),
+          m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
           m_num_blocks(0),
           m_block_init_ctx(block_init_ctx)
     {
@@ -106,6 +139,8 @@ public:
         }
     }
 
+    ~MemoryPool() = default;
+
     HYP_FORCE_INLINE SizeType NumAllocatedElements() const
     {
         return m_num_blocks.Get(MemoryOrder::ACQUIRE) * num_elements_per_block;
@@ -113,21 +148,13 @@ public:
 
     HYP_FORCE_INLINE SizeType NumAllocatedBytes() const
     {
-        return NumAllocatedElements() * sizeof(Block);
-    }
-
-    HYP_FORCE_INLINE IDGenerator& GetIDGenerator()
-    {
-        return m_id_generator;
-    }
-
-    HYP_FORCE_INLINE const IDGenerator& GetIDGenerator() const
-    {
-        return m_id_generator;
+        return m_num_blocks.Get(MemoryOrder::ACQUIRE) * sizeof(Block);
     }
 
     uint32 AcquireIndex(ElementType** out_element_ptr = nullptr)
     {
+        HYP_SCOPE;
+
         const uint32 index = m_id_generator.NextID() - 1;
 
         const uint32 block_index = index / num_elements_per_block;
@@ -185,6 +212,8 @@ public:
 
     void ReleaseIndex(uint32 index)
     {
+        HYP_SCOPE;
+
         m_id_generator.FreeID(index + 1);
 
         const uint32 block_index = index / num_elements_per_block;
@@ -206,8 +235,39 @@ public:
         }
     }
 
+    /*! \brief Ensure that the pool has enough capacity for the given index
+     * After calling, you'll need to ensure that the blocks have num_elements properly set,
+     * or else the next call to RemoveEmptyBlocks() will just remove the newly added blocks. */
+    void EnsureCapacity(uint32 index)
+    {
+        HYP_SCOPE;
+
+        AssertThrow(index != s_invalid_index);
+
+        const uint32 required_blocks = (index + num_elements_per_block) / num_elements_per_block;
+
+        if (required_blocks <= m_num_blocks.Get(MemoryOrder::ACQUIRE))
+        {
+            return; // already has enough blocks
+        }
+
+        Mutex::Guard guard(m_blocks_mutex);
+
+        uint32 current_block_index = uint32(m_blocks.Size());
+
+        while (required_blocks > m_num_blocks.Get(MemoryOrder::ACQUIRE))
+        {
+            m_blocks.EmplaceBack(m_block_init_ctx, current_block_index);
+            m_num_blocks.Increment(1, MemoryOrder::RELEASE);
+
+            ++current_block_index;
+        }
+    }
+
     ElementType& GetElement(uint32 index)
     {
+        HYP_SCOPE;
+
         AssertThrow(index < NumAllocatedElements());
 
         const uint32 block_index = index / num_elements_per_block;
@@ -233,6 +293,8 @@ public:
 
     void SetElement(uint32 index, const ElementType& value)
     {
+        HYP_SCOPE;
+
         AssertThrow(index < NumAllocatedElements());
 
         const uint32 block_index = index / num_elements_per_block;
@@ -261,6 +323,10 @@ public:
     /*! \brief Remove empty blocks from the back of the list */
     void RemoveEmptyBlocks()
     {
+        HYP_SCOPE;
+        // Must be on the owner thread to remove empty blocks.
+        Threads::AssertOnThread(m_owner_thread_id);
+
         if (m_num_blocks.Get(MemoryOrder::ACQUIRE) <= m_initial_num_blocks)
         {
             return;
@@ -312,8 +378,6 @@ protected:
     Mutex m_blocks_mutex;
 
     void* m_block_init_ctx;
-
-    IDGenerator m_id_generator;
 };
 
 // struct MemoryPoolAllocator : Allocator<MemoryPoolAllocator>
@@ -323,6 +387,7 @@ protected:
 
 } // namespace memory
 
+using memory::CalculateMemoryPoolUsage;
 using memory::MemoryPool;
 using memory::MemoryPoolInitInfo;
 

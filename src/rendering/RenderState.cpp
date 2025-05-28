@@ -46,12 +46,12 @@ void RenderState::Init()
     } default_camera_initializer;
 
     // Ensure the default camera is always set
-    camera_bindings.PushBack(TResourceHandle<CameraRenderResource>(default_camera_initializer.camera->GetRenderResource()));
+    camera_bindings.PushBack(TResourceHandle<RenderCamera>(default_camera_initializer.camera->GetRenderResource()));
 
     SetReady(true);
 }
 
-void RenderState::BindCamera(const TResourceHandle<CameraRenderResource>& resource_handle)
+void RenderState::BindCamera(const TResourceHandle<RenderCamera>& resource_handle)
 {
     if (!resource_handle)
     {
@@ -64,9 +64,9 @@ void RenderState::BindCamera(const TResourceHandle<CameraRenderResource>& resour
     camera_bindings.PushBack(resource_handle);
 }
 
-void RenderState::UnbindCamera(const CameraRenderResource* camera_render_resource)
+void RenderState::UnbindCamera(const RenderCamera* render_camera)
 {
-    if (!camera_render_resource)
+    if (!render_camera)
     {
         return;
     }
@@ -75,7 +75,7 @@ void RenderState::UnbindCamera(const CameraRenderResource* camera_render_resourc
 
     for (auto it = camera_bindings.Begin(); it != camera_bindings.End();)
     {
-        if ((*it).Get() == camera_render_resource)
+        if ((*it).Get() == render_camera)
         {
             it = camera_bindings.Erase(it);
 
@@ -89,58 +89,58 @@ void RenderState::UnbindCamera(const CameraRenderResource* camera_render_resourc
     }
 }
 
-const TResourceHandle<CameraRenderResource>& RenderState::GetActiveCamera() const
+const TResourceHandle<RenderCamera>& RenderState::GetActiveCamera() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const TResourceHandle<CameraRenderResource> empty;
+    static const TResourceHandle<RenderCamera> empty;
 
     return camera_bindings.Any()
         ? camera_bindings.Back()
         : empty;
 }
 
-const TResourceHandle<EnvProbeRenderResource>& RenderState::GetActiveEnvProbe() const
+const TResourceHandle<RenderEnvProbe>& RenderState::GetActiveEnvProbe() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const TResourceHandle<EnvProbeRenderResource> empty;
+    static const TResourceHandle<RenderEnvProbe> empty;
 
     return env_probe_bindings.Any()
         ? env_probe_bindings.Top()
         : empty;
 }
 
-const TResourceHandle<EnvGridRenderResource>& RenderState::GetActiveEnvGrid() const
+const TResourceHandle<RenderEnvGrid>& RenderState::GetActiveEnvGrid() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const TResourceHandle<EnvGridRenderResource> empty;
+    static const TResourceHandle<RenderEnvGrid> empty;
 
     return env_grid_bindings.Any()
         ? env_grid_bindings.Top()
         : empty;
 }
 
-const TResourceHandle<LightRenderResource>& RenderState::GetActiveLight() const
+const TResourceHandle<RenderLight>& RenderState::GetActiveLight() const
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const TResourceHandle<LightRenderResource> empty;
+    static const TResourceHandle<RenderLight> empty;
 
     return light_bindings.Any()
         ? light_bindings.Top()
         : empty;
 }
 
-void RenderState::SetActiveLight(const TResourceHandle<LightRenderResource>& light_resource_handle)
+void RenderState::SetActiveLight(const TResourceHandle<RenderLight>& light_resource_handle)
 {
     Threads::AssertOnThread(g_render_thread);
 
     light_bindings.Push(light_resource_handle);
 }
 
-void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource>&& resource_handle)
+void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<RenderEnvProbe>&& resource_handle)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -196,11 +196,11 @@ void RenderState::BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRender
     bound_env_probes[type].PushBack(std::move(resource_handle));
 }
 
-void RenderState::UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource* env_probe_render_resource)
+void RenderState::UnbindEnvProbe(EnvProbeType type, RenderEnvProbe* env_render_probe)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    if (!env_probe_render_resource)
+    if (!env_render_probe)
     {
         return;
     }
@@ -210,9 +210,9 @@ void RenderState::UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource* env_
 
     AssertThrow(type < ENV_PROBE_TYPE_MAX);
 
-    auto it = bound_env_probes[type].FindIf([env_probe_render_resource](const TResourceHandle<EnvProbeRenderResource>& item)
+    auto it = bound_env_probes[type].FindIf([env_render_probe](const TResourceHandle<RenderEnvProbe>& item)
         {
-            return item.Get() == env_probe_render_resource;
+            return item.Get() == env_render_probe;
         });
 
     if (it == bound_env_probes[type].End())

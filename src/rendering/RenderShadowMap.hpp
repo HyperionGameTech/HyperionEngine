@@ -35,16 +35,15 @@ static_assert(sizeof(ShadowMapShaderData) == 256);
 
 /* max number of shadow maps, based on size in kb */
 static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowMapShaderData);
-static const SizeType max_shadow_maps_bytes = max_shadow_maps * sizeof(ShadowMapShaderData);
 
-class WorldRenderResource;
+class RenderWorld;
 
-class ShadowMapRenderResource final : public RenderResourceBase
+class RenderShadowMap final : public RenderResourceBase
 {
 public:
-    ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view);
-    ShadowMapRenderResource(ShadowMapRenderResource&& other) noexcept;
-    virtual ~ShadowMapRenderResource() override;
+    RenderShadowMap(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view);
+    RenderShadowMap(RenderShadowMap&& other) noexcept;
+    virtual ~RenderShadowMap() override;
 
     HYP_FORCE_INLINE ShadowMapType GetShadowMapType() const
     {

@@ -156,7 +156,7 @@ Mesh::~Mesh()
     {
         SetReady(false);
 
-        m_persistent_render_resource_handle.Reset();
+        m_render_persistent.Reset();
 
         if (m_render_resource != nullptr)
         {
@@ -187,7 +187,7 @@ void Mesh::Init()
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind(
         [this]()
         {
-            m_persistent_render_resource_handle.Reset();
+            m_render_persistent.Reset();
 
             if (m_render_resource != nullptr)
             {
@@ -207,7 +207,7 @@ void Mesh::Init()
 
     AssertThrowMsg(GetVertexAttributes() != 0, "No vertex attributes set on mesh");
 
-    m_render_resource = AllocateResource<MeshRenderResource>(this);
+    m_render_resource = AllocateResource<RenderMesh>(this);
 
     {
         HYP_MT_CHECK_RW(m_data_race_detector, "Streamed mesh data");
@@ -339,18 +339,18 @@ void Mesh::SetPersistentRenderResourceEnabled(bool enabled)
 {
     AssertIsInitCalled();
 
-    HYP_MT_CHECK_RW(m_data_race_detector, "m_persistent_render_resource_handle");
+    HYP_MT_CHECK_RW(m_data_race_detector, "m_render_persistent");
 
     if (enabled)
     {
-        if (!m_persistent_render_resource_handle)
+        if (!m_render_persistent)
         {
-            m_persistent_render_resource_handle = ResourceHandle(*m_render_resource);
+            m_render_persistent = ResourceHandle(*m_render_resource);
         }
     }
     else
     {
-        m_persistent_render_resource_handle.Reset();
+        m_render_persistent.Reset();
     }
 }
 

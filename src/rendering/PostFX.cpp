@@ -114,7 +114,7 @@ void PostProcessingEffect::Init()
     m_pass.Create();
 }
 
-void PostProcessingEffect::RenderEffect(FrameBase* frame, ViewRenderResource* view, uint32 slot)
+void PostProcessingEffect::RenderEffect(FrameBase* frame, RenderView* view, uint32 slot)
 {
     struct alignas(128)
     {
@@ -274,7 +274,7 @@ void PostProcessing::CreateUniformBuffer()
     m_uniform_buffer->Copy(sizeof(PostProcessingUniforms), &post_processing_uniforms);
 }
 
-void PostProcessing::RenderPre(FrameBase* frame, ViewRenderResource* view) const
+void PostProcessing::RenderPre(FrameBase* frame, RenderView* view) const
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -290,7 +290,7 @@ void PostProcessing::RenderPre(FrameBase* frame, ViewRenderResource* view) const
     }
 }
 
-void PostProcessing::RenderPost(FrameBase* frame, ViewRenderResource* view) const
+void PostProcessing::RenderPost(FrameBase* frame, RenderView* view) const
 {
     Threads::AssertOnThread(g_render_thread);
 

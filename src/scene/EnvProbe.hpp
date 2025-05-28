@@ -62,7 +62,7 @@ enum EnvProbeType : uint32
 };
 
 class EnvProbe;
-class EnvProbeRenderResource;
+class RenderEnvProbe;
 
 HYP_CLASS()
 
@@ -85,7 +85,7 @@ public:
     EnvProbe& operator=(const EnvProbe& other) = delete;
     ~EnvProbe();
 
-    HYP_FORCE_INLINE EnvProbeRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderEnvProbe& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -256,7 +256,7 @@ private:
     AtomicVar<int32> m_needs_render_counter;
     HashCode m_octant_hash_code;
 
-    EnvProbeRenderResource* m_render_resource;
+    RenderEnvProbe* m_render_resource;
 };
 
 } // namespace hyperion

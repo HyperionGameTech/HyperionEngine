@@ -70,7 +70,7 @@ void Skeleton::Init()
             }
         }));
 
-    m_render_resource = AllocateResource<SkeletonRenderResource>(this);
+    m_render_resource = AllocateResource<RenderSkeleton>(this);
 
     m_mutation_state |= DataMutationState::DIRTY;
 

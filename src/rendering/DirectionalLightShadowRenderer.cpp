@@ -52,11 +52,11 @@ static const InternalFormat shadow_map_formats[uint32(ShadowMapFilterMode::MAX)]
 
 ShadowPass::ShadowPass(
     const Handle<Scene>& parent_scene,
-    const TResourceHandle<WorldRenderResource>& world_resource_handle,
-    const TResourceHandle<CameraRenderResource>& camera_resource_handle,
-    const TResourceHandle<ShadowMapRenderResource>& shadow_map_resource_handle,
-    const TResourceHandle<ViewRenderResource>& view_statics_resource_handle,
-    const TResourceHandle<ViewRenderResource>& view_dynamics_resource_handle,
+    const TResourceHandle<RenderWorld>& world_resource_handle,
+    const TResourceHandle<RenderCamera>& camera_resource_handle,
+    const TResourceHandle<RenderShadowMap>& shadow_map_resource_handle,
+    const TResourceHandle<RenderView>& view_statics_resource_handle,
+    const TResourceHandle<RenderView>& view_dynamics_resource_handle,
     const ShaderRef& shader,
     RerenderShadowsSemaphore* rerender_semaphore)
     : FullScreenPass(shadow_map_formats[uint32(shadow_map_resource_handle->GetFilterMode())], shadow_map_resource_handle->GetExtent(), nullptr),
@@ -200,7 +200,7 @@ void ShadowPass::Create()
     CreateComputePipelines();
 }
 
-void ShadowPass::Render(FrameBase* frame, ViewRenderResource* view)
+void ShadowPass::Render(FrameBase* frame, RenderView* view)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -374,12 +374,12 @@ void ShadowPass::Render(FrameBase* frame, ViewRenderResource* view)
 DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     Name name,
     const Handle<Scene>& parent_scene,
-    const TResourceHandle<LightRenderResource>& light_render_resource_handle,
+    const TResourceHandle<RenderLight>& render_light,
     Vec2u resolution,
     ShadowMapFilterMode filter_mode)
     : RenderSubsystem(name),
       m_parent_scene(parent_scene),
-      m_light_render_resource_handle(light_render_resource_handle),
+      m_render_light(render_light),
       m_resolution(resolution),
       m_filter_mode(filter_mode)
 {
@@ -416,21 +416,21 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    ShadowMapRenderResource* shadow_map_render_resource = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
-    AssertThrowMsg(shadow_map_render_resource != nullptr, "Failed to allocate shadow map");
+    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    AssertThrowMsg(shadow_render_map != nullptr, "Failed to allocate shadow map");
 
-    m_shadow_map_resource_handle = TResourceHandle<ShadowMapRenderResource>(*shadow_map_render_resource);
+    m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_render_map);
 
-    AssertThrow(m_light_render_resource_handle);
-    m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>(m_shadow_map_resource_handle));
+    AssertThrow(m_render_light);
+    m_render_light->SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>(m_shadow_map_resource_handle));
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
-        TResourceHandle<WorldRenderResource>(m_parent_scene->GetWorld()->GetRenderResource()),
-        TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()),
+        TResourceHandle<RenderWorld>(m_parent_scene->GetWorld()->GetRenderResource()),
+        TResourceHandle<RenderCamera>(m_camera->GetRenderResource()),
         m_shadow_map_resource_handle,
-        TResourceHandle<ViewRenderResource>(m_view_statics->GetRenderResource()),
-        TResourceHandle<ViewRenderResource>(m_view_dynamics->GetRenderResource()),
+        TResourceHandle<RenderView>(m_view_statics->GetRenderResource()),
+        TResourceHandle<RenderView>(m_view_dynamics->GetRenderResource()),
         m_shader,
         &m_rerender_semaphore);
     m_shadow_pass->Create();
@@ -449,9 +449,9 @@ void DirectionalLightShadowRenderer::Init()
 
 void DirectionalLightShadowRenderer::OnRemoved()
 {
-    if (m_light_render_resource_handle)
+    if (m_render_light)
     {
-        m_light_render_resource_handle->SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>());
+        m_render_light->SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>());
     }
 
     m_shadow_pass.Reset();
@@ -459,11 +459,11 @@ void DirectionalLightShadowRenderer::OnRemoved()
 
     if (m_shadow_map_resource_handle)
     {
-        ShadowMapRenderResource* shadow_map_render_resource = m_shadow_map_resource_handle.Get();
+        RenderShadowMap* shadow_render_map = m_shadow_map_resource_handle.Get();
 
         m_shadow_map_resource_handle.Reset();
 
-        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_map_render_resource))
+        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_render_map))
         {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
         }

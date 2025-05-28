@@ -34,7 +34,7 @@
 namespace hyperion {
 
 class StreamedTextureData;
-class TextureRenderResource;
+class RenderTexture;
 
 HYP_CLASS()
 
@@ -60,7 +60,7 @@ public:
 
     ~Texture();
 
-    HYP_FORCE_INLINE TextureRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderTexture& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -176,8 +176,8 @@ protected:
 
     Name m_name;
 
-    TextureRenderResource* m_render_resource;
-    ResourceHandle m_persistent_render_resource_handle;
+    RenderTexture* m_render_resource;
+    ResourceHandle m_render_persistent;
 
     TextureDesc m_texture_desc;
 

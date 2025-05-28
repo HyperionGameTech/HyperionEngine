@@ -59,7 +59,7 @@ void DOFBlur::Destroy()
     m_blur_mix_pass.Reset();
 }
 
-void DOFBlur::Render(FrameBase* frame, ViewRenderResource* view)
+void DOFBlur::Render(FrameBase* frame, RenderView* view)
 {
     struct alignas(128)
     {

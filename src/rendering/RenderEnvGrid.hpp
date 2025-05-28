@@ -17,8 +17,8 @@
 namespace hyperion {
 
 class EnvGrid;
-class ViewRenderResource;
-class SceneRenderResource;
+class RenderView;
+class RenderScene;
 
 struct EnvGridShaderData
 {
@@ -38,13 +38,11 @@ struct EnvGridShaderData
     Vec2i irradiance_octahedron_size;
 };
 
-static constexpr uint32 max_env_grids = (1ull * 1024ull * 1024ull) / sizeof(EnvGridShaderData);
-
-class EnvGridRenderResource final : public RenderResourceBase
+class RenderEnvGrid final : public RenderResourceBase
 {
 public:
-    EnvGridRenderResource(EnvGrid* env_grid);
-    virtual ~EnvGridRenderResource() override;
+    RenderEnvGrid(EnvGrid* env_grid);
+    virtual ~RenderEnvGrid() override;
 
     HYP_FORCE_INLINE EnvGrid* GetEnvGrid() const
     {
@@ -73,26 +71,26 @@ public:
 
     void SetProbeIndices(Array<uint32>&& indices);
 
-    HYP_FORCE_INLINE const TResourceHandle<CameraRenderResource>& GetCameraRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
     {
-        return m_camera_render_resource_handle;
+        return m_render_camera;
     }
 
-    void SetCameraResourceHandle(TResourceHandle<CameraRenderResource>&& camera_render_resource_handle);
+    void SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera);
 
-    HYP_FORCE_INLINE const TResourceHandle<SceneRenderResource>& GetSceneRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetSceneRenderResourceHandle() const
     {
-        return m_scene_render_resource_handle;
+        return m_render_scene;
     }
 
-    void SetSceneResourceHandle(TResourceHandle<SceneRenderResource>&& scene_render_resource_handle);
+    void SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene);
 
-    HYP_FORCE_INLINE const TResourceHandle<ViewRenderResource>& GetViewRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderView>& GetViewRenderResourceHandle() const
     {
-        return m_view_render_resource_handle;
+        return m_render_view;
     }
 
-    void SetViewResourceHandle(TResourceHandle<ViewRenderResource>&& view_render_resource_handle);
+    void SetViewResourceHandle(TResourceHandle<RenderView>&& render_view);
 
     void Render(FrameBase* frame);
 
@@ -113,7 +111,7 @@ private:
 
     void UpdateBufferData();
 
-    void RenderEnvProbe(
+    void RenderProbe(
         FrameBase* frame,
         uint32 probe_index);
 
@@ -137,9 +135,9 @@ private:
 
     EnvGridShaderData m_buffer_data;
 
-    TResourceHandle<CameraRenderResource> m_camera_render_resource_handle;
-    TResourceHandle<SceneRenderResource> m_scene_render_resource_handle;
-    TResourceHandle<ViewRenderResource> m_view_render_resource_handle;
+    TResourceHandle<RenderCamera> m_render_camera;
+    TResourceHandle<RenderScene> m_render_scene;
+    TResourceHandle<RenderView> m_render_view;
 
     ShaderRef m_shader;
     FramebufferRef m_framebuffer;

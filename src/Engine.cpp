@@ -262,7 +262,7 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
 
     if (!m_shader_compiler.LoadShaderDefinitions())
     {
-        HYP_BREAKPOINT;
+        HYP_FAIL("Failed to load shaders from definitions file!");
     }
 
     m_gpu_buffer_holder_map = MakeUnique<GPUBufferHolderMap>();
@@ -303,27 +303,6 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         // Global
-
-        // if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported()) {
-        //     for (uint32 i = 0; i < num_gbuffer_textures; i++) {
-        //         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferTextures"), i, GetPlaceholderData()->GetImageView2D1x1R8());
-        //     }
-        // } else {
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferAlbedoTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferNormalsTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferMaterialTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferLightmapTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferVelocityTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferMaskTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferWSNormalsTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        //     m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferTranslucentTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // }
-
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("GBufferMipChain"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        // m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DeferredResult"), GetPlaceholderData()->GetImageView2D1x1R8());
-
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ScenesBuffer"), GetRenderData()->scenes->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightsBuffer"), GetRenderData()->lights->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CurrentLight"), GetRenderData()->lights->GetBuffer(frame_index));
@@ -343,9 +322,8 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldColorTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldDepthTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("BlueNoiseBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer), true /* exact size */));
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SphereSamplesBuffer"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096, true /* exact size */));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("BlueNoiseBuffer"), GPUBufferRef::Null());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SphereSamplesBuffer"), GPUBufferRef::Null());
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8Array());
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
@@ -395,11 +373,11 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
 
     m_debug_drawer = MakeUnique<DebugDrawer>();
 
-    m_view = AllocateResource<ViewRenderResource>(nullptr);
+    m_view = AllocateResource<RenderView>(nullptr);
     m_view->SetViewport(Viewport {
         .extent = m_app_context->GetMainWindow()->GetDimensions(),
         .position = Vec2i::Zero() });
-    m_view->Claim();
+    m_view->IncRef();
 
     m_world = CreateObject<World>();
     InitObject(m_world);
@@ -448,7 +426,6 @@ void Engine::CreateBlueNoiseBuffer()
 void Engine::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
     GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
@@ -559,7 +536,7 @@ void Engine::FinalizeStop()
 
     m_material_descriptor_set_manager.Reset();
 
-    m_view->Unclaim();
+    m_view->DecRef();
     FreeResource(m_view);
     m_view = nullptr;
 
@@ -608,7 +585,9 @@ HYP_API void Engine::RenderNextFrame(Game* game)
         it.second->UpdateBufferData(frame->GetFrameIndex());
     }
 
-    m_global_descriptor_table->Update(frame->GetFrameIndex());
+    // m_global_descriptor_table->Update(frame->GetFrameIndex());
+
+    m_world->GetRenderResource().PostRender(frame);
 
     g_rendering_api->PresentFrame(frame);
 }

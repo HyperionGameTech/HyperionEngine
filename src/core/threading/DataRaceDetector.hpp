@@ -40,17 +40,21 @@ struct SuppressDataRaceDetectorContext
 
 class HYP_API DataRaceDetector
 {
-    struct ThreadAccessState;
-
+public:
     static constexpr SizeType num_preallocated_states = g_max_static_thread_ids;
 
-    static const FixedArray<ThreadAccessState, num_preallocated_states>& GetPreallocatedStates();
-
-public:
     struct DataAccessState
     {
         ANSIStringView current_function;
         ANSIStringView message;
+    };
+
+    struct ThreadAccessState
+    {
+        ThreadID thread_id;
+        EnumFlags<DataAccessFlags> access = DataAccessFlags::ACCESS_NONE;
+        uint32 original_index = ~0u;
+        DataAccessState state;
     };
 
     class DataAccessScope
@@ -95,17 +99,9 @@ private:
     void LogDataRace(uint64 readers_mask, uint64 writers_mask) const;
     void GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>>& out_writer_thread_ids) const;
 
-    struct ThreadAccessState
-    {
-        ThreadID thread_id;
-        EnumFlags<DataAccessFlags> access = DataAccessFlags::ACCESS_NONE;
-        uint32 original_index = ~0u;
-        DataAccessState state;
-    };
+    Array<ThreadAccessState, DynamicAllocator> m_preallocated_states;
 
-    FixedArray<ThreadAccessState, num_preallocated_states> m_preallocated_states;
-
-    Array<ThreadAccessState> m_dynamic_states;
+    Array<ThreadAccessState, DynamicAllocator> m_dynamic_states;
     mutable Mutex m_dynamic_states_mutex;
 
     // Indices of ThreadAccessState
@@ -125,9 +121,9 @@ public:
 #endif
 
 #ifdef HYP_ENABLE_MT_CHECK
-    #define HYP_DECLARE_MT_CHECK(_data_race_detector) DataRaceDetector _data_race_detector
+#define HYP_DECLARE_MT_CHECK(_data_race_detector) DataRaceDetector _data_race_detector
 #else
-    #define HYP_DECLARE_MT_CHECK(_data_race_detector)
+#define HYP_DECLARE_MT_CHECK(_data_race_detector)
 #endif
 
 } // namespace threading
@@ -135,13 +131,13 @@ public:
 using threading::DataRaceDetector;
 
 #ifdef HYP_ENABLE_MT_CHECK
-    #define HYP_MT_CHECK_READ(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_READ, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
-    #define HYP_MT_CHECK_WRITE(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_WRITE, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
-    #define HYP_MT_CHECK_RW(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_RW, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
+#define HYP_MT_CHECK_READ(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_READ, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
+#define HYP_MT_CHECK_WRITE(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_WRITE, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
+#define HYP_MT_CHECK_RW(_data_race_detector, ...) DataRaceDetector::DataAccessScope HYP_UNIQUE_NAME(_data_access_scope)(DataAccessFlags::ACCESS_RW, (_data_race_detector), { HYP_FUNCTION_NAME_LIT, ##__VA_ARGS__ })
 #else
-    #define HYP_MT_CHECK_READ(_data_race_detector, ...)
-    #define HYP_MT_CHECK_WRITE(_data_race_detector, ...)
-    #define HYP_MT_CHECK_RW(_data_race_detector, ...)
+#define HYP_MT_CHECK_READ(_data_race_detector, ...)
+#define HYP_MT_CHECK_WRITE(_data_race_detector, ...)
+#define HYP_MT_CHECK_RW(_data_race_detector, ...)
 #endif
 
 } // namespace hyperion

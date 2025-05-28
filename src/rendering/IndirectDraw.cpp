@@ -261,7 +261,7 @@ void IndirectDrawState::PushDrawCall(const DrawCall& draw_call, DrawCommandData&
         m_draw_commands.Resize(m_num_draw_commands);
     }
 
-    draw_call.mesh_render_resource->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
+    draw_call.render_mesh->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
 
     m_dirty_bits |= 0x3;
 }
@@ -423,15 +423,15 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
     }
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, ViewRenderResource* view, const CullData& cull_data)
+void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, RenderView* view, const CullData& cull_data)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index).IsValid());
     AssertThrow(m_indirect_draw_state.GetIndirectBuffer(frame_index)->Size() != 0);
@@ -476,8 +476,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, ViewRenderRe
             { NAME("Global"),
                 { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame_index);
 
     const uint32 scene_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));

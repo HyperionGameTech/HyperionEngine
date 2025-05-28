@@ -165,10 +165,6 @@ struct alignas(16) RTRadianceUniforms
     uint32 light_indices[16];
 };
 
-/* max number of entities, based on size in mb */
-static const SizeType max_entities = (32ull * 1024ull * 1024ull) / sizeof(EntityShaderData);
-static const SizeType max_entities_bytes = max_entities * sizeof(EntityShaderData);
-
 class GPUBufferHolderBase
 {
 protected:
@@ -221,13 +217,8 @@ public:
     virtual uint32 AcquireIndex(void** out_element_ptr = nullptr) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
 
-    template <class T>
-    HYP_FORCE_INLINE T& Get(uint32 index)
-    {
-        AssertThrowMsg(TypeID::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
-
-        return *static_cast<T*>(Get_Internal(index));
-    }
+    // Ensures capacity for the given index.
+    virtual void EnsureCapacity(uint32 index) = 0;
 
     template <class T>
     HYP_FORCE_INLINE void Set(uint32 index, const T& value)
@@ -247,7 +238,6 @@ public:
 protected:
     void CreateBuffers(GPUBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
 
-    virtual void* Get_Internal(uint32 index) = 0;
     virtual void Set_Internal(uint32 index, const void* ptr) = 0;
 
     TypeID m_struct_type_id;
@@ -365,11 +355,11 @@ template <class StructType, GPUBufferType BufferType>
 class GPUBufferHolder final : public GPUBufferHolderBase
 {
 public:
-    GPUBufferHolder(uint32 count)
+    GPUBufferHolder(uint32 initial_count = 0)
         : GPUBufferHolderBase(TypeWrapper<StructType> {}),
-          m_pool(count)
+          m_pool(initial_count)
     {
-        GPUBufferHolderBase::CreateBuffers(BufferType, count, sizeof(StructType));
+        GPUBufferHolderBase::CreateBuffers(BufferType, initial_count, sizeof(StructType));
     }
 
     GPUBufferHolder(const GPUBufferHolder& other) = delete;
@@ -389,7 +379,7 @@ public:
 
     virtual void UpdateBufferSize(uint32 frame_index) override
     {
-        m_pool.RemoveEmptyBlocks();
+        // m_pool.RemoveEmptyBlocks();
         m_pool.EnsureGPUBufferCapacity(m_buffers[frame_index], frame_index);
     }
 
@@ -433,13 +423,9 @@ public:
         return m_pool.ReleaseIndex(batch_index);
     }
 
-    /*! \brief Get a reference to an object in the _current_ staging buffer,
-     * use when it is preferable to fetch the object, update the struct, and then
-     * call Set. This is usually when the object would have a large stack size
-     */
-    HYP_FORCE_INLINE StructType& Get(uint32 index)
+    virtual void EnsureCapacity(uint32 index) override
     {
-        return m_pool.GetElement(index);
+        m_pool.EnsureCapacity(index);
     }
 
     HYP_FORCE_INLINE void Set(uint32 index, const StructType& value)
@@ -448,11 +434,6 @@ public:
     }
 
 private:
-    virtual void* Get_Internal(uint32 index) override
-    {
-        return &Get(index);
-    }
-
     virtual void Set_Internal(uint32 index, const void* ptr) override
     {
         Set(index, *static_cast<const StructType*>(ptr));

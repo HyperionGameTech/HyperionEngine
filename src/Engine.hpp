@@ -52,7 +52,7 @@ class ScriptingService;
 class AssetManager;
 class DebugDrawer;
 class DeferredRenderer;
-class ViewRenderResource;
+class RenderView;
 class FinalPass;
 class PlaceholderData;
 class RenderThread;
@@ -100,7 +100,7 @@ public:
     }
 
     // Temporary stopgap
-    HYP_DEPRECATED HYP_FORCE_INLINE ViewRenderResource* GetCurrentView() const
+    HYP_DEPRECATED HYP_FORCE_INLINE RenderView* GetCurrentView() const
     {
         return m_view;
     }
@@ -240,7 +240,7 @@ private:
 
     UniquePtr<MaterialDescriptorSetManager> m_material_descriptor_set_manager;
 
-    ViewRenderResource* m_view; // temporary; to be removed after refactoring
+    RenderView* m_view; // temporary; to be removed after refactoring
 
     UniquePtr<ShaderGlobals> m_render_data;
 

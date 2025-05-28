@@ -229,7 +229,7 @@ void Scene::Init()
             }
         }));
 
-    m_render_resource = AllocateResource<SceneRenderResource>(this);
+    m_render_resource = AllocateResource<RenderScene>(this);
 
     AddSystemIfApplicable<CameraSystem>();
     AddSystemIfApplicable<ScenePrimaryCameraSystem>();

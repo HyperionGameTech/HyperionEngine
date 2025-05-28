@@ -56,14 +56,14 @@ public:
 
     virtual bool IsNull() const = 0;
 
-    virtual int Claim(int count = 1) = 0;
-    virtual int ClaimWithoutInitialize() = 0;
-    virtual int Unclaim() = 0;
+    virtual int IncRef(int count = 1) = 0;
+    virtual int IncRefNoInitialize() = 0;
+    virtual int DecRef() = 0;
 
     /*! \brief Waits for all tasks to be completed. */
     virtual void WaitForTaskCompletion() const = 0;
 
-    /*! \brief Waits for claim count to be 0 and all tasks to be completed.
+    /*! \brief Waits for ref count to be 0 and all tasks to be completed.
      *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
      *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
     virtual void WaitForFinalization() const = 0;
@@ -76,7 +76,7 @@ public:
 class HYP_API ResourceBase : public IResource
 {
 protected:
-    using ClaimedSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using RefCounter = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
     using CompletionSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
@@ -90,9 +90,9 @@ public:
 
     virtual ~ResourceBase() override;
 
-    HYP_FORCE_INLINE int32 NumClaims() const
+    HYP_FORCE_INLINE int32 NumRefs() const
     {
-        return m_claimed_semaphore.GetValue();
+        return m_ref_counter.GetValue();
     }
 
     virtual bool IsNull() const override final
@@ -100,13 +100,13 @@ public:
         return false;
     }
 
-    virtual int Claim(int count = 1) override final;
-    virtual int Unclaim() override final;
+    virtual int IncRef(int count = 1) override final;
+    virtual int DecRef() override final;
 
     /*! \brief Wait for all tasks to be completed. */
     virtual void WaitForTaskCompletion() const override final;
 
-    /*! \brief Wait for claim count to be 0 and all tasks to be completed. Will also wait for any tasks that are currently executing to complete.
+    /*! \brief Wait for ref count to be 0 and all tasks to be completed. Will also wait for any tasks that are currently executing to complete.
      *  If any ResourceHandle objects are still alive, this will block until they are destroyed.
      *  \note Ensure the current thread does not hold any ResourceHandle objects when calling this function, or it will deadlock. */
     virtual void WaitForFinalization() const override final;
@@ -133,17 +133,19 @@ public:
 
         if (!force_owner_thread)
         {
-            if (m_claimed_semaphore.IsInSignalState())
+            if (m_ref_counter.IsInSignalState())
             {
                 // Try to add read access - if it can't be acquired, we are in the process of initializing
                 // and thus we will remove our read access and enqueue the operation
                 if (!(m_initialization_mask.Increment(2, MemoryOrder::ACQUIRE) & g_initialization_mask_initialized_bit))
                 {
-                    // Check again, as it might have been initialized in between the initial check and the increment
-                    HYP_MT_CHECK_RW(m_data_race_detector);
+                    {
+                        // Check again, as it might have been initialized in between the initial check and the increment
+                        HYP_MT_CHECK_RW(m_data_race_detector);
 
-                    // Execute inline if not initialized yet instead of pushing to owner thread
-                    function();
+                        // Execute inline if not initialized yet instead of pushing to owner thread
+                        function();
+                    }
 
                     // Remove our read access
                     m_initialization_mask.Decrement(2, MemoryOrder::RELAXED);
@@ -162,9 +164,11 @@ public:
         {
             EnqueueOp([this, f = std::forward<Function>(function)]() mutable
                 {
-                    HYP_MT_CHECK_RW(m_data_race_detector);
+                    {
+                        HYP_MT_CHECK_RW(m_data_race_detector);
 
-                    f();
+                        f();
+                    }
 
                     m_completion_semaphore.Release(1);
                 });
@@ -172,17 +176,19 @@ public:
             return;
         }
 
-        HYP_MT_CHECK_RW(m_data_race_detector);
+        {
+            HYP_MT_CHECK_RW(m_data_race_detector);
 
-        function();
+            function();
+        }
 
         m_completion_semaphore.Release(1);
     }
 
 protected:
-    // Needed to claim resources that are initialized in LOADED state.
+    // Needed to increment ref count for resources that are initialized in LOADED state.
     // We can't call Initialize() because it is a virtual function and the object might not be fully constructed yet.
-    virtual int ClaimWithoutInitialize() override final;
+    virtual int IncRefNoInitialize() override final;
 
     bool IsInitialized() const;
 
@@ -204,7 +210,7 @@ protected:
 protected:
     AtomicVar<int16> m_update_counter;
 
-    ClaimedSemaphore m_claimed_semaphore;
+    RefCounter m_ref_counter;
     CompletionSemaphore m_completion_semaphore;
 
     ResourceMemoryPoolHandle m_pool_handle;
@@ -270,8 +276,7 @@ public:
         AssertThrowMsg(pool_handle, "Resource has no pool handle set - the resource was likely not allocated using the pool");
 
         // Invoke the destructor
-        ValueStorage<T>& element = Base::GetElement(pool_handle.index);
-        element.Destruct();
+        ptr->~T();
 
         Base::ReleaseIndex(pool_handle.index);
     }
@@ -304,9 +309,9 @@ public:
     {
     }
 
-    /*! \brief Construct a ResourceHandle using the given resource. The resource will be claimed if it is not null.
+    /*! \brief Construct a ResourceHandle using the given resource. The resource will have its ref count incremented if it is not null.
      *  If \ref{should_initialize} is true (default), the resource will be initialized.
-     *  Otherwise, ClaimWithoutInitialize() will be called (this should only be used when required, like in the constructor of base classes that have Initialize() as a virtual method). */
+     *  Otherwise, IncRefNoInitialize() will be called (this should only be used when required, like in the constructor of base classes that have Initialize() as a virtual method). */
     ResourceHandle(IResource& resource, bool should_initialize = true)
         : m_resource(&resource)
     {
@@ -314,11 +319,11 @@ public:
         {
             if (should_initialize)
             {
-                resource.Claim();
+                resource.IncRef();
             }
             else
             {
-                resource.ClaimWithoutInitialize();
+                resource.IncRefNoInitialize();
             }
         }
     }
@@ -328,7 +333,7 @@ public:
     {
         if (!m_resource->IsNull())
         {
-            m_resource->Claim();
+            m_resource->IncRef();
         }
     }
 
@@ -341,14 +346,14 @@ public:
 
         if (!m_resource->IsNull())
         {
-            m_resource->Unclaim();
+            m_resource->DecRef();
         }
 
         m_resource = other.m_resource;
 
         if (!m_resource->IsNull())
         {
-            m_resource->Claim();
+            m_resource->IncRef();
         }
 
         return *this;
@@ -369,7 +374,7 @@ public:
 
         if (!m_resource->IsNull())
         {
-            m_resource->Unclaim();
+            m_resource->DecRef();
         }
 
         m_resource = other.m_resource;
@@ -382,7 +387,7 @@ public:
     {
         if (!m_resource->IsNull())
         {
-            m_resource->Unclaim();
+            m_resource->DecRef();
         }
     }
 
@@ -390,7 +395,7 @@ public:
     {
         if (!m_resource->IsNull())
         {
-            m_resource->Unclaim();
+            m_resource->DecRef();
 
             m_resource = &GetNullResource();
         }

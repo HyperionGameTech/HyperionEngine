@@ -24,7 +24,7 @@ namespace hyperion {
 class Engine;
 class Camera;
 class Material;
-class LightRenderResource;
+class RenderLight;
 
 enum class LightType : uint32
 {
@@ -69,7 +69,7 @@ public:
 
     ~Light();
 
-    HYP_FORCE_INLINE LightRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderLight& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -366,7 +366,7 @@ private:
 
     mutable DataMutationState m_mutation_state;
 
-    LightRenderResource* m_render_resource;
+    RenderLight* m_render_resource;
 };
 
 } // namespace hyperion

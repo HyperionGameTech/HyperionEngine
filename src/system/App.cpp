@@ -55,8 +55,6 @@ RC<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& a
     if (app_context_arguments["Headless"].ToBool())
     {
         window_flags |= WindowFlags::HEADLESS;
-
-        HYP_BREAKPOINT;
     }
 
     if (app_context_arguments["ResX"].IsNumber())

@@ -29,7 +29,7 @@ public:
     }
 
     template <class T, GPUBufferType BufferType = GPUBufferType::STORAGE_BUFFER>
-    GPUBufferHolder<T, BufferType>* GetOrCreate(uint32 count)
+    GPUBufferHolder<T, BufferType>* GetOrCreate(uint32 initial_count = 0)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -39,7 +39,7 @@ public:
         {
             HYP_MT_CHECK_WRITE(m_data_race_detector);
 
-            it = m_holders.Set<T>(MakeUnique<GPUBufferHolder<T, BufferType>>(count)).first;
+            it = m_holders.Set<T>(MakeUnique<GPUBufferHolder<T, BufferType>>(initial_count)).first;
         }
 
         return static_cast<GPUBufferHolder<T, BufferType>*>(it->second.Get());

@@ -66,8 +66,8 @@ public:
                 ManagedObjectResource* managed_object_resource = get_fn();
                 AssertThrowMsg(managed_object_resource != nullptr, "Managed object resource is null!");
 
-                managed_object_resource->Claim();
-                HYP_DEFER({ managed_object_resource->Unclaim(); });
+                managed_object_resource->IncRef();
+                HYP_DEFER({ managed_object_resource->DecRef(); });
 
                 dotnet::Object* object = managed_object_resource->GetManagedObject();
                 AssertThrowMsg(object != nullptr, "Managed object is null!");
@@ -95,8 +95,8 @@ public:
                 ManagedObjectResource* managed_object_resource = get_fn();
                 AssertThrowMsg(managed_object_resource != nullptr, "Managed object resource is null!");
 
-                managed_object_resource->Claim();
-                HYP_DEFER({ managed_object_resource->Unclaim(); });
+                managed_object_resource->IncRef();
+                HYP_DEFER({ managed_object_resource->DecRef(); });
 
                 dotnet::Object* object = managed_object_resource->GetManagedObject();
                 AssertThrowMsg(object != nullptr, "Managed object is null!");
@@ -120,8 +120,8 @@ public:
 
         return Delegate<ReturnType, Args...>::Bind([method_name = method_name, managed_object_resource]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
-                managed_object_resource->Claim();
-                HYP_DEFER({ managed_object_resource->Unclaim(); });
+                managed_object_resource->IncRef();
+                HYP_DEFER({ managed_object_resource->DecRef(); });
 
                 dotnet::Object* object = managed_object_resource->GetManagedObject();
                 AssertThrowMsg(object != nullptr, "Managed object is null!");
@@ -146,8 +146,8 @@ public:
 
         return Delegate<ReturnType, Args...>::Bind([method_name = method_name, managed_object_resource, default_return = std::forward<DefaultReturnType>(default_return)]<class... ArgTypes>(ArgTypes&&... args) mutable -> ReturnType
             {
-                managed_object_resource->Claim();
-                HYP_DEFER({ managed_object_resource->Unclaim(); });
+                managed_object_resource->IncRef();
+                HYP_DEFER({ managed_object_resource->DecRef(); });
 
                 dotnet::Object* object = managed_object_resource->GetManagedObject();
                 AssertThrowMsg(object != nullptr, "Managed object is null!");

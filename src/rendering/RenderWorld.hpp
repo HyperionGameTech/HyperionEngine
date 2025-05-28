@@ -29,12 +29,12 @@ namespace hyperion {
 class World;
 class Scene;
 class RenderEnvironment;
-class CameraRenderResource;
-class SceneRenderResource;
-class ShadowMapRenderResource;
+class RenderCamera;
+class RenderScene;
+class RenderShadowMap;
 struct ShadowMapAtlasElement;
 class FinalPass;
-class ViewRenderResource;
+class RenderView;
 struct ViewInfo;
 
 enum class ShadowMapType : uint32;
@@ -94,8 +94,8 @@ public:
     void Initialize();
     void Destroy();
 
-    ShadowMapRenderResource* AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions);
-    bool FreeShadowMap(ShadowMapRenderResource* shadow_map_render_resource);
+    RenderShadowMap* AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions);
+    bool FreeShadowMap(RenderShadowMap* shadow_render_map);
 
 private:
     Vec2u m_atlas_dimensions;
@@ -110,11 +110,11 @@ private:
     IDGenerator m_point_light_shadow_map_id_generator;
 };
 
-class WorldRenderResource final : public RenderResourceBase
+class RenderWorld final : public RenderResourceBase
 {
 public:
-    WorldRenderResource(World* world);
-    virtual ~WorldRenderResource() override;
+    RenderWorld(World* world);
+    virtual ~RenderWorld() override;
 
     HYP_FORCE_INLINE World* GetWorld() const
     {
@@ -126,24 +126,25 @@ public:
         return m_shadow_map_manager.Get();
     }
 
-    HYP_FORCE_INLINE const Array<TResourceHandle<ViewRenderResource>>& GetViews() const
+    HYP_FORCE_INLINE const Array<TResourceHandle<RenderView>>& GetViews() const
     {
-        return m_view_render_resource_handles;
+        return m_render_views;
     }
 
-    void AddView(TResourceHandle<ViewRenderResource>&& view_render_resource_handle);
-    void RemoveView(ViewRenderResource* view_render_resource);
+    void AddView(TResourceHandle<RenderView>&& render_view);
+    void RemoveView(RenderView* render_view);
 
     void RemoveViewsForScene(const WeakHandle<Scene>& scene_weak);
 
-    void AddScene(TResourceHandle<SceneRenderResource>&& scene_render_resource_handle);
-    void RemoveScene(SceneRenderResource* scene_render_resource);
+    void AddScene(TResourceHandle<RenderScene>&& render_scene);
+    void RemoveScene(RenderScene* render_scene);
 
     const EngineRenderStats& GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats& render_stats);
 
     void PreRender(FrameBase* frame);
-    void Render(renderer::FrameBase* frame);
+    void Render(FrameBase* frame);
+    void PostRender(FrameBase* frame);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -157,8 +158,8 @@ private:
 
     World* m_world;
 
-    Array<TResourceHandle<ViewRenderResource>> m_view_render_resource_handles;
-    Array<TResourceHandle<SceneRenderResource>> m_scene_render_resource_handles;
+    Array<TResourceHandle<RenderView>> m_render_views;
+    Array<TResourceHandle<RenderScene>> m_render_scenes;
 
     UniquePtr<ShadowMapManager> m_shadow_map_manager;
 
@@ -166,10 +167,10 @@ private:
 };
 
 template <>
-struct ResourceMemoryPoolInitInfo<WorldRenderResource> : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo<RenderWorld> : MemoryPoolInitInfo
 {
-    static constexpr uint32 num_elements_per_block = 16;
-    static constexpr uint32 num_initial_elements = 16;
+    static constexpr uint32 num_elements_per_block = 8;
+    static constexpr uint32 num_initial_elements = 8;
 };
 
 } // namespace hyperion

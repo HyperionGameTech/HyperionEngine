@@ -281,7 +281,7 @@ void SSRRenderer::CreateComputePipelines()
     DeferCreate(m_sample_gbuffer);
 }
 
-void SSRRenderer::Render(FrameBase* frame, ViewRenderResource* view)
+void SSRRenderer::Render(FrameBase* frame, RenderView* view)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 

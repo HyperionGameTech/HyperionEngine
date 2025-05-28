@@ -17,7 +17,7 @@ namespace threading {
 
 #ifdef HYP_ENABLE_MT_CHECK
 
-    #pragma region DataAccessScope
+#pragma region DataAccessScope
 
 DataRaceDetector::DataAccessScope::DataAccessScope(EnumFlags<DataAccessFlags> flags, const DataRaceDetector& detector, const DataAccessState& state)
     : m_detector(const_cast<DataRaceDetector&>(detector)),
@@ -39,11 +39,11 @@ DataRaceDetector::DataAccessScope::~DataAccessScope()
     m_detector.RemoveAccess(m_thread_id, m_flags);
 }
 
-    #pragma endregion DataAccessScope
+#pragma endregion DataAccessScope
 
-    #pragma region DataRaceDetector
+#pragma region DataRaceDetector
 
-const FixedArray<DataRaceDetector::ThreadAccessState, DataRaceDetector::num_preallocated_states>& DataRaceDetector::GetPreallocatedStates()
+static Span<const DataRaceDetector::ThreadAccessState> GetPreallocatedStates()
 {
     static const struct PreallocatedThreadAccessStates
     {
@@ -68,10 +68,12 @@ DataRaceDetector::DataRaceDetector()
       m_writers(0),
       m_readers(0)
 {
+    AssertDebug(m_preallocated_states.Size() == num_preallocated_states);
 }
 
 DataRaceDetector::~DataRaceDetector()
 {
+    DebugLog(LogType::Debug, "DataRaceDetector destroyed : %p\n", this);
 }
 
 EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state)
@@ -101,6 +103,9 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     else
     {
         Mutex::Guard guard(m_dynamic_states_mutex);
+
+        // debugging
+        AssertThrow(m_dynamic_states.Size() <= m_dynamic_states.Capacity());
 
         auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState& thread_access_state)
             {
@@ -193,6 +198,9 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
     else
     {
         Mutex::Guard guard(m_dynamic_states_mutex);
+
+        // debugging
+        AssertThrow(m_dynamic_states.Size() <= m_dynamic_states.Capacity());
 
         auto it = m_dynamic_states.FindIf([thread_id](const ThreadAccessState& thread_access_state)
             {
@@ -321,7 +329,7 @@ void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Ar
     }
 }
 
-    #pragma endregion DataRaceDetector
+#pragma endregion DataRaceDetector
 
 #endif // HYP_ENABLE_MT_CHECK
 

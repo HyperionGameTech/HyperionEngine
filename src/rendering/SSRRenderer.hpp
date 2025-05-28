@@ -18,7 +18,7 @@ namespace hyperion {
 
 class Engine;
 class GBuffer;
-class ViewRenderResource;
+class RenderView;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.ssr")
 
@@ -104,7 +104,7 @@ public:
 
     void Create();
 
-    void Render(FrameBase* frame, ViewRenderResource* view);
+    void Render(FrameBase* frame, RenderView* view);
 
 private:
     ShaderProperties GetShaderProperties() const;

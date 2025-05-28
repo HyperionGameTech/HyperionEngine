@@ -95,8 +95,8 @@ public:
             return UIEventHandlerResult(UIEventHandlerResult::ERR, HYP_STATIC_MESSAGE("Invalid ScriptComponent Object"));
         }
 
-        script_component->resource->Claim();
-        HYP_DEFER({ script_component->resource->Unclaim(); });
+        script_component->resource->IncRef();
+        HYP_DEFER({ script_component->resource->DecRef(); });
 
         if (dotnet::Class* class_ptr = script_component->resource->GetManagedObject()->GetClass())
         {

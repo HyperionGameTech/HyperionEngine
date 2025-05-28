@@ -26,8 +26,8 @@ namespace hyperion {
 class Engine;
 class Camera;
 class Material;
-class MaterialRenderResource;
-class ShadowMapRenderResource;
+class RenderMaterial;
+class RenderShadowMap;
 
 struct LightShaderData
 {
@@ -58,14 +58,12 @@ struct LightShaderData
 
 static_assert(sizeof(LightShaderData) == 128);
 
-static constexpr uint32 max_lights = (64ull * 1024ull) / sizeof(LightShaderData);
-
-class LightRenderResource final : public RenderResourceBase
+class RenderLight final : public RenderResourceBase
 {
 public:
-    LightRenderResource(Light* light);
-    LightRenderResource(LightRenderResource&& other) noexcept;
-    virtual ~LightRenderResource() override;
+    RenderLight(Light* light);
+    RenderLight(RenderLight&& other) noexcept;
+    virtual ~RenderLight() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE Light* GetLight() const
@@ -89,12 +87,12 @@ public:
         return m_buffer_data;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource>& GetShadowMapResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapResourceHandle() const
     {
-        return m_shadow_map_render_resource_handle;
+        return m_shadow_render_map;
     }
 
-    void SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>&& shadow_map_render_resource_handle);
+    void SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -108,8 +106,8 @@ private:
 
     Light* m_light;
     Handle<Material> m_material;
-    TResourceHandle<MaterialRenderResource> m_material_render_resource_handle;
-    TResourceHandle<ShadowMapRenderResource> m_shadow_map_render_resource_handle;
+    TResourceHandle<RenderMaterial> m_render_material;
+    TResourceHandle<RenderShadowMap> m_shadow_render_map;
     LightShaderData m_buffer_data;
 };
 

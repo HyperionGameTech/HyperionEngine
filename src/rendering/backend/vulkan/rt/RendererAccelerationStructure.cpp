@@ -75,7 +75,7 @@ RendererResult VulkanAccelerationGeometry::Create()
 {
     if (m_material.IsValid())
     {
-        m_material->GetRenderResource().Claim();
+        m_material->GetRenderResource().IncRef();
     }
 
     if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported())
@@ -133,7 +133,7 @@ RendererResult VulkanAccelerationGeometry::Destroy()
 {
     if (m_material.IsValid())
     {
-        m_material->GetRenderResource().Unclaim();
+        m_material->GetRenderResource().DecRef();
     }
 
     RendererResult result;
@@ -736,7 +736,7 @@ RendererResult VulkanTLAS::UpdateMeshDescriptionsBuffer(uint32 first, uint32 las
 
             if (material.IsValid())
             {
-                // Must be initialized (AccelerationGeometry calls Claim() and Unclaim())
+                // Must be initialized (AccelerationGeometry calls IncRef() and DecRef())
                 AssertThrow(material->GetRenderResource().GetBufferIndex() != ~0u);
             }
 

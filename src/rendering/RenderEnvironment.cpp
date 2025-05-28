@@ -215,7 +215,7 @@ void RenderEnvironment::ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags fl
     }
 }
 
-void RenderEnvironment::RenderRTRadiance(FrameBase* frame, ViewRenderResource* view)
+void RenderEnvironment::RenderRTRadiance(FrameBase* frame, RenderView* view)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -628,7 +628,7 @@ bool RenderEnvironment::CreateTopLevelAccelerationStructures()
     BLASRef blas;
 
     {
-        TResourceHandle<MeshRenderResource> mesh_resource_handle(default_mesh->GetRenderResource());
+        TResourceHandle<RenderMesh> mesh_resource_handle(default_mesh->GetRenderResource());
 
         blas = mesh_resource_handle->BuildBLAS(default_material);
     }

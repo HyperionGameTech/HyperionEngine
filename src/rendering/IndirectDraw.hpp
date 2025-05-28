@@ -21,7 +21,7 @@ class Mesh;
 class Material;
 class Engine;
 class Entity;
-class ViewRenderResource;
+class RenderView;
 
 struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
@@ -118,7 +118,7 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState();
 
-    void ExecuteCullShaderInBatches(FrameBase* frame, ViewRenderResource* view, const CullData& cull_data);
+    void ExecuteCullShaderInBatches(FrameBase* frame, RenderView* view, const CullData& cull_data);
 
 private:
     void RebuildDescriptors(FrameBase* frame);

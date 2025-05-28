@@ -21,7 +21,7 @@
 
 namespace hyperion {
 
-class ViewRenderResource;
+class RenderView;
 
 enum class ScreenCaptureMode
 {
@@ -36,7 +36,7 @@ class HYP_API ScreenCaptureRenderSubsystem : public RenderSubsystem
     HYP_OBJECT_BODY(ScreenCaptureRenderSubsystem);
 
 public:
-    ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<ViewRenderResource>& view, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
+    ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<RenderView>& view, ScreenCaptureMode screen_capture_mode = ScreenCaptureMode::TO_TEXTURE);
     ScreenCaptureRenderSubsystem(const ScreenCaptureRenderSubsystem& other) = delete;
     ScreenCaptureRenderSubsystem& operator=(const ScreenCaptureRenderSubsystem& other) = delete;
     ScreenCaptureRenderSubsystem(ScreenCaptureRenderSubsystem&& other) noexcept = delete;
@@ -60,7 +60,7 @@ private:
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
     virtual void OnRender(FrameBase* frame) override;
 
-    TResourceHandle<ViewRenderResource> m_view;
+    TResourceHandle<RenderView> m_view;
     ScreenCaptureMode m_screen_capture_mode;
     Handle<Texture> m_texture;
     GPUBufferRef m_buffer;

@@ -152,7 +152,7 @@ void HBAO::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void HBAO::Render(FrameBase* frame, ViewRenderResource* view)
+void HBAO::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

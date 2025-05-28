@@ -226,8 +226,8 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
 
     AssertThrow(IsReady());
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
@@ -253,7 +253,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
             m_update_splat_distances,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
             frame->GetFrameIndex());
 
@@ -331,7 +331,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
 
-        auto do_pass = [this, frame, scene_render_resource, &camera_resource_handle, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
+        auto do_pass = [this, frame, render_scene, &camera_resource_handle, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
         {
             pc.stage = uint32(stage);
             pc.h = h;
@@ -345,7 +345,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
                 m_sort_splats,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
-                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
                 frame->GetFrameIndex());
 
@@ -402,7 +402,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
             m_update_splats,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
             frame->GetFrameIndex());
 
@@ -687,8 +687,8 @@ void GaussianSplatting::Render(FrameBase* frame)
         return;
     }
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -701,7 +701,7 @@ void GaussianSplatting::Render(FrameBase* frame)
         pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
         frame_index);
 

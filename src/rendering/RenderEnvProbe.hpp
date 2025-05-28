@@ -18,10 +18,10 @@ namespace hyperion {
 
 class EnvProbe;
 class Texture;
-class CameraRenderResource;
-class SceneRenderResource;
-class ShadowMapRenderResource;
-class ViewRenderResource;
+class RenderCamera;
+class RenderScene;
+class RenderShadowMap;
+class RenderView;
 
 struct EnvProbeSphericalHarmonics
 {
@@ -48,13 +48,11 @@ struct EnvProbeShaderData
     EnvProbeSphericalHarmonics sh;
 };
 
-static constexpr uint32 max_env_probes = (32ull * 1024ull * 1024ull) / sizeof(EnvProbeShaderData);
-
-class EnvProbeRenderResource final : public RenderResourceBase
+class RenderEnvProbe final : public RenderResourceBase
 {
 public:
-    EnvProbeRenderResource(EnvProbe* env_probe);
-    virtual ~EnvProbeRenderResource() override;
+    RenderEnvProbe(EnvProbe* env_probe);
+    virtual ~RenderEnvProbe() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE EnvProbe* GetEnvProbe() const
@@ -85,33 +83,33 @@ public:
 
     void SetBufferData(const EnvProbeShaderData& buffer_data);
 
-    HYP_FORCE_INLINE const TResourceHandle<CameraRenderResource>& GetCameraRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
     {
-        return m_camera_render_resource_handle;
+        return m_render_camera;
     }
 
-    void SetCameraResourceHandle(TResourceHandle<CameraRenderResource>&& camera_render_resource_handle);
+    void SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera);
 
-    HYP_FORCE_INLINE const TResourceHandle<SceneRenderResource>& GetSceneRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetSceneRenderResourceHandle() const
     {
-        return m_scene_render_resource_handle;
+        return m_render_scene;
     }
 
-    void SetSceneResourceHandle(TResourceHandle<SceneRenderResource>&& scene_render_resource_handle);
+    void SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene);
 
-    HYP_FORCE_INLINE const TResourceHandle<ViewRenderResource>& GetViewRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderView>& GetViewRenderResourceHandle() const
     {
-        return m_view_render_resource_handle;
+        return m_render_view;
     }
 
-    void SetViewResourceHandle(TResourceHandle<ViewRenderResource>&& view_render_resource_handle);
+    void SetViewResourceHandle(TResourceHandle<RenderView>&& render_view);
 
-    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource>& GetShadowMapRenderResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapRenderResourceHandle() const
     {
-        return m_shadow_map_render_resource_handle;
+        return m_shadow_render_map;
     }
 
-    void SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>&& shadow_map_render_resource_handle);
+    void SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map);
 
     HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
     {
@@ -176,10 +174,10 @@ private:
 
     EnvProbeSphericalHarmonics m_spherical_harmonics;
 
-    TResourceHandle<CameraRenderResource> m_camera_render_resource_handle;
-    TResourceHandle<SceneRenderResource> m_scene_render_resource_handle;
-    TResourceHandle<ViewRenderResource> m_view_render_resource_handle;
-    TResourceHandle<ShadowMapRenderResource> m_shadow_map_render_resource_handle;
+    TResourceHandle<RenderCamera> m_render_camera;
+    TResourceHandle<RenderScene> m_render_scene;
+    TResourceHandle<RenderView> m_render_view;
+    TResourceHandle<RenderShadowMap> m_shadow_render_map;
 };
 
 } // namespace hyperion

@@ -265,7 +265,7 @@ void DeferredPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
+void DeferredPass::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
 
@@ -284,8 +284,8 @@ void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     // render with each light
     for (uint32 light_type_index = 0; light_type_index < uint32(LightType::MAX); light_type_index++)
@@ -326,7 +326,7 @@ void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
 
         const auto& lights = view->GetLights(light_type);
 
-        for (LightRenderResource* light_render_resource : lights)
+        for (RenderLight* render_light : lights)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
@@ -334,9 +334,9 @@ void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
                 ArrayMap<Name, uint32> {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*light_render_resource) } },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*render_light) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -348,8 +348,8 @@ void DeferredPass::Render(FrameBase* frame, ViewRenderResource* view)
             // Bind material descriptor set (for area lights)
             if (material_descriptor_set_index != ~0u && !use_bindless_textures)
             {
-                const DescriptorSetRef& material_descriptor_set = light_render_resource->GetMaterial().IsValid()
-                    ? light_render_resource->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
+                const DescriptorSetRef& material_descriptor_set = render_light->GetMaterial().IsValid()
+                    ? render_light->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
                     : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
 
                 AssertThrow(material_descriptor_set != nullptr);
@@ -411,7 +411,7 @@ void TonemapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void TonemapPass::Render(FrameBase* frame, ViewRenderResource* view)
+void TonemapPass::Render(FrameBase* frame, RenderView* view)
 {
     FullScreenPass::Render(frame, view);
 }
@@ -466,7 +466,7 @@ void LightmapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void LightmapPass::Render(FrameBase* frame, ViewRenderResource* view)
+void LightmapPass::Render(FrameBase* frame, RenderView* view)
 {
     FullScreenPass::Render(frame, view);
 }
@@ -587,7 +587,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void EnvGridPass::Render(FrameBase* frame, ViewRenderResource* view)
+void EnvGridPass::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
 
@@ -595,8 +595,8 @@ void EnvGridPass::Render(FrameBase* frame, ViewRenderResource* view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
-    AssertThrow(env_grid_render_resource_handle);
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    AssertThrow(env_render_grid);
 
     frame->GetCommandList().Add<BeginFramebuffer>(m_framebuffer, frame_index);
 
@@ -608,7 +608,7 @@ void EnvGridPass::Render(FrameBase* frame, ViewRenderResource* view)
 
     const Handle<RenderGroup>& render_group = m_mode == EnvGridPassMode::RADIANCE
         ? m_render_group
-        : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid_render_resource_handle->GetEnvGrid()->GetEnvGridType()))];
+        : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_render_grid->GetEnvGrid()->GetEnvGridType()))];
 
     AssertThrow(render_group.IsValid());
 
@@ -635,7 +635,7 @@ void EnvGridPass::Render(FrameBase* frame, ViewRenderResource* view)
         ArrayMap<Name, uint32> {
             { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_grid_render_resource_handle) } },
+            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_render_grid) } },
         global_descriptor_set_index);
 
     frame->GetCommandList().Add<BindDescriptorSet>(
@@ -808,7 +808,7 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     }
 }
 
-void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
+void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -831,7 +831,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
         ApplyReflectionProbeMode::PARALLAX_CORRECTED // ENV_PROBE_TYPE_REFLECTION
     };
 
-    FixedArray<Pair<Handle<RenderGroup>*, Array<EnvProbeRenderResource*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
+    FixedArray<Pair<Handle<RenderGroup>*, Array<RenderEnvProbe*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
 
     for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++)
     {
@@ -842,7 +842,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
-        for (const TResourceHandle<EnvProbeRenderResource>& resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type])
+        for (const TResourceHandle<RenderEnvProbe>& resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type])
         {
             pass_ptrs[mode_index].second.PushBack(resource_handle.Get());
         }
@@ -863,7 +863,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
         const EnvProbeType env_probe_type = reflection_probe_types[reflection_probe_type_index];
         const ApplyReflectionProbeMode mode = reflection_probe_modes[reflection_probe_type_index];
 
-        const Pair<Handle<RenderGroup>*, Array<EnvProbeRenderResource*>>& it = pass_ptrs[mode];
+        const Pair<Handle<RenderGroup>*, Array<RenderEnvProbe*>>& it = pass_ptrs[mode];
 
         if (it.second.Empty())
         {
@@ -871,7 +871,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
         }
 
         const Handle<RenderGroup>& render_group = *it.first;
-        const Array<EnvProbeRenderResource*>& env_probe_render_resources = it.second;
+        const Array<RenderEnvProbe*>& env_render_probes = it.second;
 
         render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
@@ -890,7 +890,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        for (EnvProbeRenderResource* env_probe_render_resource : env_probe_render_resources)
+        for (RenderEnvProbe* env_render_probe : env_render_probes)
         {
             if (num_rendered_env_probes >= max_bound_reflection_probes)
             {
@@ -905,7 +905,7 @@ void ReflectionsPass::Render(FrameBase* frame, ViewRenderResource* view)
                 ArrayMap<Name, uint32> {
                     { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource->GetBufferIndex()) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe->GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(

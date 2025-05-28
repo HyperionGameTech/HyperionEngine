@@ -407,11 +407,11 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
 void DDGI::UpdateUniforms(FrameBase* frame)
 {
     // FIXME: Lights are now stored per-view.
-    // We don't have a View for DDGI since it is for the entire WorldRenderResource it is indirectly attached to.
+    // We don't have a View for DDGI since it is for the entire RenderWorld it is indirectly attached to.
     // We'll need to find a way to get the lights for the current view.
     // Ideas:
     // a) create a View for the DDGI and use that to get the lights. It will need to collect the lights on the Game thread so we'll need to add some kind of System to do that.
-    // b) add a function to the SceneRenderResource to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some LightRenderResource active when it could be inactive if it is not in any view.
+    // b) add a function to the RenderScene to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some RenderLight active when it could be inactive if it is not in any view.
     // OR: We can just use the lights in the current view and ignore the rest. This is a bit of a hack but it will work for now.
     HYP_NOT_IMPLEMENTED();
 
@@ -428,10 +428,10 @@ void DDGI::RenderProbes(FrameBase* frame)
 
     UpdateUniforms(frame);
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
 
@@ -455,10 +455,10 @@ void DDGI::RenderProbes(FrameBase* frame)
         m_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<TraceRays>(
@@ -477,10 +477,10 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
@@ -514,10 +514,10 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
         m_update_depth,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
@@ -548,10 +548,10 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
                 }
             }
         }
@@ -575,10 +575,10 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) }
+                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
                 }
             }
         }

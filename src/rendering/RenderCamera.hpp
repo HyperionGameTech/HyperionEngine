@@ -35,13 +35,11 @@ struct alignas(256) CameraShaderData
     uint32 id;
 };
 
-static constexpr uint32 max_cameras = (16ull * 1024ull) / sizeof(CameraShaderData);
-
-class CameraRenderResource final : public RenderResourceBase
+class RenderCamera final : public RenderResourceBase
 {
 public:
-    CameraRenderResource(Camera* camera);
-    virtual ~CameraRenderResource() override;
+    RenderCamera(Camera* camera);
+    virtual ~RenderCamera() override;
 
     HYP_FORCE_INLINE Camera* GetCamera() const
     {

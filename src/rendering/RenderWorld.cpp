@@ -279,7 +279,7 @@ void ShadowMapManager::Destroy()
     SafeRelease(std::move(m_point_light_shadow_map_image_view));
 }
 
-ShadowMapRenderResource* ShadowMapManager::AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions)
+RenderShadowMap* ShadowMapManager::AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions)
 {
     if (shadow_map_type == ShadowMapType::POINT_SHADOW_MAP)
     {
@@ -302,13 +302,13 @@ ShadowMapRenderResource* ShadowMapManager::AllocateShadowMap(ShadowMapType shado
             .scale = Vec2f::One()
         };
 
-        ShadowMapRenderResource* shadow_map_render_resource = AllocateResource<ShadowMapRenderResource>(
+        RenderShadowMap* shadow_render_map = AllocateResource<RenderShadowMap>(
             shadow_map_type,
             filter_mode,
             atlas_element,
             m_point_light_shadow_map_image_view);
 
-        return shadow_map_render_resource;
+        return shadow_render_map;
     }
 
     for (ShadowMapAtlas& atlas : m_atlases)
@@ -320,27 +320,27 @@ ShadowMapRenderResource* ShadowMapManager::AllocateShadowMap(ShadowMapType shado
             ImageViewRef atlas_image_view = m_atlas_image->MakeLayerImageView(atlas_element.atlas_index);
             DeferCreate(atlas_image_view);
 
-            ShadowMapRenderResource* shadow_map_render_resource = AllocateResource<ShadowMapRenderResource>(
+            RenderShadowMap* shadow_render_map = AllocateResource<RenderShadowMap>(
                 shadow_map_type,
                 filter_mode,
                 atlas_element,
                 atlas_image_view);
 
-            return shadow_map_render_resource;
+            return shadow_render_map;
         }
     }
 
     return nullptr;
 }
 
-bool ShadowMapManager::FreeShadowMap(ShadowMapRenderResource* shadow_map_render_resource)
+bool ShadowMapManager::FreeShadowMap(RenderShadowMap* shadow_render_map)
 {
-    if (!shadow_map_render_resource)
+    if (!shadow_render_map)
     {
         return false;
     }
 
-    const ShadowMapAtlasElement& atlas_element = shadow_map_render_resource->GetAtlasElement();
+    const ShadowMapAtlasElement& atlas_element = shadow_render_map->GetAtlasElement();
 
     bool result = false;
 
@@ -367,37 +367,37 @@ bool ShadowMapManager::FreeShadowMap(ShadowMapRenderResource* shadow_map_render_
         HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid atlas index and point light index");
     }
 
-    FreeResource(shadow_map_render_resource);
+    FreeResource(shadow_render_map);
 
     return result;
 }
 
 #pragma endregion ShadowMapManager
 
-#pragma region WorldRenderResource
+#pragma region RenderWorld
 
-WorldRenderResource::WorldRenderResource(World* world)
+RenderWorld::RenderWorld(World* world)
     : m_world(world),
       m_shadow_map_manager(MakeUnique<ShadowMapManager>())
 {
 }
 
-WorldRenderResource::~WorldRenderResource() = default;
+RenderWorld::~RenderWorld() = default;
 
-void WorldRenderResource::AddView(TResourceHandle<ViewRenderResource>&& view_render_resource_handle)
+void RenderWorld::AddView(TResourceHandle<RenderView>&& render_view)
 {
     HYP_SCOPE;
 
-    if (!view_render_resource_handle)
+    if (!render_view)
     {
         return;
     }
 
-    Execute([this, view_render_resource_handle = std::move(view_render_resource_handle)]()
+    Execute([this, render_view = std::move(render_view)]()
         {
-            m_view_render_resource_handles.PushBack(std::move(view_render_resource_handle));
+            m_render_views.PushBack(std::move(render_view));
 
-            std::sort(m_view_render_resource_handles.Begin(), m_view_render_resource_handles.End(), [](const TResourceHandle<ViewRenderResource>& a, const TResourceHandle<ViewRenderResource>& b)
+            std::sort(m_render_views.Begin(), m_render_views.End(), [](const TResourceHandle<RenderView>& a, const TResourceHandle<RenderView>& b)
                 {
                     return uint32(b->GetPriority()) < uint32(a->GetPriority());
                 });
@@ -405,34 +405,34 @@ void WorldRenderResource::AddView(TResourceHandle<ViewRenderResource>&& view_ren
         /* force_owner_thread */ true);
 }
 
-void WorldRenderResource::RemoveView(ViewRenderResource* view_render_resource)
+void RenderWorld::RemoveView(RenderView* render_view)
 {
     HYP_SCOPE;
 
-    if (!view_render_resource)
+    if (!render_view)
     {
         return;
     }
 
-    Execute([this, view_render_resource]()
+    Execute([this, render_view]()
         {
-            auto it = m_view_render_resource_handles.FindIf([view_render_resource](const TResourceHandle<ViewRenderResource>& item)
+            auto it = m_render_views.FindIf([render_view](const TResourceHandle<RenderView>& item)
                 {
-                    return item.Get() == view_render_resource;
+                    return item.Get() == render_view;
                 });
 
-            if (it != m_view_render_resource_handles.End())
+            if (it != m_render_views.End())
             {
-                ViewRenderResource* view_render_resource = it->Get();
+                RenderView* render_view = it->Get();
                 it->Reset();
 
-                m_view_render_resource_handles.Erase(it);
+                m_render_views.Erase(it);
             }
         },
         /* force_owner_thread */ true);
 }
 
-void WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene>& scene_weak)
+void RenderWorld::RemoveViewsForScene(const WeakHandle<Scene>& scene_weak)
 {
     HYP_SCOPE;
 
@@ -443,7 +443,7 @@ void WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene>& scene_wea
 
     Execute([this, scene_weak]()
         {
-            for (auto it = m_view_render_resource_handles.Begin(); it != m_view_render_resource_handles.End();)
+            for (auto it = m_render_views.Begin(); it != m_render_views.End();)
             {
                 if (!(*it)->GetScene())
                 {
@@ -454,11 +454,11 @@ void WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene>& scene_wea
 
                 if ((*it)->GetScene()->GetScene() == scene_weak.GetUnsafe())
                 {
-                    ViewRenderResource* view_render_resource = it->Get();
+                    RenderView* render_view = it->Get();
 
                     it->Reset();
 
-                    it = m_view_render_resource_handles.Erase(it);
+                    it = m_render_views.Erase(it);
                 }
                 else
                 {
@@ -469,47 +469,47 @@ void WorldRenderResource::RemoveViewsForScene(const WeakHandle<Scene>& scene_wea
         /* force_owner_thread */ true);
 }
 
-void WorldRenderResource::AddScene(TResourceHandle<SceneRenderResource>&& scene_render_resource_handle)
+void RenderWorld::AddScene(TResourceHandle<RenderScene>&& render_scene)
 {
     HYP_SCOPE;
 
-    if (!scene_render_resource_handle)
+    if (!render_scene)
     {
         return;
     }
 
-    Execute([this, scene_render_resource_handle = std::move(scene_render_resource_handle)]()
+    Execute([this, render_scene = std::move(render_scene)]()
         {
-            m_scene_render_resource_handles.PushBack(std::move(scene_render_resource_handle));
+            m_render_scenes.PushBack(std::move(render_scene));
         },
         /* force_owner_thread */ true);
 }
 
-void WorldRenderResource::RemoveScene(SceneRenderResource* scene_render_resource)
+void RenderWorld::RemoveScene(RenderScene* render_scene)
 {
     HYP_SCOPE;
 
-    if (!scene_render_resource)
+    if (!render_scene)
     {
         return;
     }
 
-    Execute([this, scene_render_resource]()
+    Execute([this, render_scene]()
         {
-            auto it = m_scene_render_resource_handles.FindIf([scene_render_resource](const TResourceHandle<SceneRenderResource>& item)
+            auto it = m_render_scenes.FindIf([render_scene](const TResourceHandle<RenderScene>& item)
                 {
-                    return item.Get() == scene_render_resource;
+                    return item.Get() == render_scene;
                 });
 
-            if (it != m_scene_render_resource_handles.End())
+            if (it != m_render_scenes.End())
             {
-                m_scene_render_resource_handles.Erase(it);
+                m_render_scenes.Erase(it);
             }
         },
         /* force_owner_thread */ true);
 }
 
-// void WorldRenderResource::AddShadowMapRenderResource(const TResourceHandle<ShadowMapRenderResource> &shadow_map_resource_handle)
+// void RenderWorld::RenderAddShadowMap(const TResourceHandle<RenderShadowMap> &shadow_map_resource_handle)
 // {
 //     HYP_SCOPE;
 
@@ -523,19 +523,19 @@ void WorldRenderResource::RemoveScene(SceneRenderResource* scene_render_resource
 //     }, /* force_owner_thread */ true);
 // }
 
-// void WorldRenderResource::RemoveShadowMapRenderResource(const ShadowMapRenderResource *shadow_map_render_resource)
+// void RenderWorld::RenderRemoveShadowMap(const RenderShadowMap *shadow_render_map)
 // {
 //     HYP_SCOPE;
 
-//     if (!shadow_map_render_resource) {
+//     if (!shadow_render_map) {
 //         return;
 //     }
 
-//     Execute([this, shadow_map_render_resource]()
+//     Execute([this, shadow_render_map]()
 //     {
-//         auto it = m_shadow_map_resource_handles.FindIf([shadow_map_render_resource](const TResourceHandle<ShadowMapRenderResource> &item)
+//         auto it = m_shadow_map_resource_handles.FindIf([shadow_render_map](const TResourceHandle<RenderShadowMap> &item)
 //         {
-//             return item.Get() == shadow_map_render_resource;
+//             return item.Get() == shadow_render_map;
 //         });
 
 //         if (it != m_shadow_map_resource_handles.End()) {
@@ -544,7 +544,7 @@ void WorldRenderResource::RemoveScene(SceneRenderResource* scene_render_resource
 //     }, /* force_owner_thread */ true);
 // }
 
-const EngineRenderStats& WorldRenderResource::GetRenderStats() const
+const EngineRenderStats& RenderWorld::GetRenderStats() const
 {
     HYP_SCOPE;
     if (Threads::IsOnThread(g_render_thread))
@@ -561,7 +561,7 @@ const EngineRenderStats& WorldRenderResource::GetRenderStats() const
     }
 }
 
-void WorldRenderResource::SetRenderStats(const EngineRenderStats& render_stats)
+void RenderWorld::SetRenderStats(const EngineRenderStats& render_stats)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
@@ -574,66 +574,70 @@ void WorldRenderResource::SetRenderStats(const EngineRenderStats& render_stats)
         });
 }
 
-void WorldRenderResource::Initialize_Internal()
+void RenderWorld::Initialize_Internal()
 {
     HYP_SCOPE;
 
     m_shadow_map_manager->Initialize();
 }
 
-void WorldRenderResource::Destroy_Internal()
+void RenderWorld::Destroy_Internal()
 {
     HYP_SCOPE;
 
-    for (TResourceHandle<ViewRenderResource>& view_render_resource_handle : m_view_render_resource_handles)
-    {
-        ViewRenderResource* view_render_resource = view_render_resource_handle.Get();
-
-        view_render_resource_handle.Reset();
-    }
-
-    m_view_render_resource_handles.Clear();
+    m_render_views.Clear();
 
     m_shadow_map_manager->Destroy();
 }
 
-void WorldRenderResource::Update_Internal()
+void RenderWorld::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* WorldRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
 {
     return nullptr;
 }
 
-void WorldRenderResource::PreRender(FrameBase* frame)
+void RenderWorld::PreRender(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    for (const TResourceHandle<ViewRenderResource>& current_view : m_view_render_resource_handles)
+    for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {
-        current_view->PreFrameUpdate(frame);
+        current_view->PreRender(frame);
     }
 }
 
-void WorldRenderResource::Render(FrameBase* frame)
+void RenderWorld::Render(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    for (const TResourceHandle<SceneRenderResource>& scene_render_resource_handle : m_scene_render_resource_handles)
+    for (const TResourceHandle<RenderScene>& render_scene : m_render_scenes)
     {
-        scene_render_resource_handle->GetEnvironment()->RenderSubsystems(frame);
+        render_scene->GetEnvironment()->RenderSubsystems(frame);
     }
 
-    for (const TResourceHandle<ViewRenderResource>& current_view : m_view_render_resource_handles)
+    for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {
         current_view->Render(frame, this);
     }
 }
 
-#pragma endregion WorldRenderResource
+void RenderWorld::PostRender(FrameBase* frame)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    for (const TResourceHandle<RenderView>& current_view : m_render_views)
+    {
+        current_view->PostRender(frame);
+    }
+}
+
+#pragma endregion RenderWorld
 
 } // namespace hyperion

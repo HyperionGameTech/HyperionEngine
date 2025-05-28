@@ -49,9 +49,43 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
     virtual RendererResult operator()() override
     {
+        uint32 max_entity_id_index = 0;
+
         for (const RenderProxy& proxy : render_proxies)
         {
-            g_engine->GetRenderData()->objects->Set(proxy.entity.GetID().ToIndex(), EntityShaderData { .model_matrix = proxy.model_matrix, .previous_model_matrix = proxy.previous_model_matrix, .world_aabb_max = Vec4f(proxy.aabb.max, 1.0f), .world_aabb_min = Vec4f(proxy.aabb.min, 1.0f), .entity_index = proxy.entity.GetID().ToIndex(), .material_index = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u, .skeleton_index = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u, .bucket = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_NONE, .flags = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE, .user_data = proxy.user_data.ReinterpretAs<EntityUserData>() });
+            if (!proxy.entity.IsValid())
+            {
+                continue;
+            }
+
+            max_entity_id_index = MathUtil::Max(max_entity_id_index, proxy.entity.GetID().ToIndex());
+        }
+
+        g_engine->GetRenderData()->objects->EnsureCapacity(max_entity_id_index);
+
+        for (const RenderProxy& proxy : render_proxies)
+        {
+            if (!proxy.entity.IsValid())
+            {
+                continue;
+            }
+
+            EntityShaderData entity_shader_data {
+                .model_matrix = proxy.model_matrix,
+                .previous_model_matrix = proxy.previous_model_matrix,
+                .world_aabb_max = Vec4f(proxy.aabb.max, 1.0f),
+                .world_aabb_min = Vec4f(proxy.aabb.min, 1.0f),
+                .entity_index = proxy.entity.GetID().ToIndex(),
+                .material_index = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u,
+                .skeleton_index = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u,
+                .bucket = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_NONE,
+                .flags = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
+                .user_data = proxy.user_data.ReinterpretAs<EntityUserData>()
+            };
+
+            // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity ID index.
+            // This will allow us to remove empty blocks when unused.
+            g_engine->GetRenderData()->objects->Set(proxy.entity.GetID().ToIndex(), entity_shader_data);
         }
 
         HYPERION_RETURN_OK;

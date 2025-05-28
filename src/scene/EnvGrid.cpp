@@ -50,7 +50,7 @@ uint32 EnvProbeCollection::AddProbe(const Handle<EnvProbe>& env_probe)
     const uint32 index = num_probes++;
 
     env_probes[index] = env_probe;
-    env_probe_render_resources[index] = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    env_render_probes[index] = TResourceHandle<RenderEnvProbe>(env_probe->GetRenderResource());
     indirect_indices[index] = index;
     indirect_indices[max_bound_ambient_probes + index] = index;
 
@@ -68,7 +68,7 @@ void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe>& env_prob
     num_probes = MathUtil::Max(num_probes, index + 1);
 
     env_probes[index] = env_probe;
-    env_probe_render_resources[index] = TResourceHandle<EnvProbeRenderResource>(env_probe->GetRenderResource());
+    env_render_probes[index] = TResourceHandle<RenderEnvProbe>(env_probe->GetRenderResource());
     indirect_indices[index] = index;
     indirect_indices[max_bound_ambient_probes + index] = index;
 }
@@ -147,7 +147,7 @@ void EnvGrid::Init()
     m_camera->SetTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
 
-    m_render_resource = AllocateResource<EnvGridRenderResource>(this);
+    m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     m_view = CreateObject<View>(ViewDesc {
         .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
@@ -162,9 +162,9 @@ void EnvGrid::Init()
 
     InitObject(m_view);
 
-    m_render_resource->SetCameraResourceHandle(TResourceHandle<CameraRenderResource>(m_camera->GetRenderResource()));
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(m_parent_scene->GetRenderResource()));
-    m_render_resource->SetViewResourceHandle(TResourceHandle<ViewRenderResource>(m_view->GetRenderResource()));
+    m_render_resource->SetCameraResourceHandle(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(m_parent_scene->GetRenderResource()));
+    m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
 
     SetReady(true);
 }
@@ -244,11 +244,11 @@ void EnvGrid::SetParentScene(const Handle<Scene>& parent_scene)
         {
             AssertThrow(parent_scene->IsReady());
 
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>(parent_scene->GetRenderResource()));
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
         }
         else
         {
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<SceneRenderResource>());
+            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
         }
     }
 }

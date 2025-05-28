@@ -163,9 +163,6 @@ private:
         }
     }
 
-    // @TODO Refactor to use a span or pointer to MeshData indices and vertices rather than
-    // copying Triangle data
-
     BoundingBox m_aabb;
     LinkedList<BVHNode> m_children;
     Array<Triangle> m_triangles;

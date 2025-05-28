@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-class WorldRenderResource;
+class RenderWorld;
 class EditorDelegates;
 struct EngineRenderStats;
 class View;
@@ -76,7 +76,7 @@ public:
     World& operator=(World&& other) noexcept = delete;
     ~World();
 
-    HYP_FORCE_INLINE WorldRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderWorld& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -194,7 +194,7 @@ private:
 
     GameState m_game_state;
 
-    WorldRenderResource* m_render_resource;
+    RenderWorld* m_render_resource;
 };
 
 } // namespace hyperion

@@ -11,8 +11,9 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
+#include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
-#include <core/containers/HeapArray.hpp>
+#include <core/containers/HashSet.hpp>
 
 #include <core/memory/MemoryPool.hpp>
 
@@ -493,6 +494,11 @@ public:
         return RenderObjectHandle_Strong<Ty>::unset;
     }
 
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(ptr);
+    }
+
     RenderObjectHeaderBase* header;
     T* ptr;
 };
@@ -734,6 +740,11 @@ public:
         return RenderObjectHandle_Weak<Ty>::unset;
     }
 
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        return HashCode::GetHashCode(ptr);
+    }
+
     RenderObjectHeaderBase* header;
     T* ptr;
 };
@@ -967,15 +978,15 @@ static inline void DeferCreate(RefType ref, Args&&... args)
 }
 
 #if HYP_VULKAN
-    #define DEF_CURRENT_PLATFORM_RENDER_OBJECT(T) \
-        using T = T##_VULKAN;                     \
-        using T##Ref = T##Ref##_VULKAN;           \
-        using T##WeakRef = T##WeakRef##_VULKAN
+#define DEF_CURRENT_PLATFORM_RENDER_OBJECT(T) \
+    using T = T##_VULKAN;                     \
+    using T##Ref = T##Ref##_VULKAN;           \
+    using T##WeakRef = T##WeakRef##_VULKAN
 #elif HYP_WEBGPU
-    #define DEF_CURRENT_PLATFORM_RENDER_OBJECT(T) \
-        using T = T##_WEBGPU;                     \
-        using T##Ref = T##Ref##_WEBGPU;           \
-        using T##WeakRef = T##WeakRef##_WEBGPU
+#define DEF_CURRENT_PLATFORM_RENDER_OBJECT(T) \
+    using T = T##_WEBGPU;                     \
+    using T##Ref = T##Ref##_WEBGPU;           \
+    using T##WeakRef = T##WeakRef##_WEBGPU
 #endif
 
 #include <rendering/backend/inl/RenderObjectDefinitions.inl>
@@ -1193,6 +1204,8 @@ static inline void SafeRelease(Array<renderer::RenderObjectHandle_Strong<T>, All
 
         RenderObjectDeleter<renderer::Platform::current>::template GetQueue<typename T::Type>().Push(std::move(it));
     }
+
+    handles.Clear();
 }
 
 template <class T, SizeType Sz>
@@ -1207,6 +1220,22 @@ static inline void SafeRelease(FixedArray<renderer::RenderObjectHandle_Strong<T>
 
         RenderObjectDeleter<renderer::Platform::current>::template GetQueue<typename T::Type>().Push(std::move(it));
     }
+}
+
+template <class T, auto KeyBy>
+static inline void SafeRelease(HashSet<renderer::RenderObjectHandle_Strong<T>, KeyBy>&& handles)
+{
+    for (auto& it : handles)
+    {
+        if (!it.IsValid())
+        {
+            continue;
+        }
+
+        RenderObjectDeleter<renderer::Platform::current>::template GetQueue<typename T::Type>().Push(std::move(it));
+    }
+
+    handles.Clear();
 }
 
 } // namespace hyperion

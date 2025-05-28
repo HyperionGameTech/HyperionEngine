@@ -174,7 +174,7 @@ void DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     new_initializer->SetManagedObjectResource(managed_object_resource);
 
     // Create the managed object
-    managed_object_resource->Claim();
+    managed_object_resource->IncRef();
 }
 
 HashCode DynamicHypClassInstance::GetInstanceHashCode_Internal(ConstAnyRef ref) const

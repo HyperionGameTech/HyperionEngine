@@ -20,7 +20,7 @@
 #include <rendering/SafeDeleter.hpp>
 
 #ifdef HYP_VULKAN
-    #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 #endif
 
 #include <audio/AudioManager.hpp>
@@ -65,7 +65,7 @@ HYP_API void InitializeEngine(const FilePath& base_path)
 #ifdef HYP_VULKAN
     g_rendering_api = new renderer::VulkanRenderingAPI();
 #else
-    #error Unsupported rendering backend
+#error Unsupported rendering backend
 #endif
 
     ComponentInterfaceRegistry::GetInstance().Initialize();

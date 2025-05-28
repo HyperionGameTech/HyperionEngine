@@ -36,7 +36,7 @@ enum class EnvGridMobility : uint32
 
 HYP_MAKE_ENUM_FLAGS(EnvGridMobility)
 
-class EnvGridRenderResource;
+class RenderEnvGrid;
 class EnvGridRenderSubsystem;
 
 HYP_STRUCT(Component, Label = "EnvGrid Component", Description = "Allows calculatation of indirect lighting in the area surrounding the entity", Editor = true)
@@ -56,7 +56,7 @@ struct EnvGridComponent
     Handle<EnvGrid> env_grid;
 
     HYP_FIELD(Transient)
-    TResourceHandle<EnvGridRenderResource> env_grid_render_resource_handle;
+    TResourceHandle<RenderEnvGrid> env_render_grid;
 
     HYP_FIELD(Transient)
     RC<EnvGridRenderSubsystem> env_grid_render_subsystem;

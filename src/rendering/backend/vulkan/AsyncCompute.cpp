@@ -78,6 +78,8 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
+    // @TODO: Call RHICommandList::Prepare to set descriptor sets to be used for the frame.
+
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->Begin());
     m_command_list.Execute(m_command_buffers[frame_index]);
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->End());

@@ -26,8 +26,8 @@ namespace hyperion {
 
 class Engine;
 class Scene;
-class WorldRenderResource;
-class ViewRenderResource;
+class RenderWorld;
+class RenderView;
 
 using renderer::RTUpdateStateFlags;
 
@@ -46,7 +46,7 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
     RENDER_ENVIRONMENT_UPDATES_THREAD_MASK = 0x10 // use mask shifted by ThreadType value to issue unique updates for a specific thread
 };
 
-// @TODO Move RenderEnvironment stuff to SceneRenderResource
+// @TODO Move RenderEnvironment stuff to RenderScene
 
 HYP_CLASS()
 
@@ -251,7 +251,7 @@ public:
     void Init();
     void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(FrameBase* frame, ViewRenderResource* view);
+    void RenderRTRadiance(FrameBase* frame, RenderView* view);
     void RenderDDGIProbes(FrameBase* frame);
 
     void RenderSubsystems(FrameBase* frame);

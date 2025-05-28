@@ -733,15 +733,28 @@ HashSet<Value, KeyBy, AllocatorType>::HashSet(HashSet&& other) noexcept
     : m_buckets(std::move(other.m_buckets)),
       m_size(other.m_size)
 {
-    other.m_buckets.Resize(initial_bucket_size);
     other.m_size = 0;
+
+    other.m_buckets.Resize(initial_bucket_size);
+    other.m_buckets.Refit();
+
+    Memory::MemSet(&other.m_buckets[0], 0, other.m_buckets.ByteSize());
 }
 
 template <class Value, auto KeyBy, class AllocatorType>
 auto HashSet<Value, KeyBy, AllocatorType>::operator=(HashSet&& other) noexcept -> HashSet&
 {
+    if (&other == this)
+    {
+        return *this;
+    }
+
     m_buckets = std::move(other.m_buckets);
+
     other.m_buckets.Resize(initial_bucket_size);
+    other.m_buckets.Refit();
+
+    Memory::MemSet(&other.m_buckets[0], 0, other.m_buckets.ByteSize());
 
     m_size = other.m_size;
     other.m_size = 0;

@@ -25,7 +25,7 @@
 // #define HYP_RHI_COMMAND_STACK_TRACE
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
-    #include <core/debug/StackDump.hpp>
+#include <core/debug/StackDump.hpp>
 #endif
 
 namespace hyperion {
@@ -60,6 +60,10 @@ public:
     RHICommandBase(RHICommandBase&& other) noexcept = delete;
     RHICommandBase& operator=(RHICommandBase&& other) noexcept = delete;
     virtual ~RHICommandBase() = default;
+
+    virtual void Prepare(FrameBase* frame)
+    {
+    }
 
     virtual void Execute(const CommandBufferRef& cmd) = 0;
 
@@ -301,6 +305,8 @@ public:
           m_offsets(offsets),
           m_bind_index(bind_index)
     {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
         AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
 
@@ -310,6 +316,8 @@ public:
           m_offsets(offsets),
           m_bind_index(bind_index)
     {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
         AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
 
@@ -319,8 +327,12 @@ public:
           m_offsets(offsets),
           m_bind_index(bind_index)
     {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
         AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
+
+    HYP_API virtual void Prepare(FrameBase* frame) override;
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {
@@ -342,53 +354,44 @@ class BindDescriptorTable final : public RHICommandBase
 public:
     BindDescriptorTable(const DescriptorTableRef& descriptor_table, const GraphicsPipelineRef& graphics_pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frame_index)
         : m_descriptor_table(descriptor_table),
-          m_graphics_pipeline(graphics_pipeline),
+          m_pipeline(graphics_pipeline),
           m_offsets(offsets),
           m_frame_index(frame_index)
     {
+        AssertThrowMsg(descriptor_table != nullptr, "Descriptor table must not be null");
     }
 
     BindDescriptorTable(const DescriptorTableRef& descriptor_table, const ComputePipelineRef& compute_pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frame_index)
         : m_descriptor_table(descriptor_table),
-          m_compute_pipeline(compute_pipeline),
+          m_pipeline(compute_pipeline),
           m_offsets(offsets),
           m_frame_index(frame_index)
     {
+        AssertThrowMsg(descriptor_table != nullptr, "Descriptor table must not be null");
     }
 
     BindDescriptorTable(const DescriptorTableRef& descriptor_table, const RaytracingPipelineRef& raytracing_pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frame_index)
         : m_descriptor_table(descriptor_table),
-          m_raytracing_pipeline(raytracing_pipeline),
+          m_pipeline(raytracing_pipeline),
           m_offsets(offsets),
           m_frame_index(frame_index)
     {
+        AssertThrowMsg(descriptor_table != nullptr, "Descriptor table must not be null");
     }
+
+    HYP_API virtual void Prepare(FrameBase* frame) override;
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {
-        if (m_graphics_pipeline)
-        {
-            m_descriptor_table->Bind(cmd, m_frame_index, m_graphics_pipeline, m_offsets);
-        }
-        else if (m_compute_pipeline)
-        {
-            m_descriptor_table->Bind(cmd, m_frame_index, m_compute_pipeline, m_offsets);
-        }
-        else if (m_raytracing_pipeline)
-        {
-            m_descriptor_table->Bind(cmd, m_frame_index, m_raytracing_pipeline, m_offsets);
-        }
-        else
-        {
-            HYP_UNREACHABLE();
-        }
+        m_pipeline.Visit([this, &cmd](const auto& pipeline)
+            {
+                m_descriptor_table->Bind(cmd, m_frame_index, pipeline, m_offsets);
+            });
     }
 
 private:
     DescriptorTableRef m_descriptor_table;
-    GraphicsPipelineRef m_graphics_pipeline;
-    ComputePipelineRef m_compute_pipeline;
-    RaytracingPipelineRef m_raytracing_pipeline;
+    Variant<GraphicsPipelineRef, ComputePipelineRef, RaytracingPipelineRef> m_pipeline;
     ArrayMap<Name, ArrayMap<Name, uint32>> m_offsets;
     uint32 m_frame_index;
 };
@@ -681,6 +684,7 @@ public:
         m_commands.Concat(std::move(other.m_commands));
     }
 
+    void Prepare(FrameBase* frame);
     void Execute(const CommandBufferRef& cmd);
 
 private:

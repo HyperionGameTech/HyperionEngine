@@ -32,16 +32,15 @@ void HandleSignal(int signum)
     DebugLog(
         LogType::Warn,
         "Received signal %d\n",
-        signum
-    );
+        signum);
 
     DebugLog(LogType::Debug, "%s\n", StackDump().ToString().Data());
 
-    if (Engine::GetInstance()->m_stop_requested.Get(MemoryOrder::RELAXED)) {
+    if (Engine::GetInstance()->m_stop_requested.Get(MemoryOrder::RELAXED))
+    {
         DebugLog(
             LogType::Warn,
-            "Forcing stop\n"
-        );
+            "Forcing stop\n");
 
         fflush(stdout);
 
@@ -53,15 +52,16 @@ void HandleSignal(int signum)
     Engine::GetInstance()->RequestStop();
 
     // Wait for the render loop to stop
-    while (Engine::GetInstance()->IsRenderLoopActive());
+    while (Engine::GetInstance()->IsRenderLoopActive())
+        ;
 
     exit(signum);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     signal(SIGINT, HandleSignal);
-    
+
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
@@ -71,18 +71,20 @@ int main(int argc, char **argv)
     CommandLineParser arg_parse { &DefaultCommandLineArgumentDefinitions() };
     auto parse_result = arg_parse.Parse(argc, argv);
 
-    if (parse_result.HasValue()) {
+    if (parse_result.HasValue())
+    {
         app.Launch(&editor, parse_result.GetValue());
-    } else {
-        const Error &error = parse_result.GetError();
+    }
+    else
+    {
+        const Error& error = parse_result.GetError();
 
         DebugLog(
             LogType::Error,
             "Failed to parse arguments!\n\t%s\n",
             error.GetMessage().Any()
                 ? error.GetMessage().Data()
-                : "<no message>"
-        );
+                : "<no message>");
 
         return 1;
     }

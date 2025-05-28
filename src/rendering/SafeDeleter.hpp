@@ -126,7 +126,7 @@ public:
     template <class T>
     void SafeRelease(T&& resource)
     {
-        Mutex::Guard guard(m_render_resource_deletion_mutex);
+        Mutex::Guard guard(m_mutex);
 
         m_deletion_entries.PushBack(MakeUnique<DeletionEntry<T>>(std::move(resource)));
 
@@ -151,7 +151,7 @@ public:
 private:
     bool CollectAllEnqueuedItems(Array<UniquePtr<DeletionEntryBase>>& out_entries);
 
-    Mutex m_render_resource_deletion_mutex;
+    Mutex m_mutex;
     AtomicVar<int32> m_num_deletion_entries { 0 };
 
     LinkedList<UniquePtr<DeletionEntryBase>> m_deletion_entries;

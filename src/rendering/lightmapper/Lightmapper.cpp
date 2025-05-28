@@ -143,7 +143,7 @@ struct RENDER_COMMAND(LightmapRender)
 
             if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
             {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
                 is_sky_set = true;
             }
@@ -634,11 +634,11 @@ void LightmapGPUPathTracer::UpdateUniforms(FrameBase* frame, uint32 ray_offset)
     // uniforms.num_bound_lights = num_bound_lights;
 
     // FIXME: Lights are now stored per-view.
-    // We don't have a View for Lightmapper since it is for the entire WorldRenderResource it is indirectly attached to.
+    // We don't have a View for Lightmapper since it is for the entire RenderWorld it is indirectly attached to.
     // We'll need to find a way to get the lights for the current view.
     // Ideas:
     // a) create a View for the Lightmapper and use that to get the lights. It will need to collect the lights on the Game thread so we'll need to add some kind of System to do that.
-    // b) add a function to the SceneRenderResource to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some LightRenderResource active when it could be inactive if it is not in any view.
+    // b) add a function to the RenderScene to get all the lights in the scene and use that to get the lights for the current view. This has a drawback that we will always have some RenderLight active when it could be inactive if it is not in any view.
     // OR: We can just use the lights in the current view and ignore the rest. This is a bit of a hack but it will work for now.
     HYP_NOT_IMPLEMENTED();
 
@@ -695,10 +695,10 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
     const uint32 frame_index = frame->GetFrameIndex();
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     UpdateUniforms(frame, ray_offset);
 
@@ -745,10 +745,10 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
         m_raytracing_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
@@ -854,12 +854,12 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
 
     m_num_tracing_tasks.Increment(rays.Size(), MemoryOrder::RELEASE);
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
     Handle<EnvProbe> env_probe;
 
-    if (env_probe_render_resource)
+    if (env_render_probe)
     {
-        env_probe = env_probe_render_resource->GetEnvProbe()->HandleFromThis();
+        env_probe = env_render_probe->GetEnvProbe()->HandleFromThis();
 
         AssertThrow(env_probe->IsReady());
 

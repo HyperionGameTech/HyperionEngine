@@ -12,15 +12,15 @@
 
 namespace hyperion {
 
-#pragma region SkeletonRenderResource
+#pragma region RenderSkeleton
 
-SkeletonRenderResource::SkeletonRenderResource(Skeleton* skeleton)
+RenderSkeleton::RenderSkeleton(Skeleton* skeleton)
     : m_skeleton(skeleton),
       m_buffer_data {}
 {
 }
 
-SkeletonRenderResource::SkeletonRenderResource(SkeletonRenderResource&& other) noexcept
+RenderSkeleton::RenderSkeleton(RenderSkeleton&& other) noexcept
     : RenderResourceBase(static_cast<RenderResourceBase&&>(other)),
       m_skeleton(other.m_skeleton),
       m_buffer_data(std::move(other.m_buffer_data))
@@ -28,9 +28,9 @@ SkeletonRenderResource::SkeletonRenderResource(SkeletonRenderResource&& other) n
     other.m_skeleton = nullptr;
 }
 
-SkeletonRenderResource::~SkeletonRenderResource() = default;
+RenderSkeleton::~RenderSkeleton() = default;
 
-void SkeletonRenderResource::Initialize_Internal()
+void RenderSkeleton::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -39,22 +39,22 @@ void SkeletonRenderResource::Initialize_Internal()
     UpdateBufferData();
 }
 
-void SkeletonRenderResource::Destroy_Internal()
+void RenderSkeleton::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SkeletonRenderResource::Update_Internal()
+void RenderSkeleton::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* SkeletonRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderSkeleton::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->skeletons;
 }
 
-void SkeletonRenderResource::UpdateBufferData()
+void RenderSkeleton::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -64,7 +64,7 @@ void SkeletonRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void SkeletonRenderResource::SetBufferData(const SkeletonShaderData& buffer_data)
+void RenderSkeleton::SetBufferData(const SkeletonShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -79,7 +79,7 @@ void SkeletonRenderResource::SetBufferData(const SkeletonShaderData& buffer_data
         });
 }
 
-#pragma endregion SkeletonRenderResource
+#pragma endregion RenderSkeleton
 
 namespace renderer {
 

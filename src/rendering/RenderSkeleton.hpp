@@ -20,14 +20,12 @@ struct SkeletonShaderData
     Matrix4 bones[max_bones];
 };
 
-static constexpr uint32 max_skeletons = (8ull * 1024ull * 1024ull) / sizeof(SkeletonShaderData);
-
-class SkeletonRenderResource final : public RenderResourceBase
+class RenderSkeleton final : public RenderResourceBase
 {
 public:
-    SkeletonRenderResource(Skeleton* skeleton);
-    SkeletonRenderResource(SkeletonRenderResource&& other) noexcept;
-    virtual ~SkeletonRenderResource() override;
+    RenderSkeleton(Skeleton* skeleton);
+    RenderSkeleton(RenderSkeleton&& other) noexcept;
+    virtual ~RenderSkeleton() override;
 
     void SetBufferData(const SkeletonShaderData& buffer_data);
 

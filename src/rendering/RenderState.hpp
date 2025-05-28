@@ -26,9 +26,9 @@
 namespace hyperion {
 
 class RenderEnvironment;
-class EnvGridRenderResource;
+class RenderEnvGrid;
 class Camera;
-class CameraRenderResource;
+class RenderCamera;
 
 using RenderStateMask = uint32;
 
@@ -105,12 +105,12 @@ class RenderState : public HypObject<RenderState>
     HYP_OBJECT_BODY(RenderState);
 
 public:
-    Stack<TResourceHandle<SceneRenderResource>> scene_bindings;
-    Array<TResourceHandle<CameraRenderResource>> camera_bindings;
-    Stack<TResourceHandle<LightRenderResource>> light_bindings;
-    Stack<TResourceHandle<EnvGridRenderResource>> env_grid_bindings;
-    Stack<TResourceHandle<EnvProbeRenderResource>> env_probe_bindings;
-    FixedArray<Array<TResourceHandle<EnvProbeRenderResource>>, ENV_PROBE_TYPE_MAX> bound_env_probes;
+    Stack<TResourceHandle<RenderScene>> scene_bindings;
+    Array<TResourceHandle<RenderCamera>> camera_bindings;
+    Stack<TResourceHandle<RenderLight>> light_bindings;
+    Stack<TResourceHandle<RenderEnvGrid>> env_grid_bindings;
+    Stack<TResourceHandle<RenderEnvProbe>> env_probe_bindings;
+    FixedArray<Array<TResourceHandle<RenderEnvProbe>>, ENV_PROBE_TYPE_MAX> bound_env_probes;
 
     uint32 frame_counter = ~0u;
 
@@ -128,7 +128,7 @@ public:
         ++frame_counter;
     }
 
-    HYP_FORCE_INLINE void SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>&& resource_handle)
+    HYP_FORCE_INLINE void SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>&& resource_handle)
     {
         env_probe_bindings.Push(std::move(resource_handle));
     }
@@ -141,9 +141,9 @@ public:
         }
     }
 
-    const TResourceHandle<EnvProbeRenderResource>& GetActiveEnvProbe() const;
+    const TResourceHandle<RenderEnvProbe>& GetActiveEnvProbe() const;
 
-    HYP_FORCE_INLINE void BindEnvGrid(TResourceHandle<EnvGridRenderResource>&& resource_handle)
+    HYP_FORCE_INLINE void BindEnvGrid(TResourceHandle<RenderEnvGrid>&& resource_handle)
     {
         env_grid_bindings.Push(std::move(resource_handle));
     }
@@ -154,9 +154,9 @@ public:
         env_grid_bindings.Pop();
     }
 
-    const TResourceHandle<EnvGridRenderResource>& GetActiveEnvGrid() const;
+    const TResourceHandle<RenderEnvGrid>& GetActiveEnvGrid() const;
 
-    void SetActiveLight(const TResourceHandle<LightRenderResource>& light_resource_handle);
+    void SetActiveLight(const TResourceHandle<RenderLight>& light_resource_handle);
 
     HYP_FORCE_INLINE void UnsetActiveLight()
     {
@@ -166,9 +166,9 @@ public:
         }
     }
 
-    const TResourceHandle<LightRenderResource>& GetActiveLight() const;
+    const TResourceHandle<RenderLight>& GetActiveLight() const;
 
-    HYP_FORCE_INLINE SceneRenderResource* GetActiveScene() const
+    HYP_FORCE_INLINE RenderScene* GetActiveScene() const
     {
         return scene_bindings.Empty()
             ? nullptr
@@ -179,11 +179,11 @@ public:
     {
         if (scene == nullptr)
         {
-            scene_bindings.Push(TResourceHandle<SceneRenderResource>());
+            scene_bindings.Push(TResourceHandle<RenderScene>());
         }
         else
         {
-            scene_bindings.Push(TResourceHandle<SceneRenderResource>(scene->GetRenderResource()));
+            scene_bindings.Push(TResourceHandle<RenderScene>(scene->GetRenderResource()));
         }
     }
 
@@ -195,13 +195,13 @@ public:
         }
     }
 
-    void BindCamera(const TResourceHandle<CameraRenderResource>& resource_handle);
-    void UnbindCamera(const CameraRenderResource* camera_render_resource);
+    void BindCamera(const TResourceHandle<RenderCamera>& resource_handle);
+    void UnbindCamera(const RenderCamera* render_camera);
 
-    const TResourceHandle<CameraRenderResource>& GetActiveCamera() const;
+    const TResourceHandle<RenderCamera>& GetActiveCamera() const;
 
-    void BindEnvProbe(EnvProbeType type, TResourceHandle<EnvProbeRenderResource>&& resource_handle);
-    void UnbindEnvProbe(EnvProbeType type, EnvProbeRenderResource* env_probe_render_resource);
+    void BindEnvProbe(EnvProbeType type, TResourceHandle<RenderEnvProbe>&& resource_handle);
+    void UnbindEnvProbe(EnvProbeType type, RenderEnvProbe* env_render_probe);
 
     void ResetStates(RenderStateMask mask)
     {

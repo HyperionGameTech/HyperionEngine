@@ -251,7 +251,7 @@ HYP_API void HypObject_OnIncRefCount_Strong(HypObjectPtr ptr, uint32 count)
         {
             if (ManagedObjectResource* managed_object_resource = initializer->GetManagedObjectResource())
             {
-                managed_object_resource->Claim();
+                managed_object_resource->IncRef();
             }
         }
     }
@@ -265,7 +265,7 @@ HYP_API void HypObject_OnDecRefCount_Strong(HypObjectPtr ptr, uint32 count)
         {
             if (ManagedObjectResource* managed_object_resource = initializer->GetManagedObjectResource())
             {
-                managed_object_resource->Unclaim();
+                managed_object_resource->DecRef();
             }
         }
         else if (initializer->GetClass()->IsDynamic())

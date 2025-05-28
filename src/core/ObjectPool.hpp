@@ -56,12 +56,9 @@ public:
 
     virtual void* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
-    virtual HypObjectHeader* GetDefaultObjectHeader() = 0;
-    virtual uint32 GetObjectIndex(const HypObjectHeader* ptr) = 0;
     virtual TypeID GetObjectTypeID() const = 0;
     virtual const HypClass* GetObjectClass() const = 0;
 
-    virtual void* ConstructAtIndex(uint32 index) = 0;
     virtual void ReleaseIndex(uint32 index) = 0;
 };
 
@@ -389,21 +386,6 @@ public:
         return &m_pool.GetElement(index);
     }
 
-    virtual HypObjectHeader* GetDefaultObjectHeader() override
-    {
-        return &m_default_object;
-    }
-
-    virtual uint32 GetObjectIndex(const HypObjectHeader* ptr) override
-    {
-        if (!ptr)
-        {
-            return ~0u;
-        }
-
-        return static_cast<const HypObjectMemory*>(ptr)->index;
-    }
-
     virtual TypeID GetObjectTypeID() const override
     {
         static const TypeID type_id = TypeID::ForType<T>();
@@ -416,23 +398,6 @@ public:
         static const HypClass* hyp_class = GetClass(TypeID::ForType<T>());
 
         return hyp_class;
-    }
-
-    virtual void* ConstructAtIndex(uint32 index) override
-    {
-        HypObjectMemory& element = m_pool.GetElement(index);
-        element.Construct();
-
-        return &element.Get();
-    }
-
-    template <class Arg0, class... Args>
-    HYP_FORCE_INLINE void* ConstructAtIndex(uint32 index, Arg0&& arg0, Args&&... args)
-    {
-        HypObjectMemory& element = m_pool.GetElement(index);
-        element.Construct(std::forward<Arg0>(arg0), std::forward<Args>(args)...);
-
-        return &element.Get();
     }
 
     virtual void ReleaseIndex(uint32 index) override

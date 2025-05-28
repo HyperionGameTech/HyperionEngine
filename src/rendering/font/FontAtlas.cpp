@@ -37,14 +37,14 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter)
           location(location),
           cell_dimensions(cell_dimensions)
     {
-        atlas_texture->GetRenderResource().Claim();
-        glyph_texture->GetRenderResource().Claim();
+        atlas_texture->GetRenderResource().IncRef();
+        glyph_texture->GetRenderResource().IncRef();
     }
 
     virtual ~RENDER_COMMAND(FontAtlas_RenderCharacter)() override
     {
-        atlas_texture->GetRenderResource().Unclaim();
-        glyph_texture->GetRenderResource().Unclaim();
+        atlas_texture->GetRenderResource().DecRef();
+        glyph_texture->GetRenderResource().DecRef();
     }
 
     virtual RendererResult operator()() override

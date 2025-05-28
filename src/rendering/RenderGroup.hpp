@@ -31,7 +31,7 @@ class Entity;
 class RenderCollector;
 class GPUBufferHolderBase;
 class IndirectRenderer;
-class ViewRenderResource;
+class RenderView;
 
 enum class RenderGroupFlags : uint32
 {
@@ -108,7 +108,7 @@ public:
 
     void ClearProxies();
 
-    void AddRenderProxy(const RenderProxy& render_proxy);
+    void AddRenderProxy(RenderProxy* render_proxy);
 
     bool RemoveRenderProxy(ID<Entity> entity);
     typename FlatMap<ID<Entity>, const RenderProxy*>::Iterator RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy*>::ConstIterator iterator);
@@ -127,13 +127,13 @@ public:
     void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(FrameBase* frame, ViewRenderResource* view);
+    void PerformRendering(FrameBase* frame, RenderView* view);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(FrameBase* frame, ViewRenderResource* view);
+    void PerformRenderingIndirect(FrameBase* frame, RenderView* view);
 
-    void PerformOcclusionCulling(FrameBase* frame, ViewRenderResource* view, const CullData* cull_data);
+    void PerformOcclusionCulling(FrameBase* frame, RenderView* view, const CullData* cull_data);
 
     void Init();
 

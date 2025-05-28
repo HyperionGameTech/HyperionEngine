@@ -76,7 +76,7 @@ void SafeDeleter::PerformEnqueuedDeletions()
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
-            Mutex::Guard guard(m_render_resource_deletion_mutex);
+            Mutex::Guard guard(m_mutex);
 
             CollectAllEnqueuedItems(deletion_entries);
         }
@@ -97,7 +97,7 @@ void SafeDeleter::ForceDeleteAll()
         Array<UniquePtr<DeletionEntryBase>> deletion_entries;
 
         { // Critical section
-            Mutex::Guard guard(m_render_resource_deletion_mutex);
+            Mutex::Guard guard(m_mutex);
 
             CollectAllEnqueuedItems(deletion_entries);
         }

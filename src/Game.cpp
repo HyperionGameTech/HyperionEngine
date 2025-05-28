@@ -43,7 +43,7 @@ HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 Game::Game()
     : m_is_init(false),
-      m_scene_render_resource(nullptr),
+      m_render_scene(nullptr),
       m_managed_game_object(nullptr)
 {
 }
@@ -52,7 +52,7 @@ Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
       m_managed_game_info(std::move(managed_game_info)),
       m_managed_game_object(nullptr),
-      m_scene_render_resource(nullptr)
+      m_render_scene(nullptr)
 {
 }
 
@@ -131,11 +131,11 @@ void Game::Update(GameCounter::TickUnit delta)
         : public renderer::RenderCommand
     {
         Game& game;
-        TResourceHandle<SceneRenderResource> render_resource_handle;
+        TResourceHandle<RenderScene> render_scene;
 
-        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game& game, const TResourceHandle<SceneRenderResource>& render_resource_handle)
+        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game& game, const TResourceHandle<RenderScene>& render_scene)
             : game(game),
-              render_resource_handle(render_resource_handle)
+              render_scene(render_scene)
         {
         }
 
@@ -143,23 +143,23 @@ void Game::Update(GameCounter::TickUnit delta)
 
         virtual RendererResult operator()() override
         {
-            game.m_scene_render_resource_handle = render_resource_handle;
+            game.m_render_scene_handle = render_scene;
 
             HYPERION_RETURN_OK;
         }
     };
 
-    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_scene_render_resource)
+    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_render_scene)
     {
-        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>(m_scene->GetRenderResource()));
+        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<RenderScene>(m_scene->GetRenderResource()));
 
-        m_scene_render_resource = &m_scene->GetRenderResource();
+        m_render_scene = &m_scene->GetRenderResource();
     }
-    else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_scene_render_resource != nullptr)
+    else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_render_scene != nullptr)
     {
-        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<SceneRenderResource>());
+        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<RenderScene>());
 
-        m_scene_render_resource = nullptr;
+        m_render_scene = nullptr;
     }
 
     g_engine->GetScriptingService()->Update();

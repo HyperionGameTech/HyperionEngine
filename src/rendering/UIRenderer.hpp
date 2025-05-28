@@ -24,9 +24,9 @@ namespace hyperion {
 
 class UIStage;
 class UIObject;
-class CameraRenderResource;
+class RenderCamera;
 class View;
-class ViewRenderResource;
+class RenderView;
 
 class UIRenderCollector : RenderCollector
 {
@@ -50,7 +50,7 @@ public:
     void CollectDrawCalls(FrameBase* frame);
     void ExecuteDrawCalls(
         FrameBase* frame,
-        ViewRenderResource* view,
+        RenderView* view,
         const FramebufferRef& framebuffer) const;
 
 private:
@@ -117,10 +117,10 @@ private:
     // Game thread side list, used for collecting UI objects
     RenderProxyTracker m_render_proxy_tracker;
 
-    TResourceHandle<CameraRenderResource> m_camera_resource_handle;
+    TResourceHandle<RenderCamera> m_camera_resource_handle;
 
     Handle<View> m_view;
-    TResourceHandle<ViewRenderResource> m_view_render_resource_handle;
+    TResourceHandle<RenderView> m_render_view;
 
     DelegateHandler m_on_gbuffer_resolution_changed_handle;
 };

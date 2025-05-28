@@ -49,7 +49,7 @@ static constexpr bool do_parallel_collection = true;
 struct RENDER_COMMAND(RebuildProxyGroups)
     : renderer::RenderCommand
 {
-    TResourceHandle<ViewRenderResource> view_render_resource_handle;
+    TResourceHandle<RenderView> render_view;
 
     RC<EntityDrawCollection> collection;
     Array<RenderProxy> added_proxies;
@@ -59,19 +59,19 @@ struct RENDER_COMMAND(RebuildProxyGroups)
     Optional<RenderableAttributeSet> override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups)(
-        const TResourceHandle<ViewRenderResource>& view_render_resource_handle,
+        const TResourceHandle<RenderView>& render_view,
         const RC<EntityDrawCollection>& collection,
         Array<RenderProxy*>&& added_proxy_ptrs,
         Array<ID<Entity>>&& removed_proxies,
         const Handle<Camera>& camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet>& override_attributes = {})
-        : view_render_resource_handle(view_render_resource_handle),
+        : render_view(render_view),
           collection(collection),
           removed_proxies(std::move(removed_proxies)),
           camera(camera),
           override_attributes(override_attributes)
     {
-        AssertThrow(view_render_resource_handle);
+        AssertThrow(render_view);
 
         added_proxies.Reserve(added_proxy_ptrs.Size());
 
@@ -146,21 +146,6 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
         if (!render_group.IsValid())
         {
-            HYP_LOG(RenderCollection, Debug, "Creating RenderGroup for attributes:\n"
-                                             "\tVertex Attributes: {}\n"
-                                             "\tBucket: {}\n"
-                                             "\tShader Definition: {}  {}\n"
-                                             "\tCull Mode: {}\n"
-                                             "\tFlags: {}\n"
-                                             "\tDrawable layer: {}",
-                attributes.GetMeshAttributes().vertex_attributes.flag_mask,
-                uint32(attributes.GetMaterialAttributes().bucket),
-                attributes.GetShaderDefinition().GetName(),
-                attributes.GetShaderDefinition().GetProperties().GetHashCode().Value(),
-                uint32(attributes.GetMaterialAttributes().cull_faces),
-                uint32(attributes.GetMaterialAttributes().flags),
-                attributes.GetDrawableLayer());
-
             EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
             // Disable occlusion culling for translucent objects
@@ -190,9 +175,9 @@ struct RENDER_COMMAND(RebuildProxyGroups)
             }
             else
             {
-                AssertThrow(view_render_resource_handle->GetView()->GetFlags() & ViewFlags::GBUFFER);
+                AssertThrow(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER);
 
-                GBuffer* gbuffer = view_render_resource_handle->GetGBuffer();
+                GBuffer* gbuffer = render_view->GetGBuffer();
                 AssertThrow(gbuffer != nullptr);
 
                 const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
@@ -206,7 +191,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
         auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
-        render_group->AddRenderProxy(iter->second);
+        render_group->AddRenderProxy(&iter->second);
     }
 
     bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
@@ -250,8 +235,8 @@ struct RENDER_COMMAND(RebuildProxyGroups)
                 Debug,
                 "Added proxy for entity {} (mesh={}, count: {}, material={}, count: {})",
                 added.entity->GetID().Value(),
-                added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumClaims() : 0,
-                added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumClaims() : 0
+                added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumRefs() : 0,
+                added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumRefs() : 0
             );
         }
 
@@ -266,7 +251,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 #endif
         for (RenderProxy& proxy : added_proxies)
         {
-            proxy.ClaimRenderResource();
+            proxy.IncRefs();
         }
 
         for (ID<Entity> entity_id : removed_proxies)
@@ -274,7 +259,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
             const RenderProxy* proxy = render_proxy_tracker.GetElement(entity_id);
             AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
 
-            proxy->UnclaimRenderResource();
+            proxy->DecRefs();
 
             const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
@@ -382,7 +367,7 @@ RenderCollector::~RenderCollector() = default;
 
 void RenderCollector::CollectDrawCalls(
     FrameBase* frame,
-    ViewRenderResource* view,
+    RenderView* view,
     const Bitset& bucket_bits,
     const CullData* cull_data)
 {
@@ -463,7 +448,7 @@ void RenderCollector::CollectDrawCalls(
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
-    ViewRenderResource* view,
+    RenderView* view,
     const Bitset& bucket_bits,
     const CullData* cull_data,
     PushConstantData push_constant) const
@@ -478,7 +463,7 @@ void RenderCollector::ExecuteDrawCalls(
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
-    ViewRenderResource* view,
+    RenderView* view,
     const FramebufferRef& framebuffer,
     const Bitset& bucket_bits,
     const CullData* cull_data,

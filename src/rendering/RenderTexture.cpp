@@ -412,22 +412,22 @@ private:
 
 #pragma endregion TextureMipmapRenderer
 
-#pragma region TextureRenderResource
+#pragma region RenderTexture
 
-TextureRenderResource::TextureRenderResource(Texture* texture)
+RenderTexture::RenderTexture(Texture* texture)
     : m_texture(texture),
       m_image(g_rendering_api->MakeImage(texture->GetTextureDesc())),
       m_image_view(g_rendering_api->MakeImageView(m_image))
 {
 }
 
-TextureRenderResource::~TextureRenderResource()
+RenderTexture::~RenderTexture()
 {
     SafeRelease(std::move(m_image));
     SafeRelease(std::move(m_image_view));
 }
 
-void TextureRenderResource::Initialize_Internal()
+void RenderTexture::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -440,19 +440,19 @@ void TextureRenderResource::Initialize_Internal()
         m_image_view);
 }
 
-void TextureRenderResource::Destroy_Internal()
+void RenderTexture::Destroy_Internal()
 {
     HYP_SCOPE;
 
     PUSH_RENDER_COMMAND(DestroyTexture, m_texture->WeakHandleFromThis());
 }
 
-void TextureRenderResource::Update_Internal()
+void RenderTexture::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-void TextureRenderResource::RenderMipmaps()
+void RenderTexture::RenderMipmaps()
 {
     HYP_SCOPE;
 
@@ -465,7 +465,7 @@ void TextureRenderResource::RenderMipmaps()
         });
 }
 
-void TextureRenderResource::Readback(ByteBuffer& out_byte_buffer)
+void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
 {
     HYP_SCOPE;
 
@@ -503,7 +503,7 @@ void TextureRenderResource::Readback(ByteBuffer& out_byte_buffer)
         /* force_owner_thread */ true);
 }
 
-void TextureRenderResource::Resize(const Vec3u& extent)
+void RenderTexture::Resize(const Vec3u& extent)
 {
     HYP_SCOPE;
 
@@ -520,11 +520,11 @@ void TextureRenderResource::Resize(const Vec3u& extent)
         /* force_owner_thread */ true);
 }
 
-GPUBufferHolderBase* TextureRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderTexture::GetGPUBufferHolder() const
 {
     return nullptr;
 }
 
-#pragma endregion TextureRenderResource
+#pragma endregion RenderTexture
 
 } // namespace hyperion

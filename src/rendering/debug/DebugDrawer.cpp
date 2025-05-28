@@ -57,7 +57,7 @@ static RenderableAttributeSet GetRenderableAttributes()
 
 struct DebugDrawCommand_Probe : DebugDrawCommand
 {
-    TResourceHandle<EnvProbeRenderResource> env_probe_resource_handle;
+    TResourceHandle<RenderEnvProbe> env_probe_resource_handle;
 };
 
 #pragma endregion DebugDrawCommand_Probe
@@ -109,7 +109,7 @@ void AmbientProbeDebugDrawShape::operator()(const Vec3f& position, float radius,
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe.GetRenderResource());
+    command->env_probe_resource_handle = TResourceHandle<RenderEnvProbe>(env_probe.GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }
@@ -126,7 +126,7 @@ void ReflectionProbeDebugDrawShape::operator()(const Vec3f& position, float radi
     command->shape = this;
     command->transform_matrix = Transform(position, radius, Quaternion::Identity()).GetMatrix();
     command->color = Color::White();
-    command->env_probe_resource_handle = TResourceHandle<EnvProbeRenderResource>(env_probe.GetRenderResource());
+    command->env_probe_resource_handle = TResourceHandle<RenderEnvProbe>(env_probe.GetRenderResource());
 
     m_command_list.Push(std::move(command));
 }
@@ -302,9 +302,9 @@ void DebugDrawer::Render(FrameBase* frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     GPUBufferRef& instance_buffer = m_instance_buffers[frame_index];
     bool was_instance_buffer_rebuilt = false;
@@ -397,9 +397,9 @@ void DebugDrawer::Render(FrameBase* frame)
                     { NAME("DebugDrawerDescriptorSet"),
                         { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
                     { NAME("Global"),
-                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) } } },
+                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) } } },
                     { NAME("Object"),
                         {} },
                     { NAME("Instancing"),

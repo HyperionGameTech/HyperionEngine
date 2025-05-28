@@ -27,8 +27,8 @@ namespace hyperion {
 
 class View;
 class Scene;
-class EnvGridRenderResource;
-class EnvProbeRenderResource;
+class RenderEnvGrid;
+class RenderEnvProbe;
 class EnvProbe;
 
 enum class EnvGridFlags : uint32
@@ -54,7 +54,7 @@ struct EnvProbeCollection
     uint32 num_probes = 0;
     FixedArray<uint32, max_bound_ambient_probes * 2> indirect_indices = { 0 };
     FixedArray<Handle<EnvProbe>, max_bound_ambient_probes> env_probes = {};
-    FixedArray<TResourceHandle<EnvProbeRenderResource>, max_bound_ambient_probes> env_probe_render_resources = {};
+    FixedArray<TResourceHandle<RenderEnvProbe>, max_bound_ambient_probes> env_render_probes = {};
 
     // Must be called in EnvGrid::Init(), before probes are used from the render thread.
     // returns the index
@@ -150,7 +150,7 @@ public:
         return m_env_probe_collection;
     }
 
-    HYP_FORCE_INLINE EnvGridRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderEnvGrid& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -214,7 +214,7 @@ private:
 
     EnvProbeCollection m_env_probe_collection;
 
-    EnvGridRenderResource* m_render_resource;
+    RenderEnvGrid* m_render_resource;
 };
 
 } // namespace hyperion

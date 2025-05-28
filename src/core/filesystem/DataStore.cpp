@@ -55,9 +55,9 @@ DataStoreBase::DataStoreBase(const String& prefix, DataStoreOptions options)
 {
 }
 
-int DataStoreBase::Claim(int count)
+int DataStoreBase::IncRef(int count)
 {
-    return m_claimed_semaphore.Produce(count, [this](bool)
+    return m_ref_counter.Produce(count, [this](bool)
         {
             if (m_options.flags & DSF_WRITE)
             {
@@ -66,21 +66,21 @@ int DataStoreBase::Claim(int count)
         });
 }
 
-int DataStoreBase::ClaimWithoutInitialize()
+int DataStoreBase::IncRefNoInitialize()
 {
-    return Claim();
+    return IncRef();
 }
 
-int DataStoreBase::Unclaim()
+int DataStoreBase::DecRef()
 {
     m_shutdown_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_claimed_semaphore.Release(1, [this, &should_release](bool)
+    int result = m_ref_counter.Release(1, [this, &should_release](bool)
         {
             should_release = false;
             TaskSystem::GetInstance().Enqueue(
-                HYP_STATIC_MESSAGE("DiscardOldFiles on DataStoreBase::Unclaim"),
+                HYP_STATIC_MESSAGE("DiscardOldFiles on DataStoreBase::DecRef"),
                 [this]()
                 {
                     DiscardOldFiles();
@@ -107,7 +107,7 @@ void DataStoreBase::WaitForTaskCompletion() const
 void DataStoreBase::WaitForFinalization() const
 {
     WaitForTaskCompletion();
-    m_claimed_semaphore.Acquire();
+    m_ref_counter.Acquire();
 }
 
 void DataStoreBase::DiscardOldFiles() const
@@ -174,7 +174,7 @@ bool DataStoreBase::MakeDirectory() const
 
 void DataStoreBase::Write(const String& key, const ByteBuffer& byte_buffer)
 {
-    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot write to DataStore, not yet init");
+    AssertThrowMsg(m_ref_counter.IsInSignalState(), "Cannot write to DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_WRITE, "Data store is not writable");
 
     const FilePath filepath = GetDirectory() / key;
@@ -186,7 +186,7 @@ void DataStoreBase::Write(const String& key, const ByteBuffer& byte_buffer)
 
 bool DataStoreBase::Read(const String& key, ByteBuffer& out_byte_buffer) const
 {
-    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
+    AssertThrowMsg(m_ref_counter.IsInSignalState(), "Cannot read from DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
 
     const FilePath directory = GetDirectory();
@@ -211,7 +211,7 @@ bool DataStoreBase::Read(const String& key, ByteBuffer& out_byte_buffer) const
 
 bool DataStoreBase::Exists(const String& key) const
 {
-    AssertThrowMsg(m_claimed_semaphore.IsInSignalState(), "Cannot read from DataStore, not yet init");
+    AssertThrowMsg(m_ref_counter.IsInSignalState(), "Cannot read from DataStore, not yet init");
     AssertThrowMsg(m_options.flags & DSF_READ, "Data store is not readable");
 
     const FilePath directory = GetDirectory();

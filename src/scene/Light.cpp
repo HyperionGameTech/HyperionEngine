@@ -91,7 +91,7 @@ void Light::Init()
 
     HypObject::Init();
 
-    m_render_resource = AllocateResource<LightRenderResource>(this);
+    m_render_resource = AllocateResource<RenderLight>(this);
 
     if (m_material.IsValid())
     {

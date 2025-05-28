@@ -5,7 +5,7 @@ HYP_DESCRIPTOR_SAMPLER(Global, SamplerLinear, 1);
 HYP_DESCRIPTOR_SAMPLER(Global, SamplerNearest, 1);
 HYP_DESCRIPTOR_SRV(Global, UITexture, 1);
 HYP_DESCRIPTOR_SRV(Global, FinalOutputTexture, 1);
-HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer, 1, sizeof(EntityShaderData) * max_entities, false);
+HYP_DESCRIPTOR_SSBO(Global, ObjectsBuffer, 1, ~0u, false);
 HYP_DESCRIPTOR_SRV(Global, EnvProbeTextures, max_bound_reflection_probes);
 HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture, 1);

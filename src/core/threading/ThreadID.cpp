@@ -8,8 +8,6 @@
 
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/memory/MemoryPool.hpp>
-
 #include <core/IDGenerator.hpp>
 
 #include <core/Defines.hpp>

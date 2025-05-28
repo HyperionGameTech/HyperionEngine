@@ -17,9 +17,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
-#pragma region ShadowMapRenderResource
+#pragma region RenderShadowMap
 
-ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view)
+RenderShadowMap::RenderShadowMap(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view)
     : m_type(type),
       m_filter_mode(filter_mode),
       m_atlas_element(atlas_element),
@@ -33,7 +33,7 @@ ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapType type, ShadowMapFi
         atlas_element.scale);
 }
 
-ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapRenderResource&& other) noexcept
+RenderShadowMap::RenderShadowMap(RenderShadowMap&& other) noexcept
     : RenderResourceBase(static_cast<RenderResourceBase&&>(other)),
       m_type(other.m_type),
       m_filter_mode(other.m_filter_mode),
@@ -43,34 +43,34 @@ ShadowMapRenderResource::ShadowMapRenderResource(ShadowMapRenderResource&& other
 {
 }
 
-ShadowMapRenderResource::~ShadowMapRenderResource()
+RenderShadowMap::~RenderShadowMap()
 {
     SafeRelease(std::move(m_image_view));
 }
 
-void ShadowMapRenderResource::Initialize_Internal()
+void RenderShadowMap::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void ShadowMapRenderResource::Destroy_Internal()
+void RenderShadowMap::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void ShadowMapRenderResource::Update_Internal()
+void RenderShadowMap::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* ShadowMapRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderShadowMap::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->shadow_map_data;
 }
 
-void ShadowMapRenderResource::UpdateBufferData()
+void RenderShadowMap::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -100,7 +100,7 @@ void ShadowMapRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData& buffer_data)
+void RenderShadowMap::SetBufferData(const ShadowMapShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -115,13 +115,13 @@ void ShadowMapRenderResource::SetBufferData(const ShadowMapShaderData& buffer_da
         });
 }
 
-#pragma endregion ShadowMapRenderResource
+#pragma endregion RenderShadowMap
 
 namespace renderer {
 
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
-HYP_DESCRIPTOR_SSBO(Global, ShadowMapsBuffer, 1, sizeof(ShadowMapShaderData) * max_shadow_maps, false);
+HYP_DESCRIPTOR_SSBO(Global, ShadowMapsBuffer, 1, ~0u, false);
 
 } // namespace renderer
 

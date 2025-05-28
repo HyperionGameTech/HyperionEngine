@@ -173,7 +173,7 @@ void FinalPass::Create()
     m_render_texture_to_screen_pass->Create();
 }
 
-void FinalPass::Render(FrameBase* frame, WorldRenderResource* world_render_resource)
+void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -197,9 +197,9 @@ void FinalPass::Render(FrameBase* frame, WorldRenderResource* world_render_resou
     AssertThrow(descriptor_set_index != ~0u);
 
     // Render each sub-view
-    if (world_render_resource)
+    if (render_world)
     {
-        for (const TResourceHandle<ViewRenderResource>& it : world_render_resource->GetViews())
+        for (const TResourceHandle<RenderView>& it : render_world->GetViews())
         {
             if (it->GetFinalPassDescriptorSet() == nullptr)
             {

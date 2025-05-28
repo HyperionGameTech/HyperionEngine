@@ -44,9 +44,9 @@ HYP_DECLARE_LOG_CHANNEL(EnvGrid);
 class EnvGridRenderSubsystem : public RenderSubsystem
 {
 public:
-    EnvGridRenderSubsystem(Name name, const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle)
+    EnvGridRenderSubsystem(Name name, const TResourceHandle<RenderEnvGrid>& env_render_grid)
         : RenderSubsystem(name),
-          m_env_grid_render_resource_handle(env_grid_render_resource_handle)
+          m_env_render_grid(env_render_grid)
     {
     }
 
@@ -55,7 +55,7 @@ public:
     virtual void Init() override
     {
         // @TODO refactor
-        g_engine->GetRenderState()->BindEnvGrid(TResourceHandle<EnvGridRenderResource>(m_env_grid_render_resource_handle));
+        g_engine->GetRenderState()->BindEnvGrid(TResourceHandle<RenderEnvGrid>(m_env_render_grid));
     }
 
     virtual void OnRemoved() override
@@ -65,11 +65,11 @@ public:
 
     virtual void OnRender(FrameBase* frame) override
     {
-        m_env_grid_render_resource_handle->Render(frame);
+        m_env_render_grid->Render(frame);
     }
 
 private:
-    TResourceHandle<EnvGridRenderResource> m_env_grid_render_resource_handle;
+    TResourceHandle<RenderEnvGrid> m_env_render_grid;
 };
 
 #pragma endregion EnvGridRenderSubsystem
@@ -118,10 +118,10 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
 
         InitObject(env_grid_component.env_grid);
 
-        env_grid_component.env_grid_render_resource_handle = TResourceHandle<EnvGridRenderResource>(env_grid_component.env_grid->GetRenderResource());
+        env_grid_component.env_render_grid = TResourceHandle<RenderEnvGrid>(env_grid_component.env_grid->GetRenderResource());
         env_grid_component.env_grid_render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
             Name::Unique("EnvGridRenderSubsystem"),
-            env_grid_component.env_grid_render_resource_handle);
+            env_grid_component.env_render_grid);
     }
 }
 
@@ -131,7 +131,7 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     EnvGridComponent& env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
-    env_grid_component.env_grid_render_resource_handle.Reset();
+    env_grid_component.env_render_grid.Reset();
 
     if (env_grid_component.env_grid_render_subsystem)
     {

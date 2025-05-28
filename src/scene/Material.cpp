@@ -119,7 +119,7 @@ void Material::Init()
 
     HypObject::Init();
 
-    m_render_resource = AllocateResource<MaterialRenderResource>(this);
+    m_render_resource = AllocateResource<RenderMaterial>(this);
 
     if (!m_shader.IsValid())
     {

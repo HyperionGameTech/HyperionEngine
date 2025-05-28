@@ -367,15 +367,15 @@ public:
 
     HYP_FORCE_INLINE bool operator!() const
     {
-        return !AnyBound();
+        return !Delegate::AnyBound();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return AnyBound();
+        return Delegate::AnyBound();
     }
 
-    virtual bool AnyBound() const override
+    virtual bool AnyBound() const override final
     {
         return m_num_procs.Get(MemoryOrder::ACQUIRE) != 0;
     }

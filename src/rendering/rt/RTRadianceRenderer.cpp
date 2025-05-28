@@ -116,7 +116,7 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, ViewRenderResource* view)
+void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, RenderView* view)
 {
     RTRadianceUniforms uniforms {};
 
@@ -167,12 +167,12 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, ViewRenderResource* vi
     }
 }
 
-void RTRadianceRenderer::Render(FrameBase* frame, ViewRenderResource* view)
+void RTRadianceRenderer::Render(FrameBase* frame, RenderView* view)
 {
     UpdateUniforms(frame, view);
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     frame->GetCommandList().Add<BindRaytracingPipeline>(m_raytracing_pipeline);
 
@@ -183,8 +183,8 @@ void RTRadianceRenderer::Render(FrameBase* frame, ViewRenderResource* view)
             { NAME("Global"),
                 { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), ResourceState::UNORDERED_ACCESS);

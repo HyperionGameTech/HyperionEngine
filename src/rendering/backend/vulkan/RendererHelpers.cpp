@@ -4,6 +4,7 @@
 
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/RendererFence.hpp>
+#include <rendering/backend/vulkan/RendererFrame.hpp>
 #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
@@ -256,7 +257,12 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
 
     RendererResult result;
 
-    VulkanFenceRef fence = MakeRenderObject<VulkanFence>();
+    VulkanFrameRef temp_frame = VulkanFrameRef(GetRenderingAPI()->MakeFrame(0));
+    HYPERION_BUBBLE_ERRORS(temp_frame->Create());
+
+    command_list.Prepare(temp_frame);
+
+    temp_frame->UpdateUsedDescriptorSets();
 
     VulkanCommandBufferRef command_buffer = MakeRenderObject<VulkanCommandBuffer>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
     HYPERION_BUBBLE_ERRORS(command_buffer->Create(GetRenderingAPI()->GetDevice()->GetGraphicsQueue().command_pools[0]));
@@ -268,6 +274,8 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
 
     HYPERION_PASS_ERRORS(command_buffer->End(), result);
 
+    // @TODO Refactor to use frame's fence instead, just need to make Frame able to not be presentable
+    VulkanFenceRef fence = MakeRenderObject<VulkanFence>();
     HYPERION_PASS_ERRORS(fence->Create(), result);
     HYPERION_PASS_ERRORS(fence->Reset(), result);
 
@@ -280,6 +288,8 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
     HYPERION_PASS_ERRORS(fence->Destroy(), result);
 
     HYPERION_PASS_ERRORS(command_buffer->Destroy(), result);
+
+    HYPERION_PASS_ERRORS(temp_frame->Destroy(), result);
 
     return result;
 }

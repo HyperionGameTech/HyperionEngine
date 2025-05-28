@@ -21,9 +21,9 @@ namespace hyperion {
 class Light;
 class EnvProbe;
 class Scene;
-class SceneRenderResource;
-class ShadowMapRenderResource;
-class LightRenderResource;
+class RenderScene;
+class RenderShadowMap;
+class RenderLight;
 
 HYP_CLASS()
 
@@ -35,7 +35,7 @@ public:
     PointLightShadowRenderer(
         Name name,
         const Handle<Scene>& parent_scene,
-        const TResourceHandle<LightRenderResource>& light_render_resource_handle,
+        const TResourceHandle<RenderLight>& render_light,
         const Vec2u& extent);
 
     PointLightShadowRenderer(const PointLightShadowRenderer& other) = delete;
@@ -50,14 +50,14 @@ private:
     virtual void OnRender(FrameBase* frame) override;
 
     Handle<Scene> m_parent_scene;
-    TResourceHandle<LightRenderResource> m_light_render_resource_handle;
+    TResourceHandle<RenderLight> m_render_light;
     Vec2u m_extent;
     BoundingBox m_aabb;
     Handle<EnvProbe> m_env_probe;
 
-    TResourceHandle<SceneRenderResource> m_scene_render_resource_handle;
+    TResourceHandle<RenderScene> m_render_scene;
 
-    TResourceHandle<ShadowMapRenderResource> m_shadow_map_render_resource_handle;
+    TResourceHandle<RenderShadowMap> m_shadow_render_map;
 
     bool m_last_visibility_state = false;
 };

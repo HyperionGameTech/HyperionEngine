@@ -30,11 +30,11 @@ namespace hyperion {
 
 using RerenderShadowsSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
 
-class CameraRenderResource;
-class ShadowMapRenderResource;
-class SceneRenderResource;
-class WorldRenderResource;
-class LightRenderResource;
+class RenderCamera;
+class RenderShadowMap;
+class RenderScene;
+class RenderWorld;
+class RenderLight;
 class View;
 
 struct ShadowMapCameraData
@@ -49,11 +49,11 @@ class ShadowPass final : public FullScreenPass
 public:
     ShadowPass(
         const Handle<Scene>& parent_scene,
-        const TResourceHandle<WorldRenderResource>& world_resource_handle,
-        const TResourceHandle<CameraRenderResource>& camera_resource_handle,
-        const TResourceHandle<ShadowMapRenderResource>& shadow_map_resource_handle,
-        const TResourceHandle<ViewRenderResource>& view_statics_resource_handle,
-        const TResourceHandle<ViewRenderResource>& view_dynamics_resource_handle,
+        const TResourceHandle<RenderWorld>& world_resource_handle,
+        const TResourceHandle<RenderCamera>& camera_resource_handle,
+        const TResourceHandle<RenderShadowMap>& shadow_map_resource_handle,
+        const TResourceHandle<RenderView>& view_statics_resource_handle,
+        const TResourceHandle<RenderView>& view_dynamics_resource_handle,
         const ShaderRef& shader,
         RerenderShadowsSemaphore* rerender_semaphore);
     ShadowPass(const ShadowPass& other) = delete;
@@ -73,9 +73,9 @@ public:
     virtual void CreateFramebuffer() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -86,11 +86,11 @@ private:
     void CreateComputePipelines();
 
     Handle<Scene> m_parent_scene;
-    TResourceHandle<WorldRenderResource> m_world_resource_handle;
-    TResourceHandle<CameraRenderResource> m_camera_resource_handle;
-    TResourceHandle<ShadowMapRenderResource> m_shadow_map_resource_handle;
-    TResourceHandle<ViewRenderResource> m_view_statics_resource_handle;
-    TResourceHandle<ViewRenderResource> m_view_dynamics_resource_handle;
+    TResourceHandle<RenderWorld> m_world_resource_handle;
+    TResourceHandle<RenderCamera> m_camera_resource_handle;
+    TResourceHandle<RenderShadowMap> m_shadow_map_resource_handle;
+    TResourceHandle<RenderView> m_view_statics_resource_handle;
+    TResourceHandle<RenderView> m_view_dynamics_resource_handle;
 
     Vec3f m_origin;
     RerenderShadowsSemaphore* m_rerender_semaphore;
@@ -112,7 +112,7 @@ public:
     DirectionalLightShadowRenderer(
         Name name,
         const Handle<Scene>& parent_scene,
-        const TResourceHandle<LightRenderResource>& light_render_resource_handle,
+        const TResourceHandle<RenderLight>& render_light,
         Vec2u resolution,
         ShadowMapFilterMode filter_mode);
 
@@ -140,7 +140,7 @@ public:
         m_aabb = aabb;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<ShadowMapRenderResource>& GetShadowMapResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapResourceHandle() const
     {
         return m_shadow_map_resource_handle;
     }
@@ -158,7 +158,7 @@ private:
     Handle<View> m_view_statics;
     Handle<View> m_view_dynamics;
 
-    TResourceHandle<LightRenderResource> m_light_render_resource_handle;
+    TResourceHandle<RenderLight> m_render_light;
 
     UniquePtr<ShadowPass> m_shadow_pass;
     Vec2u m_resolution;
@@ -170,7 +170,7 @@ private:
     Handle<Camera> m_camera;
     BoundingBox m_aabb;
 
-    TResourceHandle<ShadowMapRenderResource> m_shadow_map_resource_handle;
+    TResourceHandle<RenderShadowMap> m_shadow_map_resource_handle;
 
     HashCode m_cached_octant_hash_code_statics;
     Matrix4 m_cached_view_matrix;

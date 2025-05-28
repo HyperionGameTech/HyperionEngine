@@ -186,7 +186,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
             AssertThrow(object != nullptr);
 
             script_component.resource = AllocateResource<ManagedObjectResource>(object);
-            script_component.resource->Claim();
+            script_component.resource->IncRef();
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))
             {
@@ -224,7 +224,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
 
             if (script_component.resource)
             {
-                script_component.resource->Unclaim();
+                script_component.resource->DecRef();
 
                 FreeResource<ManagedObjectResource>(script_component.resource);
                 script_component.resource = nullptr;
@@ -277,7 +277,7 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
             }
         }
 
-        script_component.resource->Unclaim();
+        script_component.resource->DecRef();
 
         FreeResource<ManagedObjectResource>(script_component.resource);
         script_component.resource = nullptr;

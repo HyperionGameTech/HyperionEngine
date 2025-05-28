@@ -199,12 +199,12 @@ struct DescriptorSetDeclaration
 {
     uint32 set_index = ~0u;
     Name name = Name::Invalid();
-    FixedArray<Array<DescriptorDeclaration>, DESCRIPTOR_SLOT_MAX> slots = {};
+    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, DESCRIPTOR_SLOT_MAX> slots = {};
 
     // is this a reference to a global descriptor set declaration?
-    bool is_reference = false;
+    bool is_reference : 1 = false;
     // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
-    bool is_template = false;
+    bool is_template : 1 = false;
 
     DescriptorSetDeclaration() = default;
 
@@ -221,20 +221,6 @@ struct DescriptorSetDeclaration
     DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
     DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
     ~DescriptorSetDeclaration() = default;
-
-    HYP_FORCE_INLINE Array<DescriptorDeclaration>& GetSlot(DescriptorSlot slot)
-    {
-        AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
-
-        return slots[uint32(slot) - 1];
-    }
-
-    HYP_FORCE_INLINE const Array<DescriptorDeclaration>& GetSlot(DescriptorSlot slot) const
-    {
-        AssertThrow(slot < DESCRIPTOR_SLOT_MAX && slot > DESCRIPTOR_SLOT_NONE);
-
-        return slots[uint32(slot) - 1];
-    }
 
     HYP_FORCE_INLINE void AddDescriptorDeclaration(renderer::DescriptorDeclaration decl)
     {
@@ -364,13 +350,15 @@ public:
 
             AssertThrowMsg(set_index != ~0u, "Descriptor set %s not found", set_name.LookupString());
 
-            DescriptorSetDeclaration& decl = table->m_elements[set_index];
-            AssertThrow(decl.set_index == set_index);
-            AssertThrow(slot_type > 0 && slot_type < decl.slots.Size());
+            DescriptorSetDeclaration& descriptor_set_decl = table->m_elements[set_index];
+            AssertThrow(descriptor_set_decl.set_index == set_index);
+            AssertThrow(slot_type > 0 && slot_type < descriptor_set_decl.slots.Size());
 
-            const uint32 slot_index = uint32(decl.slots[uint32(slot_type) - 1].Size());
+            const uint32 slot_type_index = uint32(slot_type) - 1;
 
-            DescriptorDeclaration descriptor_decl {};
+            const uint32 slot_index = uint32(descriptor_set_decl.slots[slot_type_index].Size());
+
+            DescriptorDeclaration& descriptor_decl = descriptor_set_decl.slots[slot_type_index].EmplaceBack();
             descriptor_decl.index = slot_index;
             descriptor_decl.slot = slot_type;
             descriptor_decl.name = descriptor_name;
@@ -378,7 +366,6 @@ public:
             descriptor_decl.size = size;
             descriptor_decl.count = count;
             descriptor_decl.is_dynamic = is_dynamic;
-            decl.slots[uint32(slot_type) - 1].PushBack(descriptor_decl);
         }
     };
 };

@@ -15,41 +15,41 @@
 
 namespace hyperion {
 
-SceneRenderResource::SceneRenderResource(Scene* scene)
+RenderScene::RenderScene(Scene* scene)
     : m_scene(scene)
 {
     m_environment = CreateObject<RenderEnvironment>();
     InitObject(m_environment);
 }
 
-SceneRenderResource::~SceneRenderResource() = default;
+RenderScene::~RenderScene() = default;
 
-void SceneRenderResource::SetCameraRenderResourceHandle(const TResourceHandle<CameraRenderResource>& camera_render_resource_handle)
+void RenderScene::SetCameraRenderResourceHandle(const TResourceHandle<RenderCamera>& render_camera)
 {
-    Execute([this, camera_render_resource_handle]()
+    Execute([this, render_camera]()
         {
-            m_camera_render_resource_handle = std::move(camera_render_resource_handle);
+            m_render_camera = std::move(render_camera);
         });
 }
 
-void SceneRenderResource::Initialize_Internal()
+void RenderScene::Initialize_Internal()
 {
     HYP_SCOPE;
 
     UpdateBufferData();
 }
 
-void SceneRenderResource::Destroy_Internal()
+void RenderScene::Destroy_Internal()
 {
     HYP_SCOPE;
 }
 
-void SceneRenderResource::Update_Internal()
+void RenderScene::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-void SceneRenderResource::UpdateBufferData()
+void RenderScene::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -61,7 +61,7 @@ void SceneRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void SceneRenderResource::SetBufferData(const SceneShaderData& buffer_data)
+void RenderScene::SetBufferData(const SceneShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -76,7 +76,7 @@ void SceneRenderResource::SetBufferData(const SceneShaderData& buffer_data)
         });
 }
 
-GPUBufferHolderBase* SceneRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderScene::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->scenes;
 }

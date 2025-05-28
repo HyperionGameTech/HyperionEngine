@@ -152,7 +152,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent&
         shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
             GetScene()->HandleFromThis(),
-            TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
+            TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
             shadow_map_component.resolution,
             shadow_map_component.mode);
 
@@ -161,7 +161,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent&
         shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_point"),
             GetScene()->HandleFromThis(),
-            TResourceHandle<LightRenderResource>(light_component.light->GetRenderResource()),
+            TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
             shadow_map_component.resolution);
 
         break;

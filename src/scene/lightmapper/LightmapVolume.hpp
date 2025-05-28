@@ -20,7 +20,7 @@ namespace hyperion {
 
 class Texture;
 
-// @TODO: Create LightmapVolumeRenderResource, and add it to the RenderState.
+// @TODO: Create RenderLightmapVolume, and add it to the RenderState.
 // Any visible objects that have a LightmapElementComponent with `volume` of this LightmapVolume
 // should be bound to the RenderState, so we ensure the proper textures are available at render time.
 

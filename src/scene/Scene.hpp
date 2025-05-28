@@ -33,7 +33,7 @@ class World;
 class Scene;
 class EntityManager;
 class WorldGrid;
-class SceneRenderResource;
+class RenderScene;
 
 struct FogParams
 {
@@ -105,7 +105,7 @@ public:
     Scene& operator=(const Scene& other) = delete;
     ~Scene();
 
-    HYP_FORCE_INLINE SceneRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderScene& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -265,7 +265,7 @@ private:
 
     GameCounter::TickUnit m_previous_delta;
 
-    SceneRenderResource* m_render_resource;
+    RenderScene* m_render_resource;
 };
 
 } // namespace hyperion

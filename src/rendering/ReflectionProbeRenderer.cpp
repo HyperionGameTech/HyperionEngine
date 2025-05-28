@@ -22,9 +22,9 @@ namespace hyperion {
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
     Name name,
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle)
+    const TResourceHandle<RenderEnvProbe>& env_render_probe)
     : RenderSubsystem(name),
-      m_env_probe_render_resource_handle(env_probe_render_resource_handle),
+      m_env_render_probe(env_render_probe),
       m_last_visibility_state(false)
 {
 }
@@ -35,7 +35,7 @@ ReflectionProbeRenderer::~ReflectionProbeRenderer()
 
 void ReflectionProbeRenderer::Init()
 {
-    m_env_probe_render_resource_handle->EnqueueBind();
+    m_env_render_probe->EnqueueBind();
 }
 
 // called from game thread
@@ -46,7 +46,7 @@ void ReflectionProbeRenderer::InitGame()
 
 void ReflectionProbeRenderer::OnRemoved()
 {
-    m_env_probe_render_resource_handle->EnqueueUnbind();
+    m_env_render_probe->EnqueueUnbind();
 }
 
 void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -60,21 +60,21 @@ void ReflectionProbeRenderer::OnRender(FrameBase* frame)
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool())
     {
         g_engine->GetDebugDrawer()->ReflectionProbe(
-            m_env_probe_render_resource_handle->GetBufferData().world_position.GetXYZ(),
+            m_env_render_probe->GetBufferData().world_position.GetXYZ(),
             0.5f,
-            *m_env_probe_render_resource_handle->GetEnvProbe());
+            *m_env_render_probe->GetEnvProbe());
     }
 
-    if (!m_env_probe_render_resource_handle->GetEnvProbe()->NeedsRender())
+    if (!m_env_render_probe->GetEnvProbe()->NeedsRender())
     {
         return;
     }
 
-    m_env_probe_render_resource_handle->Render(frame);
+    m_env_render_probe->Render(frame);
 
     HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe #{} (type: {})",
-        m_env_probe_render_resource_handle->GetEnvProbe()->GetID().Value(),
-        (uint32)m_env_probe_render_resource_handle->GetEnvProbe()->GetEnvProbeType());
+        m_env_render_probe->GetEnvProbe()->GetID().Value(),
+        (uint32)m_env_render_probe->GetEnvProbe()->GetEnvProbeType());
 }
 
 } // namespace hyperion

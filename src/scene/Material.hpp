@@ -26,7 +26,7 @@
 namespace hyperion {
 
 class Texture;
-class MaterialRenderResource;
+class RenderMaterial;
 
 enum class MaterialTextureKey : uint64
 {
@@ -77,7 +77,7 @@ public:
     static constexpr uint32 max_parameters = 32u;
     static constexpr uint32 max_textures = 32u;
 
-    friend class MaterialRenderResource;
+    friend class RenderMaterial;
 
     struct Parameter
     {
@@ -466,7 +466,7 @@ public:
         m_name = name;
     }
 
-    HYP_FORCE_INLINE MaterialRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderMaterial& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -761,7 +761,7 @@ private:
 
     mutable DataMutationState m_mutation_state;
 
-    MaterialRenderResource* m_render_resource;
+    RenderMaterial* m_render_resource;
 };
 
 HYP_CLASS()

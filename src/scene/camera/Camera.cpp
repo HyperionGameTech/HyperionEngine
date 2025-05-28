@@ -206,7 +206,7 @@ Camera::~Camera()
     if (m_render_resource != nullptr)
     {
         m_render_resource->EnqueueUnbind();
-        m_render_resource->Unclaim();
+        m_render_resource->DecRef();
         FreeResource(m_render_resource);
     }
 }
@@ -273,14 +273,14 @@ void Camera::Init()
         {
             if (m_render_resource != nullptr)
             {
-                m_render_resource->Unclaim();
+                m_render_resource->DecRef();
                 FreeResource(m_render_resource);
 
                 m_render_resource = nullptr;
             }
         }));
 
-    m_render_resource = AllocateResource<CameraRenderResource>(this);
+    m_render_resource = AllocateResource<RenderCamera>(this);
 
     UpdateMatrices();
 
@@ -296,7 +296,7 @@ void Camera::Init()
         .camera_fov = m_fov,
         .id = GetID().Value() });
 
-    m_render_resource->Claim();
+    m_render_resource->IncRef();
 
     SetReady(true);
 }

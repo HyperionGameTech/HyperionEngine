@@ -45,39 +45,39 @@ void MeshInstanceData_PostLoad(MeshInstanceData& mesh_instance_data)
 
 #pragma region RenderProxy
 
-void RenderProxy::ClaimRenderResource() const
+void RenderProxy::IncRefs() const
 {
     if (material.IsValid())
     {
-        material->GetRenderResource().Claim();
+        material->GetRenderResource().IncRef();
     }
 
     if (mesh.IsValid())
     {
-        mesh->GetRenderResource().Claim();
+        mesh->GetRenderResource().IncRef();
     }
 
     if (skeleton.IsValid())
     {
-        skeleton->GetRenderResource().Claim();
+        skeleton->GetRenderResource().IncRef();
     }
 }
 
-void RenderProxy::UnclaimRenderResource() const
+void RenderProxy::DecRefs() const
 {
     if (material.IsValid())
     {
-        material->GetRenderResource().Unclaim();
+        material->GetRenderResource().DecRef();
     }
 
     if (mesh.IsValid())
     {
-        mesh->GetRenderResource().Unclaim();
+        mesh->GetRenderResource().DecRef();
     }
 
     if (skeleton.IsValid())
     {
-        skeleton->GetRenderResource().Unclaim();
+        skeleton->GetRenderResource().DecRef();
     }
 }
 

@@ -338,6 +338,8 @@ bool VulkanDescriptorSet::IsCreated() const
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const GraphicsPipelineBase* pipeline, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
@@ -360,6 +362,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const Gr
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const GraphicsPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
     HashSet<Name> used_offsets;
 
     Array<uint32> offsets_flat;
@@ -410,6 +414,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const Gr
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const ComputePipelineBase* pipeline, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
@@ -432,6 +438,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const Co
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const ComputePipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
     HashSet<Name> used_offsets;
 
     Array<uint32> offsets_flat;
@@ -482,6 +490,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const Co
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const RaytracingPipelineBase* pipeline, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
 #if defined(HYP_DEBUG_MODE) && false
     for (SizeType i = 0; i < m_layout.GetDynamicElements().Size(); i++)
     {
@@ -504,6 +514,8 @@ void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const Ra
 
 void VulkanDescriptorSet::Bind(const CommandBufferBase* command_buffer, const RaytracingPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const
 {
+    AssertThrow(m_handle != VK_NULL_HANDLE);
+
     HashSet<Name> used_offsets;
 
     Array<uint32> offsets_flat;

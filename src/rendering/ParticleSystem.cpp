@@ -353,17 +353,17 @@ void ParticleSystem::CreateBuffers()
         m_quad_mesh);
 }
 
-void ParticleSystem::UpdateParticles(FrameBase* frame, ViewRenderResource* view)
+void ParticleSystem::UpdateParticles(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     if (m_particle_spawners.GetItems().Empty())
     {
@@ -433,10 +433,10 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, ViewRenderResource* view)
             spawner->GetComputePipeline(),
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
             frame->GetFrameIndex());
 
         const uint32 scene_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
@@ -471,7 +471,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, ViewRenderResource* view)
     }
 }
 
-void ParticleSystem::Render(FrameBase* frame, ViewRenderResource* view)
+void ParticleSystem::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
 
@@ -480,10 +480,10 @@ void ParticleSystem::Render(FrameBase* frame, ViewRenderResource* view)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const SceneRenderResource* scene_render_resource = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<CameraRenderResource>& camera_render_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<EnvGridRenderResource>& env_grid_render_resource_handle = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     for (const Handle<ParticleSpawner>& particle_spawner : m_particle_spawners.GetItems())
     {
@@ -496,10 +496,10 @@ void ParticleSystem::Render(FrameBase* frame, ViewRenderResource* view)
             pipeline,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(scene_render_resource) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_render_resource_handle) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid_render_resource_handle.Get(), 0) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_render_resource_handle.Get(), 0) } } } },
+                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
             frame_index);
 
         const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));

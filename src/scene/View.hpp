@@ -19,11 +19,11 @@
 
 namespace hyperion {
 
-class ViewRenderResource;
+class RenderView;
 class Scene;
 class Camera;
 class Light;
-class LightRenderResource;
+class RenderLight;
 
 enum class ViewFlags : uint32
 {
@@ -77,7 +77,7 @@ public:
 
     ~View();
 
-    HYP_FORCE_INLINE ViewRenderResource& GetRenderResource() const
+    HYP_FORCE_INLINE RenderView& GetRenderResource() const
     {
         return *m_render_resource;
     }
@@ -132,7 +132,7 @@ protected:
     typename RenderProxyTracker::Diff CollectDynamicEntities();
     typename RenderProxyTracker::Diff CollectStaticEntities();
 
-    ViewRenderResource* m_render_resource;
+    RenderView* m_render_resource;
 
     EnumFlags<ViewFlags> m_flags;
 
@@ -150,7 +150,7 @@ protected:
     // Game thread side collection
     RenderProxyTracker m_render_proxy_tracker;
 
-    ResourceTracker<ID<Light>, LightRenderResource*> m_tracked_lights;
+    ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
 };

@@ -300,10 +300,10 @@ public:
         return m_type.IsOrExtends(FBOMString());
     }
 
-    template <int string_type>
-    HYP_FORCE_INLINE FBOMResult ReadString(containers::detail::String<string_type>& str) const
+    template <int TStringType>
+    HYP_FORCE_INLINE FBOMResult ReadString(containers::detail::String<TStringType>& str) const
     {
-        static_assert(string_type == int(StringType::ANSI) || string_type == int(StringType::UTF8), "String type must be ANSI or UTF8");
+        static_assert(TStringType == int(StringType::ANSI) || TStringType == int(StringType::UTF8), "String type must be ANSI or UTF8");
 
         FBOM_ASSERT(IsString(), "Type mismatch (expected String)");
 

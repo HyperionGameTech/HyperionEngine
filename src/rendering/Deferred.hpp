@@ -61,7 +61,7 @@ public:
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
 protected:
     void CreateShader();
@@ -105,7 +105,7 @@ public:
     virtual ~TonemapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
 protected:
     virtual void CreatePipeline() override;
@@ -133,7 +133,7 @@ public:
     virtual ~LightmapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
 protected:
     virtual void CreatePipeline() override;
@@ -161,9 +161,9 @@ public:
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -223,9 +223,9 @@ public:
     bool ShouldRenderSSR() const;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, ViewRenderResource* view) override;
+    virtual void Render(FrameBase* frame, RenderView* view) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, ViewRenderResource* view, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }

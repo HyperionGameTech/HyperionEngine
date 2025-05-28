@@ -139,7 +139,7 @@ void TemporalAA::CreateComputePipelines()
     DeferCreate(m_compute_taa);
 }
 
-void TemporalAA::Render(FrameBase* frame, ViewRenderResource* view)
+void TemporalAA::Render(FrameBase* frame, RenderView* view)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 

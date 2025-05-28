@@ -176,7 +176,7 @@ void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionPro
 
         reflection_probe_component.reflection_probe_renderer = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("ReflectionProbeRenderer"),
-            TResourceHandle<EnvProbeRenderResource>(reflection_probe_component.env_probe->GetRenderResource()));
+            TResourceHandle<RenderEnvProbe>(reflection_probe_component.env_probe->GetRenderResource()));
     }
 }
 

@@ -35,12 +35,12 @@ class Mesh;
 class Material;
 class RHICommandList;
 
-class MeshRenderResource final : public RenderResourceBase
+class RenderMesh final : public RenderResourceBase
 {
 public:
-    MeshRenderResource(Mesh* mesh);
-    MeshRenderResource(MeshRenderResource&& other) noexcept;
-    virtual ~MeshRenderResource() override;
+    RenderMesh(Mesh* mesh);
+    RenderMesh(RenderMesh&& other) noexcept;
+    virtual ~RenderMesh() override;
 
     /*! \note Only to be called from render thread or render task */
     HYP_FORCE_INLINE const GPUBufferRef& GetVertexBuffer() const

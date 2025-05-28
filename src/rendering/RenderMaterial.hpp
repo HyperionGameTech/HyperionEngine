@@ -23,7 +23,7 @@ namespace hyperion {
 
 class Material;
 class Texture;
-class TextureRenderResource;
+class RenderTexture;
 
 enum class MaterialTextureKey : uint64;
 
@@ -48,14 +48,12 @@ struct MaterialShaderData
 
 static_assert(sizeof(MaterialShaderData) == 128);
 
-static constexpr uint32 max_materials = (8ull * 1024ull * 1024ull) / sizeof(MaterialShaderData);
-
-class MaterialRenderResource final : public RenderResourceBase
+class RenderMaterial final : public RenderResourceBase
 {
 public:
-    MaterialRenderResource(Material* material);
-    MaterialRenderResource(MaterialRenderResource&& other) noexcept;
-    virtual ~MaterialRenderResource() override;
+    RenderMaterial(Material* material);
+    RenderMaterial(RenderMaterial&& other) noexcept;
+    virtual ~RenderMaterial() override;
 
     /*! \note Only call this method from the render thread or task initiated by the render thread */
     HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight>& GetDescriptorSets() const
@@ -85,7 +83,7 @@ private:
 
     Material* m_material;
     FlatMap<MaterialTextureKey, Handle<Texture>> m_textures;
-    HashMap<ID<Texture>, TResourceHandle<TextureRenderResource>> m_texture_render_resources;
+    HashMap<ID<Texture>, TResourceHandle<RenderTexture>> m_render_textures;
     Array<ID<Texture>> m_bound_texture_ids;
     MaterialShaderData m_buffer_data;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;

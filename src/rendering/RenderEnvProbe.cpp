@@ -51,9 +51,9 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, con
     return view_matrices;
 }
 
-#pragma region EnvProbeRenderResource
+#pragma region RenderEnvProbe
 
-EnvProbeRenderResource::EnvProbeRenderResource(EnvProbe* env_probe)
+RenderEnvProbe::RenderEnvProbe(EnvProbe* env_probe)
     : m_env_probe(env_probe),
       m_buffer_data {},
       m_texture_slot(~0u)
@@ -65,23 +65,23 @@ EnvProbeRenderResource::EnvProbeRenderResource(EnvProbe* env_probe)
     }
 }
 
-EnvProbeRenderResource::~EnvProbeRenderResource()
+RenderEnvProbe::~RenderEnvProbe()
 {
-    if (m_camera_render_resource_handle)
+    if (m_render_camera)
     {
-        m_camera_render_resource_handle->SetFramebuffer(nullptr);
+        m_render_camera->SetFramebuffer(nullptr);
     }
 
-    m_scene_render_resource_handle.Reset();
-    m_camera_render_resource_handle.Reset();
-    m_view_render_resource_handle.Reset();
-    m_shadow_map_render_resource_handle.Reset();
+    m_render_scene.Reset();
+    m_render_camera.Reset();
+    m_render_view.Reset();
+    m_shadow_render_map.Reset();
 
     SafeRelease(std::move(m_shader));
     SafeRelease(std::move(m_framebuffer));
 }
 
-void EnvProbeRenderResource::SetTextureSlot(uint32_t texture_slot)
+void RenderEnvProbe::SetTextureSlot(uint32_t texture_slot)
 {
     HYP_SCOPE;
 
@@ -93,7 +93,7 @@ void EnvProbeRenderResource::SetTextureSlot(uint32_t texture_slot)
         });
 }
 
-void EnvProbeRenderResource::SetPositionInGrid(const Vec4i& position_in_grid)
+void RenderEnvProbe::SetPositionInGrid(const Vec4i& position_in_grid)
 {
     HYP_SCOPE;
 
@@ -105,7 +105,7 @@ void EnvProbeRenderResource::SetPositionInGrid(const Vec4i& position_in_grid)
         });
 }
 
-void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData& buffer_data)
+void RenderEnvProbe::SetBufferData(const EnvProbeShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -124,77 +124,77 @@ void EnvProbeRenderResource::SetBufferData(const EnvProbeShaderData& buffer_data
         });
 }
 
-void EnvProbeRenderResource::SetCameraResourceHandle(TResourceHandle<CameraRenderResource>&& camera_render_resource_handle)
+void RenderEnvProbe::SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera)
 {
     HYP_SCOPE;
 
-    Execute([this, camera_render_resource_handle = std::move(camera_render_resource_handle)]()
+    Execute([this, render_camera = std::move(render_camera)]()
         {
-            if (m_camera_render_resource_handle == camera_render_resource_handle)
+            if (m_render_camera == render_camera)
             {
                 return;
             }
 
-            if (m_camera_render_resource_handle)
+            if (m_render_camera)
             {
-                m_camera_render_resource_handle->SetFramebuffer(nullptr);
+                m_render_camera->SetFramebuffer(nullptr);
             }
 
-            m_camera_render_resource_handle = std::move(camera_render_resource_handle);
+            m_render_camera = std::move(render_camera);
 
-            if (m_camera_render_resource_handle)
+            if (m_render_camera)
             {
-                m_camera_render_resource_handle->SetFramebuffer(m_framebuffer);
+                m_render_camera->SetFramebuffer(m_framebuffer);
             }
         });
 }
 
-void EnvProbeRenderResource::SetSceneResourceHandle(TResourceHandle<SceneRenderResource>&& scene_render_resource_handle)
+void RenderEnvProbe::SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene)
 {
     HYP_SCOPE;
 
-    Execute([this, scene_render_resource_handle = std::move(scene_render_resource_handle)]()
+    Execute([this, render_scene = std::move(render_scene)]()
         {
-            if (m_scene_render_resource_handle == scene_render_resource_handle)
+            if (m_render_scene == render_scene)
             {
                 return;
             }
 
-            m_scene_render_resource_handle = std::move(scene_render_resource_handle);
+            m_render_scene = std::move(render_scene);
         });
 }
 
-void EnvProbeRenderResource::SetViewResourceHandle(TResourceHandle<ViewRenderResource>&& view_render_resource_handle)
+void RenderEnvProbe::SetViewResourceHandle(TResourceHandle<RenderView>&& render_view)
 {
     HYP_SCOPE;
 
-    Execute([this, view_render_resource_handle = std::move(view_render_resource_handle)]()
+    Execute([this, render_view = std::move(render_view)]()
         {
-            if (m_view_render_resource_handle == view_render_resource_handle)
+            if (m_render_view == render_view)
             {
                 return;
             }
 
-            m_view_render_resource_handle = std::move(view_render_resource_handle);
+            m_render_view = std::move(render_view);
         });
 }
 
-void EnvProbeRenderResource::SetShadowMapResourceHandle(TResourceHandle<ShadowMapRenderResource>&& shadow_map_render_resource_handle)
+void RenderEnvProbe::SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map)
 {
     HYP_SCOPE;
 
-    Execute([this, shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle)]()
+    Execute([this, shadow_render_map = std::move(shadow_render_map)]()
         {
-            if (m_shadow_map_render_resource_handle == shadow_map_render_resource_handle)
+            if (m_shadow_render_map == shadow_render_map)
             {
                 return;
             }
 
-            m_shadow_map_render_resource_handle = std::move(shadow_map_render_resource_handle);
+            m_shadow_render_map = std::move(shadow_render_map);
         });
 }
 
-void EnvProbeRenderResource::SetSphericalHarmonics(const EnvProbeSphericalHarmonics& spherical_harmonics)
+void RenderEnvProbe::SetSphericalHarmonics(const EnvProbeSphericalHarmonics& spherical_harmonics)
 {
     HYP_SCOPE;
 
@@ -206,7 +206,7 @@ void EnvProbeRenderResource::SetSphericalHarmonics(const EnvProbeSphericalHarmon
         });
 }
 
-void EnvProbeRenderResource::CreateShader()
+void RenderEnvProbe::CreateShader()
 {
     if (m_env_probe->IsControlledByEnvGrid())
     {
@@ -239,7 +239,7 @@ void EnvProbeRenderResource::CreateShader()
     AssertThrow(m_shader.IsValid());
 }
 
-void EnvProbeRenderResource::CreateFramebuffer()
+void RenderEnvProbe::CreateFramebuffer()
 {
     m_framebuffer = g_rendering_api->MakeFramebuffer(m_env_probe->GetDimensions(), 6);
 
@@ -304,7 +304,7 @@ void EnvProbeRenderResource::CreateFramebuffer()
     DeferCreate(m_framebuffer);
 }
 
-void EnvProbeRenderResource::SetEnvProbeTexture()
+void RenderEnvProbe::SetEnvProbeTexture()
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -326,7 +326,7 @@ void EnvProbeRenderResource::SetEnvProbeTexture()
     }
 }
 
-void EnvProbeRenderResource::Initialize_Internal()
+void RenderEnvProbe::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -351,7 +351,7 @@ void EnvProbeRenderResource::Initialize_Internal()
     }
 }
 
-void EnvProbeRenderResource::Destroy_Internal()
+void RenderEnvProbe::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -360,7 +360,7 @@ void EnvProbeRenderResource::Destroy_Internal()
     m_prefiltered_env_map.Reset();
 }
 
-void EnvProbeRenderResource::Update_Internal()
+void RenderEnvProbe::Update_Internal()
 {
     HYP_SCOPE;
 
@@ -369,18 +369,18 @@ void EnvProbeRenderResource::Update_Internal()
     UpdateBufferData();
 }
 
-void EnvProbeRenderResource::EnqueueBind()
+void RenderEnvProbe::EnqueueBind()
 {
     HYP_SCOPE;
 
     Execute([this]()
         {
-            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<EnvProbeRenderResource>(*this));
+            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<RenderEnvProbe>(*this));
         },
         /* force_render_thread */ true);
 }
 
-void EnvProbeRenderResource::EnqueueUnbind()
+void RenderEnvProbe::EnqueueUnbind()
 {
     HYP_SCOPE;
 
@@ -391,12 +391,12 @@ void EnvProbeRenderResource::EnqueueUnbind()
         /* force_render_thread */ true);
 }
 
-GPUBufferHolderBase* EnvProbeRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->env_probes;
 }
 
-bool EnvProbeRenderResource::ShouldComputePrefilteredEnvMap() const
+bool RenderEnvProbe::ShouldComputePrefilteredEnvMap() const
 {
     if (m_env_probe->IsControlledByEnvGrid())
     {
@@ -411,7 +411,7 @@ bool EnvProbeRenderResource::ShouldComputePrefilteredEnvMap() const
     return false;
 }
 
-bool EnvProbeRenderResource::ShouldComputeSphericalHarmonics() const
+bool RenderEnvProbe::ShouldComputeSphericalHarmonics() const
 {
     if (m_env_probe->IsControlledByEnvGrid())
     {
@@ -426,7 +426,7 @@ bool EnvProbeRenderResource::ShouldComputeSphericalHarmonics() const
     return false;
 }
 
-void EnvProbeRenderResource::UpdateBufferData()
+void RenderEnvProbe::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -443,9 +443,9 @@ void EnvProbeRenderResource::UpdateBufferData()
 
     if (m_env_probe->IsShadowProbe())
     {
-        AssertThrow(m_shadow_map_render_resource_handle);
+        AssertThrow(m_shadow_render_map);
 
-        buffer_data->texture_index = m_shadow_map_render_resource_handle->GetAtlasElement().point_light_index;
+        buffer_data->texture_index = m_shadow_render_map->GetAtlasElement().point_light_index;
     }
     else
     {
@@ -457,7 +457,7 @@ void EnvProbeRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void EnvProbeRenderResource::Render(FrameBase* frame)
+void RenderEnvProbe::Render(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -474,7 +474,7 @@ void EnvProbeRenderResource::Render(FrameBase* frame)
         return;
     }
 
-    if (!m_scene_render_resource_handle || !m_camera_render_resource_handle)
+    if (!m_render_scene || !m_render_camera)
     {
         HYP_LOG(EnvProbe, Warning, "EnvProbe #{} has no scene or camera render resource handle set!", m_env_probe->GetID().Value());
         return;
@@ -482,7 +482,7 @@ void EnvProbeRenderResource::Render(FrameBase* frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    LightRenderResource* light_render_resource = nullptr;
+    RenderLight* render_light = nullptr;
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
@@ -511,39 +511,39 @@ void EnvProbeRenderResource::Render(FrameBase* frame)
 
         // @TODO Support selecting a specific light for the EnvProbe in the case of a sky probe.
         // For reflection probes, it would be ideal to bind a number of lights that can be used in forward rendering.
-        auto& directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
+        auto& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any())
         {
-            light_render_resource = directional_lights.Front();
+            render_light = directional_lights.Front();
         }
 
-        if (!light_render_resource)
+        if (!render_light)
         {
             HYP_LOG(EnvProbe, Warning, "No directional light found for Sky EnvProbe #{}", m_env_probe->GetID().Value());
         }
     }
 
     {
-        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<EnvProbeRenderResource>(*this));
+        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(*this));
 
-        if (light_render_resource != nullptr)
+        if (render_light != nullptr)
         {
-            g_engine->GetRenderState()->SetActiveLight(TResourceHandle<LightRenderResource>(*light_render_resource));
+            g_engine->GetRenderState()->SetActiveLight(TResourceHandle<RenderLight>(*render_light));
         }
 
-        m_view_render_resource_handle->GetRenderCollector().CollectDrawCalls(
+        m_render_view->GetRenderCollector().CollectDrawCalls(
             frame,
-            m_view_render_resource_handle.Get(),
+            m_render_view.Get(),
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             nullptr);
 
-        m_view_render_resource_handle->GetRenderCollector().ExecuteDrawCalls(
+        m_render_view->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            m_view_render_resource_handle.Get(),
+            m_render_view.Get(),
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
 
-        if (light_render_resource != nullptr)
+        if (render_light != nullptr)
         {
             g_engine->GetRenderState()->UnsetActiveLight();
         }
@@ -567,19 +567,19 @@ void EnvProbeRenderResource::Render(FrameBase* frame)
     }
     else if (m_env_probe->IsShadowProbe())
     {
-        AssertThrow(m_shadow_map_render_resource_handle);
-        AssertThrow(m_shadow_map_render_resource_handle->GetAtlasElement().point_light_index != ~0u);
+        AssertThrow(m_shadow_render_map);
+        AssertThrow(m_shadow_render_map->GetAtlasElement().point_light_index != ~0u);
 
         HYP_LOG(EnvProbe, Debug, "Render shadow probe #{} (pointlight index: {})",
-            m_env_probe->GetID().Value(), m_shadow_map_render_resource_handle->GetAtlasElement().point_light_index);
+            m_env_probe->GetID().Value(), m_shadow_render_map->GetAtlasElement().point_light_index);
 
-        const ImageViewRef& shadow_map_image_view = m_shadow_map_render_resource_handle->GetImageView();
+        const ImageViewRef& shadow_map_image_view = m_shadow_render_map->GetImageView();
         AssertThrow(shadow_map_image_view.IsValid());
 
         const ImageRef& shadow_map_image = shadow_map_image_view->GetImage();
         AssertThrow(shadow_map_image.IsValid());
 
-        const ShadowMapAtlasElement& atlas_element = m_shadow_map_render_resource_handle->GetAtlasElement();
+        const ShadowMapAtlasElement& atlas_element = m_shadow_render_map->GetAtlasElement();
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
@@ -623,7 +623,7 @@ void EnvProbeRenderResource::Render(FrameBase* frame)
     m_env_probe->SetNeedsRender(false);
 }
 
-void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase* frame)
+void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -670,7 +670,7 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase* frame)
             break;
         }
 
-        for (const auto& it : m_view_render_resource_handle->GetLights(LightType(light_type)))
+        for (const auto& it : m_render_view->GetLights(LightType(light_type)))
         {
             if (num_bound_lights >= max_bound_lights)
             {
@@ -724,7 +724,7 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase* frame)
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
     // Use sky as fallback
-    TResourceHandle<EnvProbeRenderResource> sky_env_probe_resource_handle;
+    TResourceHandle<RenderEnvProbe> sky_env_probe_resource_handle;
 
     if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
     {
@@ -769,7 +769,7 @@ void EnvProbeRenderResource::ComputePrefilteredEnvMap(FrameBase* frame)
         });
 }
 
-void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
+void RenderEnvProbe::ComputeSH(FrameBase* frame)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -868,17 +868,17 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
     AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
 
-    const TResourceHandle<EnvProbeRenderResource>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
-    LightRenderResource* light_render_resource = nullptr;
+    RenderLight* render_light = nullptr;
 
     {
-        auto& directional_lights = m_view_render_resource_handle->GetLights(LightType::DIRECTIONAL);
+        auto& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL);
 
         if (directional_lights.Any())
         {
-            light_render_resource = directional_lights.Front();
+            render_light = directional_lights.Front();
         }
     }
 
@@ -938,7 +938,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
         pipelines[NAME("Clear")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -955,7 +955,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
         pipelines[NAME("BuildCoeffs")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -1000,7 +1000,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
                 pipelines[NAME("Reduce")].second,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
-                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
+                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
                 frame->GetFrameIndex());
 
@@ -1029,7 +1029,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
         pipelines[NAME("Finalize")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light_render_resource, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -1042,7 +1042,7 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
         renderer::ShaderModuleType::COMPUTE);
 
     DelegateHandler* delegate_handle = new DelegateHandler();
-    *delegate_handle = frame->OnFrameEnd.Bind([resource_handle = TResourceHandle<EnvProbeRenderResource>(*this), pipelines = std::move(pipelines), descriptor_tables = std::move(compute_sh_descriptor_tables), delegate_handle](FrameBase* frame) mutable
+    *delegate_handle = frame->OnFrameEnd.Bind([resource_handle = TResourceHandle<RenderEnvProbe>(*this), pipelines = std::move(pipelines), descriptor_tables = std::move(compute_sh_descriptor_tables), delegate_handle](FrameBase* frame) mutable
         {
             HYP_NAMED_SCOPE("EnvProbe::ComputeSH - Buffer readback");
 
@@ -1074,11 +1074,11 @@ void EnvProbeRenderResource::ComputeSH(FrameBase* frame)
         });
 }
 
-#pragma endregion EnvProbeRenderResource
+#pragma endregion RenderEnvProbe
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer, 1, sizeof(EnvProbeShaderData) * max_env_probes, false);
+HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer, 1, ~0u, false);
 HYP_DESCRIPTOR_SSBO(Global, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true);
 
 } // namespace renderer

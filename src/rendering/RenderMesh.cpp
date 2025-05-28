@@ -30,15 +30,15 @@ namespace hyperion {
 
 using renderer::GPUBufferType;
 
-#pragma region MeshRenderResource
+#pragma region RenderMesh
 
-MeshRenderResource::MeshRenderResource(Mesh* mesh)
+RenderMesh::RenderMesh(Mesh* mesh)
     : m_mesh(mesh),
       m_num_indices(0)
 {
 }
 
-MeshRenderResource::MeshRenderResource(MeshRenderResource&& other) noexcept
+RenderMesh::RenderMesh(RenderMesh&& other) noexcept
     : RenderResourceBase(static_cast<RenderResourceBase&&>(other)),
       m_mesh(other.m_mesh),
       m_vertex_attributes(other.m_vertex_attributes),
@@ -50,9 +50,9 @@ MeshRenderResource::MeshRenderResource(MeshRenderResource&& other) noexcept
     other.m_mesh = nullptr;
 }
 
-MeshRenderResource::~MeshRenderResource() = default;
+RenderMesh::~RenderMesh() = default;
 
-void MeshRenderResource::Initialize_Internal()
+void RenderMesh::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -61,7 +61,7 @@ void MeshRenderResource::Initialize_Internal()
     UploadMeshData();
 }
 
-void MeshRenderResource::Destroy_Internal()
+void RenderMesh::Destroy_Internal()
 {
     HYP_SCOPE;
 
@@ -71,7 +71,7 @@ void MeshRenderResource::Destroy_Internal()
     m_streamed_mesh_data_handle.Reset();
 }
 
-void MeshRenderResource::Update_Internal()
+void RenderMesh::Update_Internal()
 {
     HYP_SCOPE;
 
@@ -80,7 +80,7 @@ void MeshRenderResource::Update_Internal()
     UploadMeshData();
 }
 
-void MeshRenderResource::UploadMeshData()
+void RenderMesh::UploadMeshData()
 {
     HYP_SCOPE;
 
@@ -174,7 +174,7 @@ void MeshRenderResource::UploadMeshData()
     staging_buffer_indices->Destroy();
 }
 
-void MeshRenderResource::SetVertexAttributes(const VertexAttributeSet& vertex_attributes)
+void RenderMesh::SetVertexAttributes(const VertexAttributeSet& vertex_attributes)
 {
     HYP_SCOPE;
 
@@ -189,7 +189,7 @@ void MeshRenderResource::SetVertexAttributes(const VertexAttributeSet& vertex_at
         });
 }
 
-void MeshRenderResource::SetStreamedMeshData(const RC<StreamedMeshData>& streamed_mesh_data)
+void RenderMesh::SetStreamedMeshData(const RC<StreamedMeshData>& streamed_mesh_data)
 {
     HYP_SCOPE;
 
@@ -216,7 +216,7 @@ void MeshRenderResource::SetStreamedMeshData(const RC<StreamedMeshData>& streame
     }                                                                                                   \
     while (0)
 
-Array<float> MeshRenderResource::BuildVertexBuffer(const VertexAttributeSet& vertex_attributes, const MeshData& mesh_data)
+Array<float> RenderMesh::BuildVertexBuffer(const VertexAttributeSet& vertex_attributes, const MeshData& mesh_data)
 {
     const SizeType vertex_size = vertex_attributes.CalculateVertexSize();
 
@@ -274,7 +274,7 @@ Array<float> MeshRenderResource::BuildVertexBuffer(const VertexAttributeSet& ver
 
 #undef PACKED_SET_ATTR
 
-Array<PackedVertex> MeshRenderResource::BuildPackedVertices() const
+Array<PackedVertex> RenderMesh::BuildPackedVertices() const
 {
     HYP_SCOPE;
 
@@ -309,7 +309,7 @@ Array<PackedVertex> MeshRenderResource::BuildPackedVertices() const
     return packed_vertices;
 }
 
-Array<uint32> MeshRenderResource::BuildPackedIndices() const
+Array<uint32> RenderMesh::BuildPackedIndices() const
 {
     HYP_SCOPE;
 
@@ -327,7 +327,7 @@ Array<uint32> MeshRenderResource::BuildPackedIndices() const
     return Array<uint32>(mesh_data.indices.Begin(), mesh_data.indices.End());
 }
 
-BLASRef MeshRenderResource::BuildBLAS(const Handle<Material>& material) const
+BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
 {
     Array<PackedVertex> packed_vertices = BuildPackedVertices();
     Array<uint32> packed_indices = BuildPackedIndices();
@@ -432,21 +432,21 @@ BLASRef MeshRenderResource::BuildBLAS(const Handle<Material>& material) const
     return std::move(task).Await();
 }
 
-void MeshRenderResource::Render(RHICommandList& cmd, uint32 num_instances, uint32 instance_index) const
+void RenderMesh::Render(RHICommandList& cmd, uint32 num_instances, uint32 instance_index) const
 {
     cmd.Add<BindVertexBuffer>(GetVertexBuffer());
     cmd.Add<BindIndexBuffer>(GetIndexBuffer());
     cmd.Add<DrawIndexed>(NumIndices(), num_instances, instance_index);
 }
 
-void MeshRenderResource::RenderIndirect(RHICommandList& cmd, const GPUBufferRef& indirect_buffer, uint32 buffer_offset) const
+void RenderMesh::RenderIndirect(RHICommandList& cmd, const GPUBufferRef& indirect_buffer, uint32 buffer_offset) const
 {
     cmd.Add<BindVertexBuffer>(GetVertexBuffer());
     cmd.Add<BindIndexBuffer>(GetIndexBuffer());
     cmd.Add<DrawIndexedIndirect>(indirect_buffer, buffer_offset);
 }
 
-void MeshRenderResource::PopulateIndirectDrawCommand(IndirectDrawCommand& out)
+void RenderMesh::PopulateIndirectDrawCommand(IndirectDrawCommand& out)
 {
 #if HYP_VULKAN
     out.command = {
@@ -457,6 +457,6 @@ void MeshRenderResource::PopulateIndirectDrawCommand(IndirectDrawCommand& out)
 #endif
 }
 
-#pragma endregion MeshRenderResource
+#pragma endregion RenderMesh
 
 } // namespace hyperion

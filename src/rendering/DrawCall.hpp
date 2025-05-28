@@ -28,9 +28,9 @@ struct DrawCommandData;
 class IndirectDrawState;
 class GPUBufferHolderBase;
 struct MeshInstanceData;
-class MeshRenderResource;
-class MaterialRenderResource;
-class SkeletonRenderResource;
+class RenderMesh;
+class RenderMaterial;
+class RenderSkeleton;
 
 extern HYP_API GPUBufferHolderMap* GetGPUBufferHolderMap();
 
@@ -48,8 +48,6 @@ struct alignas(16) EntityInstanceBatch
 };
 
 static_assert(sizeof(EntityInstanceBatch) == 4096);
-
-static constexpr uint32 max_entity_instance_batches = (128ull * 1024ull * 1024ull) / sizeof(EntityInstanceBatch);
 
 struct DrawCallID
 {
@@ -107,9 +105,9 @@ struct DrawCall
     EntityInstanceBatch* batch = nullptr;
     uint32 draw_command_index = 0;
 
-    MeshRenderResource* mesh_render_resource = nullptr;
-    MaterialRenderResource* material_render_resource = nullptr;
-    SkeletonRenderResource* skeleton_render_resource = nullptr;
+    RenderMesh* render_mesh = nullptr;
+    RenderMaterial* render_material = nullptr;
+    RenderSkeleton* render_skeleton = nullptr;
 
     uint32 entity_id_count = 0;
     ID<Entity> entity_ids[max_entities_per_instance_batch];
@@ -121,7 +119,6 @@ public:
     virtual ~IDrawCallCollectionImpl() = default;
 
     virtual SizeType GetBatchSizeOf() const = 0;
-    virtual EntityInstanceBatch& GetBatch(SizeType index) const = 0;
     virtual EntityInstanceBatch* AcquireBatch() const = 0;
     virtual void ReleaseBatch(EntityInstanceBatch* batch) const = 0;
     virtual GPUBufferHolderBase* GetEntityInstanceBatchHolder() const = 0;
@@ -191,8 +188,8 @@ class DrawCallCollectionImpl final : public IDrawCallCollectionImpl
 public:
     static_assert(std::is_base_of_v<EntityInstanceBatch, EntityInstanceBatchType>, "EntityInstanceBatchType must be a derived struct type of EntityInstanceBatch");
 
-    DrawCallCollectionImpl(uint32 count)
-        : m_entity_instance_batches(GetGPUBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>(count))
+    DrawCallCollectionImpl()
+        : m_entity_instance_batches(GetGPUBufferHolderMap()->GetOrCreate<EntityInstanceBatchType>())
     {
     }
 
@@ -201,11 +198,6 @@ public:
     virtual SizeType GetBatchSizeOf() const override
     {
         return sizeof(EntityInstanceBatchType);
-    }
-
-    virtual EntityInstanceBatch& GetBatch(SizeType index) const override
-    {
-        return m_entity_instance_batches->Get(index);
     }
 
     virtual EntityInstanceBatch* AcquireBatch() const override
@@ -237,14 +229,14 @@ extern HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeID type_id
 extern HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl>&& impl);
 
 template <class EntityInstanceBatchType>
-IDrawCallCollectionImpl* GetOrCreateDrawCallCollectionImpl(uint32 count)
+IDrawCallCollectionImpl* GetOrCreateDrawCallCollectionImpl()
 {
     if (IDrawCallCollectionImpl* impl = GetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>()))
     {
         return impl;
     }
 
-    return SetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>(), MakeUnique<DrawCallCollectionImpl<EntityInstanceBatchType>>(count));
+    return SetDrawCallCollectionImpl(TypeID::ForType<EntityInstanceBatchType>(), MakeUnique<DrawCallCollectionImpl<EntityInstanceBatchType>>());
 }
 
 } // namespace hyperion

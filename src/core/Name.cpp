@@ -30,8 +30,6 @@ private:
     mutable Mutex m_mutex;
 };
 
-HYP_DISABLE_OPTIMIZATION;
-
 Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
 {
     Name name(id);
@@ -61,8 +59,6 @@ Name NameRegistry::RegisterName(NameID id, const ANSIString& str, bool lock)
 
     return name;
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 Name NameRegistry::RegisterUniqueName(const ANSIString& str, bool lock)
 {

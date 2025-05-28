@@ -17,19 +17,19 @@
 
 namespace hyperion {
 
-#pragma region CameraRenderResource
+#pragma region RenderCamera
 
-CameraRenderResource::CameraRenderResource(Camera* camera)
+RenderCamera::RenderCamera(Camera* camera)
     : m_camera(camera),
       m_buffer_data {}
 {
 }
 
-CameraRenderResource::~CameraRenderResource()
+RenderCamera::~RenderCamera()
 {
 }
 
-void CameraRenderResource::Initialize_Internal()
+void RenderCamera::Initialize_Internal()
 {
     HYP_SCOPE;
 
@@ -41,24 +41,24 @@ void CameraRenderResource::Initialize_Internal()
     }
 }
 
-void CameraRenderResource::Destroy_Internal()
+void RenderCamera::Destroy_Internal()
 {
     HYP_SCOPE;
 
     SafeRelease(std::move(m_framebuffer));
 }
 
-void CameraRenderResource::Update_Internal()
+void RenderCamera::Update_Internal()
 {
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* CameraRenderResource::GetGPUBufferHolder() const
+GPUBufferHolderBase* RenderCamera::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->cameras;
 }
 
-void CameraRenderResource::UpdateBufferData()
+void RenderCamera::UpdateBufferData()
 {
     HYP_SCOPE;
 
@@ -67,7 +67,7 @@ void CameraRenderResource::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void CameraRenderResource::SetBufferData(const CameraShaderData& buffer_data)
+void RenderCamera::SetBufferData(const CameraShaderData& buffer_data)
 {
     HYP_SCOPE;
 
@@ -82,7 +82,7 @@ void CameraRenderResource::SetBufferData(const CameraShaderData& buffer_data)
         });
 }
 
-void CameraRenderResource::SetFramebuffer(const FramebufferRef& framebuffer)
+void RenderCamera::SetFramebuffer(const FramebufferRef& framebuffer)
 {
     HYP_SCOPE;
 
@@ -99,18 +99,18 @@ void CameraRenderResource::SetFramebuffer(const FramebufferRef& framebuffer)
         });
 }
 
-void CameraRenderResource::EnqueueBind()
+void RenderCamera::EnqueueBind()
 {
     HYP_SCOPE;
 
     Execute([this]()
         {
-            g_engine->GetRenderState()->BindCamera(TResourceHandle<CameraRenderResource>(*this));
+            g_engine->GetRenderState()->BindCamera(TResourceHandle<RenderCamera>(*this));
         },
         /* force_render_thread */ true);
 }
 
-void CameraRenderResource::EnqueueUnbind()
+void RenderCamera::EnqueueUnbind()
 {
     HYP_SCOPE;
 
@@ -121,7 +121,7 @@ void CameraRenderResource::EnqueueUnbind()
         /* force_render_thread */ true);
 }
 
-void CameraRenderResource::ApplyJitter()
+void RenderCamera::ApplyJitter()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -146,7 +146,7 @@ void CameraRenderResource::ApplyJitter()
     }
 }
 
-#pragma endregion CameraRenderResource
+#pragma endregion RenderCamera
 
 namespace renderer {
 

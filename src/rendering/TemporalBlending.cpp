@@ -292,7 +292,7 @@ void TemporalBlending::CreateComputePipelines()
     DeferCreate(m_perform_blending);
 }
 
-void TemporalBlending::Render(FrameBase* frame, ViewRenderResource* view)
+void TemporalBlending::Render(FrameBase* frame, RenderView* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

@@ -104,9 +104,9 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCal
             draw_call->id = id;
             draw_call->batch = batch;
             draw_call->draw_command_index = ~0u;
-            draw_call->mesh_render_resource = &render_proxy.mesh->GetRenderResource();
-            draw_call->material_render_resource = &render_proxy.material->GetRenderResource();
-            draw_call->skeleton_render_resource = render_proxy.skeleton.IsValid() ? &render_proxy.skeleton->GetRenderResource() : nullptr;
+            draw_call->render_mesh = &render_proxy.mesh->GetRenderResource();
+            draw_call->render_material = &render_proxy.material->GetRenderResource();
+            draw_call->render_skeleton = render_proxy.skeleton.IsValid() ? &render_proxy.skeleton->GetRenderResource() : nullptr;
             draw_call->entity_id_count = 0;
 
             index_map_it->second.PushBack(m_draw_calls.Size() - 1);

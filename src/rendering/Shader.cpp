@@ -169,4 +169,32 @@ ShaderRef ShaderManager::GetOrCreate(
         props });
 }
 
+SizeType ShaderManager::CalculateMemoryUsage() const
+{
+    HYP_NAMED_SCOPE("ShaderManager::CalculateMemoryUsage");
+
+    SizeType total_memory_usage = 0;
+
+    Mutex::Guard guard(m_mutex);
+
+    for (const auto& it : m_map)
+    {
+        total_memory_usage += sizeof(it.first);
+        total_memory_usage += sizeof(it.second);
+
+        if (const RC<ShaderMapEntry>& entry = it.second)
+        {
+            if (ShaderRef shader = entry->shader.Lock())
+            {
+                for (const ByteBuffer& byte_buffer : shader->GetCompiledShader()->GetModules())
+                {
+                    total_memory_usage += byte_buffer.Size();
+                }
+            }
+        }
+    }
+
+    return total_memory_usage;
+}
+
 } // namespace hyperion

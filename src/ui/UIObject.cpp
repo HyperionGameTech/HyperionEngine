@@ -95,7 +95,7 @@ const Handle<Mesh>& UIObjectQuadMeshHelper::GetQuadMesh()
             mesh->SetName(NAME("UIObject_QuadMesh"));
             InitObject(mesh);
 
-            // Since it will be reused a lot, keep the MeshRenderResource around.
+            // Since it will be reused a lot, keep the RenderMesh around.
             mesh->SetPersistentRenderResourceEnabled(true);
         }
 

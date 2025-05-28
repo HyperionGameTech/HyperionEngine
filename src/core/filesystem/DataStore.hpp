@@ -38,7 +38,7 @@ struct DataStoreOptions
 
 class HYP_API DataStoreBase : public IResource
 {
-    using ClaimedSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
+    using RefCounter = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
     using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
@@ -111,9 +111,9 @@ protected:
         return false;
     }
 
-    virtual int Claim(int count = 1) override;
-    virtual int ClaimWithoutInitialize() override;
-    virtual int Unclaim() override;
+    virtual int IncRef(int count = 1) override;
+    virtual int IncRefNoInitialize() override;
+    virtual int DecRef() override;
 
     virtual void WaitForTaskCompletion() const override final;
     virtual void WaitForFinalization() const override final;
@@ -122,7 +122,7 @@ private:
     ResourceMemoryPoolHandle m_pool_handle;
     String m_prefix;
     DataStoreOptions m_options;
-    ClaimedSemaphore m_claimed_semaphore;
+    RefCounter m_ref_counter;
     ShutdownSemaphore m_shutdown_semaphore;
 };
 
