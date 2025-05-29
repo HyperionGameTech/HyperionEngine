@@ -62,6 +62,14 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
         {
             AssertDebug(buffer == nullptr);
 
+            if (count == 0)
+            {
+                buffer = nullptr;
+                capacity = 0;
+
+                return;
+            }
+
             buffer = static_cast<T*>(Memory::Allocate(count * sizeof(T)));
             AssertDebug(buffer != nullptr);
 
@@ -122,6 +130,13 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
                     new (buffer + offset + i) T(std::move(begin[i]));
                 }
             }
+        }
+
+        void InitZeroed(SizeType count, SizeType offset = 0)
+        {
+            AssertDebug(capacity >= count + offset);
+
+            Memory::MemSet(buffer + offset, 0, count);
         }
 
         void DestructInRange(SizeType start_index, SizeType last_index)
@@ -276,7 +291,6 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
             }
             else
             {
-                AssertDebug(count <= Count);
                 AssertDebug(offset + count <= Count);
 
                 if constexpr (std::is_trivially_move_constructible_v<T>)
@@ -291,6 +305,20 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
                         new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
                     }
                 }
+            }
+        }
+
+        void InitZeroed(SizeType count, SizeType offset = 0)
+        {
+            if (is_dynamic)
+            {
+                dynamic_allocation.InitZeroed(count, offset);
+            }
+            else
+            {
+                AssertDebug(offset + count <= Count);
+
+                Memory::MemSet(storage.GetPointer() + offset, 0, count * sizeof(T));
             }
         }
 

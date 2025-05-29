@@ -45,6 +45,8 @@ struct DescriptorSetElementCachedValue
 
 class VulkanDescriptorSet final : public DescriptorSetBase
 {
+    using ElementCache = HashMap<Name, Array<DescriptorSetElementCachedValue>, HashTable_DynamicNodeAllocator<KeyValuePair<Name, Array<DescriptorSetElementCachedValue>>>>;
+
 public:
     HYP_API VulkanDescriptorSet(const DescriptorSetLayout& layout);
     HYP_API ~VulkanDescriptorSet();
@@ -77,7 +79,7 @@ protected:
     virtual void Bind(const CommandBufferBase* command_buffer, const RaytracingPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index) const override;
 
     VkDescriptorSet m_handle;
-    HashMap<Name, Array<DescriptorSetElementCachedValue>> m_cached_elements;
+    ElementCache m_cached_elements;
     VulkanDescriptorSetLayoutWrapperRef m_vk_layout_wrapper;
 };
 

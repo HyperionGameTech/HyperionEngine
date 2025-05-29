@@ -345,6 +345,8 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
         // Object
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), m_render_data->skeletons->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeRadianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Material
         if (g_rendering_api->GetRenderConfig().IsBindlessSupported())

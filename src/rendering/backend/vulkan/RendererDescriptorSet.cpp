@@ -324,6 +324,8 @@ RendererResult VulkanDescriptorSet::Create()
 
 RendererResult VulkanDescriptorSet::Destroy()
 {
+    RendererResult result;
+
     if (m_handle != VK_NULL_HANDLE)
     {
         GetRenderingAPI()->DestroyDescriptorSet(m_handle);
@@ -333,7 +335,7 @@ RendererResult VulkanDescriptorSet::Destroy()
     // Release reference to layout
     m_vk_layout_wrapper.Reset();
 
-    return RendererResult {};
+    return result;
 }
 
 bool VulkanDescriptorSet::IsCreated() const

@@ -12,6 +12,8 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 
+#include <core/math/BoundingBox.hpp>
+
 #include <core/functional/Delegate.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -54,18 +56,18 @@ class RunningEditorTask
 public:
     friend class EditorSubsystem;
 
-    RunningEditorTask(const RC<IEditorTask>& task)
+    RunningEditorTask(const RC<EditorTaskBase>& task)
         : m_task(task)
     {
     }
 
-    RunningEditorTask(const RC<IEditorTask>& task, const RC<UIObject>& ui_object)
+    RunningEditorTask(const RC<EditorTaskBase>& task, const RC<UIObject>& ui_object)
         : m_task(task),
           m_ui_object(ui_object)
     {
     }
 
-    HYP_FORCE_INLINE const RC<IEditorTask>& GetTask() const
+    HYP_FORCE_INLINE const RC<EditorTaskBase>& GetTask() const
     {
         return m_task;
     }
@@ -78,7 +80,7 @@ public:
     RC<UIObject> CreateUIObject(UIStage* ui_stage) const;
 
 private:
-    RC<IEditorTask> m_task;
+    RC<EditorTaskBase> m_task;
     RC<UIObject> m_ui_object;
 };
 
@@ -88,17 +90,60 @@ class GenerateLightmapsEditorTask : public TickableEditorTask
     HYP_OBJECT_BODY(GenerateLightmapsEditorTask);
 
 public:
-    GenerateLightmapsEditorTask(const Handle<World>& world, const Handle<Scene>& scene);
+    GenerateLightmapsEditorTask();
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
+    {
+        return m_world;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetWorld(const Handle<World>& world)
+    {
+        m_world = world;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
+    {
+        return m_scene;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetScene(const Handle<Scene>& scene)
+    {
+        m_scene = scene;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
+    {
+        return m_aabb;
+    }
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetAABB(const BoundingBox& aabb)
+    {
+        m_aabb = aabb;
+    }
+
+    HYP_METHOD()
     virtual void Process() override;
 
-protected:
-    virtual void Cancel_Impl() override;
-    virtual bool IsCompleted_Impl() const override;
-    virtual void Tick_Impl(float delta) override;
+    HYP_METHOD()
+    virtual void Cancel() override;
+
+    HYP_METHOD()
+    virtual bool IsCompleted() const override;
+
+    HYP_METHOD()
+    virtual void Tick(float delta) override;
 
 private:
     Handle<World> m_world;
     Handle<Scene> m_scene;
+    BoundingBox m_aabb;
     Task<void>* m_task;
 };
 
@@ -253,12 +298,7 @@ protected:
 
 class HYP_API EditorManipulationWidgetHolder
 {
-    using EditorManipulationWidgetSet = HashSet<
-        RC<EditorManipulationWidgetBase>,
-        +[](const RC<EditorManipulationWidgetBase>& ptr) -> EditorManipulationMode
-        {
-            return ptr->GetManipulationMode();
-        }>;
+    using EditorManipulationWidgetSet = HashSet<RC<EditorManipulationWidgetBase>, &EditorManipulationWidgetBase::GetManipulationMode>;
 
 public:
     using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase&, EditorManipulationWidgetBase&>;
@@ -340,7 +380,7 @@ public:
     void OpenProject(const Handle<EditorProject>& project);
 
     HYP_METHOD()
-    void AddTask(const RC<IEditorTask>& task);
+    void AddTask(const RC<EditorTaskBase>& task);
 
     HYP_METHOD()
     void SetFocusedNode(const Handle<Node>& focused_node, bool should_select_in_outline = true);

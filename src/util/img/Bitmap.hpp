@@ -735,24 +735,6 @@ public:
         }
     }
 
-    ByteBuffer GenerateColorRamp() const
-    {
-        const int bits_per_pixel = PixelType::num_components * 8;
-        const SizeType size = (bits_per_pixel * bits_per_pixel) - 1;
-
-        ByteBuffer buffer(size * 4);
-
-        for (SizeType i = 0; i < size; i++)
-        {
-            buffer.GetInternalArray().Set(i * 3, 255 - i);
-            buffer.GetInternalArray().Set(i * 3 + 1, 255 - i);
-            buffer.GetInternalArray().Set(i * 3 + 2, 255 - i);
-            buffer.GetInternalArray().Set(i * 3 + 3, 0);
-        }
-
-        return buffer;
-    }
-
     void FillRectangle(
         Vec2i p0,
         Vec2i p1,

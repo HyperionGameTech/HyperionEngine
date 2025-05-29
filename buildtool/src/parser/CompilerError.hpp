@@ -169,59 +169,70 @@ class CompilerError
     static const HashMap<ErrorMessage, String> error_message_strings;
 
 public:
-    template <typename...Args>
+    template <typename... Args>
     CompilerError(
         ErrorLevel level, ErrorMessage msg,
-        const SourceLocation &location,
-        const Args &...args
-    ) : m_level(level),
-        m_msg(msg),
-        m_location(location)
+        const SourceLocation& location,
+        const Args&... args)
+        : m_level(level),
+          m_msg(msg),
+          m_location(location)
     {
         String msg_str = error_message_strings.At(m_msg);
         MakeMessage(msg_str.Data(), args...);
     }
-    
-    CompilerError(const CompilerError &other);
+
+    CompilerError(const CompilerError& other);
     ~CompilerError() = default;
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ErrorLevel GetLevel() const
-        { return m_level; }
+    HYP_NODISCARD HYP_FORCE_INLINE ErrorLevel GetLevel() const
+    {
+        return m_level;
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    ErrorMessage GetMessage() const
-        { return m_msg; }
+    HYP_NODISCARD HYP_FORCE_INLINE ErrorMessage GetMessage() const
+    {
+        return m_msg;
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const SourceLocation &GetLocation() const
-        { return m_location; }
+    HYP_NODISCARD HYP_FORCE_INLINE const SourceLocation& GetLocation() const
+    {
+        return m_location;
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    const String &GetText() const { return m_text; }
+    HYP_NODISCARD HYP_FORCE_INLINE const String& GetText() const
+    {
+        return m_text;
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator==(const CompilerError &other) const
-        { return m_level == other.m_level
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator==(const CompilerError& other) const
+    {
+        return m_level == other.m_level
             && m_msg == other.m_msg
             && m_location == other.m_location
-            && m_text == other.m_text; }
+            && m_text == other.m_text;
+    }
 
-    HYP_NODISCARD HYP_FORCE_INLINE
-    bool operator!=(const CompilerError &other) const
-        { return !(*this == other); }
+    HYP_NODISCARD HYP_FORCE_INLINE bool operator!=(const CompilerError& other) const
+    {
+        return !(*this == other);
+    }
 
-    bool operator<(const CompilerError &other) const;
+    bool operator<(const CompilerError& other) const;
 
 private:
-    void MakeMessage(const char *format)
-        { m_text += format; }
-
-    template <typename T, typename ... Args>
-    void MakeMessage(const char *format, const T &value, Args && ... args)
+    void MakeMessage(const char* format)
     {
-        for (; *format; format++) {
-            if (*format == '%') {
+        m_text += format;
+    }
+
+    template <typename T, typename... Args>
+    void MakeMessage(const char* format, const T& value, Args&&... args)
+    {
+        for (; *format; format++)
+        {
+            if (*format == '%')
+            {
                 std::stringstream sstream;
                 sstream << value;
                 m_text += sstream.str().c_str();
@@ -233,10 +244,10 @@ private:
         }
     }
 
-    ErrorLevel      m_level;
-    ErrorMessage    m_msg;
-    SourceLocation  m_location;
-    String          m_text;
+    ErrorLevel m_level;
+    ErrorMessage m_msg;
+    SourceLocation m_location;
+    String m_text;
 };
 
 } // namespace hyperion::buildtool

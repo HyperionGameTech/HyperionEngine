@@ -204,6 +204,27 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
 
 #pragma region DescriptorSetBase
 
+DescriptorSetBase::~DescriptorSetBase()
+{
+    for (auto& elements_it : m_elements)
+    {
+        for (auto& values_it : elements_it.second.values)
+        {
+            DescriptorSetElement::ValueType& value = values_it.second;
+
+            if (!value.HasValue())
+            {
+                continue;
+            }
+
+            Visit(std::move(value), [](auto&& ref)
+                {
+                    SafeRelease(std::move(ref));
+                });
+        }
+    }
+}
+
 bool DescriptorSetBase::HasElement(Name name) const
 {
     return m_elements.Find(name) != m_elements.End();

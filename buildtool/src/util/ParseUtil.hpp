@@ -11,8 +11,8 @@
 namespace hyperion {
 namespace buildtool {
 
-Optional<String> ExtractCXXClassName(const String &line);
-Array<String> ExtractCXXBaseClasses(const String &line);
+Optional<String> ExtractCXXClassName(const String& line);
+Array<String> ExtractCXXBaseClasses(const String& line);
 
 } // namespace buildtool
 } // namespace hyperion

@@ -553,12 +553,12 @@ struct DescriptorSetElement
 
         for (auto& it : values)
         {
-            if (!it.second.IsValid())
+            if (!it.second.HasValue())
             {
                 continue;
             }
 
-            Visit(it.second, [](auto& ref)
+            Visit(std::move(it.second), [](auto&& ref)
                 {
                     SafeRelease(std::move(ref));
                 });
@@ -577,7 +577,7 @@ struct DescriptorSetPlatformImpl;
 class DescriptorSetBase : public RenderObject<DescriptorSetBase>
 {
 public:
-    virtual ~DescriptorSetBase() override = default;
+    virtual ~DescriptorSetBase() override;
 
     HYP_FORCE_INLINE const DescriptorSetLayout& GetLayout() const
     {

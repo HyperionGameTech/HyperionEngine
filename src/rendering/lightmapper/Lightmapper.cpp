@@ -1437,9 +1437,10 @@ void LightmapJob::IntegrateRayHits(Span<const LightmapRay> rays, Span<const Ligh
 
 #pragma region Lightmapper
 
-Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene)
+Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
     : m_config(std::move(config)),
       m_scene(scene),
+      m_aabb(aabb),
       m_num_jobs { 0 }
 {
     HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
@@ -1485,17 +1486,16 @@ Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene)
 
     AssertThrow(m_lightmap_renderers.Any());
 
-    // @TODO AABB for volume
-    m_volume = CreateObject<LightmapVolume>();
+    m_volume = CreateObject<LightmapVolume>(m_aabb);
     InitObject(m_volume);
+
+    Handle<Entity> lightmap_volume_entity = m_scene->GetEntityManager()->AddEntity();
+    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmap_volume_entity, LightmapVolumeComponent { m_volume });
+    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmap_volume_entity, BoundingBoxComponent { m_aabb, m_aabb });
 
     Handle<Node> lightmap_volume_node = m_scene->GetRoot()->AddChild();
     lightmap_volume_node->SetName("LightmapVolume");
-
-    Handle<Entity> lightmap_volume_entity = m_scene->GetEntityManager()->AddEntity();
     lightmap_volume_node->SetEntity(lightmap_volume_entity);
-
-    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmap_volume_entity, LightmapVolumeComponent { m_volume });
 }
 
 Lightmapper::~Lightmapper()

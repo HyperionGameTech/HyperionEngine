@@ -24,12 +24,12 @@ template <class JSONValueType>
 struct JSONSubscriptWrapper;
 
 class JSONValue;
+class JSONObject;
 
 using JSONString = String;
 using JSONNumber = double;
 using JSONBool = bool;
 using JSONArray = Array<JSONValue>;
-using JSONObject = HashMap<JSONString, JSONValue>;
 using JSONArrayRef = RC<JSONArray>;
 using JSONObjectRef = RC<JSONObject>;
 
@@ -130,10 +130,10 @@ struct HYP_API JSONSubscriptWrapper<const JSONValue>
     JSONBool ToBool() const;
 
     const JSONArray& AsArray() const;
-    JSONArray ToArray() const;
+    const JSONArray& ToArray() const;
 
     const JSONObject& AsObject() const;
-    JSONObject ToObject() const;
+    const JSONObject& ToObject() const;
 
     JSONSubscriptWrapper<const JSONValue> operator[](uint32 index) const;
     JSONSubscriptWrapper<const JSONValue> operator[](UTF8StringView key) const;
@@ -228,10 +228,10 @@ struct HYP_API JSONSubscriptWrapper<JSONValue>
     JSONBool ToBool() const;
 
     JSONArray& AsArray() const;
-    JSONArray ToArray() const;
+    const JSONArray& ToArray() const;
 
     JSONObject& AsObject() const;
-    JSONObject ToObject() const;
+    const JSONObject& ToObject() const;
 
     JSONSubscriptWrapper<JSONValue> operator[](uint32 index);
     JSONSubscriptWrapper<const JSONValue> operator[](uint32 index) const;
@@ -279,14 +279,6 @@ private:
         JSONUndefined>;
 
 public:
-    static const JSONValue s_undefined;
-    static const JSONValue s_null;
-    static const JSONValue s_empty_object;
-    static const JSONValue s_empty_array;
-    static const JSONValue s_empty_string;
-    static const JSONValue s_true;
-    static const JSONValue s_false;
-
     JSONValue()
         : m_inner(JSONUndefined {})
     {
@@ -402,15 +394,11 @@ public:
     {
     }
 
-    JSONValue(JSONArray array)
-        : m_inner(JSONArrayRef::Construct(std::move(array)))
-    {
-    }
+    JSONValue(const JSONArray& array);
+    JSONValue(JSONArray&& array);
 
-    JSONValue(JSONObject object)
-        : m_inner(JSONObjectRef::Construct(std::move(object)))
-    {
-    }
+    JSONValue(const JSONObject& object);
+    JSONValue(JSONObject&& object);
 
     JSONValue(JSONNull)
         : m_inner(JSONNull())
@@ -701,15 +689,7 @@ public:
         return *m_inner.GetUnchecked<JSONObjectRef>();
     }
 
-    HYP_FORCE_INLINE JSONObject ToObject() const
-    {
-        if (IsObject())
-        {
-            return AsObject();
-        }
-
-        return JSONObject();
-    }
+    const JSONObject& ToObject() const;
 
     HYP_FORCE_INLINE JSONSubscriptWrapper<JSONValue> operator[](uint32 index)
     {
@@ -755,6 +735,35 @@ private:
     InnerType m_inner;
 };
 
+class JSONObject : public HashMap<JSONString, JSONValue>
+{
+public:
+    using Base = HashMap<JSONString, JSONValue>;
+
+    JSONObject() = default;
+
+    JSONObject(std::initializer_list<KeyValuePair<JSONString, JSONValue>> initializer_list)
+        : Base(initializer_list)
+    {
+    }
+
+    JSONObject(const JSONObject& other) = default;
+    JSONObject& operator=(const JSONObject& other) = default;
+
+    JSONObject(JSONObject&& other) noexcept = default;
+    JSONObject& operator=(JSONObject&& other) noexcept = default;
+
+    ~JSONObject() = default;
+
+    template <class OtherContainerType>
+    JSONObject& Merge(OtherContainerType&& other)
+    {
+        Base::Merge(std::forward<OtherContainerType>(other));
+
+        return *this;
+    }
+};
+
 struct ParseResult
 {
     bool ok = true;
@@ -765,6 +774,14 @@ struct ParseResult
 class HYP_API JSON
 {
 public:
+    static const JSONValue& Undefined();
+    static const JSONValue& Null();
+    static const JSONValue& EmptyObject();
+    static const JSONValue& EmptyArray();
+    static const JSONValue& EmptyString();
+    static const JSONValue& True();
+    static const JSONValue& False();
+
     static ParseResult Parse(const String& json_string);
     static ParseResult Parse(BufferedReader& reader);
     static ParseResult Parse(const SourceFile& source_file);

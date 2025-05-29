@@ -3,6 +3,7 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/camera/Camera.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
@@ -12,11 +13,13 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
+#include <scene/ecs/components/LightmapVolumeComponent.hpp>
 
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -96,6 +99,7 @@ void View::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     CollectLights();
+    CollectLightmapVolumes();
     m_last_collection_result = CollectEntities();
 }
 
@@ -367,11 +371,52 @@ void View::CollectLights()
 
         if (is_light_in_frustum)
         {
-            m_tracked_lights.Track(light_component.light.GetID(), &light_component.light->GetRenderResource());
+            m_tracked_lights.Track(light_component.light->GetID(), &light_component.light->GetRenderResource());
         }
     }
 
     m_render_resource->UpdateTrackedLights(m_tracked_lights);
+}
+
+void View::CollectLightmapVolumes()
+{
+    HYP_SCOPE;
+
+    for (auto [entity_id, lightmap_volume_component] : m_scene->GetEntityManager()->GetEntitySet<LightmapVolumeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    {
+        if (!lightmap_volume_component.volume.IsValid())
+        {
+            continue;
+        }
+
+        const BoundingBox& volume_aabb = lightmap_volume_component.volume->GetAABB();
+
+        if (!volume_aabb.IsValid() || !volume_aabb.IsFinite())
+        {
+            HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmap_volume_component.volume->GetID().Value(), GetID().Value());
+
+            continue;
+        }
+
+        if (!m_camera->GetFrustum().ContainsAABB(volume_aabb))
+        {
+            continue;
+        }
+
+        ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>::ResourceTrackState track_state;
+
+        m_tracked_lightmap_volumes.Track(
+            lightmap_volume_component.volume->GetID(),
+            &lightmap_volume_component.volume->GetRenderResource(),
+            &track_state);
+
+        if (track_state & ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>::CHANGED)
+        {
+            HYP_LOG(Scene, Debug, "Lightmap volume {} changed in view {}", lightmap_volume_component.volume->GetID().Value(), GetID().Value());
+        }
+    }
+
+    m_render_resource->UpdateTrackedLightmapVolumes(m_tracked_lightmap_volumes);
 }
 
 #pragma endregion View

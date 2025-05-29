@@ -73,7 +73,7 @@ public:
 
     HYP_FORCE_INLINE Attribute* GetAttributeByHash(HashCode hash_code) const
     {
-        const auto it = m_values_by_name.FindByHash(hash_code);
+        const auto it = m_values_by_name.FindByHashCode(hash_code);
 
         if (it == m_values_by_name.End())
         {

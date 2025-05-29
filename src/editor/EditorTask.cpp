@@ -45,13 +45,13 @@ void TickableEditorTask::Cancel_Impl()
     {
         if (!Threads::IsOnThread(g_game_thread))
         {
-            HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion before destructing");
+            HYP_LOG(Editor, Info, "Awaiting TickableEditorTask completion");
 
             m_task.Await();
         }
         else
         {
-            HYP_LOG(Editor, Info, "Executing TickableEditorTask inline before destructing");
+            HYP_LOG(Editor, Info, "Executing TickableEditorTask inline");
 
             AssertThrow(m_task.Cancel());
 
@@ -60,6 +60,8 @@ void TickableEditorTask::Cancel_Impl()
 
             executor->Fulfill();
         }
+
+        OnCancel();
     }
 
     m_is_committed.Set(false, MemoryOrder::RELEASE);
@@ -100,6 +102,8 @@ void LongRunningEditorTask::Cancel_Impl()
 
             m_task.Await();
         }
+
+        OnCancel();
     }
 
     m_is_committed.Set(false, MemoryOrder::RELEASE);

@@ -3,6 +3,8 @@
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/Texture.hpp>
 
+#include <rendering/lightmapper/RenderLightmapVolume.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/threading/Threads.hpp>
@@ -12,17 +14,28 @@
 namespace hyperion {
 
 LightmapVolume::LightmapVolume()
-    : m_aabb(BoundingBox::Empty())
+    : m_render_resource(nullptr),
+      m_aabb(BoundingBox::Empty())
 {
 }
 
 LightmapVolume::LightmapVolume(const BoundingBox& aabb)
-    : m_aabb(aabb)
+    : m_render_resource(nullptr),
+      m_aabb(aabb)
 {
 }
 
 LightmapVolume::~LightmapVolume()
 {
+    if (IsInitCalled())
+    {
+        SetReady(false);
+
+        if (m_render_resource != nullptr)
+        {
+            FreeResource(m_render_resource);
+        }
+    }
 }
 
 bool LightmapVolume::AddElement(LightmapElement element)
@@ -86,9 +99,18 @@ void LightmapVolume::Init()
 
     HypObject::Init();
 
-    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind(
+        [this]()
         {
+            if (m_render_resource != nullptr)
+            {
+                FreeResource(m_render_resource);
+
+                m_render_resource = nullptr;
+            }
         }));
+
+    m_render_resource = AllocateResource<RenderLightmapVolume>(this);
 
     for (LightmapElement& element : m_elements)
     {

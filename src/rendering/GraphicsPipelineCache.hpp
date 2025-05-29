@@ -19,6 +19,7 @@
 namespace hyperion {
 
 class RenderableAttributeSet;
+class CachedPipelinesMap;
 
 class GraphicsPipelineCache
 {
@@ -46,7 +47,7 @@ private:
         const Array<FramebufferRef>& framebuffers,
         const RenderableAttributeSet& attributes);
 
-    HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef>> m_cached_pipelines;
+    CachedPipelinesMap* m_cached_pipelines;
     Mutex m_mutex;
 };
 

@@ -2,7 +2,7 @@
 
 namespace hyperion::buildtool {
 
-const HashMap<String, Operator> Operator::binary_operators = {
+const Operator::OperatorMap Operator::s_binary_operators = {
     { "+", Operator(OP_add, 13, ARITHMETIC, false, true) },
     { "-", Operator(OP_subtract, 13, ARITHMETIC, false, true) },
     { "*", Operator(OP_multiply, 14, ARITHMETIC, false, true) },
@@ -40,7 +40,7 @@ const HashMap<String, Operator> Operator::binary_operators = {
     { "|=", Operator(OP_bitwise_or_assign, 3, ASSIGNMENT | BITWISE, true, true) },
 };
 
-const HashMap<String, Operator> Operator::unary_operators = {
+const Operator::OperatorMap Operator::s_unary_operators = {
     // Unary operators
     { "!", Operator(OP_logical_not, 0, LOGICAL | PREFIX, false, true) },
     { "-", Operator(OP_negative, 0, ARITHMETIC | PREFIX, false, true) },
@@ -55,16 +55,16 @@ Operator::Operator(
     int precedence,
     int type,
     bool modifies_value,
-    bool supports_overloading
-) : m_op_type(op_type),
-    m_precedence(precedence),
-    m_type(type),
-    m_modifies_value(modifies_value),
-    m_supports_overloading(supports_overloading)
+    bool supports_overloading)
+    : m_op_type(op_type),
+      m_precedence(precedence),
+      m_type(type),
+      m_modifies_value(modifies_value),
+      m_supports_overloading(supports_overloading)
 {
 }
 
-Operator::Operator(const Operator &other)
+Operator::Operator(const Operator& other)
     : m_op_type(other.m_op_type),
       m_precedence(other.m_precedence),
       m_type(other.m_type),
@@ -75,14 +75,17 @@ Operator::Operator(const Operator &other)
 
 String Operator::LookupStringValue() const
 {
-    const auto *map = &Operator::binary_operators;
+    const OperatorMap* map = &Operator::s_binary_operators;
 
-    if (IsUnary()) {
-        map = &Operator::unary_operators;
+    if (IsUnary())
+    {
+        map = &Operator::s_unary_operators;
     }
 
-    for (const auto &it : *map) {
-        if (it.second.GetOperatorType() == m_op_type) {
+    for (const auto& it : *map)
+    {
+        if (it.second.GetOperatorType() == m_op_type)
+        {
             return it.first;
         }
     }
@@ -90,20 +93,139 @@ String Operator::LookupStringValue() const
     return "??";
 }
 
-const Operator *Operator::FindBinaryOperator(Operators op)
+bool Operator::IsBinaryOperator(UTF8StringView str, OperatorTypeBits match_bits)
 {
-    for (auto &it : binary_operators) {
-        if (it.second.GetOperatorType() == op) {
+    const auto it = s_binary_operators.FindAs(str);
+
+    if (it == s_binary_operators.end())
+    {
+        return false;
+    }
+
+    if (match_bits == 0)
+    {
+        return true;
+    }
+
+    return bool(it->second.GetType() & match_bits);
+}
+
+bool Operator::IsBinaryOperator(UTF8StringView str, const Operator*& out)
+{
+    const auto it = s_binary_operators.FindAs(str);
+
+    if (it == s_binary_operators.end())
+    {
+        return false;
+    }
+
+    out = &it->second;
+
+    return true;
+}
+
+bool Operator::IsBinaryOperator(UTF8StringView str, OperatorTypeBits match_bits, const Operator*& out)
+{
+    const auto it = s_binary_operators.FindAs(str);
+
+    if (it == s_binary_operators.end())
+    {
+        return false;
+    }
+
+    if (match_bits == 0)
+    {
+        out = &it->second;
+
+        return true;
+    }
+
+    if (it->second.GetType() & match_bits)
+    {
+        out = &it->second;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool Operator::IsUnaryOperator(UTF8StringView str, OperatorTypeBits match_bits)
+{
+    const auto it = s_unary_operators.FindAs(str);
+
+    if (it == s_unary_operators.end())
+    {
+        return false;
+    }
+
+    if (match_bits == 0)
+    {
+        return true;
+    }
+
+    return bool(it->second.GetType() & match_bits);
+}
+
+bool Operator::IsUnaryOperator(UTF8StringView str, const Operator*& out)
+{
+    const auto it = s_unary_operators.FindAs(str);
+
+    if (it == s_unary_operators.end())
+    {
+        return false;
+    }
+
+    out = &it->second;
+
+    return true;
+}
+
+bool Operator::IsUnaryOperator(UTF8StringView str, OperatorTypeBits match_bits, const Operator*& out)
+{
+    const auto it = s_unary_operators.FindAs(str);
+
+    if (it == s_unary_operators.end())
+    {
+        return false;
+    }
+
+    if (match_bits == 0)
+    {
+        out = &it->second;
+
+        return true;
+    }
+
+    if (it->second.GetType() & match_bits)
+    {
+        out = &it->second;
+
+        return true;
+    }
+
+    return false;
+}
+
+const Operator* Operator::FindBinaryOperator(Operators op)
+{
+    for (auto& it : s_binary_operators)
+    {
+        if (it.second.GetOperatorType() == op)
+        {
             return &it.second;
         }
     }
 
     return nullptr;
 }
-const Operator *Operator::FindUnaryOperator(Operators op)
+
+const Operator* Operator::FindUnaryOperator(Operators op)
 {
-    for (auto &it : unary_operators) {
-        if (it.second.GetOperatorType() == op) {
+    for (auto& it : s_unary_operators)
+    {
+        if (it.second.GetOperatorType() == op)
+        {
             return &it.second;
         }
     }

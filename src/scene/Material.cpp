@@ -540,7 +540,7 @@ Handle<Material> MaterialCache::GetOrCreate(
     {
         Mutex::Guard guard(m_mutex);
 
-        const auto it = m_map.FindByHash(hc);
+        const auto it = m_map.FindByHashCode(hc);
 
         if (it != m_map.End())
         {

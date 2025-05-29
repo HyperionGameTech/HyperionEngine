@@ -37,7 +37,7 @@ class Token
 {
 public:
     static String TokenTypeToString(TokenClass token_class);
-    
+
     static const Token EMPTY;
 
 public:
@@ -45,36 +45,56 @@ public:
 
     Token(
         TokenClass token_class,
-        const String &value,
-        const SourceLocation &location
-    );
+        const String& value,
+        const SourceLocation& location);
 
     Token(
         TokenClass token_class,
-        const String &value,
+        const String& value,
         Flags flags,
-        const SourceLocation &location
-    );
+        const SourceLocation& location);
 
-    Token(const Token &other);
-    Token &operator=(const Token &other);
+    Token(const Token& other);
+    Token& operator=(const Token& other);
 
-    TokenClass GetTokenClass() const { return m_token_class; }
-    const String &GetValue() const { return m_value; }
-    const Flags &GetFlags() const { return m_flags; }
-    const SourceLocation &GetLocation() const { return m_location; }
-    bool Empty() const { return m_token_class == TK_EMPTY; }
+    TokenClass GetTokenClass() const
+    {
+        return m_token_class;
+    }
+
+    const String& GetValue() const
+    {
+        return m_value;
+    }
+
+    const Flags& GetFlags() const
+    {
+        return m_flags;
+    }
+
+    const SourceLocation& GetLocation() const
+    {
+        return m_location;
+    }
+
+    bool Empty() const
+    {
+        return m_token_class == TK_EMPTY;
+    }
 
     // return true if not empty
-    explicit operator bool() const { return m_token_class != TK_EMPTY; }
+    explicit operator bool() const
+    {
+        return m_token_class != TK_EMPTY;
+    }
 
     bool IsContinuationToken() const;
 
 private:
-    TokenClass      m_token_class;
-    String          m_value;
-    Flags           m_flags;
-    SourceLocation  m_location;
+    TokenClass m_token_class;
+    String m_value;
+    Flags m_flags;
+    SourceLocation m_location;
 };
 
 } // namespace hyperion::buildtool

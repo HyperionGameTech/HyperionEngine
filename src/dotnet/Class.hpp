@@ -175,7 +175,7 @@ public:
      */
     HYP_FORCE_INLINE Method* GetMethodByHash(HashCode hash_code)
     {
-        auto it = m_methods.FindByHash(hash_code);
+        auto it = m_methods.FindByHashCode(hash_code);
         if (it == m_methods.End())
         {
             return nullptr;
@@ -192,7 +192,7 @@ public:
      */
     HYP_FORCE_INLINE const Method* GetMethodByHash(HashCode hash_code) const
     {
-        auto it = m_methods.FindByHash(hash_code);
+        auto it = m_methods.FindByHashCode(hash_code);
         if (it == m_methods.End())
         {
             return nullptr;

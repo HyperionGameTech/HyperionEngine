@@ -26,13 +26,25 @@
 
 namespace hyperion {
 
+#pragma region CachedPipelinesMap
+
+struct CachedPipelinesMap : HashMap<RenderableAttributeSet, Array<GraphicsPipelineRef>>
+{
+};
+
+#pragma endregion CachedPipelinesMap
+
 #pragma region GraphicsPipelineCache
 
-GraphicsPipelineCache::GraphicsPipelineCache() = default;
+GraphicsPipelineCache::GraphicsPipelineCache()
+    : m_cached_pipelines(new CachedPipelinesMap())
+{
+}
 
 GraphicsPipelineCache::~GraphicsPipelineCache()
 {
-    AssertThrowMsg(m_cached_pipelines.Empty(), "Graphics pipeline cache not empty!");
+    AssertThrowMsg(m_cached_pipelines->Empty(), "Graphics pipeline cache not empty!");
+    delete m_cached_pipelines;
 }
 
 void GraphicsPipelineCache::Initialize()
@@ -50,7 +62,7 @@ void GraphicsPipelineCache::Destroy()
 
     Mutex::Guard guard(m_mutex);
 
-    for (auto& it : m_cached_pipelines)
+    for (auto& it : *m_cached_pipelines)
     {
         for (GraphicsPipelineRef& pipeline : it.second)
         {
@@ -58,7 +70,7 @@ void GraphicsPipelineCache::Destroy()
         }
     }
 
-    m_cached_pipelines.Clear();
+    m_cached_pipelines->Clear();
 }
 
 GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
@@ -84,7 +96,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
     {
         Mutex::Guard guard(m_mutex);
 
-        m_cached_pipelines[attributes].PushBack(graphics_pipeline);
+        (*m_cached_pipelines)[attributes].PushBack(graphics_pipeline);
     };
 
     graphics_pipeline = g_rendering_api->MakeGraphicsPipeline(
@@ -143,9 +155,9 @@ GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
 
     const RenderableAttributeSet key = attributes;
 
-    auto it = m_cached_pipelines.Find(key);
+    auto it = m_cached_pipelines->Find(key);
 
-    if (it == m_cached_pipelines.End())
+    if (it == m_cached_pipelines->End())
     {
         return nullptr;
     }

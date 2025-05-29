@@ -20,6 +20,7 @@
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/lightmapper/RenderLightmapVolume.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <scene/View.hpp>
@@ -27,6 +28,7 @@
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/Light.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -257,6 +259,20 @@ void RenderView::Destroy_Internal()
         {
             m_lights[i].Clear();
         }
+    }
+
+    { // lightmap volumes
+        Array<RenderLightmapVolume*> lightmap_volumes;
+        m_tracked_lightmap_volumes.GetCurrent(lightmap_volumes);
+
+        for (RenderLightmapVolume* lightmap_volume : lightmap_volumes)
+        {
+            lightmap_volume->DecRef();
+        }
+
+        m_tracked_lightmap_volumes.Reset();
+
+        m_lightmap_volumes.Clear();
     }
 
     if (m_gbuffer)
@@ -776,6 +792,65 @@ void RenderView::UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& t
     tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
+void RenderView::UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes)
+{
+    if (!tracked_lightmap_volumes.GetDiff().NeedsUpdate())
+    {
+        tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return;
+    }
+
+    Array<ID<LightmapVolume>, DynamicAllocator> removed;
+    tracked_lightmap_volumes.GetRemoved(removed, true /* include_changed */);
+
+    Array<RenderLightmapVolume*, DynamicAllocator> added;
+    tracked_lightmap_volumes.GetAdded(added, true /* include_changed */);
+
+    for (RenderLightmapVolume* render_lightmap_volume : added)
+    {
+        // Ensure it doesn't get deleted while we queue the update txn
+        render_lightmap_volume->IncRef();
+    }
+
+    Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
+        {
+            if (!m_tracked_lightmap_volumes.WasReset())
+            {
+                for (ID<LightmapVolume> id : removed)
+                {
+                    RenderLightmapVolume** element_ptr = m_tracked_lightmap_volumes.GetElement(id);
+                    AssertDebug(element_ptr != nullptr);
+
+                    RenderLightmapVolume* render_lightmap_volume = *element_ptr;
+                    AssertDebug(render_lightmap_volume);
+
+                    auto it = m_lightmap_volumes.Find(render_lightmap_volume);
+                    AssertDebug(it != m_lightmap_volumes.End());
+
+                    m_lightmap_volumes.Erase(it);
+
+                    m_tracked_lightmap_volumes.MarkToRemove(id);
+
+                    render_lightmap_volume->DecRef();
+                }
+            }
+
+            for (RenderLightmapVolume* render_lightmap_volume : added)
+            {
+                AssertDebug(!m_lightmap_volumes.Contains(render_lightmap_volume));
+
+                m_lightmap_volumes.PushBack(render_lightmap_volume);
+
+                m_tracked_lightmap_volumes.Track(render_lightmap_volume->GetLightmapVolume()->GetID(), render_lightmap_volume);
+            }
+
+            m_tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::PERSIST);
+        });
+
+    tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
+}
+
 void RenderView::PreRender(FrameBase* frame)
 {
     HYP_SCOPE;
@@ -953,6 +1028,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
         }
 
+        if (m_lightmap_volumes.Any())
         { // render objects to be lightmapped, separate from the opaque objects.
             // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
             frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);

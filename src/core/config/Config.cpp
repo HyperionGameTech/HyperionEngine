@@ -275,7 +275,7 @@ const json::JSONValue& ConfigurationTable::GetSubobject() const
 
         if (!subobject->IsObject())
         {
-            subobject = &json::JSONValue::s_empty_object;
+            subobject = &json::JSON::EmptyObject();
         }
     }
 
@@ -350,7 +350,9 @@ bool ConfigurationTable::SetHypClassFields(const HypClass* hyp_class, const void
 
     if (ObjectToJSON(hyp_class, target_hyp_data, json_object))
     {
-        GetSubobject().AsObject() = std::move(json_object.Merge(GetSubobject().AsObject()));
+        json_object.Merge(GetSubobject().AsObject());
+
+        GetSubobject().AsObject() = std::move(json_object);
 
         return true;
     }

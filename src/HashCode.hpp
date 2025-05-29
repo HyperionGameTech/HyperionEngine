@@ -207,6 +207,11 @@ struct HashCode
         return HashCode(detail::FNV1::HashString(_begin, _end));
     }
 
+    static inline HashCode GetHashCode(const ubyte* _begin, const ubyte* _end)
+    {
+        return HashCode(detail::FNV1::HashBytes(_begin, _end));
+    }
+
     constexpr HashCode Combine(const HashCode& other) const
     {
         if (m_hash == 0)

@@ -49,7 +49,7 @@ struct FunctionWrapper_MemberHelper<TReturnType TTargetType::*>
 } // namespace detail
 
 template <class T>
-struct FunctionWrapper<T, std::enable_if_t<FunctionTraits<T>::is_member_function && !FunctionTraits<T>::is_functor>>
+struct FunctionWrapper<T, std::enable_if_t<FunctionTraits<T>::is_nonconst_member_function && !FunctionTraits<T>::is_functor>>
 {
     using Type = typename detail::FunctionWrapper_MemberFunctionHelper<T>::Type;
 
@@ -63,9 +63,60 @@ struct FunctionWrapper<T, std::enable_if_t<FunctionTraits<T>::is_member_function
     {
     }
 
+    constexpr decltype(auto) operator()(typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType* value) const
+    {
+        if (!value)
+        {
+            return typename detail::FunctionWrapper_MemberFunctionHelper<T>::ReturnType();
+        }
+
+        return (value->*mem_fn)();
+    }
+
     constexpr decltype(auto) operator()(typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType& value) const
     {
         return (value.*mem_fn)();
+    }
+
+    constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType* value) const
+    {
+        if (!value)
+        {
+            return typename detail::FunctionWrapper_MemberFunctionHelper<T>::ReturnType();
+        }
+
+        return (value->*mem_fn)();
+    }
+
+    constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType& value) const
+    {
+        return (value.*mem_fn)();
+    }
+};
+
+template <class T>
+struct FunctionWrapper<T, std::enable_if_t<FunctionTraits<T>::is_const_member_function && !FunctionTraits<T>::is_functor>>
+{
+    using Type = typename detail::FunctionWrapper_MemberFunctionHelper<T>::Type;
+
+    Type mem_fn;
+
+    // for std::declval usage
+    constexpr FunctionWrapper() = default;
+
+    constexpr FunctionWrapper(Type mem_fn)
+        : mem_fn(mem_fn)
+    {
+    }
+
+    constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType* value) const
+    {
+        if (!value)
+        {
+            return typename detail::FunctionWrapper_MemberFunctionHelper<T>::ReturnType();
+        }
+
+        return (value->*mem_fn)();
     }
 
     constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberFunctionHelper<T>::TargetType& value) const
@@ -89,9 +140,29 @@ struct FunctionWrapper<T, std::enable_if_t<std::is_member_object_pointer_v<T>>>
     {
     }
 
+    constexpr decltype(auto) operator()(typename detail::FunctionWrapper_MemberHelper<T>::TargetType* value) const
+    {
+        if (!value)
+        {
+            return typename detail::FunctionWrapper_MemberHelper<T>::ReturnType();
+        }
+
+        return value->*member;
+    }
+
     constexpr decltype(auto) operator()(typename detail::FunctionWrapper_MemberHelper<T>::TargetType& value) const
     {
         return value.*member;
+    }
+
+    constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberHelper<T>::TargetType* value) const
+    {
+        if (!value)
+        {
+            return typename detail::FunctionWrapper_MemberHelper<T>::ReturnType();
+        }
+
+        return value->*member;
     }
 
     constexpr decltype(auto) operator()(const typename detail::FunctionWrapper_MemberHelper<T>::TargetType& value) const

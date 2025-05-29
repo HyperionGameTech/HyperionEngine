@@ -310,7 +310,7 @@ private:
 class HYP_API Lightmapper
 {
 public:
-    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene);
+    Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
     Lightmapper(const Lightmapper& other) = delete;
     Lightmapper& operator=(const Lightmapper& other) = delete;
     Lightmapper(Lightmapper&& other) noexcept = delete;
@@ -345,6 +345,7 @@ private:
     LightmapperConfig m_config;
 
     Handle<Scene> m_scene;
+    BoundingBox m_aabb;
 
     Handle<LightmapVolume> m_volume;
 

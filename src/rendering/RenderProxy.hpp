@@ -167,9 +167,18 @@ template <class IDType, class ElementType>
 class ResourceTracker
 {
 public:
-    using MapType = HashMap<IDType, ElementType>;
+    using MapType = HashMap<IDType, ElementType, HashTable_DynamicNodeAllocator<KeyValuePair<IDType, ElementType>>>;
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
+
+    enum ResourceTrackState : uint8
+    {
+        UNCHANGED = 0x0,
+        CHANGED_ADDED = 0x1,
+        CHANGED_MODIFIED = 0x2,
+
+        CHANGED = CHANGED_ADDED | CHANGED_MODIFIED
+    };
 
     struct Diff
     {
@@ -255,7 +264,7 @@ public:
         m_element_map.Reserve(capacity);
     }
 
-    typename MapType::Iterator Track(IDType id, const ElementType& element)
+    typename MapType::Iterator Track(IDType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
     {
         typename MapType::Iterator iter = m_element_map.End();
 
@@ -278,6 +287,18 @@ public:
                 m_changed.Set(id.ToIndex(), true);
 
                 iter->second = element;
+
+                if (out_track_state != nullptr)
+                {
+                    *out_track_state = ResourceTrackState::CHANGED_MODIFIED;
+                }
+            }
+            else
+            {
+                if (out_track_state != nullptr)
+                {
+                    *out_track_state = ResourceTrackState::UNCHANGED;
+                }
             }
         }
         else
@@ -286,6 +307,11 @@ public:
             AssertDebug(!m_changed.Test(id.ToIndex()));
 
             iter = m_element_map.Insert(id, element).first;
+
+            if (out_track_state != nullptr)
+            {
+                *out_track_state = ResourceTrackState::CHANGED_ADDED;
+            }
         }
 
         m_next.Set(id.ToIndex(), true);
@@ -293,7 +319,7 @@ public:
         return iter;
     }
 
-    typename MapType::Iterator Track(IDType id, ElementType&& element)
+    typename MapType::Iterator Track(IDType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
     {
         typename MapType::Iterator iter = m_element_map.End();
 
@@ -316,6 +342,18 @@ public:
                 m_changed.Set(id.ToIndex(), true);
 
                 iter->second = std::move(element);
+
+                if (out_track_state != nullptr)
+                {
+                    *out_track_state = ResourceTrackState::CHANGED_MODIFIED;
+                }
+            }
+            else
+            {
+                if (out_track_state != nullptr)
+                {
+                    *out_track_state = ResourceTrackState::UNCHANGED;
+                }
             }
         }
         else
@@ -324,6 +362,11 @@ public:
             AssertDebug(!m_changed.Test(id.ToIndex()));
 
             iter = m_element_map.Insert(id, std::move(element)).first;
+
+            if (out_track_state != nullptr)
+            {
+                *out_track_state = ResourceTrackState::CHANGED_ADDED;
+            }
         }
 
         m_next.Set(id.ToIndex(), true);
@@ -431,30 +474,6 @@ public:
     }
 
     template <class AllocatorType>
-    void GetCurrent(Array<ElementType*, AllocatorType>& out)
-    {
-        HYP_SCOPE;
-
-        Bitset current_bits = m_previous;
-
-        out.Reserve(current_bits.Count());
-
-        Bitset::BitIndex first_set_bit_index;
-
-        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
-        {
-            const IDType id = IDType::FromIndex(first_set_bit_index);
-
-            auto it = m_element_map.Find(id);
-            AssertThrow(it != m_element_map.End());
-
-            out.PushBack(&it->second);
-
-            current_bits.Set(first_set_bit_index, false);
-        }
-    }
-
-    template <class AllocatorType>
     void GetCurrent(Array<ElementType, AllocatorType>& out)
     {
         HYP_SCOPE;
@@ -473,6 +492,30 @@ public:
             AssertThrow(it != m_element_map.End());
 
             out.PushBack(it->second);
+
+            current_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetCurrent(Array<ElementType*, AllocatorType>& out)
+    {
+        HYP_SCOPE;
+
+        Bitset current_bits = m_previous;
+
+        out.Reserve(current_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(&it->second);
 
             current_bits.Set(first_set_bit_index, false);
         }

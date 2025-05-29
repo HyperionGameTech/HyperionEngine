@@ -20,7 +20,7 @@ namespace json {
 class JSONValue;
 
 using JSONString = String;
-using JSONObject = HashMap<JSONString, JSONValue>;
+class JSONObject;
 
 } // namespace json
 

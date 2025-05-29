@@ -11,6 +11,8 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/AtomicVar.hpp>
 
+#include <core/functional/ScriptableDelegate.hpp>
+
 #include <core/object/HypObject.hpp>
 
 #include <Types.hpp>
@@ -20,12 +22,12 @@ namespace hyperion {
 class UIObject;
 
 HYP_CLASS(Abstract)
-class IEditorTask : public EnableRefCountedPtrFromThis<IEditorTask>
+class EditorTaskBase : public EnableRefCountedPtrFromThis<EditorTaskBase>
 {
-    HYP_OBJECT_BODY(IEditorTask);
+    HYP_OBJECT_BODY(EditorTaskBase);
 
 public:
-    virtual ~IEditorTask() = default;
+    virtual ~EditorTaskBase() = default;
 
     virtual ThreadType GetRunnableThreadType() const = 0;
 
@@ -46,10 +48,16 @@ public:
 
     HYP_METHOD()
     virtual void Tick(float delta) = 0;
+
+    HYP_FIELD()
+    ScriptableDelegate<void> OnComplete;
+
+    HYP_FIELD()
+    ScriptableDelegate<void> OnCancel;
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on the game thread and is has Process() called every tick")
-class HYP_API TickableEditorTask : public IEditorTask
+class HYP_API TickableEditorTask : public EditorTaskBase
 {
     HYP_OBJECT_BODY(TickableEditorTask);
 
@@ -103,7 +111,7 @@ private:
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on a Task thread and has Process() called one time only")
-class HYP_API LongRunningEditorTask : public IEditorTask
+class HYP_API LongRunningEditorTask : public EditorTaskBase
 {
     HYP_OBJECT_BODY(LongRunningEditorTask);
 

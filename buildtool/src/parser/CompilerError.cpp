@@ -53,7 +53,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_expression_not_generic, "Generic arguments provided to non-generic type, '%'" },
     { Msg_too_many_generic_args, "Too many generic arguments provided: % required, found %" },
     { Msg_too_few_generic_args, "Too few generic arguments provided: % required, found %" },
-    { Msg_no_substitution_for_generic_arg, "No substitution found for generic parameter %"},
+    { Msg_no_substitution_for_generic_arg, "No substitution found for generic parameter %" },
     { Msg_enum_assignment_not_constant, "Assignment for enum member '%' is not a constant." },
     { Msg_generic_arg_may_not_have_side_effects, "Generic argument may not have side effects" },
     { Msg_break_outside_loop, "'break' cannot be used outside of a loop or switch statement" },
@@ -139,7 +139,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_module_name_begins_lowercase, "Module name '%' should begin with an uppercase character" },
 };
 
-CompilerError::CompilerError(const CompilerError &other)
+CompilerError::CompilerError(const CompilerError& other)
     : m_level(other.m_level),
       m_msg(other.m_msg),
       m_location(other.m_location),
@@ -147,21 +147,25 @@ CompilerError::CompilerError(const CompilerError &other)
 {
 }
 
-bool CompilerError::operator<(const CompilerError &other) const
+bool CompilerError::operator<(const CompilerError& other) const
 {
-    if (m_level != other.m_level) {
+    if (m_level != other.m_level)
+    {
         return m_level < other.m_level;
     }
 
-    if (m_location.GetFileName() != other.m_location.GetFileName()) {
+    if (m_location.GetFileName() != other.m_location.GetFileName())
+    {
         return m_location.GetFileName() < other.m_location.GetFileName();
     }
 
-    if (m_location.GetLine() != other.m_location.GetLine()) {
+    if (m_location.GetLine() != other.m_location.GetLine())
+    {
         return m_location.GetLine() < other.m_location.GetLine();
     }
 
-    if (m_location.GetColumn() != other.m_location.GetColumn()) {
+    if (m_location.GetColumn() != other.m_location.GetColumn())
+    {
         return m_location.GetColumn() < other.m_location.GetColumn();
     }
 

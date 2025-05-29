@@ -18,12 +18,12 @@ struct TokenStreamInfo
 {
     String filepath;
 
-    TokenStreamInfo(const String &filepath)
+    TokenStreamInfo(const String& filepath)
         : filepath(filepath)
     {
     }
 
-    TokenStreamInfo(const TokenStreamInfo &other)
+    TokenStreamInfo(const TokenStreamInfo& other)
         : filepath(other.filepath)
     {
     }
@@ -32,30 +32,34 @@ struct TokenStreamInfo
 class TokenStream
 {
 public:
-    TokenStream(const TokenStreamInfo &info);
+    TokenStream(const TokenStreamInfo& info);
 
-    TokenStream(const TokenStream &other);
-    TokenStream &operator=(const TokenStream &other);
+    TokenStream(const TokenStream& other);
+    TokenStream& operator=(const TokenStream& other);
 
-    TokenStream(TokenStream &&other) noexcept;
-    TokenStream &operator=(TokenStream &&other) noexcept;
-    
+    TokenStream(TokenStream&& other) noexcept;
+    TokenStream& operator=(TokenStream&& other) noexcept;
+
     Token Peek(int n = 0) const
     {
         SizeType pos = m_position + n;
 
-        if (pos >= m_tokens.Size()) {
+        if (pos >= m_tokens.Size())
+        {
             return Token::EMPTY;
         }
 
         return m_tokens[pos];
     }
 
-    void Push(const Token &token, bool insert_at_position = false)
+    void Push(const Token& token, bool insert_at_position = false)
     {
-        if (!insert_at_position || m_tokens.Size() <= m_position) {
+        if (!insert_at_position || m_tokens.Size() <= m_position)
+        {
             m_tokens.PushBack(token);
-        } else {
+        }
+        else
+        {
             auto it = m_tokens.Begin() + m_position;
 
             m_tokens.Insert(it, token);
@@ -70,25 +74,41 @@ public:
     }
 
     bool HasNext() const
-        { return m_position < m_tokens.Size(); }
+    {
+        return m_position < m_tokens.Size();
+    }
 
     Token Next()
-        { AssertThrow(m_position < m_tokens.Size()); return m_tokens[m_position++]; }
+    {
+        AssertThrow(m_position < m_tokens.Size());
+        return m_tokens[m_position++];
+    }
 
     Token Last() const
-        { AssertThrow(!m_tokens.Empty()); return m_tokens.Back(); }
+    {
+        AssertThrow(!m_tokens.Empty());
+        return m_tokens.Back();
+    }
 
     SizeType GetSize() const
-        { return m_tokens.Size(); }
+    {
+        return m_tokens.Size();
+    }
 
     SizeType GetPosition() const
-        { return m_position; }
+    {
+        return m_position;
+    }
 
-    const TokenStreamInfo &GetInfo() const
-        { return m_info; }
+    const TokenStreamInfo& GetInfo() const
+    {
+        return m_info;
+    }
 
     void SetPosition(SizeType position)
-        { m_position = position; }
+    {
+        m_position = position;
+    }
 
     void Rewind(SizeType n)
     {
@@ -96,12 +116,14 @@ public:
 
         m_position -= n;
     }
-    
-    bool Eof() const
-        { return m_position >= m_tokens.Size(); }
 
-    Array<Token>    m_tokens;
-    SizeType        m_position;
+    bool Eof() const
+    {
+        return m_position >= m_tokens.Size();
+    }
+
+    Array<Token> m_tokens;
+    SizeType m_position;
 
 private:
     TokenStreamInfo m_info;

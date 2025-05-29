@@ -19,6 +19,7 @@
 namespace hyperion {
 
 class Texture;
+class RenderLightmapVolume;
 
 // @TODO: Create RenderLightmapVolume, and add it to the RenderState.
 // Any visible objects that have a LightmapElementComponent with `volume` of this LightmapVolume
@@ -80,6 +81,11 @@ public:
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume();
 
+    HYP_FORCE_INLINE RenderLightmapVolume& GetRenderResource() const
+    {
+        return *m_render_resource;
+    }
+
     HYP_METHOD()
     HYP_FORCE_INLINE const UUID& GetUUID() const
     {
@@ -105,6 +111,8 @@ public:
     void Init();
 
 private:
+    RenderLightmapVolume* m_render_resource;
+
     HYP_FIELD(Serialize = true)
     UUID m_uuid;
 

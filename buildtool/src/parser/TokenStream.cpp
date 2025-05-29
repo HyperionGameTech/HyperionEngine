@@ -4,22 +4,23 @@
 
 namespace hyperion::buildtool {
 
-TokenStream::TokenStream(const TokenStreamInfo &info)
+TokenStream::TokenStream(const TokenStreamInfo& info)
     : m_position(0),
       m_info(info)
 {
 }
 
-TokenStream::TokenStream(const TokenStream &other)
+TokenStream::TokenStream(const TokenStream& other)
     : m_tokens(other.m_tokens),
       m_position(other.m_position),
       m_info(other.m_info)
 {
 }
 
-TokenStream &TokenStream::operator=(const TokenStream &other)
+TokenStream& TokenStream::operator=(const TokenStream& other)
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 
@@ -30,7 +31,7 @@ TokenStream &TokenStream::operator=(const TokenStream &other)
     return *this;
 }
 
-TokenStream::TokenStream(TokenStream &&other) noexcept
+TokenStream::TokenStream(TokenStream&& other) noexcept
     : m_tokens(std::move(other.m_tokens)),
       m_position(other.m_position),
       m_info(std::move(other.m_info))
@@ -38,9 +39,10 @@ TokenStream::TokenStream(TokenStream &&other) noexcept
     other.m_position = 0;
 }
 
-TokenStream &TokenStream::operator=(TokenStream &&other) noexcept
+TokenStream& TokenStream::operator=(TokenStream&& other) noexcept
 {
-    if (this == &other) {
+    if (this == &other)
+    {
         return *this;
     }
 

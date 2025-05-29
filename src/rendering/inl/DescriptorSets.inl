@@ -11,6 +11,9 @@ HYP_DESCRIPTOR_SRV(Global, VoxelGridTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, LightFieldColorTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, LightFieldDepthTexture, 1);
 
+HYP_DESCRIPTOR_SRV(Object, LightmapVolumeIrradianceTexture, 1);
+HYP_DESCRIPTOR_SRV(Object, LightmapVolumeRadianceTexture, 1);
+
 HYP_DESCRIPTOR_SRV_COND(Scene, GBufferTextures, num_gbuffer_textures, g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
 HYP_DESCRIPTOR_SRV_COND(Scene, GBufferAlbedoTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());
 HYP_DESCRIPTOR_SRV_COND(Scene, GBufferNormalsTexture, 1, !g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported());

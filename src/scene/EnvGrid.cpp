@@ -374,8 +374,6 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
         probe->SetNeedsUpdate(true);
 
         probe->Update(delta);
-
-        probe->SetNeedsRender(true);
     }
 }
 

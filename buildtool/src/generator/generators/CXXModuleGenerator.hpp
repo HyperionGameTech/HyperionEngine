@@ -14,9 +14,9 @@ public:
     virtual ~CXXModuleGenerator() override = default;
 
 protected:
-    virtual FilePath GetOutputFilePath(const Analyzer &analyzer, const Module &mod) const override;
+    virtual FilePath GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const override;
 
-    virtual Result Generate_Internal(const Analyzer &analyzer, const Module &mod, ByteWriter &writer) const override;
+    virtual Result Generate_Internal(const Analyzer& analyzer, const Module& mod, ByteWriter& writer) const override;
 };
 
 } // namespace buildtool

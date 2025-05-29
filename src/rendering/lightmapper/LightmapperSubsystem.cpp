@@ -7,6 +7,8 @@
 
 #include <core/threading/TaskSystem.hpp>
 
+#include <core/math/BoundingBox.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -70,7 +72,7 @@ void LightmapperSubsystem::Update(GameCounter::TickUnit delta)
     }
 }
 
-Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene)
+Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, const BoundingBox& aabb)
 {
     Threads::AssertOnThread(g_game_thread);
 
@@ -84,6 +86,13 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene)
         return nullptr;
     }
 
+    if (!aabb.IsValid() || !aabb.IsFinite())
+    {
+        HYP_LOG(Rendering, Error, "Invalid AABB provided for lightmapper in Scene {}", scene->GetID().Value());
+
+        return nullptr;
+    }
+
     auto it = m_lightmappers.Find(scene.GetID());
 
     if (it != m_lightmappers.End())
@@ -93,7 +102,7 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene)
         return nullptr;
     }
 
-    UniquePtr<Lightmapper> lightmapper = MakeUnique<Lightmapper>(LightmapperConfig::FromConfig(), scene);
+    UniquePtr<Lightmapper> lightmapper = MakeUnique<Lightmapper>(LightmapperConfig::FromConfig(), scene, aabb);
 
     Task<void>& task = m_tasks.EmplaceBack();
 

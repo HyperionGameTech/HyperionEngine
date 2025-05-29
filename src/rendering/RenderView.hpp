@@ -24,6 +24,7 @@ class RenderWorld;
 class RenderScene;
 class RenderCamera;
 class RenderLight;
+class RenderLightmapVolume;
 class GBuffer;
 class EnvGridPass;
 class ReflectionsPass;
@@ -178,6 +179,7 @@ public:
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
     typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker);
     void UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
+    void UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes);
 
     virtual void PreRender(FrameBase* frame);
     virtual void Render(FrameBase* frame, RenderWorld* render_world);
@@ -214,11 +216,13 @@ protected:
     TResourceHandle<RenderScene> m_render_scene;
     TResourceHandle<RenderCamera> m_render_camera;
 
-    Array<Array<RenderLight*>> m_lights;
-
     RenderCollector m_render_collector;
 
+    Array<Array<RenderLight*>> m_lights;
     ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
+
+    Array<RenderLightmapVolume*> m_lightmap_volumes;
+    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> m_tracked_lightmap_volumes;
 
     UniquePtr<GBuffer> m_gbuffer;
 

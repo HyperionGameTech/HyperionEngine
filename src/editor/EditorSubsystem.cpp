@@ -109,13 +109,9 @@ RC<UIObject> RunningEditorTask::CreateUIObject(UIStage* ui_stage) const
 
 #pragma region GenerateLightmapsEditorTask
 
-GenerateLightmapsEditorTask::GenerateLightmapsEditorTask(const Handle<World>& world, const Handle<Scene>& scene)
-    : m_world(world),
-      m_scene(scene),
-      m_task(nullptr)
+GenerateLightmapsEditorTask::GenerateLightmapsEditorTask()
+    : m_task(nullptr)
 {
-    AssertThrow(m_world.IsValid());
-    AssertThrow(m_scene.IsValid());
 }
 
 void GenerateLightmapsEditorTask::Process()
@@ -125,6 +121,24 @@ void GenerateLightmapsEditorTask::Process()
 
     HYP_LOG(Editor, Info, "Generating lightmaps");
 
+    if (!m_world.IsValid() || !m_scene.IsValid())
+    {
+        HYP_LOG(Editor, Error, "World or scene not set for GenerateLightmapsEditorTask");
+
+        m_task = nullptr;
+
+        return;
+    }
+
+    if (!m_aabb.IsValid() || !m_aabb.IsFinite())
+    {
+        HYP_LOG(Editor, Error, "Invalid AABB provided for GenerateLightmapsEditorTask");
+
+        m_task = nullptr;
+
+        return;
+    }
+
     LightmapperSubsystem* lightmapper_subsystem = m_world->GetSubsystem<LightmapperSubsystem>();
 
     if (!lightmapper_subsystem)
@@ -132,10 +146,10 @@ void GenerateLightmapsEditorTask::Process()
         lightmapper_subsystem = m_world->AddSubsystem<LightmapperSubsystem>();
     }
 
-    m_task = lightmapper_subsystem->GenerateLightmaps(m_scene);
+    m_task = lightmapper_subsystem->GenerateLightmaps(m_scene, m_aabb);
 }
 
-void GenerateLightmapsEditorTask::Cancel_Impl()
+void GenerateLightmapsEditorTask::Cancel()
 {
     if (m_task != nullptr)
     {
@@ -143,12 +157,12 @@ void GenerateLightmapsEditorTask::Cancel_Impl()
     }
 }
 
-bool GenerateLightmapsEditorTask::IsCompleted_Impl() const
+bool GenerateLightmapsEditorTask::IsCompleted() const
 {
     return m_task == nullptr || m_task->IsCompleted();
 }
 
-void GenerateLightmapsEditorTask::Tick_Impl(float delta)
+void GenerateLightmapsEditorTask::Tick(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
@@ -971,7 +985,7 @@ void EditorSubsystem::Update(GameCounter::TickUnit delta)
     UpdateTasks(delta);
     UpdateDebugOverlays(delta);
 
-    #if 0
+#if 0
     if (m_focused_node.IsValid()) {
         g_engine->GetDebugDrawer()->Box(m_focused_node->GetWorldTranslation(), m_focused_node->GetWorldAABB().GetExtent() + Vec3f(1.0001f), Color(0.0f, 0.0f, 1.0f, 1.0f));
         g_engine->GetDebugDrawer()->Box(m_focused_node->GetWorldTranslation(), m_focused_node->GetWorldAABB().GetExtent(), Color(1.0f), RenderableAttributeSet(
@@ -994,7 +1008,7 @@ void EditorSubsystem::Update(GameCounter::TickUnit delta)
             }
         ));
     }
-    #endif
+#endif
 }
 
 void EditorSubsystem::OnSceneAttached(const Handle<Scene>& scene)
@@ -1024,29 +1038,6 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     loaded_ui->SetDefaultFontAtlas(font_atlas);
 
     ui_subsystem->GetUIStage()->AddChildUIObject(loaded_ui);
-
-    // test generate lightmap
-    if (RC<UIObject> generate_lightmaps_button = loaded_ui->FindChildUIObject(NAME("Generate_Lightmaps_Button")))
-    {
-
-        m_delegate_handlers.Remove(&generate_lightmaps_button->OnClick);
-        m_delegate_handlers.Add(generate_lightmaps_button->OnClick.Bind([this](...)
-            {
-                HYP_LOG(Editor, Info, "Generate lightmaps clicked!");
-
-                AddTask(MakeRefCountedPtr<GenerateLightmapsEditorTask>(GetWorld()->HandleFromThis(), m_scene));
-
-                // LightmapperSubsystem *lightmapper_subsystem = GetWorld()->GetSubsystem<LightmapperSubsystem>();
-
-                // if (!lightmapper_subsystem) {
-                //     lightmapper_subsystem = GetWorld()->AddSubsystem<LightmapperSubsystem>();
-                // }
-
-                // Task<void> *generate_lightmaps_task = lightmapper_subsystem->GenerateLightmaps(m_scene);
-
-                return UIEventHandlerResult::OK;
-            }));
-    }
 }
 
 void EditorSubsystem::CreateHighlightNode()
@@ -2228,7 +2219,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     }
 }
 
-void EditorSubsystem::AddTask(const RC<IEditorTask>& task)
+void EditorSubsystem::AddTask(const RC<EditorTaskBase>& task)
 {
     HYP_SCOPE;
 
@@ -2271,7 +2262,7 @@ void EditorSubsystem::AddTask(const RC<IEditorTask>& task)
             cancel_button->SetText("Cancel");
             cancel_button->OnClick.Bind([task_weak = task.ToWeak()](...)
                                       {
-                                          if (RC<IEditorTask> task = task_weak.Lock())
+                                          if (RC<EditorTaskBase> task = task_weak.Lock())
                                           {
                                               task->Cancel();
                                           }
@@ -2488,6 +2479,8 @@ void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
 
                 if (task->IsCompleted())
                 {
+                    task->OnComplete();
+
                     // Remove the UIObject for the task from this stage
                     if (const RC<UIObject>& task_ui_object = it->GetUIObject())
                     {

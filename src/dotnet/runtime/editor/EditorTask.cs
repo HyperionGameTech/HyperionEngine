@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="IEditorTask")]
-    public abstract class IEditorTask : HypObject
+    [HypClassBinding(Name="EditorTaskBase")]
+    public abstract class EditorTaskBase : HypObject
     {
     }
 
     [HypClassBinding(Name="TickableEditorTask")]
-    public abstract class TickableEditorTask : IEditorTask
+    public abstract class TickableEditorTask : EditorTaskBase
     {
         public TickableEditorTask()
         {
@@ -22,7 +22,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="LongRunningEditorTask")]
-    public abstract class LongRunningEditorTask : IEditorTask
+    public abstract class LongRunningEditorTask : EditorTaskBase
     {
         public LongRunningEditorTask()
         {

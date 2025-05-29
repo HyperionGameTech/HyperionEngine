@@ -33,23 +33,23 @@ namespace containers {
 
 namespace detail {
 
-template <class T, class T2 = void>
+template <class T, SizeType MaxInlineCapacityBytes = 256, class T2 = void>
 struct ArrayDefaultAllocatorSelector;
 
-template <class T>
-struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<!implementation_exists<T>>>
+template <class T, SizeType MaxInlineCapacityBytes>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<!implementation_exists<T>>>
 {
     using Type = DynamicAllocator;
 };
 
-template <class T>
-struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<implementation_exists<T> && (sizeof(T) <= 256)>>
+template <class T, SizeType MaxInlineCapacityBytes>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<implementation_exists<T> && (sizeof(T) <= MaxInlineCapacityBytes)>>
 {
-    using Type = InlineAllocator<256 / sizeof(T)>;
+    using Type = InlineAllocator<MaxInlineCapacityBytes / sizeof(T)>;
 };
 
-template <class T>
-struct ArrayDefaultAllocatorSelector<T, std::enable_if_t<implementation_exists<T> && (sizeof(T) > 256)>>
+template <class T, SizeType MaxInlineCapacityBytes>
+struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t<implementation_exists<T> && (sizeof(T) > MaxInlineCapacityBytes)>>
 {
     using Type = DynamicAllocator;
 };
@@ -326,6 +326,10 @@ public:
 
     /*! \brief Resizes the array to the given size without initializing the new elements. Memory::Construct must be manually called on the new elements. */
     void ResizeUninitialized(SizeType new_size);
+
+    /*! \brief Resizes the array to the given size and sets the new elements to zero. This should be used for POD types only that do not require
+     * constructor calls. */
+    void ResizeZeroed(SizeType new_size);
 
     /*! \brief Refits the array to the smallest possible size. This is useful if you have a large array and want to free up memory. */
     void Refit();
@@ -924,6 +928,31 @@ void Array<T, AllocatorType>::ResizeUninitialized(SizeType new_size)
 }
 
 template <class T, class AllocatorType>
+void Array<T, AllocatorType>::ResizeZeroed(SizeType new_size)
+{
+    static_assert(std::is_fundamental_v<T> || std::is_trivially_constructible_v<T>,
+        "ResizeZeroed can only be used for fundamental or trivially constructible types");
+
+    const SizeType current_size = Size();
+
+    if (new_size == current_size)
+    {
+        return;
+    }
+
+    ResizeUninitialized(new_size);
+
+    if (new_size > current_size)
+    {
+        T* buffer = GetBuffer();
+
+        const SizeType diff = new_size - current_size;
+
+        Memory::MemSet(&buffer[m_size - diff], 0, sizeof(T) * diff);
+    }
+}
+
+template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Refit()
 {
     if (Capacity() == Size())
@@ -1088,6 +1117,11 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Concat(const Array& other)
 {
+    if (other.Empty())
+    {
+        return;
+    }
+
     if (m_size + other.Size() >= Capacity())
     {
         if (Capacity() >= Size() + other.Size())
@@ -1102,16 +1136,32 @@ void Array<T, AllocatorType>::Concat(const Array& other)
 
     T* buffer = GetBuffer();
 
-    for (SizeType i = 0; i < other.Size(); ++i)
+    if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
     {
-        // set item at index
-        Memory::Construct<T>(&buffer[m_size++], other[i]);
+        const SizeType other_size = other.Size();
+
+        Memory::MemCpy(&buffer[m_size], other.Data(), other_size * sizeof(T));
+
+        m_size += other_size;
+    }
+    else
+    {
+        for (SizeType i = 0; i < other.Size(); ++i)
+        {
+            // copy construct item at index
+            Memory::Construct<T>(&buffer[m_size++], other[i]);
+        }
     }
 }
 
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Concat(Array&& other)
 {
+    if (other.Empty())
+    {
+        return;
+    }
+
     if (m_size + other.Size() >= Capacity())
     {
         if (Capacity() >= Size() + other.Size())
@@ -1126,10 +1176,21 @@ void Array<T, AllocatorType>::Concat(Array&& other)
 
     T* buffer = GetBuffer();
 
-    for (SizeType i = 0; i < other.Size(); ++i)
+    if constexpr (std::is_fundamental_v<T> || std::is_trivially_move_constructible_v<T>)
     {
-        // set item at index
-        Memory::Construct<T>(&buffer[m_size++], std::move(other[i]));
+        const SizeType other_size = other.Size();
+
+        Memory::MemCpy(&buffer[m_size], other.Data(), other_size * sizeof(T));
+
+        m_size += other_size;
+    }
+    else
+    {
+        for (SizeType i = 0; i < other.Size(); ++i)
+        {
+            // set item at index
+            Memory::Construct<T>(&buffer[m_size++], std::move(other[i]));
+        }
     }
 
     other.Clear();

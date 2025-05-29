@@ -141,6 +141,14 @@ private:
 
     virtual void WriteBytes(const char* ptr, SizeType size) override
     {
+        const SizeType required_capacity = m_buffer.Size() + size;
+
+        if (m_buffer.GetCapacity() < required_capacity)
+        {
+            // Add some padding to reduce number of allocations we need to do
+            m_buffer.SetCapacity(SizeType(double(required_capacity) * 1.5));
+        }
+
         m_buffer.SetSize(m_buffer.Size() + size);
         m_buffer.Write(size, m_pos, ptr);
         m_pos += size;

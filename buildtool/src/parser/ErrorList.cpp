@@ -15,13 +15,13 @@ ErrorList::ErrorList()
 {
 }
 
-ErrorList::ErrorList(const ErrorList &other)
+ErrorList::ErrorList(const ErrorList& other)
     : m_errors(other.m_errors),
       m_error_suppression_depth(other.m_error_suppression_depth)
 {
 }
 
-ErrorList &ErrorList::operator=(const ErrorList &other)
+ErrorList& ErrorList::operator=(const ErrorList& other)
 {
     m_errors = other.m_errors;
     m_error_suppression_depth = other.m_error_suppression_depth;
@@ -29,14 +29,14 @@ ErrorList &ErrorList::operator=(const ErrorList &other)
     return *this;
 }
 
-ErrorList::ErrorList(ErrorList &&other) noexcept
+ErrorList::ErrorList(ErrorList&& other) noexcept
     : m_errors(std::move(other.m_errors)),
       m_error_suppression_depth(other.m_error_suppression_depth)
 {
     other.m_error_suppression_depth = 0;
 }
 
-ErrorList &ErrorList::operator=(ErrorList &&other) noexcept
+ErrorList& ErrorList::operator=(ErrorList&& other) noexcept
 {
     m_errors = std::move(other.m_errors);
     m_error_suppression_depth = other.m_error_suppression_depth;
@@ -48,10 +48,11 @@ ErrorList &ErrorList::operator=(ErrorList &&other) noexcept
 
 bool ErrorList::HasFatalErrors() const
 {
-    return m_errors.FindIf([](const CompilerError &error)
-    {
-        return error.GetLevel() == LEVEL_ERROR;
-    }) != m_errors.End();
+    return m_errors.FindIf([](const CompilerError& error)
+               {
+                   return error.GetLevel() == LEVEL_ERROR;
+               })
+        != m_errors.End();
 }
 
 } // namespace hyperion::buildtool

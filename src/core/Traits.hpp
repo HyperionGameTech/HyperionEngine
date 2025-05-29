@@ -132,6 +132,9 @@ struct FunctionTraits<R(Args...)>
 
     static constexpr uint32 num_args = sizeof...(Args);
     static constexpr bool is_member_function = false;
+    static constexpr bool is_nonconst_member_function = false;
+    static constexpr bool is_const_member_function = false;
+    static constexpr bool is_volatile_member_function = false;
     static constexpr bool is_functor = false;
     static constexpr bool is_function_pointer = false;
 
@@ -155,6 +158,7 @@ struct FunctionTraits<R (C::*)(Args...), std::enable_if_t<!IsFunctor<R (C::*)(Ar
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
+    static constexpr bool is_nonconst_member_function = true;
 };
 
 template <class R, class C, class... Args>
@@ -163,6 +167,7 @@ struct FunctionTraits<R (C::*)(Args...) const, std::enable_if_t<!IsFunctor<R (C:
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
+    static constexpr bool is_const_member_function = true;
 };
 
 template <class R, class C, class... Args>
@@ -171,6 +176,8 @@ struct FunctionTraits<R (C::*)(Args...) volatile, std::enable_if_t<!IsFunctor<R 
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
+    static constexpr bool is_nonconst_member_function = true;
+    static constexpr bool is_volatile_member_function = true;
 };
 
 template <class R, class C, class... Args>
@@ -179,6 +186,8 @@ struct FunctionTraits<R (C::*)(Args...) const volatile, std::enable_if_t<!IsFunc
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
+    static constexpr bool is_const_member_function = true;
+    static constexpr bool is_volatile_member_function = true;
 };
 
 template <class T>

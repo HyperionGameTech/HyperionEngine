@@ -24,6 +24,8 @@ class Scene;
 class Camera;
 class Light;
 class RenderLight;
+class LightmapVolume;
+class RenderLightmapVolume;
 
 enum class ViewFlags : uint32
 {
@@ -124,6 +126,7 @@ public:
 
 protected:
     void CollectLights();
+    void CollectLightmapVolumes();
 
     typename RenderProxyTracker::Diff CollectEntities();
 
@@ -150,6 +153,7 @@ protected:
     RenderProxyTracker m_render_proxy_tracker;
 
     ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
+    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> m_tracked_lightmap_volumes;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
 };
