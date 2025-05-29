@@ -67,7 +67,6 @@ struct LightmapElement
 };
 
 HYP_CLASS()
-
 class HYP_API LightmapVolume : public HypObject<LightmapVolume>
 {
     HYP_OBJECT_BODY(LightmapVolume);

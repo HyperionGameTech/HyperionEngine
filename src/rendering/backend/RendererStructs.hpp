@@ -804,9 +804,9 @@ struct PushConstantData
 } // namespace hyperion::renderer
 
 #if HYP_VULKAN
-    #include <rendering/backend/vulkan/RendererStructs.hpp>
+#include <rendering/backend/vulkan/RendererStructs.hpp>
 #else
-    #error Unsupported rendering backend
+#error Unsupported rendering backend
 #endif
 
 #include <core/math/Vector3.hpp>

@@ -23,7 +23,6 @@ enum class UIListViewOrientation : uint8
 #pragma region UIListViewItem
 
 HYP_CLASS()
-
 class HYP_API UIListViewItem : public UIObject
 {
     HYP_OBJECT_BODY(UIListViewItem);
@@ -71,7 +70,6 @@ private:
 #pragma region UIListView
 
 HYP_CLASS()
-
 class HYP_API UIListView : public UIPanel
 {
     HYP_OBJECT_BODY(UIListView);

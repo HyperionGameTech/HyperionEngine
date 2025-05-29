@@ -4,8 +4,8 @@
 #define HYPERION_APP_CONTEXT_HPP
 
 #ifdef HYP_SDL
-    #include <SDL2/SDL_vulkan.h>
-    #include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <SDL2/SDL.h>
 #endif
 
 #include <core/memory/UniquePtr.hpp>
@@ -84,7 +84,6 @@ struct WindowOptions
 };
 
 HYP_CLASS(Abstract)
-
 class HYP_API ApplicationWindow : public EnableRefCountedPtrFromThis<ApplicationWindow>
 {
     HYP_OBJECT_BODY(ApplicationWindow);
@@ -121,7 +120,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API SDLApplicationWindow : public ApplicationWindow
 {
     HYP_OBJECT_BODY(SDLApplicationWindow);
@@ -156,7 +154,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API AppContextBase : public EnableRefCountedPtrFromThis<AppContextBase>
 {
     HYP_OBJECT_BODY(AppContextBase);
@@ -218,7 +215,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API SDLAppContext : public AppContextBase
 {
     HYP_OBJECT_BODY(SDLAppContext);

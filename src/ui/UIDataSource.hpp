@@ -51,7 +51,6 @@ private:
 };
 
 HYP_CLASS(Abstract)
-
 class HYP_API UIElementFactoryBase : public EnableRefCountedPtrFromThis<UIElementFactoryBase>
 {
     HYP_OBJECT_BODY(UIElementFactoryBase);
@@ -206,7 +205,6 @@ private:
 };
 
 HYP_CLASS(Abstract)
-
 class HYP_API UIDataSourceBase : public EnableRefCountedPtrFromThis<UIDataSourceBase>
 {
     HYP_OBJECT_BODY(UIDataSourceBase);
@@ -272,7 +270,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API UIDataSource : public UIDataSourceBase
 {
     HYP_OBJECT_BODY(UIDataSource);
@@ -516,14 +513,12 @@ public:
     }
 
     HYP_METHOD()
-
     virtual int Size() const override
     {
         return int(m_values.Size());
     }
 
     HYP_METHOD()
-
     virtual void Clear() override
     {
         // @TODO check if delegate has any functions bound,

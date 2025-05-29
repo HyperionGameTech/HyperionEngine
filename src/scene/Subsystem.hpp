@@ -21,7 +21,6 @@ class Scene;
 class World;
 
 HYP_CLASS(Abstract)
-
 class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
 {
     HYP_OBJECT_BODY(Subsystem);

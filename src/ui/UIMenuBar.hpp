@@ -25,7 +25,6 @@ enum class UIMenuBarDropDirection : uint32
 #pragma region UIMenuItem
 
 HYP_CLASS()
-
 class HYP_API UIMenuItem : public UIObject
 {
     HYP_OBJECT_BODY(UIMenuItem);
@@ -112,7 +111,6 @@ private:
 #pragma region UIMenuBar
 
 HYP_CLASS()
-
 class HYP_API UIMenuBar : public UIPanel
 {
     HYP_OBJECT_BODY(UIMenuBar);

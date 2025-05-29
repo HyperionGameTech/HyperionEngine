@@ -352,9 +352,9 @@ public:
 
         for (uint32 mip_level = 0; mip_level < num_mip_levels; mip_level++)
         {
-            renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+            const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
             const uint32 mip_width = MathUtil::Max(1u, extent.x >> mip_level);
             const uint32 mip_height = MathUtil::Max(1u, extent.y >> mip_level);

@@ -19,7 +19,6 @@ class WorldGridPatch;
 struct WorldGridPatchInfo;
 
 HYP_CLASS(Abstract)
-
 class HYP_API WorldGridPlugin : public EnableRefCountedPtrFromThis<WorldGridPlugin>
 {
     HYP_OBJECT_BODY(WorldGridPlugin);

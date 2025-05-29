@@ -11,7 +11,6 @@
 namespace hyperion {
 
 HYP_CLASS()
-
 class CameraTrackController : public PerspectiveCameraController
 {
     HYP_OBJECT_BODY(CameraTrackController);

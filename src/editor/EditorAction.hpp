@@ -25,7 +25,6 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
-
 class IEditorAction : public EnableRefCountedPtrFromThis<IEditorAction>
 {
     HYP_OBJECT_BODY(IEditorAction);
@@ -66,7 +65,6 @@ struct EditorActionFunctions
 };
 
 HYP_CLASS()
-
 class HYP_API FunctionalEditorAction : public IEditorAction
 {
     HYP_OBJECT_BODY(FunctionalEditorAction);
@@ -82,21 +80,18 @@ public:
     }
 
     HYP_METHOD()
-
     virtual Name GetName() const override final
     {
         return m_name;
     }
 
     HYP_METHOD()
-
     virtual void Execute() override final
     {
         m_get_state_proc_result.execute();
     }
 
     HYP_METHOD()
-
     virtual void Revert() override final
     {
         m_get_state_proc_result.revert();

@@ -19,7 +19,6 @@ class UIStage;
 class Texture;
 
 HYP_CLASS(Abstract)
-
 class HYP_API EditorDebugOverlayBase : public EnableRefCountedPtrFromThis<EditorDebugOverlayBase>
 {
     HYP_OBJECT_BODY(EditorDebugOverlayBase);
@@ -69,7 +68,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API TextureEditorDebugOverlay : public EditorDebugOverlayBase
 {
     HYP_OBJECT_BODY(TextureEditorDebugOverlay);

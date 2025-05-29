@@ -354,10 +354,10 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
         return;
     }
 
-    const renderer::DescriptorSetDeclaration* declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
-    AssertThrow(declaration != nullptr);
+    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout(*declaration);
+    const renderer::DescriptorSetLayout layout { decl };
 
     m_invalid_material_descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
 
@@ -392,10 +392,10 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
         return {};
     }
 
-    const renderer::DescriptorSetDeclaration* declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
-    AssertThrow(declaration != nullptr);
+    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    AssertThrow(decl != nullptr);
 
-    renderer::DescriptorSetLayout layout(*declaration);
+    renderer::DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -442,10 +442,10 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
         return {};
     }
 
-    const renderer::DescriptorSetDeclaration* declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Material"));
-    AssertThrow(declaration != nullptr);
+    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout(*declaration);
+    const renderer::DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 

@@ -174,7 +174,6 @@ struct NodeUnlockTransformScope;
 HYP_API extern void Node_OnPostLoad(Node& node);
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
-
 class HYP_API Node : public HypObject<Node>
 {
     friend class Scene;
@@ -489,7 +488,6 @@ public:
 
     /*! \brief \returns The world-space translation, scale, rotation of this Node. Influenced by accumulative transformation of all ancestor Nodes. */
     HYP_METHOD(Property = "WorldTransform", Editor = true, Label = "World-space Transform")
-
     const Transform& GetWorldTransform() const
     {
         return m_world_transform;
@@ -497,7 +495,6 @@ public:
 
     /*! \brief Set the world-space translation, scale, rotation of this Node  */
     HYP_METHOD(Property = "WorldTransform", Editor = true)
-
     void SetWorldTransform(const Transform& transform)
     {
         if (m_parent_node == nullptr)
@@ -532,7 +529,6 @@ public:
 
     /*! \brief Set the world-space translation of this Node by offsetting the local-space translation */
     HYP_METHOD()
-
     void SetWorldTranslation(const Vec3f& translation)
     {
         if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_TRANSLATION))
@@ -554,7 +550,6 @@ public:
 
     /*! \brief Set the local-space scale of this Node by offsetting the local-space scale */
     HYP_METHOD()
-
     void SetWorldScale(const Vec3f& scale)
     {
         if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_SCALE))
@@ -576,7 +571,6 @@ public:
 
     /*! \brief Set the world-space rotation of this Node by offsetting the local-space rotation */
     HYP_METHOD()
-
     void SetWorldRotation(const Quaternion& rotation)
     {
         if (m_parent_node == nullptr || (m_flags & NodeFlags::IGNORE_PARENT_ROTATION))

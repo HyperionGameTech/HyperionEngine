@@ -234,9 +234,9 @@ void ParticleSpawner::CreateRenderGroup()
     m_shader = g_shader_manager->GetOrCreate(NAME("Particle"));
     AssertThrow(m_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -276,9 +276,9 @@ void ParticleSpawner::CreateComputePipelines()
     ShaderRef update_particles_shader = g_shader_manager->GetOrCreate(NAME("UpdateParticles"), properties);
     AssertThrow(update_particles_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {

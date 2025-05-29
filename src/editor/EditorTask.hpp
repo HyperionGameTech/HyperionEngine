@@ -20,7 +20,6 @@ namespace hyperion {
 class UIObject;
 
 HYP_CLASS(Abstract)
-
 class IEditorTask : public EnableRefCountedPtrFromThis<IEditorTask>
 {
     HYP_OBJECT_BODY(IEditorTask);
@@ -50,7 +49,6 @@ public:
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on the game thread and is has Process() called every tick")
-
 class HYP_API TickableEditorTask : public IEditorTask
 {
     HYP_OBJECT_BODY(TickableEditorTask);
@@ -65,7 +63,6 @@ public:
     }
 
     HYP_METHOD()
-
     virtual bool IsCommitted() const override final
     {
         return m_is_committed.Get(MemoryOrder::ACQUIRE);
@@ -106,7 +103,6 @@ private:
 };
 
 HYP_CLASS(Abstract, Description = "A task that runs on a Task thread and has Process() called one time only")
-
 class HYP_API LongRunningEditorTask : public IEditorTask
 {
     HYP_OBJECT_BODY(LongRunningEditorTask);
@@ -121,7 +117,6 @@ public:
     }
 
     HYP_METHOD()
-
     virtual bool IsCommitted() const override final
     {
         return m_is_committed.Get(MemoryOrder::ACQUIRE);
@@ -140,7 +135,6 @@ public:
     virtual void Commit() override final;
 
     HYP_METHOD()
-
     virtual void Tick(float delta) override final
     {
         // Do nothing

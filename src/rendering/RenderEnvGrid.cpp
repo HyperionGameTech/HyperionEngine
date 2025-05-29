@@ -518,9 +518,9 @@ void RenderEnvGrid::CreateVoxelGridData()
     AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -573,7 +573,7 @@ void RenderEnvGrid::CreateVoxelGridData()
         ShaderRef generate_voxel_grid_mipmaps_shader = g_shader_manager->GetOrCreate(NAME("VCTGenerateMipmap"));
         AssertThrow(generate_voxel_grid_mipmaps_shader.IsValid());
 
-        renderer::DescriptorTableDeclaration generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+        const renderer::DescriptorTableDeclaration& generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         const uint32 num_voxel_grid_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
@@ -588,7 +588,7 @@ void RenderEnvGrid::CreateVoxelGridData()
             DeferCreate(m_voxel_grid_mips[mip_level]);
 
             // create descriptor sets for mip generation.
-            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(generate_voxel_grid_mipmaps_descriptor_table_decl);
+            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&generate_voxel_grid_mipmaps_descriptor_table_decl);
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
@@ -647,13 +647,13 @@ void RenderEnvGrid::CreateSphericalHarmonicsData()
         AssertThrow(shader.IsValid());
     }
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     m_compute_sh_descriptor_tables.Resize(sh_num_levels);
 
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
-        m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -785,9 +785,9 @@ void RenderEnvGrid::CreateLightFieldData()
 
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {

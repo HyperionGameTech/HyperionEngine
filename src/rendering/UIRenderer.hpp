@@ -58,7 +58,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API UIRenderSubsystem : public RenderSubsystem
 {
     HYP_OBJECT_BODY(UIRenderSubsystem);

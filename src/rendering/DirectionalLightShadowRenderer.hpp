@@ -103,7 +103,6 @@ private:
 };
 
 HYP_CLASS()
-
 class DirectionalLightShadowRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);

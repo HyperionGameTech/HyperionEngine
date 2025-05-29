@@ -108,7 +108,7 @@ RendererResult VulkanComputePipeline::Create()
     for (const DescriptorSetRef& descriptor_set : m_descriptor_table->GetSets()[0])
     {
         HYP_LOG(RenderingBackend, Debug, "\tDescriptor set layout: {} ({})",
-            descriptor_set->GetLayout().GetName(), descriptor_set->GetLayout().GetDeclaration().set_index);
+            descriptor_set->GetLayout().GetName(), descriptor_set->GetLayout().GetDeclaration()->set_index);
 
         for (const auto& it : descriptor_set->GetLayout().GetElements())
         {

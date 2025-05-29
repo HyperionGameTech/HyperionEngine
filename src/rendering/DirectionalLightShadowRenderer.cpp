@@ -144,9 +144,9 @@ void ShadowPass::CreateCombineShadowMapsPass()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("CombineShadowMaps"), { { "STAGE_DYNAMICS" } });
     AssertThrow(shader.IsValid());
 
-    DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -168,9 +168,9 @@ void ShadowPass::CreateComputePipelines()
     ShaderRef blur_shadow_map_shader = g_shader_manager->GetOrCreate(NAME("BlurShadowMap"));
     AssertThrow(blur_shadow_map_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)

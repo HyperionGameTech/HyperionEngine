@@ -44,7 +44,6 @@ enum class StreamedDataState : uint32
 };
 
 HYP_CLASS(Abstract)
-
 class HYP_API StreamedDataBase : public EnableRefCountedPtrFromThis<StreamedDataBase>, public ResourceBase
 {
     HYP_OBJECT_BODY(StreamedDataBase);
@@ -87,7 +86,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API NullStreamedData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(NullStreamedData);
@@ -110,7 +108,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API MemoryStreamedData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(MemoryStreamedData);

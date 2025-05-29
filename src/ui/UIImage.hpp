@@ -13,7 +13,6 @@ class Texture;
 #pragma region UIImage
 
 HYP_CLASS()
-
 class HYP_API UIImage : public UIObject
 {
     HYP_OBJECT_BODY(UIImage);

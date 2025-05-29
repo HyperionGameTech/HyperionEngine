@@ -29,7 +29,6 @@ struct AnimationTrackDesc
 };
 
 HYP_CLASS()
-
 class AnimationTrack : public HypObject<AnimationTrack>
 {
     HYP_OBJECT_BODY(AnimationTrack);
@@ -72,7 +71,6 @@ private:
 };
 
 HYP_CLASS()
-
 class Animation : public HypObject<Animation>
 {
     HYP_OBJECT_BODY(Animation);
@@ -85,56 +83,48 @@ public:
     ~Animation() = default;
 
     HYP_METHOD(Property = "Name", Serialize = true)
-
     const String& GetName() const
     {
         return m_name;
     }
 
     HYP_METHOD(Property = "Name", Serialize = true)
-
     void SetName(const String& name)
     {
         m_name = name;
     }
 
     HYP_METHOD(Property = "Length", Serialize = false)
-
     float GetLength() const
     {
         return m_tracks.Empty() ? 0.0f : m_tracks.Back()->GetLength();
     }
 
     HYP_METHOD()
-
     void AddTrack(const Handle<AnimationTrack>& track)
     {
         m_tracks.PushBack(track);
     }
 
     HYP_METHOD(Property = "Tracks", Serialize = true)
-
     const Array<Handle<AnimationTrack>>& GetTracks() const
     {
         return m_tracks;
     }
 
     HYP_METHOD(Property = "Tracks", Serialize = true)
-
     void SetTracks(const Array<Handle<AnimationTrack>>& tracks)
     {
         m_tracks = tracks;
     }
 
     HYP_METHOD()
-
     const Handle<AnimationTrack>& GetTrack(uint32 index) const
     {
         return m_tracks[index];
     }
 
     HYP_METHOD()
-
     uint32 NumTracks() const
     {
         return uint32(m_tracks.Size());

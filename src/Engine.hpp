@@ -80,7 +80,6 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-
 class Engine : public HypObject<Engine>
 {
     HYP_OBJECT_BODY(Engine);

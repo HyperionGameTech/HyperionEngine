@@ -8,7 +8,6 @@
 namespace hyperion {
 
 HYP_CLASS()
-
 class OrthoCameraController : public CameraController
 {
     HYP_OBJECT_BODY(OrthoCameraController);

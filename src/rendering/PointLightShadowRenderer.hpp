@@ -26,7 +26,6 @@ class RenderShadowMap;
 class RenderLight;
 
 HYP_CLASS()
-
 class HYP_API PointLightShadowRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(PointLightShadowRenderer);

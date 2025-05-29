@@ -49,7 +49,6 @@ enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates
 // @TODO Move RenderEnvironment stuff to RenderScene
 
 HYP_CLASS()
-
 class HYP_API RenderEnvironment : public HypObject<RenderEnvironment>
 {
     HYP_OBJECT_BODY(RenderEnvironment);

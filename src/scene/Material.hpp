@@ -68,7 +68,6 @@ enum class MaterialTextureKey : uint64
 };
 
 HYP_CLASS()
-
 class HYP_API Material : public HypObject<Material>
 {
     HYP_OBJECT_BODY(Material);
@@ -765,7 +764,6 @@ private:
 };
 
 HYP_CLASS()
-
 class MaterialGroup : public HypObject<MaterialGroup>
 {
     HYP_OBJECT_BODY(MaterialGroup);

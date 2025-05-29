@@ -503,7 +503,17 @@ bool VulkanGraphicsPipeline::MatchesSignature(
 
     if (descriptor_table != nullptr)
     {
-        if (descriptor_table->GetDeclaration().GetHashCode() != m_descriptor_table->GetDeclaration().GetHashCode())
+        if (!m_descriptor_table.IsValid())
+        {
+            return false;
+        }
+
+        if (!descriptor_table->GetDeclaration())
+        {
+            return false;
+        }
+
+        if (descriptor_table->GetDeclaration()->GetHashCode() != m_descriptor_table->GetDeclaration()->GetHashCode())
         {
             return false;
         }

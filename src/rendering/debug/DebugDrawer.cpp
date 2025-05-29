@@ -237,9 +237,9 @@ void DebugDrawer::Initialize()
 
     AssertThrow(m_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    m_descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
     AssertThrow(m_descriptor_table != nullptr);
 
     const uint32 debug_drawer_descriptor_set_index = m_descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));

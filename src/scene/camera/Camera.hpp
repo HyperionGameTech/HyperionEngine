@@ -97,7 +97,6 @@ struct CameraCommand
 class Camera;
 
 HYP_CLASS(Abstract)
-
 class HYP_API CameraController : public EnableRefCountedPtrFromThis<CameraController>
 {
     friend class Camera;
@@ -121,53 +120,45 @@ public:
     }
 
     HYP_METHOD(Property = "Camera")
-
     Camera* GetCamera() const
     {
         return m_camera;
     }
 
     HYP_METHOD(Property = "ProjectionMode")
-
     CameraProjectionMode GetProjectionMode() const
     {
         return m_projection_mode;
     }
 
     HYP_METHOD()
-
     virtual bool IsMouseLockAllowed() const
     {
         return false;
     }
 
     HYP_METHOD()
-
     bool IsMouseLockRequested() const
     {
         return m_mouse_lock_requested;
     }
 
     HYP_METHOD()
-
     virtual void SetTranslation(const Vec3f& translation)
     {
     }
 
     HYP_METHOD()
-
     virtual void SetNextTranslation(const Vec3f& translation)
     {
     }
 
     HYP_METHOD()
-
     virtual void SetDirection(const Vec3f& direction)
     {
     }
 
     HYP_METHOD()
-
     virtual void SetUpVector(const Vec3f& up)
     {
     }
@@ -210,7 +201,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API NullCameraController final : public CameraController
 {
     HYP_OBJECT_BODY(NullCameraController);
@@ -230,7 +220,6 @@ class FirstPersonCameraController;
 class FollowCameraController;
 
 HYP_CLASS()
-
 class HYP_API Camera : public HypObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);

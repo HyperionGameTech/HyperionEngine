@@ -79,7 +79,6 @@ public:
 };
 
 HYP_CLASS()
-
 class HYP_API Scene : public HypObject<Scene>
 {
     friend class World;

@@ -48,7 +48,7 @@ public:
         return m_command_list;
     }
 
-    HYP_FORCE_INLINE void MarkDescriptorSetUsed(const DescriptorSetRef& descriptor_set)
+    HYP_FORCE_INLINE void MarkDescriptorSetUsed(DescriptorSetBase* descriptor_set)
     {
         AssertThrow(descriptor_set != nullptr);
 
@@ -66,7 +66,7 @@ protected:
 
     uint32 m_frame_index;
     RHICommandList m_command_list;
-    HashSet<DescriptorSetRef> m_used_descriptor_sets;
+    HashSet<DescriptorSetBase*> m_used_descriptor_sets;
 };
 
 } // namespace renderer

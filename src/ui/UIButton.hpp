@@ -11,7 +11,6 @@ class UIStage;
 class UIText;
 
 HYP_CLASS()
-
 class HYP_API UIButton : public UIObject
 {
     HYP_OBJECT_BODY(UIButton);

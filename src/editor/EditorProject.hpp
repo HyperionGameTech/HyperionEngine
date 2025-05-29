@@ -27,7 +27,6 @@ class AssetRegistry;
 class EditorActionStack;
 
 HYP_CLASS()
-
 class HYP_API EditorProject : public HypObject<EditorProject>
 {
     HYP_OBJECT_BODY(EditorProject);
@@ -121,7 +120,6 @@ public:
     Name GetNextDefaultProjectName(const String& default_project_name) const;
 
     HYP_METHOD()
-
     const Handle<EditorActionStack>& GetActionStack() const
     {
         return m_action_stack;

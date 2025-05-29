@@ -125,7 +125,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API AssetObject : public HypObject<AssetObject>
 {
     HYP_OBJECT_BODY(AssetObject);
@@ -208,7 +207,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API AssetPackage : public HypObject<AssetPackage>
 {
     HYP_OBJECT_BODY(AssetPackage);
@@ -324,7 +322,6 @@ enum class AssetRegistryPathType : uint8
 };
 
 HYP_CLASS()
-
 class HYP_API AssetRegistry : public HypObject<AssetRegistry>
 {
     HYP_OBJECT_BODY(AssetRegistry);

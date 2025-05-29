@@ -26,7 +26,6 @@ enum class UIWindowFlags : uint32
 HYP_MAKE_ENUM_FLAGS(UIWindowFlags)
 
 HYP_CLASS()
-
 class HYP_API UIWindow : public UIPanel
 {
     HYP_OBJECT_BODY(UIWindow);

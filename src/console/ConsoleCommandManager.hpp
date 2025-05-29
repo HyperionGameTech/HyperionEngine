@@ -17,7 +17,6 @@ class ConsoleCommandBase;
 class ConsoleCommandManagerImpl;
 
 HYP_CLASS()
-
 class HYP_API ConsoleCommandManager
 {
     HYP_OBJECT_BODY(ConsoleCommandManager);

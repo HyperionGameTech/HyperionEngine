@@ -14,7 +14,6 @@ class UIText;
 #pragma region UITab
 
 HYP_CLASS()
-
 class HYP_API UITab : public UIObject
 {
     HYP_OBJECT_BODY(UITab);
@@ -54,7 +53,6 @@ private:
 #pragma region UITabView
 
 HYP_CLASS()
-
 class HYP_API UITabView : public UIPanel
 {
     HYP_OBJECT_BODY(UITabView);

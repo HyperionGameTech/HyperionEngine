@@ -19,7 +19,6 @@ enum class FirstPersonCameraControllerMode : uint32
 };
 
 HYP_CLASS()
-
 class HYP_API FirstPersonCameraInputHandler : public InputHandlerBase
 {
     HYP_OBJECT_BODY(FirstPersonCameraInputHandler);
@@ -42,7 +41,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API FirstPersonCameraController : public PerspectiveCameraController
 {
     HYP_OBJECT_BODY(FirstPersonCameraController);
@@ -52,7 +50,6 @@ public:
     virtual ~FirstPersonCameraController() = default;
 
     HYP_METHOD(Property = "Mode")
-
     FirstPersonCameraControllerMode GetMode() const
     {
         return m_mode;
@@ -62,7 +59,6 @@ public:
     void SetMode(FirstPersonCameraControllerMode mode);
 
     HYP_METHOD()
-
     virtual bool IsMouseLockAllowed() const override
     {
         return true;

@@ -966,6 +966,8 @@ struct DescriptorUsageSet
 {
     FlatSet<DescriptorUsage> elements;
 
+    DescriptorTableDeclaration BuildDescriptorTableDeclaration() const;
+
     HYP_FORCE_INLINE DescriptorUsage& operator[](SizeType index)
     {
         return elements[index];
@@ -1036,8 +1038,6 @@ struct DescriptorUsageSet
         elements.Merge(std::move(other.elements));
     }
 
-    HYP_NODISCARD DescriptorTableDeclaration BuildDescriptorTable() const;
-
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         return elements.GetHashCode();
@@ -1101,69 +1101,24 @@ struct ShaderDefinition
     }
 };
 
+HYP_STRUCT()
+
 struct CompiledShader
 {
+    HYP_FIELD(Property = "Definition", Serialize = false) // custom serialization used
     ShaderDefinition definition;
-    DescriptorUsageSet descriptor_usages;
+
+    HYP_FIELD(Property = "DescriptorTableDeclaration", Serialize = false, Transient = true) // built after load, not serialized
+    DescriptorTableDeclaration descriptor_table_declaration;
+
+    HYP_FIELD(Property = "DescriptorUsageSet", Serialize = true)
+    DescriptorUsageSet descriptor_usage_set;
+
+    HYP_FIELD(Property = "EntryPointName", Serialize = true)
     String entry_point_name = "main";
+
+    HYP_FIELD(Property = "Modules", Serialize = false) // custom serialization used
     HeapArray<ByteBuffer, ShaderModuleType::MAX> modules;
-
-    CompiledShader() = default;
-
-    CompiledShader(ShaderDefinition shader_definition, DescriptorUsageSet descriptor_usages, String entry_point_name = "main")
-        : definition(std::move(shader_definition)),
-          descriptor_usages(std::move(descriptor_usages)),
-          entry_point_name(std::move(entry_point_name))
-    {
-    }
-
-    CompiledShader(const CompiledShader& other)
-        : definition(other.definition),
-          descriptor_usages(other.descriptor_usages),
-          entry_point_name(other.entry_point_name),
-          modules(other.modules)
-    {
-    }
-
-    CompiledShader& operator=(const CompiledShader& other)
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        definition = other.definition;
-        descriptor_usages = other.descriptor_usages;
-        entry_point_name = other.entry_point_name;
-        modules = other.modules;
-
-        return *this;
-    }
-
-    CompiledShader(CompiledShader&& other) noexcept
-        : definition(std::move(other.definition)),
-          descriptor_usages(std::move(other.descriptor_usages)),
-          entry_point_name(std::move(other.entry_point_name)),
-          modules(std::move(other.modules))
-    {
-    }
-
-    CompiledShader& operator=(CompiledShader&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        definition = std::move(other.definition);
-        descriptor_usages = std::move(other.descriptor_usages);
-        entry_point_name = std::move(other.entry_point_name);
-        modules = std::move(other.modules);
-
-        return *this;
-    }
-
-    ~CompiledShader() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -1191,14 +1146,9 @@ struct CompiledShader
         return definition;
     }
 
-    HYP_FORCE_INLINE DescriptorUsageSet& GetDescriptorUsages()
+    HYP_FORCE_INLINE const DescriptorTableDeclaration& GetDescriptorTableDeclaration() const
     {
-        return descriptor_usages;
-    }
-
-    HYP_FORCE_INLINE const DescriptorUsageSet& GetDescriptorUsages() const
-    {
-        return descriptor_usages;
+        return descriptor_table_declaration;
     }
 
     HYP_FORCE_INLINE const String& GetEntryPointName() const

@@ -65,7 +65,6 @@ class EnvProbe;
 class RenderEnvProbe;
 
 HYP_CLASS()
-
 class HYP_API EnvProbe : public HypObject<EnvProbe>
 {
     HYP_OBJECT_BODY(EnvProbe);
@@ -91,49 +90,42 @@ public:
     }
 
     HYP_METHOD()
-
     EnvProbeType GetEnvProbeType() const
     {
         return m_env_probe_type;
     }
 
     HYP_METHOD()
-
     bool IsReflectionProbe() const
     {
         return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION;
     }
 
     HYP_METHOD()
-
     bool IsSkyProbe() const
     {
         return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY;
     }
 
     HYP_METHOD()
-
     bool IsShadowProbe() const
     {
         return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW;
     }
 
     HYP_METHOD()
-
     bool IsAmbientProbe() const
     {
         return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
     }
 
     HYP_METHOD()
-
     bool IsControlledByEnvGrid() const
     {
         return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
     }
 
     HYP_METHOD()
-
     const BoundingBox& GetAABB() const
     {
         return m_aabb;
@@ -143,7 +135,6 @@ public:
     void SetAABB(const BoundingBox& aabb);
 
     HYP_METHOD()
-
     Vec3f GetOrigin() const
     {
         if (IsAmbientProbe())

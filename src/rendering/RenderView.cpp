@@ -351,10 +351,10 @@ void RenderView::CreateDescriptorSets()
 
     Threads::AssertOnThread(g_render_thread);
 
-    const renderer::DescriptorSetDeclaration* declaration = g_engine->GetGlobalDescriptorTable()->GetDeclaration().FindDescriptorSetDeclaration(NAME("Scene"));
-    AssertThrow(declaration != nullptr);
+    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Scene"));
+    AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout(*declaration);
+    const renderer::DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -472,8 +472,8 @@ void RenderView::CreateCombinePass()
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -507,12 +507,12 @@ void RenderView::CreateFinalPassDescriptorSet()
 
     AssertThrow(input_image_view.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     renderer::DescriptorSetDeclaration* decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("RenderTextureToScreenDescriptorSet"));
     AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout(*decl);
+    const renderer::DescriptorSetLayout layout { decl };
 
     DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
     AssertThrow(descriptor_set.IsValid());

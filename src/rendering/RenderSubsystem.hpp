@@ -28,7 +28,6 @@ namespace hyperion {
 class RenderEnvironment;
 
 HYP_CLASS(Abstract)
-
 class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
 {
     HYP_OBJECT_BODY(RenderSubsystem);

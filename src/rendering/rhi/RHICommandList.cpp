@@ -75,7 +75,7 @@ void BindDescriptorTable::Prepare(FrameBase* frame)
 {
     for (const DescriptorSetRef& descriptor_set : m_descriptor_table->GetSets()[frame->GetFrameIndex()])
     {
-        if (m_descriptor_table->GetDeclaration().FindDescriptorSetDeclaration(descriptor_set->GetLayout().GetName())->is_template)
+        if (descriptor_set->GetLayout().IsTemplate())
         {
             continue;
         }

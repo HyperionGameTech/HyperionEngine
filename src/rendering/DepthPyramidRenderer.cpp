@@ -129,7 +129,7 @@ void DepthPyramidRenderer::Create()
         ShaderRef shader = g_shader_manager->GetOrCreate(NAME("GenerateDepthPyramid"), {});
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         const renderer::DescriptorSetDeclaration* depth_pyramid_descriptor_set_decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("DepthPyramidDescriptorSet"));
         AssertThrow(depth_pyramid_descriptor_set_decl != nullptr);
@@ -175,7 +175,7 @@ void DepthPyramidRenderer::Create()
 
             if (!descriptor_table.IsValid())
             {
-                descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+                descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
                 set_descriptor_set_elements();
 

@@ -16,7 +16,6 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract)
-
 class HYP_API ConsoleCommandBase : public EnableRefCountedPtrFromThis<ConsoleCommandBase>
 {
     HYP_OBJECT_BODY(ConsoleCommandBase);

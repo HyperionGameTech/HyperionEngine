@@ -42,7 +42,6 @@ struct InputState
 };
 
 HYP_CLASS()
-
 class InputManager : public HypObject<InputManager>
 {
     HYP_OBJECT_BODY(InputManager);
@@ -71,7 +70,6 @@ public:
     HYP_API InputMouseLockScope AcquireMouseLock();
 
     HYP_METHOD()
-
     const Vec2i& GetMousePosition() const
     {
         return m_mouse_position;
@@ -86,7 +84,6 @@ public:
     }
 
     HYP_METHOD()
-
     const Vec2i& GetWindowSize() const
     {
         return m_window_size;

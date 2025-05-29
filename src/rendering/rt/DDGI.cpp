@@ -211,8 +211,9 @@ void DDGI::CreatePipelines()
     m_shader = g_shader_manager->GetOrCreate(NAME("DDGI"));
     AssertThrow(m_shader.IsValid());
 
-    const DescriptorTableDeclaration raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef raytracing_pipeline_descriptor_table = g_rendering_api->MakeDescriptorTable(raytracing_pipeline_descriptor_table_decl);
+    const DescriptorTableDeclaration& raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+
+    DescriptorTableRef raytracing_pipeline_descriptor_table = g_rendering_api->MakeDescriptorTable(&raytracing_pipeline_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -257,9 +258,9 @@ void DDGI::CreatePipelines()
     {
         AssertThrow(it.first.IsValid());
 
-        const DescriptorTableDeclaration descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+        const DescriptorTableDeclaration& descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {

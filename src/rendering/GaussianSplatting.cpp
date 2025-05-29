@@ -441,8 +441,7 @@ void GaussianSplattingInstance::CreateShader()
 
 void GaussianSplattingInstance::CreateRenderGroup()
 {
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(
-        m_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable());
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -483,7 +482,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateSplats"),
         base_properties);
 
-    DescriptorTableRef update_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(update_splats_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable());
+    DescriptorTableRef update_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(&update_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -510,8 +509,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateDistances"),
         base_properties);
 
-    DescriptorTableRef update_splat_distances_descriptor_table = g_rendering_api->MakeDescriptorTable(
-        update_splat_distances_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable());
+    DescriptorTableRef update_splat_distances_descriptor_table = g_rendering_api->MakeDescriptorTable(&update_splat_distances_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -541,8 +539,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     for (uint32 sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++)
     {
-        DescriptorTableRef sort_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(
-            sort_splats_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable());
+        DescriptorTableRef sort_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(&sort_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {

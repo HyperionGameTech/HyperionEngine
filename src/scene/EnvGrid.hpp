@@ -113,7 +113,6 @@ struct EnvGridOptions
 };
 
 HYP_CLASS()
-
 class HYP_API EnvGrid : public HypObject<EnvGrid>
 {
     HYP_OBJECT_BODY(EnvGrid);
@@ -156,7 +155,6 @@ public:
     }
 
     HYP_METHOD()
-
     const BoundingBox& GetAABB() const
     {
         return m_aabb;

@@ -67,7 +67,7 @@ public:
 
     virtual DescriptorSetRef MakeDescriptorSet(const DescriptorSetLayout& layout) override;
 
-    virtual DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration& decl) override;
+    virtual DescriptorTableRef MakeDescriptorTable(const DescriptorTableDeclaration* decl) override;
 
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderRef& shader,

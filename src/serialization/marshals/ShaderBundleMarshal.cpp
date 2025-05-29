@@ -33,7 +33,7 @@ public:
 
         out.SetProperty("name", FBOMData::FromName(in_object.definition.name));
 
-        out.SetProperty("entry_point_name", FBOMData::FromString(in_object.entry_point_name));
+        out.SetProperty("EntryPointName", FBOMData::FromString(in_object.entry_point_name));
 
         const VertexAttributeSet required_vertex_attributes = in_object.definition.properties.GetRequiredVertexAttributes();
         out.SetProperty("required_vertex_attributes", FBOMData::FromUInt64(required_vertex_attributes.flag_mask));
@@ -41,9 +41,9 @@ public:
         const VertexAttributeSet optional_vertex_attributes = in_object.definition.properties.GetOptionalVertexAttributes();
         out.SetProperty("optional_vertex_attributes", FBOMData::FromUInt64(optional_vertex_attributes.flag_mask));
 
-        for (SizeType index = 0; index < in_object.GetDescriptorUsages().Size(); index++)
+        for (const DescriptorUsage& descriptor_usage : in_object.descriptor_usage_set.elements)
         {
-            out.AddChild(in_object.GetDescriptorUsages()[index]);
+            out.AddChild(descriptor_usage);
         }
 
         Array<ShaderProperty> properties_array = in_object.definition.properties.GetPropertySet().ToArray();
@@ -132,9 +132,9 @@ public:
             return err;
         }
 
-        if (in.HasProperty("entry_point_name"))
+        if (in.HasProperty("EntryPointName"))
         {
-            if (FBOMResult err = in.GetProperty("entry_point_name").ReadString(compiled_shader.entry_point_name))
+            if (FBOMResult err = in.GetProperty("EntryPointName").ReadString(compiled_shader.entry_point_name))
             {
                 return err;
             }
@@ -228,19 +228,11 @@ public:
         {
             if (child.GetType().GetNativeTypeID() == TypeID::ForType<DescriptorUsage>())
             {
-                compiled_shader.descriptor_usages.Add(child.m_deserialized_object->Get<DescriptorUsage>());
+                compiled_shader.descriptor_usage_set.Add(child.m_deserialized_object->Get<DescriptorUsage>());
             }
         }
 
-        // String properties_string;
-
-        // for (const ShaderProperty &property : compiled_shader.definition.properties.ToArray()) {
-        //     properties_string += " " + property.name + "\n";
-        // }
-
-        // DebugLog(LogType::Info, "Deserialized shader '%s', %u descriptor sets; Properties = %s\n", compiled_shader.definition.name.LookupString(),
-        //     compiled_shader.descriptor_usages.Size(),
-        //     properties_string.Data());
+        compiled_shader.descriptor_table_declaration = compiled_shader.descriptor_usage_set.BuildDescriptorTableDeclaration();
 
         out = HypData(std::move(compiled_shader));
 

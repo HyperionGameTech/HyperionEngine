@@ -220,8 +220,8 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef write_uvs_shader = g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties);
     AssertThrow(write_uvs_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(write_uvs_shader_descriptor_table_decl);
+    const renderer::DescriptorTableDeclaration& write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&write_uvs_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -252,8 +252,8 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef sample_gbuffer_shader = g_shader_manager->GetOrCreate(NAME("SSRSampleGBuffer"), shader_properties);
     AssertThrow(sample_gbuffer_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(sample_gbuffer_shader_descriptor_table_decl);
+    const renderer::DescriptorTableDeclaration& sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&sample_gbuffer_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {

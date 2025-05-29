@@ -11,17 +11,16 @@ namespace renderer {
 
 void FrameBase::UpdateUsedDescriptorSets()
 {
-    for (const DescriptorSetRef& descriptor_set : m_used_descriptor_sets)
+    for (DescriptorSetBase* descriptor_set : m_used_descriptor_sets)
     {
-        AssertThrow(descriptor_set.IsValid());
-        AssertThrowMsg(descriptor_set->IsCreated(),
+        AssertDebugMsg(descriptor_set->IsCreated(),
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",
             descriptor_set->GetLayout().GetName().LookupString());
 
         descriptor_set->Update();
     }
 
-    SafeRelease(std::move(m_used_descriptor_sets));
+    m_used_descriptor_sets.Clear();
 }
 
 } // namespace renderer

@@ -38,7 +38,6 @@ enum class PhysicsShapeType : uint32
 };
 
 HYP_CLASS(Abstract)
-
 class PhysicsShape : public EnableRefCountedPtrFromThis<PhysicsShape>
 {
     HYP_OBJECT_BODY(PhysicsShape);
@@ -82,7 +81,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class BoxPhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(BoxPhysicsShape);
@@ -106,7 +104,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class SpherePhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(SpherePhysicsShape);
@@ -130,7 +127,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class PlanePhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(PlanePhysicsShape);
@@ -154,7 +150,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class ConvexHullPhysicsShape final : public PhysicsShape
 {
     HYP_OBJECT_BODY(ConvexHullPhysicsShape);
@@ -190,7 +185,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class HYP_API RigidBody : public HypObject<RigidBody>
 {
     HYP_OBJECT_BODY(RigidBody);

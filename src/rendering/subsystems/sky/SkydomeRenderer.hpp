@@ -19,7 +19,6 @@
 namespace hyperion {
 
 HYP_CLASS()
-
 class HYP_API SkydomeRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(SkydomeRenderer);

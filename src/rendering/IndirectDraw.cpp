@@ -358,9 +358,9 @@ void IndirectRenderer::Create()
     ShaderRef object_visibility_shader = g_shader_manager->GetOrCreate(NAME("ObjectVisibility"));
     AssertThrow(object_visibility_shader.IsValid());
 
-    renderer::DescriptorTableDeclaration descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     AssertThrow(m_draw_call_collection != nullptr);
     AssertThrow(m_draw_call_collection->GetImpl() != nullptr);

@@ -10,7 +10,7 @@ namespace renderer {
 
 #pragma region DescriptorSetDeclaration
 
-DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Name name) const
+DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakName name) const
 {
     for (uint32 slot_index = 0; slot_index < DESCRIPTOR_SLOT_MAX; slot_index++)
     {
@@ -26,7 +26,7 @@ DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(Name 
     return nullptr;
 }
 
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, Name name) const
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, WeakName name) const
 {
     AssertThrow(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
 
@@ -55,9 +55,9 @@ uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, Name na
     return ~0u;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(Name name) const
+DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(WeakName name) const
 {
-    for (const DescriptorSetDeclaration& decl : m_elements)
+    for (const DescriptorSetDeclaration& decl : elements)
     {
         if (decl.name == name)
         {
@@ -68,11 +68,9 @@ DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclarati
     return nullptr;
 }
 
-DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration descriptor_set)
+DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptor_set_declaration)
 {
-    m_elements.PushBack(std::move(descriptor_set));
-
-    return &m_elements.Back();
+    return &elements.PushBack(std::move(descriptor_set_declaration));
 }
 
 DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
@@ -94,23 +92,31 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
 
 #pragma region DescriptorSetLayout
 
-DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration& decl)
-    : m_decl(decl)
+DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
+    : m_decl(decl),
+      m_is_template(false),
+      m_is_reference(false)
 {
-    const DescriptorSetDeclaration* decl_ptr = &decl;
-
-    if (decl.is_reference)
+    if (!decl)
     {
-        decl_ptr = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl.name);
-
-        AssertThrowMsg(decl_ptr != nullptr, "Invalid global descriptor set reference: %s", decl.name.LookupString());
+        return;
     }
 
-    for (const Array<DescriptorDeclaration>& slot : decl_ptr->slots)
+    m_is_template = decl->flags[DescriptorSetDeclarationFlags::TEMPLATE];
+    m_is_reference = decl->flags[DescriptorSetDeclarationFlags::REFERENCE];
+
+    if (m_is_reference)
+    {
+        m_decl = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl->name);
+
+        AssertThrowMsg(m_decl != nullptr, "Invalid global descriptor set reference: %s", decl->name.LookupString());
+    }
+
+    for (const Array<DescriptorDeclaration>& slot : m_decl->slots)
     {
         for (const DescriptorDeclaration& descriptor : slot)
         {
-            const uint32 descriptor_index = decl_ptr->CalculateFlatIndex(descriptor.slot, descriptor.name);
+            const uint32 descriptor_index = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
             AssertThrow(descriptor_index != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())

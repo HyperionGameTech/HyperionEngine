@@ -29,7 +29,6 @@ class BVHNode;
 class RenderMesh;
 
 HYP_CLASS()
-
 class HYP_API Mesh final : public HypObject<Mesh>
 {
     HYP_OBJECT_BODY(Mesh);

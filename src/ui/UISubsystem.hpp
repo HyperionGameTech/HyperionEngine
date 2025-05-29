@@ -18,7 +18,6 @@ class UIRenderSubsystem;
 class Scene;
 
 HYP_CLASS()
-
 class HYP_API UISubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(UISubsystem);

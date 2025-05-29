@@ -14,6 +14,9 @@
 
 #include <core/utilities/DeferredScope.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 #include <core/algorithm/Map.hpp>
 
 // For CompiledShader
@@ -147,8 +150,16 @@ GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
         return nullptr;
     }
 
+    if (!descriptor_table->GetDeclaration())
+    {
+        HYP_LOG(Rendering, Error, "Descriptor table declaration is null for shader: {}", shader->GetCompiledShader()->GetName());
+
+        return nullptr;
+    }
+
     const HashCode shader_hash_code = shader->GetCompiledShader()->GetHashCode();
-    const HashCode descriptor_table_hash_code = descriptor_table->GetDeclaration().GetHashCode();
+
+    const HashCode descriptor_table_hash_code = descriptor_table->GetDeclaration()->GetHashCode();
 
     for (const GraphicsPipelineRef& pipeline : it->second)
     {

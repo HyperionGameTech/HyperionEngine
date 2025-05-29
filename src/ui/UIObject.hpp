@@ -534,7 +534,6 @@ struct UIObjectID : UniqueID
 };
 
 HYP_CLASS(Abstract)
-
 class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
 {
     HYP_OBJECT_BODY(UIObject);
@@ -687,21 +686,18 @@ public:
     void ScrollToChild(UIObject* child);
 
     HYP_METHOD()
-
     virtual int GetVerticalScrollbarSize() const
     {
         return scrollbar_size;
     }
 
     HYP_METHOD()
-
     virtual int GetHorizontalScrollbarSize() const
     {
         return scrollbar_size;
     }
 
     HYP_METHOD()
-
     virtual bool CanScroll(UIObjectScrollbarOrientation orientation) const
     {
         return false;
@@ -730,7 +726,6 @@ public:
     /*! \brief Check if the UI object accepts focus. All UIObjects accept focus by default, unless overridden by derived classes or set using \ref{SetAcceptsFocus}.
      *  \return True if the this object accepts focus, false otherwise */
     HYP_METHOD(Property = "AcceptsFocus")
-
     virtual bool AcceptsFocus() const
     {
         return m_accepts_focus;
@@ -745,7 +740,6 @@ public:
     /*! \brief Check if the UI object receives update events.
      *  \return True if the UI object receives update events, false otherwise */
     HYP_METHOD(Property = "ReceivesUpdate")
-
     virtual bool ReceivesUpdate() const
     {
         return m_receives_update;

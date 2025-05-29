@@ -471,8 +471,8 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen"), shader_properties);
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
-    const DescriptorTableDeclaration descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -517,8 +517,8 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
     ShaderRef merge_half_res_textures_shader = g_shader_manager->GetOrCreate(NAME("MergeHalfResTextures"));
     AssertThrow(merge_half_res_textures_shader.IsValid());
 
-    const DescriptorTableDeclaration descriptor_table_decl = merge_half_res_textures_shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    const DescriptorTableDeclaration& descriptor_table_decl = merge_half_res_textures_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {

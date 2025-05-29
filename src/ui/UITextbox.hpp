@@ -13,7 +13,6 @@
 namespace hyperion {
 
 HYP_CLASS()
-
 class HYP_API UITextbox : public UIPanel
 {
     HYP_OBJECT_BODY(UITextbox);

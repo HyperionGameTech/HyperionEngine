@@ -46,7 +46,6 @@ enum class RenderGroupFlags : uint32
 HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
 HYP_CLASS()
-
 class HYP_API RenderGroup : public HypObject<RenderGroup>
 {
     HYP_OBJECT_BODY(RenderGroup);

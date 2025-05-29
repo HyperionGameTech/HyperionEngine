@@ -55,28 +55,26 @@ static const bool g_should_compile_missing_variants = true;
 
 #pragma region Helpers
 
-static String BuildDescriptorTableDefines(const DescriptorUsageSet& descriptor_usages)
+static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& descriptor_table_declaration)
 {
     String descriptor_table_defines;
 
-    DescriptorTableDeclaration descriptor_table = descriptor_usages.BuildDescriptorTable();
-
     // Generate descriptor table defines
-    for (const DescriptorSetDeclaration& descriptor_set_declaration : descriptor_table.GetElements())
+    for (const DescriptorSetDeclaration& descriptor_set_declaration : descriptor_table_declaration.elements)
     {
-        const uint32 set_index = descriptor_table.GetDescriptorSetIndex(descriptor_set_declaration.name);
+        const DescriptorSetDeclaration* descriptor_set_declaration_ptr = &descriptor_set_declaration;
+
+        const uint32 set_index = descriptor_table_declaration.GetDescriptorSetIndex(descriptor_set_declaration.name);
         AssertThrow(set_index != -1);
 
         descriptor_table_defines += "#define HYP_DESCRIPTOR_SET_INDEX_" + String(descriptor_set_declaration.name.LookupString()) + " " + String::ToString(set_index) + "\n";
 
-        const DescriptorSetDeclaration* descriptor_set_declaration_ptr = &descriptor_set_declaration;
-
-        if (descriptor_set_declaration.is_reference)
+        if (descriptor_set_declaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
-            const DescriptorSetDeclaration* static_decl = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
-            AssertThrow(static_decl != nullptr);
+            const DescriptorSetDeclaration* referenced_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            AssertThrow(referenced_descriptor_set_declaration != nullptr);
 
-            descriptor_set_declaration_ptr = static_decl;
+            descriptor_set_declaration_ptr = referenced_descriptor_set_declaration;
         }
 
         for (const Array<DescriptorDeclaration>& descriptor_declarations : descriptor_set_declaration_ptr->slots)
@@ -119,12 +117,82 @@ static String BuildPreamble(const ShaderProperties& properties)
     return preamble;
 }
 
-static String BuildPreamble(const ShaderProperties& properties, const DescriptorUsageSet& descriptor_usages)
+static String BuildPreamble(const ShaderProperties& properties, const DescriptorTableDeclaration& descriptor_table_declaration)
 {
-    return BuildDescriptorTableDefines(descriptor_usages) + "\n\n" + BuildPreamble(properties);
+    return BuildDescriptorTableDefines(descriptor_table_declaration) + "\n\n" + BuildPreamble(properties);
 }
 
 #pragma endregion Helpers
+
+#pragma region DescriptorUsageSet
+
+DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration() const
+{
+    DescriptorTableDeclaration table;
+
+    for (const DescriptorUsage& descriptor_usage : elements)
+    {
+        AssertThrowMsg(descriptor_usage.slot != renderer::DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptor_usage.slot < renderer::DescriptorSlot::DESCRIPTOR_SLOT_MAX,
+            "Descriptor usage %s has invalid slot %d", descriptor_usage.descriptor_name.LookupString(), descriptor_usage.slot);
+
+        DescriptorSetDeclaration* descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
+
+        // check if this descriptor set is defined in the static descriptor table
+        // if it is, we can use those definitions
+        // otherwise, it is a 'custom' descriptor set
+        DescriptorSetDeclaration* static_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_usage.set_name);
+
+        if (static_descriptor_set_declaration != nullptr)
+        {
+            AssertThrowMsg(
+                static_descriptor_set_declaration->FindDescriptorDeclaration(descriptor_usage.descriptor_name) != nullptr,
+                "Descriptor set %s is defined in the static descriptor table, but the descriptor %s is not",
+                descriptor_usage.set_name.LookupString(),
+                descriptor_usage.descriptor_name.LookupString());
+
+            if (!descriptor_set_declaration)
+            {
+                const uint32 set_index = uint32(table.elements.Size());
+
+                DescriptorSetDeclaration new_descriptor_set_declaration(set_index, static_descriptor_set_declaration->name);
+                new_descriptor_set_declaration.flags = static_descriptor_set_declaration->flags | DescriptorSetDeclarationFlags::REFERENCE;
+
+                table.AddDescriptorSetDeclaration(std::move(new_descriptor_set_declaration));
+            }
+
+            continue;
+        }
+
+        if (!descriptor_set_declaration)
+        {
+            const uint32 set_index = uint32(table.elements.Size());
+
+            descriptor_set_declaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(set_index, descriptor_usage.set_name));
+        }
+
+        DescriptorDeclaration desc {
+            descriptor_usage.slot,
+            descriptor_usage.descriptor_name,
+            descriptor_usage.GetCount(),
+            descriptor_usage.GetSize(),
+            bool(descriptor_usage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC)
+        };
+
+        if (auto* existing_decl = descriptor_set_declaration->FindDescriptorDeclaration(descriptor_usage.descriptor_name))
+        {
+            // Already exists, just update the slot
+            *existing_decl = std::move(desc);
+        }
+        else
+        {
+            descriptor_set_declaration->AddDescriptorDeclaration(std::move(desc));
+        }
+    }
+
+    return table;
+}
+
+#pragma endregion DescriptorUsageSet
 
 #pragma region SPRIV Compilation
 
@@ -562,7 +630,7 @@ static ByteBuffer CompileToSPIRV(
 
     glslang_shader_t* shader = glslang_shader_create(&input);
 
-    String preamble = BuildDescriptorTableDefines(descriptor_usages);
+    String preamble = BuildDescriptorTableDefines(descriptor_usages.BuildDescriptorTableDeclaration());
 
     glslang_shader_set_preamble(shader, preamble.Data());
 
@@ -1021,74 +1089,6 @@ ShaderProperties& ShaderProperties::Set(const ShaderProperty& property, bool ena
 }
 
 #pragma endregion ShaderProperties
-
-#pragma region DescriptorUsageSet
-
-DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTable() const
-{
-    DescriptorTableDeclaration table;
-
-    for (const DescriptorUsage& descriptor_usage : elements)
-    {
-        AssertThrowMsg(descriptor_usage.slot != renderer::DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptor_usage.slot < renderer::DescriptorSlot::DESCRIPTOR_SLOT_MAX,
-            "Descriptor usage %s has invalid slot %d", descriptor_usage.descriptor_name.LookupString(), descriptor_usage.slot);
-
-        DescriptorSetDeclaration* descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
-
-        // check if this descriptor set is defined in the static descriptor table
-        // if it is, we can use those definitions
-        // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration* static_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_usage.set_name);
-
-        if (static_descriptor_set_declaration != nullptr)
-        {
-            AssertThrowMsg(
-                static_descriptor_set_declaration->FindDescriptorDeclaration(descriptor_usage.descriptor_name) != nullptr,
-                "Descriptor set %s is defined in the static descriptor table, but the descriptor %s is not",
-                descriptor_usage.set_name.LookupString(),
-                descriptor_usage.descriptor_name.LookupString());
-
-            if (!descriptor_set_declaration)
-            {
-                const uint32 set_index = uint32(table.GetElements().Size());
-
-                table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(set_index, static_descriptor_set_declaration->name, true, static_descriptor_set_declaration->is_template));
-            }
-
-            continue;
-        }
-
-        if (!descriptor_set_declaration)
-        {
-            const uint32 set_index = uint32(table.GetElements().Size());
-
-            descriptor_set_declaration = table.AddDescriptorSetDeclaration(DescriptorSetDeclaration(set_index, descriptor_usage.set_name));
-        }
-
-        DescriptorDeclaration desc {
-            descriptor_usage.slot,
-            descriptor_usage.descriptor_name,
-            nullptr, /* cond */
-            descriptor_usage.GetCount(),
-            descriptor_usage.GetSize(),
-            bool(descriptor_usage.flags & DESCRIPTOR_USAGE_FLAG_DYNAMIC)
-        };
-
-        if (auto* existing_decl = descriptor_set_declaration->FindDescriptorDeclaration(descriptor_usage.descriptor_name))
-        {
-            // Already exists, just update the slot
-            *existing_decl = std::move(desc);
-        }
-        else
-        {
-            descriptor_set_declaration->AddDescriptorDeclaration(std::move(desc));
-        }
-    }
-
-    return table;
-}
-
-#pragma endregion DescriptorUsageSet
 
 #pragma region ShaderCompiler
 
@@ -2220,24 +2220,22 @@ bool ShaderCompiler::CompileBundle(
     // compile shader with each permutation of properties
     ForEachPermutation(final_properties, [&](const ShaderProperties& properties)
         {
-            ShaderDefinition shader_definition {
+            CompiledShader compiled_shader;
+
+            compiled_shader.definition = ShaderDefinition {
                 bundle.name,
                 properties
             };
 
-            AssertThrow(shader_definition.IsValid());
+            compiled_shader.entry_point_name = bundle.entry_point_name;
 
-            CompiledShader compiled_shader {
-                shader_definition,
-                {},
-                bundle.entry_point_name
-            };
+            AssertThrow(compiled_shader.definition.IsValid());
 
             AtomicVar<bool> any_files_compiled { false };
             AtomicVar<bool> any_files_errored { false };
 
-            Array<DescriptorUsageSet> all_descriptor_usage_sets;
-            all_descriptor_usage_sets.Resize(loaded_source_files.Size());
+            Array<DescriptorUsageSet> descriptor_usage_sets_per_file;
+            descriptor_usage_sets_per_file.Resize(loaded_source_files.Size());
 
             Array<String> processed_sources;
             processed_sources.Resize(loaded_source_files.Size());
@@ -2255,7 +2253,7 @@ bool ShaderCompiler::CompileBundle(
                 // check if a file exists w/ same hash
                 const FilePath output_filepath = item.GetOutputFilepath(
                     g_asset_manager->GetBasePath(),
-                    shader_definition);
+                    compiled_shader.definition);
 
                 filepaths[index] = { output_filepath, false };
 
@@ -2282,7 +2280,7 @@ bool ShaderCompiler::CompileBundle(
                 //     }
                 // }
 
-                DescriptorUsageSet& descriptor_usages = all_descriptor_usage_sets[index];
+                DescriptorUsageSet& descriptor_usages = descriptor_usage_sets_per_file[index];
 
                 Array<String> error_messages;
 
@@ -2318,12 +2316,14 @@ bool ShaderCompiler::CompileBundle(
             }
 
             // merge all descriptor usages together for the source files before compiling.
-            for (const DescriptorUsageSet& descriptor_usage_set : all_descriptor_usage_sets)
+            DescriptorUsageSet descriptor_usage_sets_merged;
+
+            for (const DescriptorUsageSet& descriptor_usage_set : descriptor_usage_sets_per_file)
             {
-                compiled_shader.descriptor_usages.Merge(descriptor_usage_set);
+                descriptor_usage_sets_merged.Merge(descriptor_usage_set);
             }
 
-            all_descriptor_usage_sets.Clear();
+            descriptor_usage_sets_per_file.Clear();
 
             // final substitution of properties + compilation
             for (SizeType index = 0; index < loaded_source_files.Size(); index++)
@@ -2379,7 +2379,7 @@ bool ShaderCompiler::CompileBundle(
                     // );
                 }
 
-                ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, compiled_shader.descriptor_usages, processed_sources[index], item.file.path, properties, error_messages);
+                ByteBuffer byte_buffer = CompileToSPIRV(item.type, item.language, descriptor_usage_sets_merged, processed_sources[index], item.file.path, properties, error_messages);
 
                 if (byte_buffer.Empty())
                 {
@@ -2398,14 +2398,7 @@ bool ShaderCompiler::CompileBundle(
                     return;
                 }
 
-                // HYP_LOG(
-                //     ShaderCompiler,
-                //     Info,
-                //     "Compiled shader {} with version hash {}, File size: {}",
-                //     output_filepath,
-                //     properties.GetHashCode().Value(),
-                //     byte_buffer.Size()
-                // );
+                compiled_shader.descriptor_usage_set = descriptor_usage_sets_merged;
 
                 // write the spirv to the output file
                 FileByteWriter spirv_writer(output_filepath.Data());
@@ -2433,6 +2426,8 @@ bool ShaderCompiler::CompileBundle(
 
             num_compiled_permutations.Increment(uint32(!any_files_errored.Get(MemoryOrder::RELAXED) && any_files_compiled.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
             num_errored_permutations.Increment(uint32(any_files_errored.Get(MemoryOrder::RELAXED)), MemoryOrder::RELAXED);
+
+            compiled_shader.descriptor_table_declaration = compiled_shader.descriptor_usage_set.BuildDescriptorTableDeclaration();
 
             Mutex::Guard guard(compiled_shaders_mutex);
             out.compiled_shaders.PushBack(std::move(compiled_shader));

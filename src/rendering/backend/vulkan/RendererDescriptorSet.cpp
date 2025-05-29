@@ -285,9 +285,14 @@ RendererResult VulkanDescriptorSet::Create()
 {
     AssertThrow(m_handle == VK_NULL_HANDLE);
 
+    if (!m_layout.IsValid())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName().LookupString());
+    }
+
     HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
 
-    if (m_layout.GetDeclaration().is_template)
+    if (m_layout.IsTemplate())
     {
         return RendererResult {};
     }
@@ -576,25 +581,31 @@ DescriptorSetRef VulkanDescriptorSet::Clone() const
 
 #pragma region VulkanDescriptorTable
 
-VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration& decl)
+VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* decl)
     : DescriptorTableBase(decl)
 {
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    if (!IsValid())
     {
-        m_sets[frame_index].Reserve(decl.GetElements().Size());
+        HYP_LOG(RenderingBackend, Error, "Invalid descriptor table declaration");
+        return;
     }
 
-    for (const DescriptorSetDeclaration& set_decl : m_decl.GetElements())
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        if (set_decl.is_reference)
+        m_sets[frame_index].Reserve(m_decl->elements.Size());
+    }
+
+    for (const DescriptorSetDeclaration& descriptor_set_declaration : m_decl->elements)
+    {
+        if (descriptor_set_declaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
-            const DescriptorSetDeclaration* decl_ptr = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(set_decl.name);
-            AssertThrowMsg(decl_ptr != nullptr, "Invalid global descriptor set reference: %s", set_decl.name.LookupString());
+            const DescriptorSetDeclaration* referenced_descriptor_set_declaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            AssertThrowMsg(referenced_descriptor_set_declaration != nullptr, "Invalid global descriptor set reference: %s", descriptor_set_declaration.name.LookupString());
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
-                DescriptorSetRef descriptor_set = g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(set_decl.name, frame_index);
-                AssertThrowMsg(descriptor_set.IsValid(), "Invalid global descriptor set reference: %s", set_decl.name.LookupString());
+                DescriptorSetRef descriptor_set = g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(referenced_descriptor_set_declaration->name, frame_index);
+                AssertThrowMsg(descriptor_set.IsValid(), "Invalid global descriptor set reference: %s", referenced_descriptor_set_declaration->name.LookupString());
 
                 m_sets[frame_index].PushBack(std::move(descriptor_set));
             }
@@ -602,7 +613,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration& d
             continue;
         }
 
-        DescriptorSetLayout layout { set_decl };
+        DescriptorSetLayout layout { &descriptor_set_declaration };
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {

@@ -102,9 +102,9 @@ void TemporalAA::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalAA"));
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorUsages().BuildDescriptorTable();
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_result_texture,

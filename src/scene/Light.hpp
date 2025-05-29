@@ -37,7 +37,6 @@ enum class LightType : uint32
 };
 
 HYP_CLASS()
-
 class HYP_API Light : public HypObject<Light>
 {
     HYP_OBJECT_BODY(Light);
@@ -88,7 +87,6 @@ public:
      *  \return The type.
      */
     HYP_METHOD(Property = "Type", Serialize = true)
-
     LightType GetLightType() const
     {
         return m_type;
@@ -96,7 +94,6 @@ public:
 
     /*! \brief Set the type of the light. */
     HYP_METHOD(Property = "Type", Serialize = true)
-
     void SetLightType(LightType type)
     {
         if (m_type == type)
@@ -112,7 +109,6 @@ public:
      *
      *  \return The position or direction. */
     HYP_METHOD(Property = "Position", Serialize = true, Editor = true)
-
     const Vec3f& GetPosition() const
     {
         return m_position;
@@ -122,7 +118,6 @@ public:
      *
      *  \param position The position or direction to set. */
     HYP_METHOD(Property = "Position", Serialize = true, Editor = true)
-
     void SetPosition(const Vec3f& position)
     {
         if (m_position == position)
@@ -138,7 +133,6 @@ public:
      *
      *  \return The normal. */
     HYP_METHOD(Property = "Normal", Serialize = true, Editor = true)
-
     const Vec3f& GetNormal() const
     {
         return m_normal;
@@ -148,7 +142,6 @@ public:
      *
      *  \param normal The normal to set. */
     HYP_METHOD(Property = "Normal", Serialize = true, Editor = true)
-
     void SetNormal(const Vec3f& normal)
     {
         if (m_normal == normal)
@@ -164,7 +157,6 @@ public:
      *
      *  \return The area size. (x = width, y = height) */
     HYP_METHOD(Property = "AreaSize", Serialize = true, Editor = true)
-
     const Vec2f& GetAreaSize() const
     {
         return m_area_size;
@@ -174,7 +166,6 @@ public:
      *
      *  \param area_size The area size to set. (x = width, y = height) */
     HYP_METHOD(Property = "AreaSize", Serialize = true, Editor = true)
-
     void SetAreaSize(const Vec2f& area_size)
     {
         if (m_area_size == area_size)
@@ -190,7 +181,6 @@ public:
      *
      *  \return The color. */
     HYP_METHOD(Property = "Color", Serialize = true, Editor = true)
-
     const Color& GetColor() const
     {
         return m_color;
@@ -200,7 +190,6 @@ public:
      *
      *  \param color The color to set. */
     HYP_METHOD(Property = "Color", Serialize = true, Editor = true)
-
     void SetColor(const Color& color)
     {
         if (m_color == color)
@@ -216,7 +205,6 @@ public:
      *
      *  \return The intensity. */
     HYP_METHOD(Property = "Intensity", Serialize = true, Editor = true)
-
     float GetIntensity() const
     {
         return m_intensity;
@@ -226,7 +214,6 @@ public:
      *
      *  \param intensity The intensity to set. */
     HYP_METHOD(Property = "Intensity", Serialize = true, Editor = true)
-
     void SetIntensity(float intensity)
     {
         if (m_intensity == intensity)
@@ -242,7 +229,6 @@ public:
      *
      *  \return The radius. */
     HYP_METHOD(Property = "Radius", Serialize = true, Editor = true)
-
     float GetRadius() const
     {
         switch (m_type)
@@ -260,7 +246,6 @@ public:
      *
      *  \param radius The radius to set. */
     HYP_METHOD(Property = "Radius", Serialize = true, Editor = true)
-
     void SetRadius(float radius)
     {
         if (m_radius == radius)
@@ -276,7 +261,6 @@ public:
      *
      *  \return The falloff. */
     HYP_METHOD(Property = "Falloff", Serialize = true, Editor = true)
-
     float GetFalloff() const
     {
         return m_falloff;
@@ -286,7 +270,6 @@ public:
      *
      *  \param falloff The falloff to set. */
     HYP_METHOD(Property = "Falloff", Serialize = true, Editor = true)
-
     void SetFalloff(float falloff)
     {
         if (m_falloff == falloff)
@@ -302,7 +285,6 @@ public:
      *
      *  \return The spotlight angles. */
     HYP_METHOD(Property = "SpotAngles", Serialize = true, Editor = true)
-
     const Vec2f& GetSpotAngles() const
     {
         return m_spot_angles;
@@ -312,7 +294,6 @@ public:
      *
      *  \param spot_angles The angles to set for the spotlight. */
     HYP_METHOD(Property = "SpotAngles", Serialize = true, Editor = true)
-
     void SetSpotAngles(const Vec2f& spot_angles)
     {
         if (m_spot_angles == spot_angles)
@@ -328,7 +309,6 @@ public:
      *
      *  \return The material handle associated with the Light. */
     HYP_METHOD(Property = "Material", Serialize = true, Editor = true)
-
     const Handle<Material>& GetMaterial() const
     {
         return m_material;

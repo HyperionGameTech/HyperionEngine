@@ -95,7 +95,6 @@ enum class AssetChangeType : uint32
 };
 
 HYP_CLASS()
-
 class AssetCollector : public HypObject<AssetCollector>
 {
     HYP_OBJECT_BODY(AssetCollector);
@@ -162,7 +161,6 @@ private:
 };
 
 HYP_CLASS()
-
 class AssetManager : public HypObject<AssetManager>
 {
     friend class AssetBatch;

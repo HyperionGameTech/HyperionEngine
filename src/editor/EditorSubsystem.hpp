@@ -83,7 +83,6 @@ private:
 };
 
 HYP_CLASS()
-
 class GenerateLightmapsEditorTask : public TickableEditorTask
 {
     HYP_OBJECT_BODY(GenerateLightmapsEditorTask);
@@ -114,7 +113,6 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-
 class HYP_API EditorManipulationWidgetBase : public EnableRefCountedPtrFromThis<EditorManipulationWidgetBase>
 {
     HYP_OBJECT_BODY(EditorManipulationWidgetBase);
@@ -194,7 +192,6 @@ private:
 };
 
 HYP_CLASS()
-
 class NullEditorManipulationWidget : public EditorManipulationWidgetBase
 {
     HYP_OBJECT_BODY(NullEditorManipulationWidget);
@@ -215,7 +212,6 @@ protected:
 };
 
 HYP_CLASS()
-
 class TranslateEditorManipulationWidget : public EditorManipulationWidgetBase
 {
     HYP_OBJECT_BODY(TranslateEditorManipulationWidget);
@@ -295,7 +291,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API EditorSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(EditorSubsystem);

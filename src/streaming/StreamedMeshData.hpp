@@ -40,7 +40,6 @@ struct MeshData
 };
 
 HYP_CLASS()
-
 class HYP_API StreamedMeshData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(StreamedMeshData);

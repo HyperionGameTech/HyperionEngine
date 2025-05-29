@@ -84,7 +84,7 @@ protected:
 class VulkanDescriptorTable : public DescriptorTableBase
 {
 public:
-    HYP_API VulkanDescriptorTable(const DescriptorTableDeclaration& decl);
+    HYP_API VulkanDescriptorTable(const DescriptorTableDeclaration* decl);
     HYP_API virtual ~VulkanDescriptorTable() override = default;
 };
 

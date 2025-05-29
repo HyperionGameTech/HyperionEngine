@@ -252,7 +252,7 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
                                                           })
         .Detach();
 
-    m_global_descriptor_table = g_rendering_api->MakeDescriptorTable(renderer::GetStaticDescriptorTableDeclaration());
+    m_global_descriptor_table = g_rendering_api->MakeDescriptorTable(&renderer::GetStaticDescriptorTableDeclaration());
 
     // Update app configuration to reflect device, after instance is created (e.g RT is not supported)
     m_app_context->UpdateConfigurationOverrides();
@@ -584,8 +584,6 @@ HYP_API void Engine::RenderNextFrame(Game* game)
         it.second->UpdateBufferSize(frame->GetFrameIndex());
         it.second->UpdateBufferData(frame->GetFrameIndex());
     }
-
-    // m_global_descriptor_table->Update(frame->GetFrameIndex());
 
     m_world->GetRenderResource().PostRender(frame);
 

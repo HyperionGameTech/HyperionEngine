@@ -85,7 +85,6 @@ static_assert(std::is_trivially_copyable_v<ManagedScript>, "ManagedScript struct
 static_assert(sizeof(ManagedScript) == 3104, "ManagedScript struct size must match C# struct size");
 
 HYP_CLASS()
-
 class HYP_API Script : public HypObject<Script>
 {
     HYP_OBJECT_BODY(Script);

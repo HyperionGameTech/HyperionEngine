@@ -14,7 +14,6 @@ class UIStage;
 #pragma region UIPanel
 
 HYP_CLASS()
-
 class HYP_API UIPanel : public UIObject
 {
     HYP_OBJECT_BODY(UIPanel);

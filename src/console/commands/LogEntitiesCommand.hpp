@@ -8,7 +8,6 @@
 namespace hyperion {
 
 HYP_CLASS(Command = "log_entities")
-
 class HYP_API LogEntitiesCommand : public ConsoleCommandBase
 {
     HYP_OBJECT_BODY(LogEntitiesCommand);

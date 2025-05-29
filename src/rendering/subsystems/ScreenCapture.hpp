@@ -30,7 +30,6 @@ enum class ScreenCaptureMode
 };
 
 HYP_CLASS()
-
 class HYP_API ScreenCaptureRenderSubsystem : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ScreenCaptureRenderSubsystem);

@@ -30,7 +30,6 @@ enum class UIDockableItemPosition : uint32
 #pragma region UIDockableItem
 
 HYP_CLASS()
-
 class HYP_API UIDockableItem : public UIPanel
 {
     HYP_OBJECT_BODY(UIDockableItem);
@@ -49,7 +48,6 @@ public:
 #pragma region UIDockableContainer
 
 HYP_CLASS()
-
 class HYP_API UIDockableContainer : public UIPanel
 {
     HYP_OBJECT_BODY(UIDockableContainer);

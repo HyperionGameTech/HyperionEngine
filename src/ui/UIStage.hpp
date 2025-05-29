@@ -62,7 +62,6 @@ HYP_MAKE_ENUM_FLAGS(UIRayTestFlags)
 /*! \brief The UIStage is the root of the UI scene graph. */
 
 HYP_CLASS()
-
 class HYP_API UIStage : public UIObject
 {
     HYP_OBJECT_BODY(UIStage);
@@ -106,7 +105,6 @@ public:
     void SetScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
-
     const Handle<Camera>& GetCamera() const
     {
         return m_camera;

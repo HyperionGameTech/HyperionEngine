@@ -689,8 +689,8 @@ public:
 template <class... Types>
 struct Variant;
 
-template <class... Types, class FunctionType>
-static inline void Visit(const Variant<Types...>& variant, FunctionType&& fn);
+template <class VariantType, class FunctionType>
+static inline void Visit(VariantType&& variant, FunctionType&& fn);
 
 template <class... Types>
 struct Variant : private ConstructAssignmentTraits<true, utilities::detail::VariantHelper<Types...>::copy_constructible, utilities::detail::VariantHelper<Types...>::move_constructible, Variant<Types...>>
@@ -924,9 +924,21 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::detail::Vari
     }
 
     template <class FunctionType>
-    HYP_FORCE_INLINE void Visit(FunctionType&& fn) const
+    HYP_FORCE_INLINE void Visit(FunctionType&& fn) &
     {
         ::hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
+    }
+
+    template <class FunctionType>
+    HYP_FORCE_INLINE void Visit(FunctionType&& fn) const&
+    {
+        ::hyperion::utilities::Visit(*this, std::forward<FunctionType>(fn));
+    }
+
+    template <class FunctionType>
+    HYP_FORCE_INLINE void Visit(FunctionType&& fn) &&
+    {
+        ::hyperion::utilities::Visit(std::move(*this), std::forward<FunctionType>(fn));
     }
 
 private:
@@ -1014,9 +1026,21 @@ struct TypeIndexHelper<VariantBase<T, Types...>>
 // };
 
 template <class VariantType, class FunctionType, class T>
+static inline void Variant_InvokeFunction(VariantType& variant, FunctionType& fn)
+{
+    fn(variant.template GetUnchecked<T>());
+}
+
+template <class VariantType, class FunctionType, class T>
 static inline void Variant_InvokeFunction(const VariantType& variant, FunctionType& fn)
 {
     fn(variant.template GetUnchecked<T>());
+}
+
+template <class VariantType, class FunctionType, class T>
+static inline void Variant_InvokeFunction(VariantType&& variant, FunctionType& fn)
+{
+    fn(std::move(variant).template GetUnchecked<T>());
 }
 
 template <class VariantType>
@@ -1025,6 +1049,30 @@ struct VisitHelper;
 template <class... Types>
 struct VisitHelper<utilities::Variant<Types...>>
 {
+    template <class FunctionType>
+    void operator()(utilities::Variant<Types...>& variant, FunctionType&& fn) const
+    {
+        using InvokeFunctionWrapper = std::add_pointer_t<void(utilities::Variant<Types...>&, FunctionType&)>;
+
+        static const InvokeFunctionWrapper invoke_fns[sizeof...(Types)] = {
+            &Variant_InvokeFunction<utilities::Variant<Types...>, FunctionType, Types>...
+        };
+
+        if (!variant.IsValid())
+        {
+            return;
+        }
+
+        const int type_index = variant.GetTypeIndex();
+
+#ifdef HYP_DEBUG_MODE
+        // Sanity check
+        AssertThrow(type_index < sizeof...(Types));
+#endif
+
+        invoke_fns[type_index](variant, fn);
+    }
+
     template <class FunctionType>
     void operator()(const utilities::Variant<Types...>& variant, FunctionType&& fn) const
     {
@@ -1048,16 +1096,40 @@ struct VisitHelper<utilities::Variant<Types...>>
 
         invoke_fns[type_index](variant, fn);
     }
+
+    template <class FunctionType>
+    void operator()(utilities::Variant<Types...>&& variant, FunctionType&& fn) const
+    {
+        using InvokeFunctionWrapper = std::add_pointer_t<void(utilities::Variant<Types...>&&, FunctionType&)>;
+
+        static const InvokeFunctionWrapper invoke_fns[sizeof...(Types)] = {
+            &Variant_InvokeFunction<utilities::Variant<Types...>, FunctionType, Types>...
+        };
+
+        if (!variant.IsValid())
+        {
+            return;
+        }
+
+        const int type_index = variant.GetTypeIndex();
+
+#ifdef HYP_DEBUG_MODE
+        // Sanity check
+        AssertThrow(type_index < sizeof...(Types));
+#endif
+
+        invoke_fns[type_index](std::move(variant), fn);
+    }
 };
 
 #pragma endregion VisitHelper
 
 } // namespace detail
 
-template <class... Types, class FunctionType>
-static inline void Visit(const Variant<Types...>& variant, FunctionType&& fn)
+template <class VariantType, class FunctionType>
+static inline void Visit(VariantType&& variant, FunctionType&& fn)
 {
-    detail::VisitHelper<Variant<Types...>> {}(variant, std::forward<FunctionType>(fn));
+    detail::VisitHelper<NormalizedType<VariantType>> {}(std::forward<VariantType>(variant), std::forward<FunctionType>(fn));
 }
 
 } // namespace utilities

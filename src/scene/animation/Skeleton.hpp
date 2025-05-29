@@ -58,7 +58,6 @@ struct SkeletonBoneData
 };
 
 HYP_CLASS()
-
 class HYP_API Skeleton : public HypObject<Skeleton>
 {
     HYP_OBJECT_BODY(Skeleton);
@@ -121,7 +120,6 @@ public:
     /*! \brief Get the array of animations that are associated with this skeleton.
      *  \returns The array of animations associated with this skeleton. */
     HYP_METHOD(Serialize, Property = "Animations")
-
     const Array<Handle<Animation>>& GetAnimations() const
     {
         return m_animations;
@@ -130,7 +128,6 @@ public:
     /*! \brief Set the array of animations that are associated with this skeleton.
      *  \param animations The array of animations to set on this skeleton. */
     HYP_METHOD(Serialize, Property = "Animations")
-
     void SetAnimations(const Array<Handle<Animation>>& animations)
     {
         m_animations = animations;
@@ -140,7 +137,6 @@ public:
      *  \returns The number of animations associated with this skeleton.
      */
     HYP_METHOD()
-
     uint32 NumAnimations() const
     {
         return uint32(m_animations.Size());
@@ -157,7 +153,6 @@ public:
      *  \returns The animation at the given index.
      */
     HYP_METHOD()
-
     const Handle<Animation>& GetAnimation(uint32 index) const
     {
         return m_animations[index];

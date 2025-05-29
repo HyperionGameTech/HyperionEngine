@@ -516,16 +516,17 @@ void VulkanRenderingAPI::PresentFrame(FrameBase* frame)
 
 DescriptorSetRef VulkanRenderingAPI::MakeDescriptorSet(const DescriptorSetLayout& layout)
 {
-    DescriptorSetDeclaration decl_copy = layout.GetDeclaration();
-    decl_copy.is_template = false;
+    DescriptorSetLayout new_layout { layout.GetDeclaration() };
+    new_layout.SetIsTemplate(false);
+    new_layout.SetIsReference(false);
 
-    DescriptorSetRef descriptor_set = MakeRenderObject<VulkanDescriptorSet>(DescriptorSetLayout(decl_copy));
+    DescriptorSetRef descriptor_set = MakeRenderObject<VulkanDescriptorSet>(new_layout);
     descriptor_set->SetDebugName(layout.GetName());
 
     return descriptor_set;
 }
 
-DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTableDeclaration& decl)
+DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
     return MakeRenderObject<VulkanDescriptorTable>(decl);
 }

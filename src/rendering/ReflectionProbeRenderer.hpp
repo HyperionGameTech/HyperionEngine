@@ -19,7 +19,6 @@ namespace hyperion {
 class RenderEnvProbe;
 
 HYP_CLASS()
-
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ReflectionProbeRenderer);

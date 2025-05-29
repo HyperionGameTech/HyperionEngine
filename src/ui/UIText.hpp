@@ -51,7 +51,6 @@ struct UITextCharacter
 };
 
 HYP_CLASS()
-
 class HYP_API UIText : public UIObject
 {
     HYP_OBJECT_BODY(UIText);

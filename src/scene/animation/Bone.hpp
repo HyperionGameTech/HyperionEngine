@@ -17,7 +17,6 @@ namespace hyperion {
 class Skeleton;
 
 HYP_CLASS()
-
 class HYP_API Bone : public Node
 {
     friend class Skeleton;

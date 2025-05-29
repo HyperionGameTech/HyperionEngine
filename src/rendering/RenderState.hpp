@@ -99,7 +99,6 @@ struct RenderBinding<Scene>
 };
 
 HYP_CLASS()
-
 class RenderState : public HypObject<RenderState>
 {
     HYP_OBJECT_BODY(RenderState);

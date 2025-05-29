@@ -414,7 +414,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
 {
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;

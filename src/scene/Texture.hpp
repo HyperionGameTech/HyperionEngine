@@ -37,7 +37,6 @@ class StreamedTextureData;
 class RenderTexture;
 
 HYP_CLASS()
-
 class HYP_API Texture : public HypObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);

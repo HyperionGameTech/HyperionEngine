@@ -15,7 +15,6 @@ class UIListView;
 class ConsoleHistory;
 
 HYP_CLASS()
-
 class HYP_API ConsoleUI : public UIObject
 {
     HYP_OBJECT_BODY(ConsoleUI);

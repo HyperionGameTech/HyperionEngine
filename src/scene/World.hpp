@@ -63,7 +63,6 @@ private:
 };
 
 HYP_CLASS()
-
 class HYP_API World : public HypObject<World>
 {
     HYP_OBJECT_BODY(World);

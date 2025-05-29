@@ -59,7 +59,6 @@ struct ViewDesc
 };
 
 HYP_CLASS()
-
 class HYP_API View : public HypObject<View>
 {
     HYP_OBJECT_BODY(View);
