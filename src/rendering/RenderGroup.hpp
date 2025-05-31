@@ -45,6 +45,8 @@ enum class RenderGroupFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 
+struct ParallelRenderingState;
+
 HYP_CLASS()
 class HYP_API RenderGroup : public HypObject<RenderGroup>
 {
@@ -126,11 +128,11 @@ public:
     void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(FrameBase* frame, RenderView* view);
+    void PerformRendering(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(FrameBase* frame, RenderView* view);
+    void PerformRenderingIndirect(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state);
 
     void PerformOcclusionCulling(FrameBase* frame, RenderView* view, const CullData* cull_data);
 

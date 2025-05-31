@@ -1121,8 +1121,7 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
 #if defined(HYP_DEBUG_MODE) && defined(HYP_SYSTEMS_LAG_SPIKE_DETECTION)
                 performance_clock.Stop();
 #endif
-            },
-            debug_name);
+            });
     }
 }
 

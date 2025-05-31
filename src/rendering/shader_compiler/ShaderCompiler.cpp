@@ -950,7 +950,6 @@ static void ForEachPermutation(
     if (parallel)
     {
         TaskSystem::GetInstance().ParallelForEach(
-            HYP_STATIC_MESSAGE("ShaderCompiler::ForEachPermutation parallel processing"),
             all_combinations,
             [&callback](const Array<ShaderProperty>& properties, uint32, uint32)
             {
@@ -1503,7 +1502,6 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
 
     // Compile all shaders ahead of time
     TaskSystem::GetInstance().ParallelForEach(
-        HYP_STATIC_MESSAGE("ShaderCompiler::LoadShaderDefinitions parallel"),
         bundles,
         [&](auto& bundle, uint32, uint32)
         {
@@ -2067,8 +2065,7 @@ bool ShaderCompiler::CompileBundle(
                     .last_modified_timestamp = filepath.LastModifiedTimestamp(),
                     .source = result.processed_source
                 };
-            },
-            debug_name);
+            });
     }
 
     if (Threads::IsOnThread(ThreadCategory::THREAD_CATEGORY_TASK))

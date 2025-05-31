@@ -177,10 +177,11 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
             if (!render_group.IsValid())
             {
                 // Create RenderGroup
+                // @NOTE: Parallel disabled for now as we don't have ParallelRenderingState for UI yet.
                 render_group = CreateObject<RenderGroup>(
                     g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                     attributes,
-                    RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING));
+                    RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::PARALLEL_RENDERING));
 
                 render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<UIEntityInstanceBatch>());
 
@@ -346,7 +347,6 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame)
     }
 
     TaskSystem::GetInstance().ParallelForEach(
-        HYP_STATIC_MESSAGE("UIRenderCollector::CollectDrawCalls"),
         TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
         iterators,
         [this](IteratorType it, uint32, uint32)
@@ -410,7 +410,7 @@ void UIRenderCollector::ExecuteDrawCalls(
         // Don't count draw calls for UI
         SuppressEngineRenderStatsScope suppress_render_stats_scope;
 
-        render_group->PerformRendering(frame, view);
+        render_group->PerformRendering(frame, view, nullptr);
     }
 
     if (framebuffer.IsValid())

@@ -16,6 +16,7 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -597,9 +598,12 @@ static void RenderAll_Parallel(
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
     Array<Span<const DrawCall>>& divided_draw_calls,
-    const DrawCallCollection& draw_state)
+    const DrawCallCollection& draw_state,
+    ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
+
+    AssertDebug(parallel_rendering_state != nullptr);
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
@@ -608,48 +612,27 @@ static void RenderAll_Parallel(
         return;
     }
 
+    const TResourceHandle<RenderLight>& render_light = g_engine->GetRenderState()->GetActiveLight();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+
     const uint32 frame_index = frame->GetFrameIndex();
-
-    TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
-
-    const uint32 num_batches = MathUtil::Min(pool.NumThreads(), num_async_rendering_command_buffers);
-
-    GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
 
     const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
     const DescriptorSetRef& global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index);
 
     const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
-    const DescriptorSetRef& material_descriptor_set = use_bindless_textures
-        ? pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)
-        : DescriptorSetRef::unset;
 
-    const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
-    const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
+    GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
 
-    const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
-    const DescriptorSetRef& instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
+    RHICommandList& base_command_list = parallel_rendering_state->base_command_list;
 
-    const TResourceHandle<RenderLight>& render_light = g_engine->GetRenderState()->GetActiveLight();
-    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
-    // HYP_LOG(Rendering, Debug, "Rendering {} draw calls in {} batches", draw_state.GetDrawCalls().Size(), num_batches);
-
-    // rather than using a single integer, we have to set states in a fixed array
-    // because otherwise we'd need to use an atomic integer
-    FixedArray<RHICommandList, num_async_rendering_command_buffers> command_lists {};
-    FixedArray<uint32, num_async_rendering_command_buffers> record_states {};
-
-    FixedArray<EngineRenderStatsCounts, num_async_rendering_command_buffers> render_stats_counts {};
-
-    frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+    base_command_list.Add<BindGraphicsPipeline>(pipeline);
 
     if (global_descriptor_set_index != ~0u)
     {
-        frame->GetCommandList().Add<BindDescriptorSet>(
+        base_command_list.Add<BindDescriptorSet>(
             global_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {
@@ -670,7 +653,7 @@ static void RenderAll_Parallel(
         AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
             pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
 
-        frame->GetCommandList().Add<BindDescriptorSet>(
+        base_command_list.Add<BindDescriptorSet>(
             scene_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {},
@@ -680,26 +663,31 @@ static void RenderAll_Parallel(
     // Bind textures globally (bindless)
     if (material_descriptor_set_index != ~0u && use_bindless_textures)
     {
-        frame->GetCommandList().Add<BindDescriptorSet>(
+        const DescriptorSetRef& material_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index);
+        AssertDebug(material_descriptor_set.IsValid());
+
+        base_command_list.Add<BindDescriptorSet>(
             material_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {},
             material_descriptor_set_index);
     }
 
-    TaskSystem::GetInstance().ParallelForEach(
-        HYP_STATIC_MESSAGE("RenderAll_Parallel"),
-        pool,
-        num_batches,
-        divided_draw_calls,
-        [&](Span<const DrawCall> draw_calls, uint32 index, uint32)
+    // Store the proc in the parallel rendering state so that it doesn't get destroyed until we're done with it
+    ProcRef<void(Span<const DrawCall>, uint32, uint32)> proc = parallel_rendering_state->proc_memory.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const DrawCall> draw_calls, uint32 index, uint32)
         {
             if (!draw_calls)
             {
                 return;
             }
 
-            RHICommandList& command_list = command_lists[index];
+            RHICommandList& command_list = parallel_rendering_state->command_lists[index];
+
+            const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
+            const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
+
+            const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
+            const DescriptorSetRef& instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
 
             for (const DrawCall& draw_call : draw_calls)
             {
@@ -748,7 +736,7 @@ static void RenderAll_Parallel(
                 if (material_descriptor_set_index != ~0u && !use_bindless_textures)
                 {
                     const DescriptorSetRef& material_descriptor_set = draw_call.render_material->GetDescriptorSets()[frame_index];
-                    AssertThrow(material_descriptor_set.IsValid());
+                    AssertDebug(material_descriptor_set.IsValid());
 
                     command_list.Add<BindDescriptorSet>(
                         material_descriptor_set,
@@ -769,28 +757,15 @@ static void RenderAll_Parallel(
                     draw_call.render_mesh->Render(command_list, entity_instance_batch ? entity_instance_batch->num_entities : 1);
                 }
 
-                render_stats_counts[index].num_triangles += draw_call.render_mesh->NumIndices() / 3;
-                render_stats_counts[index].num_draw_calls++;
+                parallel_rendering_state->render_stats_counts[index].num_triangles += draw_call.render_mesh->NumIndices() / 3;
+                parallel_rendering_state->render_stats_counts[index].num_draw_calls++;
             }
-
-            record_states[index] = 1u;
         });
 
-    const uint32 num_recorded_command_lists = record_states.Sum();
-
-    // submit all command buffers
-    for (uint32 i = 0; i < num_recorded_command_lists; i++)
-    {
-        frame->GetCommandList().Concat(std::move(command_lists[i]));
-    }
-
-    for (const EngineRenderStatsCounts& counts : render_stats_counts)
-    {
-        g_engine->GetRenderStatsCalculator().AddCounts(counts);
-    }
+    TaskSystem::GetInstance().ParallelForEach_Batch(*parallel_rendering_state->task_batch, parallel_rendering_state->num_batches, divided_draw_calls, std::move(proc));
 }
 
-void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view)
+void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
 
@@ -804,13 +779,16 @@ void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view)
 
     if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
     {
+        AssertDebug(parallel_rendering_state != nullptr);
+
         RenderAll_Parallel<false>(
             frame,
             view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
-            m_draw_state);
+            m_draw_state,
+            parallel_rendering_state);
     }
     else
     {
@@ -823,7 +801,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view)
     }
 }
 
-void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view)
+void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
 
@@ -839,13 +817,16 @@ void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view)
 
     if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
     {
+        AssertDebug(parallel_rendering_state != nullptr);
+
         RenderAll_Parallel<true>(
             frame,
             view,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
-            m_draw_state);
+            m_draw_state,
+            parallel_rendering_state);
     }
     else
     {

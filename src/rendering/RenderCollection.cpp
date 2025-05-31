@@ -31,7 +31,6 @@
 #include <core/containers/Array.hpp>
 
 #include <core/threading/Threads.hpp>
-#include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -359,11 +358,33 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 #pragma region RenderCollector
 
 RenderCollector::RenderCollector()
-    : m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>())
+    : m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>()),
+      m_parallel_rendering_state(nullptr)
 {
 }
 
-RenderCollector::~RenderCollector() = default;
+RenderCollector::~RenderCollector()
+{
+    if (m_parallel_rendering_state != nullptr)
+    {
+        ParallelRenderingState* state = m_parallel_rendering_state;
+
+        while (state != nullptr)
+        {
+            if (state->task_batch != nullptr)
+            {
+                state->task_batch->AwaitCompletion();
+                delete state->task_batch;
+            }
+
+            ParallelRenderingState* next_state = state->next;
+
+            delete state;
+
+            state = next_state;
+        }
+    }
+}
 
 void RenderCollector::CollectDrawCalls(
     FrameBase* frame,
@@ -410,7 +431,6 @@ void RenderCollector::CollectDrawCalls(
     if (do_parallel_collection && iterators.Size() > 1)
     {
         TaskSystem::GetInstance().ParallelForEach(
-            HYP_STATIC_MESSAGE("RenderCollector::CollectDrawCalls"),
             TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
             iterators,
             [this](IteratorType it, uint32, uint32)
@@ -480,64 +500,106 @@ void RenderCollector::ExecuteDrawCalls(
 
     const uint32 frame_index = frame->GetFrameIndex();
 
+    ParallelRenderingState* parallel_rendering_state_head = nullptr;
+    uint32 num_parallel_rendering_states = 0;
+
+    const auto acquire_next_parallel_rendering_state = [this, &num_parallel_rendering_states, &head = parallel_rendering_state_head]() -> ParallelRenderingState*
+    {
+        ParallelRenderingState* parallel_rendering_state = nullptr;
+
+        if (!head)
+        {
+            if (!m_parallel_rendering_state)
+            {
+                m_parallel_rendering_state = new ParallelRenderingState();
+                HYP_LOG(RenderCollection, Debug,
+                    "Allocated new ParallelRenderingState: {}",
+                    (void*)m_parallel_rendering_state);
+
+                TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
+                TaskBatch* task_batch = new TaskBatch();
+                task_batch->pool = &pool;
+
+                m_parallel_rendering_state->task_batch = task_batch;
+                m_parallel_rendering_state->num_batches = num_async_rendering_command_buffers;
+            }
+
+            head = m_parallel_rendering_state;
+            parallel_rendering_state = head;
+        }
+        else
+        {
+            if (!head->next)
+            {
+                ParallelRenderingState* new_parallel_rendering_state = new ParallelRenderingState();
+
+                HYP_LOG(RenderCollection, Debug,
+                    "Allocated new ParallelRenderingState: {}",
+                    (void*)new_parallel_rendering_state);
+
+                TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
+                TaskBatch* task_batch = new TaskBatch();
+                task_batch->pool = &pool;
+
+                new_parallel_rendering_state->task_batch = task_batch;
+                new_parallel_rendering_state->num_batches = num_async_rendering_command_buffers;
+
+                head->next = new_parallel_rendering_state;
+            }
+
+            parallel_rendering_state = head->next;
+            head = parallel_rendering_state;
+        }
+
+        AssertDebug(parallel_rendering_state != nullptr);
+        AssertDebug(parallel_rendering_state->task_batch != nullptr);
+        AssertDebug(parallel_rendering_state->task_batch->IsCompleted());
+
+        ++num_parallel_rendering_states;
+
+        return parallel_rendering_state;
+    };
+
     if (bucket_bits.Count() == 0)
     {
         return;
     }
+
+    Span<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>> groups_view;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (bucket_bits.Count() == 1)
     {
         const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits.ToUInt64()));
 
-        const auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
+        auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
 
         if (render_groups_by_attributes.Empty())
         {
             return;
         }
 
-        if (framebuffer)
-        {
-            frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
-        }
-
-        for (const auto& it : render_groups_by_attributes)
-        {
-            const RenderableAttributeSet& attributes = it.first;
-            const Handle<RenderGroup>& render_group = it.second;
-
-            if (push_constant)
-            {
-                render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
-            }
-
-            if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
-            {
-                render_group->PerformRenderingIndirect(frame, view);
-            }
-            else
-            {
-                render_group->PerformRendering(frame, view);
-            }
-        }
-
-        if (framebuffer)
-        {
-            frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
-        }
+        groups_view = { &render_groups_by_attributes, 1 };
     }
     else
     {
-        bool all_empty = false;
+        bool all_empty = true;
 
         for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
         {
             if (render_groups_by_attributes.Any())
             {
-                all_empty = false;
+                if (AnyOf(render_groups_by_attributes, [&bucket_bits](const auto& it)
+                        {
+                            return bucket_bits.Test(uint32(it.first.GetMaterialAttributes().bucket));
+                        }))
+                {
+                    all_empty = false;
 
-                break;
+                    break;
+                }
             }
         }
 
@@ -546,45 +608,103 @@ void RenderCollector::ExecuteDrawCalls(
             return;
         }
 
-        if (framebuffer)
-        {
-            frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
-        }
+        groups_view = m_draw_collection->GetProxyGroups().ToSpan();
+    }
 
-        for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+    if (framebuffer)
+    {
+        frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
+    }
+
+    for (const auto& render_groups_by_attributes : groups_view)
+    {
+        for (const auto& it : render_groups_by_attributes)
         {
-            for (const auto& it : render_groups_by_attributes)
+            const RenderableAttributeSet& attributes = it.first;
+            const Handle<RenderGroup>& render_group = it.second;
+
+            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+
+            if (!bucket_bits.Test(uint32(bucket)))
             {
-                const RenderableAttributeSet& attributes = it.first;
-                const Handle<RenderGroup>& render_group = it.second;
+                continue;
+            }
 
-                const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+            if (push_constant)
+            {
+                render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
+            }
 
-                if (!bucket_bits.Test(uint32(bucket)))
-                {
-                    continue;
-                }
+            ParallelRenderingState* parallel_rendering_state = nullptr;
 
-                if (push_constant)
-                {
-                    render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
-                }
+            if (render_group->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
+            {
+                parallel_rendering_state = acquire_next_parallel_rendering_state();
+            }
 
-                if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
-                {
-                    render_group->PerformRenderingIndirect(frame, view);
-                }
-                else
-                {
-                    render_group->PerformRendering(frame, view);
-                }
+            if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
+            {
+                render_group->PerformRenderingIndirect(frame, view, parallel_rendering_state);
+            }
+            else
+            {
+                render_group->PerformRendering(frame, view, parallel_rendering_state);
+            }
+
+            if (parallel_rendering_state != nullptr)
+            {
+                AssertDebug(parallel_rendering_state->task_batch != nullptr);
+
+                TaskSystem::GetInstance().EnqueueBatch(parallel_rendering_state->task_batch);
             }
         }
+    }
 
-        if (framebuffer)
+    // Wait for all parallel rendering tasks to finish
+    if (num_parallel_rendering_states != 0)
+    {
+        HYP_LOG(RenderCollection, Debug,
+            "Waiting for {} parallel rendering task batches to finish",
+            num_parallel_rendering_states);
+
+        ParallelRenderingState* state = m_parallel_rendering_state;
+
+        while (num_parallel_rendering_states)
         {
-            frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
+            AssertDebug(state != nullptr);
+
+            AssertDebug(state->task_batch != nullptr);
+            state->task_batch->AwaitCompletion();
+
+            frame->GetCommandList().Concat(std::move(state->base_command_list));
+
+            // Add command lists to the frame's command list
+            for (uint32 i = 0; i < num_async_rendering_command_buffers; i++)
+            {
+                frame->GetCommandList().Concat(std::move(state->command_lists[i]));
+            }
+
+            // Add render stats counts to the engine's render stats
+            for (EngineRenderStatsCounts& counts : state->render_stats_counts)
+            {
+                g_engine->GetRenderStatsCalculator().AddCounts(counts);
+
+                counts = EngineRenderStatsCounts(); // Reset counts after adding for next use
+            }
+
+            // @TODO: Reserve first element of proc_memory
+            state->proc_memory.Clear();
+            state->task_batch->ResetState();
+
+            state = state->next;
+
+            --num_parallel_rendering_states;
         }
+    }
+
+    if (framebuffer)
+    {
+        frame->GetCommandList().Add<EndFramebuffer>(framebuffer, frame_index);
     }
 }
 

@@ -257,7 +257,7 @@ FBOMResult FBOMWriter::WriteExternalObjects(ByteWriter* out, const FilePath& bas
         errors.Insert(err);
     };
 
-    TaskSystem::GetInstance().ParallelForEach(m_write_stream->m_object_libraries, [&](const FBOMObjectLibrary& library, uint32, uint32)
+    TaskSystem::GetInstance().ParallelForEach(m_write_stream->m_object_libraries, [&](const FBOMObjectLibrary& library, uint32, uint32) -> void
         {
             FBOMWriter serializer { FBOMWriterConfig {} };
 

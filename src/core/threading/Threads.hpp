@@ -58,7 +58,7 @@ public:
     static void SetCurrentThreadObject(IThread*);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
-    static SizeType NumCores();
+    static uint32 NumCores();
 
     static void Sleep(uint32 milliseconds);
 };

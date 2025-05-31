@@ -671,6 +671,11 @@ public:
     RHICommandList& operator=(RHICommandList&& other) noexcept = delete;
     ~RHICommandList();
 
+    HYP_FORCE_INLINE const Array<RHICommandBase*>& GetCommands() const
+    {
+        return m_commands;
+    }
+
     template <class RHICommandType, class... Args>
     void Add(Args&&... args)
     {

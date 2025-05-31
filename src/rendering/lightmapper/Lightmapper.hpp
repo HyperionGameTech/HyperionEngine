@@ -28,6 +28,12 @@ namespace hyperion {
 
 static constexpr int max_bounces_cpu = 2;
 
+namespace threading {
+struct TaskBatch;
+} // namespace threading
+
+using threading::TaskBatch;
+
 struct LightmapHitsBuffer;
 class LightmapTaskThreadPool;
 class ILightmapAccelerationStructure;
@@ -264,7 +270,7 @@ public:
 
     void GatherRays(uint32 max_ray_hits, Array<LightmapRay>& out_rays);
 
-    void AddTask(Task<void>&& task);
+    void AddTask(TaskBatch* task_batch);
 
     /*! \brief Integrate ray hits into the lightmap.
      *  \param rays The rays that were traced.
@@ -296,7 +302,7 @@ private:
     Optional<LightmapUVMap> m_uv_map;
     Task<TResult<LightmapUVMap>> m_build_uv_map_task;
 
-    Array<Task<void>> m_current_tasks;
+    Array<TaskBatch*> m_current_tasks;
     mutable Mutex m_current_tasks_mutex;
 
     Semaphore<int32> m_running_semaphore;

@@ -126,6 +126,8 @@ struct FunctionTraits;
 template <class R, class... Args>
 struct FunctionTraits<R(Args...)>
 {
+    using Type = R(Args...);
+
     using ReturnType = R;
     using ArgTypes = Tuple<Args...>;
     using ThisType = void;
@@ -149,12 +151,16 @@ struct FunctionTraits<R(Args...)>
 template <class R, class... Args>
 struct FunctionTraits<R (*)(Args...)> : public FunctionTraits<R(Args...)>
 {
+    using Type = R (*)(Args...);
+
     static constexpr bool is_function_pointer = true;
 };
 
 template <class R, class C, class... Args>
 struct FunctionTraits<R (C::*)(Args...), std::enable_if_t<!IsFunctor<R (C::*)(Args...)>::value>> : public FunctionTraits<R(Args...)>
 {
+    using Type = R (C::*)(Args...);
+
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
@@ -164,6 +170,8 @@ struct FunctionTraits<R (C::*)(Args...), std::enable_if_t<!IsFunctor<R (C::*)(Ar
 template <class R, class C, class... Args>
 struct FunctionTraits<R (C::*)(Args...) const, std::enable_if_t<!IsFunctor<R (C::*)(Args...) const>::value>> : public FunctionTraits<R(Args...)>
 {
+    using Type = R (C::*)(Args...) const;
+
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
@@ -173,6 +181,8 @@ struct FunctionTraits<R (C::*)(Args...) const, std::enable_if_t<!IsFunctor<R (C:
 template <class R, class C, class... Args>
 struct FunctionTraits<R (C::*)(Args...) volatile, std::enable_if_t<!IsFunctor<R (C::*)(Args...) volatile>::value>> : public FunctionTraits<R(Args...)>
 {
+    using Type = R (C::*)(Args...) volatile;
+
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
@@ -183,6 +193,8 @@ struct FunctionTraits<R (C::*)(Args...) volatile, std::enable_if_t<!IsFunctor<R 
 template <class R, class C, class... Args>
 struct FunctionTraits<R (C::*)(Args...) const volatile, std::enable_if_t<!IsFunctor<R (C::*)(Args...) const volatile>::value>> : public FunctionTraits<R(Args...)>
 {
+    using Type = R (C::*)(Args...) const volatile;
+
     using ThisType = C;
 
     static constexpr bool is_member_function = true;
@@ -193,6 +205,8 @@ struct FunctionTraits<R (C::*)(Args...) const volatile, std::enable_if_t<!IsFunc
 template <class T>
 struct FunctionTraits<T, std::enable_if_t<IsFunctor<T>::value>> : public FunctionTraits<decltype(&T::operator())>
 {
+    using Type = T;
+
     static constexpr bool is_functor = true;
 };
 
@@ -231,6 +245,7 @@ struct FunctionTraits<T, std::enable_if_t<IsFunctor<T>::value>> : public Functio
 template <class T>
 struct FunctionTraits<T&> : public FunctionTraits<T>
 {
+    using Type = T&;
 };
 
 template <class T>
@@ -241,21 +256,25 @@ struct FunctionTraits<T&&> : public FunctionTraits<T>
 template <class T>
 struct FunctionTraits<T*> : public FunctionTraits<T>
 {
+    using Type = T*;
 };
 
 template <class T>
 struct FunctionTraits<T const> : public FunctionTraits<T>
 {
+    using Type = T const;
 };
 
 template <class T>
 struct FunctionTraits<T volatile> : public FunctionTraits<T>
 {
+    using Type = T volatile;
 };
 
 template <class T>
 struct FunctionTraits<T const volatile> : public FunctionTraits<T>
 {
+    using Type = T const volatile;
 };
 
 #pragma endregion FunctionTraits

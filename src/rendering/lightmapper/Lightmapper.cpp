@@ -854,18 +854,6 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
 
     m_num_tracing_tasks.Increment(rays.Size(), MemoryOrder::RELEASE);
 
-    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
-    Handle<EnvProbe> env_probe;
-
-    if (env_render_probe)
-    {
-        env_probe = env_render_probe->GetEnvProbe()->HandleFromThis();
-
-        AssertThrow(env_probe->IsReady());
-
-        // prepare env probe texture to be sampled on the CPU in the tasks
-        env_probe->GetRenderResource().GetPrefilteredEnvMap()->Readback();
-    }
     // // testing
     // for (uint32 face_index = 0; face_index < env_probe_texture->NumFaces(); face_index++) {
     //     Bitmap<4> test_bitmap(env_probe_texture->GetExtent().x, env_probe_texture->GetExtent().y);
@@ -886,154 +874,182 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
     // HYP_BREAKPOINT;
     // }
 
-    Array<Task<void>> tasks = TaskSystem::GetInstance().ParallelForEach_Async(m_thread_pool, m_current_rays, [this, job, env_probe](const LightmapRay& first_ray, uint32 index, uint32 batch_index)
-        {
-            HYP_DEFER({ m_num_tracing_tasks.Decrement(1, MemoryOrder::RELEASE); });
+    TaskBatch* task_batch = new TaskBatch();
+    task_batch->pool = &m_thread_pool;
 
-            Handle<Texture> env_probe_texture;
+    const uint32 num_items = uint32(m_current_rays.Size());
+    const uint32 num_batches = m_thread_pool.GetProcessorAffinity();
+    const uint32 items_per_batch = (num_items + num_batches - 1) / num_batches;
 
-            if (env_probe.IsValid())
+    for (uint32 batch_index = 0; batch_index < num_batches; batch_index++)
+    {
+        task_batch->AddTask([this, job, batch_index, items_per_batch, num_items](...)
             {
-                AssertThrow(env_probe->IsReady());
+                const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+                Handle<EnvProbe> env_probe;
 
-                env_probe_texture = env_probe->GetRenderResource().GetPrefilteredEnvMap();
-            }
-
-            uint32 seed = (uint32)rand(); // index * m_texel_index;
-
-            FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
-            FixedArray<LightmapRayHitPayload, max_bounces_cpu + 1> bounces;
-
-            int num_bounces = 0;
-
-            Vec3f direction = first_ray.ray.direction.Normalized();
-
-            if (m_shading_type == LightmapShadingType::IRRADIANCE)
-            {
-                direction = MathUtil::RandomInHemisphere(
-                    Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
-                    first_ray.ray.direction)
-                                .Normalize();
-            }
-
-            Vec3f origin = first_ray.ray.position + direction * 0.001f;
-
-            // Vec4f sky_color;
-
-            // if (env_probe_texture.IsValid()) {
-            //     Vec4f env_probe_sample = env_probe_texture->SampleCube(direction);
-
-            //     sky_color = env_probe_sample;
-            // }
-
-            for (int bounce_index = 0; bounce_index < max_bounces_cpu; bounce_index++)
-            {
-                LightmapRay bounce_ray = first_ray;
-
-                if (bounce_index != 0)
+                if (env_render_probe)
                 {
-                    bounce_ray.mesh_id = bounces[bounce_index - 1].mesh_id;
-                    bounce_ray.triangle_index = bounces[bounce_index - 1].triangle_index;
+                    env_probe = env_render_probe->GetEnvProbe()->HandleFromThis();
+
+                    AssertThrow(env_probe->IsReady());
+
+                    // prepare env probe texture to be sampled on the CPU in the tasks
+                    env_probe->GetRenderResource().GetPrefilteredEnvMap()->Readback();
                 }
 
-                bounce_ray.ray = Ray {
-                    origin,
-                    direction
-                };
+                Handle<Texture> env_probe_texture;
 
-                recursive_rays[bounce_index] = bounce_ray;
-
-                LightmapRayHitPayload& payload = bounces[bounce_index];
-                payload = {};
-
-                TraceSingleRayOnCPU(job, bounce_ray, payload);
-
-                if (payload.distance < 0.0f)
+                if (env_probe.IsValid())
                 {
-                    payload.throughput = Vec4f(0.0f);
+                    AssertThrow(env_probe->IsReady());
 
-                    AssertThrow(bounce_index < bounces.Size());
+                    env_probe_texture = env_probe->GetRenderResource().GetPrefilteredEnvMap();
+                }
 
-                    // @TODO Sample environment map
-                    const Vec3f normal = bounce_ray.ray.direction;
+                const uint32 offset_index = batch_index * items_per_batch;
+                const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
+
+                for (uint32 index = offset_index; index < max_index; index++)
+                {
+                    HYP_DEFER({ m_num_tracing_tasks.Decrement(1, MemoryOrder::RELEASE); });
+
+                    const LightmapRay& first_ray = m_current_rays[index];
+
+                    uint32 seed = (uint32)rand(); // index * m_texel_index;
+
+                    FixedArray<LightmapRay, max_bounces_cpu + 1> recursive_rays;
+                    FixedArray<LightmapRayHitPayload, max_bounces_cpu + 1> bounces;
+
+                    int num_bounces = 0;
+
+                    Vec3f direction = first_ray.ray.direction.Normalized();
+
+                    if (m_shading_type == LightmapShadingType::IRRADIANCE)
+                    {
+                        direction = MathUtil::RandomInHemisphere(
+                            Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
+                            first_ray.ray.direction)
+                                        .Normalize();
+                    }
+
+                    Vec3f origin = first_ray.ray.position + direction * 0.001f;
+
+                    // Vec4f sky_color;
 
                     // if (env_probe_texture.IsValid()) {
                     //     Vec4f env_probe_sample = env_probe_texture->SampleCube(direction);
 
-                    //     payload.emissive += env_probe_sample;
+                    //     sky_color = env_probe_sample;
                     // }
 
-                    // testing!! @FIXME
-                    const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
-                    payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+                    for (int bounce_index = 0; bounce_index < max_bounces_cpu; bounce_index++)
+                    {
+                        LightmapRay bounce_ray = first_ray;
 
-                    ++num_bounces;
+                        if (bounce_index != 0)
+                        {
+                            bounce_ray.mesh_id = bounces[bounce_index - 1].mesh_id;
+                            bounce_ray.triangle_index = bounces[bounce_index - 1].triangle_index;
+                        }
 
-                    break;
+                        bounce_ray.ray = Ray {
+                            origin,
+                            direction
+                        };
+
+                        recursive_rays[bounce_index] = bounce_ray;
+
+                        LightmapRayHitPayload& payload = bounces[bounce_index];
+                        payload = {};
+
+                        TraceSingleRayOnCPU(job, bounce_ray, payload);
+
+                        if (payload.distance < 0.0f)
+                        {
+                            payload.throughput = Vec4f(0.0f);
+
+                            AssertThrow(bounce_index < bounces.Size());
+
+                            // @TODO Sample environment map
+                            const Vec3f normal = bounce_ray.ray.direction;
+
+                            // if (env_probe_texture.IsValid()) {
+                            //     Vec4f env_probe_sample = env_probe_texture->SampleCube(direction);
+
+                            //     payload.emissive += env_probe_sample;
+                            // }
+
+                            // testing!! @FIXME
+                            const Vec3f L = Vec3f(-0.4f, 0.65f, 0.1f).Normalize();
+                            payload.emissive += Vec4f(1.0f) * MathUtil::Max(0.0f, normal.Dot(L));
+
+                            ++num_bounces;
+
+                            break;
+                        }
+
+                        Vec3f hit_position = origin + direction * payload.distance;
+
+                        if (m_shading_type == LightmapShadingType::IRRADIANCE)
+                        {
+                            direction = MathUtil::RandomInHemisphere(
+                                Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
+                                payload.normal)
+                                            .Normalize();
+                        }
+                        else
+                        {
+                            ++num_bounces;
+                            break;
+                        }
+
+                        origin = hit_position + direction * 0.001f;
+
+                        ++num_bounces;
+                    }
+
+                    for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--)
+                    {
+                        Vec4f radiance = bounces[bounce_index].emissive;
+
+                        if (bounce_index != num_bounces - 1)
+                        {
+                            radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
+                        }
+
+                        float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
+
+                        if (MathUtil::RandomFloat(seed) > p)
+                        {
+                            break;
+                        }
+
+                        radiance /= MathUtil::Max(p, 0.0001f);
+
+                        bounces[bounce_index].radiance = radiance;
+                    }
+
+                    LightmapHit& hit = m_hits_buffer[index];
+
+                    if (num_bounces != 0)
+                    {
+                        hit.color = bounces[0].radiance;
+
+                        if (MathUtil::IsNaN(hit.color) || !MathUtil::IsFinite(hit.color))
+                        {
+                            HYP_LOG_ONCE(Lightmap, Warning, "NaN or infinite color detected while tracing rays");
+
+                            hit.color = Vec4f(0.0f);
+                        }
+
+                        hit.color.w = 1.0f;
+                    }
                 }
-
-                Vec3f hit_position = origin + direction * payload.distance;
-
-                if (m_shading_type == LightmapShadingType::IRRADIANCE)
-                {
-                    direction = MathUtil::RandomInHemisphere(
-                        Vec3f(MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed), MathUtil::RandomFloat(seed)),
-                        payload.normal)
-                                    .Normalize();
-                }
-                else
-                {
-                    ++num_bounces;
-                    break;
-                }
-
-                origin = hit_position + direction * 0.001f;
-
-                ++num_bounces;
-            }
-
-            for (int bounce_index = int(num_bounces - 1); bounce_index >= 0; bounce_index--)
-            {
-                Vec4f radiance = bounces[bounce_index].emissive;
-
-                if (bounce_index != num_bounces - 1)
-                {
-                    radiance += bounces[bounce_index + 1].radiance * bounces[bounce_index].throughput;
-                }
-
-                float p = MathUtil::Max(radiance.x, MathUtil::Max(radiance.y, MathUtil::Max(radiance.z, radiance.w)));
-
-                if (MathUtil::RandomFloat(seed) > p)
-                {
-                    break;
-                }
-
-                radiance /= MathUtil::Max(p, 0.0001f);
-
-                bounces[bounce_index].radiance = radiance;
-            }
-
-            LightmapHit& hit = m_hits_buffer[index];
-
-            if (num_bounces != 0)
-            {
-                hit.color = bounces[0].radiance;
-
-                if (MathUtil::IsNaN(hit.color) || !MathUtil::IsFinite(hit.color))
-                {
-                    HYP_LOG_ONCE(Lightmap, Warning, "NaN or infinite color detected while tracing rays");
-
-                    hit.color = Vec4f(0.0f);
-                }
-
-                hit.color.w = 1.0f;
-            }
-        });
-
-    for (Task<void>& task : tasks)
-    {
-        job->AddTask(std::move(task));
+            });
     }
+
+    job->AddTask(task_batch);
 }
 
 void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob* job, const LightmapRay& ray, LightmapRayHitPayload& out_payload)
@@ -1121,16 +1137,11 @@ LightmapJob::LightmapJob(LightmapJobParams&& params)
 
 LightmapJob::~LightmapJob()
 {
+    for (TaskBatch* task_batch : m_current_tasks)
     {
-        Mutex::Guard guard(m_current_tasks_mutex);
+        task_batch->AwaitCompletion();
 
-        for (Task<void>& task : m_current_tasks)
-        {
-            if (!task.Cancel())
-            {
-                task.Await();
-            }
-        }
+        delete task_batch;
     }
 }
 
@@ -1174,11 +1185,11 @@ TResult<LightmapUVMap> LightmapJob::BuildUVMap()
     return LightmapUVBuilder { { m_params.sub_elements_view } }.Build();
 }
 
-void LightmapJob::AddTask(Task<void>&& task)
+void LightmapJob::AddTask(TaskBatch* task_batch)
 {
     Mutex::Guard guard(m_current_tasks_mutex);
 
-    m_current_tasks.PushBack(std::move(task));
+    m_current_tasks.PushBack(task_batch);
 }
 
 void LightmapJob::Process()
@@ -1237,18 +1248,20 @@ void LightmapJob::Process()
 
         if (m_current_tasks.Any())
         {
-            for (Task<void>& task : m_current_tasks)
+            for (TaskBatch* task_batch : m_current_tasks)
             {
-                if (!task.IsCompleted())
+                if (!task_batch->IsCompleted())
                 {
                     // Wait for next call
                     return;
                 }
             }
 
-            for (Task<void>& task : m_current_tasks)
+            for (TaskBatch* task_batch : m_current_tasks)
             {
-                task.Await();
+                task_batch->AwaitCompletion();
+
+                delete task_batch;
             }
 
             m_current_tasks.Clear();

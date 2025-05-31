@@ -91,7 +91,7 @@ void RenderState::UnbindCamera(const RenderCamera* render_camera)
 
 const TResourceHandle<RenderCamera>& RenderState::GetActiveCamera() const
 {
-    Threads::AssertOnThread(g_render_thread);
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     static const TResourceHandle<RenderCamera> empty;
 
@@ -102,7 +102,7 @@ const TResourceHandle<RenderCamera>& RenderState::GetActiveCamera() const
 
 const TResourceHandle<RenderEnvProbe>& RenderState::GetActiveEnvProbe() const
 {
-    Threads::AssertOnThread(g_render_thread);
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     static const TResourceHandle<RenderEnvProbe> empty;
 
@@ -113,7 +113,7 @@ const TResourceHandle<RenderEnvProbe>& RenderState::GetActiveEnvProbe() const
 
 const TResourceHandle<RenderEnvGrid>& RenderState::GetActiveEnvGrid() const
 {
-    Threads::AssertOnThread(g_render_thread);
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     static const TResourceHandle<RenderEnvGrid> empty;
 
@@ -124,7 +124,7 @@ const TResourceHandle<RenderEnvGrid>& RenderState::GetActiveEnvGrid() const
 
 const TResourceHandle<RenderLight>& RenderState::GetActiveLight() const
 {
-    Threads::AssertOnThread(g_render_thread);
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     static const TResourceHandle<RenderLight> empty;
 

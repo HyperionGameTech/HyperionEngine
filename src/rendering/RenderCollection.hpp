@@ -9,6 +9,8 @@
 #include <core/memory/resource/Resource.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
+#include <core/threading/Task.hpp>
+#include <core/threading/TaskSystem.hpp>
 
 #include <core/ID.hpp>
 
@@ -18,6 +20,9 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/CullData.hpp>
 #include <rendering/RenderProxy.hpp>
+#include <rendering/EngineRenderStats.hpp>
+
+#include <rendering/rhi/RHICommandList.hpp>
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -75,6 +80,24 @@ private:
     RenderProxyTracker m_render_proxy_tracker;
 };
 
+struct ParallelRenderingState
+{
+    TaskBatch* task_batch = nullptr;
+
+    uint32 num_batches = 0;
+
+    // Non-async rendering command list - used for binding state at the start of the pass before async stuff
+    RHICommandList base_command_list;
+
+    FixedArray<RHICommandList, num_async_rendering_command_buffers> command_lists {};
+    FixedArray<EngineRenderStatsCounts, num_async_rendering_command_buffers> render_stats_counts {};
+
+    // Temporary storage for enqueued functors that will be executed in parallel
+    LinkedList<Proc<void(Span<const DrawCall>, uint32, uint32)>> proc_memory;
+
+    ParallelRenderingState* next = nullptr;
+};
+
 class RenderCollector
 {
 public:
@@ -124,6 +147,7 @@ public:
 protected:
     RC<EntityDrawCollection> m_draw_collection;
     Optional<RenderableAttributeSet> m_override_attributes;
+    mutable ParallelRenderingState* m_parallel_rendering_state;
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };

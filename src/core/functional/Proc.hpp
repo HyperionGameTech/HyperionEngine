@@ -40,8 +40,7 @@ struct ProcDefaultReturn<ReturnType, std::enable_if_t<!std::is_default_construct
     {
         HYP_FAIL("Cannot get default proc return value for type %s - type is not default constructible", TypeNameHelper<ReturnType>::value.Data());
 
-        // unreachable
-        return *(ReturnType*)(nullptr);
+        HYP_UNREACHABLE();
     }
 };
 
@@ -356,7 +355,7 @@ public:
     {
     }
 
-    ProcRef(Proc<ReturnType(Args...)>& proc)
+    ProcRef(const Proc<ReturnType(Args...)>& proc)
         : ProcRef(nullptr)
     {
         if (proc.IsValid())
@@ -438,6 +437,59 @@ ReturnType (*const ProcRef<ReturnType(Args...)>::s_invalid_invoke_fn)(void*, Arg
     {
         return detail::ProcDefaultReturn<ReturnType>::Get();
     }
+};
+
+// General specialization for when return type and args cannot be deduced (in the case of a lambda)
+// Must be a reference that will not expire until the ProcRef is destroyed.
+template <class T>
+class ProcRef : public detail::ProcRefBase
+{
+public:
+    explicit ProcRef(std::nullptr_t)
+        : m_ptr(nullptr)
+    {
+    }
+
+    template <class Callable>
+    ProcRef(Callable& callable)
+        : m_ptr(&callable)
+    {
+        static_assert(!std::is_rvalue_reference_v<Callable>, "ProcRef cannot be constructed from an rvalue reference. The callable must outlive the ProcRef.");
+    }
+
+    ProcRef(const ProcRef& other) = default;
+    ProcRef& operator=(const ProcRef& other) = default;
+
+    ProcRef(ProcRef&& other) noexcept = default;
+    ProcRef& operator=(ProcRef&& other) noexcept = default;
+
+    ~ProcRef() = default;
+
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return m_ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return m_ptr == nullptr;
+    }
+
+    /*! \brief Returns true if the Proc object is valid, false otherwise. */
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return m_ptr != nullptr;
+    }
+
+    template <class... Args>
+    HYP_FORCE_INLINE decltype(auto) operator()(Args&&... args) const
+    {
+        return (*m_ptr)(std::forward<Args>(args)...);
+    }
+
+private:
+    T* m_ptr;
 };
 
 } // namespace functional

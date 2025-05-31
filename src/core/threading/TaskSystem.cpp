@@ -358,8 +358,7 @@ TaskBatch* TaskSystem::EnqueueBatch(TaskBatch* batch)
                           OnComplete();
                           EnqueueBatch(next_batch);
                       })
-                : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr),
-            index < batch->debug_names.Size() ? batch->debug_names[index] : StaticMessage());
+                : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr));
 
         batch->task_refs.EmplaceBack(task_id, &task_thread->GetScheduler());
     }

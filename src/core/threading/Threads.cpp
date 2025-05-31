@@ -10,7 +10,7 @@
 #include <core/logging/Logger.hpp>
 
 #if defined(__x86_64__) || defined(__i386__)
-    #include <immintrin.h>
+#include <immintrin.h>
 #endif
 
 namespace hyperion {
@@ -222,7 +222,7 @@ void Threads::SetCurrentThreadObject(IThread* thread)
 void Threads::AssertOnThread(ThreadMask mask, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
-    #ifdef HYP_ENABLE_THREAD_ID
+#ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadID& current_thread_id = CurrentThreadID();
 
     AssertThrowMsg(
@@ -233,16 +233,16 @@ void Threads::AssertOnThread(ThreadMask mask, const char* message)
         current_thread_id.GetName().LookupString(),
         message ? message : "(no message)");
 
-    #else
+#else
     HYP_LOG(Threading, Error, "AssertOnThread() called but thread IDs are currently disabled");
-    #endif
+#endif
 #endif
 }
 
 void Threads::AssertOnThread(const ThreadID& thread_id, const char* message)
 {
 #ifdef HYP_ENABLE_THREAD_ASSERTIONS
-    #ifdef HYP_ENABLE_THREAD_ID
+#ifdef HYP_ENABLE_THREAD_ID
     thread_local const ThreadID& current_thread_id = CurrentThreadID();
 
     AssertThrowMsg(
@@ -251,9 +251,9 @@ void Threads::AssertOnThread(const ThreadID& thread_id, const char* message)
         thread_id.GetName().LookupString(),
         current_thread_id.GetName().LookupString(),
         message ? message : "(no message)");
-    #else
+#else
     HYP_LOG(Threading, Error, "AssertOnThread() called but thread IDs are currently disabled!");
-    #endif
+#endif
 #endif
 }
 
@@ -397,7 +397,7 @@ void Threads::SetCurrentThreadPriority(ThreadPriorityValue priority)
 #endif
 }
 
-SizeType Threads::NumCores()
+uint32 Threads::NumCores()
 {
     return std::thread::hardware_concurrency();
 }
