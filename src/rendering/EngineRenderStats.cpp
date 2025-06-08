@@ -40,8 +40,10 @@ void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& count
         return;
     }
 
-    m_counts.num_draw_calls += counts.num_draw_calls;
-    m_counts.num_triangles += counts.num_triangles;
+    for (uint32 i = 0; i < ERS_MAX; ++i)
+    {
+        m_counts.counts[i] += counts.counts[i];
+    }
 }
 
 void EngineRenderStatsCalculator::AddSample(double delta)
@@ -90,7 +92,7 @@ void EngineRenderStatsCalculator::Advance(EngineRenderStats& render_stats)
         m_delta_accum = 0.0;
     }
 
-    m_counts = {};
+    Memory::MemSet(m_counts.counts, 0, sizeof(&m_counts.counts[0]) * ERS_MAX);
 }
 
 double EngineRenderStatsCalculator::CalculateFramesPerSecond() const

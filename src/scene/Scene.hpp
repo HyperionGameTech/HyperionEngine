@@ -232,8 +232,6 @@ public:
     HYP_METHOD()
     String GetUniqueNodeName(UTF8StringView base_name) const;
 
-    void EnqueueRenderUpdates();
-
     Delegate<void, const Handle<Node>& /* new */, const Handle<Node>& /* prev */> OnRootNodeChanged;
 
 private:

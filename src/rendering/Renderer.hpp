@@ -13,6 +13,7 @@ namespace hyperion {
 
 class RenderView;
 class RenderWorld;
+struct CullData;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
@@ -55,26 +56,30 @@ struct RenderSetup
 
     RenderWorld* world;
     RenderView* view;
+    CullData* cull_data;
 
 private:
     // Private constructor for null RenderSetup
     RenderSetup()
         : world(nullptr),
-          view(nullptr)
+          view(nullptr),
+          cull_data(nullptr)
     {
     }
 
 public:
     RenderSetup(RenderWorld* world)
         : world(world),
-          view(nullptr)
+          view(nullptr),
+          cull_data(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
 
     RenderSetup(RenderWorld* world, RenderView* view)
         : world(world),
-          view(view)
+          view(view),
+          cull_data(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }

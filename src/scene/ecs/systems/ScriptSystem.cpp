@@ -202,11 +202,6 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
                     HYP_NAMED_SCOPE("Call BeforeInit() on script component");
                     HYP_LOG(Script, Debug, "Calling BeforeInit() on script component");
 
-                    AssertThrow(GetWorld() != nullptr);
-                    AssertThrow(GetWorld()->GetManagedObjectResource() != nullptr);
-                    AssertThrow(GetWorld()->GetManagedObjectResource()->GetManagedObject() != nullptr);
-                    AssertThrow(GetScene() != nullptr);
-
                     object->InvokeMethod<void>(before_init_method_ptr, GetWorld(), GetScene());
 
                     script_component.flags |= ScriptComponentFlags::BEFORE_INIT_CALLED;

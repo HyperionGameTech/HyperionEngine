@@ -119,7 +119,7 @@ public:
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
     void PushDrawCallsToIndirectState();
 
-    void ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup, const CullData& cull_data);
+    void ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void RebuildDescriptors(FrameBase* frame);

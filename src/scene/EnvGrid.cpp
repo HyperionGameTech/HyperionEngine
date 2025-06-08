@@ -150,8 +150,9 @@ void EnvGrid::Init()
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     m_view = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::DEFAULT | ~ViewFlags::ALL_WORLD_SCENES,
         .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
-        .scene = m_parent_scene,
+        .scenes = { m_parent_scene },
         .camera = m_camera,
         .entity_collection_flags = ViewEntityCollectionFlags::COLLECT_STATIC | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
         .override_attributes = RenderableAttributeSet(
@@ -363,6 +364,9 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid #{} with AABB: {} on thread {}",
+        GetID().Value(), m_aabb, Threads::CurrentThreadID().GetName());
+
     m_camera->Update(delta);
     m_view->Update(delta);
 
@@ -372,6 +376,7 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
         AssertThrow(probe.IsValid());
 
         probe->SetNeedsUpdate(true);
+        probe->SetNeedsRender(true);
 
         probe->Update(delta);
     }

@@ -965,6 +965,8 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
 {
     HYP_SCOPE;
 
+    AssertDebug(render_setup.IsValid());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
 
@@ -991,14 +993,12 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     m_render_view->GetRenderCollector().CollectDrawCalls(
         frame,
         render_setup,
-        Bitset((1 << BUCKET_OPAQUE)),
-        nullptr);
+        Bitset((1 << BUCKET_OPAQUE)));
 
     m_render_view->GetRenderCollector().ExecuteDrawCalls(
         frame,
         render_setup,
-        Bitset((1 << BUCKET_OPAQUE)),
-        nullptr);
+        Bitset((1 << BUCKET_OPAQUE)));
 
     g_engine->GetRenderState()->UnsetActiveEnvProbe();
 

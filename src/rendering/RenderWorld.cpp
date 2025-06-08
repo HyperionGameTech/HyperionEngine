@@ -87,43 +87,6 @@ void RenderWorld::RemoveView(RenderView* render_view)
         /* force_owner_thread */ true);
 }
 
-void RenderWorld::RemoveViewsForScene(const WeakHandle<Scene>& scene_weak)
-{
-    HYP_SCOPE;
-
-    if (!scene_weak.IsValid())
-    {
-        return;
-    }
-
-    Execute([this, scene_weak]()
-        {
-            for (auto it = m_render_views.Begin(); it != m_render_views.End();)
-            {
-                if (!(*it)->GetScene())
-                {
-                    ++it;
-
-                    continue;
-                }
-
-                if ((*it)->GetScene()->GetScene() == scene_weak.GetUnsafe())
-                {
-                    RenderView* render_view = it->Get();
-
-                    it->Reset();
-
-                    it = m_render_views.Erase(it);
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-        },
-        /* force_owner_thread */ true);
-}
-
 void RenderWorld::AddScene(TResourceHandle<RenderScene>&& render_scene)
 {
     HYP_SCOPE;

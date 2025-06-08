@@ -10,6 +10,7 @@
 
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/CullData.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -96,24 +97,27 @@ public:
         return num_lights;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetScene() const
+    HYP_FORCE_INLINE const Array<TResourceHandle<RenderScene>>& GetScenes() const
     {
-        return m_render_scene;
+        return m_render_scenes;
     }
 
-    HYP_FORCE_INLINE void SetScene(const TResourceHandle<RenderScene>& scene)
+    HYP_FORCE_INLINE void SetScenes(const Array<TResourceHandle<RenderScene>>& render_scenes)
     {
-        m_render_scene = scene;
+        m_render_scenes = render_scenes;
     }
+
+    void AddScene(const TResourceHandle<RenderScene>& render_scene);
+    void RemoveScene(RenderScene* render_scene);
 
     HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCamera() const
     {
         return m_render_camera;
     }
 
-    HYP_FORCE_INLINE void SetCamera(const TResourceHandle<RenderCamera>& camera)
+    HYP_FORCE_INLINE void SetCamera(const TResourceHandle<RenderCamera>& render_camera)
     {
-        m_render_camera = camera;
+        m_render_camera = render_camera;
     }
 
     HYP_FORCE_INLINE const DescriptorSetRef& GetFinalPassDescriptorSet() const
@@ -213,7 +217,7 @@ protected:
     // Descriptor set used when rendering the View using FinalPass.
     DescriptorSetRef m_final_pass_descriptor_set;
 
-    TResourceHandle<RenderScene> m_render_scene;
+    Array<TResourceHandle<RenderScene>> m_render_scenes;
     TResourceHandle<RenderCamera> m_render_camera;
 
     RenderCollector m_render_collector;

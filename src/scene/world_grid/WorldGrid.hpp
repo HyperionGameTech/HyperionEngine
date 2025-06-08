@@ -58,12 +58,18 @@ class HYP_API WorldGrid : public HypObject<WorldGrid>
 
 public:
     WorldGrid();
-    WorldGrid(const WorldGridParams& params);
+    WorldGrid(World* world, const WorldGridParams& params);
     WorldGrid(const WorldGrid& other) = delete;
     WorldGrid& operator=(const WorldGrid& other) = delete;
     WorldGrid(WorldGrid&& other) = delete;
     WorldGrid& operator=(WorldGrid&& other) = delete;
     ~WorldGrid();
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE World* GetWorld() const
+    {
+        return m_world;
+    }
 
     HYP_FORCE_INLINE const WorldGridParams& GetParams() const
     {
@@ -99,6 +105,8 @@ private:
     void GetDesiredPatches(HashSet<Vec2i>& out_patch_coords) const;
 
     RC<WorldGridPlugin> GetMainPlugin() const;
+
+    World* m_world;
 
     const WorldGridParams m_params;
 

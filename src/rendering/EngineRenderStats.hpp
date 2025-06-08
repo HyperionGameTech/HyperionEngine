@@ -12,14 +12,38 @@
 
 namespace hyperion {
 
+enum EngineRenderStatsCountType : uint32
+{
+    ERS_DRAW_CALLS = 0,
+    ERS_TRIANGLES,
+    ERS_RENDER_GROUPS,
+    ERS_VIEWS,
+    ERS_SCENES,
+    ERS_LIGHTS,
+    ERS_LIGHTMAP_VOLUMES,
+    ERS_ENV_PROBES,
+
+    ERS_MAX
+};
+
+static_assert(ERS_MAX <= 16, "EngineRenderStatsCountType must not exceed 16 types");
+
 struct EngineRenderStatsCounts
 {
-    uint32 num_draw_calls = 0;
-    uint32 num_triangles = 0;
+    uint32 counts[16] = { 0 };
+
+    HYP_FORCE_INLINE constexpr uint32& operator[](EngineRenderStatsCountType type)
+    {
+        return counts[type];
+    }
+
+    HYP_FORCE_INLINE constexpr uint32 operator[](EngineRenderStatsCountType type) const
+    {
+        return counts[type];
+    }
 };
 
 HYP_STRUCT()
-
 struct EngineRenderStats
 {
     double frames_per_second = 0.0;

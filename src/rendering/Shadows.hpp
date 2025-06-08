@@ -6,6 +6,7 @@
 #include <core/math/Vector2.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/IDGenerator.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 

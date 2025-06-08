@@ -89,8 +89,8 @@ private:
     TResourceHandle<RenderWorld> m_world_resource_handle;
     TResourceHandle<RenderCamera> m_camera_resource_handle;
     TResourceHandle<RenderShadowMap> m_shadow_map_resource_handle;
-    TResourceHandle<RenderView> m_view_statics_resource_handle;
-    TResourceHandle<RenderView> m_view_dynamics_resource_handle;
+    TResourceHandle<RenderView> m_render_view_statics;
+    TResourceHandle<RenderView> m_render_view_dynamics;
 
     Vec3f m_origin;
     RerenderShadowsSemaphore* m_rerender_semaphore;

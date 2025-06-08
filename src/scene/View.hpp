@@ -30,7 +30,11 @@ class RenderLightmapVolume;
 enum class ViewFlags : uint32
 {
     NONE = 0x0,
-    GBUFFER = 0x1
+    GBUFFER = 0x1,
+
+    ALL_WORLD_SCENES = 0x2, //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
+
+    DEFAULT = ALL_WORLD_SCENES
 };
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
@@ -51,9 +55,9 @@ HYP_MAKE_ENUM_FLAGS(ViewEntityCollectionFlags)
 
 struct ViewDesc
 {
-    EnumFlags<ViewFlags> flags = ViewFlags::NONE;
+    EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
     Viewport viewport;
-    Handle<Scene> scene;
+    Array<Handle<Scene>> scenes;
     Handle<Camera> camera;
     int priority = 0;
     EnumFlags<ViewEntityCollectionFlags> entity_collection_flags = ViewEntityCollectionFlags::DEFAULT;
@@ -89,10 +93,16 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
+    HYP_FORCE_INLINE const Array<Handle<Scene>>& GetScenes() const
     {
-        return m_scene;
+        return m_scenes;
     }
+
+    HYP_METHOD()
+    void AddScene(const Handle<Scene>& scene);
+
+    HYP_METHOD()
+    void RemoveScene(const Handle<Scene>& scene);
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Camera>& GetCamera() const
@@ -140,7 +150,7 @@ protected:
 
     Viewport m_viewport;
 
-    Handle<Scene> m_scene;
+    Array<Handle<Scene>> m_scenes;
     Handle<Camera> m_camera;
 
     int m_priority;

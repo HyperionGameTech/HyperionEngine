@@ -9,6 +9,7 @@
 
 #include <core/containers/Queue.hpp>
 #include <core/containers/TypeMap.hpp>
+#include <core/containers/Bitset.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>
@@ -20,15 +21,13 @@ namespace hyperion {
 
 struct IDGenerator
 {
-    TypeID type_id;
     AtomicVar<uint32> id_counter;
     AtomicVar<uint32> num_free_indices;
-    Queue<uint32> free_indices;
+    Bitset free_indices;
     Mutex free_id_mutex;
 
-    IDGenerator(TypeID type_id = TypeID::Void())
-        : type_id(type_id),
-          id_counter(0),
+    IDGenerator()
+        : id_counter(0),
           num_free_indices(0)
     {
     }
@@ -37,8 +36,7 @@ struct IDGenerator
     IDGenerator& operator=(const IDGenerator&) = delete;
 
     IDGenerator(IDGenerator&& other) noexcept
-        : type_id(std::move(other.type_id)),
-          id_counter(other.id_counter.Exchange(0, MemoryOrder::ACQUIRE)),
+        : id_counter(other.id_counter.Exchange(0, MemoryOrder::ACQUIRE)),
           num_free_indices(other.num_free_indices.Exchange(0, MemoryOrder::ACQUIRE)),
           free_indices(std::move(other.free_indices))
     {
@@ -57,9 +55,14 @@ struct IDGenerator
             Mutex::Guard guard(free_id_mutex);
 
             // Check that it hasn't changed before the lock
-            if (free_indices.Any())
+            if (free_indices.Count() != 0)
             {
-                const uint32 index = free_indices.Pop();
+                Bitset::BitIndex bit_index = free_indices.LastSetBitIndex();
+                AssertDebug(bit_index != Bitset::not_found);
+                AssertDebug(free_indices.Test(bit_index) == true);
+                free_indices.Set(bit_index, false);
+
+                const uint32 index = bit_index + 1;
 
                 num_free_indices.Decrement(1, MemoryOrder::RELEASE);
 
@@ -76,9 +79,9 @@ struct IDGenerator
 
         Mutex::Guard guard(free_id_mutex);
 
-        AssertDebug(!free_indices.Contains(index));
+        AssertDebug(!free_indices.Test(index - 1));
 
-        free_indices.Push(index);
+        free_indices.Set(index - 1, true);
         num_free_indices.Increment(1, MemoryOrder::RELEASE);
     }
 

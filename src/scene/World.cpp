@@ -35,11 +35,11 @@
 namespace hyperion {
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
-#define HYP_WORLD_ASYNC_SCENE_UPDATES
+#define HYP_WORLD_ASYNC_VIEW_UPDATES
 
 World::World()
     : HypObject(),
-      m_world_grid(CreateObject<WorldGrid>(WorldGridParams {})),
+      m_world_grid(CreateObject<WorldGrid>(this, WorldGridParams {})),
       m_detached_scenes(this),
       m_render_resource(nullptr)
 {
@@ -59,6 +59,19 @@ World::~World()
             for (auto& it : m_subsystems)
             {
                 it.second->OnSceneDetached(scene);
+            }
+
+            if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+            {
+                for (const Handle<View>& view : m_views)
+                {
+                    if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
+                    {
+                        continue;
+                    }
+
+                    view->RemoveScene(scene);
+                }
             }
 
             scene->SetWorld(nullptr);
@@ -183,6 +196,19 @@ void World::Init()
             it.second->OnSceneAttached(scene);
         }
 
+        if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        {
+            for (const Handle<View>& view : m_views)
+            {
+                if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
+                {
+                    continue;
+                }
+
+                view->AddScene(scene);
+            }
+        }
+
         m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
     }
 
@@ -293,7 +319,7 @@ void World::Update(GameCounter::TickUnit delta)
         entity_managers.PushBack(scene->GetEntityManager().Get());
     }
 
-#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+#ifdef HYP_WORLD_ASYNC_VIEW_UPDATES
     Array<Task<void>> update_views_tasks;
     update_views_tasks.Reserve(m_views.Size());
 #endif
@@ -313,19 +339,6 @@ void World::Update(GameCounter::TickUnit delta)
         entity_manager->EndAsyncUpdate();
     }
 
-    for (uint32 index = 0; index < m_scenes.Size(); index++)
-    {
-        HYP_NAMED_SCOPE("Scene render updates");
-
-        const Handle<Scene>& scene = m_scenes[index];
-        AssertThrow(scene.IsValid());
-
-        // sanity check
-        AssertThrow(scene->GetWorld() == this);
-
-        scene->EnqueueRenderUpdates();
-    }
-
     for (uint32 index = 0; index < m_views.Size(); index++)
     {
         HYP_NAMED_SCOPE("Per-view entity collection");
@@ -333,12 +346,12 @@ void World::Update(GameCounter::TickUnit delta)
         const Handle<View>& view = m_views[index];
         AssertThrow(view.IsValid());
 
-        if (!view->GetScene()->IsForegroundScene() || (view->GetScene()->GetFlags() & SceneFlags::UI))
-        {
-            continue;
-        }
+        // if (!view->GetScene()->IsForegroundScene() || (view->GetScene()->GetFlags() & SceneFlags::UI))
+        // {
+        //     continue;
+        // }
 
-#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+#ifdef HYP_WORLD_ASYNC_VIEW_UPDATES
         update_views_tasks.PushBack(TaskSystem::GetInstance().Enqueue([view = m_views[index].Get(), delta]
             {
                 view->Update(delta);
@@ -348,7 +361,7 @@ void World::Update(GameCounter::TickUnit delta)
 #endif
     }
 
-#ifdef HYP_WORLD_ASYNC_SCENE_UPDATES
+#ifdef HYP_WORLD_ASYNC_VIEW_UPDATES
     for (Task<void>& task : update_views_tasks)
     {
         task.Await();
@@ -508,6 +521,19 @@ void World::AddScene(const Handle<Scene>& scene)
             it.second->OnSceneAttached(scene);
         }
 
+        if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+        {
+            for (const Handle<View>& view : m_views)
+            {
+                if (!(view->GetFlags() & ViewFlags::ALL_WORLD_SCENES))
+                {
+                    continue;
+                }
+
+                view->AddScene(scene);
+            }
+        }
+
         m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
     }
 
@@ -544,7 +570,10 @@ bool World::RemoveScene(const Handle<Scene>& scene)
                 it.second->OnSceneDetached(scene);
             }
 
-            m_render_resource->RemoveViewsForScene(scene.ToWeak());
+            for (const Handle<View>& view : m_views)
+            {
+                view->RemoveScene(scene);
+            }
         }
     }
 
@@ -588,16 +617,35 @@ void World::AddView(const Handle<View>& view)
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
-    if (view.IsValid())
+    if (!view.IsValid())
     {
-        m_views.PushBack(view);
+        return;
+    }
 
-        if (IsInitCalled())
+    m_views.PushBack(view);
+
+    if (IsInitCalled())
+    {
+        // Add all scenes to the view, if the view should collect all world scenes
+        if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)
         {
-            InitObject(view);
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                if (!scene.IsValid())
+                {
+                    continue;
+                }
 
-            m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
+                if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::UI | SceneFlags::DETACHED)) == SceneFlags::FOREGROUND)
+                {
+                    view->AddScene(scene);
+                }
+            }
         }
+
+        InitObject(view);
+
+        m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
     }
 }
 
@@ -613,14 +661,31 @@ void World::RemoveView(const Handle<View>& view)
 
     typename Array<Handle<View>>::Iterator it = m_views.Find(view);
 
+    if (IsInitCalled())
+    {
+        // Remove all scenes from the view, if the view should collect all world scenes
+        if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)
+        {
+            for (const Handle<Scene>& scene : m_scenes)
+            {
+                if (!scene.IsValid())
+                {
+                    continue;
+                }
+
+                view->RemoveScene(scene);
+            }
+        }
+
+        if (view->IsReady())
+        {
+            m_render_resource->RemoveView(&view->GetRenderResource());
+        }
+    }
+
     if (it != m_views.End())
     {
         m_views.Erase(it);
-    }
-
-    if (IsInitCalled() && view->IsReady())
-    {
-        m_render_resource->RemoveView(&view->GetRenderResource());
     }
 }
 

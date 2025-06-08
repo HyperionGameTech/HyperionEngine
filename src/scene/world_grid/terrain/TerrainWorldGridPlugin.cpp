@@ -16,6 +16,7 @@
 #include <scene/Material.hpp>
 #include <scene/Texture.hpp>
 #include <scene/Node.hpp>
+#include <scene/World.hpp>
 
 #include <core/math/Vertex.hpp>
 
@@ -429,13 +430,9 @@ void TerrainStreamingCell::OnRemoved_Impl()
 #pragma region TerrainWorldGridPlugin
 
 TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : TerrainWorldGridPlugin(Handle<Scene>::empty)
+    : m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
 {
-}
-
-TerrainWorldGridPlugin::TerrainWorldGridPlugin(const Handle<Scene>& scene)
-    : m_scene(scene)
-{
+    m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
 }
 
 TerrainWorldGridPlugin::~TerrainWorldGridPlugin()
@@ -448,6 +445,11 @@ void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
     Threads::AssertOnThread(g_game_thread);
 
     HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
+
+    AssertDebug(m_scene.IsValid());
+    InitObject(m_scene);
+
+    world_grid->GetWorld()->AddScene(m_scene);
 
     m_material = CreateObject<Material>(NAME("terrain_material"));
     m_material->SetBucket(BUCKET_OPAQUE);
@@ -481,7 +483,11 @@ void TerrainWorldGridPlugin::Shutdown_Impl(WorldGrid* world_grid)
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
+    AssertDebug(world_grid != nullptr);
+
     HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
+
+    world_grid->GetWorld()->RemoveScene(m_scene);
 }
 
 void TerrainWorldGridPlugin::Update_Impl(float delta)

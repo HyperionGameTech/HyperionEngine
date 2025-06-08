@@ -487,8 +487,9 @@ void UIRenderSubsystem::Init()
     m_camera_resource_handle = TResourceHandle<RenderCamera>(m_ui_stage->GetCamera()->GetRenderResource());
 
     m_view = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
         .viewport = Viewport { .extent = m_ui_stage->GetSurfaceSize(), .position = Vec2i::Zero() },
-        .scene = m_ui_stage->GetScene()->HandleFromThis(),
+        .scenes = { m_ui_stage->GetScene()->HandleFromThis() },
         .camera = m_ui_stage->GetCamera() });
     InitObject(m_view);
 

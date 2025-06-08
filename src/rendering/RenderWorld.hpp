@@ -13,7 +13,6 @@
 
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
-#include <core/IDGenerator.hpp>
 
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
@@ -72,8 +71,6 @@ public:
 
     void AddView(TResourceHandle<RenderView>&& render_view);
     void RemoveView(RenderView* render_view);
-
-    void RemoveViewsForScene(const WeakHandle<Scene>& scene_weak);
 
     void AddScene(TResourceHandle<RenderScene>&& render_scene);
     void RemoveScene(RenderScene* render_scene);

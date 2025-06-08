@@ -3,11 +3,30 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Sequential)]
+    public enum EngineRenderStatsCountType : uint
+    {
+        DrawCalls = 0,
+        Triangles,
+        RenderGroups,
+        Views,
+        Scenes,
+        Lights,
+        LightmapVolumes,
+        EnvProbes,
+        Count
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     public struct EngineRenderStatsCounts
     {
-        public uint drawCalls;
-        public uint triangles;
+        [FieldOffset(0), MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+        public uint[] counts;
+
+        public uint this[EngineRenderStatsCountType type]
+        {
+            get => counts[(int)type];
+            set => counts[(int)type] = value;
+        }
     }
 
     [HypClassBinding(Name="EngineRenderStats")]

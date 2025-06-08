@@ -3,7 +3,6 @@
 #ifndef HYPERION_CORE_OBJECT_POOL_HPP
 #define HYPERION_CORE_OBJECT_POOL_HPP
 
-#include <core/IDGenerator.hpp>
 #include <core/ID.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>

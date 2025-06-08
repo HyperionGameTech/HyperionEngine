@@ -383,7 +383,7 @@ void RenderGroup::CollectDrawCalls()
     }
 }
 
-void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, const CullData* cull_data)
+void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
@@ -398,12 +398,7 @@ void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& r
 
     Threads::AssertOnThread(g_render_thread);
 
-    AssertThrow(cull_data != nullptr);
-
-    m_indirect_renderer->ExecuteCullShaderInBatches(
-        frame,
-        render_setup,
-        *cull_data);
+    m_indirect_renderer->ExecuteCullShaderInBatches(frame, render_setup);
 }
 
 static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batches, Array<Span<const DrawCall>>& out_divided_draw_calls)
@@ -445,9 +440,6 @@ static void RenderAll(
     const DrawCallCollection& draw_state)
 {
     HYP_SCOPE;
-
-    AssertDebug(render_setup.IsValid());
-    AssertDebug(render_setup.HasView());
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
@@ -588,8 +580,8 @@ static void RenderAll(
             draw_call.render_mesh->Render(frame->GetCommandList(), entity_instance_batch ? entity_instance_batch->num_entities : 1);
         }
 
-        counts.num_draw_calls++;
-        counts.num_triangles += draw_call.render_mesh->NumIndices() / 3;
+        counts[ERS_DRAW_CALLS]++;
+        counts[ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
     }
 
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
@@ -606,9 +598,6 @@ static void RenderAll_Parallel(
     ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
-
-    AssertDebug(render_setup.IsValid());
-    AssertDebug(render_setup.HasView());
 
     AssertDebug(parallel_rendering_state != nullptr);
 
@@ -764,8 +753,8 @@ static void RenderAll_Parallel(
                     draw_call.render_mesh->Render(command_list, entity_instance_batch ? entity_instance_batch->num_entities : 1);
                 }
 
-                parallel_rendering_state->render_stats_counts[index].num_triangles += draw_call.render_mesh->NumIndices() / 3;
-                parallel_rendering_state->render_stats_counts[index].num_draw_calls++;
+                parallel_rendering_state->render_stats_counts[index][ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
+                parallel_rendering_state->render_stats_counts[index][ERS_DRAW_CALLS]++;
             }
         });
 
@@ -786,74 +775,63 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
         return;
     }
 
-    if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
-    {
-        AssertDebug(parallel_rendering_state != nullptr);
+    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
-        RenderAll_Parallel<false>(
-            frame,
-            render_setup,
-            m_pipeline,
-            m_indirect_renderer.Get(),
-            m_divided_draw_calls,
-            m_draw_state,
-            parallel_rendering_state);
+    if (render_setup.cull_data != nullptr && is_indirect_rendering_enabled && (m_flags & RenderGroupFlags::INDIRECT_RENDERING))
+    {
+        if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+        {
+            RenderAll_Parallel<true>(
+                frame,
+                render_setup,
+                m_pipeline,
+                m_indirect_renderer.Get(),
+                m_divided_draw_calls,
+                m_draw_state,
+                parallel_rendering_state);
+        }
+        else
+        {
+            RenderAll<true>(
+                frame,
+                render_setup,
+                m_pipeline,
+                m_indirect_renderer.Get(),
+                m_draw_state);
+        }
     }
     else
     {
-        RenderAll<false>(
-            frame,
-            render_setup,
-            m_pipeline,
-            m_indirect_renderer.Get(),
-            m_draw_state);
+        if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
+        {
+            AssertDebug(parallel_rendering_state != nullptr);
+
+            RenderAll_Parallel<false>(
+                frame,
+                render_setup,
+                m_pipeline,
+                m_indirect_renderer.Get(),
+                m_divided_draw_calls,
+                m_draw_state,
+                parallel_rendering_state);
+        }
+        else
+        {
+            RenderAll<false>(
+                frame,
+                render_setup,
+                m_pipeline,
+                m_indirect_renderer.Get(),
+                m_draw_state);
+        }
     }
-}
 
-void RenderGroup::PerformRenderingIndirect(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-    AssertReady();
+    EngineRenderStatsCounts counts;
+    counts[ERS_RENDER_GROUPS] = 1;
 
-    AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
-    AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
-
-    AssertThrow(m_flags & RenderGroupFlags::INDIRECT_RENDERING);
-
-    if (m_draw_state.GetDrawCalls().Empty())
-    {
-        return;
-    }
-
-    if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
-    {
-        AssertDebug(parallel_rendering_state != nullptr);
-
-        RenderAll_Parallel<true>(
-            frame,
-            render_setup,
-            m_pipeline,
-            m_indirect_renderer.Get(),
-            m_divided_draw_calls,
-            m_draw_state,
-            parallel_rendering_state);
-    }
-    else
-    {
-        RenderAll<true>(
-            frame,
-            render_setup,
-            m_pipeline,
-            m_indirect_renderer.Get(),
-            m_draw_state);
-    }
+    g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
 #pragma endregion RenderGroup
-
-#pragma region RendererProxy
-
-#pragma endregion RendererProxy
 
 } // namespace hyperion

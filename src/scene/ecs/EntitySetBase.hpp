@@ -4,7 +4,6 @@
 #define HYPERION_ECS_ENTITY_SET_BASE_HPP
 
 #include <core/ID.hpp>
-#include <core/IDGenerator.hpp>
 
 #include <Types.hpp>
 

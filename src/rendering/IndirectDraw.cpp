@@ -424,13 +424,14 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
     }
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup, const CullData& cull_data)
+void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
+    AssertDebug(render_setup.cull_data != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -458,9 +459,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
         }
     }
 
-    if (m_cached_cull_data != cull_data)
+    if (m_cached_cull_data != *render_setup.cull_data)
     {
-        m_cached_cull_data = cull_data;
+        m_cached_cull_data = *render_setup.cull_data;
         m_cached_cull_data_updated_bits = 0xFF;
     }
 

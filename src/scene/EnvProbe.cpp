@@ -207,8 +207,9 @@ void EnvProbe::CreateView()
     }
 
     m_view = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::DEFAULT | ~ViewFlags::ALL_WORLD_SCENES,
         .viewport = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
-        .scene = m_parent_scene,
+        .scenes = { m_parent_scene },
         .camera = m_camera,
         .entity_collection_flags = (OnlyCollectStaticEntities() ? ViewEntityCollectionFlags::COLLECT_STATIC : ViewEntityCollectionFlags::COLLECT_ALL) | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
         .override_attributes = RenderableAttributeSet(

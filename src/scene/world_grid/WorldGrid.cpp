@@ -99,12 +99,13 @@ void WorldGridState::PushUpdate(StreamingCellUpdate&& update)
 #pragma region WorldGrid
 
 WorldGrid::WorldGrid()
-    : WorldGrid(WorldGridParams {})
+    : WorldGrid(nullptr, WorldGridParams {})
 {
 }
 
-WorldGrid::WorldGrid(const WorldGridParams& params)
-    : m_params(params),
+WorldGrid::WorldGrid(World* world, const WorldGridParams& params)
+    : m_world(world),
+      m_params(params),
       m_streaming_manager(CreateObject<StreamingManager>())
 {
 }

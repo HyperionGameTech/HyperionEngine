@@ -1136,9 +1136,8 @@ void EditorSubsystem::InitViewport()
         // Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
 
         Handle<View> view = CreateObject<View>(ViewDesc {
-            .flags = ViewFlags::GBUFFER,
+            .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
             .viewport = Viewport { .extent = viewport_size, .position = Vec2i::Zero() },
-            .scene = m_scene,
             .camera = primary_camera });
 
         InitObject(view);
@@ -1633,7 +1632,7 @@ void EditorSubsystem::InitSceneOutline()
             //    }
         });
 
-    static const auto AddNodeToSceneOutline = [](const RC<UIListView>& list_view, Node* node)
+    static const auto add_node_to_scene_outline = [](const RC<UIListView>& list_view, Node* node)
     {
         AssertThrow(node != nullptr);
 
@@ -1669,7 +1668,7 @@ void EditorSubsystem::InitSceneOutline()
             continue;
         }
 
-        AddNodeToSceneOutline(list_view, node);
+        add_node_to_scene_outline(list_view, node);
     }
 
     m_delegate_handlers.Remove(&m_scene->GetRoot()->GetDelegates()->OnChildAdded);
@@ -1684,11 +1683,11 @@ void EditorSubsystem::InitSceneOutline()
 
             RC<UIListView> list_view = list_view_weak.Lock();
 
-            AddNodeToSceneOutline(list_view, node);
+            add_node_to_scene_outline(list_view, node);
 
             for (Node* child : node->GetDescendants())
             {
-                AddNodeToSceneOutline(list_view, child);
+                add_node_to_scene_outline(list_view, child);
             }
         }));
 

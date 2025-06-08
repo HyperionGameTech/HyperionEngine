@@ -192,11 +192,6 @@ Scene::~Scene()
 
     if (m_render_resource != nullptr)
     {
-        if (m_world != nullptr && m_world->IsReady())
-        {
-            m_world->GetRenderResource().RemoveViewsForScene(HandleFromThis());
-        }
-
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
@@ -216,11 +211,6 @@ void Scene::Init()
         {
             if (m_render_resource != nullptr)
             {
-                if (m_world != nullptr && m_world->IsReady())
-                {
-                    m_world->GetRenderResource().RemoveViewsForScene(HandleFromThis());
-                }
-
                 FreeResource(m_render_resource);
 
                 m_render_resource = nullptr;
@@ -368,13 +358,6 @@ void Scene::Update(GameCounter::TickUnit delta)
     {
         m_entity_manager->FlushCommandQueue(delta);
     }
-}
-
-void Scene::EnqueueRenderUpdates()
-{
-    HYP_SCOPE;
-
-    AssertReady();
 }
 
 void Scene::SetRoot(const Handle<Node>& root)

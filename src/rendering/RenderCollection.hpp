@@ -18,7 +18,6 @@
 
 #include <rendering/RenderableAttributes.hpp>
 #include <rendering/DrawCall.hpp>
-#include <rendering/CullData.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/EngineRenderStats.hpp>
 
@@ -127,14 +126,12 @@ public:
     void CollectDrawCalls(
         FrameBase* frame,
         const RenderSetup& render_setup,
-        const Bitset& bucket_bits,
-        const CullData* cull_data);
+        const Bitset& bucket_bits);
 
     void ExecuteDrawCalls(
         FrameBase* frame,
         const RenderSetup& render_setup,
         const Bitset& bucket_bits,
-        const CullData* cull_data = nullptr,
         PushConstantData push_constant = {}) const;
 
     void ExecuteDrawCalls(
@@ -142,7 +139,6 @@ public:
         const RenderSetup& render_setup,
         const FramebufferRef& framebuffer,
         const Bitset& bucket_bits,
-        const CullData* cull_data = nullptr,
         PushConstantData push_constant = {}) const;
 
 protected:

@@ -646,6 +646,49 @@ void RenderView::SetPriority(int priority)
         });
 }
 
+void RenderView::AddScene(const TResourceHandle<RenderScene>& render_scene)
+{
+    HYP_SCOPE;
+
+    if (!render_scene)
+    {
+        return;
+    }
+
+    Execute([this, render_scene = render_scene]()
+        {
+            if (m_render_scenes.Contains(render_scene))
+            {
+                return; // already added
+            }
+
+            m_render_scenes.PushBack(render_scene);
+        });
+}
+
+void RenderView::RemoveScene(RenderScene* render_scene)
+{
+    HYP_SCOPE;
+
+    if (!render_scene)
+    {
+        return;
+    }
+
+    Execute([this, render_scene]()
+        {
+            auto it = m_render_scenes.FindIf([render_scene](const TResourceHandle<RenderScene>& item)
+                {
+                    return item.Get() == render_scene;
+                });
+
+            if (it != m_render_scenes.End())
+            {
+                m_render_scenes.Erase(it);
+            }
+        });
+}
+
 typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker)
 {
     HYP_SCOPE;
@@ -871,308 +914,321 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     AssertThrow(IsInitialized());
 
-    const RenderSetup render_setup { render_world, this };
+    RenderSetup render_setup { render_world, this };
+    render_setup.cull_data = &m_cull_data;
 
-    if (m_gbuffer)
+    if (!m_gbuffer)
     {
-        const uint32 frame_index = frame->GetFrameIndex();
+        return;
+    }
 
-        g_engine->GetRenderState()->BindCamera(m_render_camera);
-        g_engine->GetRenderState()->SetActiveScene(m_render_scene->GetScene());
+    const uint32 frame_index = frame->GetFrameIndex();
 
-        const Handle<RenderEnvironment>& environment = m_render_scene->GetEnvironment();
+    g_engine->GetRenderState()->BindCamera(m_render_camera);
 
-        const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-        const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
-        const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    // @FIXME: support for multiple render scenes for environment
+    /// \todo: Remove SetActiveScene and GetActiveScene
+    g_engine->GetRenderState()->SetActiveScene(m_render_scenes[0]->GetScene());
+    const Handle<RenderEnvironment>& environment = m_render_scenes[0]->GetEnvironment();
 
-        const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
-        const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
+    const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
+    const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
+    const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
-        const bool is_render_environment_ready = environment && environment->IsReady();
+    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
+    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
-        const bool do_particles = true;
-        const bool do_gaussian_splatting = false; // environment && environment->IsReady();
+    const bool is_render_environment_ready = environment && environment->IsReady();
 
-        const bool use_rt_radiance = m_renderer_config.path_tracer_enabled || m_renderer_config.rt_reflections_enabled;
-        const bool use_ddgi = m_renderer_config.rt_gi_enabled;
-        const bool use_hbao = m_renderer_config.hbao_enabled;
-        const bool use_hbil = m_renderer_config.hbil_enabled;
-        const bool use_ssgi = m_renderer_config.ssgi_enabled;
+    const bool do_particles = true;
+    const bool do_gaussian_splatting = false; // environment && environment->IsReady();
 
-        const bool use_env_grid_irradiance = env_render_grid && m_renderer_config.env_grid_gi_enabled;
-        const bool use_env_grid_radiance = env_render_grid && m_renderer_config.env_grid_radiance_enabled;
+    const bool use_rt_radiance = m_renderer_config.path_tracer_enabled || m_renderer_config.rt_reflections_enabled;
+    const bool use_ddgi = m_renderer_config.rt_gi_enabled;
+    const bool use_hbao = m_renderer_config.hbao_enabled;
+    const bool use_hbil = m_renderer_config.hbil_enabled;
+    const bool use_ssgi = m_renderer_config.ssgi_enabled;
 
-        const bool use_temporal_aa = m_temporal_aa != nullptr && m_renderer_config.taa_enabled;
+    const bool use_env_grid_irradiance = env_render_grid && m_renderer_config.env_grid_gi_enabled;
+    const bool use_env_grid_radiance = env_render_grid && m_renderer_config.env_grid_radiance_enabled;
 
-        const bool use_reflection_probes = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
-            || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
+    const bool use_temporal_aa = m_temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
-        if (use_temporal_aa)
+    const bool use_reflection_probes = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
+        || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
+
+    if (use_temporal_aa)
+    {
+        m_render_camera->ApplyJitter();
+    }
+
+    struct
+    {
+        uint32 flags;
+        uint32 screen_width;
+        uint32 screen_height;
+    } deferred_data;
+
+    Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
+
+    deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
+    deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
+    deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
+    deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
+
+    deferred_data.screen_width = m_gbuffer->GetExtent().x;
+    deferred_data.screen_height = m_gbuffer->GetExtent().y;
+
+    CollectDrawCalls(frame, render_setup);
+
+    if (is_render_environment_ready)
+    {
+        if (do_particles)
         {
-            m_render_camera->ApplyJitter();
+            environment->GetParticleSystem()->UpdateParticles(frame, render_setup);
         }
 
-        struct
+        if (do_gaussian_splatting)
         {
-            uint32 flags;
-            uint32 screen_width;
-            uint32 screen_height;
-        } deferred_data;
+            environment->GetGaussianSplatting()->UpdateSplats(frame, render_setup);
+        }
+    }
 
-        Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
+    m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+    m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
 
-        deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
-        deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
-        deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
-        deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
+    { // render opaque objects into separate framebuffer
+        frame->GetCommandList().Add<BeginFramebuffer>(opaque_fbo, frame_index);
 
-        deferred_data.screen_width = m_gbuffer->GetExtent().x;
-        deferred_data.screen_height = m_gbuffer->GetExtent().y;
+        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_OPAQUE));
 
-        CollectDrawCalls(frame, render_setup);
+        frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
+    }
+
+    if (use_env_grid_irradiance)
+    { // submit env grid command buffer
+        m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_irradiance_pass->Render(frame, render_setup);
+    }
+
+    if (use_env_grid_radiance)
+    { // submit env grid command buffer
+        m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_env_grid_radiance_pass->Render(frame, render_setup);
+    }
+
+    if (use_reflection_probes)
+    {
+        m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        m_reflections_pass->Render(frame, render_setup);
+    }
+
+    // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
+    // otherwise the same pass will be executed for each view (shared).
+    // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
+    // so it is rendered with the RenderWorld rather than the RenderView.
+    if (is_render_environment_ready)
+    {
+        if (use_rt_radiance)
+        {
+            environment->RenderRTRadiance(frame, render_setup);
+        }
+
+        if (use_ddgi)
+        {
+            environment->RenderDDGIProbes(frame, render_setup);
+        }
+    }
+
+    if (use_hbao || use_hbil)
+    {
+        m_hbao->Render(frame, render_setup);
+    }
+
+    if (use_ssgi)
+    {
+        bool is_sky_set = false;
+
+        // Bind sky env probe for SSGI.
+        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+        {
+            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+
+            is_sky_set = true;
+        }
+
+        m_ssgi->Render(frame, render_setup);
+
+        if (is_sky_set)
+        {
+            g_engine->GetRenderState()->UnsetActiveEnvProbe();
+        }
+    }
+
+    m_post_processing->RenderPre(frame, render_setup);
+
+    // render indirect and direct lighting into the same framebuffer
+    const FramebufferRef& deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
+
+    { // deferred lighting on opaque objects
+        frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
+
+        m_indirect_pass->Render(frame, render_setup);
+        m_direct_pass->Render(frame, render_setup);
+
+        frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
+    }
+
+    if (m_lightmap_volumes.Any())
+    { // render objects to be lightmapped, separate from the opaque objects.
+        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+        frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
+
+        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_LIGHTMAP));
+
+        frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
+    }
+
+    { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
+        const ImageRef& src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
+        GenerateMipChain(frame, render_setup, src_image);
+    }
+
+    { // translucent objects
+        frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
+
+        { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
+            frame->GetCommandList().Add<BindGraphicsPipeline>(m_combine_pass->GetRenderGroup()->GetPipeline());
+
+            frame->GetCommandList().Add<BindDescriptorTable>(
+                m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+                m_combine_pass->GetRenderGroup()->GetPipeline(),
+                ArrayMap<Name, ArrayMap<Name, uint32>> {},
+                frame_index);
+
+            m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+        }
+
+        // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+        // Apply lightmaps over the now shaded opaque objects.
+        m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
+
+        bool is_sky_set = false;
+
+        // Bind sky env probe
+        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+        {
+            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+
+            is_sky_set = true;
+        }
+
+        // begin translucent with forward rendering
+        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
+        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
 
         if (is_render_environment_ready)
         {
             if (do_particles)
             {
-                environment->GetParticleSystem()->UpdateParticles(frame, render_setup);
+                environment->GetParticleSystem()->Render(frame, render_setup);
             }
 
             if (do_gaussian_splatting)
             {
-                environment->GetGaussianSplatting()->UpdateSplats(frame, render_setup);
+                environment->GetGaussianSplatting()->Render(frame, render_setup);
             }
         }
 
-        m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-
-        { // render opaque objects into separate framebuffer
-            frame->GetCommandList().Add<BeginFramebuffer>(opaque_fbo, frame_index);
-
-            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_OPAQUE));
-
-            frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
-        }
-
-        if (use_env_grid_irradiance)
-        { // submit env grid command buffer
-            m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_env_grid_irradiance_pass->Render(frame, render_setup);
-        }
-
-        if (use_env_grid_radiance)
-        { // submit env grid command buffer
-            m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_env_grid_radiance_pass->Render(frame, render_setup);
-        }
-
-        if (use_reflection_probes)
+        if (is_sky_set)
         {
-            m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_reflections_pass->Render(frame, render_setup);
+            g_engine->GetRenderState()->UnsetActiveEnvProbe();
         }
 
-        // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
-        // otherwise the same pass will be executed for each view (shared).
-        // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
-        // so it is rendered with the RenderWorld rather than the RenderView.
-        if (is_render_environment_ready)
-        {
-            if (use_rt_radiance)
-            {
-                environment->RenderRTRadiance(frame, render_setup);
-            }
+        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
 
-            if (use_ddgi)
-            {
-                environment->RenderDDGIProbes(frame, render_setup);
-            }
-        }
+        // render debug draw
+        g_engine->GetDebugDrawer()->Render(frame, render_setup);
 
-        if (use_hbao || use_hbil)
-        {
-            m_hbao->Render(frame, render_setup);
-        }
-
-        if (use_ssgi)
-        {
-            bool is_sky_set = false;
-
-            // Bind sky env probe for SSGI.
-            if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-            {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-                is_sky_set = true;
-            }
-
-            m_ssgi->Render(frame, render_setup);
-
-            if (is_sky_set)
-            {
-                g_engine->GetRenderState()->UnsetActiveEnvProbe();
-            }
-        }
-
-        m_post_processing->RenderPre(frame, render_setup);
-
-        // render indirect and direct lighting into the same framebuffer
-        const FramebufferRef& deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
-
-        { // deferred lighting on opaque objects
-            frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
-
-            m_indirect_pass->Render(frame, render_setup);
-            m_direct_pass->Render(frame, render_setup);
-
-            frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
-        }
-
-        if (m_lightmap_volumes.Any())
-        { // render objects to be lightmapped, separate from the opaque objects.
-            // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
-            frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
-
-            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_LIGHTMAP));
-
-            frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
-        }
-
-        { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-            const ImageRef& src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
-            GenerateMipChain(frame, render_setup, src_image);
-        }
-
-        { // translucent objects
-            frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
-
-            { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
-                frame->GetCommandList().Add<BindGraphicsPipeline>(m_combine_pass->GetRenderGroup()->GetPipeline());
-
-                frame->GetCommandList().Add<BindDescriptorTable>(
-                    m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-                    m_combine_pass->GetRenderGroup()->GetPipeline(),
-                    ArrayMap<Name, ArrayMap<Name, uint32>> {},
-                    frame_index);
-
-                m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-            }
-            { // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
-                // Apply lightmaps over the now shaded opaque objects.
-                m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
-            }
-
-            bool is_sky_set = false;
-
-            // Bind sky env probe
-            if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-            {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-                is_sky_set = true;
-            }
-
-            // begin translucent with forward rendering
-            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
-            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
-
-            if (is_render_environment_ready)
-            {
-                if (do_particles)
-                {
-                    environment->GetParticleSystem()->Render(frame, render_setup);
-                }
-
-                if (do_gaussian_splatting)
-                {
-                    environment->GetGaussianSplatting()->Render(frame, render_setup);
-                }
-            }
-
-            if (is_sky_set)
-            {
-                g_engine->GetRenderState()->UnsetActiveEnvProbe();
-            }
-
-            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
-
-            // render debug draw
-            g_engine->GetDebugDrawer()->Render(frame, render_setup);
-
-            frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
-        }
+        frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
+    }
 
 #if 0
+    {
+        struct
         {
-            struct
-            {
-                Vec2u   image_dimensions;
-                uint32  _pad0, _pad1;
-                uint32  deferred_flags;
-            } deferred_combine_constants;
+            Vec2u   image_dimensions;
+            uint32  _pad0, _pad1;
+            uint32  deferred_flags;
+        } deferred_combine_constants;
 
-            deferred_combine_constants.image_dimensions = m_combine_pass->GetFramebuffer()->GetExtent();
-            deferred_combine_constants.deferred_flags = deferred_data.flags;
+        deferred_combine_constants.image_dimensions = m_combine_pass->GetFramebuffer()->GetExtent();
+        deferred_combine_constants.deferred_flags = deferred_data.flags;
 
-            m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
-            m_combine_pass->Begin(frame, this);
+        m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
+        m_combine_pass->Begin(frame, this);
 
-            frame->GetCommandList().Add<BindDescriptorTable>(
-                m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-                m_combine_pass->GetRenderGroup()->GetPipeline(),
-                ArrayMap<Name, ArrayMap<Name, uint32>> {
-                    {
-                        NAME("Global"),
-                        { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_render_camera) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
-                        }
+        frame->GetCommandList().Add<BindDescriptorTable>(
+            m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+            m_combine_pass->GetRenderGroup()->GetPipeline(),
+            ArrayMap<Name, ArrayMap<Name, uint32>> {
+                {
+                    NAME("Global"),
+                    { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_render_camera) },
+                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
                     }
-                },
-                frame_index
+                }
+            },
+            frame_index
+        );
+
+        const uint32 scene_descriptor_set_index = m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+        if (scene_descriptor_set_index != ~0u) {
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                m_descriptor_sets[frame_index],
+                m_combine_pass->GetRenderGroup()->GetPipeline(),
+                ArrayMap<Name, uint32> { },
+                scene_descriptor_set_index
             );
-
-            const uint32 scene_descriptor_set_index = m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-
-            if (scene_descriptor_set_index != ~0u) {
-                frame->GetCommandList().Add<BindDescriptorSet>(
-                    m_descriptor_sets[frame_index],
-                    m_combine_pass->GetRenderGroup()->GetPipeline(),
-                    ArrayMap<Name, uint32> { },
-                    scene_descriptor_set_index
-                );
-            }
-
-            m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-            m_combine_pass->End(frame, this);
         }
+
+        m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+        m_combine_pass->End(frame, this);
+    }
 #endif
 
-        { // render depth pyramid
-            m_depth_pyramid_renderer->Render(frame);
-            // update culling info now that depth pyramid has been rendered
-            m_cull_data.depth_pyramid_image_view = m_depth_pyramid_renderer->GetResultImageView();
-            m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
-        }
-
-        m_post_processing->RenderPost(frame, render_setup);
-
-        m_tonemap_pass->Render(frame, render_setup);
-
-        if (use_temporal_aa)
-        {
-            m_temporal_aa->Render(frame, render_setup);
-        }
-
-        // depth of field
-        // m_dof_blur->Render(frame);
-
-        g_engine->GetRenderState()->UnsetActiveScene();
-        g_engine->GetRenderState()->UnbindCamera(m_render_camera.Get());
+    { // render depth pyramid
+        m_depth_pyramid_renderer->Render(frame);
+        // update culling info now that depth pyramid has been rendered
+        m_cull_data.depth_pyramid_image_view = m_depth_pyramid_renderer->GetResultImageView();
+        m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
     }
+
+    m_post_processing->RenderPost(frame, render_setup);
+
+    m_tonemap_pass->Render(frame, render_setup);
+
+    if (use_temporal_aa)
+    {
+        m_temporal_aa->Render(frame, render_setup);
+    }
+
+    // depth of field
+    // m_dof_blur->Render(frame);
+
+    g_engine->GetRenderState()->UnsetActiveScene();
+    g_engine->GetRenderState()->UnbindCamera(m_render_camera.Get());
+
+    EngineRenderStatsCounts counts {};
+    counts[ERS_VIEWS] = 1;
+    counts[ERS_SCENES] = m_render_scenes.Size();
+    counts[ERS_LIGHTS] = m_tracked_lights.GetCurrentBits().Count();
+    counts[ERS_LIGHTMAP_VOLUMES] = m_tracked_lightmap_volumes.GetCurrentBits().Count();
+    // counts.num_env_probes
+    g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
 void RenderView::PostRender(FrameBase* frame)
@@ -1186,9 +1242,9 @@ void RenderView::CollectDrawCalls(FrameBase* frame, const RenderSetup& render_se
     m_render_collector.CollectDrawCalls(
         frame,
         render_setup,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
-        &m_cull_data);
+        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)));
 }
+
 void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint64 bucket_mask)
 {
     HYP_SCOPE;
@@ -1197,8 +1253,7 @@ void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_se
         frame,
         render_setup,
         nullptr,
-        Bitset(bucket_mask),
-        &m_cull_data);
+        Bitset(bucket_mask));
 }
 
 void RenderView::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)
