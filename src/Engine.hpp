@@ -62,9 +62,11 @@ class RenderState;
 class MaterialCache;
 class MaterialDescriptorSetManager;
 class GraphicsPipelineCache;
+class StreamingManager;
 
 extern Handle<Engine> g_engine;
 extern Handle<AssetManager> g_asset_manager;
+// extern Handle<StreamingManager> g_streaming_manager;
 extern ShaderManager* g_shader_manager;
 extern MaterialCache* g_material_system;
 extern SafeDeleter* g_safe_deleter;

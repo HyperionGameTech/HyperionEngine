@@ -4,12 +4,15 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="UUID")]
-    [StructLayout(LayoutKind.Sequential, Size = 16)]
+    [StructLayout(LayoutKind.Explicit, Size = 16, Pack = 8)]
     public struct UUID
     {
         public static readonly UUID Invalid = new UUID(0, 0);
 
+        [FieldOffset(0)]
         private ulong data0;
+
+        [FieldOffset(8)]
         private ulong data1;
 
         public UUID()

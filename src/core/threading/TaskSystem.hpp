@@ -196,6 +196,11 @@ public:
         return uint32(m_threads.Size());
     }
 
+    HYP_FORCE_INLINE const Array<UniquePtr<TaskThread>>& GetThreads() const
+    {
+        return m_threads;
+    }
+
     HYP_FORCE_INLINE uint32 GetProcessorAffinity() const
     {
         return MathUtil::Min(NumThreads(), MathUtil::Max(1u, Threads::NumCores()) - 1);

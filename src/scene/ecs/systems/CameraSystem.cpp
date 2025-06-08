@@ -4,8 +4,14 @@
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
+
+#include <scene/world_grid/WorldGrid.hpp>
 
 #include <scene/camera/Camera.hpp>
+#include <scene/camera/streaming/CameraStreamingVolume.hpp>
+
+#include <streaming/StreamingManager.hpp>
 
 #include <core/containers/HashSet.hpp>
 
@@ -19,19 +25,64 @@ void CameraSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
+    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityAdded: CameraComponent added to scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+
     CameraComponent& camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
     InitObject(camera_component.camera);
 
-    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityAdded: CameraComponent added to scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+    if (World* world = GetWorld())
+    {
+        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
+        {
+            world->GetWorldGrid()->GetStreamingManager()->AddStreamingVolume(camera_component.camera->GetStreamingVolume());
+        }
+    }
 
-    // GetEntityManager().AddTag<EntityTag::CAMERA>(entity);
+    m_delegate_handlers.Add(
+        NAME("OnWorldChange"),
+        OnWorldChanged.Bind([this](World* new_world, World* previous_world)
+            {
+                Threads::AssertOnThread(g_game_thread);
+
+                if (previous_world != nullptr)
+                {
+                    // Remove the camera's streaming volume from the previous world's streaming manager
+                    for (auto [entity_id, camera_component] : GetEntityManager().GetEntitySet<CameraComponent>().GetScopedView(GetComponentInfos()))
+                    {
+                        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
+                        {
+                            previous_world->GetWorldGrid()->GetStreamingManager()->RemoveStreamingVolume(camera_component.camera->GetStreamingVolume());
+                        }
+                    }
+                }
+
+                if (new_world != nullptr)
+                {
+                    // Add the camera's streaming volume to the new world's streaming manager
+                    for (auto [entity_id, camera_component] : GetEntityManager().GetEntitySet<CameraComponent>().GetScopedView(GetComponentInfos()))
+                    {
+                        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
+                        {
+                            new_world->GetWorldGrid()->GetStreamingManager()->AddStreamingVolume(camera_component.camera->GetStreamingVolume());
+                        }
+                    }
+                }
+            }));
 }
 
 void CameraSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    // GetEntityManager().RemoveTag<EntityTag::CAMERA>(entity);
+    CameraComponent& camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
+
+    if (World* world = GetWorld())
+    {
+        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
+        {
+            world->GetWorldGrid()->GetStreamingManager()->RemoveStreamingVolume(camera_component.camera->GetStreamingVolume());
+        }
+    }
 
     HYP_LOG(Camera, Debug, "CameraSystem::OnEntityRemoved: CameraComponent removed from scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity.Value());
 }

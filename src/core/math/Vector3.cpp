@@ -18,20 +18,19 @@ HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
         HYP_END_STRUCT
 
-    HYP_BEGIN_STRUCT(Vec3i, -1, 0, {})
-        HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+HYP_BEGIN_STRUCT(Vec3i, -1, 0, {})
+HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
         HYP_END_STRUCT
 
-    HYP_BEGIN_STRUCT(Vec3u, -1, 0, {})
-        HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+HYP_BEGIN_STRUCT(Vec3u, -1, 0, {})
+HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
         HYP_END_STRUCT
 
-    Vec3<float> math::Vec3<float>::
-    operator*(const Matrix3& mat) const
+Vec3<float> math::Vec3<float>::operator*(const Matrix3& mat) const
 {
     return {
         x * mat.values[0] + y * mat.values[3] + z * mat.values[6],

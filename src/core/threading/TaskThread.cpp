@@ -34,6 +34,12 @@ TaskThread::TaskThread(Name name, ThreadPriorityValue priority)
 {
 }
 
+void TaskThread::SetPriority(ThreadPriorityValue priority)
+{
+    /// \todo
+    HYP_NOT_IMPLEMENTED();
+}
+
 void TaskThread::Stop()
 {
     m_stop_requested.Set(true, MemoryOrder::RELAXED);

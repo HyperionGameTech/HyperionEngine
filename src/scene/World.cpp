@@ -9,7 +9,7 @@
 
 #include <scene/ecs/EntityManager.hpp>
 
-#include <scene/world_grid/WorldGridSubsystem.hpp>
+#include <scene/world_grid/WorldGrid.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>
@@ -39,10 +39,10 @@ namespace hyperion {
 
 World::World()
     : HypObject(),
+      m_world_grid(CreateObject<WorldGrid>(WorldGridParams {})),
       m_detached_scenes(this),
       m_render_resource(nullptr)
 {
-    // AddSubsystem<WorldGridSubsystem>();
 }
 
 World::~World()
@@ -94,6 +94,11 @@ World::~World()
 
         m_render_resource = nullptr;
     }
+
+    if (m_world_grid.IsValid())
+    {
+        m_world_grid->Shutdown();
+    }
 }
 
 void World::Init()
@@ -125,6 +130,11 @@ void World::Init()
 
                 m_render_resource = nullptr;
             }
+
+            if (m_world_grid.IsValid())
+            {
+                m_world_grid->Shutdown();
+            }
         }));
 
     // Update RenderWorld's RenderStats - done on the game thread so both the game thread and render thread can access it.
@@ -150,6 +160,8 @@ void World::Init()
         g_game_thread));
 
     m_render_resource = AllocateResource<RenderWorld>(this);
+
+    InitObject(m_world_grid);
 
     for (auto& it : m_subsystems)
     {
@@ -194,6 +206,8 @@ void World::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     m_game_state.delta_time = delta;
+
+    m_world_grid->Update(delta);
 
     m_physics_world.Tick(delta);
 

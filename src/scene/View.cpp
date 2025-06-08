@@ -156,12 +156,13 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 
     if (!m_camera.IsValid())
     {
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
 
-    const ID<Camera> camera_id = m_camera.GetID();
+    const ID<Camera> camera_id = m_camera->GetID();
 
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
@@ -226,13 +227,14 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 
     if (!m_camera.IsValid())
     {
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect dynamic entities!", GetID().Value());
         // if camera is invalid, update without adding any entities
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
 
-    const ID<Camera> camera_id = m_camera.GetID();
+    const ID<Camera> camera_id = m_camera->GetID();
 
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
@@ -287,12 +289,13 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
     if (!m_camera.IsValid())
     {
         // if camera is invalid, update without adding any entities
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect static entities!", GetID().Value());
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
     const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
 
-    const ID<Camera> camera_id = m_camera.GetID();
+    const ID<Camera> camera_id = m_camera->GetID();
 
     const VisibilityStateSnapshot visibility_state_snapshot = m_scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 

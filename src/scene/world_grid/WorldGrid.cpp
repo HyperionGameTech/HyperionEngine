@@ -8,13 +8,16 @@
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
-#include <scene/ecs/components/WorldGridComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+
+#include <streaming/StreamingManager.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
 #include <core/threading/TaskSystem.hpp>
+
+#include <core/utilities/ForEach.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -23,53 +26,66 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <Engine.hpp>
+
 namespace hyperion {
 
 HYP_DEFINE_LOG_SUBCHANNEL(WorldGrid, Scene);
 
 #pragma region Helpers
 
-static const FixedArray<WorldGridPatchNeighbor, 8> GetPatchNeighbors(const Vec2i& coord)
+static const FixedArray<StreamingCellNeighbor, 8> GetPatchNeighbors(const Vec2i& coord)
 {
     return {
-        WorldGridPatchNeighbor { coord + Vec2i { 1, 0 } },
-        WorldGridPatchNeighbor { coord + Vec2i { -1, 0 } },
-        WorldGridPatchNeighbor { coord + Vec2i { 0, 1 } },
-        WorldGridPatchNeighbor { coord + Vec2i { 0, -1 } },
-        WorldGridPatchNeighbor { coord + Vec2i { 1, -1 } },
-        WorldGridPatchNeighbor { coord + Vec2i { -1, -1 } },
-        WorldGridPatchNeighbor { coord + Vec2i { 1, 1 } },
-        WorldGridPatchNeighbor { coord + Vec2i { -1, 1 } }
+        StreamingCellNeighbor { coord + Vec2i { 1, 0 } },
+        StreamingCellNeighbor { coord + Vec2i { -1, 0 } },
+        StreamingCellNeighbor { coord + Vec2i { 0, 1 } },
+        StreamingCellNeighbor { coord + Vec2i { 0, -1 } },
+        StreamingCellNeighbor { coord + Vec2i { 1, -1 } },
+        StreamingCellNeighbor { coord + Vec2i { -1, -1 } },
+        StreamingCellNeighbor { coord + Vec2i { 1, 1 } },
+        StreamingCellNeighbor { coord + Vec2i { -1, 1 } }
     };
 }
 
-static Vec2i WorldSpaceToPatchCoord(const WorldGrid& world_grid, const Vec3f& world_position)
+static Vec2i WorldSpaceToCellCoord(const WorldGrid& world_grid, const Vec3f& world_position)
 {
     Vec3f scaled = world_position - world_grid.GetParams().offset;
-    scaled *= Vec3f::One() / (world_grid.GetParams().scale * (Vec3f(world_grid.GetParams().patch_size) - 1.0f));
+    scaled *= Vec3f::One() / (world_grid.GetParams().scale * (Vec3f(world_grid.GetParams().cell_size) - 1.0f));
     scaled = MathUtil::Floor(scaled);
 
     return Vec2i { int(scaled.x), int(scaled.z) };
 }
 
+static Vec3f CellCoordToWorldSpace(const WorldGrid& world_grid, const Vec2i& coord)
+{
+    Vec3f scaled = Vec3f(float(coord.x), 0.0f, float(coord.y));
+    scaled *= (world_grid.GetParams().scale * (Vec3f(world_grid.GetParams().cell_size) - 1.0f));
+    scaled += world_grid.GetParams().offset;
+
+    return scaled;
+}
+
 #pragma endregion Helpers
 
-#pragma region WorldGridPatch
+#pragma region StreamingCell
 
-WorldGridPatch::WorldGridPatch(const WorldGridPatchInfo& patch_info)
-    : m_patch_info(patch_info)
+StreamingCell::StreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
+    : m_world_grid(world_grid),
+      m_cell_info(cell_info)
+{
+    AssertThrow(m_world_grid != nullptr);
+}
+
+StreamingCell::~StreamingCell()
 {
 }
 
-WorldGridPatch::~WorldGridPatch()
-{
-}
-
-#pragma endregion WorldGridPatch
+#pragma endregion StreamingCell
 
 #pragma region WorldGridState
 
-void WorldGridState::PushUpdate(WorldGridPatchUpdate&& update)
+void WorldGridState::PushUpdate(StreamingCellUpdate&& update)
 {
     Mutex::Guard guard(patch_update_queue_mutex);
 
@@ -83,91 +99,83 @@ void WorldGridState::PushUpdate(WorldGridPatchUpdate&& update)
 #pragma region WorldGrid
 
 WorldGrid::WorldGrid()
-    : m_params {},
-      m_root_node(Handle<Node>(CreateObject<Node>())),
-      m_is_initialized(false)
+    : WorldGrid(WorldGridParams {})
 {
 }
 
-WorldGrid::WorldGrid(const WorldGridParams& params, const Handle<Scene>& scene)
+WorldGrid::WorldGrid(const WorldGridParams& params)
     : m_params(params),
-      m_scene(scene),
-      m_root_node(Handle<Node>(CreateObject<Node>())),
-      m_is_initialized(false)
+      m_streaming_manager(CreateObject<StreamingManager>())
 {
-    if (scene.IsValid())
-    {
-        scene->GetRoot()->AddChild(m_root_node);
-    }
 }
 
 WorldGrid::~WorldGrid()
 {
-    if (Handle<Scene> scene = m_scene.Lock())
-    {
-        const RC<EntityManager>& entity_manager = scene->GetEntityManager();
-
-        if (entity_manager != nullptr)
-        {
-            // wait for all commands to finish to prevent holding dangling references
-            entity_manager->GetCommandQueue().AwaitEmpty();
-        }
-    }
-
-    if (m_root_node.IsValid())
-    {
-        m_root_node->Remove();
-    }
 }
 
-void WorldGrid::Initialize()
+void WorldGrid::Init()
 {
-    HYP_SCOPE;
+    if (IsInitCalled())
+    {
+        return;
+    }
 
-    AssertThrow(!m_is_initialized);
+    HypObject::Init();
+
+    AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
+        {
+            if (IsInitCalled())
+            {
+                Shutdown();
+            }
+        }));
+
+    InitObject(m_streaming_manager);
+    m_streaming_manager->Start();
 
     for (const auto& it : m_plugins)
     {
-        it.second->Initialize();
+        it.second->Initialize(this);
     }
 
-    m_is_initialized = true;
+    // CreatePatches();
+
+    SetReady(true);
 }
 
 void WorldGrid::Shutdown()
 {
-    HYP_SCOPE;
+    if (!IsInitCalled())
+    {
+        return;
+    }
 
-    AssertThrow(m_is_initialized);
+    m_streaming_manager->UnregisterAllStreamables();
+    m_streaming_manager->Stop();
+
+    // m_patches.Clear();
 
     for (const auto& it : m_plugins)
     {
-        it.second->Shutdown();
+        it.second->Shutdown(this);
     }
 
     m_plugins.Clear();
-
-    m_is_initialized = false;
 }
 
 void WorldGrid::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
 
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+    AssertReady();
 
-    AssertThrow(m_is_initialized);
+    m_streaming_manager->Update(delta);
 
     for (const auto& it : m_plugins)
     {
         it.second->Update(delta);
     }
-
-    Handle<Scene> scene = m_scene.Lock();
-    AssertThrow(scene.IsValid());
-
-    const RC<EntityManager>& entity_manager = scene->GetEntityManager();
-    AssertThrow(entity_manager != nullptr);
 
     if (m_state.patch_generation_queue_shared.has_updates.Exchange(false, MemoryOrder::ACQUIRE_RELEASE))
     {
@@ -182,17 +190,18 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
         {
             HYP_NAMED_SCOPE_FMT("Processing completed patch generation ({} patches ready)", m_state.patch_generation_queue_owned.Size());
 
-            RC<WorldGridPatch> patch = m_state.patch_generation_queue_owned.Pop();
-            AssertThrow(patch != nullptr);
+            Handle<StreamingCell> patch = m_state.patch_generation_queue_owned.Pop();
+            AssertThrow(patch.IsValid());
+            AssertThrow(InitObject(patch));
 
-            const WorldGridPatchInfo& patch_info = patch->GetPatchInfo();
+            const StreamingCellInfo& cell_info = patch->GetPatchInfo();
 
             { // remove task
-                const auto patch_generation_task_it = m_state.patch_generation_tasks.Find(patch_info.coord);
+                const auto patch_generation_task_it = m_state.patch_generation_tasks.Find(cell_info.coord);
 
                 if (patch_generation_task_it == m_state.patch_generation_tasks.End())
                 {
-                    HYP_LOG(WorldGrid, Warning, "Generation task for patch at {} no longer in map, must have been removed. Skipping.", patch_info.coord);
+                    HYP_LOG(WorldGrid, Warning, "Generation task for patch at {} no longer in map, must have been removed. Skipping.", cell_info.coord);
 
                     continue;
                 }
@@ -203,67 +212,13 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 }
                 else
                 {
-                    HYP_LOG(WorldGrid, Warning, "Generation task for patch at {} is not completed. Skipping.", patch_info.coord);
+                    HYP_LOG(WorldGrid, Warning, "Generation task for patch at {} is not completed. Skipping.", cell_info.coord);
                 }
             }
 
-            HYP_LOG(WorldGrid, Info, "Adding generated patch at {}", patch_info.coord);
-
-            Handle<Entity> patch_entity;
-
-            {
-                Mutex::Guard guard(m_state.patches_mutex);
-
-                auto it = m_state.patches.Find(patch_info.coord);
-
-                if (it == m_state.patches.End())
-                {
-                    HYP_LOG(WorldGrid, Warning, "Patch at {} was not found when updating entity", patch_info.coord);
-
-                    continue;
-                }
-
-                it->second.patch = patch;
-
-                patch_entity = it->second.entity;
-            }
-
-            // @TODO: what should happen if this is hit before the entity is created?
-
-            if (!patch_entity.IsValid())
-            {
-                HYP_LOG(WorldGrid, Warning, "Patch entity at {} was not found when updating entity", patch_info.coord);
-
-                continue;
-            }
-
-            // Initialize patch entity on game thread
-            entity_manager->PushCommand([&state = m_state, coord = patch_info.coord, patch = std::move(patch), scene, patch_entity](EntityManager& mgr, GameCounter::TickUnit delta) mutable
-                {
-                    Threads::AssertOnThread(g_game_thread);
-
-                    patch->InitializeEntity(scene, patch_entity);
-                });
+            HYP_LOG(WorldGrid, Info, "Adding generated patch at {}", cell_info.coord);
         }
     }
-
-    const Handle<Camera>& camera = scene->GetPrimaryCamera();
-    const Vec3f camera_position = camera.IsValid() ? camera->GetTranslation() : Vec3f::Zero();
-    const Vec2i camera_patch_coord = WorldSpaceToPatchCoord(*this, camera_position);
-
-    // {
-
-    //     Mutex::Guard guard(m_state.patches_mutex);
-    //     auto camera_patch_desc_it = m_state.patches.Find(camera_patch_coord);
-
-    //     if (camera_patch_desc_it == m_state.patches.End()) {
-    //         // Enqueue a patch to be created at the current camera position
-    //         m_state.PushUpdate({
-    //             .coord  = camera_patch_coord,
-    //             .state  = WorldGridPatchState::WAITING
-    //         });
-    //     }
-    // }
 
     // process queued updates
     uint32 queue_size = 0;
@@ -272,7 +227,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
     {
         HYP_NAMED_SCOPE_FMT("Processing patch updates (queue size: {})", queue_size);
 
-        WorldGridPatchUpdate update;
+        StreamingCellUpdate update;
 
         { // grab update from queue
             Mutex::Guard guard(m_state.patch_update_queue_mutex);
@@ -284,17 +239,9 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
         switch (update.state)
         {
-        case WorldGridPatchState::WAITING:
+        case StreamingCellState::WAITING:
         {
             HYP_LOG(WorldGrid, Info, "Add patch at {}", update.coord);
-
-            const WorldGridPatchInfo initial_patch_info {
-                .extent = m_params.patch_size,
-                .coord = update.coord,
-                .scale = m_params.scale,
-                .state = WorldGridPatchState::LOADED,
-                .neighbors = GetPatchNeighbors(update.coord)
-            };
 
             {
                 Mutex::Guard guard(m_state.patches_mutex);
@@ -303,204 +250,78 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
                 if (patches_it == m_state.patches.End())
                 {
-                    m_state.patches.Insert(update.coord, WorldGridPatchDesc { initial_patch_info });
-                }
-            }
+                    const StreamingCellInfo cell_info {
+                        .extent = m_params.cell_size,
+                        .coord = update.coord,
+                        .scale = m_params.scale,
+                        .state = StreamingCellState::LOADED,
+                        .neighbors = GetPatchNeighbors(update.coord)
+                    };
 
-            // add command to create the entity
-            entity_manager->PushCommand([&root_node = m_root_node, &state = m_state, &params = m_params, patch_info = initial_patch_info](EntityManager& mgr, GameCounter::TickUnit delta)
-                {
-                    Threads::AssertOnThread(g_game_thread);
+                    Handle<StreamingCell> cell;
 
-                    Handle<Node> patch_node(CreateObject<Node>());
-                    patch_node->SetFlags(NodeFlags::TRANSIENT);
-                    // patch_node->SetFlags(NodeFlags::TRANSIENT | NodeFlags::HIDE_IN_SCENE_OUTLINE); // temp, debugging performance of having lots of nodes in the list
-                    patch_node->SetName(HYP_FORMAT("Patch_{}_{}", patch_info.coord.x, patch_info.coord.y));
-
-                    Handle<Entity> patch_entity = mgr.AddEntity();
-
-                    // Add WorldGridPatchComponent
-                    mgr.AddComponent<WorldGridPatchComponent>(patch_entity, WorldGridPatchComponent { .patch_info = patch_info });
-
-                    // Add TransformComponent
-                    mgr.AddComponent<TransformComponent>(patch_entity, TransformComponent { .transform = Transform { Vec3f { params.offset.x + (float(patch_info.coord.x) - 0.5f) * (Vec3f(patch_info.extent).Max() - 1.0f) * patch_info.scale.x, params.offset.y, params.offset.z + (float(patch_info.coord.y) - 0.5f) * (Vec3f(patch_info.extent).Max() - 1.0f) * patch_info.scale.z } } });
-
-                    // Add VisibilityStateComponent
-                    mgr.AddComponent<VisibilityStateComponent>(patch_entity, VisibilityStateComponent {});
-
-                    // Add BoundingBoxComponent
-                    mgr.AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent {});
-
-                    HYP_LOG(WorldGrid, Info, "Patch entity at {} added", patch_info.coord);
-
+                    if (RC<WorldGridPlugin> plugin = GetMainPlugin())
                     {
-                        Mutex::Guard guard(state.patches_mutex);
-
-                        auto it = state.patches.Find(patch_info.coord);
-                        AssertThrow(it != state.patches.End());
-
-                        it->second.entity = patch_entity;
+                        cell = plugin->CreatePatch(this, cell_info);
+                    }
+                    else
+                    {
+                        cell = CreateObject<StreamingCell>(this, cell_info);
                     }
 
-                    patch_node->SetEntity(patch_entity);
+                    m_streaming_manager->RegisterCell(cell);
 
-                    root_node->AddChild(patch_node);
-                });
-
-            // @TODO: Only generate patch if entity is created successfully
-            if (RC<WorldGridPlugin> plugin = GetMainPlugin())
-            {
-                auto it = m_state.patch_generation_tasks.Find(initial_patch_info.coord);
-
-                if (it != m_state.patch_generation_tasks.End())
-                {
-                    HYP_LOG(WorldGrid, Warning, "Patch generation at {} already in progress", initial_patch_info.coord);
+                    m_state.patches.Insert(update.coord, cell);
                 }
-                else
-                {
-                    // add task to generation queue
-                    Task<void> generation_task = TaskSystem::GetInstance().Enqueue(
-                        HYP_STATIC_MESSAGE("GeneratePatch"),
-                        [patch_info = initial_patch_info, &shared_queue = m_state.patch_generation_queue_shared, plugin = std::move(plugin)]()
-                        {
-                            HYP_NAMED_SCOPE_FMT("Generating patch at {}", patch_info.coord);
-
-                            Mutex::Guard guard(shared_queue.mutex);
-                            shared_queue.queue.Push(plugin->CreatePatch(patch_info).ToRefCountedPtr());
-                            shared_queue.has_updates.Set(true, MemoryOrder::RELEASE);
-
-                            HYP_LOG(WorldGrid, Info, "Patch generation at {} completed on thread {}", patch_info.coord, Threads::CurrentThreadID().GetName());
-                        },
-                        TaskThreadPoolName::THREAD_POOL_BACKGROUND);
-
-                    m_state.patch_generation_tasks.Insert(initial_patch_info.coord, std::move(generation_task));
-                }
-            }
-            else
-            {
-                HYP_LOG(WorldGrid, Warning, "No main plugin found to generate patch at {}", initial_patch_info.coord);
             }
 
             break;
         }
-        case WorldGridPatchState::UNLOADING:
+        case StreamingCellState::UNLOADING:
         {
             HYP_LOG(WorldGrid, Info, "Unloading patch at {}", update.coord);
 
-            { // remove associated tasks
-                const auto patch_generation_task_it = m_state.patch_generation_tasks.Find(update.coord);
-
-                if (patch_generation_task_it != m_state.patch_generation_tasks.End())
-                {
-                    Task<void>& patch_generation_task = patch_generation_task_it->second;
-
-                    if (!patch_generation_task.Cancel())
-                    {
-                        HYP_LOG(WorldGrid, Warning, "Failed to cancel patch generation task at {}", update.coord);
-
-                        patch_generation_task.Await();
-                    }
-
-                    m_state.patch_generation_tasks.Erase(patch_generation_task_it);
-                }
-            }
-
             { // remove the patch
-                Handle<Entity> patch_entity;
+                Mutex::Guard guard(m_state.patches_mutex);
 
+                const auto patches_it = m_state.patches.Find(update.coord);
+
+                if (patches_it != m_state.patches.End())
                 {
-                    Mutex::Guard guard(m_state.patches_mutex);
-
-                    const auto patches_it = m_state.patches.Find(update.coord);
-
-                    if (patches_it != m_state.patches.End())
+                    auto& patch = patches_it->second;
+                    if (patch.IsValid())
                     {
-                        HYP_LOG(WorldGrid, Info, "Patch entity at {} found when unloading", update.coord);
-
-                        patch_entity = std::move(patches_it->second.entity);
-
-                        m_state.patches.Erase(patches_it);
+                        m_streaming_manager->UnregisterCell(patch);
                     }
-                }
 
-                if (patch_entity.IsValid())
-                {
-                    // Push command to remove the entity
-                    entity_manager->PushCommand([&state = m_state, update, entity = std::move(patch_entity)](EntityManager& mgr, GameCounter::TickUnit delta)
-                        {
-                            // tmp; debugging
-                            WeakHandle<Node> weak_node;
-
-                            // Remove the node from the parent
-                            if (mgr.HasEntity(entity))
-                            {
-                                if (NodeLinkComponent* node_link_component = mgr.TryGetComponent<NodeLinkComponent>(entity))
-                                {
-                                    if (Handle<Node> node = node_link_component->node.Lock())
-                                    {
-                                        weak_node = node; // temp; debugging
-
-                                        node->Remove();
-                                    }
-                                }
-                            }
-
-                            // weak_node.GetRefCountData_Internal()->GetRefTrackData([](const auto &ref_track_data)
-                            // {
-                            //     HYP_LOG(WorldGrid, Debug, "RefTrackData: {} refs", ref_track_data.Size());
-                            //     for (auto &it : ref_track_data) {
-                            //         HYP_LOG(WorldGrid, Debug, "\n\tAddress : {}\n\tStack Trace: {}\n\tCount: {}", it.first, it.second.stack_trace, it.second.count);
-                            //     }
-                            // });
-                        });
+                    m_state.patches.Erase(patches_it);
                 }
             }
 
-            m_state.PushUpdate({ .coord = update.coord,
-                .state = WorldGridPatchState::UNLOADED });
+            m_state.PushUpdate({ .coord = update.coord, .state = StreamingCellState::UNLOADED });
 
             break;
         }
         default:
         {
-            // // Push command to update patch state
-            // entity_manager->PushCommand([&state = m_state, update](EntityManager &mgr, GameCounter::TickUnit delta)
-            // {
-            //     Threads::AssertOnThread(g_game_thread);
-
-            //     const WorldGridPatchDesc *patch_desc = state.GetPatchDesc(update.coord);
-            //     AssertThrow(patch_desc != nullptr);
-
-            //     const ID<Entity> patch_entity = patch_desc->entity;
-
-            //     if (!patch_entity.IsValid()) {
-            //         HYP_LOG(WorldGrid, Warning, "Patch entity at {} was not found when updating state", update.coord);
-
-            //         return;
-            //     }
-
-            //     WorldGridPatchComponent *patch_component = mgr.TryGetComponent<WorldGridPatchComponent>(patch_entity);
-            //     AssertThrowMsg(patch_component, "Patch entity did not have a WorldGridPatchComponent when updating state");
-
-            //     // set new state
-            //     patch_component->patch_info.state = update.state;
-            // });
-
             break;
         }
         }
     }
 
     // get new updates or next iteration
-    Array<Vec2i> desired_patch_coords;
-    GetDesiredPatches(camera_patch_coord, desired_patch_coords);
+    HashSet<Vec2i> desired_patch_coords;
+    GetDesiredPatches(desired_patch_coords);
 
-    if (desired_patch_coords == m_state.previous_desired_patch_coords)
+    const HashCode::ValueType desired_patch_coords_hash = desired_patch_coords.GetHashCode().Value();
+
+    if (m_state.previous_desired_patch_coords_hash == desired_patch_coords_hash)
     {
+        // no changes in desired patches, skip
         return;
     }
 
-    Array<Vec2i> patch_coords_to_add = desired_patch_coords;
+    Array<Vec2i> patch_coords_to_add = desired_patch_coords.ToArray();
     Array<Vec2i> patch_coords_to_remove;
 
     { // get diff of patches in range
@@ -508,7 +329,7 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
 
         Mutex::Guard guard(m_state.patches_mutex);
 
-        for (KeyValuePair<Vec2i, WorldGridPatchDesc>& kv : m_state.patches)
+        for (KeyValuePair<Vec2i, Handle<StreamingCell>>& kv : m_state.patches)
         {
             auto it = desired_patch_coords.Find(kv.first);
 
@@ -540,19 +361,19 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
                 continue;
             }
 
-            const WorldGridPatchInfo& patch_info = it->second.patch_info;
+            const Handle<StreamingCell>& cell = it->second;
+            AssertThrow(cell.IsValid());
 
-            switch (patch_info.state)
+            switch (cell->GetPatchInfo().state)
             {
-            case WorldGridPatchState::UNLOADED: // fallthrough
-            case WorldGridPatchState::UNLOADING:
+            case StreamingCellState::UNLOADED: // fallthrough
+            case StreamingCellState::UNLOADING:
                 break;
             default:
-                HYP_LOG(WorldGrid, Info, "Patch {} no longer in range, unloading", patch_info.coord);
+                HYP_LOG(WorldGrid, Info, "Patch {} no longer in range, unloading", cell->GetPatchInfo().coord);
 
                 // Start unloading
-                m_state.PushUpdate({ .coord = patch_info.coord,
-                    .state = WorldGridPatchState::UNLOADING });
+                m_state.PushUpdate({ .coord = cell->GetPatchInfo().coord, .state = StreamingCellState::UNLOADING });
 
                 break;
             }
@@ -570,34 +391,36 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
         {
             if (!m_state.patches.Contains(coord))
             {
-                m_state.PushUpdate({ .coord = coord,
-                    .state = WorldGridPatchState::WAITING });
+                m_state.PushUpdate({ .coord = coord, .state = StreamingCellState::WAITING });
             }
         }
     }
 
-    m_state.previous_desired_patch_coords = std::move(desired_patch_coords);
+    m_state.previous_desired_patch_coords_hash = desired_patch_coords_hash;
 }
 
-void WorldGrid::AddPlugin(int priority, RC<WorldGridPlugin>&& plugin)
+void WorldGrid::AddPlugin(int priority, const RC<WorldGridPlugin>& plugin)
 {
     Threads::AssertOnThread(g_game_thread);
 
     AssertThrow(plugin != nullptr);
 
-    if (m_is_initialized)
+    if (IsInitCalled())
     {
         // Initialize plugin if grid is already initialized
 
-        plugin->Initialize();
+        plugin->Initialize(this);
     }
 
-    m_plugins.Set(priority, std::move(plugin));
+    m_plugins.Insert(KeyValuePair<int, RC<WorldGridPlugin>>(priority, plugin));
 }
 
 RC<WorldGridPlugin> WorldGrid::GetPlugin(int priority) const
 {
-    const auto it = m_plugins.Find(priority);
+    const auto it = m_plugins.FindIf([priority](const KeyValuePair<int, RC<WorldGridPlugin>>& kv)
+        {
+            return kv.first == priority;
+        });
 
     if (it == m_plugins.End())
     {
@@ -617,15 +440,63 @@ RC<WorldGridPlugin> WorldGrid::GetMainPlugin() const
     return m_plugins.Front().second;
 }
 
-void WorldGrid::GetDesiredPatches(Vec2i coord, Array<Vec2i>& out_patch_coords) const
+// void WorldGrid::CreatePatches()
+// {
+//     HYP_SCOPE;
+
+//     AssertThrow(m_streaming_manager.IsValid());
+
+//     m_patches.Clear();
+//     m_patches.Resize(m_params.grid_size.Volume());
+
+//     HYP_LOG(WorldGrid, Info, "Creating {} patches for world grid with size {}x{}", m_patches.Size(), m_params.grid_size.x, m_params.grid_size.y);
+
+//     for (uint32 x = 0; x < m_params.grid_size.x; ++x)
+//     {
+//         for (uint32 z = 0; z < m_params.grid_size.y; ++z)
+//         {
+//             const Vec2i coord { int(x), int(z) };
+
+//             WorldGridPatchDesc& patch_desc = m_patches[x + z * m_params.grid_size.x];
+//             patch_desc.cell_info = StreamingCellInfo {
+//                 .extent = m_params.cell_size,
+//                 .coord = coord,
+//                 .scale = m_params.scale,
+//                 .state = StreamingCellState::UNLOADED,
+//                 .neighbors = GetPatchNeighbors(coord)
+//             };
+
+//             Handle<StreamingCell> patch = CreateObject<StreamingCell>(this, patch_desc.cell_info);
+//             AssertThrow(patch.IsValid());
+
+//             patch_desc.patch = patch;
+//         }
+//     }
+// }
+
+void WorldGrid::GetDesiredPatches(HashSet<Vec2i>& out_patch_coords) const
 {
-    for (int x = MathUtil::Floor(-m_params.max_distance); x <= MathUtil::Ceil(m_params.max_distance) + 1; ++x)
-    {
-        for (int z = MathUtil::Floor(-m_params.max_distance); z <= MathUtil::Ceil(m_params.max_distance) + 1; ++z)
+    ForEachStreamingVolume(m_streaming_manager.Get(), [this, &out_patch_coords](StreamingVolumeBase* volume) -> IterationResult
         {
-            out_patch_coords.PushBack(coord + Vec2i { x, z });
-        }
-    }
+            BoundingBox aabb;
+
+            if (!volume->GetBoundingBox(aabb))
+            {
+                return IterationResult::CONTINUE;
+            }
+
+            const Vec2i coord = WorldSpaceToCellCoord(*this, aabb.GetCenter());
+
+            for (int x = MathUtil::Floor(-m_params.max_distance); x <= MathUtil::Ceil(m_params.max_distance) + 1; ++x)
+            {
+                for (int z = MathUtil::Floor(-m_params.max_distance); z <= MathUtil::Ceil(m_params.max_distance) + 1; ++z)
+                {
+                    out_patch_coords.Insert(coord + Vec2i { x, z });
+                }
+            }
+
+            return IterationResult::CONTINUE;
+        });
 }
 
 #pragma endregion WorldGrid

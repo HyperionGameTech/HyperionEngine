@@ -26,7 +26,6 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/TerrainComponent.hpp>
 #include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/RigidBodyComponent.hpp>
@@ -107,6 +106,12 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
+    if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
+    {
+        // Initialize the world grid subsystem
+        world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>(m_scene));
+    }
+
     // Calculate memory pool usage
     Array<SizeType> memory_usage_per_pool;
     CalculateMemoryPoolUsage(memory_usage_per_pool);
@@ -146,8 +151,6 @@ void HyperionEditor::Init()
             1.0f);
 
         Handle<Texture> dummy_light_texture;
-
-        constexpr auto x = sizeof(Array<int>);
 
         if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png"))
         {
@@ -242,7 +245,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (true)
+    if (false)
     {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -282,7 +285,7 @@ void HyperionEditor::Init()
 
                              GetScene()->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
                              Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
                              m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {});

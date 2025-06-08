@@ -23,6 +23,11 @@ class GPUBufferHolderBase;
 // Represents the objects an engine object (e.g Material) uses while it is currently being used by the renderer in some way.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
 // the resources will remain in memory.
+
+/// \TODO: Refactor this so that changes are immediately applied to the data on the thread that sets it, but it marks it for needing update
+/// on the render thread. updates will be applied during sync points between the game and render thread, rather than enqueing a task to update the data.
+/// This will reduce the amount of atomics needed to synchronize the data between the game and render thread, as well as reduce the amount of tasks that need to be enqueued.
+
 class RenderResourceBase : public ResourceBase
 {
 public:

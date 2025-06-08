@@ -59,6 +59,7 @@ public:
 
     RC<Assembly> LoadAssembly(const char* path) const;
     bool UnloadAssembly(ManagedGuid guid) const;
+    bool IsCoreAssembly(const Assembly* assembly) const;
 
     bool IsEnabled() const;
 

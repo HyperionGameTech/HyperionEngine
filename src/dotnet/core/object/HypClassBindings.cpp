@@ -8,6 +8,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/utilities/GlobalContext.hpp>
+
 #include <core/Name.hpp>
 
 #include <dotnet/DotNetSystem.hpp>
@@ -140,7 +142,7 @@ void DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     AssertThrow(m_class_ptr != nullptr);
 
     { // suppress default managed object creation - we will create it ourselves
-        HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+        GlobalContextScope scope(HypObjectInitializerContext { this, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
         {
             HypData value;

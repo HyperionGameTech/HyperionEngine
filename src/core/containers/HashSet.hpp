@@ -798,6 +798,38 @@ public:
         return *this;
     }
 
+    HYP_NODISCARD HYP_FORCE_INLINE Array<Value> ToArray() const&
+    {
+        Array<Value> result;
+        result.ResizeUninitialized(m_size);
+
+        SizeType index = 0;
+
+        for (const auto& item : *this)
+        {
+            Memory::Construct<Value>(result.Data() + index++, item);
+        }
+
+        return result;
+    }
+
+    HYP_NODISCARD HYP_FORCE_INLINE Array<Value> ToArray() &&
+    {
+        Array<Value> result;
+        result.ResizeUninitialized(m_size);
+
+        SizeType index = 0;
+
+        for (auto&& item : std::move(*this))
+        {
+            Memory::Construct<Value>(result.Data() + index++, std::move(item));
+        }
+
+        Clear();
+
+        return result;
+    }
+
     HYP_FORCE_INLINE Iterator Begin()
     {
         return Iterator(this, typename Bucket::Iterator { m_buckets.Data(), m_buckets[0].head });

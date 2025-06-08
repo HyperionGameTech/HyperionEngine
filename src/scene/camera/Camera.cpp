@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/camera/Camera.hpp>
+#include <scene/camera/streaming/CameraStreamingVolume.hpp>
 
 #include <core/math/Halton.hpp>
 
@@ -219,6 +220,11 @@ void Camera::Init()
     }
 
     HypObject::Init();
+
+    m_streaming_volume = CreateObject<CameraStreamingVolume>();
+    /// \todo: Set a proper bounding box for the streaming volume
+    m_streaming_volume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+    InitObject(m_streaming_volume);
 
     if (m_flags & CameraFlags::MATCH_WINDOW_SIZE)
     {
@@ -623,6 +629,12 @@ void Camera::Update(GameCounter::TickUnit dt)
     m_translation = m_next_translation;
 
     UpdateMatrices();
+
+    if (m_streaming_volume.IsValid())
+    {
+        /// \todo: Set a proper bounding box for the streaming volume
+        m_streaming_volume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+    }
 
     m_render_resource->SetBufferData(CameraShaderData {
         .view = m_view_mat,

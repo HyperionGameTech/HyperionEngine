@@ -86,6 +86,28 @@ BoundingSphere& BoundingSphere::Extend(const BoundingBox& box)
     return *this;
 }
 
+bool BoundingSphere::Overlaps(const BoundingSphere& other) const
+{
+    float distance_squared = (other.center - center).LengthSquared();
+    float radius_sum = radius + other.radius;
+
+    return distance_squared <= (radius_sum * radius_sum);
+}
+
+bool BoundingSphere::Overlaps(const BoundingBox& box) const
+{
+    Vec3f closest_point = MathUtil::Clamp(center, box.min, box.max);
+    float distance_squared = (center - closest_point).LengthSquared();
+    float radius_squared = radius * radius;
+
+    return distance_squared <= radius_squared;
+}
+
+bool BoundingSphere::ContainsPoint(const Vec3f& point) const
+{
+    return (point - center).LengthSquared() <= radius * radius;
+}
+
 Vec4f BoundingSphere::ToVector4() const
 {
     return Vec4f(center, radius);

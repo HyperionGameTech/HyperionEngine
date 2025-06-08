@@ -397,15 +397,9 @@ void EntityManager::SetWorld(World* world)
 Handle<Entity> EntityManager::AddEntity()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(m_owner_thread_id);
 
-    ObjectContainer<Entity>& container = ObjectPool::GetObjectContainerHolder().GetOrCreate<Entity>();
-
-    HypObjectMemory<Entity>* memory = container.Allocate();
-    memory->Construct();
-
-    Handle<Entity> entity { memory };
+    Handle<Entity> entity = CreateObject<Entity>();
 
     MoveEntityGuard move_entity_guard(*this);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);

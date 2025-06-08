@@ -913,14 +913,13 @@ String<TStringType>::String()
     : Base(),
       m_length(0)
 {
-    // null-terminated char
-    Base::PushBack(CharType { 0 });
+    // add null character for easy conversion to C-style strings via Data() and operator*()
+    Base::ResizeZeroed(1);
 }
 
 template <int TStringType>
 String<TStringType>::String(const CharType* str)
-    : Base(),
-      m_length(0)
+    : String()
 {
     if (str == nullptr)
     {
@@ -933,15 +932,12 @@ String<TStringType>::String(const CharType* str)
     if (len == -1)
     {
         // invalid utf8 string
-        // push back null terminated char
-        Base::PushBack(CharType { 0 });
-
         return;
     }
 
     m_length = len;
 
-    Base::Resize(codepoints + 1);
+    Base::ResizeZeroed(codepoints + 1);
 
     CharType* data = Data();
 
@@ -979,7 +975,7 @@ String<TStringType>::String(const CharType* _begin, const CharType* _end)
         m_length = size;
     }
 
-    Base::Resize(size + 1);
+    Base::ResizeZeroed(size + 1);
 
     CharType* data = Data();
 
@@ -991,7 +987,7 @@ String<TStringType>::String(const CharType* _begin, const CharType* _end)
 
 template <int TStringType>
 String<TStringType>::String(const String& other)
-    : Base(other),
+    : Base(static_cast<const Base&>(other)),
       m_length(other.m_length)
 {
 }
@@ -1018,7 +1014,7 @@ String<TStringType>::String(ConstByteView byte_view)
         AssertThrowMsg(byte_view.Data()[index] >= 0 && byte_view.Data()[index] <= 255, "Out of character range");
 #endif
 
-        if (byte_view.Data()[index] == 0x0)
+        if (byte_view.Data()[index] == '\0')
         {
             size = index;
 
@@ -1026,7 +1022,7 @@ String<TStringType>::String(ConstByteView byte_view)
         }
     }
 
-    Base::Resize((size / sizeof(CharType)) + 1); // +1 for null char
+    Base::ResizeZeroed((size / sizeof(CharType)) + 1); // +1 for null char
     Memory::MemCpy(Data(), byte_view.Data(), size / sizeof(CharType));
 
     m_length = utf::utf_strlen<CharType, is_utf8>(Base::Data());
@@ -1040,6 +1036,12 @@ String<TStringType>::~String()
 template <int TStringType>
 auto String<TStringType>::operator=(const CharType* str) -> String&
 {
+    if (str == nullptr)
+    {
+        Clear();
+        return *this;
+    }
+
     String<TStringType>::operator=(String(str));
 
     return *this;
@@ -1048,7 +1050,12 @@ auto String<TStringType>::operator=(const CharType* str) -> String&
 template <int TStringType>
 auto String<TStringType>::operator=(const String& other) -> String&
 {
-    Base::operator=(other);
+    if (this == std::addressof(other))
+    {
+        return *this;
+    }
+
+    Base::operator=(static_cast<const Base&>(other));
     m_length = other.m_length;
 
     return *this;
@@ -1057,9 +1064,15 @@ auto String<TStringType>::operator=(const String& other) -> String&
 template <int TStringType>
 auto String<TStringType>::operator=(String&& other) noexcept -> String&
 {
-    const auto len = other.m_length;
-    Base::operator=(std::move(other));
-    m_length = len;
+    if (this == std::addressof(other))
+    {
+        return *this;
+    }
+
+    Base::operator=(static_cast<Base&&>(std::move(other)));
+
+    m_length = other.m_length;
+
     other.Clear();
 
     return *this;
@@ -1227,11 +1240,9 @@ void String<TStringType>::Append(const utilities::StringView<TStringType>& strin
 
     auto* buffer = Base::GetBuffer();
 
-    for (SizeType i = 0; i < string_view.Size(); i++)
-    {
-        // set item at index
-        new (&buffer[Base::m_size++]) CharType(string_view.Data()[i]);
-    }
+    Memory::MemCpy(buffer + Base::m_size, string_view.Data(), string_view.Size() * sizeof(CharType));
+
+    Base::m_size += string_view.Size();
 
     Base::PushBack(CharType { 0 });
 
@@ -1283,18 +1294,23 @@ auto String<TStringType>::PopFront() -> typename Base::ValueType
 template <int TStringType>
 auto String<TStringType>::PopBack() -> typename Base::ValueType
 {
+    AssertDebugMsg(Base::m_size > 1, "Cannot pop back from an empty string");
+
+    CharType last_char = 0;
+    std::swap(Base::GetBuffer()[Base::m_size - 2], last_char); // -2 because we want the last character before the null terminator
+
+    Base::PopBack(); // remove current null terminator, leaving the last character in place
+
     --m_length;
-    Base::PopBack(); // pop NT-char
-    auto&& res = Base::PopBack();
-    Base::PushBack(CharType { 0 }); // add NT-char
-    return res;
+
+    return last_char;
 }
 
 template <int TStringType>
 void String<TStringType>::Clear()
 {
-    Base::Clear();
-    Base::PushBack(CharType { 0 }); // NT char
+    Base::Resize(1);
+    Base::Back() = CharType { 0 }; // null-terminate
     m_length = 0;
 }
 

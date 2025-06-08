@@ -251,12 +251,27 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
 
         AssertThrowMsg(local_descriptor_element_infos.Size() <= cached_values.Size(), "Index out of range for cached values");
 
-        if (Memory::MemCmp(cached_values.Data(), local_descriptor_element_infos.Data(), sizeof(VulkanDescriptorElementInfo)) != 0)
+        auto local_dirty_range = Range<uint32>::Invalid();
+
+        for (SizeType i = 0; i < local_descriptor_element_infos.Size(); i++)
         {
-            Memory::MemCpy(cached_values.Data(), local_descriptor_element_infos.Data(), sizeof(VulkanDescriptorElementInfo));
+            if (Memory::MemCmp(local_descriptor_element_infos.Data() + i, cached_values.Data() + i, sizeof(VulkanDescriptorElementInfo)) != 0)
+            {
+                local_dirty_range |= { uint32(i), uint32(i + 1) };
+            }
+        }
+
+        if (local_dirty_range.Distance() > 0)
+        {
+            AssertDebug(local_dirty_range.GetStart() < cached_values.Size());
+            AssertDebug(local_dirty_range.GetEnd() <= cached_values.Size());
+            AssertDebug(local_dirty_range.GetStart() < local_descriptor_element_infos.Size());
+            AssertDebug(local_dirty_range.GetEnd() <= local_descriptor_element_infos.Size());
+
+            Memory::MemCpy(cached_values.Data() + local_dirty_range.GetStart(), local_descriptor_element_infos.Data() + local_dirty_range.GetStart(), sizeof(VulkanDescriptorElementInfo) * SizeType(local_dirty_range.Distance()));
 
             // mark the element as dirty
-            element.dirty_range |= { 0, uint32(local_descriptor_element_infos.Size()) };
+            element.dirty_range |= local_dirty_range;
 
             m_vk_descriptor_element_infos.Concat(std::move(local_descriptor_element_infos));
         }
@@ -266,7 +281,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
     {
         *out_is_dirty = m_vk_descriptor_element_infos.Any();
     }
-} // namespace renderer
+}
 
 void VulkanDescriptorSet::Update()
 {
@@ -315,7 +330,7 @@ void VulkanDescriptorSet::Update()
     {
         DescriptorSetElement& element = it.second;
 
-        element.dirty_range = {};
+        element.dirty_range = Range<uint32>::Invalid();
     }
 
     m_vk_descriptor_element_infos.Clear();
@@ -354,6 +369,7 @@ RendererResult VulkanDescriptorSet::Create()
         m_cached_elements.Emplace(name, Array<VulkanDescriptorElementInfo>(element.values.Size()));
     }
 
+    UpdateDirtyState();
     Update();
 
     return result;

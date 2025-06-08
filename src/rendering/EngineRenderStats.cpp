@@ -12,11 +12,17 @@ namespace hyperion {
 
 SuppressEngineRenderStatsScope::SuppressEngineRenderStatsScope()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     g_engine->GetRenderStatsCalculator().Suppress();
 }
 
 SuppressEngineRenderStatsScope::~SuppressEngineRenderStatsScope()
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     g_engine->GetRenderStatsCalculator().Unsuppress();
 }
 
@@ -26,6 +32,9 @@ SuppressEngineRenderStatsScope::~SuppressEngineRenderStatsScope()
 
 void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& counts)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     if (m_suppress_count > 0)
     {
         return;
@@ -37,6 +46,9 @@ void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& count
 
 void EngineRenderStatsCalculator::AddSample(double delta)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     if (m_suppress_count > 0)
     {
         return;
@@ -49,6 +61,9 @@ void EngineRenderStatsCalculator::AddSample(double delta)
 
 void EngineRenderStatsCalculator::Advance(EngineRenderStats& render_stats)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     m_counter.NextTick();
     m_delta_accum += m_counter.delta;
 
@@ -80,6 +95,9 @@ void EngineRenderStatsCalculator::Advance(EngineRenderStats& render_stats)
 
 double EngineRenderStatsCalculator::CalculateFramesPerSecond() const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     if (m_num_samples == 0)
     {
         return 0.0;
@@ -98,6 +116,9 @@ double EngineRenderStatsCalculator::CalculateFramesPerSecond() const
 
 double EngineRenderStatsCalculator::CalculateMillisecondsPerFrame() const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     if (m_num_samples == 0)
     {
         return 0.0;

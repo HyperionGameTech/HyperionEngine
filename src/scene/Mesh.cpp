@@ -115,8 +115,7 @@ Mesh::Mesh(
 }
 
 Mesh::Mesh(Mesh&& other) noexcept
-    : HypObject(static_cast<HypObject&&>(other)),
-      m_mesh_attributes(other.m_mesh_attributes),
+    : m_mesh_attributes(other.m_mesh_attributes),
       m_streamed_mesh_data(std::move(other.m_streamed_mesh_data)),
       m_streamed_mesh_data_resource_handle(std::move(other.m_streamed_mesh_data_resource_handle)),
       m_aabb(other.m_aabb),

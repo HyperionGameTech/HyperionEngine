@@ -41,14 +41,17 @@ HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 ResourceBase::ResourceBase()
     : m_initialization_mask(0),
+      m_initialization_thread_id(ThreadID::Invalid()),
       m_update_counter(0)
 {
 }
 
 ResourceBase::ResourceBase(ResourceBase&& other) noexcept
     : m_initialization_mask(other.m_initialization_mask.Exchange(0, MemoryOrder::ACQUIRE_RELEASE)),
+      m_initialization_thread_id(other.m_initialization_thread_id),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
+    other.m_initialization_thread_id = ThreadID::Invalid();
 }
 
 ResourceBase::~ResourceBase()
@@ -77,7 +80,11 @@ int ResourceBase::IncRefNoInitialize()
             state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
             Threads::Sleep(0);
         }
+
+        m_initialization_thread_id = Threads::CurrentThreadID();
     }
+
+    return count;
 }
 
 int ResourceBase::IncRef()
@@ -89,8 +96,9 @@ int ResourceBase::IncRef()
         {
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
-            uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "Attempted to initialize a resource that is already initialized");
+            uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE_RELEASE);
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "Attempted to initialize a resource that is already initialized! Initialization thread id: %s (%u)",
+                m_initialization_thread_id.GetName().LookupString(), m_initialization_thread_id.GetValue());
 
             // loop until we have exclusive access.
             while (state & g_initialization_mask_read_mask)
@@ -100,6 +108,8 @@ int ResourceBase::IncRef()
             }
 
             HYP_MT_CHECK_RW(m_data_race_detector);
+
+            m_initialization_thread_id = Threads::CurrentThreadID();
 
             Initialize();
         }
@@ -158,8 +168,8 @@ int ResourceBase::DecRef()
     {
         HYP_NAMED_SCOPE("Destroying Resource");
 
-        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-        AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::DecRef() called on a resource that is not initialized");
+        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE_RELEASE);
+        AssertDebugMsg(state & g_initialization_mask_initialized_bit, "ResourceBase::DecRef() called on a resource that is not initialized!");
 
         // Wait till all reads are complete before we continue
         while (state & g_initialization_mask_read_mask)
@@ -175,12 +185,15 @@ int ResourceBase::DecRef()
 
         // DEBUGGING
         state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
-        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::DecRef() called on a resource that is still initialized");
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::DecRef() called on a resource that is still initialized! Initialization thread id: %s (%u)",
+            m_initialization_thread_id.GetName().LookupString(), m_initialization_thread_id.GetValue());
 
         {
             HYP_MT_CHECK_RW(m_data_race_detector);
 
             Destroy();
+
+            m_initialization_thread_id = ThreadID::Invalid();
         }
 
         // Done with destroying, we can now remove our read access

@@ -94,7 +94,7 @@ class AssetManagerWorkerThread : public TaskThread
 {
 public:
     AssetManagerWorkerThread(ThreadID id)
-        : TaskThread(id, ThreadPriorityValue::LOW)
+        : TaskThread(id, ThreadPriorityValue::NORMAL)
     {
     }
 
@@ -378,6 +378,8 @@ void AssetManager::Update(GameCounter::TickUnit delta)
     if ((num_pending_batches = m_num_pending_batches.Get(MemoryOrder::ACQUIRE)) != 0)
     {
         HYP_NAMED_SCOPE_FMT("Update pending batches ({})", num_pending_batches);
+
+        /// \todo Set thread priorities based on number of pending batches
 
         Mutex::Guard guard(m_pending_batches_mutex);
 

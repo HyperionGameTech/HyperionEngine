@@ -9,14 +9,9 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <scene/Node.hpp>
-
-#include <GameCounter.hpp>
+#include <streaming/StreamingCell.hpp>
 
 namespace hyperion {
-
-class WorldGridPatch;
-struct WorldGridPatchInfo;
 
 HYP_CLASS(Abstract)
 class HYP_API WorldGridPlugin : public EnableRefCountedPtrFromThis<WorldGridPlugin>
@@ -31,11 +26,42 @@ public:
     WorldGridPlugin& operator=(WorldGridPlugin&& other) = delete;
     virtual ~WorldGridPlugin() = default;
 
-    virtual void Initialize() = 0;
-    virtual void Shutdown() = 0;
-    virtual void Update(GameCounter::TickUnit delta) = 0;
+    HYP_METHOD(Scriptable)
+    void Initialize(WorldGrid* world_grid);
+    
+    HYP_METHOD(Scriptable)
+    void Shutdown(WorldGrid* world_grid);
 
-    virtual UniquePtr<WorldGridPatch> CreatePatch(const WorldGridPatchInfo& patch_info) = 0;
+    HYP_METHOD(Scriptable)
+    void Update(float delta);
+
+    HYP_METHOD(Scriptable)
+    Handle<StreamingCell> CreatePatch(WorldGrid* world_grid, const StreamingCellInfo& cell_info);
+
+protected:
+    HYP_METHOD()
+    virtual void Initialize_Impl(WorldGrid* world_grid)
+    {
+        HYP_PURE_VIRTUAL();
+    }
+
+    HYP_METHOD()
+    virtual void Shutdown_Impl(WorldGrid* world_grid)
+    {
+        HYP_PURE_VIRTUAL();
+    }
+
+    HYP_METHOD()
+    virtual void Update_Impl(float delta)
+    {
+        HYP_PURE_VIRTUAL();
+    }
+
+    HYP_METHOD()
+    virtual Handle<StreamingCell> CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
+    {
+        HYP_PURE_VIRTUAL();
+    }
 };
 
 } // namespace hyperion

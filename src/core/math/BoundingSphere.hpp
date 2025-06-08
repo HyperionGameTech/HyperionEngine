@@ -59,6 +59,11 @@ public:
 
     BoundingSphere& Extend(const BoundingBox& box);
 
+    bool Overlaps(const BoundingSphere& other) const;
+    bool Overlaps(const BoundingBox& box) const;
+
+    bool ContainsPoint(const Vec3f& point) const;
+
     /*! \brief Convert the BoundingSphere to an AABB. */
     HYP_FORCE_INLINE operator BoundingBox() const
     {

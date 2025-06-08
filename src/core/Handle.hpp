@@ -11,6 +11,8 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/NotNullPtr.hpp>
 
+#include <core/utilities/GlobalContext.hpp>
+
 namespace hyperion {
 
 template <class T>
@@ -93,21 +95,21 @@ struct Handle final : HandleBase
     }
 
     template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType*, T*>>>
-    explicit Handle(TPointerType* ptr)
-        : ptr(ptr ? static_cast<HypObjectBase*>(static_cast<T*>(ptr)) : nullptr)
+    explicit Handle(TPointerType* value)
+        : ptr(value ? static_cast<HypObjectBase*>(static_cast<T*>(value)) : nullptr)
     {
         if (IsValid())
         {
-            this->ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
     }
 
-    explicit Handle(HypObjectMemory<T>* ptr)
-        : ptr(ptr ? static_cast<HypObjectBase*>(ptr->GetPointer()) : nullptr)
+    explicit Handle(HypObjectMemory<T>* value)
+        : ptr(value ? static_cast<HypObjectBase*>(value->GetPointer()) : nullptr)
     {
         if (IsValid())
         {
-            this->ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
     }
 
@@ -116,7 +118,7 @@ struct Handle final : HandleBase
     {
         if (IsValid())
         {
-            this->ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
     }
 
@@ -129,14 +131,14 @@ struct Handle final : HandleBase
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            ptr->m_header->DecRefStrong();
         }
 
         ptr = other.ptr;
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
 
         return *this;
@@ -157,7 +159,7 @@ struct Handle final : HandleBase
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            ptr->m_header->DecRefStrong();
         }
 
         ptr = other.ptr;
@@ -170,7 +172,7 @@ struct Handle final : HandleBase
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            ptr->m_header->DecRefStrong();
         }
     }
 
@@ -196,7 +198,7 @@ struct Handle final : HandleBase
 
     HYP_FORCE_INLINE operator IDType() const
     {
-        return ptr != nullptr ? IDType(ptr->GetObjectHeader_Internal()->index + 1) : IDType();
+        return ptr != nullptr ? IDType(ptr->m_header->index + 1) : IDType();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -270,7 +272,7 @@ struct Handle final : HandleBase
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            ptr->m_header->DecRefStrong();
         }
 
         ptr = nullptr;
@@ -338,7 +340,7 @@ struct WeakHandle final
     }
 
     explicit WeakHandle(HypObjectHeader* header)
-        : ptr(header ? static_cast<HypObjectBase*>(static_cast<T*>(header->container->GetObjectPointer(header))) : nullptr)
+        : ptr(header ? static_cast<HypObjectMemory<T>*>(header)->GetPointer() : nullptr)
     {
         if (header)
         {
@@ -358,7 +360,7 @@ struct WeakHandle final
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->IncRefWeak();
+            ptr->m_header->IncRefWeak();
         }
     }
 
@@ -371,14 +373,14 @@ struct WeakHandle final
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            ptr->m_header->DecRefWeak();
         }
 
         ptr = other.ptr;
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->IncRefWeak();
+            ptr->m_header->IncRefWeak();
         }
 
         return *this;
@@ -389,7 +391,7 @@ struct WeakHandle final
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->IncRefWeak();
+            ptr->m_header->IncRefWeak();
         }
     }
 
@@ -402,14 +404,14 @@ struct WeakHandle final
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            ptr->m_header->DecRefWeak();
         }
 
         ptr = other.ptr;
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->IncRefWeak();
+            ptr->m_header->IncRefWeak();
         }
 
         return *this;
@@ -430,7 +432,7 @@ struct WeakHandle final
 
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            ptr->m_header->DecRefWeak();
         }
 
         ptr = other.ptr;
@@ -443,7 +445,7 @@ struct WeakHandle final
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            ptr->m_header->DecRefWeak();
         }
     }
 
@@ -457,7 +459,7 @@ struct WeakHandle final
             return Handle<T>();
         }
 
-        return ptr->GetObjectHeader_Internal()->ref_count_strong.Get(MemoryOrder::ACQUIRE) != 0
+        return ptr->m_header->ref_count_strong.Get(MemoryOrder::ACQUIRE) != 0
             ? Handle<T>(static_cast<T*>(ptr))
             : Handle<T>();
     }
@@ -479,7 +481,7 @@ struct WeakHandle final
 
     HYP_FORCE_INLINE operator IDType() const
     {
-        return ptr != nullptr ? IDType(ptr->GetObjectHeader_Internal()->index + 1) : IDType();
+        return ptr != nullptr ? IDType(ptr->m_header->index + 1) : IDType();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -551,7 +553,7 @@ struct WeakHandle final
     {
         if (ptr)
         {
-            ptr->GetObjectHeader_Internal()->DecRefWeak();
+            ptr->m_header->DecRefWeak();
         }
 
         ptr = nullptr;
@@ -595,7 +597,7 @@ public:
     {
         if (IsValid())
         {
-            this->ptr->GetObjectHeader_Internal()->IncRefStrong();
+            this->ptr->m_header->IncRefStrong();
         }
     }
 
@@ -606,14 +608,14 @@ public:
     {
         if (handle.IsValid())
         {
-            ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
     }
 
     template <class T>
     AnyHandle(Handle<T>&& handle)
         : ptr(handle.ptr),
-          type_id(TypeID::ForType<T>())
+          type_id(TypeID::ForType<T>()) // type_id(ptr != nullptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>())
     {
         handle.ptr = nullptr;
     }
@@ -715,13 +717,15 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        return type_id == TypeID::ForType<T>();
+        constexpr TypeID other_type_id = TypeID::ForType<T>();
+        return type_id == other_type_id
+            || IsInstanceOfHypClass(GetClass(other_type_id), ptr, type_id);
     }
 
     template <class T>
     HYP_NODISCARD Handle<T> Cast() const
     {
-        if (!type_id || type_id != TypeID::ForType<T>())
+        if (!Is<T>())
         {
             return {};
         }
@@ -767,27 +771,40 @@ const Handle<T> Handle<T>::empty = {};
 template <class T>
 const WeakHandle<T> WeakHandle<T>::empty = {};
 
-template <class T>
-HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject()
-{
-    ObjectContainer<T>& container = ObjectPool::GetObjectContainerHolder().GetOrCreate<T>();
-
-    HypObjectMemory<T>* element = container.Allocate();
-    element->Construct();
-
-    return Handle<T>(element);
-}
+HYP_DISABLE_OPTIMIZATION;
 
 template <class T, class... Args>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args&&... args)
 {
     ObjectContainer<T>& container = ObjectPool::GetObjectContainerHolder().GetOrCreate<T>();
 
-    HypObjectMemory<T>* element = container.Allocate();
-    element->Construct(std::forward<Args>(args)...);
+    HypObjectMemory<T>* header = container.Allocate();
 
-    return Handle<T>(element);
+    AssertDebug(header != nullptr);
+    AssertDebug(header->container == &container);
+    AssertThrow(!header->has_value.Exchange(true, MemoryOrder::SEQUENTIAL));
+
+    header->IncRefWeak();
+
+    T* ptr = header->storage.GetPointer();
+
+    Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
+
+    // AssertDebugMsg(ptr->m_header == static_cast<HypObjectHeader*>(header),
+    //     "HypObjectHeader pointer does not match HypObjectMemory pointer. "
+    //     "This is likely due to a bug in the HypObjectMemory implementation. Ptr: %p, Header: %p",
+    //     ptr->m_header, header);
+    AssertDebug(ptr->m_header != nullptr);
+    AssertDebugMsg(ptr->m_header->container == &container,
+        "HypObjectHeader container does not match HypObjectMemory container. "
+        "This is likely due to a bug in the HypObjectMemory implementation. Ptr: %p, Header: %p, Container: %p\n"
+        "Expected container type ID: %u, Got container type ID: %u",
+        ptr->m_header, header, &container, container.GetObjectTypeID().Value(), ptr->m_header->container->GetObjectTypeID().Value());
+
+    return Handle<T>(ptr->m_header);
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 template <class T>
 HYP_FORCE_INLINE inline bool InitObject(const Handle<T>& handle)

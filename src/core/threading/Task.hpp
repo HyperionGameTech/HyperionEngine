@@ -617,7 +617,7 @@ public:
 protected:
     virtual void Await_Internal() const;
 
-    void Reset()
+    virtual void Reset()
     {
         m_id = TaskID::Invalid();
         m_assigned_scheduler = nullptr;
@@ -769,7 +769,7 @@ protected:
 #endif
     }
 
-    void Reset()
+    virtual void Reset() override
     {
         if (m_owns_executor)
         {
@@ -904,7 +904,7 @@ protected:
 #endif
     }
 
-    void Reset()
+    virtual void Reset() override
     {
         if (m_owns_executor)
         {

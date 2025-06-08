@@ -15,6 +15,7 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderMaterial.hpp>
+#include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderState.hpp>
@@ -32,12 +33,15 @@
 
 #include <asset/Assets.hpp>
 
+#include <streaming/StreamingManager.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 #include <core/filesystem/FsUtil.hpp>
 
 #include <util/MeshBuilder.hpp>
 
 #include <scene/World.hpp>
+#include <scene/Texture.hpp>
 
 #include <core/debug/StackDump.hpp>
 #include <system/SystemEvent.hpp>
@@ -74,6 +78,7 @@ using renderer::GPUBufferType;
 
 Handle<Engine> g_engine = {};
 Handle<AssetManager> g_asset_manager {};
+// Handle<StreamingManager> g_streaming_manager {};
 ShaderManager* g_shader_manager = nullptr;
 MaterialCache* g_material_system = nullptr;
 SafeDeleter* g_safe_deleter = nullptr;
@@ -292,6 +297,8 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
     SetGlobalStreamingThread(streaming_thread);
     streaming_thread->Start();
 
+    // g_streaming_manager->Start();
+
     // must start after net request thread
     if (m_app_context->GetArguments()["Profile"])
     {
@@ -314,22 +321,22 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
 
         for (uint32 i = 0; i < max_bound_reflection_probes; i++)
         {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), i, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), i, GetPlaceholderData()->DefaultTexture2D->GetRenderResource().GetImageView());
         }
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("VoxelGridTexture"), g_engine->GetPlaceholderData()->GetImageView3D1x1x1R8());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("VoxelGridTexture"), GetPlaceholderData()->GetImageView3D1x1x1R8());
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldColorTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldDepthTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldColorTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("BlueNoiseBuffer"), GPUBufferRef::Null());
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SphereSamplesBuffer"), GPUBufferRef::Null());
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8Array());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), g_engine->GetRenderData()->shadow_map_data->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), GetPlaceholderData()->GetImageView2D1x1R8Array());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), GetPlaceholderData()->GetImageViewCube1x1R8Array());
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), GetRenderData()->shadow_map_data->GetBuffer(frame_index));
 
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightmapVolumesBuffer"), g_engine->GetRenderData()->lightmap_volumes->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightmapVolumesBuffer"), GetRenderData()->lightmap_volumes->GetBuffer(frame_index));
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms), true /* exact size */));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
@@ -345,8 +352,8 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("FinalOutputTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Object
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), m_render_data->materials->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), m_render_data->skeletons->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), GetRenderData()->materials->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), GetRenderData()->skeletons->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeRadianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
@@ -493,6 +500,8 @@ void Engine::FinalizeStop()
 
     // must stop before net request thread
     StopProfilerConnectionThread();
+
+    // g_streaming_manager->Stop();
 
     if (RC<StreamingThread> streaming_thread = GetGlobalStreamingThread())
     {

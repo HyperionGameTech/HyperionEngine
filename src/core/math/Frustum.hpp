@@ -63,6 +63,7 @@ struct HYP_API Frustum
 
     bool ContainsAABB(const BoundingBox& aabb) const;
     bool ContainsBoundingSphere(const BoundingSphere& sphere) const;
+    bool ContainsPoint(const Vec3f& point) const;
 
     Frustum& SetFromViewProjectionMatrix(const Matrix4& view_proj);
     Vec3f GetIntersectionPoint(uint32 plane_index_0, uint32 plane_index_1, uint32 plane_index_2) const;

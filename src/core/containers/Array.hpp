@@ -684,6 +684,8 @@ Array<T, AllocatorType>::Array(const Array& other)
 
 template <class T, class AllocatorType>
 Array<T, AllocatorType>::Array(Array&& other) noexcept
+    : m_size(0),
+      m_start_offset(0)
 {
     m_allocation.SetToInitialState();
 

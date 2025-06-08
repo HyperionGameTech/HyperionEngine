@@ -219,6 +219,7 @@ protected:
 
 private:
     AtomicVar<uint64> m_initialization_mask;
+    ThreadID m_initialization_thread_id; // thread that initialized this resource
 };
 
 class IResourceMemoryPool

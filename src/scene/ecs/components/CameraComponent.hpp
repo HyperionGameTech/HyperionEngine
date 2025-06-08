@@ -11,6 +11,7 @@ namespace hyperion {
 
 class CameraController;
 class Camera;
+class StreamingVolumeBase;
 
 HYP_STRUCT(Component, Label = "Camera Component", Size = 8)
 

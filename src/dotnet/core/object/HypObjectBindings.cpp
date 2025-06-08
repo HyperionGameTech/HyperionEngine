@@ -40,7 +40,7 @@ extern "C"
 
         {
             // Suppress default managed object creation
-            HypObjectInitializerFlagsGuard flags_guard(HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION);
+            GlobalContextScope scope(HypObjectInitializerContext { hyp_class, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
 
             HypData value;
 

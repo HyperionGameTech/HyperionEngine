@@ -13,7 +13,13 @@ namespace hyperion {
 namespace dotnet {
 
 Assembly::Assembly()
-    : m_guid { 0, 0 },
+    : Assembly(AssemblyFlags::NONE)
+{
+}
+
+Assembly::Assembly(EnumFlags<AssemblyFlags> flags)
+    : m_flags(flags),
+      m_guid { 0, 0 },
       m_invoke_getter_fptr(nullptr),
       m_invoke_setter_fptr(nullptr)
 {

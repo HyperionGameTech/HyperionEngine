@@ -215,8 +215,6 @@ public:
         m_is_audio_listener = is_audio_listener;
     }
 
-    WorldGrid* GetWorldGrid() const;
-
     void Init();
 
     void Update(GameCounter::TickUnit delta);

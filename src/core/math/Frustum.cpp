@@ -66,6 +66,19 @@ bool Frustum::ContainsBoundingSphere(const BoundingSphere& sphere) const
     return true;
 }
 
+bool Frustum::ContainsPoint(const Vec3f& point) const
+{
+    for (const Vec4f& plane : planes)
+    {
+        if (plane.Dot(Vec4f(point, 1.0f)) < 0.0f)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 Frustum& Frustum::SetFromViewProjectionMatrix(const Matrix4& view_proj)
 {
     const Matrix4 mat = view_proj.Transposed();

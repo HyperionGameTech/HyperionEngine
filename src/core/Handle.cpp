@@ -30,11 +30,11 @@ const AnyHandle AnyHandle::empty = {};
 
 AnyHandle::AnyHandle(HypObjectBase* hyp_object_ptr)
     : ptr(hyp_object_ptr),
-      type_id(hyp_object_ptr ? hyp_object_ptr->GetObjectHeader_Internal()->container->GetObjectTypeID() : TypeID::Void())
+      type_id(hyp_object_ptr ? hyp_object_ptr->m_header->container->GetObjectTypeID() : TypeID::Void())
 {
     if (IsValid())
     {
-        ptr->GetObjectHeader_Internal()->IncRefStrong();
+        ptr->m_header->IncRefStrong();
     }
 }
 
@@ -44,11 +44,7 @@ AnyHandle::AnyHandle(const HypClass* hyp_class, HypObjectBase* ptr)
 {
     if (IsValid())
     {
-        AssertThrowMsg(IsInstanceOfHypClass(hyp_class, ptr->InstanceClass()),
-            "HypClass %s does not match the type of the object %s",
-            *hyp_class->GetName(), *ptr->InstanceClass()->GetName());
-
-        this->ptr->GetObjectHeader_Internal()->IncRefStrong();
+        ptr->m_header->IncRefStrong();
     }
 }
 
@@ -58,7 +54,7 @@ AnyHandle::AnyHandle(const AnyHandle& other)
 {
     if (IsValid())
     {
-        ptr->GetObjectHeader_Internal()->IncRefStrong();
+        ptr->m_header->IncRefStrong();
     }
 }
 
@@ -75,7 +71,7 @@ AnyHandle& AnyHandle::operator=(const AnyHandle& other)
     {
         if (IsValid())
         {
-            ptr->GetObjectHeader_Internal()->DecRefStrong();
+            ptr->m_header->DecRefStrong();
         }
     }
 
@@ -86,7 +82,7 @@ AnyHandle& AnyHandle::operator=(const AnyHandle& other)
     {
         if (IsValid())
         {
-            ptr->GetObjectHeader_Internal()->IncRefStrong();
+            ptr->m_header->IncRefStrong();
         }
     }
 
@@ -109,7 +105,7 @@ AnyHandle& AnyHandle::operator=(AnyHandle&& other) noexcept
 
     if (IsValid())
     {
-        ptr->GetObjectHeader_Internal()->DecRefStrong();
+        ptr->m_header->DecRefStrong();
     }
 
     ptr = other.ptr;
@@ -124,7 +120,7 @@ AnyHandle::~AnyHandle()
 {
     if (IsValid())
     {
-        ptr->GetObjectHeader_Internal()->DecRefStrong();
+        ptr->m_header->DecRefStrong();
     }
 }
 
@@ -135,7 +131,7 @@ AnyHandle::IDType AnyHandle::GetID() const
         return IDType();
     }
 
-    return IDType { ptr->GetObjectHeader_Internal()->index + 1 };
+    return IDType { ptr->m_header->index + 1 };
 }
 
 TypeID AnyHandle::GetTypeID() const
@@ -150,16 +146,14 @@ AnyRef AnyHandle::ToRef() const
         return AnyRef(type_id, nullptr);
     }
 
-    HypObjectHeader* header = ptr->GetObjectHeader_Internal();
-
-    return AnyRef(type_id, header->container->GetObjectPointer(header));
+    return AnyRef(type_id, ptr);
 }
 
 void AnyHandle::Reset()
 {
     if (IsValid())
     {
-        ptr->GetObjectHeader_Internal()->DecRefStrong();
+        ptr->m_header->DecRefStrong();
     }
 
     ptr = nullptr;
@@ -172,9 +166,7 @@ void* AnyHandle::Release()
         return nullptr;
     }
 
-    HypObjectHeader* header = ptr->GetObjectHeader_Internal();
-    void* address = header->container->GetObjectPointer(header);
-
+    void* address = ptr;
     ptr = nullptr;
 
     return address;

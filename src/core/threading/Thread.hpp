@@ -96,7 +96,8 @@ protected:
     virtual void operator()(Args... args) = 0;
 
     const ThreadID m_id;
-    const ThreadPriorityValue m_priority;
+
+    ThreadPriorityValue m_priority;
 
     Scheduler m_scheduler;
 

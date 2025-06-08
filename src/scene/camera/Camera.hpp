@@ -33,6 +33,7 @@ namespace hyperion {
 
 class Engine;
 class RenderCamera;
+class CameraStreamingVolume;
 
 HYP_ENUM()
 enum class CameraProjectionMode : uint32
@@ -518,6 +519,11 @@ public:
     HYP_METHOD()
     void Rotate(const Vec3f& axis, float radians);
 
+    HYP_FORCE_INLINE const Handle<CameraStreamingVolume>& GetStreamingVolume() const
+    {
+        return m_streaming_volume;
+    }
+
     HYP_METHOD(Property = "Frustum", Serialize = true, Editor = true)
     HYP_FORCE_INLINE const Frustum& GetFrustum() const
     {
@@ -630,6 +636,8 @@ private:
     RenderCamera* m_render_resource;
 
     InputMouseLockScope m_mouse_lock_scope;
+
+    Handle<CameraStreamingVolume> m_streaming_volume;
 };
 
 } // namespace hyperion

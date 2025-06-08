@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="CameraComponent")]
+    [HypClassBinding(Name = "CameraComponent")]
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct CameraComponent : IComponent
     {

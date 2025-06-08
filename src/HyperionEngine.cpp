@@ -17,6 +17,8 @@
 
 #include <system/MessageBox.hpp>
 
+#include <streaming/StreamingManager.hpp>
+
 #include <rendering/SafeDeleter.hpp>
 
 #ifdef HYP_VULKAN
@@ -57,6 +59,9 @@ HYP_API void InitializeEngine(const FilePath& base_path)
 
     g_asset_manager = CreateObject<AssetManager>();
     InitObject(g_asset_manager);
+
+    // g_streaming_manager = CreateObject<StreamingManager>();
+    // InitObject(g_streaming_manager);
 
     g_shader_manager = new ShaderManager;
     g_material_system = new MaterialCache;

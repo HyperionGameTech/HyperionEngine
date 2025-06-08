@@ -25,11 +25,15 @@ class Class;
 
 enum class HypClassAllocationMethod : uint8;
 
+class IObjectContainer;
 class HypClass;
 class HypObjectBase;
 
 template <class T>
 class HypObject;
+
+template <class T>
+struct Handle;
 
 class IHypObjectInitializer;
 
@@ -43,36 +47,6 @@ class ManagedObjectResource;
 enum class HypClassFlags : uint32;
 
 extern HYP_API const HypClass* GetClass(TypeID type_id);
-
-/*! \brief A base class for all HypObject classes that use memory pooling. */
-class HYP_API HypObjectBase
-{
-public:
-    template <class T>
-    friend struct HypObjectMemory;
-
-    virtual ~HypObjectBase() = default;
-
-    TypeID GetTypeID() const;
-    const HypClass* InstanceClass() const;
-
-    HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
-    {
-        return m_header;
-    }
-
-protected:
-    HYP_FORCE_INLINE IDBase GetID() const
-    {
-        return GetID_Internal();
-    }
-
-private:
-    IDBase GetID_Internal() const;
-
-    // Pointer to the header of the object, holding container, index and ref counts
-    HypObjectHeader* m_header;
-};
 
 HYP_API extern void FixupObjectInitializerPointer(void* target, IHypObjectInitializer* initializer);
 
@@ -90,11 +64,11 @@ public:
 
     virtual dotnet::Object* GetManagedObject() const = 0;
 
-    virtual void IncRef(HypClassAllocationMethod allocation_method, void* _this, bool weak) const = 0;
-    virtual void DecRef(HypClassAllocationMethod allocation_method, void* _this, bool weak) const = 0;
+    virtual void IncRef(void* _this, bool weak) const = 0;
+    virtual void DecRef(void* _this, bool weak) const = 0;
 
-    virtual uint32 GetRefCount_Strong(HypClassAllocationMethod allocation_method, void* _this) const = 0;
-    virtual uint32 GetRefCount_Weak(HypClassAllocationMethod allocation_method, void* _this) const = 0;
+    virtual uint32 GetRefCount_Strong(void* _this) const = 0;
+    virtual uint32 GetRefCount_Weak(void* _this) const = 0;
 };
 
 template <class T, class T2 = void>
@@ -122,25 +96,10 @@ enum class HypObjectInitializerFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(HypObjectInitializerFlags)
 
-extern HYP_API void PushHypObjectInitializerFlags(EnumFlags<HypObjectInitializerFlags> flags);
-extern HYP_API void PopHypObjectInitializerFlags();
-
-struct HypObjectInitializerFlagsGuard
+struct HypObjectInitializerContext
 {
-    HypObjectInitializerFlagsGuard(EnumFlags<HypObjectInitializerFlags> flags)
-    {
-        PushHypObjectInitializerFlags(flags);
-    }
-
-    HypObjectInitializerFlagsGuard(const HypObjectInitializerFlagsGuard& other) = delete;
-    HypObjectInitializerFlagsGuard& operator=(const HypObjectInitializerFlagsGuard& other) = delete;
-    HypObjectInitializerFlagsGuard(HypObjectInitializerFlagsGuard&& other) noexcept = delete;
-    HypObjectInitializerFlagsGuard& operator=(HypObjectInitializerFlagsGuard&& other) noexcept = delete;
-
-    ~HypObjectInitializerFlagsGuard()
-    {
-        PopHypObjectInitializerFlags();
-    }
+    const HypClass* hyp_class = nullptr;
+    EnumFlags<HypObjectInitializerFlags> flags = HypObjectInitializerFlags::NONE;
 };
 
 class HypObjectPtr
@@ -275,23 +234,46 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
     }
 };
 
-template <class T, class T2>
-struct HypObjectType_Impl;
-
-template <class T>
-struct HypObjectType_Impl<T, std::false_type>;
-
-template <class T>
-struct HypObjectType_Impl<T, std::true_type>
+class HYP_API HypObjectBase
 {
-    using Type = T;
+    template <class T>
+    friend class HypObject;
+
+    template <class T>
+    friend struct Handle;
+
+    template <class T>
+    friend struct WeakHandle;
+
+    friend struct AnyHandle;
+
+    template <class T, class... Args>
+    friend Handle<T> CreateObject(Args&&... args);
+
+public:
+    virtual ~HypObjectBase();
+
+    HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
+    {
+        return m_header;
+    }
+
+protected:
+    HypObjectBase();
+
+    HYP_FORCE_INLINE IDBase GetID() const
+    {
+        return GetID_Internal();
+    }
+
+    IDBase GetID_Internal() const;
+
+    // Pointer to the header of the object, holding container, index and ref counts
+    HypObjectHeader* m_header;
 };
 
 template <class T>
 struct HypClassRegistration;
-
-template <class T>
-using HypObjectType = typename HypObjectType_Impl<T, std::bool_constant<IsHypObject<T>::value>>::Type;
 
 } // namespace hyperion
 

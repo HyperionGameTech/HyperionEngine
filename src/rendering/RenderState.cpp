@@ -33,21 +33,6 @@ void RenderState::Init()
 
     HypObject::Init();
 
-    static const struct DefaultCameraInitializer
-    {
-        Handle<Camera> camera;
-
-        DefaultCameraInitializer()
-        {
-            camera = CreateObject<Camera>();
-            camera->SetName(Name::Unique("RenderState_DefaultCamera"));
-            InitObject(camera);
-        }
-    } default_camera_initializer;
-
-    // Ensure the default camera is always set
-    camera_bindings.PushBack(TResourceHandle<RenderCamera>(default_camera_initializer.camera->GetRenderResource()));
-
     SetReady(true);
 }
 

@@ -19,9 +19,6 @@
 
 namespace hyperion {
 
-struct RENDER_COMMAND(CreateCubemapBuffers);
-struct RENDER_COMMAND(DestroyCubemapRenderPass);
-
 class Texture;
 class View;
 
@@ -70,8 +67,6 @@ class HYP_API EnvProbe : public HypObject<EnvProbe>
     HYP_OBJECT_BODY(EnvProbe);
 
 public:
-    friend struct RENDER_COMMAND(DestroyCubemapRenderPass);
-
     EnvProbe();
 
     EnvProbe(
@@ -172,17 +167,17 @@ public:
         return m_dimensions;
     }
 
-    HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
+    HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
     {
         m_needs_update = needs_update;
     }
 
-    HYP_FORCE_INLINE bool NeedsUpdate() const
+    HYP_DEPRECATED HYP_FORCE_INLINE bool NeedsUpdate() const
     {
         return m_needs_update;
     }
 
-    HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
+    HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
     {
         if (needs_render)
         {
@@ -194,15 +189,15 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE bool NeedsRender() const
+    HYP_DEPRECATED HYP_FORCE_INLINE bool NeedsRender() const
     {
         const int32 counter = m_needs_render_counter.Get(MemoryOrder::RELAXED);
 
         return counter > 0;
     }
 
-    bool IsVisible(ID<Camera> camera_id) const;
-    void SetIsVisible(ID<Camera> camera_id, bool is_visible);
+    HYP_DEPRECATED bool IsVisible(ID<Camera> camera_id) const;
+    HYP_DEPRECATED void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
     void Init();
     void EnqueueBind() const;

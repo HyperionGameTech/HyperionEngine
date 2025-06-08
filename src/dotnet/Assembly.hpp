@@ -6,12 +6,22 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/RefCountedPtr.hpp>
 
+#include <core/utilities/EnumFlags.hpp>
+
 #include <dotnet/Types.hpp>
 
 namespace hyperion {
 
 class HypClass;
 struct HypData;
+
+enum class AssemblyFlags : uint32
+{
+    NONE = 0x0,
+    CORE_ASSEMBLY = 0x1
+};
+
+HYP_MAKE_ENUM_FLAGS(AssemblyFlags)
 
 namespace dotnet {
 
@@ -23,6 +33,7 @@ class Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {
 public:
     Assembly();
+    Assembly(EnumFlags<AssemblyFlags> flags);
     Assembly(const Assembly&) = delete;
     Assembly& operator=(const Assembly&) = delete;
     Assembly(Assembly&&) noexcept = delete;
@@ -37,6 +48,11 @@ public:
     HYP_FORCE_INLINE const ManagedGuid& GetGuid() const
     {
         return m_guid;
+    }
+
+    HYP_FORCE_INLINE EnumFlags<AssemblyFlags> GetFlags() const
+    {
+        return m_flags;
     }
 
     RC<Class> NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags);
@@ -71,6 +87,8 @@ public:
     bool Unload();
 
 private:
+    EnumFlags<AssemblyFlags> m_flags;
+
     ManagedGuid m_guid;
 
     HashMap<int32, RC<Class>> m_class_objects;

@@ -4,14 +4,18 @@
 #include <scene/world_grid/WorldGrid.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
+#include <scene/ecs/components/VisibilityStateComponent.hpp>
+#include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/Texture.hpp>
+#include <scene/Node.hpp>
 
 #include <core/math/Vertex.hpp>
 
@@ -31,80 +35,6 @@ static const float base_height = 2.0f;
 static const float mountain_height = 35.0f;
 static const float global_terrain_noise_scale = 1.0f;
 
-#pragma region TerrainWorldGridPatch
-
-class TerrainWorldGridPatch : public WorldGridPatch
-{
-public:
-    TerrainWorldGridPatch(const WorldGridPatchInfo& patch_info, const Handle<Mesh>& mesh, const Handle<Material>& material)
-        : WorldGridPatch(patch_info),
-          m_mesh(mesh),
-          m_material(material)
-    {
-    }
-
-    virtual ~TerrainWorldGridPatch() override
-    {
-    }
-
-    virtual void InitializeEntity(const Handle<Scene>& scene, ID<Entity> entity) override
-    {
-        HYP_SCOPE;
-
-        if (!m_mesh.IsValid())
-        {
-            HYP_LOG(WorldGrid, Error, "Terrain mesh is invalid");
-
-            return;
-        }
-
-        const RC<EntityManager>& entity_manager = scene->GetEntityManager();
-        AssertThrow(entity_manager != nullptr);
-
-        MeshComponent* patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
-        BoundingBoxComponent* patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(entity);
-        TransformComponent* patch_transform_component = entity_manager->TryGetComponent<TransformComponent>(entity);
-
-        if (patch_bounding_box_component)
-        {
-            patch_bounding_box_component->local_aabb = m_mesh->GetAABB();
-
-            if (patch_transform_component)
-            {
-                patch_bounding_box_component->world_aabb = BoundingBox::Empty();
-
-                for (const Vec3f& corner : patch_bounding_box_component->local_aabb.GetCorners())
-                {
-                    patch_bounding_box_component->world_aabb = patch_bounding_box_component->world_aabb.Union(patch_transform_component->transform.GetMatrix() * corner);
-                }
-            }
-        }
-
-        if (patch_mesh_component)
-        {
-            patch_mesh_component->mesh = m_mesh;
-            patch_mesh_component->material = m_material;
-        }
-        else
-        {
-            // Add MeshComponent to patch entity
-            entity_manager->AddComponent<MeshComponent>(entity, MeshComponent { .mesh = m_mesh, .material = m_material });
-        }
-
-        entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
-    }
-
-    virtual void Update(GameCounter::TickUnit delta) override
-    {
-    }
-
-protected:
-    Handle<Mesh> m_mesh;
-    Handle<Material> m_material;
-};
-
-#pragma endregion TerrainWorldGridPatch
-
 namespace terrain {
 
 struct TerrainHeight
@@ -119,13 +49,13 @@ struct TerrainHeight
 
 struct TerrainHeightData
 {
-    WorldGridPatchInfo patch_info;
+    StreamingCellInfo cell_info;
     Array<TerrainHeight> heights;
 
-    TerrainHeightData(const WorldGridPatchInfo& patch_info)
-        : patch_info(patch_info)
+    TerrainHeightData(const StreamingCellInfo& cell_info)
+        : cell_info(cell_info)
     {
-        heights.Resize(patch_info.extent.x * patch_info.extent.z);
+        heights.Resize(cell_info.extent.x * cell_info.extent.z);
     }
 
     TerrainHeightData(const TerrainHeightData& other) = delete;
@@ -136,8 +66,8 @@ struct TerrainHeightData
 
     uint32 GetHeightIndex(int x, int z) const
     {
-        return uint32(((x + patch_info.extent.x) % patch_info.extent.x)
-            + ((z + patch_info.extent.z) % patch_info.extent.z) * patch_info.extent.x);
+        return uint32(((x + cell_info.extent.x) % cell_info.extent.x)
+            + ((z + cell_info.extent.z) % cell_info.extent.z) * cell_info.extent.x);
     }
 };
 
@@ -170,9 +100,9 @@ void TerrainErosion::Erode(TerrainHeightData& height_data)
 {
     for (uint32 iteration = 0; iteration < num_iterations; iteration++)
     {
-        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++)
+        for (int z = 1; z < height_data.cell_info.extent.z - 2; z++)
         {
-            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++)
+            for (int x = 1; x < height_data.cell_info.extent.x - 2; x++)
             {
                 TerrainHeight& height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
                 height_info.displacement = 0.0f;
@@ -202,9 +132,9 @@ void TerrainErosion::Erode(TerrainHeightData& height_data)
             }
         }
 
-        for (int z = 1; z < height_data.patch_info.extent.z - 2; z++)
+        for (int z = 1; z < height_data.cell_info.extent.z - 2; z++)
         {
-            for (int x = 1; x < height_data.patch_info.extent.x - 2; x++)
+            for (int x = 1; x < height_data.cell_info.extent.x - 2; x++)
             {
                 TerrainHeight& height_info = height_data.heights[height_data.GetHeightIndex(x, z)];
 
@@ -227,7 +157,7 @@ void TerrainErosion::Erode(TerrainHeightData& height_data)
 class TerrainMeshBuilder
 {
 public:
-    TerrainMeshBuilder(const WorldGridPatchInfo& patch_info);
+    TerrainMeshBuilder(const StreamingCellInfo& cell_info);
     TerrainMeshBuilder(const TerrainMeshBuilder& other) = delete;
     TerrainMeshBuilder& operator=(const TerrainMeshBuilder& other) = delete;
     TerrainMeshBuilder(TerrainMeshBuilder&& other) noexcept = delete;
@@ -244,21 +174,21 @@ private:
     TerrainHeightData m_height_data;
 };
 
-TerrainMeshBuilder::TerrainMeshBuilder(const WorldGridPatchInfo& patch_info)
-    : m_height_data(patch_info)
+TerrainMeshBuilder::TerrainMeshBuilder(const StreamingCellInfo& cell_info)
+    : m_height_data(cell_info)
 {
 }
 
 void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noise_combinator)
 {
-    Threads::AssertOnThread(ThreadCategory::THREAD_CATEGORY_TASK);
+    HYP_SCOPE;
 
-    for (int z = 0; z < int(m_height_data.patch_info.extent.z); z++)
+    for (int z = 0; z < int(m_height_data.cell_info.extent.z); z++)
     {
-        for (int x = 0; x < int(m_height_data.patch_info.extent.x); x++)
+        for (int x = 0; x < int(m_height_data.cell_info.extent.x); x++)
         {
-            const float x_offset = float(x + (m_height_data.patch_info.coord.x * int(m_height_data.patch_info.extent.x - 1))) / float(m_height_data.patch_info.extent.x);
-            const float z_offset = float(z + (m_height_data.patch_info.coord.y * int(m_height_data.patch_info.extent.z - 1))) / float(m_height_data.patch_info.extent.z);
+            const float x_offset = float(x + (m_height_data.cell_info.coord.x * int(m_height_data.cell_info.extent.x - 1))) / float(m_height_data.cell_info.extent.x);
+            const float z_offset = float(z + (m_height_data.cell_info.coord.y * int(m_height_data.cell_info.extent.z - 1))) / float(m_height_data.cell_info.extent.z);
 
             const uint32 index = m_height_data.GetHeightIndex(x, z);
 
@@ -278,7 +208,7 @@ void TerrainMeshBuilder::GenerateHeights(const NoiseCombinator& noise_combinator
 
 Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 {
-    Threads::AssertOnThread(ThreadCategory::THREAD_CATEGORY_TASK);
+    HYP_SCOPE;
 
     Array<Vertex> vertices = BuildVertices();
     Array<Mesh::Index> indices = BuildIndices();
@@ -298,19 +228,19 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
 Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 {
     Array<Vertex> vertices;
-    vertices.Resize(m_height_data.patch_info.extent.x * m_height_data.patch_info.extent.z);
+    vertices.Resize(m_height_data.cell_info.extent.x * m_height_data.cell_info.extent.z);
 
     int i = 0;
 
-    for (int z = 0; z < m_height_data.patch_info.extent.z; z++)
+    for (int z = 0; z < m_height_data.cell_info.extent.z; z++)
     {
-        for (int x = 0; x < m_height_data.patch_info.extent.x; x++)
+        for (int x = 0; x < m_height_data.cell_info.extent.x; x++)
         {
-            const Vec3f position = Vec3f { float(x), m_height_data.heights[i].height, float(z) } * m_height_data.patch_info.scale;
+            const Vec3f position = Vec3f { float(x), m_height_data.heights[i].height, float(z) } * m_height_data.cell_info.scale;
 
             const Vec2f texcoord(
-                float(x) / float(m_height_data.patch_info.extent.x),
-                float(z) / float(m_height_data.patch_info.extent.z));
+                float(x) / float(m_height_data.cell_info.extent.x),
+                float(z) / float(m_height_data.cell_info.extent.z));
 
             vertices[i++] = Vertex(position, texcoord);
         }
@@ -322,9 +252,9 @@ Array<Vertex> TerrainMeshBuilder::BuildVertices() const
 Array<uint32> TerrainMeshBuilder::BuildIndices() const
 {
     Array<uint32> indices;
-    indices.Resize(SizeType(6 * (m_height_data.patch_info.extent.x - 1) * (m_height_data.patch_info.extent.z - 1)));
+    indices.Resize(SizeType(6 * (m_height_data.cell_info.extent.x - 1) * (m_height_data.cell_info.extent.z - 1)));
 
-    uint32 pitch = uint32(m_height_data.patch_info.extent.x);
+    uint32 pitch = uint32(m_height_data.cell_info.extent.x);
     uint32 row = 0;
 
     uint32 i0 = row;
@@ -334,9 +264,9 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
 
     uint32 i = 0;
 
-    for (uint32 z = 0; z < m_height_data.patch_info.extent.z - 1; z++)
+    for (uint32 z = 0; z < m_height_data.cell_info.extent.z - 1; z++)
     {
-        for (uint32 x = 0; x < m_height_data.patch_info.extent.x - 1; x++)
+        for (uint32 x = 0; x < m_height_data.cell_info.extent.x - 1; x++)
         {
             indices[i++] = i0;
             indices[i++] = i2;
@@ -362,34 +292,162 @@ Array<uint32> TerrainMeshBuilder::BuildIndices() const
     return indices;
 }
 
+static NoiseCombinator& GetTerrainNoiseCombinator()
+{
+    static struct TerrainNoiseCombinatorInitializer
+    {
+        NoiseCombinator noise_combinator;
+        TerrainNoiseCombinatorInitializer()
+        {
+            noise_combinator.Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountain_height, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * global_terrain_noise_scale)
+                // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, base_height, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, base_height * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, base_height * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, base_height * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, base_height * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, base_height * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * global_terrain_noise_scale)
+                .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, base_height * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * global_terrain_noise_scale);
+        }
+    } initializer;
+
+    return initializer.noise_combinator;
+}
+
 } // namespace terrain
 
-TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : m_noise_combinator(MakeUnique<NoiseCombinator>(0x123F /* TODO: seed */))
+#pragma region TerrainStreamingCell
+
+TerrainStreamingCell::TerrainStreamingCell()
+    : StreamingCell()
 {
-    (*m_noise_combinator)
-        .Use<WorleyNoiseGenerator>(0, NoiseCombinator::Mode::ADDITIVE, mountain_height, 0.0f, Vector3(0.35f, 0.35f, 0.0f) * global_terrain_noise_scale)
-        // .Use<SimplexNoiseGenerator>(1, NoiseCombinator::Mode::MULTIPLICATIVE, 0.5f, 0.5f, Vector3(50.0f, 50.0f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(2, NoiseCombinator::Mode::ADDITIVE, base_height, 0.0f, Vector3(100.0f, 100.0f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(3, NoiseCombinator::Mode::ADDITIVE, base_height * 0.5f, 0.0f, Vector3(50.0f, 50.0f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(4, NoiseCombinator::Mode::ADDITIVE, base_height * 0.25f, 0.0f, Vector3(25.0f, 25.0f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(5, NoiseCombinator::Mode::ADDITIVE, base_height * 0.125f, 0.0f, Vector3(12.5f, 12.5f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(6, NoiseCombinator::Mode::ADDITIVE, base_height * 0.06f, 0.0f, Vector3(6.25f, 6.25f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(7, NoiseCombinator::Mode::ADDITIVE, base_height * 0.03f, 0.0f, Vector3(3.125f, 3.125f, 0.0f) * global_terrain_noise_scale)
-        .Use<SimplexNoiseGenerator>(8, NoiseCombinator::Mode::ADDITIVE, base_height * 0.015f, 0.0f, Vector3(1.56f, 1.56f, 0.0f) * global_terrain_noise_scale);
+}
+
+TerrainStreamingCell::TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material)
+    : StreamingCell(world_grid, cell_info),
+      m_scene(scene),
+      m_material(material)
+{
+}
+
+TerrainStreamingCell::~TerrainStreamingCell() = default;
+
+void TerrainStreamingCell::OnStreamStart_Impl()
+{
+    HYP_SCOPE;
+
+    HYP_LOG(WorldGrid, Debug, "Generating terrain patch at coord {} with extent {} and scale {} on thread {}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale, Threads::CurrentThreadID().GetName());
+
+    terrain::TerrainMeshBuilder mesh_builder(m_cell_info);
+    mesh_builder.GenerateHeights(terrain::GetTerrainNoiseCombinator());
+
+    m_mesh = mesh_builder.BuildMesh();
+    InitObject(m_mesh);
+}
+
+void TerrainStreamingCell::OnLoaded_Impl()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (!m_scene.IsValid())
+    {
+        HYP_LOG(WorldGrid, Error, "TerrainStreamingCell has no valid Scene");
+
+        return;
+    }
+
+    if (!m_mesh.IsValid())
+    {
+        HYP_LOG(WorldGrid, Error, "Terrain mesh is invalid");
+
+        return;
+    }
+
+    const RC<EntityManager>& entity_manager = m_scene->GetEntityManager();
+    AssertThrow(entity_manager != nullptr);
+
+    const WorldGridParams& params = m_world_grid->GetParams();
+
+    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale);
+
+    Transform transform;
+    transform.SetTranslation(Vec3f {
+        params.offset.x + (float(m_cell_info.coord.x) - 0.5f) * (float(m_cell_info.extent.x) - 1.0f) * m_cell_info.scale.x,
+        params.offset.y,
+        params.offset.z + (float(m_cell_info.coord.y) - 0.5f) * (float(m_cell_info.extent.y) - 1.0f) * m_cell_info.scale.z });
+
+    transform.SetScale(m_cell_info.scale);
+
+    Handle<Entity> patch_entity = entity_manager->AddEntity();
+
+    entity_manager->AddComponent<VisibilityStateComponent>(patch_entity, VisibilityStateComponent {});
+    entity_manager->AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent {});
+
+    MeshComponent* patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(patch_entity);
+    BoundingBoxComponent* patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(patch_entity);
+
+    if (patch_bounding_box_component)
+    {
+        patch_bounding_box_component->local_aabb = m_mesh->GetAABB();
+    }
+
+    if (patch_mesh_component)
+    {
+        patch_mesh_component->mesh = m_mesh;
+        patch_mesh_component->material = m_material;
+    }
+    else
+    {
+        // Add MeshComponent to patch entity
+        entity_manager->AddComponent<MeshComponent>(patch_entity, MeshComponent { m_mesh, m_material });
+    }
+
+    entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(patch_entity);
+
+    m_node = m_scene->GetRoot()->AddChild();
+    m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
+    m_node->SetEntity(patch_entity);
+    m_node->SetWorldTransform(transform);
+    m_node->SetEntityAABB(m_mesh->GetAABB());
+}
+
+void TerrainStreamingCell::OnRemoved_Impl()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (m_node.IsValid())
+    {
+        m_node->Remove();
+        m_node.Reset();
+    }
+}
+
+#pragma endregion TerrainStreamingCell
+
+#pragma region TerrainWorldGridPlugin
+
+TerrainWorldGridPlugin::TerrainWorldGridPlugin()
+    : TerrainWorldGridPlugin(Handle<Scene>::empty)
+{
+}
+
+TerrainWorldGridPlugin::TerrainWorldGridPlugin(const Handle<Scene>& scene)
+    : m_scene(scene)
+{
 }
 
 TerrainWorldGridPlugin::~TerrainWorldGridPlugin()
 {
 }
 
-void TerrainWorldGridPlugin::Initialize()
+void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
 
     HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
-
-    Threads::AssertOnThread(g_game_thread);
 
     m_material = CreateObject<Material>(NAME("terrain_material"));
     m_material->SetBucket(BUCKET_OPAQUE);
@@ -399,50 +457,54 @@ void TerrainWorldGridPlugin::Initialize()
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
 
-    if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
-    {
-        Handle<Texture> albedo_texture = albedo_texture_asset->Result();
+    // if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
+    // {
+    //     Handle<Texture> albedo_texture = albedo_texture_asset->Result();
 
-        TextureDesc texture_desc = albedo_texture->GetTextureDesc();
-        texture_desc.format = InternalFormat::RGBA8_SRGB;
-        albedo_texture->SetTextureDesc(texture_desc);
+    //     TextureDesc texture_desc = albedo_texture->GetTextureDesc();
+    //     texture_desc.format = InternalFormat::RGBA8_SRGB;
+    //     albedo_texture->SetTextureDesc(texture_desc);
 
-        m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
-    }
+    //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
+    // }
 
-    if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
-    {
-        m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset->Result());
-    }
+    // if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
+    // {
+    //     m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset->Result());
+    // }
 
     InitObject(m_material);
 }
 
-void TerrainWorldGridPlugin::Shutdown()
+void TerrainWorldGridPlugin::Shutdown_Impl(WorldGrid* world_grid)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
 
     HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
 }
 
-void TerrainWorldGridPlugin::Update(GameCounter::TickUnit delta)
+void TerrainWorldGridPlugin::Update_Impl(float delta)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
 }
 
-UniquePtr<WorldGridPatch> TerrainWorldGridPlugin::CreatePatch(const WorldGridPatchInfo& patch_info)
+Handle<StreamingCell> TerrainWorldGridPlugin::CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
 
-    terrain::TerrainMeshBuilder mesh_builder(patch_info);
-    mesh_builder.GenerateHeights(*m_noise_combinator);
+    if (!m_scene.IsValid())
+    {
+        HYP_LOG(WorldGrid, Error, "Scene is not valid for TerrainWorldGridPlugin");
 
-    Handle<Mesh> mesh = mesh_builder.BuildMesh();
-    AssertThrowMsg(mesh.IsValid(), "Generated terrain mesh is invalid");
+        return Handle<StreamingCell>::empty;
+    }
 
-    InitObject(mesh);
-
-    return MakeUnique<TerrainWorldGridPatch>(patch_info, mesh, m_material);
+    return CreateObject<TerrainStreamingCell>(world_grid, cell_info, m_scene, m_material);
 }
+
+#pragma endregion TerrainWorldGridPlugin
 
 } // namespace hyperion

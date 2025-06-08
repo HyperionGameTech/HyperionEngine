@@ -59,19 +59,19 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity_id)
 {
-    SystemBase::OnEntityRemoved(entity);
+    SystemBase::OnEntityRemoved(entity_id);
 
-    VisibilityStateComponent& visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
+    VisibilityStateComponent& visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity_id);
 
     Octree& octree = GetEntityManager().GetScene()->GetOctree();
 
-    const Octree::Result remove_result = octree.Remove(entity);
+    const Octree::Result remove_result = octree.Remove(WeakHandle<Entity> { entity_id });
 
     if (!remove_result)
     {
-        HYP_LOG(Octree, Warning, "Failed to remove entity {} from octree: {}", entity.Value(), remove_result.message);
+        HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity_id.Value(), remove_result.message);
     }
 
     visibility_state_component.octant_id = OctantID::Invalid();
@@ -132,7 +132,7 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
             // so directional lights changing cause the entire octree to be updated.
             const bool force_entry_invalidation = visibility_state_invalidated;
 
-            const Octree::InsertResult update_result = octree.Update(entity_id, bounding_box_component.world_aabb, force_entry_invalidation);
+            const Octree::InsertResult update_result = octree.Update(WeakHandle<Entity> { entity_id }, bounding_box_component.world_aabb, force_entry_invalidation);
 
             visibility_state_component.octant_id = update_result.second;
 
@@ -170,7 +170,7 @@ void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
             {
                 for (const ID<Entity>& entity_id : entity_ids)
                 {
-                    // GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
                 }
             });
     }

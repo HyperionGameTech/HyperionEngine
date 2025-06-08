@@ -25,6 +25,8 @@ public:
 
     virtual ~TaskThread() override = default;
 
+    void SetPriority(ThreadPriorityValue priority);
+
     HYP_FORCE_INLINE bool IsRunning() const
     {
         return m_is_running.Get(MemoryOrder::RELAXED);

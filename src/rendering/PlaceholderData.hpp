@@ -5,6 +5,8 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
 
+#include <core/Handle.hpp>
+
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
@@ -22,6 +24,8 @@ namespace hyperion {
 using renderer::Device;
 using renderer::GPUBufferType;
 
+class Texture;
+
 class HYP_API PlaceholderData
 {
 public:
@@ -31,6 +35,12 @@ public:
     PlaceholderData& operator=(const PlaceholderData& other) = delete;
     PlaceholderData& operator=(PlaceholderData&& other) = delete;
     ~PlaceholderData();
+
+    Handle<Texture> DefaultTexture2D;
+    Handle<Texture> DefaultTexture3D;
+    Handle<Texture> DefaultCubemap;
+    Handle<Texture> DefaultTexture2DArray;
+    Handle<Texture> DefaultCubemapArray;
 
 #define HYP_DEF_DUMMY_DATA(type, getter, member) \
 public:                                          \

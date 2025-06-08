@@ -25,8 +25,6 @@
 #include <scene/ecs/systems/ScriptSystem.hpp>
 #include <scene/ecs/systems/ScenePrimaryCameraSystem.hpp>
 
-#include <scene/world_grid/WorldGridSubsystem.hpp>
-
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -317,24 +315,6 @@ void Scene::SetWorld(World* world)
     m_entity_manager->SetWorld(world);
 
     m_world = world;
-}
-
-WorldGrid* Scene::GetWorldGrid() const
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(m_owner_thread_id);
-
-    if (!m_world)
-    {
-        return nullptr;
-    }
-
-    if (WorldGridSubsystem* world_grid_subsystem = m_world->GetSubsystem<WorldGridSubsystem>())
-    {
-        return world_grid_subsystem->GetWorldGrid(GetID());
-    }
-
-    return nullptr;
 }
 
 Handle<Node> Scene::FindNodeWithEntity(ID<Entity> entity) const

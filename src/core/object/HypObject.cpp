@@ -18,36 +18,6 @@
 
 namespace hyperion {
 
-struct HypObjectInitializerContext
-{
-    const HypClass* hyp_class = nullptr;
-    const void* address = nullptr;
-};
-
-thread_local Stack<EnumFlags<HypObjectInitializerFlags>> g_hyp_object_initializer_flags_stack = {};
-
-HYP_API void PushHypObjectInitializerFlags(EnumFlags<HypObjectInitializerFlags> flags)
-{
-    g_hyp_object_initializer_flags_stack.Push(flags);
-}
-
-HYP_API void PopHypObjectInitializerFlags()
-{
-    AssertThrowMsg(g_hyp_object_initializer_flags_stack.Any(), "No HypObjectInitializerFlags to pop! Push/pop out of sync somewhere?");
-
-    g_hyp_object_initializer_flags_stack.Pop();
-}
-
-static EnumFlags<HypObjectInitializerFlags> GetCurrentHypObjectInitializerFlags()
-{
-    if (!g_hyp_object_initializer_flags_stack.Any())
-    {
-        return HypObjectInitializerFlags::NONE;
-    }
-
-    return g_hyp_object_initializer_flags_stack.Top();
-}
-
 #pragma region HypObjectInitializerGuardBase
 
 HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
@@ -62,23 +32,34 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
 #endif
 
     // Push NONE to prevent our current flags from polluting allocations that happen in the constructor
-    PushHypObjectInitializerFlags(HypObjectInitializerFlags::NONE);
+    PushGlobalContext(HypObjectInitializerContext {
+        .hyp_class = ptr.GetClass(),
+        .flags = HypObjectInitializerFlags::NONE });
 }
 
 HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 {
-    PopHypObjectInitializerFlags();
+    PopGlobalContext<HypObjectInitializerContext>();
 
     if (!ptr.IsValid())
     {
         return;
     }
 
-    if (!(GetCurrentHypObjectInitializerFlags() & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION) && !ptr.GetClass()->IsAbstract())
+    HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
+
+    if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !ptr.GetClass()->IsAbstract())
     {
         if (ptr.GetClass()->GetManagedClass() != nullptr)
         {
             ptr.GetObjectInitializer()->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr));
+        }
+        else
+        {
+            HYP_LOG(Object, Warning,
+                "HypObjectInitializerGuardBase: HypClass '{}' does not have a managed class associated with it. "
+                "This means that the object will not be created in the managed runtime, and will not be accessible from C#.",
+                ptr.GetClass()->GetName());
         }
     }
 
@@ -89,14 +70,26 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
 #pragma region HypObjectBase
 
-TypeID HypObjectBase::GetTypeID() const
+HypObjectBase::HypObjectBase()
 {
-    return m_header->container->GetObjectTypeID();
+    HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
+    AssertThrow(context != nullptr);
+
+    const SizeType size = context->hyp_class->GetSize();
+    AssertDebug(size > 0);
+
+    const SizeType alignment = context->hyp_class->GetAlignment();
+    AssertDebug(alignment > 0);
+
+    const SizeType header_offset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
+
+    m_header = reinterpret_cast<HypObjectHeader*>(uintptr_t(this) - header_offset);
 }
 
-const HypClass* HypObjectBase::InstanceClass() const
+HypObjectBase::~HypObjectBase()
 {
-    return m_header->container->GetObjectClass();
+    AssertDebug(m_header != nullptr);
+    m_header->DecRefWeak();
 }
 
 IDBase HypObjectBase::GetID_Internal() const
@@ -118,7 +111,7 @@ HYP_API uint32 HypObjectPtr::GetRefCount_Strong() const
     IHypObjectInitializer* initializer = m_hyp_class->GetObjectInitializer(m_ptr);
     AssertDebug(initializer != nullptr);
 
-    return initializer->GetRefCount_Strong(m_hyp_class->GetAllocationMethod(), m_ptr);
+    return initializer->GetRefCount_Strong(m_ptr);
 }
 
 HYP_API uint32 HypObjectPtr::GetRefCount_Weak() const
@@ -131,7 +124,7 @@ HYP_API uint32 HypObjectPtr::GetRefCount_Weak() const
     IHypObjectInitializer* initializer = m_hyp_class->GetObjectInitializer(m_ptr);
     AssertDebug(initializer != nullptr);
 
-    return initializer->GetRefCount_Weak(m_hyp_class->GetAllocationMethod(), m_ptr);
+    return initializer->GetRefCount_Weak(m_ptr);
 }
 
 HYP_API void HypObjectPtr::IncRef(bool weak)
@@ -141,7 +134,7 @@ HYP_API void HypObjectPtr::IncRef(bool weak)
     IHypObjectInitializer* initializer = m_hyp_class->GetObjectInitializer(m_ptr);
     AssertDebug(initializer != nullptr);
 
-    initializer->IncRef(m_hyp_class->GetAllocationMethod(), m_ptr, weak);
+    initializer->IncRef(m_ptr, weak);
 }
 
 HYP_API void HypObjectPtr::DecRef(bool weak)
@@ -151,7 +144,7 @@ HYP_API void HypObjectPtr::DecRef(bool weak)
     IHypObjectInitializer* initializer = m_hyp_class->GetObjectInitializer(m_ptr);
     AssertDebug(initializer != nullptr);
 
-    initializer->DecRef(m_hyp_class->GetAllocationMethod(), m_ptr, weak);
+    initializer->DecRef(m_ptr, weak);
 }
 
 HYP_API IHypObjectInitializer* HypObjectPtr::GetObjectInitializer() const

@@ -10,6 +10,8 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <dotnet/Class.hpp>
+#include <dotnet/Assembly.hpp>
+#include <dotnet/DotNetSystem.hpp>
 
 namespace hyperion {
 
@@ -194,6 +196,13 @@ void HypClassRegistry::RegisterManagedClass(const RC<dotnet::Class>& managed_cla
 {
     AssertThrow(managed_class != nullptr);
     AssertThrow(hyp_class != nullptr);
+
+    const bool is_core_assembly = managed_class->GetAssembly()->GetFlags()[AssemblyFlags::CORE_ASSEMBLY];
+
+    AssertThrowMsg(is_core_assembly,
+        "Cannot register managed class %s for HypClass %s - only classes from the core assembly can be registered (as they will not be unloaded at runtime)",
+        managed_class->GetName().Data(),
+        hyp_class->GetName().LookupString());
 
     HYP_LOG(Object, Info, "Register managed class for {} (TypeID: {}) on thread {}", hyp_class->GetName(), hyp_class->GetTypeID().Value(), ThreadID::Current().GetName());
 

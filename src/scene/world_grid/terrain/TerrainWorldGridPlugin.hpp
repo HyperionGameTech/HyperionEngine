@@ -10,25 +10,67 @@
 namespace hyperion {
 
 class Material;
+class Mesh;
+class Scene;
+class Node;
 class NoiseCombinator;
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
+class HYP_API TerrainStreamingCell : public StreamingCell
+{
+    HYP_OBJECT_BODY(TerrainStreamingCell);
+
+public:
+    TerrainStreamingCell();
+    TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material);
+    virtual ~TerrainStreamingCell() override;
+
+protected:
+    HYP_METHOD()
+    virtual void OnStreamStart_Impl() override final;
+
+    HYP_METHOD()
+    virtual void OnLoaded_Impl() override final;
+
+    HYP_METHOD()
+    virtual void OnRemoved_Impl() override final;
+
+    Handle<Scene> m_scene;
+    Handle<Mesh> m_mesh;
+    Handle<Material> m_material;
+    Handle<Node> m_node;
+};
+
+HYP_CLASS(NoScriptBindings)
 class HYP_API TerrainWorldGridPlugin : public WorldGridPlugin
 {
     HYP_OBJECT_BODY(TerrainWorldGridPlugin);
 
 public:
     TerrainWorldGridPlugin();
+    TerrainWorldGridPlugin(const Handle<Scene>& scene);
     virtual ~TerrainWorldGridPlugin() override;
 
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
-
-    virtual UniquePtr<WorldGridPatch> CreatePatch(const WorldGridPatchInfo& patch_info) override;
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
+    {
+        return m_scene;
+    }
 
 protected:
-    UniquePtr<NoiseCombinator> m_noise_combinator;
+    HYP_METHOD()
+    virtual void Initialize_Impl(WorldGrid* world_grid) override final;
+
+    HYP_METHOD()
+    virtual void Shutdown_Impl(WorldGrid* world_grid) override final;
+
+    HYP_METHOD()
+    virtual void Update_Impl(float delta) override final;
+
+    HYP_METHOD()
+    virtual Handle<StreamingCell> CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info) override final;
+
+    Handle<Scene> m_scene;
     Handle<Material> m_material;
 };
 

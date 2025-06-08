@@ -18,6 +18,7 @@ class RenderWorld;
 class EditorDelegates;
 struct EngineRenderStats;
 class View;
+class WorldGrid;
 
 struct DetachedScenesContainer
 {
@@ -133,6 +134,12 @@ public:
     Subsystem* GetSubsystemByName(WeakName name) const;
 
     HYP_METHOD()
+    const Handle<WorldGrid>& GetWorldGrid() const
+    {
+        return m_world_grid;
+    }
+
+    HYP_METHOD()
     HYP_FORCE_INLINE const GameState& GetGameState() const
     {
         return m_game_state;
@@ -190,6 +197,8 @@ private:
     Array<Handle<View>> m_views;
 
     TypeMap<RC<Subsystem>> m_subsystems;
+
+    Handle<WorldGrid> m_world_grid;
 
     GameState m_game_state;
 
