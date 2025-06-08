@@ -41,8 +41,6 @@ void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, RC<UIElementFacto
 
 #pragma region UIElementFactoryRegistrationBase
 
-namespace detail {
-
 UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_id, RC<UIElementFactoryBase> (*make_factory_function)(void))
     : m_make_factory_function(make_factory_function)
 {
@@ -52,8 +50,6 @@ UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_i
 UIElementFactoryRegistrationBase::~UIElementFactoryRegistrationBase()
 {
 }
-
-} // namespace detail
 
 #pragma endregion UIElementFactoryRegistrationBase
 

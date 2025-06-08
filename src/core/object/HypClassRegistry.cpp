@@ -287,14 +287,10 @@ void HypClassRegistry::Initialize()
 
 #pragma region HypClassRegistrationBase
 
-namespace detail {
-
 HypClassRegistrationBase::HypClassRegistrationBase(TypeID type_id, HypClass* hyp_class)
 {
     HypClassRegistry::GetInstance().RegisterClass(type_id, hyp_class);
 }
-
-} // namespace detail
 
 #pragma endregion HypClassRegistrationBase
 

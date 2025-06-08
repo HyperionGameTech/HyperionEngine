@@ -43,17 +43,13 @@ enum class FBOMObjectSerializeFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(FBOMObjectSerializeFlags)
 
-namespace fbom {
+namespace serialization {
 
 class FBOMNodeHolder;
 class FBOMMarshalerBase;
 
-namespace detail {
-
 template <class T, class T2 = void>
 struct FBOMObjectSerialize_Impl;
-
-} // namespace detail
 
 struct FBOMExternalObjectInfo
 {
@@ -268,7 +264,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
     static FBOMResult Serialize(const T& in, FBOMObject& out_object, EnumFlags<FBOMObjectSerializeFlags> flags = FBOMObjectSerializeFlags::NONE)
     {
-        return detail::FBOMObjectSerialize_Impl<T> {}.template Serialize<HypData>(in, out_object, flags);
+        return FBOMObjectSerialize_Impl<T> {}.template Serialize<HypData>(in, out_object, flags);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
@@ -289,7 +285,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
     {
-        return detail::FBOMObjectSerialize_Impl<T> {}.Deserialize(context, in, out);
+        return FBOMObjectSerialize_Impl<T> {}.Deserialize(context, in, out);
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
@@ -350,14 +346,7 @@ public:
     }
 
     ~FBOMNodeHolder() = default;
-
-    // HYP_DEF_STL_BEGIN_END(
-    //     reinterpret_cast<typename Array<FBOMObject>::ValueType *>(&Array<FBOMObject>::m_buffer[Array<FBOMObject>::m_start_offset]),
-    //     reinterpret_cast<typename Array<FBOMObject>::ValueType *>(&Array<FBOMObject>::m_buffer[Array<FBOMObject>::m_size])
-    // )
 };
-
-namespace detail {
 
 template <class T>
 struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
@@ -409,7 +398,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
         return FBOMResult::FBOM_OK;
     }
 
-    FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out)
+    FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
     {
         FBOMMarshalerBase* marshal = FBOMObject::GetMarshal<T>();
 
@@ -427,9 +416,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
     }
 };
 
-} // namespace detail
-
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

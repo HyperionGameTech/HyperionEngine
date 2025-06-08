@@ -30,7 +30,7 @@ HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
         HYP_END_STRUCT
 
-    Vec3<float> math::detail::Vec3<float>::
+    Vec3<float> math::Vec3<float>::
     operator*(const Matrix3& mat) const
 {
     return {
@@ -40,12 +40,12 @@ HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     };
 }
 
-Vec3<float>& math::detail::Vec3<float>::operator*=(const Matrix3& mat)
+Vec3<float>& math::Vec3<float>::operator*=(const Matrix3& mat)
 {
     return operator=(operator*(mat));
 }
 
-Vec3<float> math::detail::Vec3<float>::operator*(const Matrix4& mat) const
+Vec3<float> math::Vec3<float>::operator*(const Matrix4& mat) const
 {
     Vector4 product {
         x * mat.values[0] + y * mat.values[4] + z * mat.values[8] + mat.values[12],
@@ -63,12 +63,12 @@ Vec3<float> math::detail::Vec3<float>::operator*(const Matrix4& mat) const
     };
 }
 
-Vec3<float>& math::detail::Vec3<float>::operator*=(const Matrix4& mat)
+Vec3<float>& math::Vec3<float>::operator*=(const Matrix4& mat)
 {
     return operator=(operator*(mat));
 }
 
-Vec3<float> math::detail::Vec3<float>::operator*(const Quaternion& quat) const
+Vec3<float> math::Vec3<float>::operator*(const Quaternion& quat) const
 {
     Vec3<float> result;
     result.x = quat.w * quat.w * x + 2 * quat.y * quat.w * z - 2 * quat.z * quat.w * y + quat.x * quat.x * x + 2 * quat.y * quat.x * y + 2 * quat.z * quat.x * z - quat.z * quat.z * x - quat.y * quat.y * x;
@@ -79,12 +79,12 @@ Vec3<float> math::detail::Vec3<float>::operator*(const Quaternion& quat) const
     return result;
 }
 
-Vec3<float>& math::detail::Vec3<float>::operator*=(const Quaternion& quat)
+Vec3<float>& math::Vec3<float>::operator*=(const Quaternion& quat)
 {
     return operator=(operator*(quat));
 }
 
-float math::detail::Vec3<float>::DistanceSquared(const Vec3f& other) const
+float math::Vec3<float>::DistanceSquared(const Vec3f& other) const
 {
     float dx = x - other.x;
     float dy = y - other.y;
@@ -93,22 +93,22 @@ float math::detail::Vec3<float>::DistanceSquared(const Vec3f& other) const
 }
 
 /* Euclidean distance */
-float math::detail::Vec3<float>::Distance(const Vec3f& other) const
+float math::Vec3<float>::Distance(const Vec3f& other) const
 {
     return MathUtil::Sqrt(DistanceSquared(other));
 }
 
-Vec3<float> math::detail::Vec3<float>::Normalized() const
+Vec3<float> math::Vec3<float>::Normalized() const
 {
     return *this / MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec3<float>& math::detail::Vec3<float>::Normalize()
+Vec3<float>& math::Vec3<float>::Normalize()
 {
     return *this /= MathUtil::Max(Length(), MathUtil::epsilon_f);
 }
 
-Vec3<float> math::detail::Vec3<float>::Cross(const Vec3<float>& other) const
+Vec3<float> math::Vec3<float>::Cross(const Vec3<float>& other) const
 {
     return {
         y * other.z - z * other.y,
@@ -117,23 +117,23 @@ Vec3<float> math::detail::Vec3<float>::Cross(const Vec3<float>& other) const
     };
 }
 
-Vec3<float> math::detail::Vec3<float>::Reflect(const Vec3<float>& normal) const
+Vec3<float> math::Vec3<float>::Reflect(const Vec3<float>& normal) const
 {
     const Vec3& incident = *this;
     return incident - Vec3(2.0f) * Dot(normal) * normal;
 }
 
-Vec3<float>& math::detail::Vec3<float>::Rotate(const Vec3<float>& axis, float radians)
+Vec3<float>& math::Vec3<float>::Rotate(const Vec3<float>& axis, float radians)
 {
     return (*this) = Matrix4::Rotation(axis, radians) * (*this);
 }
 
-Vec3<float>& math::detail::Vec3<float>::Rotate(const Quaternion& quaternion)
+Vec3<float>& math::Vec3<float>::Rotate(const Quaternion& quaternion)
 {
     return (*this) = Matrix4::Rotation(quaternion) * (*this);
 }
 
-Vec3<float>& math::detail::Vec3<float>::Lerp(const Vec3<float>& to, const float amt)
+Vec3<float>& math::Vec3<float>::Lerp(const Vec3<float>& to, const float amt)
 {
     x = MathUtil::Lerp(x, to.x, amt);
     y = MathUtil::Lerp(y, to.y, amt);
@@ -142,12 +142,12 @@ Vec3<float>& math::detail::Vec3<float>::Lerp(const Vec3<float>& to, const float 
     return *this;
 }
 
-float math::detail::Vec3<float>::Dot(const Vec3<float>& other) const
+float math::Vec3<float>::Dot(const Vec3<float>& other) const
 {
     return x * other.x + y * other.y + z * other.z;
 }
 
-float math::detail::Vec3<float>::AngleBetween(const Vector3& other) const
+float math::Vec3<float>::AngleBetween(const Vector3& other) const
 {
     const float dot_product = x * other.x + y * other.y + z * other.z;
     const float arc_cos = MathUtil::Arccos(dot_product);
@@ -155,7 +155,7 @@ float math::detail::Vec3<float>::AngleBetween(const Vector3& other) const
     return arc_cos / (Length() * other.Length());
 }
 
-Vec3<float> math::detail::Vec3<float>::Abs(const Vec3<float>& vec)
+Vec3<float> math::Vec3<float>::Abs(const Vec3<float>& vec)
 {
     return {
         MathUtil::Abs(vec.x),
@@ -164,7 +164,7 @@ Vec3<float> math::detail::Vec3<float>::Abs(const Vec3<float>& vec)
     };
 }
 
-Vec3<float> math::detail::Vec3<float>::Round(const Vec3<float>& vec)
+Vec3<float> math::Vec3<float>::Round(const Vec3<float>& vec)
 {
     return {
         MathUtil::Round(vec.x),
@@ -173,12 +173,12 @@ Vec3<float> math::detail::Vec3<float>::Round(const Vec3<float>& vec)
     };
 }
 
-Vec3<float> math::detail::Vec3<float>::Clamp(const Vec3<float>& vec, float min_value, float max_value)
+Vec3<float> math::Vec3<float>::Clamp(const Vec3<float>& vec, float min_value, float max_value)
 {
     return Max(min_value, Min(vec, max_value));
 }
 
-Vec3<float> math::detail::Vec3<float>::Min(const Vec3<float>& a, const Vec3<float>& b)
+Vec3<float> math::Vec3<float>::Min(const Vec3<float>& a, const Vec3<float>& b)
 {
     return {
         MathUtil::Min(a.x, b.x),
@@ -187,7 +187,7 @@ Vec3<float> math::detail::Vec3<float>::Min(const Vec3<float>& a, const Vec3<floa
     };
 }
 
-Vec3<float> math::detail::Vec3<float>::Max(const Vec3<float>& a, const Vec3<float>& b)
+Vec3<float> math::Vec3<float>::Max(const Vec3<float>& a, const Vec3<float>& b)
 {
     return {
         MathUtil::Max(a.x, b.x),
@@ -195,27 +195,5 @@ Vec3<float> math::detail::Vec3<float>::Max(const Vec3<float>& a, const Vec3<floa
         MathUtil::Max(a.z, b.z)
     };
 }
-
-namespace math::detail {
-
-std::ostream& operator<<(std::ostream& out, const math::detail::Vec3<int>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const math::detail::Vec3<uint32>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const math::detail::Vec3<float>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << ", " << vec.z << "]";
-    return out;
-}
-
-} // namespace math::detail
 
 } // namespace hyperion

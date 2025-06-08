@@ -38,7 +38,7 @@ enum class FBOMStaticDataFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(FBOMStaticDataFlags)
 
-namespace fbom {
+namespace serialization {
 
 struct FBOMStaticData
 {
@@ -232,7 +232,7 @@ private:
     Optional<UniqueID> m_id;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

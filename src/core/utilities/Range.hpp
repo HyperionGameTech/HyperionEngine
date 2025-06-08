@@ -153,9 +153,7 @@ public:
         return m_start != MathUtil::MaxSafeValue<T>() || m_end != MathUtil::MinSafeValue<T>();
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_start,
-        m_end)
+    HYP_DEF_STL_BEGIN_END(m_start, m_end)
 
 private:
     T m_start, m_end;

@@ -51,10 +51,8 @@ template <class CountType>
 class RefCountedPtrBase;
 
 #ifndef HYP_DEBUG_MODE
-    #define EnsureUninitialized()
+#define EnsureUninitialized()
 #endif
-
-namespace detail {
 
 template <class T, class RefCountDataType>
 static inline uint32 IncRefCount_Impl(void* ptr, RefCountDataType& ref_count_data, bool weak)
@@ -317,10 +315,8 @@ struct RefCountData
     }
 };
 
-} // namespace detail
-
 #ifndef HYP_DEBUG_MODE
-    #undef EnsureUninitialized
+#undef EnsureUninitialized
 #endif
 
 template <class CountType>
@@ -329,7 +325,7 @@ class RefCountedPtrBase
     friend class WeakRefCountedPtrBase<CountType>;
 
 public:
-    using RefCountDataType = detail::RefCountData<CountType>;
+    using RefCountDataType = RefCountData<CountType>;
 
     static const RefCountDataType empty_ref_count_data;
 
@@ -478,7 +474,7 @@ public:
                 m_ref = new RefCountDataType;
             }
 
-            if (detail::IncRefCount_Impl<NormalizedType<T>, RefCountDataType>(ptr, *m_ref, /* weak */ false) == 1)
+            if (IncRefCount_Impl<NormalizedType<T>, RefCountDataType>(ptr, *m_ref, /* weak */ false) == 1)
             {
                 m_ref->template Init<NormalizedType<T>>(ptr);
             }
@@ -559,7 +555,7 @@ class WeakRefCountedPtrBase
     friend class RefCountedPtrBase<CountType>;
 
 public:
-    using RefCountDataType = detail::RefCountData<CountType>;
+    using RefCountDataType = RefCountData<CountType>;
 
     WeakRefCountedPtrBase()
         : m_ref(nullptr),
@@ -1527,7 +1523,7 @@ public:
 template <class CountType>
 class EnableRefCountedPtrFromThisBase
 {
-    friend struct detail::RefCountData<CountType>;
+    friend struct RefCountData<CountType>;
 
 protected:
     EnableRefCountedPtrFromThisBase() = default;
@@ -1561,7 +1557,7 @@ public:
 template <class T, class CountType = AtomicVar<uint32>, typename = std::enable_if_t<std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>>>
 class OwningRefCountedPtr
 {
-    HYP_FORCE_INLINE detail::RefCountData<CountType>* GetRefCountData_Internal() const
+    HYP_FORCE_INLINE RefCountData<CountType>* GetRefCountData_Internal() const
     {
         return static_cast<EnableRefCountedPtrFromThisBase<CountType>*>(m_value.GetPointer())->weak_this.GetRefCountData_Internal();
     }
@@ -1983,7 +1979,7 @@ class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<Count
 public:
     EnableRefCountedPtrFromThis()
     {
-        detail::RefCountData<CountType>* ref_count_data = new detail::RefCountData<CountType>;
+        RefCountData<CountType>* ref_count_data = new RefCountData<CountType>;
         ref_count_data->template InitWeak<T>(static_cast<T*>(this));
 
         EnableRefCountedPtrFromThisBase<CountType>::weak_this.SetRefCountData_Internal(static_cast<T*>(this), ref_count_data, true);

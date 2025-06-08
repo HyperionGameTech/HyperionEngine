@@ -22,7 +22,7 @@ namespace hyperion {
     static struct HypClassInitializer_##cls                                                                                                   \
     {                                                                                                                                         \
         using Type = cls;                                                                                                                     \
-        using RegistrationType = ::hyperion::detail::HypStructRegistration<Type>;                                                             \
+        using RegistrationType = ::hyperion::HypStructRegistration<Type>;                                                             \
                                                                                                                                               \
         static RegistrationType s_class_registration;                                                                                         \
     } g_class_initializer_##cls {};                                                                                                           \
@@ -43,7 +43,7 @@ namespace hyperion {
     static struct HypClassInitializer_##cls                                                                                                   \
     {                                                                                                                                         \
         using Type = cls;                                                                                                                     \
-        using RegistrationType = ::hyperion::detail::HypClassRegistration<Type>;                                                              \
+        using RegistrationType = ::hyperion::HypClassRegistration<Type>;                                                              \
                                                                                                                                               \
         static RegistrationType s_class_registration;                                                                                         \
     } g_class_initializer_##cls {};                                                                                                           \
@@ -65,7 +65,7 @@ namespace hyperion {
     {                                                                           \
         using Type = cls;                                                       \
                                                                                 \
-        using RegistrationType = ::hyperion::detail::HypEnumRegistration<Type>; \
+        using RegistrationType = ::hyperion::HypEnumRegistration<Type>; \
                                                                                 \
         static RegistrationType s_class_registration;                           \
     } g_class_initializer_##cls {};                                             \

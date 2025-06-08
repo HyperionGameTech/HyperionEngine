@@ -178,8 +178,6 @@ private:
     NotNullPtr<ILoggerOutputStream> m_output_stream;
 };
 
-namespace detail {
-
 struct LogOnceHelper
 {
     template <auto LogOnceFileName, int32 LogOnceLineNumber, auto LogOnceFunctionName, LogCategory Category, auto LogOnceFormatString, class... LogOnceArgTypes>
@@ -194,8 +192,6 @@ struct LogOnceHelper
         } impl { logger, channel, std::forward<LogOnceArgTypes>(args)... };
     }
 };
-
-} // namespace detail
 
 template <LogCategory Category, auto FunctionNameString, auto FormatString, class... Args>
 static inline void Log_Internal(Logger& logger, const LogChannel& channel, Args&&... args)
@@ -251,13 +247,13 @@ using logging::LogMessage;
 
 // Undefine HYP_LOG if already defined (LoggerFwd could have defined it as an empty macro)
 #ifdef HYP_LOG_ONCE
-    #undef HYP_LOG_ONCE
+#undef HYP_LOG_ONCE
 #endif
 
 #define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                              \
     do                                                                                                                                                                                                                                                         \
     {                                                                                                                                                                                                                                                          \
-        ::hyperion::logging::detail::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, hyperion::logging::category(), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__); \
+        ::hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, hyperion::logging::category(), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__); \
     }                                                                                                                                                                                                                                                          \
     while (0)
 

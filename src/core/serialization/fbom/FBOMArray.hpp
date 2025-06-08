@@ -18,7 +18,7 @@
 #include <type_traits>
 
 namespace hyperion {
-namespace fbom {
+namespace serialization {
 
 class HYP_API FBOMArray final : public FBOMSerializableBase
 {
@@ -65,7 +65,7 @@ private:
     Array<FBOMData> m_values;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

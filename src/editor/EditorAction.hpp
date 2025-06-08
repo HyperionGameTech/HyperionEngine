@@ -137,8 +137,6 @@ public:
     }
 };
 
-namespace detail {
-
 struct HYP_API EditorActionFactoryRegistrationBase
 {
 protected:
@@ -157,12 +155,11 @@ struct EditorActionFactoryRegistration : public EditorActionFactoryRegistrationB
     }
 };
 
-} // namespace detail
 } // namespace hyperion
 
 #define HYP_DEFINE_EDITOR_ACTION(action_name)                                                                                    \
     class EditorAction_##action_name;                                                                                            \
-    static ::hyperion::detail::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name {}; \
+    static ::hyperion::EditorActionFactoryRegistration<EditorAction_##action_name> EditorActionFactory_##action_name {}; \
     class EditorAction_##action_name : public ::hyperion::EditorAction
 
 #endif

@@ -19,7 +19,7 @@ namespace hyperion {
 class HypClass;
 } // namespace hyperion
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 struct FBOMUnset : FBOMType
 {
@@ -404,6 +404,6 @@ struct FBOMArrayType : FBOMType
     }
 };
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization
 
 #endif

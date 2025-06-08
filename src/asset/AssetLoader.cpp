@@ -106,11 +106,17 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& asset_manager, const String&
 
     for (const FilePath& path : paths)
     {
-        BufferedReader reader;
-
-        if (!path.Open(reader))
+        if (!path.Exists())
         {
-            // could not open... try next path
+            // File does not exist, try next path
+            continue;
+        }
+
+        FileBufferedReaderSource source { path };
+        BufferedReader reader { &source };
+
+        if (!reader.IsOpen())
+        {
             HYP_LOG(Assets, Warning, "Could not open file at path: {}, trying next path...", path);
 
             continue;
@@ -124,7 +130,7 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& asset_manager, const String&
 
         auto result = LoadAsset(state);
 
-        reader.Close();
+        state.stream.Close();
 
         if (result.HasError())
         {

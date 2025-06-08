@@ -31,9 +31,7 @@ public:
     Optional<RC<RTCClient>> Get(const String& id) const;
     bool Has(const String& id) const;
 
-    HYP_DEF_STL_BEGIN_END(
-        m_clients.Begin(),
-        m_clients.End())
+    HYP_DEF_STL_BEGIN_END(m_clients.Begin(), m_clients.End())
 
 private:
     mutable std::mutex m_mutex;

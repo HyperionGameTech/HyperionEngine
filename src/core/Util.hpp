@@ -21,8 +21,6 @@ class Tuple;
 
 using utilities::Tuple;
 
-namespace detail {
-
 template <auto Str, bool ShouldStripNamespace>
 constexpr auto ParseTypeName();
 
@@ -30,8 +28,8 @@ constexpr auto ParseTypeName();
 template <auto Str>
 constexpr auto StripClassOrStruct()
 {
-    constexpr auto class_index = Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("class ")>>();
-    constexpr auto struct_index = Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("struct ")>>();
+    constexpr auto class_index = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("class ")>>();
+    constexpr auto struct_index = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("struct ")>>();
 
     if constexpr (class_index != -1 && (struct_index == -1 || class_index <= struct_index))
     {
@@ -60,7 +58,7 @@ struct TypeNameStringTransformer
     static constexpr auto Transform()
     {
         constexpr SizeType last_index = ShouldStripNamespace
-            ? containers::helpers::Trim<String>::value.template FindLast<containers::detail::IntegerSequenceFromString<StaticString("::")>>()
+            ? containers::helpers::Trim<String>::value.template FindLast<containers::IntegerSequenceFromString<StaticString("::")>>()
             : SizeType(-1);
 
         if constexpr (last_index == -1)
@@ -91,8 +89,8 @@ struct TypeNameStringTransformer2
 template <auto Str, bool ShouldStripNamespace>
 constexpr auto ParseTypeName()
 {
-    constexpr auto left_arrow_index = Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("<")>>();
-    constexpr auto right_arrow_index = Str.template FindLast<containers::detail::IntegerSequenceFromString<StaticString(">")>>();
+    constexpr auto left_arrow_index = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
+    constexpr auto right_arrow_index = Str.template FindLast<containers::IntegerSequenceFromString<StaticString(">")>>();
 
     if constexpr (left_arrow_index != SizeType(-1) && right_arrow_index != SizeType(-1))
     {
@@ -110,8 +108,6 @@ constexpr auto ParseTypeName()
     }
 }
 
-} // namespace detail
-
 /*! \brief Returns the name of the type T as a StaticString.
  *
  *  \tparam T The type to get the name of.
@@ -124,13 +120,13 @@ constexpr auto TypeName()
     constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
 
 #ifdef HYP_CLANG_OR_GCC
-    #ifdef HYP_CLANG
+#ifdef HYP_CLANG
     // auto hyperion::TypeName() [T = hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 31, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
-    #elif defined(HYP_GCC)
+#elif defined(HYP_GCC)
     // constexpr auto hyperion::TypeName() [with T = hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
-    #endif
+#endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl hyperion::TypeName<class hyperion::Task<int,int>>(void)
     constexpr auto substr = containers::helpers::Substr<name, 32, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
@@ -139,7 +135,7 @@ constexpr auto TypeName()
     static_assert(false, "Unsupported compiler for TypeName()");
 #endif
 
-    return detail::ParseTypeName<substr, false>();
+    return ParseTypeName<substr, false>();
 }
 
 /*! \brief Returns the name of the type T as a StaticString. Removes the namespace from the name (e.g. hyperion::Task<int, int> -> Task<int, int>).
@@ -153,14 +149,14 @@ constexpr auto TypeNameWithoutNamespace()
 {
     constexpr StaticString<sizeof(HYP_FUNCTION_NAME_LIT)> name(HYP_FUNCTION_NAME_LIT);
 #ifdef HYP_CLANG_OR_GCC
-    #ifdef HYP_CLANG
+#ifdef HYP_CLANG
 
     // auto hyperion::TypeNameWithoutNamespace() [T = hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 47, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
-    #elif defined(HYP_GCC)
+#elif defined(HYP_GCC)
     // constexpr auto hyperion::TypeNameWithoutNamespace() [with T = hyperion::Task<int, int>]
     constexpr auto substr = containers::helpers::Substr<name, 63, sizeof(HYP_FUNCTION_NAME_LIT) - 2>::value;
-    #endif
+#endif
 #elif defined(HYP_MSVC)
     //  auto __cdecl hyperion::TypeNameWithoutNamespace<class hyperion::Task<int,int>>(void)
     constexpr auto substr = containers::helpers::Substr<name, 48, sizeof(HYP_FUNCTION_NAME_LIT) - 8>::value;
@@ -168,7 +164,7 @@ constexpr auto TypeNameWithoutNamespace()
     static_assert(false, "Unsupported compiler for TypeNameWithoutNamespace()");
 #endif
 
-    return detail::ParseTypeName<substr, true>();
+    return ParseTypeName<substr, true>();
 }
 
 template <class T, bool ShouldStripNamespace = false>
@@ -186,12 +182,10 @@ struct TypeNameHelper<T, true>
     static constexpr decltype(TypeNameWithoutNamespace<T>()) value = TypeNameWithoutNamespace<T>();
 };
 
-namespace detail {
-
 template <auto Str>
 constexpr auto StripReturnType()
 {
-    constexpr auto first_space_index = Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString(" ")>>();
+    constexpr auto first_space_index = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString(" ")>>();
 
     if constexpr (first_space_index == SizeType(-1))
     {
@@ -201,14 +195,14 @@ constexpr auto StripReturnType()
     {
         constexpr auto without_return_type = containers::helpers::Substr<Str, first_space_index + 1, Str.Size()>::value;
 
-        constexpr auto left_angle_bracket_index = without_return_type.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("<")>>();
-        constexpr auto left_parenthesis_index = without_return_type.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("(")>>();
+        constexpr auto left_angle_bracket_index = without_return_type.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
+        constexpr auto left_parenthesis_index = without_return_type.template FindFirst<containers::IntegerSequenceFromString<StaticString("(")>>();
 
         constexpr auto first_token_index = left_angle_bracket_index != SizeType(-1) && (left_parenthesis_index == SizeType(-1) || left_angle_bracket_index < left_parenthesis_index)
             ? left_angle_bracket_index
             : left_parenthesis_index;
 
-        constexpr auto second_space_index = without_return_type.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString(" ")>>();
+        constexpr auto second_space_index = without_return_type.template FindFirst<containers::IntegerSequenceFromString<StaticString(" ")>>();
 
         if constexpr (second_space_index != SizeType(-1) && first_token_index != SizeType(-1) && second_space_index < first_token_index)
         {
@@ -235,7 +229,7 @@ constexpr auto StripNamespaceFromFunctionName()
     }
     else
     {
-        constexpr auto first_colon_index = Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("::")>>();
+        constexpr auto first_colon_index = Str.template FindFirst<containers::IntegerSequenceFromString<StaticString("::")>>();
 
         if constexpr (first_colon_index != SizeType(-1))
         {
@@ -250,26 +244,24 @@ constexpr auto StripNamespaceFromFunctionName()
     }
 }
 
-} // namespace detail
-
 /*! \brief Normalizes the input string, removing the return type and parameters from the function signature. */
 template <auto Str>
 constexpr auto PrettyFunctionName()
 {
-    constexpr auto without_return_type = detail::StripReturnType<Str>();
+    constexpr auto without_return_type = StripReturnType<Str>();
 
-    constexpr auto left_angle_bracket_index = without_return_type.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("<")>>();
-    constexpr auto left_parenthesis_index = without_return_type.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString("(")>>();
+    constexpr auto left_angle_bracket_index = without_return_type.template FindFirst<containers::IntegerSequenceFromString<StaticString("<")>>();
+    constexpr auto left_parenthesis_index = without_return_type.template FindFirst<containers::IntegerSequenceFromString<StaticString("(")>>();
 
     if constexpr (left_parenthesis_index != SizeType(-1))
     {
         if constexpr (left_angle_bracket_index != SizeType(-1) && left_angle_bracket_index < left_parenthesis_index)
         {
-            return detail::StripNamespaceFromFunctionName<containers::helpers::Substr<without_return_type, 0, left_angle_bracket_index>::value>();
+            return StripNamespaceFromFunctionName<containers::helpers::Substr<without_return_type, 0, left_angle_bracket_index>::value>();
         }
         else
         {
-            return detail::StripNamespaceFromFunctionName<containers::helpers::Substr<without_return_type, 0, left_parenthesis_index>::value>();
+            return StripNamespaceFromFunctionName<containers::helpers::Substr<without_return_type, 0, left_parenthesis_index>::value>();
         }
     }
     else

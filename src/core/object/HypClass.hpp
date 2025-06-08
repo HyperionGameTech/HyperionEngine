@@ -31,10 +31,6 @@ class Object;
 struct ObjectReference;
 } // namespace dotnet
 
-namespace fbom {
-class FBOMData;
-} // namespace fbom
-
 class IResource;
 
 struct HypMember;
@@ -310,7 +306,7 @@ struct HypClassCallbackRegistration
 class HYP_API HypClass
 {
 public:
-    friend struct detail::HypClassRegistrationBase;
+    friend struct HypClassRegistrationBase;
 
     HypClass(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass& other) = delete;

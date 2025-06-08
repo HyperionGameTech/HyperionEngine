@@ -82,9 +82,7 @@ public:
     typename Base::ValueType Pop();
     void Clear();
 
-    HYP_DEF_STL_BEGIN_END(
-        Base::Begin(),
-        Base::End())
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 };
 
 template <class T>

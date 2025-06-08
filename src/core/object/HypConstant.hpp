@@ -46,11 +46,11 @@ public:
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serialize_proc = [value]() -> fbom::FBOMData
+            m_serialize_proc = [value]() -> FBOMData
             {
-                fbom::FBOMData out;
+                FBOMData out;
 
-                if (fbom::FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out))
+                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out))
                 {
                     HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                 }
@@ -96,12 +96,12 @@ public:
         return false;
     }
 
-    HYP_FORCE_INLINE bool Serialize(fbom::FBOMData& out) const
+    HYP_FORCE_INLINE bool Serialize(FBOMData& out) const
     {
         return Serialize({}, out);
     }
 
-    virtual bool Serialize(Span<HypData> args, fbom::FBOMData& out) const override
+    virtual bool Serialize(Span<HypData> args, FBOMData& out) const override
     {
         if (!CanSerialize())
         {
@@ -118,7 +118,7 @@ public:
         return true;
     }
 
-    virtual bool Deserialize(fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& data) const override
+    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
     {
         return false;
     }
@@ -162,7 +162,7 @@ private:
     HypClassAttributeSet m_attributes;
 
     Proc<HypData()> m_get_proc;
-    Proc<fbom::FBOMData()> m_serialize_proc;
+    Proc<FBOMData()> m_serialize_proc;
 };
 
 } // namespace hyperion

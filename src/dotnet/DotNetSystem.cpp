@@ -20,9 +20,9 @@
 #include <dotnet/Class.hpp>
 
 #ifdef HYP_DOTNET
-    #include <dotnetcore/hostfxr.h>
-    #include <dotnetcore/nethost.h>
-    #include <dotnetcore/coreclr_delegates.h>
+#include <dotnetcore/hostfxr.h>
+#include <dotnetcore/nethost.h>
+#include <dotnetcore/coreclr_delegates.h>
 #endif
 
 namespace hyperion {
@@ -41,8 +41,6 @@ enum class LoadAssemblyResult : int32
 };
 
 namespace dotnet {
-namespace detail {
-
 class DotNetImplBase
 {
 public:
@@ -160,11 +158,11 @@ public:
 
         PlatformString interop_assembly_path_platform;
 
-    #ifdef HYP_WINDOWS
+#ifdef HYP_WINDOWS
         interop_assembly_path_platform = interop_assembly_path->ToWide();
-    #else
+#else
         interop_assembly_path_platform = *interop_assembly_path;
-    #endif
+#endif
 
         m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
             interop_assembly_path_platform.Data(),
@@ -366,13 +364,13 @@ private:
 
         PlatformString runtime_config_path;
 
-    #ifdef HYP_WINDOWS
+#ifdef HYP_WINDOWS
         runtime_config_path = GetRuntimeConfigPath().ToWide();
 
         std::wcout << L".NET Runtime path = " << runtime_config_path.Data() << L"\n";
-    #else
+#else
         runtime_config_path = GetRuntimeConfigPath();
-    #endif
+#endif
 
         if (m_init_fptr(runtime_config_path.Data(), nullptr, &m_cxt) != 0)
         {
@@ -448,8 +446,6 @@ public:
 };
 
 #endif
-
-} // namespace detail
 
 DotNetSystem& DotNetSystem::GetInstance()
 {
@@ -540,7 +536,7 @@ void DotNetSystem::Initialize(const FilePath& base_path)
 
     AssertThrow(m_impl == nullptr);
 
-    m_impl = MakeRefCountedPtr<detail::DotNetImpl>();
+    m_impl = MakeRefCountedPtr<DotNetImpl>();
     m_impl->Initialize(base_path);
 
     m_is_initialized = true;

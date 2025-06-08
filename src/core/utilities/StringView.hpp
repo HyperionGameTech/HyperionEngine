@@ -19,18 +19,14 @@
 namespace hyperion {
 namespace utilities {
 
-namespace detail {
-
-using namespace containers::detail;
-
 template <int TStringType>
 class StringView
 {
 public:
-    using CharType = typename containers::detail::StringTypeImpl<TStringType>::CharType;
-    using WidestCharType = typename containers::detail::StringTypeImpl<TStringType>::WidestCharType;
+    using CharType = typename containers::StringTypeImpl<TStringType>::CharType;
+    using WidestCharType = typename containers::StringTypeImpl<TStringType>::WidestCharType;
 
-    friend class containers::detail::String<TStringType>;
+    friend class containers::String<TStringType>;
 
     template <int FirstStringType, int SecondStringType>
     friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
@@ -140,7 +136,7 @@ public:
     {
     }
 
-    // StringView(const detail::String< TStringType > &str)
+    // StringView(const String< TStringType > &str)
     //     : m_begin(str.Begin()),
     //       m_end(str.End() + 1 /* String class accounts for NUL char also */),
     //       m_length(str.Length())
@@ -232,8 +228,8 @@ public:
 
     constexpr ~StringView() = default;
 
-    // HYP_FORCE_INLINE operator containers::detail::String<TStringType>() const
-    //     { return containers::detail::String<TStringType>(Data()); }
+    // HYP_FORCE_INLINE operator containers::String<TStringType>() const
+    //     { return containers::String<TStringType>(Data()); }
 
     /*! \brief Check if the StringView is in a valid state.
      *  \returns True if the StringView is valid, false otherwise. */
@@ -471,9 +467,7 @@ public:
         return HashCode::GetHashCode(m_begin, m_end);
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_begin,
-        m_end)
+    HYP_DEF_STL_BEGIN_END(m_begin, m_end)
 
 protected:
     constexpr StringView StrStr(const StringView& other) const
@@ -552,7 +546,6 @@ constexpr bool operator==(const StringView<TStringType>& lhs, const StringView<T
     return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Size(), rhs.Size()));
 }
 
-} // namespace detail
 } // namespace utilities
 } // namespace hyperion
 

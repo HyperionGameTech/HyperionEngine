@@ -501,27 +501,4 @@ Matrix4 Matrix4::Identity()
 {
     return Matrix4(); // constructor fills out identity matrix
 }
-
-std::ostream& operator<<(std::ostream& os, const Matrix4& mat)
-{
-    os << "[";
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            os << mat.values[i * 4 + j];
-
-            if (i != 3 && j == 3)
-            {
-                os << "\n";
-            }
-            else if (!(i == 3 && j == 3))
-            {
-                os << ", ";
-            }
-        }
-    }
-    os << "]";
-    return os;
-}
 } // namespace hyperion

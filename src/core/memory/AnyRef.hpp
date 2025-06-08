@@ -22,8 +22,6 @@ namespace memory {
 class Any;
 class Copyable;
 
-namespace detail {
-
 class AnyBase;
 
 /*! \brief A non-owning reference to an object of any type.
@@ -33,7 +31,7 @@ class AnyRefBase
     using PointerType = void*;
 
 public:
-    friend class detail::AnyBase;
+    friend class AnyBase;
     friend class Any;
     friend class CopyableAny;
 
@@ -179,12 +177,10 @@ protected:
     PointerType m_ptr;
 };
 
-} // namespace detail
-
-class AnyRef : public detail::AnyRefBase
+class AnyRef : public AnyRefBase
 {
 public:
-    friend class detail::AnyBase;
+    friend class AnyBase;
     friend class Any;
     friend class CopyableAny;
 
@@ -198,13 +194,13 @@ public:
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit AnyRef(T& value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), &value)
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     AnyRef& operator=(T& value)
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -288,7 +284,7 @@ public:
         return nullptr;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_const_v<T> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(T& value)
     {
         m_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -307,10 +303,10 @@ public:
     }
 };
 
-class ConstAnyRef : public detail::AnyRefBase
+class ConstAnyRef : public AnyRefBase
 {
 public:
-    friend class detail::AnyBase;
+    friend class AnyBase;
     friend class Any;
     friend class CopyableAny;
 
@@ -324,14 +320,14 @@ public:
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     explicit ConstAnyRef(T&& value)
         : AnyRefBase(TypeID::ForType<NormalizedType<T>>(), const_cast<NormalizedType<T>*>(&value))
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<T>> && !std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     ConstAnyRef& operator=(T&& value)
     {
         static_assert(std::is_lvalue_reference_v<T>, "Must be an lvalue reference to use this constructor");
@@ -442,7 +438,7 @@ public:
         return nullptr;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<detail::AnyBase, NormalizedType<T>>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyRefBase, NormalizedType<T>> && !std::is_base_of_v<AnyBase, NormalizedType<T>>>>
     void Set(const T& value)
     {
         m_type_id = TypeID::ForType<NormalizedType<T>>();

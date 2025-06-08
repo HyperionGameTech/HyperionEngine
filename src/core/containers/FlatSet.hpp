@@ -11,6 +11,9 @@
 namespace hyperion {
 namespace containers {
 
+/*! \brief FlatSet is a sorted set container that stores unique elements in a flat contiguous array, based on the SortedArray implementation.
+ *  It provides fast lookup and insertion while maintaining order.
+ *  \tparam T The type of elements stored in the flat set. */
 template <class T>
 class FlatSet : public SortedArray<T>
 {
@@ -216,9 +219,7 @@ public:
         return Array<T>(Begin(), End());
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        Base::Begin(),
-        Base::End())
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 };
 
 template <class T>

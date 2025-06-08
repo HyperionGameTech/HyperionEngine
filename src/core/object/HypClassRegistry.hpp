@@ -156,8 +156,6 @@ private:
     mutable Mutex m_managed_classes_mutex;
 };
 
-namespace detail {
-
 struct HYP_API HypClassRegistrationBase
 {
 protected:
@@ -200,8 +198,6 @@ struct HypEnumRegistration : public HypClassRegistrationBase
     {
     }
 };
-
-} // namespace detail
 
 #pragma region Global Helper Functions
 

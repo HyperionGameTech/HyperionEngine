@@ -13,8 +13,6 @@
 namespace hyperion {
 namespace utilities {
 
-namespace detail {
-
 template <class T, class T2 = void>
 struct ValueStorageAlignment;
 
@@ -30,9 +28,7 @@ struct ValueStorageAlignment<T, typename std::enable_if_t<!implementation_exists
     static constexpr SizeType value = 1;
 };
 
-} // namespace detail
-
-template <class T, SizeType Alignment = detail::ValueStorageAlignment<T>::value>
+template <class T, SizeType Alignment = ValueStorageAlignment<T>::value>
 struct alignas(Alignment) ValueStorage
 {
     static constexpr SizeType alignment = Alignment;
@@ -123,13 +119,13 @@ struct ValueStorage<void>
     ~ValueStorage() = default;
 };
 
-template <class T, SizeType Count, SizeType Alignment = detail::ValueStorageAlignment<T>::value, typename T2 = void>
+template <class T, SizeType Count, SizeType Alignment = ValueStorageAlignment<T>::value, typename T2 = void>
 struct ValueStorageArray;
 
 template <class T, SizeType Count, SizeType Alignment>
 struct ValueStorageArray<T, Count, Alignment, typename std::enable_if_t<implementation_exists<T> && Count != 0>>
 {
-    static constexpr SizeType alignment = detail::ValueStorageAlignment<T>::value;
+    static constexpr SizeType alignment = ValueStorageAlignment<T>::value;
 
     alignas(alignment) ValueStorage<T> data[Count];
 

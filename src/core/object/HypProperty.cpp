@@ -39,13 +39,13 @@ HypProperty HypProperty::MakeHypProperty(const HypField* field)
     {
         return field->Get(target);
     };
-    result.m_getter.serialize_proc = [field](const HypData& target) -> fbom::FBOMData
+    result.m_getter.serialize_proc = [field](const HypData& target) -> FBOMData
     {
-        fbom::FBOMData data;
+        FBOMData data;
 
         if (!field->Serialize(target, data))
         {
-            return fbom::FBOMData();
+            return FBOMData();
         }
 
         return data;
@@ -58,7 +58,7 @@ HypProperty HypProperty::MakeHypProperty(const HypField* field)
     {
         field->Set(target, value);
     };
-    result.m_setter.deserialize_proc = [field](fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& value) -> void
+    result.m_setter.deserialize_proc = [field](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> void
     {
         field->Deserialize(context, target, value);
     };
@@ -146,9 +146,9 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
         {
             return getter->Invoke(Span<HypData> { const_cast<HypData*>(&target), 1 });
         };
-        result.m_getter.serialize_proc = [getter](const HypData& target) -> fbom::FBOMData
+        result.m_getter.serialize_proc = [getter](const HypData& target) -> FBOMData
         {
-            fbom::FBOMData data;
+            FBOMData data;
             AssertThrow(getter->Serialize(Span<HypData> { const_cast<HypData*>(&target), 1 }, data));
 
             return data;
@@ -165,7 +165,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
         {
             setter->Invoke(Span<HypData*> { { &target, const_cast<HypData*>(&value) } });
         };
-        result.m_setter.deserialize_proc = [setter](fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& value) -> void
+        result.m_setter.deserialize_proc = [setter](FBOMLoadContext& context, HypData& target, const FBOMData& value) -> void
         {
             AssertThrow(setter->Deserialize(context, target, value));
         };

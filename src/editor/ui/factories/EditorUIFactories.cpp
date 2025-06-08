@@ -116,10 +116,10 @@ public:
 HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIElementFactory);
 
 template <int StringType>
-class StringUIElementFactory : public UIElementFactory<containers::detail::String<StringType>, StringUIElementFactory<StringType>>
+class StringUIElementFactory : public UIElementFactory<containers::String<StringType>, StringUIElementFactory<StringType>>
 {
 public:
-    RC<UIObject> Create(UIObject* parent, const containers::detail::String<StringType>& value) const
+    RC<UIObject> Create(UIObject* parent, const containers::String<StringType>& value) const
     {
         RC<UITextbox> textbox = parent->CreateUIObject<UITextbox>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 20, UIObjectSize::PIXEL }));
         textbox->SetText(value.ToUTF8());
@@ -127,17 +127,17 @@ public:
         return textbox;
     }
 
-    void Update(UIObject* ui_object, const containers::detail::String<StringType>& value) const
+    void Update(UIObject* ui_object, const containers::String<StringType>& value) const
     {
         ui_object->SetText(value.ToUTF8());
     }
 };
 
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::ANSI>, StringUIElementFactory<StringType::ANSI>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF8>, StringUIElementFactory<StringType::UTF8>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF16>, StringUIElementFactory<StringType::UTF16>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::UTF32>, StringUIElementFactory<StringType::UTF32>);
-HYP_DEFINE_UI_ELEMENT_FACTORY(containers::detail::String<StringType::WIDE_CHAR>, StringUIElementFactory<StringType::WIDE_CHAR>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::ANSI>, StringUIElementFactory<StringType::ANSI>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::UTF8>, StringUIElementFactory<StringType::UTF8>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::UTF16>, StringUIElementFactory<StringType::UTF16>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::UTF32>, StringUIElementFactory<StringType::UTF32>);
+HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::WIDE_CHAR>, StringUIElementFactory<StringType::WIDE_CHAR>);
 
 class Vec3fUIElementFactory : public UIElementFactory<Vec3f, Vec3fUIElementFactory>
 {

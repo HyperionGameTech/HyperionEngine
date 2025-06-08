@@ -13,7 +13,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(ShaderCompiler);
 } // namespace hyperion
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<CompiledShader> : public FBOMObjectMarshalerBase<CompiledShader>
@@ -109,7 +109,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         uint64 global_descriptor_table_version = -1;
 
@@ -258,7 +258,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         CompiledShaderBatch batch;
 
@@ -287,4 +287,4 @@ public:
 
 HYP_DEFINE_MARSHAL(CompiledShaderBatch, FBOMMarshaler<CompiledShaderBatch>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

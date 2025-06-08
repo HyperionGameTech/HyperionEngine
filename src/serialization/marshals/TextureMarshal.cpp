@@ -14,7 +14,7 @@
 
 #include <rendering/backend/RendererImage.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<Texture> : public HypClassInstanceMarshal
@@ -49,7 +49,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Handle<Texture> texture_handle;
 
@@ -107,4 +107,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Texture, FBOMMarshaler<Texture>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

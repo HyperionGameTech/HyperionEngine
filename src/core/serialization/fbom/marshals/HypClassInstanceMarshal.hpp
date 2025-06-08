@@ -23,7 +23,7 @@ using HypClassInstanceStub = HypClassInstance<void>;
 
 } // namespace hyperion
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 class HYP_API HypClassInstanceMarshal : public FBOMMarshalerBase
 {
@@ -54,6 +54,6 @@ protected:
     virtual FBOMResult Deserialize_Internal(FBOMLoadContext& context, const FBOMObject& in, const HypClass* hyp_class, AnyRef ref) const;
 };
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization
 
 #endif

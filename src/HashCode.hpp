@@ -16,8 +16,6 @@ namespace hyperion {
 
 HYP_MAKE_HAS_METHOD(GetHashCode);
 
-namespace detail {
-
 struct FNV1
 {
     static constexpr uint64 offset_basis = 14695981039346656037ull;
@@ -89,8 +87,6 @@ struct FNV1
         return hash;
     }
 };
-
-} // namespace detail
 
 struct HashCode
 {
@@ -168,7 +164,7 @@ struct HashCode
         HashCode>
     GetHashCode(const T& value)
     {
-        return HashCode(detail::FNV1::HashBytes(reinterpret_cast<const ubyte*>(&value), reinterpret_cast<const ubyte*>(&value) + sizeof(T)));
+        return HashCode(FNV1::HashBytes(reinterpret_cast<const ubyte*>(&value), reinterpret_cast<const ubyte*>(&value) + sizeof(T)));
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
@@ -194,22 +190,22 @@ struct HashCode
     template <SizeType Size>
     static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
-        return HashCode(detail::FNV1::HashString<char, Size>(str));
+        return HashCode(FNV1::HashString<char, Size>(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char* str)
     {
-        return HashCode(detail::FNV1::HashString(str));
+        return HashCode(FNV1::HashString(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char* _begin, const char* _end)
     {
-        return HashCode(detail::FNV1::HashString(_begin, _end));
+        return HashCode(FNV1::HashString(_begin, _end));
     }
 
     static inline HashCode GetHashCode(const ubyte* _begin, const ubyte* _end)
     {
-        return HashCode(detail::FNV1::HashBytes(_begin, _end));
+        return HashCode(FNV1::HashBytes(_begin, _end));
     }
 
     constexpr HashCode Combine(const HashCode& other) const

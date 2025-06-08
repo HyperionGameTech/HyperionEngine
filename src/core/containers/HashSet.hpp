@@ -17,8 +17,6 @@
 namespace hyperion {
 
 namespace containers {
-namespace detail {
-
 template <class Value>
 struct HashSetElement
 {
@@ -271,13 +269,11 @@ struct HashSetBucket
     }
 };
 
-} // namespace detail
-
-template <class Value, class ArrayAllocatorType = typename containers::detail::ArrayDefaultAllocatorSelector<Value, 32>::Type>
+template <class Value, class ArrayAllocatorType = typename containers::ArrayDefaultAllocatorSelector<Value, 32>::Type>
 struct HashTable_PooledNodeAllocator
 {
-    using Node = detail::HashSetElement<Value>;
-    using Bucket = detail::HashSetBucket<Value>;
+    using Node = HashSetElement<Value>;
+    using Bucket = HashSetBucket<Value>;
 
     Array<Node, ArrayAllocatorType> m_pool;
     Node* m_free_nodes_head = nullptr;
@@ -380,8 +376,8 @@ struct HashTable_PooledNodeAllocator
 template <class Value>
 struct HashTable_DynamicNodeAllocator
 {
-    using Node = detail::HashSetElement<Value>;
-    using Bucket = detail::HashSetBucket<Value>;
+    using Node = HashSetElement<Value>;
+    using Bucket = HashSetBucket<Value>;
 
     template <class... Args>
     HYP_FORCE_INLINE Node* Allocate(Args&&... args)
@@ -408,6 +404,12 @@ struct HashTable_DynamicNodeAllocator
 template <class Value>
 using HashTable_DefaultNodeAllocator = HashTable_PooledNodeAllocator<Value>;
 
+/*! \brief A hash set container that uses a hash table to store unique values, supporting a custom node allocator and a key extraction function.
+ *  \details This container allows for efficient storage and retrieval of unique values based on a key extracted from each value using the provided `KeyBy` function. The default key extraction function is the identity function, which uses the value itself as the key.
+ *  \tparam Value The type of values stored in the hash set.
+ *  \tparam KeyBy A function that extracts a key from a value. The default is the identity function, which uses the value itself as the key.
+ *  \tparam NodeAllocatorType The type of node allocator used for managing memory for the hash set elements. The default is `HashTable_DefaultNodeAllocator<Value>`, which can leverage pooled allocation for reduced dynamic memory allocation. If you want to use dynamic allocation (e.g need stable pointers to elements), you can use `HashTable_DynamicNodeAllocator<Value>` instead.
+ */
 template <class Value, auto KeyBy = &KeyBy_Identity<Value>, class NodeAllocatorType = HashTable_DefaultNodeAllocator<Value>>
 class HashSet : public ContainerBase<HashSet<Value, KeyBy, NodeAllocatorType>, decltype(std::declval<FunctionWrapper<decltype(KeyBy)>>()(std::declval<Value>()))>
 {
@@ -420,8 +422,8 @@ protected:
 
     static constexpr FunctionWrapper<decltype(KeyBy)> key_by_fn { KeyBy };
 
-    using Node = detail::HashSetElement<Value>;
-    using Bucket = detail::HashSetBucket<Value>;
+    using Node = HashSetElement<Value>;
+    using Bucket = HashSetBucket<Value>;
 
     using BucketArray = Array<Bucket, InlineAllocator<initial_bucket_size>>;
 

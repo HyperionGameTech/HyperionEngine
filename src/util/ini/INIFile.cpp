@@ -24,10 +24,18 @@ void INIFile::Parse()
 {
     m_is_valid = false;
 
-    BufferedReader reader;
-
-    if (!m_path.Open(reader))
+    if (!m_path.Exists())
     {
+        return;
+    }
+
+    FileBufferedReaderSource source { m_path };
+    BufferedReader reader { &source };
+
+    if (!reader.IsOpen())
+    {
+        HYP_LOG(Core, Error, "Failed to open INI file: {}", m_path);
+
         return;
     }
 

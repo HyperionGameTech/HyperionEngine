@@ -13,6 +13,10 @@
 namespace hyperion {
 namespace containers {
 
+/*! \brief FlatMap is a sorted associative container that stores key-value pairs in a flat contiguous array, based on the Array implementation.
+ *  It provides fast lookup and insertion while maintaining order.
+ *  \tparam Key The type of keys stored in the flat map.
+ *  \tparam Value The type of values stored in the flat map. */
 template <class Key, class Value>
 class FlatMap : public ContainerBase<FlatMap<Key, Value>, Key>
 {
@@ -268,9 +272,7 @@ public:
         return Insert(key, Value {}).first->second;
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_vector.Begin(),
-        m_vector.End())
+    HYP_DEF_STL_BEGIN_END(m_vector.Begin(), m_vector.End())
 
 private:
     InsertResult Set_Internal(Pair<Key, Value>&& pair);

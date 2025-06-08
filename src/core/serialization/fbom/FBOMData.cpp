@@ -18,7 +18,7 @@
 
 #include <sstream>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 FBOMData::FBOMData(EnumFlags<FBOMDataFlags> flags)
     : m_type(FBOMUnset()),
@@ -111,7 +111,8 @@ FBOMResult FBOMData::ReadObject(FBOMLoadContext& context, FBOMObject& out_object
         return { FBOMResult::FBOM_ERR, "Not an object" };
     }
 
-    BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(m_bytes.ToByteView()));
+    MemoryBufferedReaderSource source { m_bytes.ToByteView() };
+    BufferedReader byte_reader { &source };
 
     FBOMReader deserializer(FBOMReaderConfig {});
 
@@ -181,7 +182,8 @@ FBOMResult FBOMData::ReadArray(FBOMLoadContext& context, FBOMArray& out_array) c
         return { FBOMResult::FBOM_ERR, "Not an array" };
     }
 
-    BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(m_bytes.ToByteView()));
+    MemoryBufferedReaderSource source { m_bytes.ToByteView() };
+    BufferedReader byte_reader { &source };
 
     FBOMReader deserializer(FBOMReaderConfig {});
     return deserializer.ReadArray(context, &byte_reader, out_array);
@@ -514,7 +516,7 @@ FBOMData FBOMData::FromJSON(const json::JSONValue& json_value)
 
     if (json_value.IsArray())
     {
-        FBOMArray array { fbom::FBOMUnset() };
+        FBOMArray array { FBOMUnset() };
 
         const json::JSONArray& json_array = json_value.AsArray();
 
@@ -528,7 +530,7 @@ FBOMData FBOMData::FromJSON(const json::JSONValue& json_value)
                 elements.EmplaceBack(FBOMData::FromJSON(element));
             }
 
-            array = fbom::FBOMArray(elements[0].GetType(), std::move(elements));
+            array = FBOMArray(elements[0].GetType(), std::move(elements));
         }
 
         return FBOMData::FromArray(std::move(array));
@@ -611,4 +613,4 @@ HashCode FBOMData::GetHashCode() const
     return hc;
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

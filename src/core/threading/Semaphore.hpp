@@ -26,8 +26,6 @@ enum class SemaphoreDirection : uint8
     WAIT_FOR_POSITIVE = 1
 };
 
-namespace detail {
-
 template <class T, SemaphoreDirection Direction>
 static inline constexpr bool ShouldSignal(T value)
 {
@@ -414,14 +412,12 @@ struct ConditionVarSemaphoreImpl
     }
 };
 
-} // namespace detail
-
 class SemaphoreBase
 {
 public:
 };
 
-template <class CounterType, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_POSITIVE, class Impl = detail::ConditionVarSemaphoreImpl<CounterType, Direction>>
+template <class CounterType, SemaphoreDirection Direction = SemaphoreDirection::WAIT_FOR_POSITIVE, class Impl = ConditionVarSemaphoreImpl<CounterType, Direction>>
 class Semaphore : public SemaphoreBase
 {
 public:

@@ -50,7 +50,7 @@ class Archive;
 
 using compression::Archive;
 
-namespace fbom {
+namespace serialization {
 
 struct FBOMObjectType;
 
@@ -196,7 +196,7 @@ public:
     bool m_swap_endianness;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

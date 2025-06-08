@@ -102,9 +102,52 @@ private:
 class MemoryBufferedReaderSource : public BufferedReaderSource
 {
 public:
+    MemoryBufferedReaderSource() = default;
+
     MemoryBufferedReaderSource(ConstByteView byte_view)
         : m_byte_view(byte_view)
     {
+    }
+
+    MemoryBufferedReaderSource(const ByteBuffer& byte_buffer)
+        : m_byte_view(byte_buffer.ToByteView())
+    {
+    }
+
+    MemoryBufferedReaderSource(const MemoryBufferedReaderSource& other)
+        : m_byte_view(other.m_byte_view)
+    {
+    }
+
+    MemoryBufferedReaderSource(MemoryBufferedReaderSource&& other) noexcept
+        : m_byte_view(std::move(other.m_byte_view))
+    {
+        other.m_byte_view = ConstByteView();
+    }
+
+    MemoryBufferedReaderSource& operator=(const MemoryBufferedReaderSource& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        m_byte_view = other.m_byte_view;
+
+        return *this;
+    }
+
+    MemoryBufferedReaderSource& operator=(MemoryBufferedReaderSource&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        m_byte_view = std::move(other.m_byte_view);
+        other.m_byte_view = ConstByteView();
+
+        return *this;
     }
 
     virtual ~MemoryBufferedReaderSource() override = default;
@@ -142,26 +185,18 @@ public:
     static constexpr SizeType eof_pos = ~0u;
 
     BufferedReader()
-        : m_pos(eof_pos)
+        : m_pos(eof_pos),
+          m_source(nullptr),
+          m_buffer {}
     {
     }
 
-    BufferedReader(RC<BufferedReaderSource> source)
-        : m_source(std::move(source)),
-          m_pos(eof_pos)
+    BufferedReader(BufferedReaderSource* source)
+        : m_source(source),
+          m_pos(eof_pos),
+          m_buffer {}
     {
         if (m_source != nullptr && m_source->IsOK())
-        {
-            Seek(0);
-        }
-    }
-
-    BufferedReader(const FilePath& filepath)
-        : m_filepath(filepath),
-          m_source(MakeRefCountedPtr<FileBufferedReaderSource>(filepath)),
-          m_pos(eof_pos)
-    {
-        if (m_source->IsOK())
         {
             Seek(0);
         }
@@ -172,11 +207,12 @@ public:
 
     BufferedReader(BufferedReader&& other) noexcept
         : m_filepath(std::move(other.m_filepath)),
-          m_source(std::move(other.m_source)),
+          m_source(other.m_source),
           m_pos(other.m_pos),
           m_buffer(std::move(other.m_buffer))
     {
         other.m_pos = eof_pos;
+        other.m_source = nullptr;
     }
 
     BufferedReader& operator=(BufferedReader&& other) noexcept
@@ -189,11 +225,12 @@ public:
         Close();
 
         m_filepath = std::move(other.m_filepath);
-        m_source = std::move(other.m_source);
+        m_source = other.m_source;
         m_pos = other.m_pos;
         m_buffer = std::move(other.m_buffer);
 
         other.m_pos = eof_pos;
+        other.m_source = nullptr;
 
         return *this;
     }
@@ -265,8 +302,7 @@ public:
     void Close()
     {
         m_pos = eof_pos;
-
-        m_source.Reset();
+        m_source = nullptr;
     }
 
     /*! \brief Reads the next \ref{count} bytes from the file and returns a ByteBuffer.
@@ -532,9 +568,9 @@ public:
 
 private:
     FilePath m_filepath;
-    RC<BufferedReaderSource> m_source;
+    BufferedReaderSource* m_source;
     SizeType m_pos;
-    FixedArray<ubyte, buffer_size> m_buffer {};
+    FixedArray<ubyte, buffer_size> m_buffer;
 
     SizeType Read()
     {

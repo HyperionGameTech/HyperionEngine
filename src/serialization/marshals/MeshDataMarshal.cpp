@@ -6,7 +6,7 @@
 
 #include <scene/Mesh.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<MeshData> : public FBOMObjectMarshalerBase<MeshData>
@@ -31,7 +31,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Array<Vertex> vertices;
 
@@ -85,4 +85,4 @@ public:
 
 HYP_DEFINE_MARSHAL(MeshData, FBOMMarshaler<MeshData>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

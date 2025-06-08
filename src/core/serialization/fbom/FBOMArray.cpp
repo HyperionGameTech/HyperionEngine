@@ -3,7 +3,7 @@
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 FBOMArray::FBOMArray(const FBOMType& element_type)
     : m_element_type(element_type)
@@ -204,4 +204,4 @@ HashCode FBOMArray::GetHashCode() const
     return hc;
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

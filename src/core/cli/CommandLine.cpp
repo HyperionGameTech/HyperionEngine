@@ -229,9 +229,7 @@ struct CommandLineArgumentDefinitionsImpl
             });
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        definitions.Begin(),
-        definitions.End())
+    HYP_DEF_STL_BEGIN_END(definitions.Begin(), definitions.End())
 };
 
 #pragma endregion CommandLineArgumentDefinitionsImpl

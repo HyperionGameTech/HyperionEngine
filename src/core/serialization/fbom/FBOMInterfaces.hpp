@@ -20,7 +20,7 @@
 namespace hyperion {
 class ByteWriter;
 
-namespace fbom {
+namespace serialization {
 
 class FBOMWriter;
 class FBOMReader;
@@ -46,7 +46,7 @@ public:
     virtual String ToString(bool deep = true) const = 0;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

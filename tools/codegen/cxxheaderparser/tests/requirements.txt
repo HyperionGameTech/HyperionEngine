@@ -1,2 +1,0 @@
-pytest
-pcpp~=1.30

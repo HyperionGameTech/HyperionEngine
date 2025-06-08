@@ -561,8 +561,6 @@ private:
     Proc<void(UIObject*, const HypData&, const HypData&)> m_update_ui_object_proc;
 };
 
-namespace detail {
-
 struct HYP_API UIElementFactoryRegistrationBase
 {
 protected:
@@ -581,11 +579,10 @@ struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
     }
 };
 
-} // namespace detail
 } // namespace hyperion
 
 #define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory)                                                \
-    static ::hyperion::detail::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
+    static ::hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
     {                                                                                            \
         []() -> RC<UIElementFactoryBase> {                                                       \
             return MakeRefCountedPtr<Factory>();                                                 \

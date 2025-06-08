@@ -14,7 +14,8 @@ SAXParser::SAXParser(SAXHandler* handler)
 
 SAXParser::Result SAXParser::Parse(const FilePath& filepath)
 {
-    BufferedReader reader(filepath);
+    FileBufferedReaderSource source { filepath };
+    BufferedReader reader { &source };
 
     return Parse(&reader);
 }

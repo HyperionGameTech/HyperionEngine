@@ -22,19 +22,12 @@
 namespace hyperion {
 
 namespace utilities {
-namespace detail {
-
 template <int TStringType>
 class StringView;
 
-} // namespace detail
 } // namespace utilities
 
 namespace containers {
-
-namespace detail {
-
-using namespace utf;
 
 /*! \brief Dynamic string class that natively supports UTF-8, as well as UTF-16, UTF-32, wide chars and ANSI. */
 template <int TStringType>
@@ -77,13 +70,13 @@ public:
     static_assert(!is_utf8 || std::is_same_v<CharType, char>, "UTF-8 Strings must have CharType equal to char");
 
     template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator<(const containers::detail::String<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
+    friend constexpr bool operator<(const containers::String<FirstStringType>& lhs, const StringView<SecondStringType>& rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const containers::detail::String<SecondStringType>& rhs);
+    friend constexpr bool operator<(const StringView<FirstStringType>& lhs, const containers::String<SecondStringType>& rhs);
 
     template <int FirstStringType, int SecondStringType>
-    friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const containers::detail::String<SecondStringType>& rhs);
+    friend constexpr bool operator==(const StringView<FirstStringType>& lhs, const containers::String<SecondStringType>& rhs);
 
     String();
     String(const String& other);
@@ -93,7 +86,7 @@ public:
     explicit String(ConstByteView byte_view);
 
     template <int TOtherStringType>
-    String(const utilities::detail::StringView<TOtherStringType>& string_view)
+    String(const utilities::StringView<TOtherStringType>& string_view)
     {
         *this = string_view;
     }
@@ -113,7 +106,7 @@ public:
     String& operator=(String&& other) noexcept;
 
     template <int TOtherStringType>
-    HYP_FORCE_INLINE String& operator=(const utilities::detail::StringView<TOtherStringType>& string_view)
+    HYP_FORCE_INLINE String& operator=(const utilities::StringView<TOtherStringType>& string_view)
     {
         Clear();
         Append(string_view.Data(), string_view.Data() + string_view.Size());
@@ -158,8 +151,8 @@ public:
         return *this;
     }
 
-    String operator+(const utilities::detail::StringView<TStringType>& string_view) const;
-    String& operator+=(const utilities::detail::StringView<TStringType>& string_view);
+    String operator+(const utilities::StringView<TStringType>& string_view) const;
+    String& operator+=(const utilities::StringView<TStringType>& string_view);
 
     String operator+(CharType ch) const;
     String& operator+=(CharType ch);
@@ -229,9 +222,9 @@ public:
         return Base::Data();
     }
 
-    HYP_FORCE_INLINE operator utilities::detail::StringView<TStringType>() const
+    HYP_FORCE_INLINE operator utilities::StringView<TStringType>() const
     {
-        return utilities::detail::StringView<TStringType>(Begin(), End(), Length());
+        return utilities::StringView<TStringType>(Begin(), End(), Length());
     }
 
     /*! \brief Conversion operator to return the raw data of the string. */
@@ -269,11 +262,11 @@ public:
     /*! \brief Check if the string contains the given character. */
     HYP_FORCE_INLINE bool Contains(WidestCharType ch) const
     {
-        return ch != CharType { 0 } && utilities::detail::StringView<TStringType>(*this).FindFirstIndex(ch) != not_found;
+        return ch != CharType { 0 } && utilities::StringView<TStringType>(*this).FindFirstIndex(ch) != not_found;
     }
 
     /*! \brief Check if the string contains the given string. */
-    HYP_FORCE_INLINE bool Contains(const utilities::detail::StringView<TStringType>& substr) const
+    HYP_FORCE_INLINE bool Contains(const utilities::StringView<TStringType>& substr) const
     {
         return FindFirstIndex(substr) != not_found;
     }
@@ -281,29 +274,29 @@ public:
     /*! \brief Find the index of the first occurrence of the character. */
     HYP_FORCE_INLINE SizeType FindFirstIndex(WidestCharType ch) const
     {
-        return utilities::detail::StringView<TStringType>(*this).FindFirstIndex(ch);
+        return utilities::StringView<TStringType>(*this).FindFirstIndex(ch);
     }
 
     /*! \brief Find the index of the first occurrence of the substring
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    HYP_FORCE_INLINE SizeType FindFirstIndex(const utilities::detail::StringView<TStringType>& substr) const
+    HYP_FORCE_INLINE SizeType FindFirstIndex(const utilities::StringView<TStringType>& substr) const
     {
-        return utilities::detail::StringView<TStringType>(*this).FindFirstIndex(substr);
+        return utilities::StringView<TStringType>(*this).FindFirstIndex(substr);
     }
 
     /*! \brief Find the index of the last occurrence of the character. */
     HYP_FORCE_INLINE SizeType FindLastIndex(WidestCharType ch) const
     {
-        return utilities::detail::StringView<TStringType>(*this).FindLastIndex(ch);
+        return utilities::StringView<TStringType>(*this).FindLastIndex(ch);
     }
 
     /*! \brief Find the index of the last occurrence of the substring
      * \note For UTF-8 strings, ensure accessing the character with the returned value is done via the \ref{GetChar} method,
      *       as the index is the character index, not the byte index. */
-    HYP_FORCE_INLINE SizeType FindLastIndex(const utilities::detail::StringView<TStringType>& substr) const
+    HYP_FORCE_INLINE SizeType FindLastIndex(const utilities::StringView<TStringType>& substr) const
     {
-        return utilities::detail::StringView<TStringType>(*this).FindLastIndex(substr);
+        return utilities::StringView<TStringType>(*this).FindLastIndex(substr);
     }
 
     /*! \brief Check if the string is empty. */
@@ -335,7 +328,7 @@ public:
         Base::Refit();
     }
 
-    void Append(const utilities::detail::StringView<TStringType>& string_view);
+    void Append(const utilities::StringView<TStringType>& string_view);
     void Append(CharType value);
 
     void Append(const CharType* str);
@@ -449,9 +442,9 @@ public:
     HYP_NODISCARD String TrimmedLeft() const;
     HYP_NODISCARD String TrimmedRight() const;
 
-    HYP_FORCE_INLINE utilities::detail::StringView<TStringType> Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const
+    HYP_FORCE_INLINE utilities::StringView<TStringType> Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const
     {
-        return utilities::detail::StringView<TStringType>(*this).Substr(first, last);
+        return utilities::StringView<TStringType>(*this).Substr(first, last);
     }
 
     // HYP_NODISCARD String Substr(SizeType first, SizeType last = MathUtil::MaxSafeValue<SizeType>()) const;
@@ -832,12 +825,10 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode(::hyperion::detail::FNV1::HashString(Data()));
+        return HashCode(::hyperion::FNV1::HashString(Data()));
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        Base::Begin(),
-        Base::End() - 1)
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End() - 1)
 
 protected:
     SizeType m_length;
@@ -1021,7 +1012,7 @@ auto String<TStringType>::operator=(String&& other) noexcept -> String&
 // }
 
 template <int TStringType>
-auto String<TStringType>::operator+(const utilities::detail::StringView<TStringType>& string_view) const -> String
+auto String<TStringType>::operator+(const utilities::StringView<TStringType>& string_view) const -> String
 {
     String result(*this);
     result.Append(string_view);
@@ -1030,7 +1021,7 @@ auto String<TStringType>::operator+(const utilities::detail::StringView<TStringT
 }
 
 template <int TStringType>
-auto String<TStringType>::operator+=(const utilities::detail::StringView<TStringType>& string_view) -> String&
+auto String<TStringType>::operator+=(const utilities::StringView<TStringType>& string_view) -> String&
 {
     Append(string_view);
 
@@ -1147,7 +1138,7 @@ auto String<TStringType>::GetChar(SizeType index) const -> WidestCharType
 }
 
 template <int TStringType>
-void String<TStringType>::Append(const utilities::detail::StringView<TStringType>& string_view)
+void String<TStringType>::Append(const utilities::StringView<TStringType>& string_view)
 {
     if (Size() + string_view.Size() + 1 >= Base::Capacity())
     {
@@ -1179,13 +1170,13 @@ void String<TStringType>::Append(const utilities::detail::StringView<TStringType
 template <int TStringType>
 void String<TStringType>::Append(const CharType* str)
 {
-    Append(utilities::detail::StringView<TStringType>(str));
+    Append(utilities::StringView<TStringType>(str));
 }
 
 template <int TStringType>
 void String<TStringType>::Append(const CharType* _begin, const CharType* _end)
 {
-    Append(utilities::detail::StringView<TStringType>(_begin, _end));
+    Append(utilities::StringView<TStringType>(_begin, _end));
 }
 
 template <int TStringType>
@@ -1646,7 +1637,7 @@ String<TStringType> operator+(const CharType *str, const String<TStringType> &ot
 #endif
 
 template <int TStringType>
-constexpr bool operator<(const String<TStringType>& lhs, const utilities::detail::StringView<TStringType>& rhs)
+constexpr bool operator<(const String<TStringType>& lhs, const utilities::StringView<TStringType>& rhs)
 {
     if (!lhs.Data())
     {
@@ -1659,11 +1650,11 @@ constexpr bool operator<(const String<TStringType>& lhs, const utilities::detail
     }
 
     // @FIXME: Use strncmp instead as string_view may not be null-terminated
-    return utf::utf_strncmp<typename utilities::detail::StringView<TStringType>::CharType, utilities::detail::StringView<TStringType>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
+    return utf::utf_strncmp<typename utilities::StringView<TStringType>::CharType, utilities::StringView<TStringType>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int TStringType>
-constexpr bool operator<(const utilities::detail::StringView<TStringType>& lhs, const String<TStringType>& rhs)
+constexpr bool operator<(const utilities::StringView<TStringType>& lhs, const String<TStringType>& rhs)
 {
     if (!lhs.Data())
     {
@@ -1676,11 +1667,11 @@ constexpr bool operator<(const utilities::detail::StringView<TStringType>& lhs, 
     }
 
     // @FIXME: Use strncmp instead as string_view may not be null-terminated
-    return utf::utf_strncmp<typename utilities::detail::StringView<TStringType>::CharType, utilities::detail::StringView<TStringType>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
+    return utf::utf_strncmp<typename utilities::StringView<TStringType>::CharType, utilities::StringView<TStringType>::is_utf8>(lhs.Data(), rhs.Data(), MathUtil::Min(lhs.Length(), rhs.Length())) < 0;
 }
 
 template <int TStringType>
-constexpr bool operator==(const String<TStringType>& lhs, const utilities::detail::StringView<TStringType>& rhs)
+constexpr bool operator==(const String<TStringType>& lhs, const utilities::StringView<TStringType>& rhs)
 {
     if (lhs.Size() != rhs.Size())
     {
@@ -1696,7 +1687,7 @@ constexpr bool operator==(const String<TStringType>& lhs, const utilities::detai
 }
 
 template <int TStringType>
-constexpr bool operator==(const utilities::detail::StringView<TStringType>& lhs, const String<TStringType>& rhs)
+constexpr bool operator==(const utilities::StringView<TStringType>& lhs, const String<TStringType>& rhs)
 {
     if (lhs.Size() != rhs.Size())
     {
@@ -1711,54 +1702,53 @@ constexpr bool operator==(const utilities::detail::StringView<TStringType>& lhs,
     return Memory::AreStaticStringsEqual(lhs.Data(), rhs.Data(), lhs.Size());
 }
 
-} // namespace detail
 } // namespace containers
 
 // StringView + String
 template <int TStringType>
-inline containers::detail::String<TStringType> operator+(const utilities::detail::StringView<TStringType>& lhs, const containers::detail::String<TStringType>& rhs)
+inline containers::String<TStringType> operator+(const utilities::StringView<TStringType>& lhs, const containers::String<TStringType>& rhs)
 {
-    return containers::detail::String<TStringType>(lhs) + rhs;
+    return containers::String<TStringType>(lhs) + rhs;
 }
 
 // StringView + StringView
 template <int TStringType>
-inline containers::detail::String<TStringType> operator+(const utilities::detail::StringView<TStringType>& lhs, const utilities::detail::StringView<TStringType>& rhs)
+inline containers::String<TStringType> operator+(const utilities::StringView<TStringType>& lhs, const utilities::StringView<TStringType>& rhs)
 {
-    return containers::detail::String<TStringType>(lhs) + rhs;
+    return containers::String<TStringType>(lhs) + rhs;
 }
 
 // StringView + char pointer
 template <int TStringType>
-inline containers::detail::String<TStringType> operator+(const utilities::detail::StringView<TStringType>& lhs, const typename containers::detail::String<TStringType>::CharType* rhs)
+inline containers::String<TStringType> operator+(const utilities::StringView<TStringType>& lhs, const typename containers::String<TStringType>::CharType* rhs)
 {
-    return containers::detail::String<TStringType>(lhs) + rhs;
+    return containers::String<TStringType>(lhs) + rhs;
 }
 
 // Char pointer + StringView
 template <int TStringType>
-inline containers::detail::String<TStringType> operator+(const typename containers::detail::String<TStringType>::CharType* lhs, const utilities::detail::StringView<TStringType>& rhs)
+inline containers::String<TStringType> operator+(const typename containers::String<TStringType>::CharType* lhs, const utilities::StringView<TStringType>& rhs)
 {
-    return containers::detail::String<TStringType>(lhs) + rhs;
+    return containers::String<TStringType>(lhs) + rhs;
 }
 
 // Char pointer + String
 template <int TStringType>
-inline containers::detail::String<TStringType> operator+(const typename containers::detail::String<TStringType>::CharType* lhs, const containers::detail::String<TStringType>& rhs)
+inline containers::String<TStringType> operator+(const typename containers::String<TStringType>::CharType* lhs, const containers::String<TStringType>& rhs)
 {
-    return containers::detail::String<TStringType>(lhs) + rhs;
+    return containers::String<TStringType>(lhs) + rhs;
 }
 
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<TStringType>::CharType, char>, int>>
-std::ostream& operator<<(std::ostream& os, const containers::detail::String<TStringType>& str)
+template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, char>, int>>
+std::ostream& operator<<(std::ostream& os, const containers::String<TStringType>& str)
 {
     os << str.Data();
 
     return os;
 }
 
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<TStringType>::CharType, wchar_t>, int>>
-std::wostream& operator<<(std::wostream& os, const containers::detail::String<TStringType>& str)
+template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, wchar_t>, int>>
+std::wostream& operator<<(std::wostream& os, const containers::String<TStringType>& str)
 {
     os << str.Data();
 

@@ -7,9 +7,5 @@
 namespace hyperion {
 namespace memory {
 
-namespace detail {
-
-} // namespace detail
-
 } // namespace memory
 } // namespace hyperion

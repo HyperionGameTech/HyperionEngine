@@ -16,7 +16,7 @@
 
 #include <scene/Texture.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 #pragma region FBOMMarshaler<FontAtlasTextureSet>
 
@@ -57,7 +57,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         FontAtlasTextureSet result;
 
@@ -173,7 +173,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         FBOMObject atlas_textures_object;
 
@@ -250,4 +250,4 @@ HYP_DEFINE_MARSHAL(FontAtlas, FBOMMarshaler<FontAtlas>);
 
 #pragma endregion FBOMMarshaler < FontAtlas>
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

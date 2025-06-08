@@ -16,7 +16,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) const
 {
@@ -84,7 +84,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
 
             HYP_NAMED_SCOPE_FMT("Serializing member '{}' for HypClass '{}'", member.GetName(), hyp_class->GetName());
 
-            fbom::FBOMData data;
+            FBOMData data;
 
             if (!member.Serialize(Span<HypData>(&target_data, 1), data))
             {
@@ -171,4 +171,4 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
     return { FBOMResult::FBOM_OK };
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

@@ -123,9 +123,9 @@ public:
 
         if (m_attributes["serialize"] || m_attributes["xmlattribute"])
         {
-            m_serialize_proc = [member](const HypData& target_data) -> fbom::FBOMData
+            m_serialize_proc = [member](const HypData& target_data) -> FBOMData
             {
-                fbom::FBOMData out;
+                FBOMData out;
 
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
                 {
@@ -139,7 +139,7 @@ public:
                     AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
                         TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
 
-                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(static_cast<const ThisType*>(target_ref.GetPointer())->*member, out))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(static_cast<const ThisType*>(target_ref.GetPointer())->*member, out))
                     {
                         HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                     }
@@ -148,7 +148,7 @@ public:
                 return out;
             };
 
-            m_deserialize_proc = [member](fbom::FBOMLoadContext& context, HypData& target_data, const fbom::FBOMData& data) -> Result
+            m_deserialize_proc = [member](FBOMLoadContext& context, HypData& target_data, const FBOMData& data) -> Result
             {
                 if constexpr (!std::is_copy_assignable_v<NormalizedType<FieldType>> && !std::is_array_v<NormalizedType<FieldType>>)
                 {
@@ -171,7 +171,7 @@ public:
 
                     HypData value;
 
-                    if (fbom::FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
+                    if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Deserialize(context, data, value))
                     {
                         return HYP_MAKE_ERROR(Error, "Failed to deserialize data: {}", err.message);
                     }
@@ -253,12 +253,12 @@ public:
         return IsValid() && m_deserialize_proc.IsValid();
     }
 
-    HYP_FORCE_INLINE bool Serialize(const HypData& target, fbom::FBOMData& out) const
+    HYP_FORCE_INLINE bool Serialize(const HypData& target, FBOMData& out) const
     {
         return Serialize(Span<HypData>(&const_cast<HypData&>(target), 1), out);
     }
 
-    virtual bool Serialize(Span<HypData> args, fbom::FBOMData& out) const override
+    virtual bool Serialize(Span<HypData> args, FBOMData& out) const override
     {
         if (!CanSerialize())
         {
@@ -275,7 +275,7 @@ public:
         return true;
     }
 
-    virtual bool Deserialize(fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& data) const override
+    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& data) const override
     {
         if (!CanDeserialize())
         {
@@ -339,8 +339,8 @@ private:
     Proc<HypData(const HypData&)> m_get_proc;
     Proc<void(HypData&, const HypData&)> m_set_proc;
 
-    Proc<fbom::FBOMData(const HypData&)> m_serialize_proc;
-    Proc<Result(fbom::FBOMLoadContext&, HypData&, const fbom::FBOMData&)> m_deserialize_proc;
+    Proc<FBOMData(const HypData&)> m_serialize_proc;
+    Proc<Result(FBOMLoadContext&, HypData&, const FBOMData&)> m_deserialize_proc;
 };
 
 } // namespace hyperion

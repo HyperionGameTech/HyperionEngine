@@ -16,8 +16,6 @@ namespace hyperion {
 
 // fwd decl for math types
 namespace math {
-namespace detail {
-
 template <class T>
 struct Vec2;
 
@@ -27,7 +25,6 @@ struct Vec3;
 template <class T>
 struct Vec4;
 
-} // namespace detail
 } // namespace math
 
 namespace utilities {
@@ -125,24 +122,23 @@ struct Formatter<StringType, StaticString<Size>>
 };
 
 template <class StringType, int OtherStringType>
-struct Formatter<StringType, containers::detail::String<OtherStringType>>
+struct Formatter<StringType, containers::String<OtherStringType>>
 {
-    auto operator()(const containers::detail::String<OtherStringType>& value) const
+    auto operator()(const containers::String<OtherStringType>& value) const
     {
         return value.ToUTF8();
     }
 };
 
 template <class StringType, int OtherStringType>
-struct Formatter<StringType, utilities::detail::StringView<OtherStringType>>
+struct Formatter<StringType, utilities::StringView<OtherStringType>>
 {
-    auto operator()(const utilities::detail::StringView<OtherStringType>& value) const
+    auto operator()(const utilities::StringView<OtherStringType>& value) const
     {
         return StringType(value);
     }
 };
 
-namespace detail {
 template <class StringType, class T, auto FormatString>
 struct PrintfFormatter
 {
@@ -163,10 +159,9 @@ struct PrintfFormatter
         return StringType(buf.ToByteView());
     }
 };
-} // namespace detail
 
 template <class StringType>
-struct Formatter<StringType, void*> : detail::PrintfFormatter<StringType, const void*, StaticString("%p")>
+struct Formatter<StringType, void*> : PrintfFormatter<StringType, const void*, StaticString("%p")>
 {
 };
 
@@ -198,7 +193,7 @@ struct Formatter<StringType, wchar_t*>
 };
 
 template <class StringType, class T>
-struct Formatter<StringType, math::detail::Vec2<T>>
+struct Formatter<StringType, math::Vec2<T>>
 {
     HYP_FORCE_INLINE static const char* GetFormatString()
     {
@@ -238,7 +233,7 @@ struct Formatter<StringType, math::detail::Vec2<T>>
         }
     }
 
-    auto operator()(const math::detail::Vec2<T>& value) const
+    auto operator()(const math::Vec2<T>& value) const
     {
         Array<ubyte, InlineAllocator<1024>> buf;
         buf.Resize(1024);
@@ -257,7 +252,7 @@ struct Formatter<StringType, math::detail::Vec2<T>>
 };
 
 template <class StringType, class T>
-struct Formatter<StringType, math::detail::Vec3<T>>
+struct Formatter<StringType, math::Vec3<T>>
 {
     HYP_FORCE_INLINE static const char* GetFormatString()
     {
@@ -297,7 +292,7 @@ struct Formatter<StringType, math::detail::Vec3<T>>
         }
     }
 
-    auto operator()(const math::detail::Vec3<T>& value) const
+    auto operator()(const math::Vec3<T>& value) const
     {
         Array<ubyte, InlineAllocator<1024>> buf;
         buf.Resize(1024);
@@ -316,7 +311,7 @@ struct Formatter<StringType, math::detail::Vec3<T>>
 };
 
 template <class StringType, class T>
-struct Formatter<StringType, math::detail::Vec4<T>>
+struct Formatter<StringType, math::Vec4<T>>
 {
     HYP_FORCE_INLINE static const char* GetFormatString()
     {
@@ -356,7 +351,7 @@ struct Formatter<StringType, math::detail::Vec4<T>>
         }
     }
 
-    auto operator()(const math::detail::Vec4<T>& value) const
+    auto operator()(const math::Vec4<T>& value) const
     {
         Array<ubyte, InlineAllocator<1024>> buf;
         buf.Resize(1024);
@@ -395,8 +390,6 @@ struct Formatter<StringType, Quaternion>
     }
 };
 
-namespace detail {
-
 #pragma region ConcatRuntimeStrings
 
 template <int StringType>
@@ -406,22 +399,22 @@ template <int StringType>
 struct ConcatRuntimeStrings_Impl
 {
     template <class SecondStringType>
-    constexpr auto Impl(const containers::detail::String<StringType>& str0, SecondStringType&& str1) const
+    constexpr auto Impl(const containers::String<StringType>& str0, SecondStringType&& str1) const
     {
         return str0 + str1;
     }
 
-    constexpr auto operator()(const containers::detail::String<StringType>& str0) const
+    constexpr auto operator()(const containers::String<StringType>& str0) const
     {
         return str0;
     }
 
     template <class SecondStringType>
-    constexpr auto operator()(const containers::detail::String<StringType>& str0, SecondStringType&& str1) const
+    constexpr auto operator()(const containers::String<StringType>& str0, SecondStringType&& str1) const
     {
         if (str0.Empty() && str1.Empty())
         {
-            return containers::detail::String<StringType>::empty;
+            return containers::String<StringType>::empty;
         }
         else if (str0.Empty())
         {
@@ -438,11 +431,11 @@ struct ConcatRuntimeStrings_Impl
     }
 
     template <class SecondStringType, class... OtherStringType>
-    constexpr auto operator()(const containers::detail::String<StringType>& str0, SecondStringType&& str1, OtherStringType&&... other) const
+    constexpr auto operator()(const containers::String<StringType>& str0, SecondStringType&& str1, OtherStringType&&... other) const
     {
         if (str0.Empty() && str1.Empty())
         {
-            return ConcatRuntimeStrings_Impl()(containers::detail::String<StringType>::empty, other...);
+            return ConcatRuntimeStrings_Impl()(containers::String<StringType>::empty, other...);
         }
         else if (str0.Empty())
         {
@@ -484,23 +477,23 @@ struct FormatString_BadFormat_IndexOutOfBounds : std::false_type
 #pragma region FormatString_FormatElement
 
 template <int StringType, class T>
-containers::detail::String<StringType> FormatString_FormatElement_Runtime(const T& element)
+containers::String<StringType> FormatString_FormatElement_Runtime(const T& element)
 {
     using FormatterSpecializationType = std::conditional_t<
         std::is_pointer_v<std::remove_cvref_t<T>>,
         std::add_pointer_t<std::remove_cvref_t<std::remove_pointer_t<T>>>,
         std::remove_cvref_t<T>>;
 
-    static_assert(implementation_exists<Formatter<containers::detail::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
+    static_assert(implementation_exists<Formatter<containers::String<StringType>, FormatterSpecializationType>>, "No Formatter specialization exists for type");
 
     // if-constexpr is to prevent a huge swath of errors preventing the user from seeing the assertion failure.
-    if constexpr (implementation_exists<Formatter<containers::detail::String<StringType>, FormatterSpecializationType>>)
+    if constexpr (implementation_exists<Formatter<containers::String<StringType>, FormatterSpecializationType>>)
     {
-        return Formatter<containers::detail::String<StringType>, FormatterSpecializationType> {}(element);
+        return Formatter<containers::String<StringType>, FormatterSpecializationType> {}(element);
     }
     else
     {
-        return containers::detail::String<StringType>::empty;
+        return containers::String<StringType>::empty;
     }
 }
 
@@ -576,8 +569,8 @@ struct FormatString_BuildTuple
         return FormatString_BuildTuple_Impl<
             Str,
             Transformer,
-            Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString { { '{', '\0' } }>>(),
-            Str.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString { { '}', '\0' } }>>(),
+            Str.template FindFirst<containers::IntegerSequenceFromString<StaticString { { '{', '\0' } }>>(),
+            Str.template FindFirst<containers::IntegerSequenceFromString<StaticString { { '}', '\0' } }>>(),
             SubIndex> {}(std::forward<Args>(args)...);
     }
 };
@@ -595,7 +588,7 @@ constexpr auto FormatString_ProcessTuple_ProcessElements_CompileTime(const Tuple
 #endif
 
 template <int StringType, class... Ts, SizeType... Indices>
-containers::detail::String<StringType> FormatString_ProcessTuple_ProcessElements_Runtime(const Tuple<Ts...>& args, std::index_sequence<Indices...>)
+containers::String<StringType> FormatString_ProcessTuple_ProcessElements_Runtime(const Tuple<Ts...>& args, std::index_sequence<Indices...>)
 {
     return ConcatRuntimeStrings<StringType>(FormatString_FormatElement_Runtime<StringType>(args.template GetElement<Indices>())...);
 }
@@ -642,12 +635,10 @@ constexpr auto Format_Impl(Args&&... args)
         FormatString_BuildTuple<Str, FormatTransformer> {}(std::forward<Args>(args)...)))();
 }
 
-} // namespace detail
-
 template <auto Str, class... Args>
 constexpr auto Format(Args&&... args)
 {
-    return detail::Format_Impl<Str>(std::forward<Args>(args)...);
+    return Format_Impl<Str>(std::forward<Args>(args)...);
 }
 
 } // namespace utilities

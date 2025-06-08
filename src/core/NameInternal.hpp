@@ -168,8 +168,8 @@ struct WeakName
     {
     }
 
-    template <int StringType, typename = std::enable_if_t<std::is_same_v<typename containers::detail::String<StringType>::CharType, char>>>
-    constexpr WeakName(const containers::detail::String<StringType>& str)
+    template <int StringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<StringType>::CharType, char>>>
+    constexpr WeakName(const containers::String<StringType>& str)
         : hash_code(HashCode::GetHashCode(str).Value())
     {
     }
@@ -353,7 +353,7 @@ constexpr bool operator>=(const WeakName& lhs, const Name& rhs)
 template <auto StaticStringType>
 struct HashedName
 {
-    using Sequence = containers::detail::IntegerSequenceFromString<StaticStringType>;
+    using Sequence = containers::IntegerSequenceFromString<StaticStringType>;
 
     static constexpr HashCode hash_code = HashCode::GetHashCode(Sequence::Data());
     static constexpr const char* data = Sequence::Data();

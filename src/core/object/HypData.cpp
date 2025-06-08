@@ -8,9 +8,9 @@
 
 namespace hyperion {
 
-fbom::FBOMResult HypDataMarshalHelper::NoMarshalRegistered(ANSIStringView type_name)
+FBOMResult HypDataMarshalHelper::NoMarshalRegistered(ANSIStringView type_name)
 {
-    return fbom::FBOMResult { fbom::FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for {}", type_name) };
+    return FBOMResult { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for {}", type_name) };
 }
 
 } // namespace hyperion

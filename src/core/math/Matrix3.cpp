@@ -174,27 +174,4 @@ Matrix3 Matrix3::Identity()
 {
     return Matrix3(); // constructor fills out identity matrix
 }
-
-std::ostream& operator<<(std::ostream& os, const Matrix3& mat)
-{
-    os << "[";
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 3; j++)
-        {
-            int index1 = i * 3 + j;
-            os << mat.values[index1];
-            if (i != 2 && j == 2)
-            {
-                os << "\n";
-            }
-            else if (!(i == 2 && j == 2))
-            {
-                os << ", ";
-            }
-        }
-    }
-    os << "]";
-    return os;
-}
 } // namespace hyperion

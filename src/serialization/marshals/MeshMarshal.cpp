@@ -10,7 +10,7 @@
 
 #include <scene/Mesh.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<Mesh> : public HypClassInstanceMarshal
@@ -47,7 +47,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Topology topology = Topology::TRIANGLES;
 
@@ -96,4 +96,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Mesh, FBOMMarshaler<Mesh>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

@@ -456,9 +456,17 @@ static bool PreprocessShaderSource(
 
         const FilePath path = dir / header_name;
 
-        BufferedReader reader;
+        if (!path.Exists())
+        {
+            HYP_LOG(ShaderCompiler, Warning, "File at path {} does not exist, cannot include file {}", path, header_name);
 
-        if (!path.Open(reader))
+            return nullptr;
+        }
+
+        FileBufferedReaderSource source { path };
+        BufferedReader reader { &source };
+
+        if (!reader.IsOpen())
         {
             HYP_LOG(ShaderCompiler, Warning, "Failed to open include file {}", path);
 
@@ -968,9 +976,9 @@ static void ForEachPermutation(
 static bool LoadBatchFromFile(const FilePath& filepath, CompiledShaderBatch& out_batch)
 {
     // read file if it already exists.
-    fbom::FBOMReader reader { fbom::FBOMReaderConfig {} };
+    FBOMReader reader { FBOMReaderConfig {} };
 
-    fbom::FBOMResult err;
+    FBOMResult err;
 
     HypData value;
 
@@ -2017,9 +2025,26 @@ bool ShaderCompiler::CompileBundle(
                 const FilePath filepath = it.second.path;
                 const ShaderLanguage language = filepath.EndsWith("hlsl") ? ShaderLanguage::HLSL : ShaderLanguage::GLSL;
 
-                BufferedReader reader;
+                if (!filepath.Exists())
+                {
+                    // file does not exist!
+                    HYP_LOG(
+                        ShaderCompiler,
+                        Error,
+                        "Shader source file does not exist at {}",
+                        filepath);
 
-                if (!filepath.Open(reader))
+                    process_errors[index] = {
+                        ProcessError { "Shader source file does not exist" }
+                    };
+
+                    return;
+                }
+
+                FileBufferedReaderSource filepath_source { filepath };
+                BufferedReader reader { &filepath_source };
+
+                if (!reader.IsOpen())
                 {
                     // could not open file!
                     HYP_LOG(
@@ -2254,29 +2279,6 @@ bool ShaderCompiler::CompileBundle(
 
                 filepaths[index] = { output_filepath, false };
 
-                // if (output_filepath.Exists()) {
-                //     // file exists and is older than the original source file; no need to build
-                //     if (output_filepath.LastModifiedTimestamp() >= item.last_modified_timestamp) {
-                //         BufferedReader reader;
-
-                //         if (output_filepath.Open(reader)) {
-                //             compiled_shader.modules[item.type] = reader.ReadBytes();
-
-                //             filepaths[index].second = true;
-
-                //             return;
-                //         }
-
-                //         HYP_LOG(
-                //             ShaderCompiler,
-                //             Warning,
-                //             "File {} seems valid for reuse but could not be opened. Attempting to rebuild...\n\tProperties: [{}]",
-                //             output_filepath,
-                //             properties.ToString()
-                //         );
-                //     }
-                // }
-
                 DescriptorUsageSet& descriptor_usages = descriptor_usage_sets_per_file[index];
 
                 Array<String> error_messages;
@@ -2447,16 +2449,16 @@ bool ShaderCompiler::CompileBundle(
 
     FileByteWriter byte_writer(final_output_path.Data());
 
-    fbom::FBOMWriter serializer { fbom::FBOMWriterConfig {} };
+    FBOMWriter serializer { FBOMWriterConfig {} };
 
-    if (fbom::FBOMResult err = serializer.Append(out))
+    if (FBOMResult err = serializer.Append(out))
     {
         HYP_BREAKPOINT_DEBUG_MODE;
 
         return false;
     }
 
-    if (fbom::FBOMResult err = serializer.Emit(&byte_writer))
+    if (FBOMResult err = serializer.Emit(&byte_writer))
     {
         HYP_BREAKPOINT_DEBUG_MODE;
 

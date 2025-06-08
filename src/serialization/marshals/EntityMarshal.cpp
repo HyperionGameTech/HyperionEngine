@@ -26,7 +26,7 @@
 
 #include <Engine.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<Entity> : public FBOMObjectMarshalerBase<Entity>
@@ -150,7 +150,7 @@ public:
         return result;
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         // bool is_valid = false;
 
@@ -285,4 +285,4 @@ HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 
 // HYP_DEFINE_MARSHAL(ID<Entity>, FBOMMarshaler<ID<Entity>>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

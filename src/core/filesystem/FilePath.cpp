@@ -10,14 +10,14 @@
 #include <sys/stat.h>
 
 #if defined(HYP_WINDOWS)
-    #include <direct.h>
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN 1
-    #endif
-    #include <windows.h>
-    #undef WIN32_LEAN_AND_MEAN
+#include <direct.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
+#endif
+#include <windows.h>
+#undef WIN32_LEAN_AND_MEAN
 #elif defined(HYP_UNIX)
-    #include <unistd.h>
+#include <unistd.h>
 #endif
 
 namespace hyperion {
@@ -86,18 +86,6 @@ String FilePath::Basename() const
 FilePath FilePath::BasePath() const
 {
     return FilePath(StringUtil::BasePath(Data()).c_str());
-}
-
-bool FilePath::Open(BufferedReader& out) const
-{
-    if (!Exists())
-    {
-        return false;
-    }
-
-    out = BufferedReader(*this);
-
-    return true;
 }
 
 hyperion::Array<FilePath> FilePath::GetAllFilesInDirectory() const

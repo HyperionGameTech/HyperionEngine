@@ -19,8 +19,6 @@
 
 namespace hyperion {
 namespace functional {
-namespace detail {
-
 template <class ReturnType, class T2 = void>
 struct ProcDefaultReturn;
 
@@ -185,8 +183,6 @@ class ProcRefBase
 {
 };
 
-} // namespace detail
-
 template <class FunctionSignature>
 class Proc;
 
@@ -209,12 +205,12 @@ struct IsProc<Proc<ReturnType(Args...)>>
 // with inline storage so no heap allocation occurs.
 // supports move-only types.
 template <class ReturnType, class... Args>
-class Proc<ReturnType(Args...)> : detail::ProcBase
+class Proc<ReturnType(Args...)> : ProcBase
 {
     static constexpr uint32 inline_storage_size_bytes = 256;
 
     using InlineStorage = ValueStorageArray<ubyte, inline_storage_size_bytes, alignof(std::max_align_t)>;
-    using FunctorDataType = detail::ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
+    using FunctorDataType = ProcFunctorInternal<InlineStorage, ReturnType, Args...>;
 
 public:
     friend class ProcRef<ReturnType(Args...)>;
@@ -232,16 +228,16 @@ public:
     }
 
     /*! \brief Constructs a Proc object from a callable object. */
-    template <class Func, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<Func>> && !std::is_base_of_v<detail::ProcRefBase, NormalizedType<Func>>>>
+    template <class Func, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<Func>> && !std::is_base_of_v<ProcRefBase, NormalizedType<Func>>>>
     Proc(Func&& fn)
     {
         using FuncNormalized = NormalizedType<Func>;
 
-        static_assert(!std::is_base_of_v<detail::ProcBase, FuncNormalized>, "Object should not be ProcBase");
+        static_assert(!std::is_base_of_v<ProcBase, FuncNormalized>, "Object should not be ProcBase");
 
         // if constexpr (std::is_function_v<std::remove_pointer_t<FuncNormalized>>) {
 
-        m_functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
+        m_functor.invoke_fn = &Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
 
         if constexpr (sizeof(FuncNormalized) <= sizeof(InlineStorage) && alignof(Func) <= InlineStorage::alignment)
         {
@@ -266,7 +262,7 @@ public:
     {
         if (fn != nullptr && fn->IsValid())
         {
-            m_functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<Proc>;
+            m_functor.invoke_fn = &Invoker<ReturnType, Args...>::template InvokeFn<Proc>;
             m_functor.memory.template Set<void*>(reinterpret_cast<void*>(fn));
         }
     }
@@ -281,7 +277,7 @@ public:
 
         if (fn != nullptr)
         {
-            m_functor.invoke_fn = &detail::Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
+            m_functor.invoke_fn = &Invoker<ReturnType, Args...>::template InvokeFn<FuncNormalized>;
             m_functor.memory.template Set<void*>(reinterpret_cast<void*>(fn));
         }
     }
@@ -344,7 +340,7 @@ private:
 };
 
 template <class ReturnType, class... Args>
-class ProcRef<ReturnType(Args...)> : public detail::ProcRefBase
+class ProcRef<ReturnType(Args...)> : public ProcRefBase
 {
     static ReturnType (*const s_invalid_invoke_fn)(void*, Args&...);
 
@@ -372,7 +368,7 @@ public:
         }
     }
 
-    template <class Callable, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<Callable>> && std::is_invocable_v<NormalizedType<Callable>, Args...> && !std::is_base_of_v<detail::ProcRefBase, NormalizedType<Callable>> && !std::is_base_of_v<detail::ProcBase, NormalizedType<Callable>>>>
+    template <class Callable, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<Callable>> && std::is_invocable_v<NormalizedType<Callable>, Args...> && !std::is_base_of_v<ProcRefBase, NormalizedType<Callable>> && !std::is_base_of_v<ProcBase, NormalizedType<Callable>>>>
     ProcRef(Callable&& callable)
         : m_ptr(const_cast<void*>(static_cast<const void*>(&callable)))
     {
@@ -435,14 +431,14 @@ template <class ReturnType, class... Args>
 ReturnType (*const ProcRef<ReturnType(Args...)>::s_invalid_invoke_fn)(void*, Args&...) = [](void*, Args&...) -> ReturnType {
     if constexpr (!std::is_same_v<void, ReturnType>)
     {
-        return detail::ProcDefaultReturn<ReturnType>::Get();
+        return ProcDefaultReturn<ReturnType>::Get();
     }
 };
 
 // General specialization for when return type and args cannot be deduced (in the case of a lambda)
 // Must be a reference that will not expire until the ProcRef is destroyed.
 template <class T>
-class ProcRef : public detail::ProcRefBase
+class ProcRef : public ProcRefBase
 {
 public:
     explicit ProcRef(std::nullptr_t)

@@ -26,9 +26,9 @@ namespace hyperion {
 namespace utilities {
 
 template <class StringType>
-struct Formatter<StringType, fbom::FBOMVersion>
+struct Formatter<StringType, FBOMVersion>
 {
-    auto operator()(const fbom::FBOMVersion& value) const
+    auto operator()(const FBOMVersion& value) const
     {
         return Format<HYP_STATIC_STRING("{}.{}.{}")>(value.GetMajor(), value.GetMinor(), value.GetPatch());
     }
@@ -36,7 +36,7 @@ struct Formatter<StringType, fbom::FBOMVersion>
 
 } // namespace utilities
 
-namespace fbom {
+namespace serialization {
 
 #pragma region FBOMStaticDataIndexMap
 
@@ -54,8 +54,8 @@ FBOMResult FBOMReader::FBOMStaticDataIndexMap::Element::Initialize(FBOMLoadConte
     ConstByteView view = reader->m_static_data_buffer.ToByteView()
                              .Slice(offset, size);
 
-    // @TODO: Do not require this allocation to initialize an object
-    BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(view));
+    MemoryBufferedReaderSource source { view };
+    BufferedReader byte_reader { &source };
 
     switch (type)
     {
@@ -342,7 +342,8 @@ FBOMResult FBOMReader::LoadFromFile(FBOMLoadContext& context, const String& path
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", read_path) };
     }
 
-    BufferedReader reader(MakeRefCountedPtr<FileBufferedReaderSource>(read_path));
+    FileBufferedReaderSource source { read_path };
+    BufferedReader reader { &source };
 
     return Deserialize(context, reader, out);
 }
@@ -367,7 +368,8 @@ FBOMResult FBOMReader::LoadFromFile(const String& path, FBOMObject& out)
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("File does not exist: {}", read_path) };
     }
 
-    BufferedReader reader(MakeRefCountedPtr<FileBufferedReaderSource>(read_path));
+    FileBufferedReaderSource source { read_path };
+    BufferedReader reader { &source };
 
     FBOMLoadContext context;
 
@@ -630,7 +632,8 @@ FBOMResult FBOMReader::ReadObjectLibrary(FBOMLoadContext& context, BufferedReade
             return { FBOMResult::FBOM_ERR, "Buffer size does not match expected size - file is likely corrupt" };
         }
 
-        BufferedReader byte_reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(buffer.ToByteView()));
+        MemoryBufferedReaderSource source { buffer.ToByteView() };
+        BufferedReader byte_reader { &source };
 
         FBOMReader deserializer(m_config);
 
@@ -787,6 +790,8 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
         ByteBuffer byte_buffer;
 
         BufferedReader compressed_data_reader;
+        MemoryBufferedReaderSource compressed_data_source;
+
         BufferedReader* reader_ptr = reader;
 
         if (attributes & FBOMDataAttributes::COMPRESSED)
@@ -809,7 +814,9 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
                 return { FBOMResult::FBOM_ERR, result.GetError().GetMessage() };
             }
 
-            compressed_data_reader = BufferedReader(MakeRefCountedPtr<MemoryBufferedReaderSource>(byte_buffer.ToByteView()));
+            compressed_data_source = MemoryBufferedReaderSource { byte_buffer.ToByteView() };
+            compressed_data_reader = BufferedReader { &compressed_data_source };
+
             reader_ptr = &compressed_data_reader;
         }
 
@@ -1125,7 +1132,8 @@ FBOMResult FBOMReader::ReadArchive(const ByteBuffer& in_buffer, ByteBuffer& out_
     // Read archive
     Archive archive;
 
-    BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(in_buffer.ToByteView()));
+    MemoryBufferedReaderSource source { in_buffer.ToByteView() };
+    BufferedReader reader { &source };
 
     if (FBOMResult err = ReadArchive(&reader, archive))
     {
@@ -1287,5 +1295,5 @@ FBOMResult FBOMReader::Handle(FBOMLoadContext& context, BufferedReader* reader, 
 
 #pragma endregion FBOMReader
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion

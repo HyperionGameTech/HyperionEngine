@@ -4,8 +4,5 @@
 
 namespace hyperion {
 namespace utilities {
-namespace detail {
-
-} // namespace detail
 } // namespace utilities
 } // namespace hyperion

@@ -347,12 +347,12 @@ void HyperionEditor::Init()
 #if 0
         // testing serialization / deserialization
         FileByteWriter byte_writer("Scene2.hyp");
-        fbom::FBOMWriter writer { fbom::FBOMWriterConfig { } };
+        FBOMWriter writer { FBOMWriterConfig { } };
         writer.Append(*GetScene());
         auto write_err = writer.Emit(&byte_writer);
         byte_writer.Close();
 
-        if (write_err != fbom::FBOMResult::FBOM_OK) {
+        if (write_err != FBOMResult::FBOM_OK) {
             HYP_FAIL("Failed to save scene: %s", write_err.message.Data());
         }
 #endif
@@ -364,7 +364,7 @@ void HyperionEditor::Init()
 
 #elif 0
     HypData loaded_scene_data;
-    fbom::FBOMReader reader({});
+    FBOMReader reader({});
     if (auto err = reader.LoadFromFile("Scene2.hyp", loaded_scene_data))
     {
         HYP_FAIL("failed to load: %s", *err.message);

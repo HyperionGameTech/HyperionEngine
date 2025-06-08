@@ -21,8 +21,6 @@ HYP_STRUCT(Size = 32)
 
 class HYP_API BoundingBox
 {
-    friend std::ostream& operator<<(std::ostream& out, const BoundingBox& aabb);
-
 public:
     BoundingBox();
     BoundingBox(const Vec3f& min, const Vec3f& max);

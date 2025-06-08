@@ -14,8 +14,6 @@
 namespace hyperion {
 
 namespace math {
-namespace detail {
-
 template <class T>
 struct alignas(alignof(T) * 2) HYP_API Vec2
 {
@@ -360,8 +358,6 @@ struct alignas(alignof(T) * 2) HYP_API Vec2
 template <>
 struct alignas(alignof(float) * 2) HYP_API Vec2<float>
 {
-    friend std::ostream& operator<<(std::ostream& out, const Vec2<float>& vec);
-
 public:
     using Type = float;
 
@@ -674,11 +670,6 @@ public:
         return hc;
     }
 };
-
-} // namespace detail
-
-template <class T>
-using Vec2 = detail::Vec2<T>;
 
 } // namespace math
 

@@ -9,7 +9,7 @@
 #include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypData.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 FBOMObject::FBOMObject()
     : m_object_type(FBOMBaseObjectType())
@@ -257,4 +257,4 @@ FBOMMarshalerBase* FBOMObject::GetMarshal(TypeID type_id)
     return FBOM::GetInstance().GetMarshal(type_id);
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

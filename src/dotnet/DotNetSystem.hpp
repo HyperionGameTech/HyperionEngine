@@ -18,12 +18,8 @@ namespace dotnet {
 struct ObjectReference;
 class Class;
 
-namespace detail {
-
 class DotNetImplBase;
 class DotNetImpl;
-
-} // namespace detail
 
 using AddObjectToCacheFunction = void (*)(void* ptr, Class** out_class_object_ptr, ObjectReference* out_object_reference, int8 is_weak);
 using SetKeepAliveFunction = void (*)(ObjectReference* object_reference, int32* keep_alive);
@@ -75,7 +71,7 @@ private:
     bool EnsureInitialized() const;
 
     bool m_is_initialized;
-    RC<detail::DotNetImplBase> m_impl;
+    RC<DotNetImplBase> m_impl;
 
     GlobalFunctions m_global_functions;
 };

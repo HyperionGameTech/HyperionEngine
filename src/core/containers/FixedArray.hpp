@@ -17,19 +17,16 @@
 namespace hyperion {
 
 namespace containers {
-namespace detail {
-
 template <class T, SizeType Sz>
 class FixedArray;
 
 template <class T, SizeType Sz>
 class FixedArrayImpl;
 
-} // namespace detail
-
-// #define FIXED_ARRAY_IMPL_METHOD(method_name, ...) \
-//     containers::detail::FixedArrayImpl(&m_values[0]).method_name(__VA_ARGS__)
-
+/*! \brief FixedArray is a fixed-size array container that provides a contiguous block of memory for storing elements.
+ *  It is useful for scenarios where the size of the array is known at compile time and does not change.
+ *  \tparam T The type of elements stored in the fixed array.
+ *  \tparam Sz The size of the fixed array. */
 template <class T, SizeType Sz>
 class FixedArray
 {
@@ -104,7 +101,7 @@ public:
 
     HYP_FORCE_INLINE bool Contains(const T& value) const
     {
-        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+        const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.Contains(value);
     }
 
@@ -146,7 +143,7 @@ public:
         }
         else
         {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
 
             return impl.Sum();
         }
@@ -160,7 +157,7 @@ public:
         }
         else
         {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.Avg();
         }
     }
@@ -174,7 +171,7 @@ public:
         }
         else
         {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.IndexOf(iter);
         }
     }
@@ -188,7 +185,7 @@ public:
         }
         else
         {
-            const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+            const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
             return impl.CompareBitwise(other);
         }
     }
@@ -253,7 +250,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        const containers::detail::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
+        const containers::FixedArrayImpl<const T, Sz> impl(&m_values[0]);
         return impl.GetHashCode();
     }
 
@@ -305,8 +302,6 @@ public:
 // template <class T, SizeType Sz>
 // FixedArray<T, Sz>::~FixedArray() = default;
 
-namespace detail {
-
 template <class T, SizeType Sz>
 class FixedArrayImpl : public ContainerBase<FixedArrayImpl<T, Sz>, uint32>
 {
@@ -330,8 +325,6 @@ public:
 
     HYP_DEF_STL_BEGIN_END(ptr, ptr + Sz)
 };
-
-} // namespace detail
 
 // deduction guide
 template <typename Tp, typename... Args>

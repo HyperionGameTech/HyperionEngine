@@ -22,8 +22,6 @@
 namespace hyperion {
 
 namespace utilities {
-namespace detail {
-
 template <class VariantType>
 struct TypeIndexHelper;
 
@@ -684,8 +682,6 @@ public:
     ~VariantHolder() = default;
 };
 
-} // namespace detail
-
 template <class... Types>
 struct Variant;
 
@@ -693,9 +689,9 @@ template <class VariantType, class FunctionType>
 static inline void Visit(VariantType&& variant, FunctionType&& fn);
 
 template <class... Types>
-struct Variant : private ConstructAssignmentTraits<true, utilities::detail::VariantHelper<Types...>::copy_constructible, utilities::detail::VariantHelper<Types...>::move_constructible, Variant<Types...>>
+struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelper<Types...>::copy_constructible, utilities::VariantHelper<Types...>::move_constructible, Variant<Types...>>
 {
-    static constexpr int invalid_type_index = utilities::detail::VariantBase<Types...>::invalid_type_index;
+    static constexpr int invalid_type_index = utilities::VariantBase<Types...>::invalid_type_index;
     static constexpr TypeID type_ids[sizeof...(Types)] { TypeID::ForType<Types>()... };
 
     // template <class ...Args>
@@ -942,13 +938,11 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::detail::Vari
     }
 
 private:
-    utilities::detail::VariantHolder<
-        utilities::detail::VariantHelper<Types...>::copy_constructible,
+    utilities::VariantHolder<
+        utilities::VariantHelper<Types...>::copy_constructible,
         Types...>
         m_holder;
 };
-
-namespace detail {
 
 #pragma region TypeIndex
 
@@ -1124,12 +1118,10 @@ struct VisitHelper<utilities::Variant<Types...>>
 
 #pragma endregion VisitHelper
 
-} // namespace detail
-
 template <class VariantType, class FunctionType>
 static inline void Visit(VariantType&& variant, FunctionType&& fn)
 {
-    detail::VisitHelper<NormalizedType<VariantType>> {}(std::forward<VariantType>(variant), std::forward<FunctionType>(fn));
+    VisitHelper<NormalizedType<VariantType>> {}(std::forward<VariantType>(variant), std::forward<FunctionType>(fn));
 }
 
 } // namespace utilities

@@ -16,8 +16,6 @@
 namespace hyperion {
 
 namespace containers {
-namespace detail {
-
 // convert from attachment (2^x) into ordinal (0-5) for use as an array index
 template <class EnumType, class OrdinalType = std::underlying_type_t<EnumType>>
 constexpr OrdinalType EnumToOrdinal(EnumType option)
@@ -121,7 +119,6 @@ struct EnumMapIterator
     }
 };
 
-} // namespace detail
 } // namespace containers
 
 template <typename EnumType, typename ValueType, SizeType Sz>
@@ -133,21 +130,21 @@ public:
     using OrdinalType = std::underlying_type_t<EnumType>;
     using KeyValuePairType = KeyValuePair<EnumType, ValueType>;
 
-    using Iterator = containers::detail::EnumMapIterator<Base, EnumType, ValueType, Sz>;
-    using ConstIterator = containers::detail::EnumMapIterator<const Base, EnumType, const ValueType, Sz>;
+    using Iterator = containers::EnumMapIterator<Base, EnumType, ValueType, Sz>;
+    using ConstIterator = containers::EnumMapIterator<const Base, EnumType, const ValueType, Sz>;
 
     static constexpr OrdinalType max_value = MathUtil::MaxSafeValue<EnumType>();
 
     // convert from attachment (2^x) into ordinal (0-5) for use as an array index
     static constexpr OrdinalType EnumToOrdinal(EnumType value)
     {
-        return containers::detail::EnumToOrdinal<EnumType, OrdinalType>(value);
+        return containers::EnumToOrdinal<EnumType, OrdinalType>(value);
     }
 
     // convert from ordinal (0-5) into power-of-two for use as bit flags
     static constexpr EnumType OrdinalToEnum(OrdinalType ordinal)
     {
-        return containers::detail::OrdinalToEnum<EnumType, OrdinalType>(ordinal);
+        return containers::OrdinalToEnum<EnumType, OrdinalType>(ordinal);
     }
 
     static_assert(Sz != 0, "EnumOptions cannot have size of zero");
@@ -289,14 +286,7 @@ public:
         }
     }
 
-    // HYP_DEF_STL_BEGIN_END(
-    //     Iterator(static_cast<std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(*this)>>, const Base &, Base &>>(*this), 0),
-    //     Iterator(static_cast<std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(*this)>>, const Base &, Base &>>(*this), Size())
-    // )
-
-    HYP_DEF_STL_BEGIN_END(
-        Iterator(static_cast<Base&>(*this), 0),
-        Iterator(static_cast<Base&>(*this), Size()));
+    HYP_DEF_STL_BEGIN_END(Iterator(static_cast<Base&>(*this), 0), Iterator(static_cast<Base&>(*this), Size()));
 };
 
 } // namespace hyperion

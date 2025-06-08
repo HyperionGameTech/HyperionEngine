@@ -38,8 +38,8 @@ struct DataStoreOptions
 
 class HYP_API DataStoreBase : public IResource
 {
-    using RefCounter = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
-    using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using RefCounter = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
+    using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
     static DataStoreBase* GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn);

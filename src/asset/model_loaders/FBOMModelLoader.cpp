@@ -22,11 +22,11 @@ AssetLoadResult FBOMModelLoader::LoadAsset(LoaderState& state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    fbom::FBOMReader reader { fbom::FBOMReaderConfig {} };
+    FBOMReader reader { FBOMReaderConfig {} };
 
     HypData result;
 
-    if (fbom::FBOMResult err = reader.LoadFromFile(state.filepath, result))
+    if (FBOMResult err = reader.LoadFromFile(state.filepath, result))
     {
         return HYP_MAKE_ERROR(AssetLoadError, "Failed to read serialized object: {}", err.message);
     }

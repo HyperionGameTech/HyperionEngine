@@ -4,7 +4,7 @@
 
 #include <core/object/HypClass.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 FBOMObjectType::FBOMObjectType(const HypClass* hyp_class)
     : FBOMType(
@@ -16,4 +16,4 @@ FBOMObjectType::FBOMObjectType(const HypClass* hyp_class)
 {
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

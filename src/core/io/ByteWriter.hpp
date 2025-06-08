@@ -89,7 +89,7 @@ public:
     }
 
     template <int StringType>
-    void WriteString(const containers::detail::String<StringType>& str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
+    void WriteString(const containers::String<StringType>& str, ByteWriterFlags flags = BYTE_WRITER_FLAGS_NONE)
     {
         WriteString(StringView<StringType>(str), flags);
     }

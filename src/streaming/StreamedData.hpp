@@ -48,7 +48,7 @@ class HYP_API StreamedDataBase : public EnableRefCountedPtrFromThis<StreamedData
 {
     HYP_OBJECT_BODY(StreamedDataBase);
 
-    using UnpagingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::detail::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+    using UnpagingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
     /*! \brief Construct the StreamedDataBase with the given initial state. If the state is LOADED, \ref{out_resource_handle} will be set to a resource handle for this. */

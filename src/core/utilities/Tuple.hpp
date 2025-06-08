@@ -10,8 +10,6 @@ namespace utilities {
 template <class... Types>
 class Tuple;
 
-namespace detail {
-
 // see: https://mitchnull.blogspot.com/2012/06/c11-tuple-implementation-details-part-1.html?m=1
 
 #pragma region TupleIndices
@@ -196,19 +194,15 @@ struct TupleElement_SelectType_Impl
 
 #pragma endregion TupleElement Helpers
 
-} // namespace detail
-
 #pragma region TupleElement
 
 template <SizeType Index, class... Types>
 struct TupleElement
 {
-    using Type = typename detail::TupleElement_SelectType_Impl<Index, 0, Types...>::Type;
+    using Type = typename TupleElement_SelectType_Impl<Index, 0, Types...>::Type;
 };
 
 #pragma endregion TupleElement
-
-namespace detail {
 
 #pragma region FindTypeElementIndex
 
@@ -256,13 +250,13 @@ struct Tuple_Impl;
 
 template <class Comparator, SizeType Index, class... Types>
 constexpr bool Tuple_Compare(
-    const detail::Tuple_Impl<typename detail::MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup0,
-    const detail::Tuple_Impl<typename detail::MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup1);
+    const Tuple_Impl<typename MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup0,
+    const Tuple_Impl<typename MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup1);
 
 template <class Comparator, SizeType Index, class... Types>
 constexpr bool Tuple_Compare(
-    const detail::Tuple_Impl<typename detail::MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup0,
-    const detail::Tuple_Impl<typename detail::MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup1)
+    const Tuple_Impl<typename MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup0,
+    const Tuple_Impl<typename MakeTupleIndices<sizeof...(Types)>::Type, Types...>& tup1)
 {
     if constexpr (Index == sizeof...(Types))
     {
@@ -270,8 +264,8 @@ constexpr bool Tuple_Compare(
     }
     else
     {
-        const auto& lhs = static_cast<const detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup0).value;
-        const auto& rhs = static_cast<const detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup1).value;
+        const auto& lhs = static_cast<const TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup0).value;
+        const auto& rhs = static_cast<const TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup1).value;
 
         if (Comparator {}(lhs, rhs))
         {
@@ -355,20 +349,16 @@ struct Tuple_Impl<TupleIndices<Indices...>, Types...> : TupleLeaf<Indices, Types
 
 #pragma endregion Tuple_Impl
 
-} // namespace detail
-
 namespace helpers {
 
 #pragma region ConcatTuples
 
-namespace detail {
-
 template <class... FirstTypes, SizeType... FirstIndices, class... SecondTypes, SizeType... SecondIndices>
 constexpr auto ConcatTuples_Impl(
     const Tuple<FirstTypes...>& first_tuple,
-    hyperion::utilities::detail::TupleIndices<FirstIndices...>,
+    hyperion::utilities::TupleIndices<FirstIndices...>,
     const Tuple<SecondTypes...>& second_tuple,
-    hyperion::utilities::detail::TupleIndices<SecondIndices...>)
+    hyperion::utilities::TupleIndices<SecondIndices...>)
 {
     return Tuple<FirstTypes..., SecondTypes...> {
         first_tuple.template GetElement<FirstIndices>()...,
@@ -376,16 +366,14 @@ constexpr auto ConcatTuples_Impl(
     };
 }
 
-} // namespace detail
-
 template <class... FirstTupleTypes, class... SecondTupleTypes>
 constexpr auto ConcatTuples(const Tuple<FirstTupleTypes...>& first, const Tuple<SecondTupleTypes...>& second) -> Tuple<FirstTupleTypes..., SecondTupleTypes...>
 {
-    return detail::ConcatTuples_Impl(
+    return ConcatTuples_Impl(
         first,
-        typename hyperion::utilities::detail::MakeTupleIndices<sizeof...(FirstTupleTypes)>::Type(),
+        typename hyperion::utilities::MakeTupleIndices<sizeof...(FirstTupleTypes)>::Type(),
         second,
-        typename hyperion::utilities::detail::MakeTupleIndices<sizeof...(SecondTupleTypes)>::Type());
+        typename hyperion::utilities::MakeTupleIndices<sizeof...(SecondTupleTypes)>::Type());
 }
 
 #pragma endregion ConcatTuples
@@ -422,26 +410,22 @@ constexpr Tuple<Types&&...> ForwardAsTuple(Types&&... values)
 
 #pragma region Apply
 
-namespace detail {
-
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr auto Apply_Impl(FunctionType&& function, const Tuple<Types...>& args, hyperion::utilities::detail::TupleIndices<Indices...>)
+constexpr auto Apply_Impl(FunctionType&& function, const Tuple<Types...>& args, hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
 }
 
 template <class FunctionType, class... Types, SizeType... Indices>
-constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>&& args, hyperion::utilities::detail::TupleIndices<Indices...>)
+constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>&& args, hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
 }
-
-} // namespace detail
 
 template <class FunctionType, class TupleType>
 constexpr auto Apply(FunctionType&& function, TupleType&& args_tuple)
 {
-    return detail::Apply_Impl(
+    return Apply_Impl(
         std::forward<FunctionType>(function),
         std::forward<TupleType>(args_tuple),
         typename TupleType::Indices {});
@@ -454,25 +438,25 @@ constexpr auto Apply(FunctionType&& function, TupleType&& args_tuple)
 template <std::size_t Index, class... Types>
 constexpr typename TupleElement<Index, Types...>::Type& get(Tuple<Types...>& tup) noexcept
 {
-    return static_cast<detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup.m_impl).value;
+    return static_cast<TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup.m_impl).value;
 }
 
 template <std::size_t Index, class... Types>
 constexpr const typename TupleElement<Index, Types...>::Type& get(const Tuple<Types...>& tup) noexcept
 {
-    return static_cast<const detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup.m_impl).value;
+    return static_cast<const TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(tup.m_impl).value;
 }
 
 template <std::size_t Index, class... Types>
 constexpr typename TupleElement<Index, Types...>::Type&& get(Tuple<Types...>&& tup) noexcept
 {
-    return static_cast<detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&&>(tup.m_impl).value;
+    return static_cast<TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&&>(tup.m_impl).value;
 }
 
 template <std::size_t Index, class... Types>
 constexpr const typename TupleElement<Index, Types...>::Type&& get(const Tuple<Types...>&& tup) noexcept
 {
-    return static_cast<const detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&&>(tup.m_impl).value;
+    return static_cast<const TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&&>(tup.m_impl).value;
 }
 
 template <class... Types>
@@ -490,12 +474,12 @@ class Tuple
     template <std::size_t Index_, class... Types_>
     friend constexpr const typename TupleElement<Index_, Types_...>::Type&& get(const Tuple<Types_...>&&) noexcept;
 
-    detail::Tuple_Impl<typename detail::MakeTupleIndices<sizeof...(Types)>::Type, Types...> m_impl;
+    Tuple_Impl<typename MakeTupleIndices<sizeof...(Types)>::Type, Types...> m_impl;
 
 public:
     static constexpr SizeType size = sizeof...(Types);
 
-    using Indices = typename hyperion::utilities::detail::MakeTupleIndices<sizeof...(Types)>::Type;
+    using Indices = typename hyperion::utilities::MakeTupleIndices<sizeof...(Types)>::Type;
 
     constexpr Tuple() = default;
 
@@ -544,22 +528,22 @@ public:
 
     HYP_FORCE_INLINE constexpr bool operator<(const Tuple& other) const
     {
-        return detail::Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator<=(const Tuple& other) const
     {
-        return detail::Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
+        return Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
     }
 
     HYP_FORCE_INLINE constexpr bool operator>(const Tuple& other) const
     {
-        return detail::Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl);
+        return Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator>=(const Tuple& other) const
     {
-        return detail::Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
+        return Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
     }
 
     template <SizeType Index>
@@ -567,7 +551,7 @@ public:
     {
         static_assert(Index < sizeof...(Types), "Index out of range of tuple");
 
-        return static_cast<detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(m_impl).value;
+        return static_cast<TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(m_impl).value;
     }
 
     template <SizeType Index>
@@ -575,13 +559,13 @@ public:
     {
         static_assert(Index < sizeof...(Types), "Index out of range of tuple");
 
-        return static_cast<const detail::TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(m_impl).value;
+        return static_cast<const TupleLeaf<Index, typename TupleElement<Index, Types...>::Type>&>(m_impl).value;
     }
 
     template <class T>
     constexpr T& GetElement()
     {
-        constexpr SizeType index = detail::FindTypeElementIndex<T, Types...>::value;
+        constexpr SizeType index = FindTypeElementIndex<T, Types...>::value;
 
         if constexpr (index == SizeType(-1))
         {
@@ -592,14 +576,14 @@ public:
         }
         else
         {
-            return static_cast<detail::TupleLeaf<index, T>&>(m_impl).value;
+            return static_cast<TupleLeaf<index, T>&>(m_impl).value;
         }
     }
 
     template <class T>
     constexpr const T& GetElement() const
     {
-        constexpr SizeType index = detail::FindTypeElementIndex<T, Types...>::value;
+        constexpr SizeType index = FindTypeElementIndex<T, Types...>::value;
 
         if constexpr (index == SizeType(-1))
         {
@@ -610,7 +594,7 @@ public:
         }
         else
         {
-            return static_cast<const detail::TupleLeaf<index, T>&>(m_impl).value;
+            return static_cast<const TupleLeaf<index, T>&>(m_impl).value;
         }
     }
 

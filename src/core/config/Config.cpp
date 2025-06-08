@@ -64,10 +64,13 @@ bool ConfigurationDataStore::Read(json::JSONValue& out_value) const
         return false;
     }
 
-    BufferedReader reader;
+    FileBufferedReaderSource source { config_path };
+    BufferedReader reader { &source };
 
-    if (!config_path.Open(reader))
+    if (!reader.IsOpen())
     {
+        HYP_LOG(Config, Warning, "Could not open configuration file at {}!", config_path);
+
         return false;
     }
 

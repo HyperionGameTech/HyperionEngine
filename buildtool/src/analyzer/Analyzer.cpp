@@ -343,11 +343,21 @@ static TResult<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>>
 
 static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const Analyzer& analyzer, Module& mod)
 {
-    BufferedReader reader;
-
-    if (!mod.GetPath().Open(reader))
+    if (!mod.GetPath().Exists())
     {
-        return HYP_MAKE_ERROR(AnalyzerError, "Failed to open module", mod.GetPath());
+        HYP_LOG(BuildTool, Error, "Module path does not exist: {}", mod.GetPath());
+
+        return HYP_MAKE_ERROR(AnalyzerError, "Module path does not exist", mod.GetPath());
+    }
+
+    FileBufferedReaderSource source { mod.GetPath() };
+    BufferedReader reader { &source };
+
+    if (!reader.IsOpen())
+    {
+        HYP_LOG(BuildTool, Error, "Failed to open module file: {}", mod.GetPath());
+
+        return HYP_MAKE_ERROR(AnalyzerError, "Failed to open module file", mod.GetPath());
     }
 
     Array<HypClassDefinition> hyp_class_definitions;

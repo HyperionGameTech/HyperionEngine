@@ -244,7 +244,7 @@ void HypClass::Initialize()
     // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this HypClass is initialized
     if (m_serialization_mode & HypClassSerializationMode::USE_MARSHAL_CLASS)
     {
-        fbom::FBOMMarshalerBase* marshal = fbom::FBOM::GetInstance().GetMarshal(GetTypeID(), /* allow_fallback */ false);
+        FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeID(), /* allow_fallback */ false);
 
         if (!marshal)
         {

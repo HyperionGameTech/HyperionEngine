@@ -35,7 +35,7 @@ enum class FBOMTypeFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(FBOMTypeFlags)
 
-namespace fbom {
+namespace serialization {
 
 class HYP_API FBOMType : public FBOMSerializableBase
 {
@@ -166,7 +166,7 @@ public:
     }
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

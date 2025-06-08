@@ -26,8 +26,6 @@ HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
 
     namespace math
 {
-    namespace detail {
-
     float Vec2<float>::Distance(const Vec2<float>& other) const
     {
         return MathUtil::Sqrt(DistanceSquared(other));
@@ -90,25 +88,5 @@ HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
         return Vec2<float>(MathUtil::Max(a.x, b.x), MathUtil::Max(a.y, b.y));
     }
 
-    } // namespace detail
 } // namespace math
-
-std::ostream& operator<<(std::ostream& out, const Vec2<float>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << "]";
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const Vec2<int>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << "]";
-    return out;
-}
-
-std::ostream& operator<<(std::ostream& out, const Vec2<uint32>& vec) // output
-{
-    out << "[" << vec.x << ", " << vec.y << "]";
-    return out;
-}
-
 } // namespace hyperion

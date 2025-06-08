@@ -254,9 +254,7 @@ public:
     }
 #endif
 
-    HYP_DEF_STL_BEGIN_END(
-        Iterator(*this, 0),
-        Iterator(*this, m_elements.Size()))
+    HYP_DEF_STL_BEGIN_END(Iterator(*this, 0), Iterator(*this, m_elements.Size()))
 
 private:
     Array<Element> m_elements;
@@ -356,9 +354,7 @@ struct EntitySetView
 #endif
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        entity_set.Begin(),
-        entity_set.End())
+    HYP_DEF_STL_BEGIN_END(entity_set.Begin(), entity_set.End())
 };
 
 } // namespace hyperion

@@ -13,7 +13,7 @@
 #include <scene/Node.hpp>
 #include <scene/animation/Bone.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<Node> : public HypClassInstanceMarshal
@@ -68,7 +68,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Node::Type node_type = Node::Type::NODE;
 
@@ -125,4 +125,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Node, FBOMMarshaler<Node>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

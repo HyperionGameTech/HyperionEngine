@@ -38,8 +38,6 @@ class Delegate;
 
 class DelegateHandler;
 
-namespace detail {
-
 // Flag to set while deleting an entry - prevents read scopes from entering
 // the critical section while the entry is potentially being deleted.
 
@@ -90,13 +88,11 @@ struct DelegateHandlerEntry : DelegateHandlerEntryBase
     ProcType proc;
 };
 
-} // namespace detail
-
 struct DelegateHandler
 {
-    detail::DelegateHandlerEntryBase* entry;
+    DelegateHandlerEntryBase* entry;
     void* delegate;
-    void (*remove_fn)(void*, detail::DelegateHandlerEntryBase*);
+    void (*remove_fn)(void*, DelegateHandlerEntryBase*);
     void (*detach_fn)(void*, DelegateHandler&& delegate_handler);
 
     DelegateHandler()
@@ -107,7 +103,7 @@ struct DelegateHandler
     {
     }
 
-    DelegateHandler(detail::DelegateHandlerEntryBase* entry, void* delegate, void (*remove_fn)(void*, detail::DelegateHandlerEntryBase*), void (*detach_fn)(void*, DelegateHandler&& delegate_handler))
+    DelegateHandler(DelegateHandlerEntryBase* entry, void* delegate, void (*remove_fn)(void*, DelegateHandlerEntryBase*), void (*detach_fn)(void*, DelegateHandler&& delegate_handler))
         : entry(entry),
           delegate(delegate),
           remove_fn(remove_fn),
@@ -302,9 +298,7 @@ public:
         return m_delegate_handlers.Contains(name);
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_delegate_handlers.Begin(),
-        m_delegate_handlers.End())
+    HYP_DEF_STL_BEGIN_END(m_delegate_handlers.Begin(), m_delegate_handlers.End())
 
 private:
     FlatMap<Name, DelegateHandler> m_delegate_handlers;
@@ -321,7 +315,7 @@ public:
     virtual int RemoveAllDetached() = 0;
 
 protected:
-    virtual bool Remove(detail::DelegateHandlerEntryBase* entry) = 0;
+    virtual bool Remove(DelegateHandlerEntryBase* entry) = 0;
 };
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
@@ -407,7 +401,7 @@ public:
 
         Mutex::Guard guard(m_mutex);
 
-        detail::DelegateHandlerEntry<ProcType>* entry = m_procs.PushBack(new detail::DelegateHandlerEntry<ProcType>());
+        DelegateHandlerEntry<ProcType>* entry = m_procs.PushBack(new DelegateHandlerEntry<ProcType>());
         entry->index = m_id_counter++;
         entry->calling_thread_id = calling_thread_id;
         entry->proc = std::move(proc);
@@ -436,11 +430,11 @@ public:
 
         for (auto it = m_procs.Begin(); it != m_procs.End();)
         {
-            detail::DelegateHandlerEntry<ProcType>* current = *it;
+            DelegateHandlerEntry<ProcType>* current = *it;
 
             // set write mask, loop until we have exclusive access.
-            uint64 state = current->mask.BitOr(detail::g_write_flag, MemoryOrder::ACQUIRE);
-            while (state & detail::g_read_mask)
+            uint64 state = current->mask.BitOr(g_write_flag, MemoryOrder::ACQUIRE);
+            while (state & g_read_mask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
                 Threads::Sleep(0);
@@ -490,7 +484,7 @@ public:
     }
 
     /*! \brief Broadcast a message to all bound handlers.
-     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
@@ -502,7 +496,7 @@ public:
             // If no handlers are bound, return a default constructed object or void
             if constexpr (!std::is_void_v<ReturnType>)
             {
-                return detail::ProcDefaultReturn<ReturnType>::Get();
+                return ProcDefaultReturn<ReturnType>::Get();
             }
             else
             {
@@ -520,11 +514,11 @@ public:
 
         for (auto it = m_procs.Begin(); it != m_procs.End();)
         {
-            detail::DelegateHandlerEntry<ProcType>* current = *it;
+            DelegateHandlerEntry<ProcType>* current = *it;
 
             // set write mask, loop until we have exclusive access.
-            uint64 state = current->mask.BitOr(detail::g_write_flag, MemoryOrder::ACQUIRE);
-            while (state & detail::g_read_mask)
+            uint64 state = current->mask.BitOr(g_write_flag, MemoryOrder::ACQUIRE);
+            while (state & g_read_mask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
                 Threads::Sleep(0);
@@ -545,7 +539,7 @@ public:
             current->mask.Increment(2, MemoryOrder::RELEASE);
 
             // Release write access
-            current->mask.BitAnd(~detail::g_write_flag, MemoryOrder::RELEASE);
+            current->mask.BitAnd(~g_write_flag, MemoryOrder::RELEASE);
 
             if constexpr (!std::is_void_v<ReturnType>)
             {
@@ -616,7 +610,7 @@ public:
             if (!result_constructed)
             {
                 // If no handlers were called (due to elements being removed), return a default constructed object
-                return detail::ProcDefaultReturn<ReturnType>::Get();
+                return ProcDefaultReturn<ReturnType>::Get();
             }
 
             ReturnType result = std::move(result_storage).Get();
@@ -627,7 +621,7 @@ public:
     }
 
     /*! \brief Call operator overload - alias method for Broadcast().
-     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */
@@ -638,7 +632,7 @@ public:
     }
 
 protected:
-    virtual bool Remove(detail::DelegateHandlerEntryBase* entry) override
+    virtual bool Remove(DelegateHandlerEntryBase* entry) override
     {
         if (!entry)
         {
@@ -646,7 +640,7 @@ protected:
         }
 
         uint64 state;
-        while (((state = entry->mask.Increment(2, MemoryOrder::ACQUIRE)) & detail::g_write_flag))
+        while (((state = entry->mask.Increment(2, MemoryOrder::ACQUIRE)) & g_write_flag))
         {
             entry->mask.Decrement(2, MemoryOrder::RELAXED);
             // wait for write flag to be released
@@ -660,7 +654,7 @@ protected:
         return true;
     }
 
-    static void RemoveDelegateHandlerCallback(void* delegate, detail::DelegateHandlerEntryBase* entry)
+    static void RemoveDelegateHandlerCallback(void* delegate, DelegateHandlerEntryBase* entry)
     {
         Delegate* delegate_casted = static_cast<Delegate*>(delegate);
 
@@ -682,7 +676,7 @@ protected:
         m_detached_handlers.PushBack(std::move(handler));
     }
 
-    DelegateHandler CreateDelegateHandler(detail::DelegateHandlerEntry<ProcType>* entry)
+    DelegateHandler CreateDelegateHandler(DelegateHandlerEntry<ProcType>* entry)
     {
         return DelegateHandler {
             entry,
@@ -692,7 +686,7 @@ protected:
         };
     }
 
-    Array<detail::DelegateHandlerEntry<ProcType>*, DynamicAllocator> m_procs;
+    Array<DelegateHandlerEntry<ProcType>*, DynamicAllocator> m_procs;
 
     AtomicVar<uint32> m_num_procs;
     Mutex m_mutex;

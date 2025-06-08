@@ -24,8 +24,6 @@ HYP_STRUCT(Size = 64)
 
 class alignas(16) HYP_API Matrix4
 {
-    friend std::ostream& operator<<(std::ostream& os, const Matrix4& mat);
-
 public:
     static const Matrix4 identity;
     static const Matrix4 zeros;

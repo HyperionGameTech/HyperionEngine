@@ -30,8 +30,6 @@ namespace memory {
 template <class T>
 class UniquePtr;
 
-namespace detail {
-
 struct UniquePtrHolder
 {
     void* value;
@@ -245,17 +243,15 @@ protected:
     UniquePtrHolder m_holder;
 };
 
-} // namespace detail
-
 /*! \brief A unique pointer with type erasure built in, so anything could be stored as UniquePtr<void>.
     You can also store a derived pointer in a UniquePtr<Base>, and it will be convertible back to UniquePtr<Derived>, as
     well as having the destructor called correctly without needing it to be virtual.
 */
 template <class T>
-class UniquePtr : public detail::UniquePtrBase
+class UniquePtr : public UniquePtrBase
 {
 protected:
-    using Base = detail::UniquePtrBase;
+    using Base = UniquePtrBase;
 
 public:
     UniquePtr()
@@ -554,10 +550,10 @@ public:
     We would not be able to do that with UniquePtr<void>.*/
 // void pointer specialization
 template <>
-class UniquePtr<void> : public detail::UniquePtrBase
+class UniquePtr<void> : public UniquePtrBase
 {
 protected:
-    using Base = detail::UniquePtrBase;
+    using Base = UniquePtrBase;
 
 public:
     UniquePtr()

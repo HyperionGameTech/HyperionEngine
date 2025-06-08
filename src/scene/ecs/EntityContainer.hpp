@@ -216,9 +216,7 @@ public:
         m_entities.Erase(it);
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_entities.Begin(),
-        m_entities.End())
+    HYP_DEF_STL_BEGIN_END(m_entities.Begin(), m_entities.End())
 
 private:
     HashMap<WeakHandle<Entity>, EntityData> m_entities;

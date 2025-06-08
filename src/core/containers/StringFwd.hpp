@@ -23,8 +23,6 @@ enum StringType : int
     MAX
 };
 
-namespace detail {
-
 using namespace utf;
 
 template <int StringType>
@@ -70,30 +68,25 @@ struct StringTypeImpl<WIDE_CHAR>
 template <int TStringType>
 class String;
 
-} // namespace detail
-
 } // namespace containers
 
 namespace utilities {
-namespace detail {
-
 template <int TStringType>
 class StringView;
 
-} // namespace detail
 } // namespace utilities
 
 using StringType = containers::StringType;
 
-using String = containers::detail::String<StringType::UTF8>;
-using ANSIString = containers::detail::String<StringType::ANSI>;
-using WideString = containers::detail::String<StringType::WIDE_CHAR>;
-using UTF32String = containers::detail::String<StringType::UTF32>;
-using UTF16String = containers::detail::String<StringType::UTF16>;
-using PlatformString = containers::detail::String<std::is_same_v<TChar, wchar_t> ? StringType::WIDE_CHAR : StringType::UTF8>;
+using String = containers::String<StringType::UTF8>;
+using ANSIString = containers::String<StringType::ANSI>;
+using WideString = containers::String<StringType::WIDE_CHAR>;
+using UTF32String = containers::String<StringType::UTF32>;
+using UTF16String = containers::String<StringType::UTF16>;
+using PlatformString = containers::String<std::is_same_v<TChar, wchar_t> ? StringType::WIDE_CHAR : StringType::UTF8>;
 
 template <int TStringType>
-using StringView = utilities::detail::StringView<TStringType>;
+using StringView = utilities::StringView<TStringType>;
 
 using ANSIStringView = StringView<StringType::ANSI>;
 using UTF8StringView = StringView<StringType::UTF8>;
@@ -109,7 +102,7 @@ struct IsString
 };
 
 template <int TStringType>
-struct IsString<containers::detail::String<TStringType>>
+struct IsString<containers::String<TStringType>>
 {
     static constexpr bool value = true;
 };

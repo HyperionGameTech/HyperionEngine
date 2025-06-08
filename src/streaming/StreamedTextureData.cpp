@@ -46,16 +46,16 @@ StreamedTextureData::StreamedTextureData(StreamedDataState initial_state, Textur
 
                 MemoryByteWriter writer;
 
-                fbom::FBOMWriter serializer { fbom::FBOMWriterConfig {} };
+                FBOMWriter serializer { FBOMWriterConfig {} };
 
-                if (fbom::FBOMResult err = serializer.Append(*m_texture_data))
+                if (FBOMResult err = serializer.Append(*m_texture_data))
                 {
                     HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
                     return false;
                 }
 
-                if (fbom::FBOMResult err = serializer.Emit(&writer))
+                if (FBOMResult err = serializer.Emit(&writer))
                 {
                     HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
@@ -119,7 +119,8 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer& byte_buffer) const
 {
     m_texture_data.Unset();
 
-    BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(byte_buffer.ToByteView()));
+    MemoryBufferedReaderSource source { byte_buffer.ToByteView() };
+    BufferedReader reader { &source };
 
     if (!reader.IsOpen())
     {
@@ -128,10 +129,10 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer& byte_buffer) const
 
     HypData value;
 
-    fbom::FBOMReader deserializer { fbom::FBOMReaderConfig {} };
-    fbom::FBOMLoadContext context;
+    FBOMReader deserializer { FBOMReaderConfig {} };
+    FBOMLoadContext context;
 
-    if (fbom::FBOMResult err = deserializer.Deserialize(context, reader, value))
+    if (FBOMResult err = deserializer.Deserialize(context, reader, value))
     {
         HYP_LOG(Streaming, Warning, "StreamedTextureData: Error deserializing texture data for StreamedTextureData with hash: {}\tError: {}", GetDataHashCode().Value(), err.message);
         return;

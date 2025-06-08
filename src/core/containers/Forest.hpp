@@ -9,9 +9,10 @@
 namespace hyperion {
 namespace containers {
 
-template <class T>
-class Forest;
-
+/*! \brief Forest is a tree-like data structure that allows for multiple root nodes and supports parent-child relationships between nodes.
+ *  It is useful for representing hierarchical data structures such as tree views.
+ *  \tparam T The type of values stored in the forest nodes.
+ */
 template <class T>
 class Forest
 {

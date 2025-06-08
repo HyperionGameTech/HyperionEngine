@@ -32,7 +32,7 @@ enum class FBOMObjectLibraryFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(FBOMObjectLibraryFlags)
 
-namespace fbom {
+namespace serialization {
 
 struct FBOMObjectLibrary
 {
@@ -107,7 +107,7 @@ struct FBOMObjectLibrary
     }
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

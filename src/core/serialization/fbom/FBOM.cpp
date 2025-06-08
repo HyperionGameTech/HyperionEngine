@@ -13,7 +13,7 @@
 
 #include <core/filesystem/FsUtil.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 static constexpr bool g_marshal_parent_classes = false;
 
@@ -187,4 +187,4 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallbac
     return nullptr;
 }
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

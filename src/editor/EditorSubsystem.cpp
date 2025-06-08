@@ -608,10 +608,10 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
             }
 
             FileByteWriter byte_writer(g_asset_manager->GetBasePath() / "models/editor/axis_arrows.hypmodel");
-            fbom::FBOMWriter writer { fbom::FBOMWriterConfig {} };
+            FBOMWriter writer { FBOMWriterConfig {} };
             writer.Append(*node);
 
-            fbom::FBOMResult write_err = writer.Emit(&byte_writer);
+            FBOMResult write_err = writer.Emit(&byte_writer);
 
             byte_writer.Close();
 
@@ -2152,9 +2152,9 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
     {
         HypData loaded_font_atlas_data;
 
-        fbom::FBOMReader reader({});
+        FBOMReader reader({});
 
-        if (fbom::FBOMResult err = reader.LoadFromFile(serialized_file_path, loaded_font_atlas_data))
+        if (FBOMResult err = reader.LoadFromFile(serialized_file_path, loaded_font_atlas_data))
         {
             HYP_FAIL("failed to load: %s", *err.message);
         }
@@ -2175,12 +2175,12 @@ RC<FontAtlas> EditorSubsystem::CreateFontAtlas()
     atlas->Render();
 
     FileByteWriter byte_writer { serialized_file_path };
-    fbom::FBOMWriter writer { fbom::FBOMWriterConfig {} };
+    FBOMWriter writer { FBOMWriterConfig {} };
     writer.Append(*atlas);
     auto write_err = writer.Emit(&byte_writer);
     byte_writer.Close();
 
-    if (write_err != fbom::FBOMResult::FBOM_OK)
+    if (write_err != FBOMResult::FBOM_OK)
     {
         HYP_FAIL("Failed to save font atlas: %s", write_err.message.Data());
     }

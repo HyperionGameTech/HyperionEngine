@@ -45,16 +45,16 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
 
                 MemoryByteWriter writer;
 
-                fbom::FBOMWriter serializer { fbom::FBOMWriterConfig {} };
+                FBOMWriter serializer { FBOMWriterConfig {} };
 
-                if (fbom::FBOMResult err = serializer.Append(*m_mesh_data))
+                if (FBOMResult err = serializer.Append(*m_mesh_data))
                 {
                     HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
                     return false;
                 }
 
-                if (fbom::FBOMResult err = serializer.Emit(&writer))
+                if (FBOMResult err = serializer.Emit(&writer))
                 {
                     HYP_LOG(Streaming, Error, "Failed to write streamed data: {}", err.message);
 
@@ -134,7 +134,8 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
 
     m_mesh_data.Unset();
 
-    BufferedReader reader(MakeRefCountedPtr<MemoryBufferedReaderSource>(byte_buffer.ToByteView()));
+    MemoryBufferedReaderSource source { byte_buffer.ToByteView() };
+    BufferedReader reader { &source };
 
     if (!reader.IsOpen())
     {
@@ -143,10 +144,10 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
 
     HypData value;
 
-    fbom::FBOMReader deserializer { fbom::FBOMReaderConfig {} };
-    fbom::FBOMLoadContext context;
+    FBOMReader deserializer { FBOMReaderConfig {} };
+    FBOMLoadContext context;
 
-    if (fbom::FBOMResult err = deserializer.Deserialize(context, reader, value))
+    if (FBOMResult err = deserializer.Deserialize(context, reader, value))
     {
         HYP_LOG(Streaming, Warning, "StreamedMeshData: Error deserializing mesh data: {}", err.message);
         return;

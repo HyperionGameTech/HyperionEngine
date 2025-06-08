@@ -34,7 +34,7 @@ public:
  *  \details This delegate can be bound to a managed .NET object, allowing the delegate have its behavior defined in script code.
  *  \tparam ReturnType The return type of the delegate.
  *  \tparam Args The argument types of the delegate.
- *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct. */
+ *  \note The default return value can be changed by specializing the \ref{hyperion::functional::ProcDefaultReturn} struct. */
 template <class ReturnType, class... Args>
 class ScriptableDelegate final : public IScriptableDelegate, public virtual Delegate<ReturnType, Args...>
 {
@@ -197,7 +197,7 @@ public:
     }
 
     /*! \brief Call operator overload - alias method for Broadcast().
-     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::detail::ProcDefaultReturn} struct.
+     *  \note The default return value can be changed by specializing the \ref{hyperion::functional::ProcDefaultReturn} struct.
      *  \tparam ArgTypes The argument types to pass to the handlers.
      *  \param args The arguments to pass to the handlers.
      *  \return The result returned from the final handler that was called, or a default constructed \ref{ReturnType} if no handlers were bound. */

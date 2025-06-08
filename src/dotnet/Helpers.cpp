@@ -7,8 +7,6 @@
 
 namespace hyperion::dotnet {
 
-namespace detail {
-
 // void *TransformArgument<Object *>::operator()(Object *value) const
 // {
 //     return value->GetObjectReference().weak_handle;
@@ -18,7 +16,5 @@ const char* TransformArgument<FilePath>::operator()(const FilePath& value) const
 {
     return value.Data();
 }
-
-} // namespace detail
 
 } // namespace hyperion::dotnet

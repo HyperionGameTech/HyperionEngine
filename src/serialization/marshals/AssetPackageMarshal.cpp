@@ -15,7 +15,7 @@
 
 #include <HyperionEngine.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<AssetPackage> : public HypClassInstanceMarshal
@@ -48,7 +48,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         Handle<AssetPackage> asset_package_handle = CreateObject<AssetPackage>();
 
@@ -86,4 +86,4 @@ public:
 
 HYP_DEFINE_MARSHAL(AssetPackage, FBOMMarshaler<AssetPackage>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

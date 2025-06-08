@@ -138,9 +138,7 @@ public:
         return Insert(key, Value {}).first->second;
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        m_vector.Begin(),
-        m_vector.End())
+    HYP_DEF_STL_BEGIN_END(m_vector.Begin(), m_vector.End())
 };
 
 template <class Key, class Value>

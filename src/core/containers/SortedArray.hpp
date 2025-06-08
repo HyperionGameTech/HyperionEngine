@@ -114,9 +114,7 @@ public:
         return Base::Back();
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        Base::Begin(),
-        Base::End())
+    HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End())
 
 private:
     // Make these Array<T> methods private, so that they can't be used to break the sorted invariant

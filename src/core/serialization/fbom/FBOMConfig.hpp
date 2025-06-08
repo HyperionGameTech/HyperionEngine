@@ -15,7 +15,7 @@ namespace json {
 class JSONValue;
 } // namespace json
 
-namespace fbom {
+namespace serialization {
 
 class IFBOMConfig
 {
@@ -48,7 +48,7 @@ struct FBOMReaderConfig : public IFBOMConfig
     virtual bool LoadFromJSON(const json::JSONValue& json) override;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

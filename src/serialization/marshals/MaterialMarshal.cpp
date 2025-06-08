@@ -18,7 +18,7 @@
 
 #include <HyperionEngine.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<Material> : public HypClassInstanceMarshal
@@ -97,7 +97,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         MaterialAttributes attributes;
         Material::ParameterTable parameters = Material::DefaultParameters();
@@ -215,4 +215,4 @@ public:
 
 HYP_DEFINE_MARSHAL(Material, FBOMMarshaler<Material>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

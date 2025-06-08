@@ -26,7 +26,7 @@ namespace hyperion {
 struct HypData;
 } // namespace hyperion
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 struct FBOMDeserializedObject
 {
@@ -83,6 +83,6 @@ struct FBOMDeserializedObject
     }
 };
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization
 
 #endif

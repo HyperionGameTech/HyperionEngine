@@ -6,7 +6,7 @@
 
 #include <rendering/Shader.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 #if 0
 
@@ -24,7 +24,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext &context, const FBOMObject &in, HypData &out) const override
     {
         SubShader sub_shader;
 
@@ -48,4 +48,4 @@ HYP_DEFINE_MARSHAL(SubShader, FBOMMarshaler<SubShader>);
 
 #endif
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

@@ -69,12 +69,12 @@ public:
         return true;
     }
 
-    virtual fbom::FBOMResult SerializeStruct(ConstAnyRef in, fbom::FBOMObject& out) const override
+    virtual FBOMResult SerializeStruct(ConstAnyRef in, FBOMObject& out) const override
     {
         HYP_NOT_IMPLEMENTED();
     }
 
-    virtual fbom::FBOMResult DeserializeStruct(fbom::FBOMLoadContext& context, const fbom::FBOMObject& in, HypData& out) const override
+    virtual FBOMResult DeserializeStruct(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         HYP_NOT_IMPLEMENTED();
     }

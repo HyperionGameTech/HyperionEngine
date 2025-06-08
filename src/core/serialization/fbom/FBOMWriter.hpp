@@ -48,7 +48,7 @@ class Archive;
 
 using compression::Archive;
 
-namespace fbom {
+namespace serialization {
 
 struct FBOMObjectType;
 
@@ -201,7 +201,7 @@ private:
     FBOMWriterConfig m_config;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

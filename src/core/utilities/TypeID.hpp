@@ -28,8 +28,6 @@ enum TypeIDFlags : uint8
     TYPE_ID_FLAGS_PLACEHOLDER = 0x2
 };
 
-namespace detail {
-
 template <class T, uint8 Flags>
 struct TypeID_Impl
 {
@@ -55,8 +53,6 @@ struct TypeID_FromString_Impl
     }
 };
 
-} // namespace detail
-
 /*! \brief Simple 32-bit identifier for a given type. Stable across DLLs as the type hash is based on the name of the type. */
 struct TypeID
 {
@@ -71,12 +67,12 @@ public:
     template <class T>
     static constexpr TypeID ForType()
     {
-        return TypeID { detail::TypeID_Impl<T, TypeIDFlags::TYPE_ID_FLAGS_NONE>::value };
+        return TypeID { TypeID_Impl<T, TypeIDFlags::TYPE_ID_FLAGS_NONE>::value };
     }
 
     static constexpr TypeID ForManagedType(const char* str)
     {
-        return TypeID { detail::TypeID_FromString_Impl<TypeIDFlags::TYPE_ID_FLAGS_DYNAMIC> {}(str) };
+        return TypeID { TypeID_FromString_Impl<TypeIDFlags::TYPE_ID_FLAGS_DYNAMIC> {}(str) };
     }
 
     constexpr TypeID()

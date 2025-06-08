@@ -31,8 +31,6 @@ namespace hyperion {
 
 namespace containers {
 
-namespace detail {
-
 template <class T, SizeType MaxInlineCapacityBytes = 256, class T2 = void>
 struct ArrayDefaultAllocatorSelector;
 
@@ -54,14 +52,11 @@ struct ArrayDefaultAllocatorSelector<T, MaxInlineCapacityBytes, std::enable_if_t
     using Type = DynamicAllocator;
 };
 
-} // namespace detail
-
-/*! \brief Array class with smart front removal and inline storage so small lists
-    do not require any heap allocation
+/*! \brief Array class with smart front removal and inline storage so small arrays do not require any heap allocation
     \details Average speed is about the same as std::vector in most cases
     \note will use a bit more memory than std::vector, partially because of inline storage in the class,
     and partially due to the front offset member, used to have fewer deallocations/shifting on PopFront(). */
-template <class T, class AllocatorType = typename detail::ArrayDefaultAllocatorSelector<T>::Type>
+template <class T, class AllocatorType = typename ArrayDefaultAllocatorSelector<T>::Type>
 class Array : public ContainerBase<Array<T, AllocatorType>, SizeType>
 {
 public:
@@ -616,9 +611,7 @@ public:
         return ConstByteView(reinterpret_cast<const ubyte*>(Data()) + offset, size * sizeof(T));
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        GetBuffer() + m_start_offset,
-        GetBuffer() + m_size)
+    HYP_DEF_STL_BEGIN_END(GetBuffer() + m_start_offset, GetBuffer() + m_size)
 
 protected:
     HYP_FORCE_INLINE T* GetBuffer()
@@ -1538,7 +1531,7 @@ void Array<T, AllocatorType>::Clear()
 
 } // namespace containers
 
-template <class T, class AllocatorType = typename containers::detail::ArrayDefaultAllocatorSelector<T>::Type>
+template <class T, class AllocatorType = typename containers::ArrayDefaultAllocatorSelector<T>::Type>
 using Array = containers::Array<T, AllocatorType>;
 
 // traits

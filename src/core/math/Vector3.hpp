@@ -20,13 +20,9 @@ class Matrix3;
 class Matrix4;
 
 namespace math {
-namespace detail {
-
 template <class T>
 struct alignas(alignof(T) * 4) HYP_API Vec3
 {
-    friend std::ostream& operator<<(std::ostream& out, const Vec3& vec);
-
     static constexpr uint32 size = 3;
 
     using Type = T;
@@ -358,8 +354,6 @@ struct alignas(alignof(T) * 4) HYP_API Vec3
 template <>
 struct alignas(alignof(float) * 4) HYP_API Vec3<float>
 {
-    friend std::ostream& operator<<(std::ostream& out, const Vec3& vec);
-
     static constexpr uint32 size = 3;
 
     using Type = float;
@@ -674,11 +668,6 @@ struct alignas(alignof(float) * 4) HYP_API Vec3<float>
         return { Type(0), Type(0), Type(1) };
     }
 };
-
-} // namespace detail
-
-template <class T>
-using Vec3 = detail::Vec3<T>;
 
 } // namespace math
 

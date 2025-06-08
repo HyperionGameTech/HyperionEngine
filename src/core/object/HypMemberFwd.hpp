@@ -17,12 +17,12 @@ class HypClassAttributeSet;
 class HypClassAttributeValue;
 struct HypData;
 
-namespace fbom {
+namespace serialization {
 
 class FBOMData;
 class FBOMLoadContext;
 
-} // namespace fbom
+} // namespace serialization
 
 enum class HypMemberType : uint8
 {
@@ -51,8 +51,8 @@ public:
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;
 
-    virtual bool Serialize(Span<HypData> args, fbom::FBOMData& out) const = 0;
-    virtual bool Deserialize(fbom::FBOMLoadContext& context, HypData& target, const fbom::FBOMData& value) const = 0;
+    virtual bool Serialize(Span<HypData> args, FBOMData& out) const = 0;
+    virtual bool Deserialize(FBOMLoadContext& context, HypData& target, const FBOMData& value) const = 0;
 
     virtual const HypClassAttributeSet& GetAttributes() const = 0;
     virtual const HypClassAttributeValue& GetAttribute(ANSIStringView key) const = 0;

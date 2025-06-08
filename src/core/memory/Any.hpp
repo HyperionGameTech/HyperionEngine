@@ -25,8 +25,6 @@ namespace memory {
 template <class T>
 class UniquePtr;
 
-namespace detail {
-
 template <class T>
 static inline void* Any_CopyConstruct(void* src)
 {
@@ -39,11 +37,9 @@ class AnyBase
 {
 };
 
-} // namespace detail
-
 class CopyableAny;
 
-class Any : public detail::AnyBase
+class Any : public AnyBase
 {
     using DeleteFunction = std::add_pointer_t<void(void*)>;
 
@@ -82,7 +78,7 @@ public:
         return any;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any(T&& value) noexcept
         : m_type_id(TypeID::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
@@ -90,7 +86,7 @@ public:
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any& operator=(T&& value) noexcept
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -229,7 +225,7 @@ public:
         return nullptr;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(const T& value)
     {
         if (HasValue())
@@ -242,7 +238,7 @@ public:
         m_dtor = &Memory::Delete<NormalizedType<T>>;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(T&& value)
     {
         if (HasValue())
@@ -371,7 +367,7 @@ protected:
     DeleteFunction m_dtor;
 };
 
-class CopyableAny : public detail::AnyBase
+class CopyableAny : public AnyBase
 {
     using CopyConstructor = std::add_pointer_t<void*(void*)>;
     using DeleteFunction = std::add_pointer_t<void(void*)>;
@@ -403,16 +399,16 @@ public:
         return any;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(const T& value)
         : m_type_id(TypeID::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(value)),
-          m_copy_ctor(&detail::Any_CopyConstruct<NormalizedType<T>>),
+          m_copy_ctor(&Any_CopyConstruct<NormalizedType<T>>),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(const T& value)
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -435,22 +431,22 @@ public:
 
         m_type_id = new_type_id;
         m_ptr = new NormalizedType<T>(value);
-        m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
+        m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
 
         return *this;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(T&& value) noexcept
         : m_type_id(TypeID::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
-          m_copy_ctor(&detail::Any_CopyConstruct<NormalizedType<T>>),
+          m_copy_ctor(&Any_CopyConstruct<NormalizedType<T>>),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(T&& value) noexcept
     {
         const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
@@ -473,7 +469,7 @@ public:
 
         m_type_id = new_type_id;
         m_ptr = new NormalizedType<T>(std::move(value));
-        m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<NormalizedType<T>>>;
+        m_copy_ctor = &Any_CopyConstruct<NormalizedType<NormalizedType<T>>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
 
         return *this;
@@ -619,7 +615,7 @@ public:
         return nullptr;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(const T& value)
     {
         if (HasValue())
@@ -629,11 +625,11 @@ public:
 
         m_type_id = TypeID::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(value);
-        m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
+        m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_base_of_v<detail::AnyBase, T>>>
+    template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     void Set(T&& value)
     {
         if (HasValue())
@@ -643,7 +639,7 @@ public:
 
         m_type_id = TypeID::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::move(value));
-        m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
+        m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
     }
 
@@ -658,7 +654,7 @@ public:
 
         m_type_id = TypeID::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
-        m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
+        m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
@@ -701,7 +697,7 @@ public:
 
         if (ptr)
         {
-            m_copy_ctor = &detail::Any_CopyConstruct<NormalizedType<T>>;
+            m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
             m_dtor = &Memory::Delete<NormalizedType<T>>;
         }
         else

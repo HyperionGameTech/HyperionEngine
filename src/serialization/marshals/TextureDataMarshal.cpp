@@ -6,7 +6,7 @@
 
 #include <core/object/HypData.hpp>
 
-namespace hyperion::fbom {
+namespace hyperion::serialization {
 
 template <>
 class FBOMMarshaler<TextureData> : public FBOMObjectMarshalerBase<TextureData>
@@ -23,7 +23,7 @@ public:
         return { FBOMResult::FBOM_OK };
     }
 
-    virtual FBOMResult Deserialize(fbom::FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
+    virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
         TextureData result;
 
@@ -52,4 +52,4 @@ public:
 
 HYP_DEFINE_MARSHAL(TextureData, FBOMMarshaler<TextureData>);
 
-} // namespace hyperion::fbom
+} // namespace hyperion::serialization

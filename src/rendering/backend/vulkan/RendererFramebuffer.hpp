@@ -116,9 +116,7 @@ struct VulkanAttachmentMap
         return attachment;
     }
 
-    HYP_DEF_STL_BEGIN_END(
-        attachments.Begin(),
-        attachments.End())
+    HYP_DEF_STL_BEGIN_END(attachments.Begin(), attachments.End())
 };
 
 class VulkanFramebuffer final : public FramebufferBase

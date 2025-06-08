@@ -8,7 +8,7 @@
 #include <core/serialization/fbom/FBOMLoadContext.hpp>
 
 using namespace hyperion;
-using namespace fbom;
+using namespace serialization;
 
 extern "C"
 {

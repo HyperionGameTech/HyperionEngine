@@ -28,23 +28,19 @@ struct PairSequence
     }
 };
 
-namespace detail {
 template <class T, SizeType N, class F, SizeType... Indices>
 constexpr auto MakePairSequenceHelper(F f, std::index_sequence<Indices...>)
 {
     return PairSequence<T, (f()[Indices])...> {};
 }
-} // namespace detail
 
 template <class T, class F>
 constexpr auto MakePairSequence(F f)
 {
     constexpr SizeType size = f().size();
 
-    return detail::MakePairSequenceHelper<T, size>(f, std::make_index_sequence<size>());
+    return MakePairSequenceHelper<T, size>(f, std::make_index_sequence<size>());
 }
-
-namespace detail {
 
 template <class T, SizeType N, class F, SizeType... Indices>
 constexpr auto make_seq_helper(F f, std::index_sequence<Indices...>)
@@ -72,8 +68,6 @@ using make_offset_index_sequence_t = decltype(make_offset_index_sequence<Offset>
 // Fwd decl of IntegerSequenceFromString template
 template <auto StaticString>
 struct IntegerSequenceFromString;
-
-} // namespace detail
 
 /*! \brief A compile-time string with a fixed size. Some useful operations are provided as helper template structs and as member functions.
  *  Params are provided as template
@@ -350,8 +344,6 @@ struct StaticString
     }
 };
 
-namespace detail {
-
 template <auto StaticString>
 struct IntegerSequenceFromString
 {
@@ -359,7 +351,7 @@ struct IntegerSequenceFromString
     using CharType = typename StaticStringType::CharType;
 
 private:
-    constexpr static auto value = detail::make_seq<CharType>([]
+    constexpr static auto value = make_seq<CharType>([]
         {
             return std::string_view { StaticString.data };
         });
@@ -378,8 +370,6 @@ public:
     }
 };
 
-} // namespace detail
-
 namespace helpers {
 struct BasicStaticStringTransformer
 {
@@ -396,7 +386,6 @@ struct BasicStaticStringTransformer
 
 #pragma region Substr
 
-namespace detail {
 template <auto String, SizeType Start, SizeType End, bool PastEnd>
 struct Substr_Impl;
 
@@ -420,12 +409,10 @@ struct Substr_Impl<String, Start, End, true>
     }
 };
 
-} // namespace detail
-
 template <auto String, SizeType Start, SizeType End>
 struct Substr
 {
-    static constexpr auto value = detail::Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::detail::make_offset_index_sequence_t<(End >= String.size ? String.size - 1 : End) - Start, Start>());
+    static constexpr auto value = Substr_Impl<String, Start, End, Start >= (End >= String.size ? String.size - 1 : End)>()(containers::make_offset_index_sequence_t<(End >= String.size ? String.size - 1 : End) - Start, Start>());
 };
 
 /*template <auto String, SizeType Start>
@@ -434,14 +421,12 @@ struct Substr<String, Start, SizeType(-1)>
     static_assert(Start <= String.size - 1, "Start must be less than or equal to end");
     static_assert(Start < String.size, "Start must be less than string size");
 
-    static constexpr auto value = detail::Substr_Impl<String, Start, String.size - 1, Start >= String.size - 1>()(containers::detail::make_offset_index_sequence_t<(String.size - 1) - Start, Start>());
+    static constexpr auto value = Substr_Impl<String, Start, String.size - 1, Start >= String.size - 1>()(containers::make_offset_index_sequence_t<(String.size - 1) - Start, Start>());
 };*/
 
 #pragma endregion Substr
 
 #pragma region Trim
-
-namespace detail {
 
 template <auto Str>
 constexpr SizeType FindTrimLastIndex_Left()
@@ -492,8 +477,6 @@ struct TrimRight_Impl
     static constexpr auto value = Substr<String, 0, LastIndex>::value;
 };
 
-} // namespace detail
-
 /*! \brief Trims the left side of a StaticString, removing whitespace characters at the front.
  *
  *  \tparam String The StaticString to trim.
@@ -503,7 +486,7 @@ template <auto String>
 struct TrimLeft
 {
     // Trim left side
-    static constexpr auto value = detail::TrimLeft_Impl<String, detail::FindTrimLastIndex_Left<String>()>::value;
+    static constexpr auto value = TrimLeft_Impl<String, FindTrimLastIndex_Left<String>()>::value;
 };
 
 /*! \brief Trims the right side of a StaticString, removing whitespace characters at the end.
@@ -515,7 +498,7 @@ template <auto String>
 struct TrimRight
 {
     // Trim left side
-    static constexpr auto value = detail::TrimRight_Impl<String, detail::FindTrimLastIndex_Right<String>()>::value;
+    static constexpr auto value = TrimRight_Impl<String, FindTrimLastIndex_Right<String>()>::value;
 };
 
 /*! \brief Trims both sides of a StaticString, removing whitespace characters at the start and end of the string.
@@ -533,8 +516,6 @@ struct Trim
 #pragma endregion Trim
 
 #pragma region Split
-
-namespace detail {
 
 template <auto String, char Delimiter, class Transformer, SizeType Index = 0>
 struct Split_Impl;
@@ -560,8 +541,6 @@ struct Split_ApplyDelimiter_Impl<String, Delimiter, false>
     static constexpr auto value = String;
 };
 
-} // namespace detail
-
 /*! \brief Splits a StaticString by a delimiter.
  *
  *  \tparam String The StaticString to split.
@@ -572,7 +551,6 @@ struct Split_ApplyDelimiter_Impl<String, Delimiter, false>
 template <auto String, char Delimiter, class Transformer = BasicStaticStringTransformer>
 struct Split;
 
-namespace detail {
 template <auto String, char Delimiter, class Transformer, SizeType Index>
 struct Split_Impl
 {
@@ -580,12 +558,11 @@ struct Split_Impl
         MakeTuple(Transformer::template Transform<Split_ApplyDelimiter_Impl<Substr<String, 0, Index>::value, Delimiter, Transformer::keep_delimiter>::value>()),
         MakeTuple(Split<Substr<String, Index + 1, String.Size()>::value, Delimiter, Transformer>::value));
 };
-} // namespace detail
 
 template <auto String, char Delimiter, class Transformer>
 struct Split
 {
-    static constexpr auto value = detail::Split_Impl<String, Delimiter, Transformer, String.template FindFirst<containers::detail::IntegerSequenceFromString<StaticString { { Delimiter, '\0' } }>>()>::value;
+    static constexpr auto value = Split_Impl<String, Delimiter, Transformer, String.template FindFirst<containers::IntegerSequenceFromString<StaticString { { Delimiter, '\0' } }>>()>::value;
 };
 
 #pragma endregion Split
@@ -611,8 +588,6 @@ struct Concat<First, Rest...>
 {
     static constexpr auto value = First.template Concat<Concat<Rest...>::value>();
 };
-
-namespace detail {
 
 template <SizeType FirstSize, SizeType... OtherSizes>
 struct ConcatStrings_Impl;
@@ -676,19 +651,15 @@ struct ConcatStrings_Impl
     }
 };
 
-} // namespace detail
-
 template <class... StaticStringInstance>
 constexpr auto ConcatStrings(StaticStringInstance&&... strings)
 {
-    return detail::ConcatStrings_Impl<std::remove_cvref_t<decltype(strings)>::size...>()(std::forward<StaticStringInstance>(strings)...);
+    return ConcatStrings_Impl<std::remove_cvref_t<decltype(strings)>::size...>()(std::forward<StaticStringInstance>(strings)...);
 }
 
 #pragma endregion Concat
 
 #pragma region TransformParts
-
-namespace detail {
 
 template <class Transformer, SizeType FirstSize, SizeType... OtherSizes>
 struct TransformParts_Impl;
@@ -756,8 +727,6 @@ struct TransformParts_Impl
     }
 };
 
-} // namespace detail
-
 /*! \brief Transforms a list of StaticStrings using a Transformer and concatenates them.
  *
  *  \tparam Transformer The transformer to apply to each StaticString. Must have a static constexpr char delimiter member, and a static constexpr auto Transform<auto String>() function.
@@ -767,7 +736,7 @@ struct TransformParts_Impl
 template <class Transformer, auto... Strings>
 struct TransformParts
 {
-    static constexpr auto value = detail::TransformParts_Impl<Transformer, Transformer::template Transform<Strings>().Size()...>()(Transformer::template Transform<Strings>()...);
+    static constexpr auto value = TransformParts_Impl<Transformer, Transformer::template Transform<Strings>().Size()...>()(Transformer::template Transform<Strings>()...);
 };
 
 #pragma endregion TransformParts
@@ -790,8 +759,6 @@ struct FindCharCount<String, Delimiter, BALANCE_BRACKETS_NONE>
 {
     static constexpr SizeType value = String.template Count<Delimiter>();
 };
-
-namespace detail {
 
 template <auto String, char Delimiter, uint32 BracketOptions>
 struct FindCharCount_Impl
@@ -839,19 +806,15 @@ struct FindCharCount_Impl
     }
 };
 
-} // namespace detail
-
 template <auto String, char Delimiter, uint32 BracketOptions>
 struct FindCharCount
 {
-    static constexpr SizeType value = detail::FindCharCount_Impl<String, Delimiter, BracketOptions> {}();
+    static constexpr SizeType value = FindCharCount_Impl<String, Delimiter, BracketOptions> {}();
 };
 
 #pragma endregion FindCharCount
 
 #pragma region GetSplitIndices
-
-namespace detail {
 
 template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count>
 struct GetSplitIndices_Impl
@@ -929,8 +892,6 @@ struct GetSplitIndices_Impl
     }
 };
 
-} // namespace detail
-
 /*! \brief Get the indices of the occurrences of a character in the StaticString.  */
 template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count = SizeType(-1)>
 struct GetSplitIndices;
@@ -944,22 +905,18 @@ struct GetSplitIndices<String, Delimiter, BracketOptions, SizeType(-1)>
 template <auto String, char Delimiter, uint32 BracketOptions, SizeType Count>
 struct GetSplitIndices
 {
-    static constexpr auto value = detail::GetSplitIndices_Impl<String, Delimiter, BracketOptions, Count> {}();
+    static constexpr auto value = GetSplitIndices_Impl<String, Delimiter, BracketOptions, Count> {}();
 };
 
 #pragma endregion GetSplitIndices
 
 #pragma region TransformSplit
 
-namespace detail {
-
 template <class Transformer, auto String, Pair<SizeType, SizeType>... SplitIndices>
 constexpr auto TransformSplit_Impl(PairSequence<Pair<SizeType, SizeType>, SplitIndices...>)
 {
     return TransformParts<Transformer, Substr<String, SplitIndices.first, SplitIndices.second>::value...>::value;
 }
-
-} // namespace detail
 
 /*! \brief Splits a StaticString by delimiter, applies a transformation to each element, and rejoins it into a single StaticString.
  *
@@ -970,7 +927,7 @@ constexpr auto TransformSplit_Impl(PairSequence<Pair<SizeType, SizeType>, SplitI
 template <class Transformer, auto String>
 struct TransformSplit
 {
-    static constexpr auto value = detail::TransformSplit_Impl<Transformer, String>(GetSplitIndices<String, Transformer::delimiter, Transformer::balance_bracket_options>::value);
+    static constexpr auto value = TransformSplit_Impl<Transformer, String>(GetSplitIndices<String, Transformer::delimiter, Transformer::balance_bracket_options>::value);
 };
 
 #pragma endregion TransformSplit
@@ -979,8 +936,6 @@ struct TransformSplit
 
 template <auto String, SizeType CharIndex = 0, int Value = 0>
 struct ParseInteger;
-
-namespace detail {
 
 template <auto String, SizeType CharIndex>
 struct ParseInteger_ParseChar_Impl
@@ -1003,12 +958,10 @@ struct ParseInteger_Impl<String, CharIndex, Value, true>
     static constexpr auto value = Value;
 };
 
-} // namespace detail
-
 template <auto String, SizeType CharIndex, int Value>
 struct ParseInteger
 {
-    static constexpr auto value = detail::ParseInteger_Impl < String, CharIndex, Value, CharIndex >= String.size - 1 || String.data[CharIndex] == '\0' > ::value;
+    static constexpr auto value = ParseInteger_Impl < String, CharIndex, Value, CharIndex >= String.size - 1 || String.data[CharIndex] == '\0' > ::value;
 };
 
 #pragma endregion ParseInteger

@@ -96,21 +96,21 @@ Result ObjectAssetResourceBase::Save_Internal()
 
     HYP_DEFER({ byte_writer.Close(); });
 
-    fbom::FBOMWriter writer { fbom::FBOMWriterConfig {} };
+    FBOMWriter writer { FBOMWriterConfig {} };
 
-    fbom::FBOMMarshalerBase* marshal = fbom::FBOM::GetInstance().GetMarshal(GetAssetTypeID());
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetTypeID());
     AssertThrow(marshal != nullptr);
 
-    fbom::FBOMObject object;
+    FBOMObject object;
 
-    if (fbom::FBOMResult err = marshal->Serialize(m_loaded_asset.value.ToRef(), object))
+    if (FBOMResult err = marshal->Serialize(m_loaded_asset.value.ToRef(), object))
     {
         return HYP_MAKE_ERROR(Error, "Failed to serialize asset: {}", err.message);
     }
 
     writer.Append(std::move(object));
 
-    if (fbom::FBOMResult err = writer.Emit(&byte_writer))
+    if (FBOMResult err = writer.Emit(&byte_writer))
     {
         return HYP_MAKE_ERROR(Error, "Failed to write asset to disk");
     }

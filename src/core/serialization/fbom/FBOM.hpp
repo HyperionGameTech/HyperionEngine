@@ -45,7 +45,7 @@ enum class FBOMVersionCompareMode : uint32
 
 HYP_MAKE_ENUM_FLAGS(FBOMVersionCompareMode)
 
-namespace fbom {
+namespace serialization {
 
 struct FBOMObjectType;
 
@@ -196,7 +196,10 @@ private:
     UniquePtr<HypClassInstanceMarshal> m_hyp_class_instance_marshal;
 };
 
-} // namespace fbom
+} // namespace serialization
+
+using namespace serialization;
+
 } // namespace hyperion
 
 #endif

@@ -29,8 +29,6 @@ namespace hyperion::dotnet {
 
 class Object;
 
-namespace detail {
-
 template <class T, class T2 = void>
 struct TransformArgument;
 
@@ -168,8 +166,6 @@ struct TransformArgument<FilePath>
 {
     HYP_API const char* operator()(const FilePath& value) const;
 };
-
-} // namespace detail
 
 } // namespace hyperion::dotnet
 

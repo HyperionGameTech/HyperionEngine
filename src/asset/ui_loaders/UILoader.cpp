@@ -371,7 +371,7 @@ static Optional<UIObjectSize> ParseUIObjectSize(const String& str)
     return {};
 }
 
-static json::ParseResult ParseJSON(fbom::FBOMLoadContext& context, const String& str, fbom::FBOMData& out_data)
+static json::ParseResult ParseJSON(FBOMLoadContext& context, const String& str, FBOMData& out_data)
 {
     // Read string as JSON
     json::ParseResult parse_result = json::JSON::Parse(str);
@@ -381,7 +381,7 @@ static json::ParseResult ParseJSON(fbom::FBOMLoadContext& context, const String&
         return parse_result;
     }
 
-    out_data = fbom::FBOMData::FromJSON(parse_result.value);
+    out_data = FBOMData::FromJSON(parse_result.value);
 
     return parse_result;
 }

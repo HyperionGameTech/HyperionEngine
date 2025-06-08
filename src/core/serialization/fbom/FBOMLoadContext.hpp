@@ -10,7 +10,7 @@
 #include <core/serialization/fbom/FBOMObjectLibrary.hpp>
 
 namespace hyperion {
-namespace fbom {
+namespace serialization {
 
 class FBOMLoadContext
 {
@@ -18,7 +18,7 @@ public:
     HashMap<UUID, FBOMObjectLibrary> object_libraries;
 };
 
-} // namespace fbom
+} // namespace serialization
 } // namespace hyperion
 
 #endif

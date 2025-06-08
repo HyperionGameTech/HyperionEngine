@@ -67,7 +67,7 @@ public:
     template <class PropertyType>
     void InvokeSetter(const Object* object_ptr, PropertyType&& value)
     {
-        HypData value_hyp_data(detail::TransformArgument<PropertyType> {}(std::forward<PropertyType>(value)));
+        HypData value_hyp_data(TransformArgument<PropertyType> {}(std::forward<PropertyType>(value)));
         const HypData* value_hyp_data_ptr = &value_hyp_data;
 
         return InvokeSetter_Internal(object_ptr, &value_hyp_data_ptr);

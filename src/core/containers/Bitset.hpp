@@ -13,9 +13,12 @@
 #include <ostream>
 
 namespace hyperion {
-
 namespace containers {
 
+/*! \brief A dynamic bitset implementation that allows for efficient storage and manipulation of bits.
+ *  It supports operations such as setting, clearing, flipping bits, and iterating over set bits.
+ *  The bitset can be resized dynamically, and it provides a range of bitwise operations.
+ */
 class Bitset
 {
 public:

@@ -11,7 +11,7 @@
 #include <core/ID.hpp>
 
 #ifdef HYP_DEBUG_MODE
-    #include <core/threading/Threads.hpp>
+#include <core/threading/Threads.hpp>
 #endif
 
 #include <type_traits>
@@ -275,8 +275,6 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
     }
 };
 
-namespace detail {
-
 template <class T, class T2>
 struct HypObjectType_Impl;
 
@@ -292,10 +290,8 @@ struct HypObjectType_Impl<T, std::true_type>
 template <class T>
 struct HypClassRegistration;
 
-} // namespace detail
-
 template <class T>
-using HypObjectType = typename detail::HypObjectType_Impl<T, std::bool_constant<IsHypObject<T>::value>>::Type;
+using HypObjectType = typename HypObjectType_Impl<T, std::bool_constant<IsHypObject<T>::value>>::Type;
 
 } // namespace hyperion
 

@@ -934,8 +934,6 @@ private:
 
 #pragma region AwaitAll
 
-namespace detail {
-
 template <class TaskType>
 struct TaskAwaitAll_Impl;
 
@@ -1111,12 +1109,10 @@ struct TaskAwaitAll_Impl<Task<void>>
     }
 };
 
-} // namespace detail
-
 template <class TaskType>
 decltype(auto) AwaitAll(Span<TaskType> tasks)
 {
-    return detail::TaskAwaitAll_Impl<TaskType> {}(tasks);
+    return TaskAwaitAll_Impl<TaskType> {}(tasks);
 }
 
 #pragma endregion AwaitAll

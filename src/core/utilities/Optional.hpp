@@ -12,8 +12,6 @@
 namespace hyperion {
 namespace utilities {
 
-namespace detail {
-
 template <class T, typename IsReferenceType = void>
 class Optional;
 
@@ -653,10 +651,6 @@ public:
 private:
     typename std::remove_reference_t<T>* m_ptr;
 };
-
-} // namespace detail
-
-using detail::Optional;
 
 } // namespace utilities
 

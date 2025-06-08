@@ -42,8 +42,6 @@ void EditorActionFactoryRegistry::RegisterFactory(Name action_name, IEditorActio
 
 #pragma region EditorActionFactoryRegistrationBase
 
-namespace detail {
-
 EditorActionFactoryRegistrationBase::EditorActionFactoryRegistrationBase(Name action_name, IEditorActionFactory* factory)
     : m_factory(factory)
 {
@@ -54,8 +52,6 @@ EditorActionFactoryRegistrationBase::~EditorActionFactoryRegistrationBase()
 {
     delete m_factory;
 }
-
-} // namespace detail
 
 #pragma endregion EditorActionFactoryRegistrationBase
 
