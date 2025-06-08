@@ -174,9 +174,9 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
-    const uint32 scene_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         AssertThrow(render_setup.HasView());
 
@@ -184,7 +184,7 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_render_group->GetPipeline(),
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());

@@ -335,15 +335,15 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame->GetFrameIndex());
 
-    const uint32 scene_descriptor_set_index = m_perform_blending->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_perform_blending->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_perform_blending,
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     frame->GetCommandList().Add<DispatchCompute>(

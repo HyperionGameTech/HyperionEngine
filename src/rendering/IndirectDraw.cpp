@@ -431,7 +431,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
-    AssertDebug(render_setup.cull_data != nullptr);
+
+    AssertThrow(render_setup.view->GetCullData().depth_pyramid_image_view != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -459,9 +460,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
         }
     }
 
-    if (m_cached_cull_data != *render_setup.cull_data)
+    if (m_cached_cull_data != render_setup.view->GetCullData())
     {
-        m_cached_cull_data = *render_setup.cull_data;
+        m_cached_cull_data = render_setup.view->GetCullData();
         m_cached_cull_data_updated_bits = 0xFF;
     }
 
@@ -485,15 +486,15 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame_index);
 
-    const uint32 scene_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame_index],
             m_object_visibility,
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     frame->GetCommandList().Add<InsertBarrier>(

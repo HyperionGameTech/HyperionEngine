@@ -441,9 +441,9 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
                         { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
             frame->GetFrameIndex());
 
-        const uint32 scene_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (scene_descriptor_set_index != ~0u)
+        if (view_descriptor_set_index != ~0u)
         {
             AssertThrow(render_setup.HasView());
 
@@ -451,7 +451,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 spawner->GetComputePipeline(),
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
         }
 
         frame->GetCommandList().Add<DispatchCompute>(
@@ -505,9 +505,9 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
             frame_index);
 
-        const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (scene_descriptor_set_index != ~0u)
+        if (view_descriptor_set_index != ~0u)
         {
             AssertThrow(render_setup.HasView());
 
@@ -515,7 +515,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
                 render_setup.view->GetDescriptorSets()[frame_index],
                 pipeline,
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
         }
 
         m_quad_mesh->GetRenderResource().RenderIndirect(frame->GetCommandList(), particle_spawner->GetIndirectBuffer());

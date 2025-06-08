@@ -311,15 +311,15 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
-        const uint32 scene_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (scene_descriptor_set_index != ~0u)
+        if (view_descriptor_set_index != ~0u)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 m_write_uvs,
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
         }
 
         frame->GetCommandList().Add<DispatchCompute>(m_write_uvs, Vec3u { num_dispatch_calls, 1, 1 });
@@ -343,15 +343,15 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
-        const uint32 scene_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (scene_descriptor_set_index != ~0u)
+        if (view_descriptor_set_index != ~0u)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 m_sample_gbuffer,
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
         }
 
         frame->GetCommandList().Add<DispatchCompute>(m_sample_gbuffer, Vec3u { num_dispatch_calls, 1, 1 });

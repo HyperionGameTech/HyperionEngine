@@ -448,7 +448,7 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
         }
     }
 
-    if (is_indirect_rendering_enabled && render_setup.cull_data != nullptr)
+    if (is_indirect_rendering_enabled && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr)
     {
         for (SizeType index = 0; index < iterators.Size(); index++)
         {

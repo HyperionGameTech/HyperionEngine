@@ -298,7 +298,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         const Handle<RenderGroup>& render_group = m_direct_light_render_groups[light_type_index];
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
         const uint32 material_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
         const uint32 deferred_direct_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
 
@@ -346,7 +346,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
 
             // Bind material descriptor set (for area lights)
             if (material_descriptor_set_index != ~0u && !use_bindless_textures)
@@ -618,7 +618,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
     AssertThrow(render_group.IsValid());
 
     const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-    const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
     render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
@@ -647,7 +647,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         render_setup.view->GetDescriptorSets()[frame_index],
         render_group->GetPipeline(),
         ArrayMap<Name, uint32> {},
-        scene_descriptor_set_index);
+        view_descriptor_set_index);
 
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 
@@ -896,7 +896,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         }
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 scene_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
         for (RenderEnvProbe* env_render_probe : env_render_probes)
         {
@@ -920,7 +920,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 render_setup.view->GetDescriptorSets()[frame_index],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
+                view_descriptor_set_index);
 
             m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
 

@@ -245,15 +245,15 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
         frame_index);
 
-    const uint32 scene_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_compute_pipeline,
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     frame->GetCommandList().Add<DispatchCompute>(m_compute_pipeline, Vec3u { num_dispatch_calls, 1, 1 });

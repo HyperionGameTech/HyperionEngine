@@ -181,6 +181,11 @@ public:
         return m_render_collector;
     }
 
+    HYP_FORCE_INLINE const CullData& GetCullData() const
+    {
+        return m_cull_data;
+    }
+
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
     typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker);
     void UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);

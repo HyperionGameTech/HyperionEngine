@@ -584,15 +584,15 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
-    const uint32 scene_descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());
@@ -710,15 +710,15 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
 
-    const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_render_group->GetPipeline(),
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     m_full_screen_quad->GetRenderResource().Render(frame->GetCommandList());

@@ -324,6 +324,9 @@ void RenderView::CreateRenderer()
     m_depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
     m_depth_pyramid_renderer->Create();
 
+    m_cull_data.depth_pyramid_image_view = m_depth_pyramid_renderer->GetResultImageView();
+    m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
+
     m_mip_chain = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_2D,
         mip_chain_format,
@@ -915,7 +918,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     AssertThrow(IsInitialized());
 
     RenderSetup render_setup { render_world, this };
-    render_setup.cull_data = &m_cull_data;
 
     if (!m_gbuffer)
     {
@@ -929,6 +931,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     // @FIXME: support for multiple render scenes for environment
     /// \todo: Remove SetActiveScene and GetActiveScene
     g_engine->GetRenderState()->SetActiveScene(m_render_scenes[0]->GetScene());
+
     const Handle<RenderEnvironment>& environment = m_render_scenes[0]->GetEnvironment();
 
     const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
@@ -1184,14 +1187,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             frame_index
         );
 
-        const uint32 scene_descriptor_set_index = m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (scene_descriptor_set_index != ~0u) {
+        if (view_descriptor_set_index != ~0u) {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 m_descriptor_sets[frame_index],
                 m_combine_pass->GetRenderGroup()->GetPipeline(),
                 ArrayMap<Name, uint32> { },
-                scene_descriptor_set_index
+                view_descriptor_set_index
             );
         }
 

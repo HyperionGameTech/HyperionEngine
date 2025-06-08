@@ -56,30 +56,26 @@ struct RenderSetup
 
     RenderWorld* world;
     RenderView* view;
-    CullData* cull_data;
 
 private:
     // Private constructor for null RenderSetup
     RenderSetup()
         : world(nullptr),
-          view(nullptr),
-          cull_data(nullptr)
+          view(nullptr)
     {
     }
 
 public:
     RenderSetup(RenderWorld* world)
         : world(world),
-          view(nullptr),
-          cull_data(nullptr)
+          view(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
 
     RenderSetup(RenderWorld* world, RenderView* view)
         : world(world),
-          view(view),
-          cull_data(nullptr)
+          view(view)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }

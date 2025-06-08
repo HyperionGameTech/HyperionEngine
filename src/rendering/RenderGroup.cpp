@@ -457,7 +457,7 @@ static void RenderAll(
     const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
     const DescriptorSetRef& global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index);
 
-    const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
     const DescriptorSetRef& material_descriptor_set = use_bindless_textures
@@ -488,20 +488,20 @@ static void RenderAll(
             global_descriptor_set_index);
     }
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         AssertThrow(render_setup.HasView());
 
-        const DescriptorSetRef& scene_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
+        const DescriptorSetRef& view_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
 
-        AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
-            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
+        AssertThrowMsg(view_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
+            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), view_descriptor_set_index);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
-            scene_descriptor_set,
+            view_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     // Bind textures globally (bindless)
@@ -617,7 +617,7 @@ static void RenderAll_Parallel(
     const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
     const DescriptorSetRef& global_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index);
 
-    const uint32 scene_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
 
     GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
@@ -640,20 +640,20 @@ static void RenderAll_Parallel(
             global_descriptor_set_index);
     }
 
-    if (scene_descriptor_set_index != ~0u)
+    if (view_descriptor_set_index != ~0u)
     {
         AssertThrow(render_setup.HasView());
 
-        const DescriptorSetRef& scene_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
+        const DescriptorSetRef& view_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
 
-        AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
-            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
+        AssertThrowMsg(view_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
+            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), view_descriptor_set_index);
 
         base_command_list.Add<BindDescriptorSet>(
-            scene_descriptor_set,
+            view_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {},
-            scene_descriptor_set_index);
+            view_descriptor_set_index);
     }
 
     // Bind textures globally (bindless)
@@ -777,7 +777,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
-    if (render_setup.cull_data != nullptr && is_indirect_rendering_enabled && (m_flags & RenderGroupFlags::INDIRECT_RENDERING))
+    if (is_indirect_rendering_enabled && (m_flags & RenderGroupFlags::INDIRECT_RENDERING) && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr)
     {
         if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
