@@ -429,6 +429,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
@@ -483,7 +486,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     const uint32 scene_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+    if (scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame_index],

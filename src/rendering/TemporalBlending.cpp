@@ -295,6 +295,9 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const ImageRef& active_image = frame->GetFrameIndex() % 2 == 0
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
@@ -334,7 +337,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     const uint32 scene_descriptor_set_index = m_perform_blending->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+    if (scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],

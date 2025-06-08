@@ -357,9 +357,10 @@ void ParticleSystem::CreateBuffers()
 void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
+
+    AssertDebug(render_setup.IsValid());
 
     const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
@@ -475,9 +476,10 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
 void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
+
+    AssertDebug(render_setup.IsValid());
 
     const uint32 frame_index = frame->GetFrameIndex();
 

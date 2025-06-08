@@ -128,26 +128,23 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& ren
 
     uint32 num_bound_lights = 0;
 
-    if (render_setup.HasView())
-    {
-        const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
+    const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+    {
+        if (num_bound_lights >= max_bound_lights)
+        {
+            break;
+        }
+
+        for (const auto& it : render_setup.view->GetLights(LightType(light_type)))
         {
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
             }
 
-            for (const auto& it : render_setup.view->GetLights(LightType(light_type)))
-            {
-                if (num_bound_lights >= max_bound_lights)
-                {
-                    break;
-                }
-
-                uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
-            }
+            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
         }
     }
 
@@ -170,6 +167,9 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& ren
 
 void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     UpdateUniforms(frame, render_setup);
 
     const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();

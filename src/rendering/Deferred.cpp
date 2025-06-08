@@ -269,6 +269,9 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
     {
         RenderToFramebuffer(frame, render_setup, nullptr);
@@ -590,8 +593,10 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
 void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -812,6 +817,9 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 frame_index = frame->GetFrameIndex();
 

@@ -286,6 +286,9 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_NAMED_SCOPE("Screen Space Reflections");
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     /* ========== BEGIN SSR ========== */
@@ -310,7 +313,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         const uint32 scene_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+        if (scene_descriptor_set_index != ~0u)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
@@ -319,9 +322,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                 scene_descriptor_set_index);
         }
 
-        frame->GetCommandList().Add<DispatchCompute>(
-            m_write_uvs,
-            Vec3u { num_dispatch_calls, 1, 1 });
+        frame->GetCommandList().Add<DispatchCompute>(m_write_uvs, Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition the UV image back into read state
         frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
@@ -344,7 +345,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         const uint32 scene_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-        if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+        if (scene_descriptor_set_index != ~0u)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
@@ -353,9 +354,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                 scene_descriptor_set_index);
         }
 
-        frame->GetCommandList().Add<DispatchCompute>(
-            m_sample_gbuffer,
-            Vec3u { num_dispatch_calls, 1, 1 });
+        frame->GetCommandList().Add<DispatchCompute>(m_sample_gbuffer, Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition sample image back into read state
         frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);

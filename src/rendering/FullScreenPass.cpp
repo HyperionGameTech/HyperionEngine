@@ -551,6 +551,9 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     AssertThrow(m_render_texture_to_screen_pass != nullptr);
@@ -583,7 +586,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
     const uint32 scene_descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+    if (scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
@@ -633,6 +636,9 @@ void FullScreenPass::Render(FrameBase* frame, const RenderSetup& render_setup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     frame->GetCommandList().Add<BeginFramebuffer>(m_framebuffer, frame_index);
@@ -661,6 +667,9 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr)
@@ -703,7 +712,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
     const uint32 scene_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+    if (scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
@@ -721,6 +730,9 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -746,6 +758,9 @@ void FullScreenPass::End(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 frame_index = frame->GetFrameIndex();
 

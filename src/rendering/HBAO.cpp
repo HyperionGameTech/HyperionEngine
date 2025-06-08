@@ -158,6 +158,9 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     Begin(frame, render_setup);

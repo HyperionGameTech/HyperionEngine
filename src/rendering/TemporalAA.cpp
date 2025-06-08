@@ -143,6 +143,9 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     const ImageRef& active_image = frame->GetFrameIndex() % 2 == 0
@@ -177,13 +180,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
         ArrayMap<Name, ArrayMap<Name, uint32>> {},
         frame_index);
 
-    frame->GetCommandList().Add<DispatchCompute>(
-        m_compute_taa,
-        Vec3u {
-            (m_extent.x + 7) / 8,
-            (m_extent.y + 7) / 8,
-            1 });
-
+    frame->GetCommandList().Add<DispatchCompute>(m_compute_taa, Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 

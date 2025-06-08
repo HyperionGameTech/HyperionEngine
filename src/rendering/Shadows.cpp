@@ -90,7 +90,6 @@ void ShadowMapManager::Initialize()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), m_atlas_image_view);
-
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), m_point_light_shadow_map_image_view);
     }
 }
@@ -110,7 +109,6 @@ void ShadowMapManager::Destroy()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8Array());
-
         g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
     }
 

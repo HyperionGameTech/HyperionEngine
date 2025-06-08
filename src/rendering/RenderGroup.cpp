@@ -446,6 +446,9 @@ static void RenderAll(
 {
     HYP_SCOPE;
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     if (draw_state.GetDrawCalls().Empty())
@@ -603,6 +606,9 @@ static void RenderAll_Parallel(
     ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     AssertDebug(parallel_rendering_state != nullptr);
 

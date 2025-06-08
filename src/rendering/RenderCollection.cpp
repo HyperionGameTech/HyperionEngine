@@ -469,10 +469,11 @@ void RenderCollector::ExecuteDrawCalls(
     const CullData* cull_data,
     PushConstantData push_constant) const
 {
-    AssertThrowMsg(render_setup.HasView(), "RenderSetup must have a View attached");
+    AssertDebug(render_setup.IsValid());
+    AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
 
     const FramebufferRef& framebuffer = render_setup.view->GetCamera()->GetFramebuffer();
-    AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
+    AssertDebugMsg(framebuffer, "Camera has no Framebuffer attached");
 
     ExecuteDrawCalls(frame, render_setup, framebuffer, bucket_bits, cull_data, push_constant);
 }
@@ -492,7 +493,7 @@ void RenderCollector::ExecuteDrawCalls(
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
-    AssertThrow(m_draw_collection != nullptr);
+    AssertDebug(m_draw_collection != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 

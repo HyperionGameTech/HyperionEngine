@@ -214,6 +214,9 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_NAMED_SCOPE("Screen Space Global Illumination");
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     // Used for sky
     const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
@@ -244,7 +247,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     const uint32 scene_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
+    if (scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
@@ -253,9 +256,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
             scene_descriptor_set_index);
     }
 
-    frame->GetCommandList().Add<DispatchCompute>(
-        m_compute_pipeline,
-        Vec3u { num_dispatch_calls, 1, 1 });
+    frame->GetCommandList().Add<DispatchCompute>(m_compute_pipeline, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition sample image back into read state
     frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
