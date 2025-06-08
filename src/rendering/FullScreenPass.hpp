@@ -30,6 +30,7 @@ class RenderGroup;
 class TemporalBlending;
 class GBuffer;
 class RenderView;
+struct RenderSetup;
 
 class HYP_API FullScreenPass
 {
@@ -143,11 +144,11 @@ public:
     /*! \brief Create the full screen pass */
     virtual void Create();
 
-    virtual void Render(FrameBase* frame, RenderView* view);
-    virtual void RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer);
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup);
+    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer);
 
-    void Begin(FrameBase* frame, RenderView* view);
-    void End(FrameBase* frame, RenderView* view);
+    void Begin(FrameBase* frame, const RenderSetup& render_setup);
+    void End(FrameBase* frame, const RenderSetup& render_setup);
 
 protected:
     virtual bool UsesTemporalBlending() const
@@ -164,9 +165,9 @@ protected:
 
     void CreateQuad();
 
-    void RenderPreviousTextureToScreen(FrameBase* frame, RenderView* view);
-    void CopyResultToPreviousTexture(FrameBase* frame, RenderView* view);
-    void MergeHalfResTextures(FrameBase* frame, RenderView* view);
+    void RenderPreviousTextureToScreen(FrameBase* frame, const RenderSetup& render_setup);
+    void CopyResultToPreviousTexture(FrameBase* frame, const RenderSetup& render_setup);
+    void MergeHalfResTextures(FrameBase* frame, const RenderSetup& render_setup);
 
     FramebufferRef m_framebuffer;
     ShaderRef m_shader;

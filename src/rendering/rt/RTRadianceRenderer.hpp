@@ -70,14 +70,14 @@ public:
     HYP_API void Create();
     HYP_API void Destroy();
 
-    HYP_API void Render(FrameBase* frame, RenderView* view);
+    HYP_API void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreateImages();
     void CreateUniformBuffer();
     void CreateRaytracingPipeline();
     void CreateTemporalBlending();
-    void UpdateUniforms(FrameBase* frame, RenderView* view);
+    void UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup);
 
     RTRadianceConfig m_config;
 

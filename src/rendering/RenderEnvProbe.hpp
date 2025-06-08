@@ -136,7 +136,7 @@ public:
     void EnqueueBind();
     void EnqueueUnbind();
 
-    void Render(FrameBase* frame);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 protected:
     virtual void Initialize_Internal() override;

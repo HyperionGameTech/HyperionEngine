@@ -310,7 +310,7 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         // Global
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ScenesBuffer"), GetRenderData()->scenes->GetBuffer(frame_index));
+        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("WorldsBuffer"), GetRenderData()->worlds->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightsBuffer"), GetRenderData()->lights->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CurrentLight"), GetRenderData()->lights->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ObjectsBuffer"), GetRenderData()->objects->GetBuffer(frame_index));

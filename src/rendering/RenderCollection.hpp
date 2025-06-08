@@ -38,6 +38,7 @@ class Entity;
 class RenderGroup;
 class RenderCamera;
 class RenderView;
+struct RenderSetup;
 
 using renderer::PushConstantData;
 
@@ -125,20 +126,20 @@ public:
 
     void CollectDrawCalls(
         FrameBase* frame,
-        RenderView* view,
+        const RenderSetup& render_setup,
         const Bitset& bucket_bits,
         const CullData* cull_data);
 
     void ExecuteDrawCalls(
         FrameBase* frame,
-        RenderView* view,
+        const RenderSetup& render_setup,
         const Bitset& bucket_bits,
         const CullData* cull_data = nullptr,
         PushConstantData push_constant = {}) const;
 
     void ExecuteDrawCalls(
         FrameBase* frame,
-        RenderView* view,
+        const RenderSetup& render_setup,
         const FramebufferRef& framebuffer,
         const Bitset& bucket_bits,
         const CullData* cull_data = nullptr,

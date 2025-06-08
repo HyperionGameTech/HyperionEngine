@@ -13,6 +13,7 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <rendering/UIRenderer.hpp>
 
@@ -269,7 +270,7 @@ void DebugDrawer::Update(GameCounter::TickUnit delta)
     }
 }
 
-void DebugDrawer::Render(FrameBase* frame)
+void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -397,7 +398,7 @@ void DebugDrawer::Render(FrameBase* frame)
                     { NAME("DebugDrawerDescriptorSet"),
                         { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
                     { NAME("Global"),
-                        { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                        { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) } } },
                     { NAME("Object"),

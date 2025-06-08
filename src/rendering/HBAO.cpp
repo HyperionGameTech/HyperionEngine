@@ -3,6 +3,7 @@
 #include <rendering/HBAO.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -152,41 +153,39 @@ void HBAO::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void HBAO::Render(FrameBase* frame, RenderView* view)
+void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
+    Begin(frame, render_setup);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+        GetRenderGroup()->GetPipeline(),
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            { NAME("Global"),
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
+        frame_index);
+
+    const uint32 scene_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+
+    if (scene_descriptor_set_index != ~0u)
     {
-        Begin(frame, view);
+        AssertThrow(render_setup.HasView());
 
-        frame->GetCommandList().Add<BindDescriptorTable>(
-            GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-            GetRenderGroup()->GetPipeline(),
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) } } } },
-            frame_index);
-
-        const uint32 scene_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-
-        if (scene_descriptor_set_index != ~0u)
-        {
-            AssertThrow(view != nullptr);
-
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                view->GetDescriptorSets()[frame->GetFrameIndex()],
-                m_render_group->GetPipeline(),
-                ArrayMap<Name, uint32> {},
-                scene_descriptor_set_index);
-        }
-
-        GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-        End(frame, view);
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+            m_render_group->GetPipeline(),
+            ArrayMap<Name, uint32> {},
+            scene_descriptor_set_index);
     }
+
+    GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+    End(frame, render_setup);
 }
 
 } // namespace hyperion

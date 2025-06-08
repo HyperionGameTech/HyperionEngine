@@ -460,7 +460,7 @@ void RenderEnvProbe::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void RenderEnvProbe::Render(FrameBase* frame)
+void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -487,6 +487,8 @@ void RenderEnvProbe::Render(FrameBase* frame)
         m_env_probe->GetID().Value(), m_env_probe->GetEnvProbeType());
 
     const uint32 frame_index = frame->GetFrameIndex();
+
+    const RenderSetup new_render_setup { render_setup.world, m_render_view.Get() };
 
     RenderLight* render_light = nullptr;
 
@@ -535,13 +537,13 @@ void RenderEnvProbe::Render(FrameBase* frame)
 
         m_render_view->GetRenderCollector().CollectDrawCalls(
             frame,
-            m_render_view.Get(),
+            new_render_setup,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)),
             nullptr);
 
         m_render_view->GetRenderCollector().ExecuteDrawCalls(
             frame,
-            m_render_view.Get(),
+            new_render_setup,
             Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
 
         if (render_light != nullptr)

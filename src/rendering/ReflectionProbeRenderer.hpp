@@ -37,7 +37,7 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame) override;
+    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
 
     TResourceHandle<RenderEnvProbe> m_env_render_probe;
 

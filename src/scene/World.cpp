@@ -161,6 +161,10 @@ void World::Init()
 
     m_render_resource = AllocateResource<RenderWorld>(this);
 
+    WorldShaderData shader_data {};
+    shader_data.game_time = m_game_state.game_time;
+    m_render_resource->SetBufferData(shader_data);
+
     InitObject(m_world_grid);
 
     for (auto& it : m_subsystems)
@@ -206,6 +210,10 @@ void World::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     m_game_state.delta_time = delta;
+
+    WorldShaderData shader_data {};
+    shader_data.game_time = m_game_state.game_time;
+    m_render_resource->SetBufferData(shader_data);
 
     m_world_grid->Update(delta);
 

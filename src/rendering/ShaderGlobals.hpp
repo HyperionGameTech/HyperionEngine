@@ -31,6 +31,7 @@ struct ShaderGlobals
     void Create();
     void Destroy();
 
+    GPUBufferHolderBase* worlds;
     GPUBufferHolderBase* scenes;
     GPUBufferHolderBase* cameras;
     GPUBufferHolderBase* lights;

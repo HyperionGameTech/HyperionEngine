@@ -6,6 +6,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
@@ -289,7 +290,7 @@ void TemporalBlending::CreateComputePipelines()
     DeferCreate(m_perform_blending);
 }
 
-void TemporalBlending::Render(FrameBase* frame, RenderView* view)
+void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -327,16 +328,16 @@ void TemporalBlending::Render(FrameBase* frame, RenderView* view)
         m_perform_blending,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) } } } },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame->GetFrameIndex());
 
     const uint32 scene_descriptor_set_index = m_perform_blending->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (view != nullptr && scene_descriptor_set_index != ~0u)
+    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
-            view->GetDescriptorSets()[frame->GetFrameIndex()],
+            render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
             m_perform_blending,
             ArrayMap<Name, uint32> {},
             scene_descriptor_set_index);

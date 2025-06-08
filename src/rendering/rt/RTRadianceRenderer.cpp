@@ -11,6 +11,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/SafeDeleter.hpp>
@@ -116,7 +117,7 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, RenderView* view)
+void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup)
 {
     RTRadianceUniforms uniforms {};
 
@@ -127,7 +128,7 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, RenderView* view)
 
     uint32 num_bound_lights = 0;
 
-    if (view)
+    if (render_setup.HasView())
     {
         const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
 
@@ -138,7 +139,7 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, RenderView* view)
                 break;
             }
 
-            for (const auto& it : view->GetLights(LightType(light_type)))
+            for (const auto& it : render_setup.view->GetLights(LightType(light_type)))
             {
                 if (num_bound_lights >= max_bound_lights)
                 {
@@ -167,9 +168,9 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, RenderView* view)
     }
 }
 
-void RTRadianceRenderer::Render(FrameBase* frame, RenderView* view)
+void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
-    UpdateUniforms(frame, view);
+    UpdateUniforms(frame, render_setup);
 
     const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
     const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
@@ -181,8 +182,8 @@ void RTRadianceRenderer::Render(FrameBase* frame, RenderView* view)
         m_raytracing_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame->GetFrameIndex());
@@ -203,14 +204,14 @@ void RTRadianceRenderer::Render(FrameBase* frame, RenderView* view)
         ResourceState::SHADER_RESOURCE);
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer() && view->GetCamera()->GetBufferData().view != m_previous_view_matrix)
+    if (IsPathTracer() && render_setup.view->GetCamera()->GetBufferData().view != m_previous_view_matrix)
     {
         m_temporal_blending->ResetProgressiveBlending();
 
-        m_previous_view_matrix = view->GetCamera()->GetBufferData().view;
+        m_previous_view_matrix = render_setup.view->GetCamera()->GetBufferData().view;
     }
 
-    m_temporal_blending->Render(frame, view);
+    m_temporal_blending->Render(frame, render_setup);
 }
 
 void RTRadianceRenderer::CreateImages()

@@ -10,6 +10,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -423,7 +424,7 @@ void DDGI::UpdateUniforms(FrameBase* frame)
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::RenderProbes(FrameBase* frame)
+void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -456,7 +457,7 @@ void DDGI::RenderProbes(FrameBase* frame)
         m_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
@@ -474,7 +475,7 @@ void DDGI::RenderProbes(FrameBase* frame)
         ResourceState::UNORDERED_ACCESS);
 }
 
-void DDGI::ComputeIrradiance(FrameBase* frame)
+void DDGI::ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -515,7 +516,7 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
         m_update_depth,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
@@ -549,7 +550,7 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
@@ -576,7 +577,7 @@ void DDGI::ComputeIrradiance(FrameBase* frame)
             {
                 NAME("Global"),
                 {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                    { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }

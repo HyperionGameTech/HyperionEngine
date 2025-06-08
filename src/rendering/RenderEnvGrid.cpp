@@ -840,7 +840,7 @@ void RenderEnvGrid::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-void RenderEnvGrid::Render(FrameBase* frame)
+void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -879,7 +879,9 @@ void RenderEnvGrid::Render(FrameBase* frame)
     // render enqueued probes
     while (m_next_render_indices.Any())
     {
-        RenderProbe(frame, m_next_render_indices.Pop());
+        const RenderSetup new_render_setup { render_setup.world, m_render_view.Get() };
+
+        RenderProbe(frame, new_render_setup, m_next_render_indices.Pop());
     }
 
     if (env_probe_collection.num_probes != 0)
@@ -959,7 +961,7 @@ void RenderEnvGrid::Render(FrameBase* frame)
     }
 }
 
-void RenderEnvGrid::RenderProbe(FrameBase* frame, uint32 probe_index)
+void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index)
 {
     HYP_SCOPE;
 
@@ -988,13 +990,13 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, uint32 probe_index)
 
     m_render_view->GetRenderCollector().CollectDrawCalls(
         frame,
-        m_render_view.Get(),
+        render_setup,
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr);
 
     m_render_view->GetRenderCollector().ExecuteDrawCalls(
         frame,
-        m_render_view.Get(),
+        render_setup,
         Bitset((1 << BUCKET_OPAQUE)),
         nullptr);
 

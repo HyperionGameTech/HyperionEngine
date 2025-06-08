@@ -19,6 +19,8 @@ namespace hyperion {
 
 using renderer::RTUpdateStateFlags;
 
+struct RenderSetup;
+
 class Engine;
 
 enum ProbeSystemFlags : uint32
@@ -144,8 +146,8 @@ public:
     HYP_API void Init();
     HYP_API void Destroy();
 
-    HYP_API void RenderProbes(FrameBase* frame);
-    HYP_API void ComputeIrradiance(FrameBase* frame);
+    HYP_API void RenderProbes(FrameBase* frame, const RenderSetup& render_setup);
+    HYP_API void ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreatePipelines();

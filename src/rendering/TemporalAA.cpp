@@ -139,7 +139,7 @@ void TemporalAA::CreateComputePipelines()
     DeferCreate(m_compute_taa);
 }
 
-void TemporalAA::Render(FrameBase* frame, RenderView* view)
+void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_NAMED_SCOPE("Temporal AA");
 
@@ -165,7 +165,7 @@ void TemporalAA::Render(FrameBase* frame, RenderView* view)
 
     push_constants.dimensions = m_extent;
     push_constants.depth_texture_dimensions = Vec2u { depth_texture_dimensions.x, depth_texture_dimensions.y };
-    push_constants.camera_near_far = Vec2f { view->GetCamera()->GetBufferData().camera_near, view->GetCamera()->GetBufferData().camera_far };
+    push_constants.camera_near_far = Vec2f { render_setup.view->GetCamera()->GetBufferData().camera_near, render_setup.view->GetCamera()->GetBufferData().camera_far };
 
     m_compute_taa->SetPushConstants(&push_constants, sizeof(push_constants));
 

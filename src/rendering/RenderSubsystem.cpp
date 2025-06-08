@@ -43,7 +43,7 @@ void RenderSubsystem::ComponentUpdate(GameCounter::TickUnit delta)
 }
 
 /*! \brief Perform rendering. Called from RENDER thread. */
-void RenderSubsystem::ComponentRender(FrameBase* frame)
+void RenderSubsystem::ComponentRender(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -52,7 +52,7 @@ void RenderSubsystem::ComponentRender(FrameBase* frame)
 
     if (m_render_frame_slicing == 0 || m_render_frame_slicing_counter++ % m_render_frame_slicing == 0)
     {
-        OnRender(frame);
+        OnRender(frame, render_setup);
     }
 }
 

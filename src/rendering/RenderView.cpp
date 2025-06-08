@@ -871,6 +871,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     AssertThrow(IsInitialized());
 
+    const RenderSetup render_setup { render_world, this };
+
     if (m_gbuffer)
     {
         const uint32 frame_index = frame->GetFrameIndex();
@@ -928,18 +930,18 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         deferred_data.screen_width = m_gbuffer->GetExtent().x;
         deferred_data.screen_height = m_gbuffer->GetExtent().y;
 
-        CollectDrawCalls(frame);
+        CollectDrawCalls(frame, render_setup);
 
         if (is_render_environment_ready)
         {
             if (do_particles)
             {
-                environment->GetParticleSystem()->UpdateParticles(frame, this);
+                environment->GetParticleSystem()->UpdateParticles(frame, render_setup);
             }
 
             if (do_gaussian_splatting)
             {
-                environment->GetGaussianSplatting()->UpdateSplats(frame);
+                environment->GetGaussianSplatting()->UpdateSplats(frame, render_setup);
             }
         }
 
@@ -949,7 +951,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         { // render opaque objects into separate framebuffer
             frame->GetCommandList().Add<BeginFramebuffer>(opaque_fbo, frame_index);
 
-            ExecuteDrawCalls(frame, uint64(1u << BUCKET_OPAQUE));
+            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_OPAQUE));
 
             frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
         }
@@ -957,19 +959,19 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         if (use_env_grid_irradiance)
         { // submit env grid command buffer
             m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_env_grid_irradiance_pass->Render(frame, this);
+            m_env_grid_irradiance_pass->Render(frame, render_setup);
         }
 
         if (use_env_grid_radiance)
         { // submit env grid command buffer
             m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_env_grid_radiance_pass->Render(frame, this);
+            m_env_grid_radiance_pass->Render(frame, render_setup);
         }
 
         if (use_reflection_probes)
         {
             m_reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-            m_reflections_pass->Render(frame, this);
+            m_reflections_pass->Render(frame, render_setup);
         }
 
         // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
@@ -980,18 +982,18 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         {
             if (use_rt_radiance)
             {
-                environment->RenderRTRadiance(frame, this);
+                environment->RenderRTRadiance(frame, render_setup);
             }
 
             if (use_ddgi)
             {
-                environment->RenderDDGIProbes(frame);
+                environment->RenderDDGIProbes(frame, render_setup);
             }
         }
 
         if (use_hbao || use_hbil)
         {
-            m_hbao->Render(frame, this);
+            m_hbao->Render(frame, render_setup);
         }
 
         if (use_ssgi)
@@ -1006,7 +1008,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
                 is_sky_set = true;
             }
 
-            m_ssgi->Render(frame, this);
+            m_ssgi->Render(frame, render_setup);
 
             if (is_sky_set)
             {
@@ -1014,7 +1016,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             }
         }
 
-        m_post_processing->RenderPre(frame, this);
+        m_post_processing->RenderPre(frame, render_setup);
 
         // render indirect and direct lighting into the same framebuffer
         const FramebufferRef& deferred_pass_framebuffer = m_indirect_pass->GetFramebuffer();
@@ -1022,8 +1024,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         { // deferred lighting on opaque objects
             frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
 
-            m_indirect_pass->Render(frame, this);
-            m_direct_pass->Render(frame, this);
+            m_indirect_pass->Render(frame, render_setup);
+            m_direct_pass->Render(frame, render_setup);
 
             frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
         }
@@ -1033,14 +1035,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
             frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
 
-            ExecuteDrawCalls(frame, uint64(1u << BUCKET_LIGHTMAP));
+            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_LIGHTMAP));
 
             frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
         }
 
         { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
             const ImageRef& src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
-            GenerateMipChain(frame, src_image);
+            GenerateMipChain(frame, render_setup, src_image);
         }
 
         { // translucent objects
@@ -1059,7 +1061,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             }
             { // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
                 // Apply lightmaps over the now shaded opaque objects.
-                m_lightmap_pass->RenderToFramebuffer(frame, this, translucent_fbo);
+                m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
             }
 
             bool is_sky_set = false;
@@ -1073,19 +1075,19 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             }
 
             // begin translucent with forward rendering
-            ExecuteDrawCalls(frame, uint64(1u << BUCKET_TRANSLUCENT));
-            ExecuteDrawCalls(frame, uint64(1u << BUCKET_DEBUG));
+            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
+            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
 
             if (is_render_environment_ready)
             {
                 if (do_particles)
                 {
-                    environment->GetParticleSystem()->Render(frame, this);
+                    environment->GetParticleSystem()->Render(frame, render_setup);
                 }
 
                 if (do_gaussian_splatting)
                 {
-                    environment->GetGaussianSplatting()->Render(frame);
+                    environment->GetGaussianSplatting()->Render(frame, render_setup);
                 }
             }
 
@@ -1094,10 +1096,10 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
                 g_engine->GetRenderState()->UnsetActiveEnvProbe();
             }
 
-            ExecuteDrawCalls(frame, uint64(1u << BUCKET_SKYBOX));
+            ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
 
             // render debug draw
-            g_engine->GetDebugDrawer()->Render(frame);
+            g_engine->GetDebugDrawer()->Render(frame, render_setup);
 
             frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
         }
@@ -1123,8 +1125,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     {
                         NAME("Global"),
-                        {
-                            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*m_render_scene) },
+                        { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_render_camera) },
                             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
@@ -1157,13 +1158,13 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             m_cull_data.depth_pyramid_dimensions = m_depth_pyramid_renderer->GetExtent();
         }
 
-        m_post_processing->RenderPost(frame, this);
+        m_post_processing->RenderPost(frame, render_setup);
 
-        m_tonemap_pass->Render(frame, this);
+        m_tonemap_pass->Render(frame, render_setup);
 
         if (use_temporal_aa)
         {
-            m_temporal_aa->Render(frame, this);
+            m_temporal_aa->Render(frame, render_setup);
         }
 
         // depth of field
@@ -1174,34 +1175,33 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     }
 }
 
-void RenderView::CollectDrawCalls(FrameBase* frame)
+void RenderView::PostRender(FrameBase* frame)
+{
+}
+
+void RenderView::CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
     m_render_collector.CollectDrawCalls(
         frame,
-        this,
+        render_setup,
         Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)),
         &m_cull_data);
 }
-
-void RenderView::PostRender(FrameBase* frame)
-{
-}
-
-void RenderView::ExecuteDrawCalls(FrameBase* frame, uint64 bucket_mask)
+void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint64 bucket_mask)
 {
     HYP_SCOPE;
 
     m_render_collector.ExecuteDrawCalls(
         frame,
-        this,
+        render_setup,
         nullptr,
         Bitset(bucket_mask),
         &m_cull_data);
 }
 
-void RenderView::GenerateMipChain(FrameBase* frame, const ImageRef& src_image)
+void RenderView::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)
 {
     HYP_SCOPE;
 

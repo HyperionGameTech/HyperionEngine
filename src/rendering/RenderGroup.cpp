@@ -9,6 +9,7 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderSkeleton.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/RenderView.hpp>
@@ -382,7 +383,7 @@ void RenderGroup::CollectDrawCalls()
     }
 }
 
-void RenderGroup::PerformOcclusionCulling(FrameBase* frame, RenderView* view, const CullData* cull_data)
+void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, const CullData* cull_data)
 {
     HYP_SCOPE;
 
@@ -401,7 +402,7 @@ void RenderGroup::PerformOcclusionCulling(FrameBase* frame, RenderView* view, co
 
     m_indirect_renderer->ExecuteCullShaderInBatches(
         frame,
-        view,
+        render_setup,
         *cull_data);
 }
 
@@ -438,7 +439,7 @@ static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batc
 template <bool IsIndirect>
 static void RenderAll(
     FrameBase* frame,
-    RenderView* view,
+    const RenderSetup& render_setup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
     const DrawCallCollection& draw_state)
@@ -484,8 +485,8 @@ static void RenderAll(
             global_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {
-                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light.Get(), 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } },
@@ -494,9 +495,9 @@ static void RenderAll(
 
     if (scene_descriptor_set_index != ~0u)
     {
-        AssertThrow(view != nullptr);
+        AssertThrow(render_setup.HasView());
 
-        const DescriptorSetRef& scene_descriptor_set = view->GetDescriptorSets()[frame_index];
+        const DescriptorSetRef& scene_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
 
         AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
             pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
@@ -594,7 +595,7 @@ static void RenderAll(
 template <bool IsIndirect>
 static void RenderAll_Parallel(
     FrameBase* frame,
-    RenderView* view,
+    const RenderSetup& render_setup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
     Array<Span<const DrawCall>>& divided_draw_calls,
@@ -636,8 +637,8 @@ static void RenderAll_Parallel(
             global_descriptor_set,
             pipeline,
             ArrayMap<Name, uint32> {
-                { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light.Get(), 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } },
@@ -646,9 +647,9 @@ static void RenderAll_Parallel(
 
     if (scene_descriptor_set_index != ~0u)
     {
-        AssertThrow(view != nullptr);
+        AssertThrow(render_setup.HasView());
 
-        const DescriptorSetRef& scene_descriptor_set = view->GetDescriptorSets()[frame_index];
+        const DescriptorSetRef& scene_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
 
         AssertThrowMsg(scene_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
             pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), scene_descriptor_set_index);
@@ -765,12 +766,14 @@ static void RenderAll_Parallel(
     TaskSystem::GetInstance().ParallelForEach_Batch(*parallel_rendering_state->task_batch, parallel_rendering_state->num_batches, divided_draw_calls, std::move(proc));
 }
 
-void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state)
+void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
+
+    AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
+    AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
 
     if (m_draw_state.GetDrawCalls().Empty())
     {
@@ -783,7 +786,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view, ParallelR
 
         RenderAll_Parallel<false>(
             frame,
-            view,
+            render_setup,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
@@ -794,19 +797,21 @@ void RenderGroup::PerformRendering(FrameBase* frame, RenderView* view, ParallelR
     {
         RenderAll<false>(
             frame,
-            view,
+            render_setup,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_draw_state);
     }
 }
 
-void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state)
+void RenderGroup::PerformRenderingIndirect(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
+
+    AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
+    AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
 
     AssertThrow(m_flags & RenderGroupFlags::INDIRECT_RENDERING);
 
@@ -821,7 +826,7 @@ void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view, P
 
         RenderAll_Parallel<true>(
             frame,
-            view,
+            render_setup,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_divided_draw_calls,
@@ -832,7 +837,7 @@ void RenderGroup::PerformRenderingIndirect(FrameBase* frame, RenderView* view, P
     {
         RenderAll<true>(
             frame,
-            view,
+            render_setup,
             m_pipeline,
             m_indirect_renderer.Get(),
             m_draw_state);

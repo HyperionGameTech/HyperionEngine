@@ -68,7 +68,7 @@ void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void ScreenCaptureRenderSubsystem::OnRender(FrameBase* frame)
+void ScreenCaptureRenderSubsystem::OnRender(FrameBase* frame, const RenderSetup&)
 {
     AssertThrow(m_texture.IsValid());
     AssertThrow(m_texture->IsReady());

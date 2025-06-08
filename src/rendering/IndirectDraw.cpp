@@ -9,6 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderState.hpp>
@@ -423,7 +424,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
     }
 }
 
-void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, RenderView* view, const CullData& cull_data)
+void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup, const CullData& cull_data)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -474,18 +475,18 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, RenderView* 
         m_object_visibility,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
         frame_index);
 
     const uint32 scene_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
 
-    if (view != nullptr && scene_descriptor_set_index != ~0u)
+    if (render_setup.HasView() && scene_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
-            view->GetDescriptorSets()[frame_index],
+            render_setup.view->GetDescriptorSets()[frame_index],
             m_object_visibility,
             ArrayMap<Name, uint32> {},
             scene_descriptor_set_index);
@@ -504,7 +505,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, RenderView* 
 
     push_constants.batch_offset = 0;
     push_constants.num_instances = num_instances;
-    push_constants.depth_pyramid_dimensions = view->GetDepthPyramidRenderer()->GetExtent();
+    push_constants.depth_pyramid_dimensions = render_setup.view->GetDepthPyramidRenderer()->GetExtent();
 
     m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
 

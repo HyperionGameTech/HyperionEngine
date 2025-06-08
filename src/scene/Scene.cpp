@@ -375,12 +375,6 @@ void Scene::EnqueueRenderUpdates()
     HYP_SCOPE;
 
     AssertReady();
-
-    SceneShaderData shader_data {};
-    shader_data.fog_params = Vec4f(float(m_fog_params.color.Packed()), m_fog_params.start_distance, m_fog_params.end_distance, 0.0f);
-    shader_data.game_time = m_world != nullptr ? m_world->GetGameState().game_time : 0.0f;
-
-    m_render_resource->SetBufferData(shader_data);
 }
 
 void Scene::SetRoot(const Handle<Node>& root)

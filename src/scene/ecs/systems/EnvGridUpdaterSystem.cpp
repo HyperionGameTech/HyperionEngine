@@ -63,9 +63,9 @@ public:
         g_engine->GetRenderState()->UnbindEnvGrid();
     }
 
-    virtual void OnRender(FrameBase* frame) override
+    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override
     {
-        m_env_render_grid->Render(frame);
+        m_env_render_grid->Render(frame, render_setup);
     }
 
 private:

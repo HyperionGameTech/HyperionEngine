@@ -22,6 +22,7 @@ namespace hyperion {
 
 class Engine;
 class Texture;
+struct RenderSetup;
 
 struct alignas(16) GaussianSplattingPoint
 {
@@ -89,7 +90,7 @@ public:
     }
 
     void Init();
-    void Record(FrameBase* frame);
+    void Record(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreateBuffers();
@@ -135,9 +136,9 @@ public:
 
     void Init();
 
-    void UpdateSplats(FrameBase* frame);
+    void UpdateSplats(FrameBase* frame, const RenderSetup& render_setup);
 
-    void Render(FrameBase* frame);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreateBuffers();

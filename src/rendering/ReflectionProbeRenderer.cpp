@@ -53,7 +53,7 @@ void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)
 {
 }
 
-void ReflectionProbeRenderer::OnRender(FrameBase* frame)
+void ReflectionProbeRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -70,7 +70,7 @@ void ReflectionProbeRenderer::OnRender(FrameBase* frame)
         return;
     }
 
-    m_env_render_probe->Render(frame);
+    m_env_render_probe->Render(frame, render_setup);
 
     HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe #{} (type: {})",
         m_env_render_probe->GetEnvProbe()->GetID().Value(),

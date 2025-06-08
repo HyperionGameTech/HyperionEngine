@@ -43,6 +43,7 @@ class DebugDrawCommandList;
 class IDebugDrawShape;
 class UIObject;
 class UIStage;
+struct RenderSetup;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.debug.debug_drawer")
 
@@ -215,7 +216,7 @@ public:
 
     virtual void Initialize() = 0;
     virtual void Update(GameCounter::TickUnit delta) = 0;
-    virtual void Render(FrameBase* frame) = 0;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) = 0;
 };
 
 class HYP_API DebugDrawer final : public IDebugDrawer
@@ -231,7 +232,7 @@ public:
 
     virtual void Initialize() override;
     virtual void Update(GameCounter::TickUnit delta) override;
-    virtual void Render(FrameBase* frame) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
 
     UniquePtr<DebugDrawCommandList> CreateCommandList();
     void CommitCommands(DebugDrawCommandList& command_list);

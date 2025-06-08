@@ -27,6 +27,7 @@ class UIObject;
 class RenderCamera;
 class View;
 class RenderView;
+struct RenderSetup;
 
 class UIRenderCollector : RenderCollector
 {
@@ -47,11 +48,8 @@ public:
         const FramebufferRef& framebuffer,
         const Optional<RenderableAttributeSet>& override_attributes = {});
 
-    void CollectDrawCalls(FrameBase* frame);
-    void ExecuteDrawCalls(
-        FrameBase* frame,
-        RenderView* view,
-        const FramebufferRef& framebuffer) const;
+    void CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup);
+    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) const;
 
 private:
     Array<Pair<ID<Entity>, int>> m_proxy_depths;
@@ -103,7 +101,7 @@ private:
     virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame) override;
+    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
 
     void CreateFramebuffer();
 

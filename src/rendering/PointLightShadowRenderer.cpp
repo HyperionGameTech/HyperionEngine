@@ -145,7 +145,7 @@ void PointLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_env_probe->Update(delta);
 }
 
-void PointLightShadowRenderer::OnRender(FrameBase* frame)
+void PointLightShadowRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
@@ -170,7 +170,7 @@ void PointLightShadowRenderer::OnRender(FrameBase* frame)
 
     AssertThrow(m_env_probe->IsReady());
 
-    m_env_probe->GetRenderResource().Render(frame);
+    m_env_probe->GetRenderResource().Render(frame, render_setup);
     // } else {
     //     // No point in keeping it bound if the light is not visible on the screen.
     //     if (m_last_visibility_state) {

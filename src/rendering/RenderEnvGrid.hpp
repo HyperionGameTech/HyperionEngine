@@ -92,7 +92,7 @@ public:
 
     void SetViewResourceHandle(TResourceHandle<RenderView>&& render_view);
 
-    void Render(FrameBase* frame);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -111,25 +111,13 @@ private:
 
     void UpdateBufferData();
 
-    void RenderProbe(
-        FrameBase* frame,
-        uint32 probe_index);
+    void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index);
 
-    void ComputeEnvProbeIrradiance_SphericalHarmonics(
-        FrameBase* frame,
-        const Handle<EnvProbe>& probe);
+    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const Handle<EnvProbe>& probe);
+    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const Handle<EnvProbe>& probe);
 
-    void ComputeEnvProbeIrradiance_LightField(
-        FrameBase* frame,
-        const Handle<EnvProbe>& probe);
-
-    void OffsetVoxelGrid(
-        FrameBase* frame,
-        Vec3i offset);
-
-    void VoxelizeProbe(
-        FrameBase* frame,
-        uint32 probe_index);
+    void OffsetVoxelGrid(FrameBase* frame, Vec3i offset);
+    void VoxelizeProbe(FrameBase* frame, uint32 probe_index);
 
     EnvGrid* m_env_grid;
 

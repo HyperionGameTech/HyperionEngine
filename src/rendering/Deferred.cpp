@@ -265,19 +265,19 @@ void DeferredPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void DeferredPass::Render(FrameBase* frame, RenderView* view)
+void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
     if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
     {
-        RenderToFramebuffer(frame, view, nullptr);
+        RenderToFramebuffer(frame, render_setup, nullptr);
 
         return;
     }
 
     // no lights bound, do not render direct shading at all
-    if (view->NumLights() == 0)
+    if (render_setup.view->NumLights() == 0)
     {
         return;
     }
@@ -324,7 +324,7 @@ void DeferredPass::Render(FrameBase* frame, RenderView* view)
                 deferred_direct_descriptor_set_index);
         }
 
-        const auto& lights = view->GetLights(light_type);
+        const auto& lights = render_setup.view->GetLights(light_type);
 
         for (RenderLight* render_light : lights)
         {
@@ -332,15 +332,15 @@ void DeferredPass::Render(FrameBase* frame, RenderView* view)
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                    { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*render_light) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                view->GetDescriptorSets()[frame->GetFrameIndex()],
+                render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
                 scene_descriptor_set_index);
@@ -411,9 +411,9 @@ void TonemapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void TonemapPass::Render(FrameBase* frame, RenderView* view)
+void TonemapPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
-    FullScreenPass::Render(frame, view);
+    FullScreenPass::Render(frame, render_setup);
 }
 
 #pragma endregion TonemapPass
@@ -466,9 +466,9 @@ void LightmapPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void LightmapPass::Render(FrameBase* frame, RenderView* view)
+void LightmapPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
-    FullScreenPass::Render(frame, view);
+    FullScreenPass::Render(frame, render_setup);
 }
 
 #pragma endregion LightmapPass
@@ -587,7 +587,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
-void EnvGridPass::Render(FrameBase* frame, RenderView* view)
+void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
@@ -603,7 +603,7 @@ void EnvGridPass::Render(FrameBase* frame, RenderView* view)
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr)
     {
-        RenderPreviousTextureToScreen(frame, view);
+        RenderPreviousTextureToScreen(frame, render_setup);
     }
 
     const Handle<RenderGroup>& render_group = m_mode == EnvGridPassMode::RADIANCE
@@ -633,13 +633,13 @@ void EnvGridPass::Render(FrameBase* frame, RenderView* view)
         render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
         render_group->GetPipeline(),
         ArrayMap<Name, uint32> {
-            { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+            { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
             { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_render_grid) } },
         global_descriptor_set_index);
 
     frame->GetCommandList().Add<BindDescriptorSet>(
-        view->GetDescriptorSets()[frame_index],
+        render_setup.view->GetDescriptorSets()[frame_index],
         render_group->GetPipeline(),
         ArrayMap<Name, uint32> {},
         scene_descriptor_set_index);
@@ -650,17 +650,17 @@ void EnvGridPass::Render(FrameBase* frame, RenderView* view)
 
     if (ShouldRenderHalfRes())
     {
-        MergeHalfResTextures(frame, view);
+        MergeHalfResTextures(frame, render_setup);
     }
 
     if (UsesTemporalBlending())
     {
         if (!ShouldRenderHalfRes())
         {
-            CopyResultToPreviousTexture(frame, view);
+            CopyResultToPreviousTexture(frame, render_setup);
         }
 
-        m_temporal_blending->Render(frame, view);
+        m_temporal_blending->Render(frame, render_setup);
     }
 
     m_is_first_frame = false;
@@ -808,7 +808,7 @@ void ReflectionsPass::Resize_Internal(Vec2u new_size)
     }
 }
 
-void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
+void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -817,7 +817,7 @@ void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
 
     if (ShouldRenderSSR())
     {
-        m_ssr_renderer->Render(frame, view);
+        m_ssr_renderer->Render(frame, render_setup);
     }
 
     // Sky renders first
@@ -853,7 +853,7 @@ void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
     // render previous frame's result to screen
     if (!m_is_first_frame && m_render_texture_to_screen_pass != nullptr)
     {
-        RenderPreviousTextureToScreen(frame, view);
+        RenderPreviousTextureToScreen(frame, render_setup);
     }
 
     uint32 num_rendered_env_probes = 0;
@@ -903,13 +903,13 @@ void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {
-                    { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(*view->GetScene()) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*view->GetCamera()) },
+                    { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe->GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                view->GetDescriptorSets()[frame_index],
+                render_setup.view->GetDescriptorSets()[frame_index],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
                 scene_descriptor_set_index);
@@ -922,24 +922,24 @@ void ReflectionsPass::Render(FrameBase* frame, RenderView* view)
 
     if (ShouldRenderSSR())
     {
-        m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, view, GetFramebuffer());
+        m_render_ssr_to_screen_pass->RenderToFramebuffer(frame, render_setup, GetFramebuffer());
     }
 
     frame->GetCommandList().Add<EndFramebuffer>(GetFramebuffer(), frame_index);
 
     if (ShouldRenderHalfRes())
     {
-        MergeHalfResTextures(frame, view);
+        MergeHalfResTextures(frame, render_setup);
     }
 
     if (UsesTemporalBlending())
     {
         if (!ShouldRenderHalfRes())
         {
-            CopyResultToPreviousTexture(frame, view);
+            CopyResultToPreviousTexture(frame, render_setup);
         }
 
-        m_temporal_blending->Render(frame, view);
+        m_temporal_blending->Render(frame, render_setup);
     }
 
     m_is_first_frame = false;

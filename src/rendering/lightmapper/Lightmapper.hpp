@@ -38,6 +38,8 @@ class ILightmapAccelerationStructure;
 class LightmapJob;
 class LightmapVolume;
 
+struct RenderSetup;
+
 enum class LightmapTraceMode : int
 {
     GPU_PATH_TRACING = 0,
@@ -155,7 +157,7 @@ public:
     virtual void Create() = 0;
     virtual void UpdateRays(Span<const LightmapRay> rays) = 0;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> out_hits) = 0;
-    virtual void Render(FrameBase* frame, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) = 0;
 };
 
 struct LightmapJobParams

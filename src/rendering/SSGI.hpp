@@ -68,7 +68,7 @@ public:
 
     void Create();
 
-    void Render(FrameBase* frame, RenderView* view);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     ShaderProperties GetShaderProperties() const;

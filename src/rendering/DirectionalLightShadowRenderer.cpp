@@ -200,7 +200,7 @@ void ShadowPass::Create()
     CreateComputePipelines();
 }
 
-void ShadowPass::Render(FrameBase* frame, RenderView* view)
+void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -218,6 +218,9 @@ void ShadowPass::Render(FrameBase* frame, RenderView* view)
 
     AssertThrow(m_parent_scene.IsValid());
 
+    const RenderSetup render_setup_statics { render_setup.world, m_view_statics_resource_handle.Get() };
+    const RenderSetup render_setup_dynamics { render_setup.world, m_view_dynamics_resource_handle.Get() };
+
     { // Render each shadow map as needed
         if (m_rerender_semaphore->IsInSignalState())
         {
@@ -225,13 +228,13 @@ void ShadowPass::Render(FrameBase* frame, RenderView* view)
 
             m_view_statics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
-                m_view_statics_resource_handle.Get(),
+                render_setup_statics,
                 Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)),
                 nullptr);
 
             m_view_statics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
-                m_view_statics_resource_handle.Get(),
+                render_setup_statics,
                 Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)),
                 nullptr);
 
@@ -250,13 +253,13 @@ void ShadowPass::Render(FrameBase* frame, RenderView* view)
         { // Render dynamics
             m_view_dynamics_resource_handle->GetRenderCollector().CollectDrawCalls(
                 frame,
-                m_view_dynamics_resource_handle.Get(),
+                render_setup_dynamics,
                 Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)),
                 nullptr);
 
             m_view_dynamics_resource_handle->GetRenderCollector().ExecuteDrawCalls(
                 frame,
-                m_view_dynamics_resource_handle.Get(),
+                render_setup_dynamics,
                 Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)),
                 nullptr);
 
@@ -283,8 +286,7 @@ void ShadowPass::Render(FrameBase* frame, RenderView* view)
         AttachmentBase* attachment = m_combine_shadow_maps_pass->GetFramebuffer()->GetAttachment(0);
         AssertThrow(attachment != nullptr);
 
-        // Note: view unused here
-        m_combine_shadow_maps_pass->Render(frame, m_view_statics_resource_handle.Get());
+        m_combine_shadow_maps_pass->Render(frame, render_setup_statics);
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
@@ -553,14 +555,14 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         .aabb_min = Vec4f(m_aabb.min, 1.0f) });
 }
 
-void DirectionalLightShadowRenderer::OnRender(FrameBase* frame)
+void DirectionalLightShadowRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_shadow_pass != nullptr);
-    m_shadow_pass->Render(frame, nullptr);
+    m_shadow_pass->Render(frame, render_setup);
 }
 
 void DirectionalLightShadowRenderer::CreateShader()

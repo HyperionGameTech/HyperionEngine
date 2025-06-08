@@ -26,6 +26,7 @@
 namespace hyperion {
 
 class RenderEnvironment;
+struct RenderSetup;
 
 HYP_CLASS(Abstract)
 class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
@@ -64,7 +65,7 @@ public:
     /*! \brief Update data for the component. Called from GAME thread. */
     void ComponentUpdate(GameCounter::TickUnit delta);
     /*! \brief Perform rendering. Called from RENDER thread. */
-    void ComponentRender(FrameBase* frame);
+    void ComponentRender(FrameBase* frame, const RenderSetup& render_setup);
 
     /*! \brief Called on the RENDER thread when the component is removed. */
     void ComponentRemoved()
@@ -80,7 +81,7 @@ protected:
     virtual void Init() { };
     virtual void InitGame() { };
     virtual void OnUpdate(GameCounter::TickUnit delta) { };
-    virtual void OnRender(FrameBase* frame) = 0;
+    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) = 0;
 
     virtual void OnRemoved()
     {

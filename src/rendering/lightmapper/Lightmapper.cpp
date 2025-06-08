@@ -14,6 +14,7 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderCollection.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RenderConfig.hpp>
@@ -110,6 +111,8 @@ struct RENDER_COMMAND(LightmapRender)
     {
         FrameBase* frame = g_rendering_api->GetCurrentFrame();
 
+        const RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), nullptr };
+
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
 
@@ -155,7 +158,7 @@ struct RENDER_COMMAND(LightmapRender)
             {
                 AssertThrow(lightmap_renderer != nullptr);
 
-                lightmap_renderer->Render(frame, job, rays, ray_offset);
+                lightmap_renderer->Render(frame, render_setup, job, rays, ray_offset);
             }
 
             g_engine->GetRenderState()->UnsetActiveScene();
@@ -497,7 +500,7 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(FrameBase* frame, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     void CreateUniformBuffer();
@@ -688,7 +691,7 @@ void LightmapGPUPathTracer::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> o
     HYPERION_ASSERT_RESULT(staging_buffer->Destroy());
 }
 
-void LightmapGPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -746,7 +749,7 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<cons
         m_raytracing_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("ScenesBuffer"), ShaderDataOffset<SceneShaderData>(render_scene) },
+                { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
@@ -788,7 +791,7 @@ public:
     virtual void Create() override;
     virtual void UpdateRays(Span<const LightmapRay> rays) override;
     virtual void ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> out_hits) override;
-    virtual void Render(FrameBase* frame, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset) override;
 
 private:
     void TraceSingleRayOnCPU(LightmapJob* job, const LightmapRay& ray, LightmapRayHitPayload& out_payload);
@@ -841,7 +844,7 @@ void LightmapCPUPathTracer::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> o
     Memory::MemCpy(out_hits.Data(), m_hits_buffer.Data(), m_hits_buffer.ByteSize());
 }
 
-void LightmapCPUPathTracer::Render(FrameBase* frame, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset)
+void LightmapCPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     Threads::AssertOnThread(g_render_thread);
 

@@ -115,7 +115,7 @@ void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
     // Do nothing
 }
 
-void SkydomeRenderer::OnRender(FrameBase* frame)
+void SkydomeRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
 {
     AssertThrow(m_env_probe.IsValid());
 
@@ -135,7 +135,7 @@ void SkydomeRenderer::OnRender(FrameBase* frame)
         return;
     }
 
-    m_env_probe->GetRenderResource().Render(frame);
+    m_env_probe->GetRenderResource().Render(frame, render_setup);
 
     // Copy cubemap from env probe to cubemap texture
     const ImageRef& src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();

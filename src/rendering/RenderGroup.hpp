@@ -32,6 +32,7 @@ class RenderCollector;
 class GPUBufferHolderBase;
 class IndirectRenderer;
 class RenderView;
+struct RenderSetup;
 
 enum class RenderGroupFlags : uint32
 {
@@ -128,13 +129,13 @@ public:
     void CollectDrawCalls();
 
     /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state);
+    void PerformRendering(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state);
 
     /*! \brief Render objects using indirect rendering. The objects must have had the culling shader ran on them,
      * using CollectDrawCalls(). */
-    void PerformRenderingIndirect(FrameBase* frame, RenderView* view, ParallelRenderingState* parallel_rendering_state);
+    void PerformRenderingIndirect(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state);
 
-    void PerformOcclusionCulling(FrameBase* frame, RenderView* view, const CullData* cull_data);
+    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, const CullData* cull_data);
 
     void Init();
 

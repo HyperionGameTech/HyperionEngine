@@ -386,11 +386,7 @@ RenderCollector::~RenderCollector()
     }
 }
 
-void RenderCollector::CollectDrawCalls(
-    FrameBase* frame,
-    RenderView* view,
-    const Bitset& bucket_bits,
-    const CullData* cull_data)
+void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const Bitset& bucket_bits, const CullData* cull_data)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -461,29 +457,29 @@ void RenderCollector::CollectDrawCalls(
                 continue;
             }
 
-            (*iterators[index]).second->PerformOcclusionCulling(frame, view, cull_data);
+            (*iterators[index]).second->PerformOcclusionCulling(frame, render_setup, cull_data);
         }
     }
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
-    RenderView* view,
+    const RenderSetup& render_setup,
     const Bitset& bucket_bits,
     const CullData* cull_data,
     PushConstantData push_constant) const
 {
-    AssertThrow(view != nullptr);
+    AssertThrowMsg(render_setup.HasView(), "RenderSetup must have a View attached");
 
-    const FramebufferRef& framebuffer = view->GetCamera()->GetFramebuffer();
+    const FramebufferRef& framebuffer = render_setup.view->GetCamera()->GetFramebuffer();
     AssertThrowMsg(framebuffer, "Camera has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, view, framebuffer, bucket_bits, cull_data, push_constant);
+    ExecuteDrawCalls(frame, render_setup, framebuffer, bucket_bits, cull_data, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
-    RenderView* view,
+    const RenderSetup& render_setup,
     const FramebufferRef& framebuffer,
     const Bitset& bucket_bits,
     const CullData* cull_data,
@@ -637,11 +633,11 @@ void RenderCollector::ExecuteDrawCalls(
 
             if (is_indirect_rendering_enabled && cull_data != nullptr && (render_group->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING))
             {
-                render_group->PerformRenderingIndirect(frame, view, parallel_rendering_state);
+                render_group->PerformRenderingIndirect(frame, render_setup, parallel_rendering_state);
             }
             else
             {
-                render_group->PerformRendering(frame, view, parallel_rendering_state);
+                render_group->PerformRendering(frame, render_setup, parallel_rendering_state);
             }
 
             if (parallel_rendering_state != nullptr)

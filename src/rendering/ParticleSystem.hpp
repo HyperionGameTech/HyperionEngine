@@ -21,6 +21,7 @@ namespace hyperion {
 
 class Engine;
 class RenderView;
+struct RenderSetup;
 
 struct ParticleSpawnerParams
 {
@@ -118,9 +119,9 @@ public:
     void Init();
 
     // called in render thread, updates particles using compute shader
-    void UpdateParticles(FrameBase* frame, RenderView* view);
+    void UpdateParticles(FrameBase* frame, const RenderSetup& render_setup);
 
-    void Render(FrameBase* frame, RenderView* view);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreateBuffers();

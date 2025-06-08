@@ -11,6 +11,8 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/Shadows.hpp>
+#include <rendering/ShaderGlobals.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -30,7 +32,8 @@ namespace hyperion {
 
 RenderWorld::RenderWorld(World* world)
     : m_world(world),
-      m_shadow_map_manager(MakeUnique<ShadowMapManager>())
+      m_shadow_map_manager(MakeUnique<ShadowMapManager>()),
+      m_buffer_data {}
 {
 }
 
@@ -231,6 +234,8 @@ void RenderWorld::Initialize_Internal()
     HYP_SCOPE;
 
     m_shadow_map_manager->Initialize();
+
+    UpdateBufferData();
 }
 
 void RenderWorld::Destroy_Internal()
@@ -247,9 +252,33 @@ void RenderWorld::Update_Internal()
     HYP_SCOPE;
 }
 
+void RenderWorld::SetBufferData(const WorldShaderData& buffer_data)
+{
+    HYP_SCOPE;
+
+    Execute([this, buffer_data]()
+        {
+            m_buffer_data = buffer_data;
+
+            if (IsInitialized())
+            {
+                UpdateBufferData();
+            }
+        });
+}
+
+void RenderWorld::UpdateBufferData()
+{
+    HYP_SCOPE;
+
+    *static_cast<WorldShaderData*>(m_buffer_address) = m_buffer_data;
+
+    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+}
+
 GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
 {
-    return nullptr;
+    return g_engine->GetRenderData()->worlds;
 }
 
 void RenderWorld::PreRender(FrameBase* frame)
@@ -268,9 +297,11 @@ void RenderWorld::Render(FrameBase* frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    const RenderSetup render_setup { this, nullptr };
+
     for (const TResourceHandle<RenderScene>& render_scene : m_render_scenes)
     {
-        render_scene->GetEnvironment()->RenderSubsystems(frame);
+        render_scene->GetEnvironment()->RenderSubsystems(frame, render_setup);
     }
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
@@ -288,8 +319,22 @@ void RenderWorld::PostRender(FrameBase* frame)
     {
         current_view->PostRender(frame);
     }
+
+    ++m_buffer_data.frame_counter;
+
+    if (m_buffer_index != ~0u)
+    {
+        static_cast<WorldShaderData*>(m_buffer_address)->frame_counter = m_buffer_data.frame_counter;
+        GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    }
 }
 
 #pragma endregion RenderWorld
+
+namespace renderer {
+
+HYP_DESCRIPTOR_SSBO(Global, WorldsBuffer, 1, sizeof(WorldShaderData), true);
+
+} // namespace renderer
 
 } // namespace hyperion

@@ -1,6 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderSkeleton.hpp>
@@ -27,7 +28,7 @@ namespace hyperion {
 
 ShaderGlobals::ShaderGlobals()
 {
-    scenes = g_engine->GetGPUBufferHolderMap()->GetOrCreate<SceneShaderData, GPUBufferType::STORAGE_BUFFER>();
+    worlds = g_engine->GetGPUBufferHolderMap()->GetOrCreate<WorldShaderData, GPUBufferType::STORAGE_BUFFER>();
     cameras = g_engine->GetGPUBufferHolderMap()->GetOrCreate<CameraShaderData, GPUBufferType::CONSTANT_BUFFER>();
     lights = g_engine->GetGPUBufferHolderMap()->GetOrCreate<LightShaderData, GPUBufferType::STORAGE_BUFFER>();
     objects = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EntityShaderData, GPUBufferType::STORAGE_BUFFER>();

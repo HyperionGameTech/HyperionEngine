@@ -39,6 +39,7 @@ class HBAO;
 class SSGI;
 class DOFBlur;
 class Texture;
+struct RenderSetup;
 enum class LightType : uint32;
 
 class RenderView : public RenderResourceBase
@@ -197,10 +198,9 @@ protected:
     void CreateDescriptorSets();
     void CreateFinalPassDescriptorSet();
 
-    void CollectDrawCalls(FrameBase* frame);
-    void ExecuteDrawCalls(FrameBase* frame, uint64 bucket_mask);
-
-    void GenerateMipChain(FrameBase* frame, const ImageRef& src_image);
+    void CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup);
+    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint64 bucket_mask);
+    void GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image);
 
     View* m_view;
 

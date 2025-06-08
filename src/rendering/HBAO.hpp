@@ -48,9 +48,9 @@ public:
 
     virtual void Create() override;
 
-    virtual void Render(FrameBase* frame, RenderView* view) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, RenderView* view, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }

@@ -59,7 +59,7 @@ void DOFBlur::Destroy()
     m_blur_mix_pass.Reset();
 }
 
-void DOFBlur::Render(FrameBase* frame, RenderView* view)
+void DOFBlur::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     struct
     {
@@ -78,11 +78,11 @@ void DOFBlur::Render(FrameBase* frame, RenderView* view)
     for (FullScreenPass* pass : directional_passes)
     {
         pass->SetPushConstants(&push_constants, sizeof(push_constants));
-        pass->Render(frame, view);
+        pass->Render(frame, render_setup);
     }
 
     m_blur_mix_pass->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_blur_mix_pass->Render(frame, view);
+    m_blur_mix_pass->Render(frame, render_setup);
 }
 
 } // namespace hyperion

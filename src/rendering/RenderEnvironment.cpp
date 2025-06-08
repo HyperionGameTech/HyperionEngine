@@ -74,7 +74,6 @@ struct RENDER_COMMAND(RemoveAllRenderSubsystems)
 
 RenderEnvironment::RenderEnvironment()
     : HypObject(),
-      m_frame_counter(0),
       m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
       m_ddgi(DDGIInfo {
@@ -215,18 +214,18 @@ void RenderEnvironment::ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags fl
     }
 }
 
-void RenderEnvironment::RenderRTRadiance(FrameBase* frame, RenderView* view)
+void RenderEnvironment::RenderRTRadiance(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
 
     if (m_has_rt_radiance)
     {
-        m_rt_radiance->Render(frame, view);
+        m_rt_radiance->Render(frame, render_setup);
     }
 }
 
-void RenderEnvironment::RenderDDGIProbes(FrameBase* frame)
+void RenderEnvironment::RenderDDGIProbes(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -235,12 +234,12 @@ void RenderEnvironment::RenderDDGIProbes(FrameBase* frame)
 
     if (m_has_ddgi_probes)
     {
-        m_ddgi.RenderProbes(frame);
-        m_ddgi.ComputeIrradiance(frame);
+        m_ddgi.RenderProbes(frame, render_setup);
+        m_ddgi.ComputeIrradiance(frame, render_setup);
     }
 }
 
-void RenderEnvironment::RenderSubsystems(FrameBase* frame)
+void RenderEnvironment::RenderSubsystems(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
     AssertReady();
@@ -273,7 +272,7 @@ void RenderEnvironment::RenderSubsystems(FrameBase* frame)
 
     for (const RC<RenderSubsystem>& render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER])
     {
-        render_subsystem->ComponentRender(frame);
+        render_subsystem->ComponentRender(frame, render_setup);
     }
 
     // if (m_update_marker.Get(MemoryOrder::ACQUIRE) & RENDER_ENVIRONMENT_UPDATES_TLAS) {
@@ -293,8 +292,6 @@ void RenderEnvironment::RenderSubsystems(FrameBase* frame)
         ApplyTLASUpdates(frame, update_state_flags);
         RemoveUpdateMarker(RENDER_ENVIRONMENT_UPDATES_TLAS, ThreadType::THREAD_TYPE_RENDER);
     }
-
-    ++m_frame_counter;
 }
 
 TypeID RenderEnvironment::GetRenderSubsystemTypeID(const HypClass* hyp_class)

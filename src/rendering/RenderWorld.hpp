@@ -39,6 +39,16 @@ class FinalPass;
 class RenderView;
 struct ViewInfo;
 
+struct WorldShaderData
+{
+    Vec4f fog_params;
+
+    float game_time;
+    uint32 frame_counter;
+    uint32 _pad0;
+    uint32 _pad1;
+};
+
 class RenderWorld final : public RenderResourceBase
 {
 public:
@@ -71,6 +81,14 @@ public:
     const EngineRenderStats& GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats& render_stats);
 
+    void SetBufferData(const WorldShaderData& buffer_data);
+
+    /*! \note Only to be called from render thread or render task */
+    HYP_FORCE_INLINE const WorldShaderData& GetBufferData() const
+    {
+        return m_buffer_data;
+    }
+
     void PreRender(FrameBase* frame);
     void Render(FrameBase* frame);
     void PostRender(FrameBase* frame);
@@ -83,6 +101,7 @@ protected:
     virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
 
 private:
+    void UpdateBufferData();
     void CreateShadowMapsTextureArray();
 
     World* m_world;
@@ -93,6 +112,8 @@ private:
     UniquePtr<ShadowMapManager> m_shadow_map_manager;
 
     FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX> m_render_stats;
+
+    WorldShaderData m_buffer_data;
 };
 
 template <>

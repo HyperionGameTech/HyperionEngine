@@ -17,6 +17,7 @@ namespace hyperion {
 
 class GBuffer;
 class RenderView;
+struct RenderSetup;
 
 enum class TemporalBlendTechnique
 {
@@ -90,7 +91,7 @@ public:
     void ResetProgressiveBlending();
 
     void Create();
-    void Render(FrameBase* frame, RenderView* view);
+    void Render(FrameBase* frame, const RenderSetup& render_setup);
 
     void Resize(Vec2u new_size);
 

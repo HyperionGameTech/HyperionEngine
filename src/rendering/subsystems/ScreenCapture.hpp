@@ -57,7 +57,7 @@ private:
     virtual void InitGame() override;
     virtual void OnRemoved() override;
     virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame) override;
+    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
 
     TResourceHandle<RenderView> m_view;
     ScreenCaptureMode m_screen_capture_mode;

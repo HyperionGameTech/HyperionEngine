@@ -5,6 +5,7 @@
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -254,7 +255,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                         FrameRef temp_frame = g_rendering_api->MakeFrame(0);
 
                         pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
-                        pass->Begin(temp_frame, nullptr);
+                        pass->Begin(temp_frame, NullRenderSetup());
 
                         temp_frame->GetCommandList().Add<BindDescriptorTable>(
                             pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
@@ -263,7 +264,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                             temp_frame->GetFrameIndex());
 
                         pass->GetQuadMesh()->GetRenderResource().Render(temp_frame->GetCommandList());
-                        pass->End(temp_frame, nullptr);
+                        pass->End(temp_frame, NullRenderSetup());
 
                         cmd.Concat(std::move(temp_frame->GetCommandList()));
 

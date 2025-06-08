@@ -242,18 +242,13 @@ public:
         return m_current_enabled_render_subsystems_mask;
     }
 
-    uint32 GetFrameCounter() const
-    {
-        return m_frame_counter;
-    }
-
     void Init();
     void Update(GameCounter::TickUnit delta);
 
-    void RenderRTRadiance(FrameBase* frame, RenderView* view);
-    void RenderDDGIProbes(FrameBase* frame);
+    void RenderRTRadiance(FrameBase* frame, const RenderSetup& render_setup);
+    void RenderDDGIProbes(FrameBase* frame, const RenderSetup& render_setup);
 
-    void RenderSubsystems(FrameBase* frame);
+    void RenderSubsystems(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     HYP_FORCE_INLINE void AddUpdateMarker(RenderEnvironmentUpdates value, ThreadType thread_type)
@@ -311,8 +306,6 @@ private:
     bool m_has_ddgi_probes;
     bool m_rt_initialized;
     FixedArray<TLASRef, max_frames_in_flight> m_top_level_acceleration_structures;
-
-    uint32 m_frame_counter;
 };
 
 } // namespace hyperion
