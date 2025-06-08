@@ -116,7 +116,7 @@ void PostProcessingEffect::Init()
 
 void PostProcessingEffect::RenderEffect(FrameBase* frame, RenderView* view, uint32 slot)
 {
-    struct alignas(128)
+    struct
     {
         uint32 current_effect_index_stage; // 31bits for index, 1 bit for stage
     } push_constants;

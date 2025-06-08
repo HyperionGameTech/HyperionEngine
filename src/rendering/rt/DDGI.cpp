@@ -438,7 +438,7 @@ void DDGI::RenderProbes(FrameBase* frame)
 
     m_random_generator.Next();
 
-    struct alignas(128)
+    struct
     {
         Matrix4 matrix;
         uint32 time;

@@ -18,7 +18,7 @@ enum class UUIDVersion
 
 HYP_STRUCT(Serialize = "bitwise")
 
-struct alignas(16) UUID
+struct UUID
 {
     HYP_FIELD(Serialize, Property = "Data0")
     uint64 data0;

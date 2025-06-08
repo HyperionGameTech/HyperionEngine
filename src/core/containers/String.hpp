@@ -8,10 +8,16 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/StringFwd.hpp>
+
 #include <core/utilities/Span.hpp>
 #include <core/utilities/StringView.hpp>
+
+#include <core/functional/FunctionWrapper.hpp>
+
 #include <core/memory/Memory.hpp>
+
 #include <core/Defines.hpp>
+#include <core/Traits.hpp>
 
 #include <Types.hpp>
 #include <Constants.hpp>
@@ -20,6 +26,8 @@
 #include <type_traits>
 
 namespace hyperion {
+
+HYP_MAKE_HAS_METHOD(ToString);
 
 namespace utilities {
 template <int TStringType>
@@ -532,6 +540,26 @@ public:
         return result;
     }
 
+    template <class Container, class JoinByFunction>
+    static String Join(const Container& container, const String& separator, JoinByFunction&& join_by_function)
+    {
+        FunctionWrapper<NormalizedType<JoinByFunction>> join_by_func(std::forward<JoinByFunction>(join_by_function));
+
+        String result;
+
+        for (auto it = container.Begin(); it != container.End(); ++it)
+        {
+            result.Append(ToString(join_by_func(*it)));
+
+            if (it != container.End() - 1)
+            {
+                result.Append(separator);
+            }
+        }
+
+        return result;
+    }
+
     template <class Container>
     HYP_NODISCARD static String Join(const Container& container, WidestCharType separator)
     {
@@ -540,6 +568,44 @@ public:
         for (auto it = container.Begin(); it != container.End(); ++it)
         {
             result.Append(ToString(*it));
+
+            if (it != container.End() - 1)
+            {
+                if constexpr (is_utf8 && std::is_same_v<utf::u32char, decltype(separator)>)
+                {
+                    SizeType codepoints = 0;
+                    utf::u8char separator_bytes[sizeof(utf::u32char) + 1] = { '\0' };
+                    utf::Char32to8(separator, separator_bytes, codepoints);
+
+#ifdef HYP_DEBUG_MODE
+                    AssertThrow(codepoints <= HYP_ARRAY_SIZE(separator_bytes));
+#endif
+
+                    for (SizeType codepoint = 0; codepoint < codepoints; codepoint++)
+                    {
+                        result.Append(separator_bytes[codepoint]);
+                    }
+                }
+                else
+                {
+                    result.Append(separator);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    template <class Container, class JoinByFunction>
+    HYP_NODISCARD static String Join(const Container& container, WidestCharType separator, JoinByFunction&& join_by_function)
+    {
+        FunctionWrapper<NormalizedType<JoinByFunction>> join_by_func(std::forward<JoinByFunction>(join_by_function));
+
+        String result;
+
+        for (auto it = container.Begin(); it != container.End(); ++it)
+        {
+            result.Append(ToString(join_by_func(*it)));
 
             if (it != container.End() - 1)
             {
@@ -788,9 +854,8 @@ public:
         }
     }
 
-    template <class Integral>
-    HYP_NODISCARD static typename std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>, String>
-    ToString(Integral value)
+    template <class Integral, typename = std::enable_if_t<std::is_integral_v<NormalizedType<Integral>>>>
+    HYP_NODISCARD static String ToString(Integral value)
     {
         SizeType result_size;
         utf::utf_to_str<Integral, CharType>(value, result_size, nullptr);
@@ -811,6 +876,12 @@ public:
         }
 
         return result;
+    }
+
+    template <class Ty, class TyN = NormalizedType<Ty>, typename = std::enable_if_t<!std::is_integral_v<TyN> && HYP_HAS_METHOD(TyN, ToString)>>
+    HYP_NODISCARD static String ToString(Ty&& value)
+    {
+        return String(value.ToString());
     }
 
     HYP_NODISCARD HYP_FORCE_INLINE static String ToString(const String& value)

@@ -14,8 +14,6 @@
 
 #include <scene/animation/Skeleton.hpp>
 
-#include <dotnet/runtime/scene/ManagedSceneTypes.hpp>
-
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 

@@ -265,15 +265,12 @@ public:
 
         Enqueue_Internal(std::move(scheduled_task));
 
-        lock.unlock();
+        Task<ReturnType> task(executor->GetTaskID(), this, executor, !(flags & TaskEnqueueFlags::FIRE_AND_FORGET));
 
+        lock.unlock();
         WakeUpOwnerThread();
 
-        return Task<ReturnType>(
-            executor->GetTaskID(),
-            this,
-            executor,
-            !(flags & TaskEnqueueFlags::FIRE_AND_FORGET));
+        return task;
     }
 
     /*! \brief Enqueue a task to be executed on the owner thread. This is to be

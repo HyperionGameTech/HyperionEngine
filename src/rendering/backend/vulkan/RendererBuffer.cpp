@@ -712,14 +712,9 @@ VkBufferCreateInfo VulkanGPUBuffer::GetBufferCreateInfo() const
 
 VmaAllocationCreateInfo VulkanGPUBuffer::GetAllocationCreateInfo() const
 {
-    /* @TODO: Property debug names */
-    char debug_name_buffer[1024] = { 0 };
-    snprintf(debug_name_buffer, sizeof(debug_name_buffer), "Unnamed buffer %p", this);
-
     VmaAllocationCreateInfo alloc_info {};
     alloc_info.flags = m_vma_allocation_create_flags;
     alloc_info.usage = m_vma_usage;
-    alloc_info.pUserData = debug_name_buffer;
 
     return alloc_info;
 }

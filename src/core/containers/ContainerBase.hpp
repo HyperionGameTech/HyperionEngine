@@ -5,6 +5,8 @@
 
 #include <core/memory/Memory.hpp>
 
+#include <core/debug/Debug.hpp>
+
 #include <core/functional/FunctionWrapper.hpp>
 
 #include <core/Defines.hpp>
@@ -44,7 +46,10 @@ public:
 
     auto& Get(KeyType key)
     {
-        return static_cast<Container*>(this)->operator[](key);
+        const auto it = static_cast<const Container*>(this)->Find(key);
+        AssertThrowMsg(it != static_cast<const Container*>(this)->End(), "Cannot Get(): value not found");
+
+        return *it;
     }
 
     const auto& Get(KeyType key) const
@@ -194,6 +199,8 @@ public:
     template <class T>
     auto LowerBound(const T& key)
     {
+        static_assert(Container::is_contiguous, "Container must be contiguous to perform IndexOf()");
+
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
 
@@ -206,6 +213,8 @@ public:
     template <class T>
     auto LowerBound(const T& key) const
     {
+        static_assert(Container::is_contiguous, "Container must be contiguous to perform IndexOf()");
+
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
 
@@ -218,6 +227,8 @@ public:
     template <class T>
     auto UpperBound(const T& key)
     {
+        static_assert(Container::is_contiguous, "Container must be contiguous to perform IndexOf()");
+
         const auto _begin = static_cast<Container*>(this)->Begin();
         const auto _end = static_cast<Container*>(this)->End();
 
@@ -230,6 +241,8 @@ public:
     template <class T>
     auto UpperBound(const T& key) const
     {
+        static_assert(Container::is_contiguous, "Container must be contiguous to perform IndexOf()");
+
         const auto _begin = static_cast<const Container*>(this)->Begin();
         const auto _end = static_cast<const Container*>(this)->End();
 
@@ -244,6 +257,26 @@ public:
     {
         return static_cast<const Container*>(this)->Find(value)
             != static_cast<const Container*>(this)->End();
+    }
+
+    /*! \brief Returns the number of elements matching the given value. */
+    template <class T>
+    SizeType Count(const T& value) const
+    {
+        SizeType count = 0;
+
+        const auto _begin = static_cast<const Container*>(this)->Begin();
+        const auto _end = static_cast<const Container*>(this)->End();
+
+        for (auto it = _begin; it != _end; ++it)
+        {
+            if (*it == value)
+            {
+                ++count;
+            }
+        }
+
+        return count;
     }
 
     auto Sum() const

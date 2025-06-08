@@ -37,6 +37,14 @@ struct AssetBatchCallbacks;
 
 struct ProcessAssetFunctorBase;
 
+namespace threading {
+
+class TaskThreadPool;
+
+} // namespace threading
+
+using threading::TaskThreadPool;
+
 template <class T>
 struct ProcessAssetFunctor;
 
@@ -160,6 +168,8 @@ private:
     FilePath m_base_path;
 };
 
+class AssetManagerThreadPool;
+
 HYP_CLASS()
 class AssetManager : public HypObject<AssetManager>
 {
@@ -181,7 +191,9 @@ public:
     AssetManager& operator=(const AssetManager& other) = delete;
     AssetManager(AssetManager&& other) noexcept = delete;
     AssetManager& operator=(AssetManager&& other) noexcept = delete;
-    ~AssetManager() = default;
+    HYP_API ~AssetManager();
+
+    HYP_API TaskThreadPool* GetThreadPool() const;
 
     HYP_METHOD()
     FilePath GetBasePath() const;
@@ -321,6 +333,8 @@ private:
     void RegisterDefaultLoaders();
 
     UniquePtr<AssetCache> m_asset_cache;
+
+    UniquePtr<AssetManagerThreadPool> m_thread_pool;
 
     Array<Handle<AssetCollector>> m_asset_collectors;
     WeakHandle<AssetCollector> m_base_asset_collector;

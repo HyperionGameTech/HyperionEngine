@@ -342,20 +342,19 @@ TaskBatch* TaskSystem::EnqueueBatch(TaskBatch* batch)
     HYP_MT_CHECK_RW(batch->data_race_detector);
 #endif
 
-    for (auto it = batch->executors.Begin(); it != batch->executors.End(); ++it)
+    for (TaskExecutorInstance<void>& executor : batch->executors)
     {
-        SizeType index = batch->executors.IndexOf(it);
-
         TaskThread* task_thread = pool->GetNextTaskThread();
         AssertThrow(task_thread != nullptr);
 
         const TaskID task_id = task_thread->GetScheduler().EnqueueTaskExecutor(
-            &(*it),
+            &executor,
             &batch->semaphore,
             next_batch != nullptr
-                ? OnTaskCompletedCallback([this, &OnComplete = batch->OnComplete, next_batch]()
+                ? OnTaskCompletedCallback([this, &on_complete = batch->OnComplete, next_batch]()
                       {
-                          OnComplete();
+                          on_complete();
+
                           EnqueueBatch(next_batch);
                       })
                 : OnTaskCompletedCallback(batch->OnComplete ? &batch->OnComplete : nullptr));

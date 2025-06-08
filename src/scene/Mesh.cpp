@@ -214,6 +214,8 @@ void Mesh::Init()
 
         if (!m_streamed_mesh_data)
         {
+            HYP_LOG(Mesh, Warning, "Creating empty streamed mesh data for mesh {}", GetID().Value());
+
             m_streamed_mesh_data.Emplace();
         }
 
@@ -222,6 +224,7 @@ void Mesh::Init()
 
         // Data passed to render resource to be uploaded,
         // Reset the resource handle now that we no longer need it in CPU-side memory
+        HYP_LOG(Mesh, Debug, "Resetting streamed mesh data resource handle for mesh {}", GetID().Value());
         m_streamed_mesh_data_resource_handle.Reset();
     }
 
@@ -371,14 +374,21 @@ void Mesh::CalculateNormals(bool weighted)
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
     }
 
-    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
+    if (!m_streamed_mesh_data_resource_handle)
+    {
+        HYP_LOG(Mesh, Warning, "Cannot calculate normals, failed to get streamed mesh data resource handle!");
 
-    if (mesh_data.indices.Empty())
+        return;
+    }
+
+    if (m_streamed_mesh_data->GetMeshData().indices.Empty())
     {
         HYP_LOG(Mesh, Warning, "Cannot calculate normals before indices are generated!");
 
         return;
     }
+
+    MeshData mesh_data = m_streamed_mesh_data->GetMeshData();
 
     std::unordered_map<uint32, Array<Vec3f>> normals;
 
@@ -538,6 +548,13 @@ void Mesh::CalculateTangents()
     if (!m_streamed_mesh_data_resource_handle)
     {
         m_streamed_mesh_data_resource_handle = ResourceHandle(*m_streamed_mesh_data);
+    }
+
+    if (!m_streamed_mesh_data_resource_handle)
+    {
+        HYP_LOG(Mesh, Warning, "Cannot calculate normals, failed to get streamed mesh data resource handle!");
+
+        return;
     }
 
     MeshData mesh_data = m_streamed_mesh_data->GetMeshData();

@@ -26,6 +26,71 @@ struct MeshData
 
     HYP_FIELD()
     Array<uint32> indices;
+    MeshData() = default;
+
+    MeshData(Array<Vertex>&& vertices, Array<uint32>&& indices)
+        : vertices(std::move(vertices)),
+          indices(std::move(indices))
+    {
+        // DEBUGGING
+        AssertThrowMsg(this->vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+    }
+
+    MeshData(const Array<Vertex>& vertices, const Array<uint32>& indices)
+        : vertices(vertices),
+          indices(indices)
+    {
+        // DEBUGGING
+        AssertThrowMsg(this->vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+    }
+
+    MeshData(const MeshData& other)
+        : vertices(other.vertices),
+          indices(other.indices)
+    {
+        // DEBUGGING
+        AssertThrowMsg(vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+    }
+
+    MeshData(MeshData&& other) noexcept
+        : vertices(std::move(other.vertices)),
+          indices(std::move(other.indices))
+    {
+        // DEBUGGING
+        AssertThrowMsg(this->vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+    }
+
+    MeshData& operator=(const MeshData& other)
+    {
+        if (this != &other)
+        {
+            vertices = other.vertices;
+            indices = other.indices;
+        }
+        // DEBUGGING
+        AssertThrowMsg(vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+
+        return *this;
+    }
+
+    MeshData& operator=(MeshData&& other) noexcept
+    {
+        if (this != &other)
+        {
+            vertices = std::move(other.vertices);
+            indices = std::move(other.indices);
+        }
+        // DEBUGGING
+        AssertThrowMsg(vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+
+        return *this;
+    }
+
+    ~MeshData()
+    {
+        // DEBUGGING
+        AssertThrowMsg(vertices.GetAllocation().magic == 0xBADA55u, "MeshData vertices allocation is not valid");
+    }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
@@ -44,7 +109,7 @@ class HYP_API StreamedMeshData final : public StreamedDataBase
 {
     HYP_OBJECT_BODY(StreamedMeshData);
 
-    StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle& out_resource_handle);
+    StreamedMeshData(StreamedDataState initial_state, MeshData&& mesh_data, ResourceHandle& out_resource_handle);
 
 public:
     StreamedMeshData();
@@ -89,6 +154,8 @@ private:
     SizeType m_num_indices;
 
     mutable Optional<MeshData> m_mesh_data;
+
+    HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
 } // namespace hyperion

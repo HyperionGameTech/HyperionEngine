@@ -279,12 +279,12 @@ JSONArray& JSONSubscriptWrapper<JSONValue>::AsArray() const
 
 const JSONArray& JSONSubscriptWrapper<JSONValue>::ToArray() const
 {
-    if (!value)
+    if (!value || !value->IsArray())
     {
         return g_empty_array.AsArray();
     }
 
-    return value->ToArray();
+    return value->AsArray();
 }
 
 JSONObject& JSONSubscriptWrapper<JSONValue>::AsObject() const
@@ -296,12 +296,12 @@ JSONObject& JSONSubscriptWrapper<JSONValue>::AsObject() const
 
 const JSONObject& JSONSubscriptWrapper<JSONValue>::ToObject() const
 {
-    if (!value)
+    if (!value || !value->IsObject())
     {
         return g_empty_object.AsObject();
     }
 
-    return value->ToObject();
+    return value->AsObject();
 }
 
 JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::operator[](uint32 index)
@@ -532,12 +532,12 @@ const JSONArray& JSONSubscriptWrapper<const JSONValue>::AsArray() const
 
 const JSONArray& JSONSubscriptWrapper<const JSONValue>::ToArray() const
 {
-    if (!value)
+    if (!value || !value->IsArray())
     {
         return g_empty_array.AsArray();
     }
 
-    return value->ToArray();
+    return value->AsArray();
 }
 
 const JSONObject& JSONSubscriptWrapper<const JSONValue>::AsObject() const
@@ -549,12 +549,12 @@ const JSONObject& JSONSubscriptWrapper<const JSONValue>::AsObject() const
 
 const JSONObject& JSONSubscriptWrapper<const JSONValue>::ToObject() const
 {
-    if (!value)
+    if (!value || !value->IsObject())
     {
         return g_empty_object.AsObject();
     }
 
-    return value->ToObject();
+    return value->AsObject();
 }
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::operator[](uint32 index) const
@@ -1020,7 +1020,7 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsArray())
     {
-        const auto& as_array = AsArray();
+        const JSONArray& as_array = AsArray();
 
         String result = "[";
 
@@ -1041,13 +1041,14 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
     if (IsObject())
     {
-        const auto& as_object = AsObject();
+        const JSONObject& as_object = AsObject();
 
-        Array<Pair<JSONString, JSONValue>> members;
+        Array<const KeyValuePair<JSONString, JSONValue>*> members;
+        members.Reserve(as_object.Size());
 
         for (const auto& member : as_object)
         {
-            members.PushBack({ member.first, member.second });
+            members.PushBack(&member);
         }
 
         const String indentation = GetIndentationString(depth);
@@ -1057,9 +1058,9 @@ JSONString JSONValue::ToString_Internal(bool representation, uint32 depth) const
 
         for (SizeType index = 0; index < members.Size(); index++)
         {
-            result += "\n" + property_indentation + "\"" + members[index].first.Escape() + "\": ";
+            result += "\n" + property_indentation + "\"" + members[index]->first.Escape() + "\": ";
 
-            result += members[index].second.ToString(true, depth + 1);
+            result += members[index]->second.ToString(true, depth + 1);
 
             if (index != members.Size() - 1)
             {

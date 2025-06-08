@@ -25,7 +25,7 @@ enum MeshComponentFlagBits : MeshComponentFlags
 
 using MeshComponentUserData = UserData<32, 16>;
 
-HYP_STRUCT(Component, Size = 256, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
+HYP_STRUCT(Component, Size = 288, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
 
 struct MeshComponent
 {
@@ -74,12 +74,27 @@ struct MeshComponent
 
     // 256
 
+    HYP_FIELD(Property = "LightmapVolume", Serialize = false)
+    WeakHandle<LightmapVolume> lightmap_volume;
+
+    // 264
+
+    HYP_FIELD(Property = "LightmapVolumeUUID", Serialize = true)
+    UUID lightmap_volume_uuid = UUID::Invalid();
+
+    // 280
+
+    HYP_FIELD(Property = "LightmapElementIndex", Serialize = true)
+    uint32 lightmap_element_index = ~0u;
+
     HYP_FORCE_INLINE bool operator==(const MeshComponent& other) const
     {
         return mesh == other.mesh
             && material == other.material
             && skeleton == other.skeleton
-            && instance_data == other.instance_data;
+            && instance_data == other.instance_data
+            && lightmap_volume_uuid == other.lightmap_volume_uuid
+            && lightmap_element_index == other.lightmap_element_index;
     }
 
     HYP_FORCE_INLINE bool operator!=(const MeshComponent& other) const
@@ -100,6 +115,8 @@ struct MeshComponent
         hash_code.Add(material);
         hash_code.Add(skeleton);
         hash_code.Add(instance_data);
+        hash_code.Add(lightmap_volume_uuid);
+        hash_code.Add(lightmap_element_index);
 
         return hash_code;
     }

@@ -403,7 +403,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, RenderView* view)
         //     continue;
         // }
 
-        struct alignas(128)
+        struct
         {
             Vec4f origin;
             float spawn_radius;

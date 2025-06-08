@@ -663,10 +663,6 @@ void RenderCollector::ExecuteDrawCalls(
     // Wait for all parallel rendering tasks to finish
     if (num_parallel_rendering_states != 0)
     {
-        HYP_LOG(RenderCollection, Debug,
-            "Waiting for {} parallel rendering task batches to finish",
-            num_parallel_rendering_states);
-
         ParallelRenderingState* state = m_parallel_rendering_state;
 
         while (num_parallel_rendering_states)

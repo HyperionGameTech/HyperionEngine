@@ -111,7 +111,7 @@ protected:
         return false;
     }
 
-    virtual int IncRef(int count = 1) override;
+    virtual int IncRef() override;
     virtual int IncRefNoInitialize() override;
     virtual int DecRef() override;
 

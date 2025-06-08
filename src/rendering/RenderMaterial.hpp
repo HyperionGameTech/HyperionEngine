@@ -99,9 +99,9 @@ public:
     MaterialDescriptorSetManager& operator=(MaterialDescriptorSetManager&& other) noexcept = delete;
     ~MaterialDescriptorSetManager();
 
-    HYP_FORCE_INLINE const DescriptorSetRef& GetInvalidMaterialDescriptorSet() const
+    HYP_FORCE_INLINE const DescriptorSetRef& GetInvalidMaterialDescriptorSet(uint32 frame_index) const
     {
-        return m_invalid_material_descriptor_set;
+        return m_invalid_material_descriptor_sets[frame_index];
     }
 
     /*! \brief Get the descriptor set for the given material and frame index. Only
@@ -157,7 +157,7 @@ public:
 private:
     void CreateInvalidMaterialDescriptorSet();
 
-    DescriptorSetRef m_invalid_material_descriptor_set;
+    FixedArray<DescriptorSetRef, max_frames_in_flight> m_invalid_material_descriptor_sets;
 
     HashMap<WeakHandle<Material>, FixedArray<DescriptorSetRef, max_frames_in_flight>> m_material_descriptor_sets;
 

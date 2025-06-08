@@ -61,7 +61,7 @@ void DOFBlur::Destroy()
 
 void DOFBlur::Render(FrameBase* frame, RenderView* view)
 {
-    struct alignas(128)
+    struct
     {
         Vec2u dimension;
     } push_constants;

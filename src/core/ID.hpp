@@ -88,10 +88,7 @@ struct ID : IDBase
     {
     }
 
-    constexpr ID(const ID& other)
-        : IDBase(other)
-    {
-    }
+    constexpr ID(const ID& other) = default;
 
     ID& operator=(const IDBase& other) = delete; // delete so we cannot assign a type's ID to a different type
     ID& operator=(const ID& other) = default;

@@ -40,6 +40,7 @@ struct ShaderGlobals
     GPUBufferHolderBase* shadow_map_data;
     GPUBufferHolderBase* env_probes;
     GPUBufferHolderBase* env_grids;
+    GPUBufferHolderBase* lightmap_volumes;
 
     BindlessStorage textures;
 };

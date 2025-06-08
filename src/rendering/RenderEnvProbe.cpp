@@ -884,7 +884,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame)
 
     const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
 
-    struct alignas(128)
+    struct
     {
         uint32 env_probe_index;
         Vec4u probe_grid_position;

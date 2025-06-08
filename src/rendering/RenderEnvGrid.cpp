@@ -1075,7 +1075,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 
     const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
 
-    struct alignas(128)
+    struct
     {
         uint32 env_probe_index;
         Vec4u probe_grid_position;
@@ -1387,7 +1387,7 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
 
     AssertThrow(m_voxel_grid_texture.IsValid());
 
-    struct alignas(128)
+    struct
     {
         Vec4u probe_grid_position;
         Vec4u cubemap_dimensions;
@@ -1444,7 +1444,7 @@ void RenderEnvGrid::VoxelizeProbe(
     const ImageRef& color_image = m_framebuffer->GetAttachment(0)->GetImage();
     const Vec3u cubemap_dimensions = color_image->GetExtent();
 
-    struct alignas(128)
+    struct
     {
         Vec4u probe_grid_position;
         Vec4u voxel_texture_dimensions;
@@ -1525,7 +1525,7 @@ void RenderEnvGrid::VoxelizeProbe(
         const Vec3u voxel_image_extent = m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent();
         Vec3u mip_extent = voxel_image_extent;
 
-        struct alignas(128)
+        struct
         {
             Vec4u mip_dimensions;
             Vec4u prev_mip_dimensions;

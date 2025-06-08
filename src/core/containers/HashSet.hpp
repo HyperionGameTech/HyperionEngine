@@ -275,18 +275,18 @@ struct HashTable_PooledNodeAllocator
     using Node = HashSetElement<Value>;
     using Bucket = HashSetBucket<Value>;
 
-    Array<Node, ArrayAllocatorType> m_pool;
     Node* m_free_nodes_head = nullptr;
+    Array<Node, ArrayAllocatorType> m_pool;
 
-    template <class... Args>
-    Node* Allocate(Args&&... args)
+    template <class Ty>
+    Node* Allocate(Ty&& value, Span<Bucket> buckets)
     {
         if (m_free_nodes_head != nullptr)
         {
             Node* ptr = m_free_nodes_head;
             m_free_nodes_head = ptr->next;
 
-            ptr->value = Value(std::forward<Args>(args)...);
+            ptr->value = std::forward<Ty>(value);
             ptr->next = nullptr;
 
             return ptr;
@@ -294,7 +294,15 @@ struct HashTable_PooledNodeAllocator
 
         AssertDebugMsg(m_pool.Capacity() >= m_pool.Size() + 1, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
 
-        return &m_pool.EmplaceBack(std::forward<Args>(args)...);
+        Node* previous_base = m_pool.Data();
+
+        Node* ptr = &m_pool.EmplaceBack(std::forward<Ty>(value));
+
+        Node* new_base = m_pool.Data();
+
+        AssertDebugMsg(previous_base == new_base, "Allocate() call would invalidate element pointers - Capacity should be updated before this call");
+
+        return ptr;
     }
 
     void Free(Node* node)
@@ -351,10 +359,10 @@ struct HashTable_PooledNodeAllocator
             return;
         }
 
-        const Node* previous_base = m_pool.Any() ? m_pool.Data() : nullptr;
+        const Node* previous_base = m_pool.Data();
         m_pool.Reserve(capacity);
 
-        Node* new_base = m_pool.Any() ? m_pool.Data() : nullptr;
+        Node* new_base = m_pool.Data();
 
         Fixup(previous_base, new_base, buckets);
     }
@@ -367,7 +375,7 @@ struct HashTable_PooledNodeAllocator
 
         m_pool = std::move(other.m_pool);
 
-        Node* new_base = m_pool.Any() ? m_pool.Data() : nullptr;
+        Node* new_base = m_pool.Data();
 
         Fixup(previous_base, new_base, buckets);
     }
@@ -379,10 +387,11 @@ struct HashTable_DynamicNodeAllocator
     using Node = HashSetElement<Value>;
     using Bucket = HashSetBucket<Value>;
 
-    template <class... Args>
-    HYP_FORCE_INLINE Node* Allocate(Args&&... args)
+    template <class Ty>
+    Node* Allocate(Ty&& value, Span<Bucket> buckets)
     {
-        return new Node(std::forward<Args>(args)...);
+        Node* node = new Node(std::forward<Ty>(value));
+        return node;
     }
 
     HYP_FORCE_INLINE void Free(Node* node)
@@ -643,6 +652,18 @@ public:
         return m_size;
     }
 
+    HYP_FORCE_INLINE SizeType Capacity() const
+    {
+        if constexpr (std::is_same_v<NodeAllocatorType, HashTable_PooledNodeAllocator<Value>>)
+        {
+            return m_node_allocator.m_pool.Capacity();
+        }
+        else
+        {
+            return SizeType(-1); // Dynamic allocators do not have a capacity
+        }
+    }
+
     HYP_FORCE_INLINE SizeType BucketCount() const
     {
         return m_buckets.Size();
@@ -698,6 +719,26 @@ public:
     HYP_FORCE_INLINE bool Contains(const KeyType& value) const
     {
         return Find(value) != End();
+    }
+
+    template <class TFindAsType>
+    HYP_FORCE_INLINE SizeType Count(const TFindAsType& value) const
+    {
+        auto it = FindAs(value);
+
+        if (it == End())
+        {
+            return 0;
+        }
+
+        SizeType count = 0;
+
+        for (; it != End() && key_by_fn(*it) == value; ++it)
+        {
+            ++count;
+        }
+
+        return count;
     }
 
     HYP_FORCE_INLINE Value& At(const KeyType& value)
@@ -853,7 +894,7 @@ HashSet<Value, KeyBy, NodeAllocatorType>::HashSet(const HashSet& other)
 
             for (auto it = bucket.head; it != nullptr; it = it->next)
             {
-                Node* ptr = m_node_allocator.Allocate(it->value);
+                Node* ptr = m_node_allocator.Allocate(it->value, m_buckets.ToSpan());
 
                 m_buckets[bucket_index].Push(ptr);
             }
@@ -895,7 +936,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::operator=(const HashSet& other) -
 
         for (auto it = bucket.head; it != nullptr; it = it->next)
         {
-            Node* ptr = m_node_allocator.Allocate(it->value);
+            Node* ptr = m_node_allocator.Allocate(it->value, m_buckets.ToSpan());
 
             m_buckets[bucket_index].Push(ptr);
         }
@@ -1117,7 +1158,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::Set(const Value& value) -> Insert
         CheckAndRebuildBuckets(m_size + 1);
         bucket = GetBucketForHash(hash_code);
 
-        Node* ptr = m_node_allocator.Allocate(value);
+        Node* ptr = m_node_allocator.Allocate(value, m_buckets.ToSpan());
 
         insert_it.bucket_iter = bucket->Push(ptr);
 
@@ -1146,11 +1187,10 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::Set(Value&& value) -> InsertResul
     }
     else
     {
+
         CheckAndRebuildBuckets(m_size + 1);
         bucket = GetBucketForHash(hash_code);
-
-        Node* ptr = m_node_allocator.Allocate(std::move(value));
-
+        Node* ptr = m_node_allocator.Allocate(std::move(value), m_buckets.ToSpan());
         insert_it.bucket_iter = bucket->Push(ptr);
 
         m_size++;
@@ -1178,7 +1218,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::Insert(const Value& value) -> Ins
         return InsertResult { insert_it, false };
     }
 
-    Node* ptr = m_node_allocator.Allocate(value);
+    Node* ptr = m_node_allocator.Allocate(value, m_buckets.ToSpan());
 
     insert_it.bucket_iter = bucket->Push(ptr);
 
@@ -1206,7 +1246,7 @@ auto HashSet<Value, KeyBy, NodeAllocatorType>::Insert(Value&& value) -> InsertRe
         return InsertResult { insert_it, false };
     }
 
-    Node* ptr = m_node_allocator.Allocate(std::move(value));
+    Node* ptr = m_node_allocator.Allocate(std::move(value), m_buckets.ToSpan());
 
     insert_it.bucket_iter = bucket->Push(ptr);
     m_size++;

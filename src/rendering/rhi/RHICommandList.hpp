@@ -396,8 +396,6 @@ private:
     uint32 m_frame_index;
 };
 
-HYP_DISABLE_OPTIMIZATION;
-
 class InsertBarrier final : public RHICommandBase
 {
 public:
@@ -449,8 +447,6 @@ private:
     Optional<renderer::ImageSubResource> m_sub_resource;
     renderer::ShaderModuleType m_shader_module_type;
 };
-
-HYP_ENABLE_OPTIMIZATION;
 
 class Blit final : public RHICommandBase
 {

@@ -8,6 +8,9 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
@@ -65,6 +68,27 @@ RendererResult VulkanFrame::ResetFrameState()
     RendererResult result;
 
     HYPERION_PASS_ERRORS(m_queue_submit_fence->Reset(), result);
+
+#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+    for (DescriptorSetBase* descriptor_set : m_used_descriptor_sets)
+    {
+        auto it = descriptor_set->GetCurrentFrames().FindAs(this);
+        if (it != descriptor_set->GetCurrentFrames().End())
+        {
+            // Remove the current frame from the descriptor set's current frames
+            // This is necessary to ensure that the descriptor set is not used in the next frame
+            descriptor_set->GetCurrentFrames().Erase(it);
+        }
+    }
+#endif
+
+    m_used_descriptor_sets.Clear();
+
+    if (OnFrameEnd.AnyBound())
+    {
+        OnFrameEnd(this);
+        OnFrameEnd.RemoveAllDetached();
+    }
 
     return result;
 }

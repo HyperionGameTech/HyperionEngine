@@ -66,7 +66,10 @@ public:
 
     static constexpr bool is_contiguous = true;
 
-private:
+    // Allow other Array types to access private members
+    template <class OtherT, class OtherAllocatorType>
+    friend class Array;
+
 protected:
     // on PushFront() we can pad the start with this number,
     // so when multiple successive calls to PushFront() happen,
@@ -200,46 +203,64 @@ public:
 
     Array(const Array& other);
 
-    template <class OtherAllocatorType>
+    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
     Array(const Array<T, OtherAllocatorType>& other)
         : Array()
     {
-        const SizeType size = other.Size();
+        m_size = other.Size();
 
-        SetCapacity(size);
-
-        T* buffer = GetBuffer();
-
-        for (SizeType i = 0; i < size; i++)
-        {
-            Memory::Construct<T>(&buffer[m_size++], other.Data()[i]);
-        }
+        m_allocation.Allocate(m_size);
+        m_allocation.InitFromRangeCopy(other.Begin(), other.End());
     }
 
     Array(Array&& other) noexcept;
 
-    template <class OtherAllocatorType>
+    template <class OtherAllocatorType, typename = std::enable_if_t<!std::is_same_v<OtherAllocatorType, AllocatorType>>>
     Array(Array<T, OtherAllocatorType>&& other)
         : Array()
     {
-        const SizeType size = other.Size();
-
-        SetCapacity(size);
-
-        T* buffer = GetBuffer();
-
-        for (SizeType i = 0; i < size; i++)
+        if (other.m_allocation.IsDynamic())
         {
-            Memory::Construct<T>(&buffer[m_size++], std::move(other.Data()[i]));
-        }
+            m_size = other.m_size;
+            m_start_offset = other.m_start_offset;
 
-        other.Clear();
+            m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+
+            other.m_allocation.SetToInitialState();
+
+            other.m_size = 0;
+            other.m_start_offset = 0;
+        }
+        else
+        {
+            m_size = other.m_size - other.m_start_offset;
+            m_start_offset = 0;
+
+            m_allocation.Allocate(m_size);
+            m_allocation.InitFromRangeMove(other.Begin(), other.End());
+
+            other.m_allocation.DestructInRange(other.m_start_offset, other.m_size);
+            other.m_allocation.Free();
+
+            other.m_size = 0;
+            other.m_start_offset = 0;
+        }
     }
 
     ~Array();
 
     Array& operator=(const Array& other);
     Array& operator=(Array&& other) noexcept;
+
+    HYP_FORCE_INLINE typename AllocatorType::template Allocation<T>& GetAllocation()
+    {
+        return m_allocation;
+    }
+
+    HYP_FORCE_INLINE const typename AllocatorType::template Allocation<T>& GetAllocation() const
+    {
+        return m_allocation;
+    }
 
     /*! \brief Returns the number of elements in the array. */
     HYP_FORCE_INLINE SizeType Size() const
@@ -301,15 +322,19 @@ public:
         return Size() != 0;
     }
 
-    /*! \brief Returns the element at the given index. No bounds checking is performed. */
+    /*! \brief Returns the element at the given index. No bounds checking is performed in release mode. */
     HYP_FORCE_INLINE ValueType& operator[](KeyType index)
     {
+        AssertDebugMsg(index >= 0 && index < Size(), "Index out of bounds! Index: %d, Size: %d", index, Size());
+
         return GetBuffer()[m_start_offset + index];
     }
 
-    /*! \brief Returns the element at the given index. No bounds checking is performed. */
+    /*! \brief Returns the element at the given index. No bounds checking is performed in release mode. */
     HYP_FORCE_INLINE const ValueType& operator[](KeyType index) const
     {
+        AssertDebugMsg(index >= 0 && index < Size(), "Index out of bounds! Index: %d, Size: %d", index, Size());
+
         return GetBuffer()[m_start_offset + index];
     }
 
@@ -668,6 +693,11 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
         m_start_offset = other.m_start_offset;
 
         m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+
+        other.m_allocation.SetToInitialState();
+
+        other.m_size = 0;
+        other.m_start_offset = 0;
     }
     else
     {
@@ -676,12 +706,13 @@ Array<T, AllocatorType>::Array(Array&& other) noexcept
 
         m_allocation.Allocate(m_size);
         m_allocation.InitFromRangeMove(other.Begin(), other.End());
+
+        other.m_allocation.DestructInRange(other.m_start_offset, other.m_size);
+        other.m_allocation.Free();
+
+        other.m_size = 0;
+        other.m_start_offset = 0;
     }
-
-    other.m_size = 0;
-    other.m_start_offset = 0;
-
-    other.m_allocation.SetToInitialState();
 }
 
 template <class T, class AllocatorType>
@@ -728,6 +759,11 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
         m_start_offset = other.m_start_offset;
 
         m_allocation.TakeOwnership(other.GetBuffer(), other.GetBuffer() + other.m_size);
+
+        other.m_allocation.SetToInitialState();
+
+        other.m_size = 0;
+        other.m_start_offset = 0;
     }
     else
     {
@@ -739,12 +775,10 @@ auto Array<T, AllocatorType>::operator=(Array&& other) noexcept -> Array&
 
         other.m_allocation.DestructInRange(other.m_start_offset, other.m_size);
         other.m_allocation.Free();
+
+        other.m_size = 0;
+        other.m_start_offset = 0;
     }
-
-    other.m_size = 0;
-    other.m_start_offset = 0;
-
-    other.m_allocation.SetToInitialState();
 
     return *this;
 }
@@ -795,6 +829,7 @@ void Array<T, AllocatorType>::SetCapacity(SizeType capacity, SizeType offset)
     Allocation<T, AllocatorType> new_allocation;
     new_allocation.SetToInitialState();
     new_allocation.Allocate(capacity);
+
     new_allocation.InitFromRangeMove(Begin(), End(), offset);
 
     m_allocation.DestructInRange(m_start_offset, m_size);
@@ -937,11 +972,7 @@ void Array<T, AllocatorType>::ResizeZeroed(SizeType new_size)
 
     if (new_size > current_size)
     {
-        T* buffer = GetBuffer();
-
-        const SizeType diff = new_size - current_size;
-
-        Memory::MemSet(&buffer[m_size - diff], 0, sizeof(T) * diff);
+        Memory::MemSet(GetBuffer() + (current_size + m_start_offset), 0, sizeof(T) * (new_size - current_size));
     }
 }
 
@@ -1110,20 +1141,27 @@ auto Array<T, AllocatorType>::PushFront(ValueType&& value) -> ValueType&
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Concat(const Array& other)
 {
+    if (this == &other)
+    {
+        return;
+    }
+
     if (other.Empty())
     {
         return;
     }
 
-    if (m_size + other.Size() >= Capacity())
+    const SizeType other_size = other.Size();
+
+    if (m_size + other_size >= Capacity())
     {
-        if (Capacity() >= Size() + other.Size())
+        if (Capacity() >= Size() + other_size)
         {
             ResetOffsets();
         }
         else
         {
-            SetCapacity(CalculateDesiredCapacity(Size() + other.Size()));
+            SetCapacity(CalculateDesiredCapacity(Size() + other_size));
         }
     }
 
@@ -1131,18 +1169,16 @@ void Array<T, AllocatorType>::Concat(const Array& other)
 
     if constexpr (std::is_fundamental_v<T> || std::is_trivially_copy_constructible_v<T>)
     {
-        const SizeType other_size = other.Size();
-
         Memory::MemCpy(&buffer[m_size], other.Data(), other_size * sizeof(T));
 
         m_size += other_size;
     }
     else
     {
-        for (SizeType i = 0; i < other.Size(); ++i)
+        for (SizeType i = 0; i < other_size; ++i)
         {
             // copy construct item at index
-            Memory::Construct<T>(&buffer[m_size++], other[i]);
+            Memory::Construct<T>(&buffer[m_size++], other.Data()[i]);
         }
     }
 }
@@ -1150,20 +1186,27 @@ void Array<T, AllocatorType>::Concat(const Array& other)
 template <class T, class AllocatorType>
 void Array<T, AllocatorType>::Concat(Array&& other)
 {
+    if (this == &other)
+    {
+        return;
+    }
+
     if (other.Empty())
     {
         return;
     }
 
-    if (m_size + other.Size() >= Capacity())
+    const SizeType other_size = other.Size();
+
+    if (m_size + other_size >= Capacity())
     {
-        if (Capacity() >= Size() + other.Size())
+        if (Capacity() >= Size() + other_size)
         {
             ResetOffsets();
         }
         else
         {
-            SetCapacity(CalculateDesiredCapacity(Size() + other.Size()));
+            SetCapacity(CalculateDesiredCapacity(Size() + other_size));
         }
     }
 
@@ -1171,22 +1214,24 @@ void Array<T, AllocatorType>::Concat(Array&& other)
 
     if constexpr (std::is_fundamental_v<T> || std::is_trivially_move_constructible_v<T>)
     {
-        const SizeType other_size = other.Size();
-
         Memory::MemCpy(&buffer[m_size], other.Data(), other_size * sizeof(T));
 
         m_size += other_size;
     }
     else
     {
-        for (SizeType i = 0; i < other.Size(); ++i)
+        for (SizeType i = 0; i < other_size; ++i)
         {
             // set item at index
-            Memory::Construct<T>(&buffer[m_size++], std::move(other[i]));
+            Memory::Construct<T>(&buffer[m_size++], std::move(other.Data()[i]));
         }
     }
 
-    other.Clear();
+    other.m_allocation.DestructInRange(other.m_start_offset, other.m_size);
+    other.m_allocation.Free();
+
+    other.m_size = 0;
+    other.m_start_offset = 0;
 }
 
 template <class T, class AllocatorType>

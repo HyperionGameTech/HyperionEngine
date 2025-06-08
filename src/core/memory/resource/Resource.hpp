@@ -56,7 +56,7 @@ public:
 
     virtual bool IsNull() const = 0;
 
-    virtual int IncRef(int count = 1) = 0;
+    virtual int IncRef() = 0;
     virtual int IncRefNoInitialize() = 0;
     virtual int DecRef() = 0;
 
@@ -100,7 +100,7 @@ public:
         return false;
     }
 
-    virtual int IncRef(int count = 1) override final;
+    virtual int IncRef() override final;
     virtual int DecRef() override final;
 
     /*! \brief Wait for all tasks to be completed. */

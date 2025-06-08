@@ -118,7 +118,7 @@ void RenderMaterial::Update_Internal()
             }
         }
 
-        g_engine->GetMaterialDescriptorSetManager()->SetNeedsDescriptorSetUpdate(material);
+        // g_engine->GetMaterialDescriptorSetManager()->SetNeedsDescriptorSetUpdate(material);
     };
 
     if (!use_bindless_textures)
@@ -325,8 +325,6 @@ MaterialDescriptorSetManager::MaterialDescriptorSetManager()
 
 MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 {
-    SafeRelease(std::move(m_invalid_material_descriptor_set));
-
     for (auto& it : m_material_descriptor_sets)
     {
         SafeRelease(std::move(it.second));
@@ -359,16 +357,20 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 
     const renderer::DescriptorSetLayout layout { decl };
 
-    m_invalid_material_descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
-
-    for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++)
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_invalid_material_descriptor_set->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        m_invalid_material_descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
+        m_invalid_material_descriptor_sets[frame_index]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frame_index));
+
+        for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++)
+        {
+            m_invalid_material_descriptor_sets[frame_index]->SetElement(NAME("Textures"), texture_index, g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        }
+
+        DeferCreate(m_invalid_material_descriptor_sets[frame_index]);
     }
 
-    DeferCreate(m_invalid_material_descriptor_set);
-
-    m_material_descriptor_sets.Set(WeakHandle<Material>(), { m_invalid_material_descriptor_set, m_invalid_material_descriptor_set });
+    m_material_descriptor_sets.Set(WeakHandle<Material>(), m_invalid_material_descriptor_sets);
 }
 
 const DescriptorSetRef& MaterialDescriptorSetManager::GetDescriptorSet(ID<Material> id, uint32 frame_index) const

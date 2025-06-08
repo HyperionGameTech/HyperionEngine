@@ -7,8 +7,8 @@
 #include <core/utilities/ByteUtil.hpp>
 
 #ifdef HYP_WINDOWS
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #endif
 
 #include <bitset> // for output
@@ -203,8 +203,7 @@ void Bitset::Set(BitIndex index, bool value)
 
 void Bitset::Clear()
 {
-    Memory::MemSet(m_blocks.Data(), 0, m_blocks.Size() * sizeof(BlockType));
-    RemoveLeadingZeros();
+    m_blocks = CreateBlocks_Static_Internal<0>();
 }
 
 uint64 Bitset::Count() const

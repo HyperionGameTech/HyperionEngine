@@ -235,7 +235,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
 
     { // Update splat distances from camera before we sort
 
-        struct alignas(128)
+        struct
         {
             uint32 num_points;
         } update_splats_distances_push_constants;
@@ -291,7 +291,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
         constexpr uint32 block_size = 512;
         constexpr uint32 transpose_block_size = 16;
 
-        struct alignas(128)
+        struct
         {
             uint32 num_points;
             uint32 stage;
@@ -384,7 +384,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame)
 #endif
     { // Update splats
 
-        struct alignas(128)
+        struct
         {
             uint32 num_points;
         } update_splats_push_constants;

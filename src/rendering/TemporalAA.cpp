@@ -151,7 +151,7 @@ void TemporalAA::Render(FrameBase* frame, RenderView* view)
 
     frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
 
-    struct alignas(128)
+    struct
     {
         Vec2u dimensions;
         Vec2u depth_texture_dimensions;

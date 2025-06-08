@@ -64,27 +64,24 @@ bool ResourceBase::IsInitialized() const
 
 int ResourceBase::IncRefNoInitialize()
 {
-    return m_ref_counter.Produce(1, [this](bool)
-        {
-            // loop until we have exclusive access.
-            uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::IncRefNoInitialize() called on a resource that is already initialized");
+    int count = m_ref_counter.Produce(1);
 
-            while (state & g_initialization_mask_read_mask)
-            {
-                state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
-                Threads::Sleep(0);
-            }
-        });
+    if (count == 1)
+    {
+        // loop until we have exclusive access.
+        uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
+        AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "Attempted to initialize a resource that is already initialized");
+
+        while (state & g_initialization_mask_read_mask)
+        {
+            state = m_initialization_mask.Get(MemoryOrder::ACQUIRE);
+            Threads::Sleep(0);
+        }
+    }
 }
 
-int ResourceBase::IncRef(int count)
+int ResourceBase::IncRef()
 {
-    if (count <= 0)
-    {
-        return 0;
-    }
-
     IThread* owner_thread = GetOwnerThread();
 
     auto impl = [this]()
@@ -93,7 +90,7 @@ int ResourceBase::IncRef(int count)
             HYP_NAMED_SCOPE("Initializing Resource - Initialization");
 
             uint64 state = m_initialization_mask.BitOr(g_initialization_mask_initialized_bit, MemoryOrder::ACQUIRE);
-            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "ResourceBase::IncRef() called on a resource that is already initialized");
+            AssertDebugMsg(!(state & g_initialization_mask_initialized_bit), "Attempted to initialize a resource that is already initialized");
 
             // loop until we have exclusive access.
             while (state & g_initialization_mask_read_mask)
@@ -131,23 +128,21 @@ int ResourceBase::IncRef(int count)
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_ref_counter.Produce(count, [this, owner_thread, &impl, &should_release](bool state)
+    int result = m_ref_counter.Produce(1);
+
+    if (result == 1)
+    {
+        should_release = false;
+
+        if (CanExecuteInline())
         {
-            AssertDebug(!state);
-
-            should_release = false;
-
-            if (!CanExecuteInline())
-            {
-                EnqueueOp(std::move(impl));
-
-                return;
-            }
-
             impl();
-        });
-
-    AssertDebug(result >= 0);
+        }
+        else
+        {
+            EnqueueOp(std::move(impl));
+        }
+    }
 
     if (should_release)
     {
@@ -199,24 +194,22 @@ int ResourceBase::DecRef()
     m_completion_semaphore.Produce(1);
     bool should_release = true;
 
-    int result = m_ref_counter.Release(1, [this, &impl, &should_release](bool state)
+    int result = m_ref_counter.Release(1);
+
+    if (result == 0)
+    {
+        should_release = false;
+
+        if (CanExecuteInline())
         {
-            AssertDebug(state);
-
-            // Must be put into non-initialized state to destroy
-            should_release = false;
-
-            if (!CanExecuteInline())
-            {
-                EnqueueOp(std::move(impl));
-
-                return;
-            }
 
             impl();
-        });
-
-    AssertDebug(result >= 0);
+        }
+        else
+        {
+            EnqueueOp(std::move(impl));
+        }
+    }
 
     if (should_release)
     {
@@ -351,9 +344,7 @@ void ResourceBase::FlushScheduledTasks() const
 
 void ResourceBase::EnqueueOp(Proc<void()>&& proc)
 {
-    GetOwnerThread()->GetScheduler().Enqueue(
-        std::move(proc),
-        TaskEnqueueFlags::FIRE_AND_FORGET);
+    GetOwnerThread()->GetScheduler().Enqueue(std::move(proc), TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 #pragma endregion ResourceBase
@@ -372,7 +363,7 @@ public:
         return true;
     }
 
-    virtual int IncRef(int count) override
+    virtual int IncRef() override
     {
         return 0;
     }

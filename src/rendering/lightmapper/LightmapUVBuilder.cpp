@@ -7,8 +7,11 @@
 
 #include <streaming/StreamedMeshData.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #ifdef HYP_XATLAS
-    #include <xatlas.h>
+#include <xatlas.h>
 #endif
 
 namespace hyperion {
@@ -75,70 +78,93 @@ Bitmap<4, float> LightmapUVMap::ToBitmapIrradiance() const
 
 #pragma region LightmapUVBuilder
 
-LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
-    : m_params(params)
-{
-    m_mesh_data.Resize(params.sub_elements.Size());
+HYP_DISABLE_OPTIMIZATION;
 
-    for (SizeType i = 0; i < params.sub_elements.Size(); i++)
+LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
+    : m_params(params),
+      m_mesh_vertex_positions(m_params.sub_elements.Size()),
+      m_mesh_vertex_normals(m_params.sub_elements.Size()),
+      m_mesh_vertex_uvs(m_params.sub_elements.Size()),
+      m_mesh_indices(m_params.sub_elements.Size())
+{
+    // Output mesh data - this will be where we output the computed UVs to be used for tracing
+    m_mesh_data.Resize(m_params.sub_elements.Size());
+
+    for (SizeType i = 0; i < m_params.sub_elements.Size(); i++)
     {
-        const LightmapSubElement& sub_element = params.sub_elements[i];
+        const LightmapSubElement& sub_element = m_params.sub_elements[i];
 
         LightmapMeshData& lightmap_mesh_data = m_mesh_data[i];
 
-        if (!sub_element.mesh || !sub_element.mesh->GetStreamedMeshData())
+        if (!sub_element.mesh)
         {
+            HYP_LOG(Lightmap, Warning, "Sub-element {} has no mesh, skipping", i);
+
             continue;
         }
 
         const Handle<Mesh>& mesh = sub_element.mesh;
 
         StreamedMeshData* streamed_mesh_data = mesh->GetStreamedMeshData();
-        AssertThrow(streamed_mesh_data != nullptr);
 
-        ResourceHandle resource_handle(*streamed_mesh_data);
+        if (!streamed_mesh_data)
+        {
+            HYP_LOG(Lightmap, Error, "Sub-element {} has no streamed mesh data, skipping", i);
+
+            continue;
+        }
+
+        TResourceHandle<StreamedMeshData> resource_handle(*streamed_mesh_data);
+
+        if (!resource_handle)
+        {
+            return;
+        }
+
+        MeshData mesh_data = resource_handle->GetMeshData();
+
+        HYP_LOG(Lightmap, Debug, "Resource handle has {} vertices and {} indices",
+            mesh_data.vertices.Size(),
+            mesh_data.indices.Size());
 
         lightmap_mesh_data.mesh = sub_element.mesh;
-
         lightmap_mesh_data.material = sub_element.material;
-
         lightmap_mesh_data.transform = sub_element.transform.GetMatrix();
 
-        lightmap_mesh_data.vertex_positions.Resize(streamed_mesh_data->GetMeshData().vertices.Size() * 3);
-        lightmap_mesh_data.vertex_normals.Resize(streamed_mesh_data->GetMeshData().vertices.Size() * 3);
-        lightmap_mesh_data.vertex_uvs.Resize(streamed_mesh_data->GetMeshData().vertices.Size() * 2);
+        m_mesh_vertex_positions[i].Resize(mesh_data.vertices.Size() * 3);
+        m_mesh_vertex_normals[i].Resize(mesh_data.vertices.Size() * 3);
+        m_mesh_vertex_uvs[i].Resize(mesh_data.vertices.Size() * 2);
+        m_mesh_indices[i] = mesh_data.indices;
 
-        lightmap_mesh_data.indices = streamed_mesh_data->GetMeshData().indices;
-
-        lightmap_mesh_data.lightmap_uvs.Resize(streamed_mesh_data->GetMeshData().vertices.Size());
+        AssertThrow(m_mesh_indices[i].Size() % 3 == 0);
 
         const Matrix4 normal_matrix = sub_element.transform.GetMatrix().Inverted().Transpose();
 
-        for (SizeType i = 0; i < streamed_mesh_data->GetMeshData().vertices.Size(); i++)
+        for (SizeType vertex_index = 0; vertex_index < mesh_data.vertices.Size(); vertex_index++)
         {
-            const Vec3f position = sub_element.transform.GetMatrix() * streamed_mesh_data->GetMeshData().vertices[i].GetPosition();
-            const Vec3f normal = (normal_matrix * Vec4f(streamed_mesh_data->GetMeshData().vertices[i].GetNormal(), 0.0f)).GetXYZ().Normalize();
-            const Vec2f uv = streamed_mesh_data->GetMeshData().vertices[i].GetTexCoord0();
+            const Vec3f position = sub_element.transform.GetMatrix() * mesh_data.vertices[vertex_index].GetPosition();
+            const Vec3f normal = (normal_matrix * Vec4f(mesh_data.vertices[vertex_index].GetNormal(), 0.0f)).GetXYZ().Normalize();
+            const Vec2f uv = mesh_data.vertices[vertex_index].GetTexCoord0();
 
-            lightmap_mesh_data.vertex_positions[i * 3] = position.x;
-            lightmap_mesh_data.vertex_positions[i * 3 + 1] = position.y;
-            lightmap_mesh_data.vertex_positions[i * 3 + 2] = position.z;
+            m_mesh_vertex_positions[i][vertex_index * 3] = position.x;
+            m_mesh_vertex_positions[i][vertex_index * 3 + 1] = position.y;
+            m_mesh_vertex_positions[i][vertex_index * 3 + 2] = position.z;
 
-            lightmap_mesh_data.vertex_normals[i * 3] = normal.x;
-            lightmap_mesh_data.vertex_normals[i * 3 + 1] = normal.y;
-            lightmap_mesh_data.vertex_normals[i * 3 + 2] = normal.z;
+            m_mesh_vertex_normals[i][vertex_index * 3] = normal.x;
+            m_mesh_vertex_normals[i][vertex_index * 3 + 1] = normal.y;
+            m_mesh_vertex_normals[i][vertex_index * 3 + 2] = normal.z;
 
-            lightmap_mesh_data.vertex_uvs[i * 2] = uv.x;
-            lightmap_mesh_data.vertex_uvs[i * 2 + 1] = uv.y;
+            m_mesh_vertex_uvs[i][vertex_index * 2] = uv.x;
+            m_mesh_vertex_uvs[i][vertex_index * 2 + 1] = uv.y;
         }
     }
 }
 
 TResult<LightmapUVMap> LightmapUVBuilder::Build()
 {
-    if (!m_params.sub_elements)
+    if (m_mesh_data.Empty())
     {
-        return HYP_MAKE_ERROR(Error, "No subelements to build lightmap");
+        return HYP_MAKE_ERROR(Error, "No mesh data to build lightmap UVs from");
     }
 
     LightmapUVMap uv_map;
@@ -146,29 +172,29 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 #ifdef HYP_XATLAS
     xatlas::Atlas* atlas = xatlas::Create();
 
-    for (SizeType i = 0; i < m_mesh_data.Size(); i++)
+    for (SizeType mesh_index = 0; mesh_index < m_mesh_data.Size(); mesh_index++)
     {
-        const LightmapMeshData& lightmap_mesh_data = m_mesh_data[i];
+        AssertThrow(mesh_index < m_mesh_indices.Size());
 
         xatlas::MeshDecl mesh_decl;
-        mesh_decl.indexData = lightmap_mesh_data.indices.Data();
+        mesh_decl.indexData = m_mesh_indices[mesh_index].Data();
         mesh_decl.indexFormat = xatlas::IndexFormat::UInt32;
-        mesh_decl.indexCount = uint32(lightmap_mesh_data.indices.Size());
-        mesh_decl.vertexCount = uint32(lightmap_mesh_data.vertex_positions.Size() / 3);
-        mesh_decl.vertexPositionData = lightmap_mesh_data.vertex_positions.Data();
+        mesh_decl.indexCount = uint32(m_mesh_indices[mesh_index].Size());
+        mesh_decl.vertexCount = uint32(m_mesh_vertex_positions[mesh_index].Size() / 3);
+        mesh_decl.vertexPositionData = m_mesh_vertex_positions[mesh_index].Data();
         mesh_decl.vertexPositionStride = sizeof(float) * 3;
-        mesh_decl.vertexNormalData = lightmap_mesh_data.vertex_normals.Data();
+        mesh_decl.vertexNormalData = m_mesh_vertex_normals[mesh_index].Data();
         mesh_decl.vertexNormalStride = sizeof(float) * 3;
-        mesh_decl.vertexUvData = lightmap_mesh_data.vertex_uvs.Data();
+        mesh_decl.vertexUvData = m_mesh_vertex_uvs[mesh_index].Data();
         mesh_decl.vertexUvStride = sizeof(float) * 2;
 
         xatlas::AddMeshError error = xatlas::AddMesh(atlas, mesh_decl);
 
         if (error != xatlas::AddMeshError::Success)
         {
-            xatlas::Destroy(atlas);
-
             DebugLog(LogType::Error, "Error adding mesh: %s\n", xatlas::StringForEnum(error));
+
+            xatlas::Destroy(atlas);
 
             return HYP_MAKE_ERROR(Error, "Error adding mesh");
         }
@@ -196,9 +222,20 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
     for (uint32 mesh_index = 0; mesh_index < atlas->meshCount; mesh_index++)
     {
-        AssertThrow(mesh_index < m_mesh_data.Size());
+        LightmapMeshData& lightmap_mesh_data = m_mesh_data[mesh_index];
+
+        const Matrix4& transform = lightmap_mesh_data.transform;
+        const Matrix4 inverse_transform = transform.Inverted();
+        const Matrix4 normal_matrix = transform.Inverted().Transpose();
+        const Matrix4 inverse_normal_matrix = normal_matrix.Inverted();
+
+        MeshIndexArray& current_uv_indices = uv_map.mesh_to_uv_indices[lightmap_mesh_data.mesh->GetID()];
 
         const xatlas::Mesh& atlas_mesh = atlas->meshes[mesh_index];
+
+        AssertThrowMsg(m_mesh_indices[mesh_index].Size() == atlas_mesh.indexCount,
+            "Mesh index size does not match atlas mesh index count! Mesh index count: %zu, Atlas index count: %u",
+            m_mesh_indices[mesh_index].Size(), atlas_mesh.indexCount);
 
         for (uint32 i = 0; i < atlas_mesh.indexCount; i += 3)
         {
@@ -228,10 +265,6 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
                 continue;
             }
 
-            m_mesh_data[mesh_index].lightmap_uvs[verts[0].first] = Vec2f(verts[0].second) / Vec2f { float(atlas->width), float(atlas->height) };
-            m_mesh_data[mesh_index].lightmap_uvs[verts[1].first] = Vec2f(verts[1].second) / Vec2f { float(atlas->width), float(atlas->height) };
-            m_mesh_data[mesh_index].lightmap_uvs[verts[2].first] = Vec2f(verts[2].second) / Vec2f { float(atlas->width), float(atlas->height) };
-
             const Vec2i pts[3] = { verts[0].second, verts[1].second, verts[2].second };
 
             const Vec2i clamp { int(uv_map.width - 1), int(uv_map.height - 1) };
@@ -248,32 +281,69 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
                 bboxmax.y = MathUtil::Min(clamp.y, MathUtil::Max(bboxmax.y, pts[j].y));
             }
 
+            current_uv_indices.Reserve(current_uv_indices.Size() + (bboxmax.x - bboxmin.x + 1) * (bboxmax.y - bboxmin.y + 1));
+
             Vec2i point;
 
             for (point.x = bboxmin.x; point.x <= bboxmax.x; point.x++)
             {
                 for (point.y = bboxmin.y; point.y <= bboxmax.y; point.y++)
                 {
-                    const Vec3f bc_screen = MathUtil::CalculateBarycentricCoordinates(Vec2f(pts[0]), Vec2f(pts[1]), Vec2f(pts[2]), Vec2f(point));
+                    const Vec3f barycentric_coords = MathUtil::CalculateBarycentricCoordinates(Vec2f(pts[0]), Vec2f(pts[1]), Vec2f(pts[2]), Vec2f(point));
 
-                    if (bc_screen.x < 0 || bc_screen.y < 0 || bc_screen.z < 0)
+                    if (barycentric_coords.x < 0 || barycentric_coords.y < 0 || barycentric_coords.z < 0)
                     {
                         continue;
                     }
 
-                    const uint32 index = (point.x + atlas->width) % atlas->width
-                        + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
+                    const uint32 triangle_index = i / 3;
 
-                    uv_map.uvs[index] = {
-                        m_mesh_data[mesh_index].mesh,                                      // mesh
-                        m_mesh_data[mesh_index].material,                                  // material
-                        m_mesh_data[mesh_index].transform,                                 // transform
-                        i / 3,                                                             // triangle_index
-                        bc_screen,                                                         // barycentric_coords
-                        Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) } // lightmap_uv
+                    const uint32 triangle_indices[3] = {
+                        m_mesh_indices[mesh_index][triangle_index * 3 + 0],
+                        m_mesh_indices[mesh_index][triangle_index * 3 + 1],
+                        m_mesh_indices[mesh_index][triangle_index * 3 + 2]
                     };
 
-                    uv_map.mesh_to_uv_indices[m_mesh_data[mesh_index].mesh.GetID()].PushBack(index);
+                    AssertThrow(triangle_indices[0] * 3 < m_mesh_vertex_positions[mesh_index].Size());
+                    AssertThrow(triangle_indices[1] * 3 < m_mesh_vertex_positions[mesh_index].Size());
+                    AssertThrow(triangle_indices[2] * 3 < m_mesh_vertex_positions[mesh_index].Size());
+
+                    const Vec3f vertex_positions[3] = {
+                        Vec3f(m_mesh_vertex_positions[mesh_index][triangle_indices[0] * 3], m_mesh_vertex_positions[mesh_index][triangle_indices[0] * 3 + 1], m_mesh_vertex_positions[mesh_index][triangle_indices[0] * 3 + 2]),
+                        Vec3f(m_mesh_vertex_positions[mesh_index][triangle_indices[1] * 3], m_mesh_vertex_positions[mesh_index][triangle_indices[1] * 3 + 1], m_mesh_vertex_positions[mesh_index][triangle_indices[1] * 3 + 2]),
+                        Vec3f(m_mesh_vertex_positions[mesh_index][triangle_indices[2] * 3], m_mesh_vertex_positions[mesh_index][triangle_indices[2] * 3 + 1], m_mesh_vertex_positions[mesh_index][triangle_indices[2] * 3 + 2])
+                    };
+
+                    const Vec3f vertex_normals[3] = {
+                        (inverse_normal_matrix * Vec4f(Vec3f(m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 1], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 2]), 0.0f)).GetXYZ(),
+                        (inverse_normal_matrix * Vec4f(Vec3f(m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 1], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 2]), 0.0f)).GetXYZ(),
+                        (inverse_normal_matrix * Vec4f(Vec3f(m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 1], m_mesh_vertex_normals[mesh_index][triangle_indices[0] * 3 + 2]), 0.0f)).GetXYZ(),
+                    };
+
+                    const Vec3f position = vertex_positions[0] * barycentric_coords.x
+                        + vertex_positions[1] * barycentric_coords.y
+                        + vertex_positions[2] * barycentric_coords.z;
+
+                    const Vec3f normal = (normal_matrix * Vec4f((vertex_normals[0] * barycentric_coords.x + vertex_normals[1] * barycentric_coords.y + vertex_normals[2] * barycentric_coords.z), 0.0f)).GetXYZ().Normalize();
+
+                    const uint32 uv_index = (point.x + atlas->width) % atlas->width
+                        + (atlas->height - point.y + atlas->height) % atlas->height * atlas->width;
+
+                    LightmapUV& lightmap_uv = uv_map.uvs[uv_index];
+                    lightmap_uv.mesh = lightmap_mesh_data.mesh;
+                    lightmap_uv.material = lightmap_mesh_data.material;
+                    lightmap_uv.transform = lightmap_mesh_data.transform;
+                    lightmap_uv.triangle_index = i / 3;
+                    lightmap_uv.barycentric_coords = barycentric_coords;
+                    lightmap_uv.lightmap_uv = Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) };
+                    lightmap_uv.ray = LightmapRay {
+                        Ray { position, normal },
+                        lightmap_mesh_data.mesh->GetID(),
+                        triangle_index,
+                        uv_index
+                    };
+
+                    current_uv_indices.PushBack(uv_index);
                 }
             }
         }
@@ -281,32 +351,44 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
 
     for (SizeType mesh_index = 0; mesh_index < m_mesh_data.Size(); mesh_index++)
     {
-        const LightmapMeshData& lightmap_mesh_data = m_mesh_data[mesh_index];
-        const LightmapSubElement& sub_element = m_params.sub_elements[mesh_index];
+        LightmapMeshData& lightmap_mesh_data = m_mesh_data[mesh_index];
+        lightmap_mesh_data.vertices.Resize(atlas->meshes[mesh_index].vertexCount);
+        lightmap_mesh_data.indices.Resize(atlas->meshes[mesh_index].indexCount);
 
-        const Handle<Mesh>& mesh = sub_element.mesh;
-        AssertThrow(mesh.IsValid());
-
-        ResourceHandle resource_handle(*mesh->GetStreamedMeshData());
-
-        MeshData new_mesh_data;
-        new_mesh_data.vertices.Resize(atlas->meshes[mesh_index].vertexCount);
-        new_mesh_data.indices.Resize(atlas->meshes[mesh_index].indexCount);
+        const Matrix4 inverse_transform = lightmap_mesh_data.transform.Inverted();
+        const Matrix4 normal_matrix = lightmap_mesh_data.transform.Inverted().Transpose();
+        const Matrix4 inverse_normal_matrix = normal_matrix.Inverted();
 
         for (uint32 j = 0; j < atlas->meshes[mesh_index].indexCount; j++)
         {
-            new_mesh_data.indices[j] = atlas->meshes[mesh_index].indexArray[j];
+            lightmap_mesh_data.indices[j] = atlas->meshes[mesh_index].indexArray[j];
 
-            new_mesh_data.vertices[new_mesh_data.indices[j]] = mesh->GetStreamedMeshData()->GetMeshData().vertices[atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].xref];
-            new_mesh_data.vertices[new_mesh_data.indices[j]].texcoord1 = Vec2f {
-                float(atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].uv[0]) / float(atlas->width),
-                float(atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].uv[1]) / float(atlas->height)
+            const uint32 vertex_index = atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].xref;
+            const Vec2f uv = {
+                atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].uv[0],
+                atlas->meshes[mesh_index].vertexArray[atlas->meshes[mesh_index].indexArray[j]].uv[1]
             };
+
+            Vertex& vertex = lightmap_mesh_data.vertices[lightmap_mesh_data.indices[j]];
+
+            vertex.SetPosition(inverse_transform * Vec3f(m_mesh_vertex_positions[mesh_index][vertex_index * 3], m_mesh_vertex_positions[mesh_index][vertex_index * 3 + 1], m_mesh_vertex_positions[mesh_index][vertex_index * 3 + 2]));
+            vertex.SetNormal((inverse_normal_matrix * Vec4f(m_mesh_vertex_normals[mesh_index][vertex_index * 3], m_mesh_vertex_normals[mesh_index][vertex_index * 3 + 1], m_mesh_vertex_normals[mesh_index][vertex_index * 3 + 2], 0.0f)).GetXYZ());
+            vertex.SetTexCoord0(Vec2f(m_mesh_vertex_uvs[mesh_index][vertex_index * 2], m_mesh_vertex_uvs[mesh_index][vertex_index * 2 + 1]));
+            vertex.SetTexCoord1(uv / (Vec2f { float(atlas->width), float(atlas->height) } + Vec2f(0.5f)));
         }
 
-        resource_handle.Reset();
+        // Deallocate memory for data that is no longer needed.
+        m_mesh_vertex_positions[mesh_index].Clear();
+        m_mesh_vertex_positions[mesh_index].Refit();
 
-        mesh->SetStreamedMeshData(MakeRefCountedPtr<StreamedMeshData>(std::move(new_mesh_data), resource_handle));
+        m_mesh_vertex_normals[mesh_index].Clear();
+        m_mesh_vertex_normals[mesh_index].Refit();
+
+        m_mesh_vertex_uvs[mesh_index].Clear();
+        m_mesh_vertex_uvs[mesh_index].Refit();
+
+        m_mesh_indices[mesh_index].Clear();
+        m_mesh_indices[mesh_index].Refit();
     }
 
     xatlas::Destroy(atlas);
@@ -316,6 +398,8 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
     return HYP_MAKE_ERROR(Error, "No method to build lightmap");
 #endif
 }
+
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion LightmapUVBuilder
 

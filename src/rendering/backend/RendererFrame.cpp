@@ -6,8 +6,22 @@
 
 #include <rendering/Buffers.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 namespace hyperion {
 namespace renderer {
+
+void FrameBase::MarkDescriptorSetUsed(DescriptorSetBase* descriptor_set)
+{
+    AssertThrow(descriptor_set != nullptr);
+
+    m_used_descriptor_sets.Insert(descriptor_set);
+
+#ifdef HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE
+    descriptor_set->GetCurrentFrames().Insert(WeakHandleFromThis());
+#endif
+}
 
 void FrameBase::UpdateUsedDescriptorSets()
 {
@@ -17,10 +31,41 @@ void FrameBase::UpdateUsedDescriptorSets()
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",
             descriptor_set->GetLayout().GetName().LookupString());
 
+        bool is_dirty = false;
+        descriptor_set->UpdateDirtyState(&is_dirty);
+
+        if (!is_dirty)
+        {
+            // If the descriptor set is not dirty, we don't need to update it
+            continue;
+        }
+
+#if defined(HYP_DEBUG_MODE) && defined(HYP_DESCRIPTOR_SET_TRACK_FRAME_USAGE)
+        // Check to see if other frames are using the same descriptor set while we're updating them so we can assert an error if they are
+        const SizeType count = descriptor_set->GetCurrentFrames().Size() - descriptor_set->GetCurrentFrames().Count(this);
+
+        if (count != 0)
+        {
+            for (auto it = descriptor_set->GetCurrentFrames().Begin(); it != descriptor_set->GetCurrentFrames().End(); ++it)
+            {
+                if ((*it) == this)
+                {
+                    // If the current frame is already in the descriptor set's current frames, we don't need to add it again
+                    continue;
+                }
+
+                HYP_FAIL("Descriptor set \"%s\" (debug name: %s, index: %u) already in use by frame \"%s\" (index: %u)!",
+                    descriptor_set->GetLayout().GetName().LookupString(),
+                    descriptor_set->GetDebugName().LookupString(),
+                    descriptor_set->GetHeader_Internal()->index,
+                    it->header->debug_name.LookupString(),
+                    it->header->index);
+            }
+        }
+#endif
+
         descriptor_set->Update();
     }
-
-    m_used_descriptor_sets.Clear();
 }
 
 } // namespace renderer

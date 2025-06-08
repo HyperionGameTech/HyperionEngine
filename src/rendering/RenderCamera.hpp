@@ -18,7 +18,7 @@ namespace hyperion {
 
 class Camera;
 
-struct alignas(256) CameraShaderData
+struct CameraShaderData
 {
     Matrix4 view;
     Matrix4 projection;
@@ -33,6 +33,14 @@ struct alignas(256) CameraShaderData
     float camera_far;
     float camera_fov;
     uint32 id;
+
+    Vec4f _pad1;
+    Vec4f _pad2;
+    Vec4f _pad3;
+
+    Matrix4 _pad4;
+    Matrix4 _pad5;
+    Matrix4 _pad6;
 };
 
 class RenderCamera final : public RenderResourceBase

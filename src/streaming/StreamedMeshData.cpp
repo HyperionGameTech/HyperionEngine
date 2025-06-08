@@ -18,7 +18,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Streaming);
 
-StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mesh_data, ResourceHandle& out_resource_handle)
+StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData&& mesh_data, ResourceHandle& out_resource_handle)
     : StreamedDataBase(initial_state, out_resource_handle),
       m_streamed_data(nullptr),
       m_num_vertices(mesh_data.vertices.Size()),
@@ -32,10 +32,15 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
         break;
     case StreamedDataState::LOADED: // fallthrough
     case StreamedDataState::UNPAGED:
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
         m_mesh_data.Set(std::move(mesh_data));
 
         m_streamed_data = MakeRefCountedPtr<MemoryStreamedData>(m_mesh_data->GetHashCode(), [this](HashCode hc, ByteBuffer& out) -> bool
             {
+                HYP_MT_CHECK_READ(m_data_race_detector);
+
                 if (!m_mesh_data.HasValue())
                 {
                     HYP_LOG(Streaming, Error, "StreamedMeshData: Mesh data is not set when attempting to load from memory!");
@@ -65,8 +70,9 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
 
                 return true;
             });
+    }
 
-        break;
+    break;
     default:
         HYP_NOT_IMPLEMENTED_VOID();
     }
@@ -74,12 +80,14 @@ StreamedMeshData::StreamedMeshData(StreamedDataState initial_state, MeshData mes
 
 StreamedMeshData::StreamedMeshData()
     : StreamedDataBase(),
-      m_streamed_data(MakeRefCountedPtr<NullStreamedData>())
+      m_streamed_data(MakeRefCountedPtr<NullStreamedData>()),
+      m_num_vertices(0),
+      m_num_indices(0)
 {
 }
 
 StreamedMeshData::StreamedMeshData(const MeshData& mesh_data, ResourceHandle& out_resource_handle)
-    : StreamedMeshData(StreamedDataState::LOADED, mesh_data, out_resource_handle)
+    : StreamedMeshData(StreamedDataState::LOADED, MeshData(mesh_data), out_resource_handle)
 {
 }
 
@@ -90,6 +98,8 @@ StreamedMeshData::StreamedMeshData(MeshData&& mesh_data, ResourceHandle& out_res
 
 StreamedMeshData::~StreamedMeshData()
 {
+    HYP_MT_CHECK_RW(m_data_race_detector);
+
     if (m_streamed_data != nullptr)
     {
         m_streamed_data->WaitForFinalization();
@@ -99,23 +109,27 @@ StreamedMeshData::~StreamedMeshData()
 
 bool StreamedMeshData::IsInMemory_Internal() const
 {
+    HYP_MT_CHECK_READ(m_data_race_detector);
+
     return m_mesh_data.HasValue();
 }
 
 void StreamedMeshData::Unpage_Internal()
 {
-    m_mesh_data.Unset();
+    HYP_MT_CHECK_RW(m_data_race_detector);
 
-    if (!m_streamed_data)
+    if (m_streamed_data)
     {
-        return;
+        m_streamed_data->Unpage();
     }
 
-    m_streamed_data->Unpage();
+    m_mesh_data.Unset();
 }
 
 void StreamedMeshData::Load_Internal() const
 {
+    HYP_MT_CHECK_RW(m_data_race_detector);
+
     AssertThrow(m_streamed_data != nullptr);
     m_streamed_data->Load();
 
@@ -127,18 +141,20 @@ void StreamedMeshData::Load_Internal() const
 
 void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
 {
+    HYP_MT_CHECK_RW(m_data_race_detector);
+
     AssertThrow(byte_buffer.Size() >= 3);
     AssertThrow(byte_buffer.Data()[0] == 'H');
     AssertThrow(byte_buffer.Data()[1] == 'Y');
     AssertThrow(byte_buffer.Data()[2] == 'P');
-
-    m_mesh_data.Unset();
 
     MemoryBufferedReaderSource source { byte_buffer.ToByteView() };
     BufferedReader reader { &source };
 
     if (!reader.IsOpen())
     {
+        HYP_LOG(Streaming, Warning, "StreamedMeshData: Failed to open buffered reader for mesh data!");
+
         return;
     }
 
@@ -155,6 +171,9 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
 
     m_mesh_data = value.Get<MeshData>();
 
+    HYP_LOG(Streaming, Debug, "StreamedMeshData: Loaded mesh data with {} vertices and {} indices on thread {}", m_mesh_data->vertices.Size(), m_mesh_data->indices.Size(),
+        ThreadID::Current().GetName());
+
     if (m_mesh_data->vertices.Size() != m_num_vertices)
     {
         HYP_LOG(Streaming, Warning, "StreamedMeshData: Vertex count mismatch! Expected {} vertices, but loaded data has {} vertices", m_num_vertices, m_mesh_data->vertices.Size());
@@ -168,7 +187,17 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
 
 const MeshData& StreamedMeshData::GetMeshData() const
 {
+    // wait for loading tasks to complete on another thread
     WaitForTaskCompletion();
+
+    if (m_streamed_data)
+    {
+        m_streamed_data->WaitForTaskCompletion();
+    }
+
+    HYP_MT_CHECK_READ(m_data_race_detector);
+
+    AssertDebugMsg(ResourceBase::IsInitialized(), "StreamedMeshData: Cannot get mesh data for uninitialized resource!");
 
     if (!m_mesh_data.HasValue())
     {

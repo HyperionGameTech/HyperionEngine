@@ -103,8 +103,8 @@ struct UniquePtrHolder
     template <class Base, class Derived, class... Args>
     void Construct(Args&&... args)
     {
-        value = Memory::New<Derived>(std::forward<Args>(args)...);
-        dtor = &Memory::Delete<Derived>;
+        value = Memory::AllocateAndConstruct<Derived>(std::forward<Args>(args)...);
+        dtor = &Memory::DestructAndFree<Derived>;
         type_id = TypeID::ForType<Derived>();
         base_type_id = TypeID::ForType<Base>();
     }
@@ -113,7 +113,7 @@ struct UniquePtrHolder
     void TakeOwnership(Derived* ptr)
     {
         value = ptr;
-        dtor = &Memory::Delete<Derived>;
+        dtor = &Memory::DestructAndFree<Derived>;
         type_id = TypeID::ForType<Derived>();
         base_type_id = TypeID::ForType<Base>();
     }
@@ -346,32 +346,25 @@ public:
 
     HYP_FORCE_INLINE T* operator->() const
     {
-        return Get();
+        return static_cast<T*>(Base::m_holder.value);
     }
 
-    HYP_FORCE_INLINE T& operator*() const
+    HYP_FORCE_INLINE T& operator*() const&
     {
-        return *Get();
+        return *static_cast<T*>(Base::m_holder.value);
+    }
+
+    HYP_FORCE_INLINE T operator*() &&
+    {
+        T result = std::move(*static_cast<T*>(Base::m_holder.value));
+        Reset();
+
+        return result;
     }
 
     HYP_FORCE_INLINE bool operator<(const UniquePtr& other) const
     {
         return uintptr_t(Base::Get()) < uintptr_t(other.Base::Get());
-    }
-
-    /*! \brief Drops any currently held value and constructs a new value using \ref{value}.
-
-        Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
-        for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
-    template <class Ty>
-    HYP_FORCE_INLINE void Set(const T& value)
-    {
-        using TyN = NormalizedType<Ty>;
-        static_assert(std::is_convertible_v<std::add_pointer_t<TyN>, std::add_pointer_t<T>>, "Ty must be convertible to T!");
-
-        Base::Reset();
-
-        Base::m_holder.template Construct<T, TyN>(value);
     }
 
     /*! \brief Drops any currently held valeu and constructs a new value using \ref{value}.
@@ -386,7 +379,7 @@ public:
 
         Base::Reset();
 
-        Base::m_holder.template Construct<T, TyN>(std::move(value));
+        Base::m_holder.template Construct<T, TyN>(std::forward<Ty>(value));
     }
 
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,

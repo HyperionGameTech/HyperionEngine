@@ -369,29 +369,8 @@ struct TextureDesc
     HYP_FIELD(Serialize, Property = "ImageFormatCapabilities")
     EnumFlags<ImageFormatCapabilities> image_format_capabilities = ImageFormatCapabilities::SAMPLED;
 
-    HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const
-    {
-        return type == other.type
-            && format == other.format
-            && extent == other.extent
-            && filter_mode_min == other.filter_mode_min
-            && filter_mode_mag == other.filter_mode_mag
-            && wrap_mode == other.wrap_mode
-            && num_layers == other.num_layers
-            && image_format_capabilities == other.image_format_capabilities;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const
-    {
-        return type != other.type
-            || format != other.format
-            || extent != other.extent
-            || filter_mode_min != other.filter_mode_min
-            || filter_mode_mag != other.filter_mode_mag
-            || wrap_mode != other.wrap_mode
-            || num_layers != other.num_layers
-            || image_format_capabilities != other.image_format_capabilities;
-    }
+    HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const = default;
+    HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const = default;
 
     HYP_FORCE_INLINE bool HasMipmaps() const
     {

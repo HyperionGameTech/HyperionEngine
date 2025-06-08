@@ -55,9 +55,9 @@ DataStoreBase::DataStoreBase(const String& prefix, DataStoreOptions options)
 {
 }
 
-int DataStoreBase::IncRef(int count)
+int DataStoreBase::IncRef()
 {
-    return m_ref_counter.Produce(count, [this](bool)
+    return m_ref_counter.Produce(1, [this](bool)
         {
             if (m_options.flags & DSF_WRITE)
             {

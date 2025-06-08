@@ -10,7 +10,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="MeshComponent")]
-    [StructLayout(LayoutKind.Explicit, Size = 256)]
+    [StructLayout(LayoutKind.Explicit, Size = 288)]
     public unsafe struct MeshComponent : IComponent
     {
         [FieldOffset(0)]
@@ -40,38 +40,104 @@ namespace Hyperion
         [FieldOffset(224)]
         private fixed byte userData[32];
 
+        [FieldOffset(256)]
+        private WeakHandle<LightmapVolume> lightmapVolumeHandle;
+
+        [FieldOffset(264)]
+        private UUID lightmapVolumeUUID;
+
+        [FieldOffset(280)]
+        private uint lightmapElementIndex;
+
         public void Dispose()
         {
             meshHandle.Dispose();
             materialHandle.Dispose();
             skeletonHandle.Dispose();
+            lightmapVolumeHandle.Dispose();
         }
 
-        public Mesh Mesh
+        public Mesh? Mesh
         {
             get
             {
-                throw new NotImplementedException();
-                // return new Mesh(meshHandle);
+                return meshHandle.GetValue();
             }
             set
             {
-                throw new NotImplementedException();
-                // meshHandle = value.Handle;
+                meshHandle.Dispose();
+
+                if (value == null)
+                {
+                    meshHandle = Handle<Mesh>.Empty;
+                    
+                    return;
+                }
+
+                meshHandle = new Handle<Mesh>(value);
             }
         }
 
-        public Material Material
+        public Material? Material
         {
             get
             {
-                throw new NotImplementedException();
-                // return new Material(materialHandle);
+                return materialHandle.GetValue();
             }
             set
             {
-                throw new NotImplementedException();
-                // materialHandle = value.Handle;
+                materialHandle.Dispose();
+
+                if (value == null)
+                {
+                    materialHandle = Handle<Material>.Empty;
+                    
+                    return;
+                }
+
+                materialHandle = new Handle<Material>(value);
+            }
+        }
+
+        public Skeleton? Skeleton
+        {
+            get
+            {
+                return skeletonHandle.GetValue();
+            }
+            set
+            {
+                skeletonHandle.Dispose();
+
+                if (value == null)
+                {
+                    skeletonHandle = Handle<Skeleton>.Empty;
+                    
+                    return;
+                }
+
+                skeletonHandle = new Handle<Skeleton>(value);
+            }
+        }
+
+        public LightmapVolume? LightmapVolume
+        {
+            get
+            {
+                return lightmapVolumeHandle.Lock().GetValue();
+            }
+            set
+            {
+                lightmapVolumeHandle.Dispose();
+
+                if (value == null)
+                {
+                    lightmapVolumeHandle = WeakHandle<LightmapVolume>.Empty;
+                    
+                    return;
+                }
+
+                lightmapVolumeHandle = new WeakHandle<LightmapVolume>(value);
             }
         }
 

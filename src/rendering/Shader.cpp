@@ -52,7 +52,6 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         if (it != m_map.End())
         {
             entry = it->second;
-            AssertThrow(entry != nullptr);
         }
         else
         {
@@ -88,6 +87,8 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
                 break;
             }
 
+            Threads::Sleep(0);
+
             num_spins++;
         }
 
@@ -110,33 +111,43 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         // @TODO: remove bad value from cache?
     }
 
+    RC<CompiledShader> compiled_shader = MakeRefCountedPtr<CompiledShader>();
+
+    if (!entry)
+    {
+        entry = MakeRefCountedPtr<ShaderMapEntry>();
+        entry->compiled_shader = compiled_shader;
+        entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
+        entry->loading_thread_id = Threads::CurrentThreadID();
+    }
+
     if (should_add_entry_to_cache)
-    { // lock here, to add new entry to cache
-        if (!entry)
-        {
-            entry = MakeRefCountedPtr<ShaderMapEntry>();
-            entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-            entry->loading_thread_id = Threads::CurrentThreadID();
-        }
+    {
+        AssertDebug(entry != nullptr);
 
         Mutex::Guard guard(m_mutex);
 
-        m_map.Set(definition, entry);
+        // double check, as we don't want to overwrite an entry, potentially invalidating references to the compiled shader.
+        auto it = m_map.Find(definition);
+
+        if (it == m_map.End())
+        {
+            m_map.Insert(definition, entry);
+        }
     }
 
     ShaderRef shader;
 
     { // loading / compilation of shader (outside of mutex lock)
-        CompiledShader compiled_shader;
 
         bool is_valid_compiled_shader = true;
 
         is_valid_compiled_shader &= g_engine->GetShaderCompiler().GetCompiledShader(
             definition.GetName(),
             definition.GetProperties(),
-            compiled_shader);
+            *compiled_shader);
 
-        is_valid_compiled_shader &= compiled_shader.GetDefinition().IsValid();
+        is_valid_compiled_shader &= compiled_shader->GetDefinition().IsValid();
 
         AssertThrowMsg(
             is_valid_compiled_shader,
@@ -144,7 +155,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
             definition.GetName().LookupString(),
             definition.GetProperties().GetHashCode().Value());
 
-        shader = g_rendering_api->MakeShader(MakeRefCountedPtr<CompiledShader>(std::move(compiled_shader)));
+        shader = g_rendering_api->MakeShader(std::move(compiled_shader));
 
 #ifdef HYP_DEBUG_MODE
         AssertThrow(ensure_contains_properties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));

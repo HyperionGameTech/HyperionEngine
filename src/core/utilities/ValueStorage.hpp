@@ -13,17 +13,17 @@
 namespace hyperion {
 namespace utilities {
 
-template <class T, class T2 = void>
+template <class T>
 struct ValueStorageAlignment;
 
 template <class T>
-struct ValueStorageAlignment<T, typename std::enable_if_t<implementation_exists<T>>>
+struct ValueStorageAlignment
 {
-    static constexpr SizeType value = alignof(std::conditional_t<std::is_void_v<T>, ubyte, T>);
+    static constexpr SizeType value = alignof(T);
 };
 
-template <class T>
-struct ValueStorageAlignment<T, typename std::enable_if_t<!implementation_exists<T>>>
+template <>
+struct ValueStorageAlignment<void>
 {
     static constexpr SizeType value = 1;
 };
@@ -38,30 +38,10 @@ struct alignas(Alignment) ValueStorage
     ValueStorage() = default;
 
     template <class OtherType>
-    explicit ValueStorage(const ValueStorage<OtherType>& other)
-    {
-        static_assert(std::is_standard_layout_v<OtherType>, "OtherType must be standard layout");
-        static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
-        static_assert(sizeof(T) == sizeof(OtherType), "sizeof must match for both T and OtherType");
-
-        // Should alignof be checked?
-
-        Memory::MemCpy(data_buffer, other.data_buffer, sizeof(T));
-    }
+    explicit ValueStorage(const ValueStorage<OtherType>& other) = delete;
 
     template <class OtherType>
-    explicit ValueStorage(const OtherType* ptr)
-    {
-        static_assert(std::is_standard_layout_v<OtherType>, "OtherType must be standard layout");
-        static_assert(std::is_standard_layout_v<T>, "T must be standard layout");
-        static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
-
-        static_assert(sizeof(T) == sizeof(OtherType), "sizeof must match for both T and OtherType");
-
-        Memory::MemCpy(data_buffer, ptr, sizeof(T));
-    }
+    explicit ValueStorage(const OtherType* ptr) = delete;
 
     ValueStorage(const ValueStorage& other) = default;
     ValueStorage& operator=(const ValueStorage& other) = default;
@@ -72,91 +52,85 @@ struct alignas(Alignment) ValueStorage
     template <class... Args>
     HYP_FORCE_INLINE T* Construct(Args&&... args)
     {
-        new (&data_buffer[0]) T(std::forward<Args>(args)...);
+        T* address = GetPointer();
+        new (address) T(std::forward<Args>(args)...);
 
-        return &Get();
+        return address;
     }
 
     HYP_FORCE_INLINE void Destruct()
     {
-        Memory::Destruct<T>(static_cast<void*>(data_buffer));
+        Get().~T();
     }
 
     HYP_FORCE_INLINE T& Get() &
     {
-        return *reinterpret_cast<T*>(&data_buffer);
+        return *reinterpret_cast<T*>(&data_buffer[0]);
     }
 
     HYP_FORCE_INLINE const T& Get() const&
     {
-        return *reinterpret_cast<const T*>(&data_buffer);
+        return *reinterpret_cast<const T*>(&data_buffer[0]);
     }
 
-    HYP_FORCE_INLINE T Get() &&
+    HYP_FORCE_INLINE T* GetPointer() &
     {
-        return std::move(*reinterpret_cast<T*>(&data_buffer));
+        return reinterpret_cast<T*>(&data_buffer[0]);
     }
 
-    HYP_FORCE_INLINE void* GetPointer()
+    HYP_FORCE_INLINE const T* GetPointer() const&
     {
-        return &data_buffer[0];
-    }
-
-    HYP_FORCE_INLINE const void* GetPointer() const
-    {
-        return &data_buffer[0];
+        return reinterpret_cast<const T*>(&data_buffer[0]);
     }
 };
 
 template <>
 struct ValueStorage<void>
 {
-    ValueStorage() = default;
-    ValueStorage(const ValueStorage&) = default;
-    ValueStorage& operator=(const ValueStorage&) = default;
-    ValueStorage(ValueStorage&&) noexcept = default;
-    ValueStorage& operator=(ValueStorage&&) noexcept = default;
-    ~ValueStorage() = default;
 };
 
 template <class T, SizeType Count, SizeType Alignment = ValueStorageAlignment<T>::value, typename T2 = void>
 struct ValueStorageArray;
 
 template <class T, SizeType Count, SizeType Alignment>
-struct ValueStorageArray<T, Count, Alignment, typename std::enable_if_t<implementation_exists<T> && Count != 0>>
+struct ValueStorageArray<T, Count, Alignment, typename std::enable_if_t<Count != 0>>
 {
-    static constexpr SizeType alignment = ValueStorageAlignment<T>::value;
+    static constexpr SizeType alignment = Alignment;
 
-    alignas(alignment) ValueStorage<T> data[Count];
+    alignas(Alignment) ubyte data_buffer[sizeof(T) * Count];
 
-    HYP_FORCE_INLINE ValueStorage<T, alignment>& operator[](SizeType index)
+    template <class... Args>
+    HYP_FORCE_INLINE T* ConstructElement(SizeType index, Args&&... args)
     {
-        return data[index];
+        T* address = GetPointer() + index;
+        new (address) T(std::forward<Args>(args)...);
+
+        return address;
     }
 
-    HYP_FORCE_INLINE const ValueStorage<T, alignment>& operator[](SizeType index) const
+    HYP_FORCE_INLINE void DestructElement(SizeType index)
     {
-        return data[index];
+        GetPointer()[index].~T();
     }
 
-    HYP_FORCE_INLINE T* GetPointer()
+    HYP_FORCE_INLINE T* GetPointer() &
     {
-        return reinterpret_cast<T*>(&data[0]);
+        return reinterpret_cast<T*>(&data_buffer[0]);
     }
 
-    HYP_FORCE_INLINE const T* GetPointer() const
+    HYP_FORCE_INLINE const T* GetPointer() const&
     {
-        return reinterpret_cast<const T*>(&data[0]);
+        return reinterpret_cast<const T*>(&data_buffer[0]);
     }
 
-    HYP_FORCE_INLINE void* GetRawPointer()
+    HYP_DEPRECATED HYP_FORCE_INLINE void* GetRawPointer()
     {
-        return static_cast<void*>(&data[0]);
+        return static_cast<void*>(&data_buffer[0]);
     }
 
-    HYP_FORCE_INLINE const void* GetRawPointer() const
+    HYP_DEPRECATED HYP_FORCE_INLINE const void* GetRawPointer() const
     {
-        return static_cast<const void*>(&data[0]);
+        return static_cast<const void*>(&data_buffer[0]);
     }
 
     HYP_FORCE_INLINE constexpr SizeType Size() const

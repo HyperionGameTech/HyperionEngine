@@ -15,11 +15,29 @@ namespace hyperion {
 
 #pragma region AssetBatch
 
+AssetBatch::AssetBatch(AssetManager* asset_manager)
+    : TaskBatch(),
+      m_asset_map(MakeUnique<AssetMap>()),
+      m_asset_manager(asset_manager)
+{
+    AssertThrow(asset_manager != nullptr);
+}
+
 void AssetBatch::LoadAsync(uint32 num_batches)
 {
     HYP_SCOPE;
 
     AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
+    AssertThrowMsg(m_asset_manager != nullptr, "AssetBatch is in invalid state");
+
+    // Set pool to use the asset manager's thread pool if one hasn't been set to override it.
+    if (!TaskBatch::pool)
+    {
+        if (TaskThreadPool* thread_pool = m_asset_manager->GetThreadPool())
+        {
+            pool = thread_pool;
+        }
+    }
 
     m_results.Clear();
 
@@ -107,10 +125,7 @@ AssetMap AssetBatch::ForceLoad()
 
 void AssetBatch::Add(const String& key, const String& path)
 {
-    AssertThrowMsg(
-        IsCompleted(),
-        "Cannot add assets while loading!");
-
+    AssertThrowMsg(IsCompleted(), "Cannot add assets while loading!");
     AssertThrowMsg(m_asset_map != nullptr, "AssetBatch is in invalid state");
 
     if (!m_asset_map->Emplace(key).second)

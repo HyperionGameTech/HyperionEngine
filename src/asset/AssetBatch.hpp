@@ -177,13 +177,7 @@ private:
 public:
     using TaskBatch::IsCompleted;
 
-    AssetBatch(AssetManager* asset_manager)
-        : TaskBatch(),
-          m_asset_map(MakeUnique<AssetMap>()),
-          m_asset_manager(asset_manager)
-    {
-        AssertThrow(asset_manager != nullptr);
-    }
+    HYP_API AssetBatch(AssetManager* asset_manager);
 
     AssetBatch(const AssetBatch& other) = delete;
     AssetBatch& operator=(const AssetBatch& other) = delete;

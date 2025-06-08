@@ -14,6 +14,8 @@
 #include <core/math/Transform.hpp>
 #include <core/math/Matrix4.hpp>
 #include <core/math/BoundingBox.hpp>
+#include <core/math/Vertex.hpp>
+#include <core/math/Ray.hpp>
 
 #include <util/img/Bitmap.hpp>
 
@@ -44,14 +46,33 @@ struct LightmapMeshData
 
     Matrix4 transform;
 
-    Array<float, DynamicAllocator> vertex_positions;
-    Array<float, DynamicAllocator> vertex_normals;
-    Array<float, DynamicAllocator> vertex_uvs;
-
-    Array<uint32, DynamicAllocator> indices;
-
-    Array<Vec2f, DynamicAllocator> lightmap_uvs;
+    Array<Vertex> vertices;
+    Array<uint32> indices;
 };
+
+struct LightmapRay
+{
+    Ray ray;
+    ID<Mesh> mesh_id;
+    uint32 triangle_index;
+    uint32 texel_index;
+
+    HYP_FORCE_INLINE bool operator==(const LightmapRay& other) const
+    {
+        return ray == other.ray
+            && mesh_id == other.mesh_id
+            && triangle_index == other.triangle_index
+            && texel_index == other.texel_index;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const LightmapRay& other) const
+    {
+        return !(*this == other);
+    }
+};
+
+static_assert(std::is_trivially_copy_constructible_v<LightmapRay>, "LightmapRay must be trivially copy constructible");
+static_assert(std::is_trivially_move_constructible_v<LightmapRay>, "LightmapRay must be trivially move constructible");
 
 struct LightmapUV
 {
@@ -63,14 +84,23 @@ struct LightmapUV
     Vec2f lightmap_uv = Vec2f::Zero();
     Vec4f radiance = Vec4f::Zero();
     Vec4f irradiance = Vec4f::Zero();
+
+    LightmapRay ray;
 };
 
 struct LightmapUVMap
 {
+    // HashMap from mesh ID to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
+    using MeshToUVIndicesMap = HashMap<ID<Mesh>, Array<uint32, DynamicAllocator>, HashTable_DynamicNodeAllocator<KeyValuePair<ID<Mesh>, Array<uint32, DynamicAllocator>>>>;
+
     uint32 width = 0;
     uint32 height = 0;
+
+    /// UVs in texture space with each entry corresponding to a texel in the lightmap.
     Array<LightmapUV> uvs;
-    FlatMap<ID<Mesh>, Array<uint32>> mesh_to_uv_indices;
+
+    // Mapping from mesh ID to the indices of the UVs that correspond to that mesh.
+    MeshToUVIndicesMap mesh_to_uv_indices;
 
     /*! \brief Write the UV map radiance data to RGBA32F format. */
     Bitmap<4, float> ToBitmapRadiance() const;
@@ -80,8 +110,19 @@ struct LightmapUVMap
 
 class LightmapUVBuilder
 {
+    using MeshFloatDataArray = Array<float, DynamicAllocator>;
+    using MeshIndexArray = Array<uint32, DynamicAllocator>;
+
 public:
+    LightmapUVBuilder() = default;
+
     LightmapUVBuilder(const LightmapUVBuilderParams& params);
+
+    LightmapUVBuilder(const LightmapUVBuilder& other) = default;
+    LightmapUVBuilder(LightmapUVBuilder&& other) noexcept = default;
+    LightmapUVBuilder& operator=(const LightmapUVBuilder& other) = default;
+    LightmapUVBuilder& operator=(LightmapUVBuilder&& other) noexcept = default;
+
     ~LightmapUVBuilder() = default;
 
     HYP_FORCE_INLINE const Array<LightmapMeshData>& GetMeshData() const
@@ -94,6 +135,12 @@ public:
 private:
     LightmapUVBuilderParams m_params;
     Array<LightmapMeshData> m_mesh_data;
+
+    // Per element mesh data used for building the UV map
+    Array<MeshFloatDataArray, DynamicAllocator> m_mesh_vertex_positions;
+    Array<MeshFloatDataArray, DynamicAllocator> m_mesh_vertex_normals;
+    Array<MeshFloatDataArray, DynamicAllocator> m_mesh_vertex_uvs;
+    Array<MeshIndexArray, DynamicAllocator> m_mesh_indices;
 };
 
 } // namespace hyperion

@@ -10,8 +10,8 @@
 namespace hyperion {
 namespace utilities {
 
-template <SizeType Size, SizeType Alignment = alignof(ubyte)>
-struct alignas(Alignment) UserData
+template <SizeType Size, SizeType Alignment>
+struct UserData
 {
     ValueStorageArray<ubyte, Size, Alignment> data;
 

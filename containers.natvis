@@ -32,7 +32,7 @@
           </If>
           
           <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false">
-            <Item Name="[{ idx }]">*((($T1 *)&amp;m_allocation.storage.data[0]) + m_start_offset + idx)</Item>
+            <Item Name="[{ idx }]">*((($T1 *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset + idx)</Item>
           </If>
           
           <If Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == true">
@@ -48,27 +48,27 @@
   <Type Name="hyperion::containers::detail::String&lt;*&gt;">
     <!-- FIXME - new allocators has broken this -->
     <DisplayString Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; $T1 == 2">{{ {((CharType *)m_allocation.buffer + m_start_offset), s8} }}</DisplayString>
-    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 2">{{ {(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s8} }}</DisplayString>
+    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 2">{{ {(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s8} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {((CharType *)m_allocation.buffer + m_start_offset), s} }}</DisplayString>
-    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s} }}</DisplayString>
+    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 1 &amp;&amp; is_ansi">{{ {(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {((CharType *)m_allocation.buffer + m_start_offset), su} }}</DisplayString>
-    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), su} }}</DisplayString>
+    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 3 &amp;&amp; is_utf16">{{ {(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), su} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {((CharType *)m_allocation.buffer + m_start_offset), s32} }}</DisplayString>
-    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s32} }}</DisplayString>
+    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 4 &amp;&amp; is_utf32">{{ {(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s32} }}</DisplayString>
     <DisplayString Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {((CharType *)m_allocation.buffer + m_start_offset), su} }}</DisplayString>
-    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), su} }}</DisplayString>
+    <DisplayString Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; $T1 == 5 &amp;&amp; is_wide">{{ {(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), su} }}</DisplayString>
 
     <Expand>
       <Item Name="[Text]" Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; is_utf8">((CharType *)m_allocation.buffer + m_start_offset + m_start_offset), s8</Item>
-      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf8">(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s8</Item>
+      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf8">(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s8</Item>
       <Item Name="[Text]" Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; is_ansi">((CharType *)m_allocation.buffer + m_start_offset + m_start_offset), s</Item>
-      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_ansi">(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s</Item>
+      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_ansi">(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s</Item>
       <Item Name="[Text]" Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; is_utf16">((CharType *)m_allocation.buffer + m_start_offset + m_start_offset), su</Item>
-      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf16">(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), su</Item>
+      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf16">(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), su</Item>
       <Item Name="[Text]" Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; is_utf32">((CharType *)m_allocation.buffer + m_start_offset + m_start_offset), s32</Item>
-      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf32">(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), s32</Item>
+      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_utf32">(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), s32</Item>
       <Item Name="[Text]" Condition="m_allocation.allocation_type == 1 || m_allocation.is_dynamic == true &amp;&amp; is_wide">((CharType *)m_allocation.buffer + m_start_offset + m_start_offset), su</Item>
-      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_wide">(((CharType *)&amp;m_allocation.storage.data[0]) + m_start_offset), su</Item>
+      <Item Name="[Text]" Condition="m_allocation.allocation_type == 2 &amp;&amp; m_allocation.is_dynamic == false &amp;&amp; is_wide">(((CharType *)&amp;m_allocation.storage.data_buffer[0]) + m_start_offset), su</Item>
 
       <Item Name="[Type]">string_type</Item>
 
@@ -93,11 +93,11 @@
         <Variable Name="current_head" InitialValue="((hyperion::containers::detail::HashMapElement&lt;$T1,$T2&gt; *)nullptr)" />
 
         <Exec Condition="m_buckets.m_allocation.allocation_type == 1">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *) m_buckets.m_allocation.buffer)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *) &amp;(m_buckets.m_allocation.storage.data[0]))</Exec>
+        <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *) &amp;(m_buckets.m_allocation.storage.data_buffer[0]))</Exec>
         <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *) m_buckets.m_allocation.dynamic_allocation.buffer)</Exec>
 
         <Exec Condition="m_buckets.m_allocation.allocation_type == 1">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *)m_buckets.m_allocation.buffer + m_buckets.m_start_offset)</Exec>
-        <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *)&amp;m_buckets.m_allocation.storage.data[0] + m_buckets.m_start_offset)</Exec>
+        <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *)&amp;m_buckets.m_allocation.storage.data_buffer[0] + m_buckets.m_start_offset)</Exec>
         <Exec Condition="m_buckets.m_allocation.allocation_type == 2 &amp;&amp; m_buckets.m_allocation.is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;$T1,$T2&gt; *)m_buckets.m_allocation.dynamic_allocation.buffer + m_buckets.m_start_offset)</Exec>
 
         <Loop>
@@ -253,11 +253,11 @@
 
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 1">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_allocation.buffer))</Exec>
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_allocation.buffer))</Exec>
-        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_allocation.storage.data[0]))</Exec>
+        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *) &amp;(g_name_registry-&gt;m_name_map.m_buckets.m_allocation.storage.data_buffer[0]))</Exec>
 
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 1">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)g_name_registry-&gt;m_name_map.m_buckets.m_allocation.buffer + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
         <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == true">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)g_name_registry-&gt;m_name_map.m_buckets.m_allocation.buffer + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
-        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)&amp;g_name_registry-&gt;m_name_map.m_buckets.m_allocation.storage.data[0] + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
+        <Exec Condition="g_name_registry-&gt;m_name_map.m_buckets.m_allocation.allocation_type == 2 &amp;&amp; g_name_registry-&gt;m_name_map.m_buckets.m_allocation.is_dynamic == false">bucket_ptr = ((hyperion::containers::detail::HashMapBucket&lt;unsigned __int64,hyperion::containers::detail::String&lt;1&gt; &gt; *)&amp;g_name_registry-&gt;m_name_map.m_buckets.m_allocation.storage.data_buffer[0] + g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)</Exec>
 
         <Loop>
           <Break Condition="found == true || bucket_index == (g_name_registry-&gt;m_name_map.m_buckets.m_size - g_name_registry-&gt;m_name_map.m_buckets.m_start_offset)" />
@@ -269,7 +269,7 @@
               <Break Condition="found == true || current_head == nullptr" />
               <If Condition="(unsigned __int64)hash_code == (unsigned __int64)current_head-&gt;pair.first">
                 <If Condition="current_head-&gt;pair.second.m_allocation.allocation_type == 2 &amp;&amp; current_head-&gt;pair.second.m_allocation.is_dynamic == false">
-                  <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_allocation.storage.data + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
+                  <Item Name="StringValue">(char*)&amp;(current_head-&gt;pair.second.m_allocation.storage.data_buffer + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>
                 </If>
                 <If Condition="current_head-&gt;pair.second.m_allocation.allocation_type == 1 || current_head-&gt;pair.second.m_allocation.is_dynamic == true">
                   <Item Name="StringValue">&amp;((char*)current_head-&gt;pair.second.m_allocation.buffer + current_head-&gt;pair.second.m_start_offset)[0],sb</Item>

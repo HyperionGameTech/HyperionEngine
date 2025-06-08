@@ -11,14 +11,14 @@
 #include <core/io/ByteWriter.hpp>
 
 #if defined(HYP_AFTERMATH) && HYP_AFTERMATH
-    #include <Aftermath/GFSDK_Aftermath.h>
-    #include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
-    #include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
-    #include <Aftermath/GFSDK_Aftermath_Defines.h>
+#include <Aftermath/GFSDK_Aftermath.h>
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDump.h>
+#include <Aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h>
+#include <Aftermath/GFSDK_Aftermath_Defines.h>
 
-    #include <chrono>
-    #include <thread>
-    #include <iomanip>
+#include <chrono>
+#include <thread>
+#include <iomanip>
 #endif
 
 namespace hyperion {

@@ -285,10 +285,7 @@ void TemporalBlending::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
-    m_perform_blending = g_rendering_api->MakeComputePipeline(
-        shader,
-        m_descriptor_table);
-
+    m_perform_blending = g_rendering_api->MakeComputePipeline(shader, m_descriptor_table);
     DeferCreate(m_perform_blending);
 }
 
@@ -309,7 +306,7 @@ void TemporalBlending::Render(FrameBase* frame, RenderView* view)
                                                ->GetImage()
                                                ->GetExtent();
 
-    struct alignas(128)
+    struct
     {
         Vec2u output_dimensions;
         Vec2u depth_texture_dimensions;

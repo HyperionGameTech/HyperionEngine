@@ -100,7 +100,7 @@ struct EntityShaderData
     Vec4f world_aabb_min;
 
     uint32 entity_index;
-    uint32 _unused;
+    uint32 lightmap_volume_index;
     uint32 material_index;
     uint32 skeleton_index;
 

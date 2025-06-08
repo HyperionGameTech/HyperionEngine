@@ -147,6 +147,8 @@ void HyperionEditor::Init()
 
         Handle<Texture> dummy_light_texture;
 
+        constexpr auto x = sizeof(Array<int>);
+
         if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png"))
         {
             dummy_light_texture = dummy_light_texture_asset->Result();

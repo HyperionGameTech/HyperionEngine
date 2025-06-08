@@ -80,12 +80,12 @@ StreamedTextureData::StreamedTextureData()
 }
 
 StreamedTextureData::StreamedTextureData(const TextureData& texture_data, ResourceHandle& out_resource_handle)
-    : StreamedTextureData(StreamedDataState::LOADED, texture_data, out_resource_handle)
+    : StreamedTextureData(texture_data.buffer.Any() ? StreamedDataState::LOADED : StreamedDataState::NONE, texture_data, out_resource_handle)
 {
 }
 
 StreamedTextureData::StreamedTextureData(TextureData&& texture_data, ResourceHandle& out_resource_handle)
-    : StreamedTextureData(StreamedDataState::LOADED, std::move(texture_data), out_resource_handle)
+    : StreamedTextureData(texture_data.buffer.Any() ? StreamedDataState::LOADED : StreamedDataState::NONE, std::move(texture_data), out_resource_handle)
 {
 }
 
@@ -138,10 +138,23 @@ void StreamedTextureData::LoadTextureData(const ByteBuffer& byte_buffer) const
         return;
     }
 
-    m_texture_data = value.Get<TextureData>();
+    TextureData& texture_data = value.Get<TextureData>();
 
-    m_texture_desc = m_texture_data->desc;
+    if (texture_data.buffer.Empty())
+    {
+        HYP_LOG(Streaming, Warning, "StreamedTextureData: Texture data buffer is empty for StreamedTextureData with hash: {}", GetDataHashCode().Value());
+
+        return;
+    }
+
+    m_texture_data = texture_data;
+    AssertThrow(m_texture_desc == m_texture_data->desc);
+
     m_buffer_size = m_texture_data->buffer.Size();
+
+    AssertThrowMsg(m_buffer_size == m_texture_desc.GetByteSize(),
+        "Buffer size mismatch for StreamedTextureData with hash: %llu. Expected: %u, Actual: %u",
+        GetDataHashCode().Value(), m_texture_desc.GetByteSize(), m_buffer_size);
 }
 
 const TextureData& StreamedTextureData::GetTextureData() const

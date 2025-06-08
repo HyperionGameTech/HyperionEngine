@@ -12,6 +12,8 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/threading/Task.hpp>
+
 #include <rendering/RenderResource.hpp>
 
 #include <rendering/backend/RenderObject.hpp>

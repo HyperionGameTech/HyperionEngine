@@ -350,7 +350,7 @@ void DeferredPass::Render(FrameBase* frame, RenderView* view)
             {
                 const DescriptorSetRef& material_descriptor_set = render_light->GetMaterial().IsValid()
                     ? render_light->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
-                    : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet();
+                    : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet(frame->GetFrameIndex());
 
                 AssertThrow(material_descriptor_set != nullptr);
 

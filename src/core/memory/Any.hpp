@@ -35,11 +35,14 @@ static inline void* Any_CopyConstruct(void* src)
 
 class AnyBase
 {
+protected:
+    // protected constructor to prevent instantiation of AnyBase directly
+    AnyBase() = default;
 };
 
 class CopyableAny;
 
-class Any : public AnyBase
+class Any final : public AnyBase
 {
     using DeleteFunction = std::add_pointer_t<void(void*)>;
 
@@ -367,7 +370,7 @@ protected:
     DeleteFunction m_dtor;
 };
 
-class CopyableAny : public AnyBase
+class CopyableAny final : public AnyBase
 {
     using CopyConstructor = std::add_pointer_t<void*(void*)>;
     using DeleteFunction = std::add_pointer_t<void(void*)>;

@@ -49,19 +49,11 @@ class HYP_API RenderObjectContainerBase
 {
 protected:
     RenderObjectContainerBase(ANSIStringView render_object_type_name);
-    virtual ~RenderObjectContainerBase() = default;
 
 public:
-    HYP_FORCE_INLINE ANSIStringView GetRenderObjectTypeName() const
-    {
-        return m_render_object_type_name;
-    }
+    virtual ~RenderObjectContainerBase() = default;
 
     virtual void ReleaseIndex(uint32 index) = 0;
-
-protected:
-    ANSIStringView m_render_object_type_name;
-    SizeType m_size;
 };
 
 template <class T>
@@ -95,6 +87,15 @@ struct RenderObjectHeaderBase
     Name debug_name;
 #endif
 
+    RenderObjectHeaderBase()
+        : container(nullptr),
+          index(~0u),
+          ref_count_strong(0),
+          ref_count_weak(0),
+          deleter(nullptr)
+    {
+    }
+
     ~RenderObjectHeaderBase()
     {
         AssertDebug(!HasValue());
@@ -119,13 +120,13 @@ struct RenderObjectHeaderBase
 
     HYP_FORCE_INLINE void IncRefStrong()
     {
-        ref_count_strong.Increment(1, MemoryOrder::RELAXED);
+        ref_count_strong.Increment(1, MemoryOrder::RELEASE);
     }
 
     uint32 DecRefStrong()
     {
-        AssertDebug(GetRefCountStrong() != 0);
         AssertDebug(HasValue());
+        AssertDebug(GetRefCountStrong() != 0);
 
         uint16 count;
 
@@ -147,13 +148,13 @@ struct RenderObjectHeaderBase
 
     HYP_FORCE_INLINE void IncRefWeak()
     {
-        ref_count_weak.Increment(1, MemoryOrder::RELAXED);
+        ref_count_weak.Increment(1, MemoryOrder::RELEASE);
     }
 
     uint32 DecRefWeak()
     {
-        AssertDebug(GetRefCountWeak() != 0);
         AssertDebug(HasValue());
+        AssertDebug(GetRefCountWeak() != 0);
 
         uint16 count;
 
@@ -192,11 +193,8 @@ struct RenderObjectHeader final : RenderObjectHeaderBase
     ValueStorage<T> storage;
 
     RenderObjectHeader()
+        : RenderObjectHeaderBase()
     {
-        ref_count_strong.Set(0, MemoryOrder::RELAXED);
-        ref_count_weak.Set(0, MemoryOrder::RELAXED);
-        index = ~0u;
-        container = nullptr;
         deleter = [](RenderObjectHeaderBase* header)
         {
             static_cast<RenderObjectHeader<T>*>(header)->storage.Destruct();
@@ -284,11 +282,13 @@ public:
     {
         if (header)
         {
-            header->DecRefStrong();
-        }
+            auto* _header = header;
+            header = nullptr;
 
-        header = nullptr;
-        ptr = nullptr;
+            ptr = nullptr;
+
+            _header->DecRefStrong();
+        }
 
         return *this;
     }
@@ -305,23 +305,26 @@ public:
 
     RenderObjectHandle_Strong& operator=(const RenderObjectHandle_Strong& other)
     {
-        if (this == &other || header == other.header)
+        if (this == &other)
         {
             return *this;
         }
 
+        if (other.header)
+        {
+            other.header->IncRefStrong();
+        }
+
         if (header)
         {
-            header->DecRefStrong();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefStrong();
         }
 
         header = other.header;
         ptr = other.ptr;
-
-        if (header)
-        {
-            header->IncRefStrong();
-        }
 
         return *this;
     }
@@ -336,14 +339,17 @@ public:
 
     RenderObjectHandle_Strong& operator=(RenderObjectHandle_Strong&& other) noexcept
     {
-        if (this == &other || header == other.header)
+        if (this == &other)
         {
             return *this;
         }
 
         if (header)
         {
-            header->DecRefStrong();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefStrong();
         }
 
         header = other.header;
@@ -359,7 +365,10 @@ public:
     {
         if (header)
         {
-            header->DecRefStrong();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefStrong();
         }
     }
 
@@ -455,11 +464,13 @@ public:
     {
         if (header)
         {
-            header->DecRefStrong();
-        }
+            auto* _header = header;
+            header = nullptr;
 
-        header = nullptr;
-        ptr = nullptr;
+            ptr = nullptr;
+
+            _header->DecRefStrong();
+        }
     }
 
     HYP_FORCE_INLINE operator T*() const&
@@ -558,11 +569,13 @@ public:
     {
         if (header)
         {
-            header->DecRefWeak();
-        }
+            auto* _header = header;
+            header = nullptr;
 
-        header = nullptr;
-        ptr = nullptr;
+            ptr = nullptr;
+
+            _header->DecRefWeak();
+        }
 
         return *this;
     }
@@ -589,23 +602,26 @@ public:
 
     RenderObjectHandle_Weak& operator=(const RenderObjectHandle_Weak& other)
     {
-        if (this == &other || header == other.header)
+        if (this == &other)
         {
             return *this;
         }
 
+        if (other.header)
+        {
+            other.header->IncRefWeak();
+        }
+
         if (header)
         {
-            header->DecRefWeak();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefWeak();
         }
 
         header = other.header;
         ptr = other.ptr;
-
-        if (header)
-        {
-            header->IncRefWeak();
-        }
 
         return *this;
     }
@@ -620,14 +636,17 @@ public:
 
     RenderObjectHandle_Weak& operator=(RenderObjectHandle_Weak&& other) noexcept
     {
-        if (this == &other || header == other.header)
+        if (this == &other)
         {
             return *this;
         }
 
         if (header)
         {
-            header->DecRefWeak();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefWeak();
         }
 
         ptr = other.ptr;
@@ -643,7 +662,10 @@ public:
     {
         if (header)
         {
-            header->DecRefWeak();
+            auto* _header = header;
+            header = nullptr;
+
+            _header->DecRefWeak();
         }
     }
 
@@ -711,11 +733,13 @@ public:
     {
         if (header)
         {
-            header->DecRefWeak();
-        }
+            auto* _header = header;
+            header = nullptr;
 
-        header = nullptr;
-        ptr = nullptr;
+            ptr = nullptr;
+
+            _header->DecRefWeak();
+        }
     }
 
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
@@ -762,10 +786,19 @@ protected:
     {
     }
 
+#ifdef HYP_DEBUG_MODE
+public:
+#endif
+
     virtual ~RenderObjectBase()
     {
         AssertDebug(m_header != nullptr);
-        m_header->DecRefWeak();
+        AssertDebug(m_header->GetRefCountWeak() > 1); // 1 from before constructor, 1 from before destructor
+
+        auto* _header = m_header;
+        m_header = nullptr;
+
+        _header->DecRefWeak();
     }
 
     HYP_FORCE_INLINE RenderObjectHeaderBase* GetHeader_Internal() const

@@ -70,6 +70,21 @@ GPUBufferHolderBase* RenderShadowMap::GetGPUBufferHolder() const
     return g_engine->GetRenderData()->shadow_map_data;
 }
 
+void RenderShadowMap::SetBufferData(const ShadowMapShaderData& buffer_data)
+{
+    HYP_SCOPE;
+
+    Execute([this, buffer_data]()
+        {
+            m_buffer_data = buffer_data;
+
+            if (IsInitialized())
+            {
+                UpdateBufferData();
+            }
+        });
+}
+
 void RenderShadowMap::UpdateBufferData()
 {
     HYP_SCOPE;
@@ -98,21 +113,6 @@ void RenderShadowMap::UpdateBufferData()
 
     *static_cast<ShadowMapShaderData*>(m_buffer_address) = m_buffer_data;
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
-}
-
-void RenderShadowMap::SetBufferData(const ShadowMapShaderData& buffer_data)
-{
-    HYP_SCOPE;
-
-    Execute([this, buffer_data]()
-        {
-            m_buffer_data = buffer_data;
-
-            if (IsInitialized())
-            {
-                UpdateBufferData();
-            }
-        });
 }
 
 #pragma endregion RenderShadowMap

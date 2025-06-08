@@ -87,7 +87,7 @@ public:
         return m_buffer;
     }
 
-    HYP_FORCE_INLINE const VkAccelerationStructureKHR& GetVulkanAccelerationStructure() const
+    HYP_FORCE_INLINE const VkAccelerationStructureKHR& GetVulkanHandle() const
     {
         return m_acceleration_structure;
     }

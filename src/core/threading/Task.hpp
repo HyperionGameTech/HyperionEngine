@@ -759,6 +759,8 @@ public:
 protected:
     virtual void Await_Internal() const override
     {
+        // @TODO: Move semaphore to this - executor may be deleted for FIRE_AND_FORGET tasks as we don't own it.
+
         m_executor->GetSemaphore().Acquire();
 
 #ifdef HYP_DEBUG_MODE

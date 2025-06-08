@@ -20,8 +20,6 @@ using renderer::Platform;
 #pragma region RenderObjectContainerBase
 
 renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView render_object_type_name)
-    : m_render_object_type_name(render_object_type_name),
-      m_size(0)
 {
 }
 

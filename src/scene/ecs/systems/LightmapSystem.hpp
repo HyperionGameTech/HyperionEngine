@@ -5,12 +5,19 @@
 
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
-#include <scene/ecs/components/LightmapElementComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 namespace hyperion {
 
-// Assigns LightmapElementComponent a proper LightmapVolume.
-class LightmapSystem : public System<LightmapSystem, ComponentDescriptor<LightmapElementComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>>
+// Assigns a MeshComponent with a lightmap volume UUID to a proper LightmapVolume.
+class LightmapSystem : public System<LightmapSystem,
+
+                           ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
+
+                           ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
+
+                           ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false>>
 {
 public:
     LightmapSystem(EntityManager& entity_manager)
@@ -26,7 +33,7 @@ public:
     virtual void Process(GameCounter::TickUnit delta) override;
 
 private:
-    bool AssignVolumeToLightmapElement(LightmapElementComponent& lightmap_element_component);
+    bool AssignLightmapVolume(MeshComponent& mesh_component);
 };
 
 } // namespace hyperion

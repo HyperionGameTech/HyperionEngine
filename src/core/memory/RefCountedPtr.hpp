@@ -233,7 +233,7 @@ struct RefCountData
 
         // Override type_id, dtor for derived types
         type_id = TypeID::ForType<Normalized>();
-        dtor = &Memory::Delete<Normalized>;
+        dtor = &Memory::DestructAndFree<Normalized>;
         inc_ref_count = &IncRefCount_Impl<T, RefCountData>;
         dec_ref_count = &DecRefCount_Impl<T, RefCountData>;
     }
@@ -249,7 +249,7 @@ struct RefCountData
 
         // Override type_id, dtor for derived types
         type_id = TypeID::ForType<Normalized>();
-        dtor = &Memory::Delete<Normalized>;
+        dtor = &Memory::DestructAndFree<Normalized>;
         inc_ref_count = &IncRefCount_Impl<T, RefCountData>;
         dec_ref_count = &DecRefCount_Impl<T, RefCountData>;
     }

@@ -289,7 +289,7 @@ struct EntitySetView
 
             for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++)
             {
-                m_component_data_access_scopes[i].Construct(data_access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
+                m_component_data_access_scopes.ConstructElement(i, data_access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
             }
         }
     }
@@ -325,7 +325,7 @@ struct EntitySetView
                     access_flags |= DataAccessFlags::ACCESS_WRITE;
                 }
 
-                m_component_data_access_scopes[i].Construct(access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
+                m_component_data_access_scopes.ConstructElement(i, access_flags, *m_component_data_race_detectors[i], DataRaceDetector::DataAccessState { current_function, message.Length() != 0 ? message : ANSIStringView(component_names[i]) });
             }
         }
     }
@@ -348,7 +348,7 @@ struct EntitySetView
         {
             for (SizeType i = 0; i < m_component_data_access_scopes.Size(); i++)
             {
-                m_component_data_access_scopes[i].Destruct();
+                m_component_data_access_scopes.DestructElement(i);
             }
         }
 #endif

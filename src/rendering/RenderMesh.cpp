@@ -10,6 +10,8 @@
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
+#include <scene/Mesh.hpp>
+
 #include <core/threading/Task.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
@@ -83,6 +85,8 @@ void RenderMesh::Update_Internal()
 void RenderMesh::UploadMeshData()
 {
     HYP_SCOPE;
+
+    HYP_LOG(Rendering, Debug, "Uploading mesh data for Mesh #{}", m_mesh->GetID().Value());
 
     // upload mesh data
     Array<float> vertex_buffer;
@@ -453,7 +457,7 @@ void RenderMesh::PopulateIndirectDrawCommand(IndirectDrawCommand& out)
         .indexCount = NumIndices()
     };
 #else
-    #error Not implemented for this platform!
+#error Not implemented for this platform!
 #endif
 }
 

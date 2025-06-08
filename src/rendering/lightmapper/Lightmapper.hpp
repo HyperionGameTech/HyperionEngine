@@ -18,8 +18,6 @@
 
 #include <core/config/Config.hpp>
 
-#include <core/math/Ray.hpp>
-
 #include <scene/Scene.hpp>
 
 #include <rendering/lightmapper/LightmapUVBuilder.hpp>
@@ -35,7 +33,7 @@ struct TaskBatch;
 using threading::TaskBatch;
 
 struct LightmapHitsBuffer;
-class LightmapTaskThreadPool;
+class LightmapThreadPool;
 class ILightmapAccelerationStructure;
 class LightmapJob;
 class LightmapVolume;
@@ -124,27 +122,6 @@ struct LightmapperConfig : public ConfigBase<LightmapperConfig>
     }
 };
 
-struct LightmapRay
-{
-    Ray ray;
-    ID<Mesh> mesh_id;
-    uint32 triangle_index;
-    uint32 texel_index;
-
-    HYP_FORCE_INLINE bool operator==(const LightmapRay& other) const
-    {
-        return ray == other.ray
-            && mesh_id == other.mesh_id
-            && triangle_index == other.triangle_index
-            && texel_index == other.texel_index;
-    }
-
-    HYP_FORCE_INLINE bool operator!=(const LightmapRay& other) const
-    {
-        return !(*this == other);
-    }
-};
-
 struct LightmapHit
 {
     Vec4f color;
@@ -188,8 +165,6 @@ struct LightmapJobParams
     Handle<Scene> scene;
     Handle<LightmapVolume> volume;
 
-    uint32 element_index; // corresponds to element index in the lightmap volume
-
     Span<LightmapSubElement> sub_elements_view;
     HashMap<Handle<Entity>, LightmapSubElement*>* sub_elements_by_entity;
 
@@ -220,6 +195,16 @@ public:
         return m_uuid;
     }
 
+    HYP_FORCE_INLINE LightmapUVBuilder& GetUVBuilder()
+    {
+        return m_uv_builder;
+    }
+
+    HYP_FORCE_INLINE const LightmapUVBuilder& GetUVBuilder() const
+    {
+        return m_uv_builder;
+    }
+
     HYP_FORCE_INLINE LightmapUVMap& GetUVMap()
     {
         return *m_uv_map;
@@ -228,6 +213,11 @@ public:
     HYP_FORCE_INLINE const LightmapUVMap& GetUVMap() const
     {
         return *m_uv_map;
+    }
+
+    HYP_FORCE_INLINE uint32 GetElementIndex() const
+    {
+        return m_element_index;
     }
 
     HYP_FORCE_INLINE Scene* GetScene() const
@@ -264,8 +254,12 @@ public:
         m_previous_frame_rays = rays;
     }
 
-    void Start();
+    HYP_FORCE_INLINE const Result& GetResult() const
+    {
+        return m_result;
+    }
 
+    void Start();
     void Process();
 
     void GatherRays(uint32 max_ray_hits, Array<LightmapRay>& out_rays);
@@ -286,9 +280,24 @@ public:
     }
 
 private:
-    void Stop();
+    HYP_FORCE_INLINE bool HasRemainingTexels() const
+    {
+        return m_texel_index < m_texel_indices.Size() * m_params.config->num_samples;
+    }
 
-    TResult<LightmapUVMap> BuildUVMap();
+    /*! \brief Get the next texel index to process, advancing the teexl counter
+     *  \return The texel index
+     */
+    HYP_FORCE_INLINE uint32 NextTexel()
+    {
+        const uint32 current_texel_index = m_texel_indices[m_texel_index % m_texel_indices.Size()];
+        m_texel_index++;
+
+        return current_texel_index;
+    }
+
+    void Stop();
+    void Stop(const Error& error);
 
     LightmapJobParams m_params;
 
@@ -299,8 +308,11 @@ private:
     Array<LightmapRay> m_previous_frame_rays;
     mutable Mutex m_previous_frame_rays_mutex;
 
+    LightmapUVBuilder m_uv_builder;
     Optional<LightmapUVMap> m_uv_map;
     Task<TResult<LightmapUVMap>> m_build_uv_map_task;
+
+    uint32 m_element_index;
 
     Array<TaskBatch*> m_current_tasks;
     mutable Mutex m_current_tasks_mutex;
@@ -311,6 +323,10 @@ private:
     double m_last_logged_percentage;
 
     AtomicVar<uint32> m_num_concurrent_rendering_tasks;
+
+    Array<ResourceHandle> m_resource_cache;
+
+    Result m_result;
 };
 
 class HYP_API Lightmapper
@@ -332,7 +348,6 @@ public:
 
 private:
     LightmapJobParams CreateLightmapJobParams(
-        uint32 element_index,
         SizeType start_index,
         SizeType end_index,
         LightmapTopLevelAccelerationStructure* acceleration_structure);

@@ -495,7 +495,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, RenderView* 
         m_indirect_draw_state.GetIndirectBuffer(frame_index),
         renderer::ResourceState::INDIRECT_ARG);
 
-    struct alignas(128)
+    struct
     {
         uint32 batch_offset;
         uint32 num_instances;

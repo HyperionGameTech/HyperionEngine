@@ -42,8 +42,6 @@ extern VkImageLayout GetVkImageLayout(ResourceState);
 extern VkAccessFlags GetVkAccessMask(ResourceState);
 extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModuleType);
 
-HYP_DISABLE_OPTIMIZATION;
-
 #if 0
 RendererResult ImagePlatformImpl<Platform::vulkan>::ConvertTo32BPP(
     const TextureData *in_texture_data,
@@ -869,8 +867,6 @@ ImageViewRef VulkanImage::MakeLayerImageView(uint32 layer_index) const
 }
 
 #pragma endregion VulkanImage
-
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace renderer
 } // namespace hyperion

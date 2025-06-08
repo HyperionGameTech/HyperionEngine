@@ -87,6 +87,11 @@ namespace Hyperion
 
         public T? GetValue()
         {
+            if (ptr == IntPtr.Zero)
+            {
+                return null;
+            }
+
             HypDataBuffer hypDataBuffer;
             ManagedHandleNativeBindings.Handle_Get(ptr, out hypDataBuffer);
 

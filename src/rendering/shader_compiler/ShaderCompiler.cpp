@@ -923,6 +923,12 @@ static void ForEachPermutation(
         all_combinations.PushBack(std::move(current_properties));
     }
 
+    HYP_LOG(
+        ShaderCompiler,
+        Debug,
+        "Shader value groups: {}",
+        value_groups.Size());
+
     // now apply the value groups onto it
     for (const ShaderProperty& value_group : value_groups)
     {
@@ -942,6 +948,22 @@ static void ForEachPermutation(
 
                 current_group_combinations[existing_combination_index + (value_index * all_combinations.Size())] = std::move(merged_properties);
             }
+        }
+
+        HYP_LOG(
+            ShaderCompiler,
+            Debug,
+            "\tShader value group {} has {} combinations:",
+            value_group.name,
+            current_group_combinations.Size());
+
+        for (const Array<ShaderProperty>& properties : current_group_combinations)
+        {
+            HYP_LOG(
+                ShaderCompiler,
+                Debug,
+                "\t\t{}",
+                String::Join(properties, ", ", &ShaderProperty::GetName));
         }
 
         all_combinations.Concat(std::move(current_group_combinations));

@@ -84,32 +84,6 @@ bool Vertex::operator!=(const Vertex& other) const
         || bone_indices != other.bone_indices;
 }
 
-Vertex Vertex::operator*(float scalar) const
-{
-    Vertex other(*this);
-    other.SetPosition(GetPosition() * scalar);
-
-    return other;
-}
-
-Vertex& Vertex::operator*=(float scalar)
-{
-    return *this = operator*(scalar);
-}
-
-Vertex operator*(const Matrix4& mat, const Vertex& vertex)
-{
-    Vertex other(vertex);
-    other.SetPosition(mat * vertex.GetPosition());
-
-    return other;
-}
-
-Vertex operator*(const Transform& transform, const Vertex& vertex)
-{
-    return transform.GetMatrix() * vertex;
-}
-
 #pragma endregion Vertex
 
 } // namespace hyperion

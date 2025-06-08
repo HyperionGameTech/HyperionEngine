@@ -240,9 +240,6 @@ HYP_STRUCT(Size = 128, Serialize = "bitwise")
 
 struct alignas(16) Vertex
 {
-    friend Vertex operator*(const Matrix4& mat, const Vertex& vertex);
-    friend Vertex operator*(const Transform& transform, const Vertex& vertex);
-
     Vertex()
         : num_indices(0),
           num_weights(0)
@@ -540,9 +537,6 @@ struct alignas(16) Vertex
     HYP_FIELD(Property = "NumWeights", Serialize = true)
     uint8 num_weights;
 };
-
-Vertex operator*(const Matrix4& mat, const Vertex& vertex);
-Vertex operator*(const Transform& transform, const Vertex& vertex);
 
 static_assert(alignof(Vertex) == 16, "Vertex alignment is not 16 bytes, ensure size matches C# Vertex struct alignment");
 

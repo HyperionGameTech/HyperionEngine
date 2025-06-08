@@ -17,21 +17,27 @@ void LightmapSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    LightmapElementComponent& lightmap_element_component = GetEntityManager().GetComponent<LightmapElementComponent>(entity);
+    MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
 
-    if (lightmap_element_component.volume_uuid == UUID::Invalid())
+    if (mesh_component.lightmap_volume_uuid == UUID::Invalid())
     {
-        lightmap_element_component.volume.Reset();
+        mesh_component.lightmap_volume.Reset();
+
+        GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 
         return;
     }
 
-    if (!lightmap_element_component.volume.IsValid())
+    GetEntityManager().AddTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
+
+    if (!mesh_component.lightmap_volume.IsValid())
     {
-        if (!AssignVolumeToLightmapElement(lightmap_element_component))
+        if (!AssignLightmapVolume(mesh_component))
         {
-            HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} could not be assigned to a LightmapVolume",
-                lightmap_element_component.volume_uuid);
+            HYP_LOG(Lightmap, Warning, "MeshComponent has volume UUID: {} could not be assigned to a LightmapVolume",
+                mesh_component.lightmap_volume_uuid);
+
+            return;
         }
     }
 }
@@ -40,31 +46,33 @@ void LightmapSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    LightmapElementComponent& lightmap_element_component = GetEntityManager().GetComponent<LightmapElementComponent>(entity);
-    lightmap_element_component.volume.Reset();
+    MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+    mesh_component.lightmap_volume.Reset();
+
+    GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 }
 
 void LightmapSystem::Process(GameCounter::TickUnit delta)
 {
-    for (auto [entity_id, lightmap_element_component] : GetEntityManager().GetEntitySet<LightmapElementComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity_id, mesh_component, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {
-        if (lightmap_element_component.volume_uuid == UUID::Invalid())
+        if (mesh_component.lightmap_volume_uuid == UUID::Invalid())
         {
             continue;
         }
 
-        if (!lightmap_element_component.volume.IsValid())
+        if (!mesh_component.lightmap_volume.IsValid())
         {
-            if (!AssignVolumeToLightmapElement(lightmap_element_component))
+            if (!AssignLightmapVolume(mesh_component))
             {
-                HYP_LOG(Lightmap, Warning, "LightmapElementComponent has volume UUID: {} could not be assigned to a LightmapVolume",
-                    lightmap_element_component.volume_uuid);
+                HYP_LOG(Lightmap, Warning, "MeshComponent has volume UUID: {} could not be assigned to a LightmapVolume",
+                    mesh_component.lightmap_volume_uuid);
             }
         }
     }
 }
 
-bool LightmapSystem::AssignVolumeToLightmapElement(LightmapElementComponent& lightmap_element_component)
+bool LightmapSystem::AssignLightmapVolume(MeshComponent& mesh_component)
 {
     for (auto [entity_id, lightmap_volume_component] : GetEntityManager().GetEntitySet<LightmapVolumeComponent>().GetScopedView(GetComponentInfos()))
     {
@@ -73,16 +81,16 @@ bool LightmapSystem::AssignVolumeToLightmapElement(LightmapElementComponent& lig
             continue;
         }
 
-        if (lightmap_volume_component.volume->GetUUID() == lightmap_element_component.volume_uuid)
+        if (lightmap_volume_component.volume->GetUUID() == mesh_component.lightmap_volume_uuid)
         {
-            lightmap_element_component.volume = lightmap_volume_component.volume.ToWeak();
-
-            const LightmapElement* lightmap_element = lightmap_volume_component.volume->GetElement(lightmap_element_component.element_index);
+            const LightmapElement* lightmap_element = lightmap_volume_component.volume->GetElement(mesh_component.lightmap_element_index);
 
             if (!lightmap_element)
             {
                 return false;
             }
+
+            mesh_component.lightmap_volume = lightmap_volume_component.volume.ToWeak();
 
             return true;
         }

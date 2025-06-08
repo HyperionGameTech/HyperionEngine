@@ -38,14 +38,9 @@ struct VulkanDescriptorElementInfo
     };
 };
 
-struct DescriptorSetElementCachedValue
-{
-    VulkanDescriptorElementInfo info;
-};
-
 class VulkanDescriptorSet final : public DescriptorSetBase
 {
-    using ElementCache = HashMap<Name, Array<DescriptorSetElementCachedValue>, HashTable_DynamicNodeAllocator<KeyValuePair<Name, Array<DescriptorSetElementCachedValue>>>>;
+    using ElementCache = HashMap<Name, Array<VulkanDescriptorElementInfo>, HashTable_DynamicNodeAllocator<KeyValuePair<Name, Array<VulkanDescriptorElementInfo>>>>;
 
 public:
     HYP_API VulkanDescriptorSet(const DescriptorSetLayout& layout);
@@ -66,6 +61,7 @@ public:
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Destroy() override;
 
+    HYP_API virtual void UpdateDirtyState(bool* out_is_dirty = nullptr) override;
     HYP_API virtual void Update() override;
 
     HYP_API virtual DescriptorSetRef Clone() const override;
@@ -81,6 +77,7 @@ protected:
     VkDescriptorSet m_handle;
     ElementCache m_cached_elements;
     VulkanDescriptorSetLayoutWrapperRef m_vk_layout_wrapper;
+    Array<VulkanDescriptorElementInfo> m_vk_descriptor_element_infos;
 };
 
 class VulkanDescriptorTable : public DescriptorTableBase
