@@ -5,6 +5,7 @@
 
 #include <core/Base.hpp>
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -38,7 +39,7 @@ enum class PhysicsShapeType : uint32
 };
 
 HYP_CLASS(Abstract)
-class PhysicsShape : public EnableRefCountedPtrFromThis<PhysicsShape>
+class PhysicsShape : public HypObject<PhysicsShape>
 {
     HYP_OBJECT_BODY(PhysicsShape);
 
@@ -185,20 +186,18 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API RigidBody : public HypObject<RigidBody>
+class HYP_API RigidBody final : public HypObject<RigidBody>
 {
     HYP_OBJECT_BODY(RigidBody);
 
 public:
     RigidBody();
     RigidBody(const PhysicsMaterial& physics_material);
-    RigidBody(const RC<PhysicsShape>& shape, const PhysicsMaterial& physics_material);
+    RigidBody(const Handle<PhysicsShape>& shape, const PhysicsMaterial& physics_material);
 
     RigidBody(const RigidBody& other) = delete;
     RigidBody& operator=(const RigidBody& other) = delete;
     ~RigidBody();
-
-    void Init() override;
 
     /*! \brief Get the world-space transform of this RigidBody. */
     HYP_METHOD(Serialize, Property = "Transform")
@@ -214,13 +213,13 @@ public:
     }
 
     HYP_METHOD(Serialize, Property = "Shape")
-    HYP_FORCE_INLINE const RC<PhysicsShape>& GetShape() const
+    HYP_FORCE_INLINE const Handle<PhysicsShape>& GetShape() const
     {
         return m_shape;
     }
 
     HYP_METHOD(Serialize, Property = "Shape")
-    void SetShape(const RC<PhysicsShape>& shape);
+    void SetShape(const Handle<PhysicsShape>& shape);
 
     HYP_FORCE_INLINE PhysicsMaterial& GetPhysicsMaterial()
     {
@@ -263,8 +262,10 @@ public:
     void ApplyForce(const Vec3f& force);
 
 private:
+    void Init() override;
+
     Transform m_transform;
-    RC<PhysicsShape> m_shape;
+    Handle<PhysicsShape> m_shape;
     PhysicsMaterial m_physics_material;
     bool m_is_kinematic;
 

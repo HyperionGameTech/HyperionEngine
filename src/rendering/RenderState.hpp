@@ -41,7 +41,6 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_ENV_PROBES = 0x8,
     RENDER_STATE_ACTIVE_ENV_PROBE = 0x10,
     RENDER_STATE_CAMERA = 0x20,
-    RENDER_STATE_FRAME_COUNTER = 0x40,
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
@@ -99,7 +98,7 @@ struct RenderBinding<Scene>
 };
 
 HYP_CLASS()
-class RenderState : public HypObject<RenderState>
+class RenderState final : public HypObject<RenderState>
 {
     HYP_OBJECT_BODY(RenderState);
 
@@ -111,21 +110,12 @@ public:
     Stack<TResourceHandle<RenderEnvProbe>> env_probe_bindings;
     FixedArray<Array<TResourceHandle<RenderEnvProbe>>, ENV_PROBE_TYPE_MAX> bound_env_probes;
 
-    uint32 frame_counter = ~0u;
-
     HYP_API RenderState();
     RenderState(const RenderState&) = delete;
     RenderState& operator=(const RenderState&) = delete;
     RenderState(RenderState&&) noexcept = delete;
     RenderState& operator=(RenderState&&) noexcept = delete;
     HYP_API ~RenderState();
-
-    HYP_API void Init() override;
-
-    HYP_FORCE_INLINE void AdvanceFrameCounter()
-    {
-        ++frame_counter;
-    }
 
     HYP_FORCE_INLINE void SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>&& resource_handle)
     {
@@ -233,14 +223,11 @@ public:
         {
             env_probe_bindings = {};
         }
-
-        if (mask & RENDER_STATE_FRAME_COUNTER)
-        {
-            frame_counter = ~0u;
-        }
     }
 
 private:
+    HYP_API void Init() override;
+
     FixedArray<uint32, ENV_PROBE_BINDING_SLOT_MAX> m_env_probe_texture_slot_counters {};
 };
 

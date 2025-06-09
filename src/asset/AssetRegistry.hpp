@@ -125,7 +125,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API AssetObject : public HypObject<AssetObject>
+class HYP_API AssetObject final : public HypObject<AssetObject>
 {
     HYP_OBJECT_BODY(AssetObject);
 
@@ -190,9 +190,10 @@ public:
     HYP_METHOD()
     Result Save() const;
 
-    void Init() override;
-
+    
 private:
+    void Init() override;
+    
     HYP_FIELD(Property = "UUID", Serialize = true)
     UUID m_uuid;
 
@@ -207,7 +208,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API AssetPackage : public HypObject<AssetPackage>
+class HYP_API AssetPackage final : public HypObject<AssetPackage>
 {
     HYP_OBJECT_BODY(AssetPackage);
 
@@ -295,12 +296,13 @@ public:
     HYP_METHOD(Scriptable)
     Name GetUniqueAssetName(Name base_name) const;
 
-    void Init() override;
-
+    
     Delegate<void, AssetObject*> OnAssetObjectAdded;
     Delegate<void, AssetObject*> OnAssetObjectRemoved;
-
+    
 private:
+    void Init() override;
+
     Name GetUniqueAssetName_Impl(Name base_name) const
     {
         return base_name;
@@ -322,7 +324,7 @@ enum class AssetRegistryPathType : uint8
 };
 
 HYP_CLASS()
-class HYP_API AssetRegistry : public HypObject<AssetRegistry>
+class HYP_API AssetRegistry final : public HypObject<AssetRegistry>
 {
     HYP_OBJECT_BODY(AssetRegistry);
 
@@ -370,11 +372,12 @@ public:
     HYP_METHOD()
     Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool create_if_not_exist = true);
 
+    
+    Delegate<void, const Handle<AssetPackage>&> OnPackageAdded;
+    
+private:
     void Init() override;
 
-    Delegate<void, const Handle<AssetPackage>&> OnPackageAdded;
-
-private:
     Handle<AssetPackage> GetPackageFromPath_Internal(const UTF8StringView& path, AssetRegistryPathType path_type, bool create_if_not_exist, String& out_asset_name);
 
     HYP_FIELD(Property = "RootPath", Serialize = true)

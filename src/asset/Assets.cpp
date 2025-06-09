@@ -54,13 +54,6 @@ AssetCollector::~AssetCollector()
 
 void AssetCollector::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     if (!m_base_path.Any())
     {
         m_base_path = FilePath::Current();
@@ -346,13 +339,6 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
 
 void AssetManager::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             if (m_thread_pool)
@@ -365,6 +351,8 @@ void AssetManager::Init()
     RegisterDefaultLoaders();
 
     m_thread_pool->Start();
+
+    SetReady(true);
 }
 
 void AssetManager::Update(GameCounter::TickUnit delta)

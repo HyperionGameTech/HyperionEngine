@@ -38,7 +38,7 @@ enum class LightType : uint32
 };
 
 HYP_CLASS()
-class HYP_API Light : public HypObject<Light>
+class HYP_API Light final : public HypObject<Light>
 {
     HYP_OBJECT_BODY(Light);
 
@@ -326,11 +326,11 @@ public:
 
     BoundingSphere GetBoundingSphere() const;
 
+    void EnqueueRenderUpdates();
+    
+protected:
     void Init() override;
 
-    void EnqueueRenderUpdates();
-
-protected:
     LightType m_type;
     Vec3f m_position;
     Vec3f m_normal;

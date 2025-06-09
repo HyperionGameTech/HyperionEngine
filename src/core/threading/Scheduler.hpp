@@ -53,6 +53,11 @@ public:
         m_owner_thread = owner_thread;
     }
 
+    void WakeUpOwnerThread()
+    {
+        m_has_tasks.notify_all();
+    }
+
     void RequestStop();
 
     virtual void Await(TaskID id) = 0;
@@ -71,11 +76,6 @@ protected:
     SchedulerBase(ThreadID owner_thread)
         : m_owner_thread(owner_thread)
     {
-    }
-
-    void WakeUpOwnerThread()
-    {
-        m_has_tasks.notify_all();
     }
 
     bool WaitForTasks(std::unique_lock<std::mutex>& lock);

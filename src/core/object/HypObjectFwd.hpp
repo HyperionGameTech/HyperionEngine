@@ -234,44 +234,6 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
     }
 };
 
-class HYP_API HypObjectBase
-{
-    template <class T>
-    friend class HypObject;
-
-    template <class T>
-    friend struct Handle;
-
-    template <class T>
-    friend struct WeakHandle;
-
-    friend struct AnyHandle;
-
-    template <class T, class... Args>
-    friend Handle<T> CreateObject(Args&&... args);
-
-public:
-    virtual ~HypObjectBase();
-
-    HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
-    {
-        return m_header;
-    }
-
-protected:
-    HypObjectBase();
-
-    HYP_FORCE_INLINE IDBase GetID() const
-    {
-        return GetID_Internal();
-    }
-
-    IDBase GetID_Internal() const;
-
-    // Pointer to the header of the object, holding container, index and ref counts
-    HypObjectHeader* m_header;
-};
-
 template <class T>
 struct HypClassRegistration;
 

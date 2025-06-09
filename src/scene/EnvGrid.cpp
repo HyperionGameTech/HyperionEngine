@@ -111,13 +111,6 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
         {
             if (m_render_resource != nullptr)

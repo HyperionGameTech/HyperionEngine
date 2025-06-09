@@ -324,8 +324,8 @@ TerrainStreamingCell::TerrainStreamingCell()
 {
 }
 
-TerrainStreamingCell::TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material)
-    : StreamingCell(world_grid, cell_info),
+TerrainStreamingCell::TerrainStreamingCell(const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material)
+    : StreamingCell(cell_info),
       m_scene(scene),
       m_material(material)
 {
@@ -351,66 +351,51 @@ void TerrainStreamingCell::OnLoaded_Impl()
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
-    if (!m_scene.IsValid())
-    {
-        HYP_LOG(WorldGrid, Error, "TerrainStreamingCell has no valid Scene");
-
-        return;
-    }
-
-    if (!m_mesh.IsValid())
-    {
-        HYP_LOG(WorldGrid, Error, "Terrain mesh is invalid");
-
-        return;
-    }
+    AssertThrowMsg(m_scene.IsValid(), "Invalid scene!");
+    AssertThrowMsg(m_mesh.IsValid(), "Invalid mesh!");
+    AssertThrowMsg(m_material.IsValid(), "Invalid material!");
 
     const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager();
     AssertThrow(entity_manager != nullptr);
 
-    const WorldGridParams& params = m_world_grid->GetParams();
-
-    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale);
+    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh ID: #{}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale, m_cell_info.bounds, m_mesh.GetID().Value());
 
     Transform transform;
-    transform.SetTranslation(Vec3f {
-        params.offset.x + (float(m_cell_info.coord.x) - 0.5f) * (float(m_cell_info.extent.x) - 1.0f) * m_cell_info.scale.x,
-        params.offset.y,
-        params.offset.z + (float(m_cell_info.coord.y) - 0.5f) * (float(m_cell_info.extent.y) - 1.0f) * m_cell_info.scale.z });
-
+    transform.SetTranslation(m_cell_info.bounds.min);
     transform.SetScale(m_cell_info.scale);
 
-    Handle<Entity> patch_entity = entity_manager->AddEntity();
+    Handle<Entity> entity = entity_manager->AddEntity();
+    entity_manager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+    entity_manager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
+    entity_manager->AddComponent<TransformComponent>(entity, TransformComponent { transform });
 
-    entity_manager->AddComponent<VisibilityStateComponent>(patch_entity, VisibilityStateComponent {});
-    entity_manager->AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent {});
+    MeshComponent* mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
 
-    MeshComponent* patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(patch_entity);
-    BoundingBoxComponent* patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(patch_entity);
-
-    if (patch_bounding_box_component)
+    if (mesh_component)
     {
-        patch_bounding_box_component->local_aabb = m_mesh->GetAABB();
-    }
-
-    if (patch_mesh_component)
-    {
-        patch_mesh_component->mesh = m_mesh;
-        patch_mesh_component->material = m_material;
+        mesh_component->mesh = m_mesh;
+        mesh_component->material = m_material;
     }
     else
     {
         // Add MeshComponent to patch entity
-        entity_manager->AddComponent<MeshComponent>(patch_entity, MeshComponent { m_mesh, m_material });
+        entity_manager->AddComponent<MeshComponent>(entity, MeshComponent { m_mesh, m_material });
     }
 
-    entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(patch_entity);
+    entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+
+    // m_node = m_scene->GetRoot()->AddChild();
+    // m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
+    // m_node->SetEntity(entity);
+    // HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetEntityAABB(), m_node->GetWorldTranslation());
+
+    auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
+    AssertThrow(result.HasValue());
 
     m_node = m_scene->GetRoot()->AddChild();
-    m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
-    m_node->SetEntity(patch_entity);
-    m_node->SetWorldTransform(transform);
-    m_node->SetEntityAABB(m_mesh->GetAABB());
+    m_node->AddChild(result.GetValue().Result()->GetChild(0));
+    // m_node->Scale(30.0f);
+    m_node->SetWorldTranslation(transform.GetTranslation());
 }
 
 void TerrainStreamingCell::OnRemoved_Impl()
@@ -427,29 +412,29 @@ void TerrainStreamingCell::OnRemoved_Impl()
 
 #pragma endregion TerrainStreamingCell
 
-#pragma region TerrainWorldGridPlugin
+#pragma region TerrainWorldGridLayer
 
-TerrainWorldGridPlugin::TerrainWorldGridPlugin()
+TerrainWorldGridLayer::TerrainWorldGridLayer()
     : m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
 {
     m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
 }
 
-TerrainWorldGridPlugin::~TerrainWorldGridPlugin()
+TerrainWorldGridLayer::~TerrainWorldGridLayer()
 {
 }
 
-void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
+void TerrainWorldGridLayer::Init()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+
+    WorldGridLayer::Init();
 
     HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
 
     AssertDebug(m_scene.IsValid());
     InitObject(m_scene);
-
-    world_grid->GetWorld()->AddScene(m_scene);
 
     m_material = CreateObject<Material>(NAME("terrain_material"));
     m_material->SetBucket(BUCKET_OPAQUE);
@@ -478,29 +463,55 @@ void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
     InitObject(m_material);
 }
 
-void TerrainWorldGridPlugin::Shutdown_Impl(WorldGrid* world_grid)
+void TerrainWorldGridLayer::OnAdded_Impl(WorldGrid* world_grid)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
     AssertDebug(world_grid != nullptr);
+    AssertDebug(m_scene.IsValid());
 
-    HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
+    world_grid->GetWorld()->AddScene(m_scene);
 
-    world_grid->GetWorld()->RemoveScene(m_scene);
+    HYP_LOG(WorldGrid, Info, "Adding TerrainWorldGridPlugin scene to world");
 }
 
-void TerrainWorldGridPlugin::Update_Impl(float delta)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-}
-
-Handle<StreamingCell> TerrainWorldGridPlugin::CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
+void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* world_grid)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
+    AssertDebug(world_grid != nullptr);
+    AssertDebug(m_scene.IsValid());
+
+    HYP_LOG(WorldGrid, Info, "Removing TerrainWorldGridPlugin");
+
+    // world_grid->GetWorld()->RemoveScene(m_scene);
+
+    // m_scene.Reset();
+    // m_material.Reset();
+}
+
+// void TerrainWorldGridLayer::Shutdown_Impl(WorldGrid* world_grid)
+// {
+//     HYP_SCOPE;
+//     Threads::AssertOnThread(g_game_thread);
+
+//     AssertDebug(world_grid != nullptr);
+
+//     HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
+
+//     world_grid->GetWorld()->RemoveScene(m_scene);
+// }
+
+// void TerrainWorldGridPlugin::Update_Impl(float delta)
+// {
+//     HYP_SCOPE;
+//     Threads::AssertOnThread(g_game_thread);
+// }
+
+Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const StreamingCellInfo& cell_info)
+{
     if (!m_scene.IsValid())
     {
         HYP_LOG(WorldGrid, Error, "Scene is not valid for TerrainWorldGridPlugin");
@@ -508,9 +519,9 @@ Handle<StreamingCell> TerrainWorldGridPlugin::CreatePatch_Impl(WorldGrid* world_
         return Handle<StreamingCell>::empty;
     }
 
-    return CreateObject<TerrainStreamingCell>(world_grid, cell_info, m_scene, m_material);
+    return CreateObject<TerrainStreamingCell>(cell_info, m_scene, m_material);
 }
 
-#pragma endregion TerrainWorldGridPlugin
+#pragma endregion TerrainWorldGridLayer
 
 } // namespace hyperion

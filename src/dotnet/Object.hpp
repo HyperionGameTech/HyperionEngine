@@ -6,12 +6,13 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Semaphore.hpp>
 #include <core/threading/DataRaceDetector.hpp>
 
-#include <dotnet/Method.hpp>
 #include <dotnet/interop/ManagedObject.hpp>
+#include <dotnet/Helpers.hpp>
 
 #include <type_traits>
 

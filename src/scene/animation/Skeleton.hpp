@@ -5,6 +5,8 @@
 
 #include <core/Base.hpp>
 
+#include <core/Handle.hpp>
+
 #include <core/utilities/DataMutationState.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
@@ -14,6 +16,8 @@
 #include <core/debug/Debug.hpp>
 
 #include <core/object/HypObject.hpp>
+
+#include <core/math/Matrix4.hpp>
 
 #include <GameCounter.hpp>
 #include <Types.hpp>
@@ -58,7 +62,7 @@ struct SkeletonBoneData
 };
 
 HYP_CLASS()
-class HYP_API Skeleton : public HypObject<Skeleton>
+class HYP_API Skeleton final : public HypObject<Skeleton>
 {
     HYP_OBJECT_BODY(Skeleton);
 
@@ -165,10 +169,11 @@ public:
      */
     const Animation* FindAnimation(UTF8StringView name, uint32* out_index) const;
 
-    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
 private:
+    void Init() override;
+
     SkeletonBoneData m_bone_data;
 
     Handle<Bone> m_root_bone;

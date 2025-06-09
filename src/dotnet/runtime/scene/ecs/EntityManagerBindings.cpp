@@ -40,15 +40,18 @@ extern "C"
         return manager->TryGetComponent(TypeID { component_type_id }, ID<Entity> { *entity_id }).GetPointer();
     }
 
-    HYP_EXPORT void EntityManager_AddComponent(EntityManager* manager, IDBase* entity_id, uint32 component_type_id, void* component_ptr)
+    HYP_EXPORT void EntityManager_AddComponent(EntityManager* manager, Entity* entity, uint32 component_type_id, void* component_ptr)
     {
         AssertThrow(manager != nullptr);
-        AssertThrow(entity_id != nullptr);
+        AssertThrow(entity != nullptr);
         AssertThrow(component_ptr != nullptr);
 
         AssertThrow(manager->IsValidComponentType(TypeID { component_type_id }));
 
-        manager->AddComponent(ID<Entity> { *entity_id }, AnyRef(TypeID { component_type_id }, component_ptr));
+        Handle<Entity> entity_handle = entity->HandleFromThis();
+        AssertThrow(entity_handle.IsValid());
+
+        manager->AddComponent(entity_handle, AnyRef(TypeID { component_type_id }, component_ptr));
     }
 
 } // extern "C"

@@ -30,50 +30,26 @@ namespace hyperion {
 class Scene;
 class EntityManager;
 class WorldGridPlugin;
-
-struct WorldGridParams
-{
-    Vec2u grid_size { 64, 64 };
-    Vec3u cell_size { 32, 32, 32 };
-    Vec3f offset { 0.0f, 0.0f, 0.0f };
-    Vec3f scale { 1.0f, 1.0f, 1.0f };
-    float max_distance = 1.0f;
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(grid_size);
-        hc.Add(cell_size);
-        hc.Add(offset);
-        hc.Add(scale);
-        hc.Add(max_distance);
-        return hc;
-    }
-};
+class WorldGridLayer;
 
 HYP_CLASS()
-class HYP_API WorldGrid : public HypObject<WorldGrid>
+class HYP_API WorldGrid final : public HypObject<WorldGrid>
 {
     HYP_OBJECT_BODY(WorldGrid);
 
 public:
     WorldGrid();
-    WorldGrid(World* world, const WorldGridParams& params);
+    WorldGrid(World* world);
     WorldGrid(const WorldGrid& other) = delete;
     WorldGrid& operator=(const WorldGrid& other) = delete;
     WorldGrid(WorldGrid&& other) = delete;
     WorldGrid& operator=(WorldGrid&& other) = delete;
-    ~WorldGrid();
+    ~WorldGrid() override;
 
     HYP_METHOD()
     HYP_FORCE_INLINE World* GetWorld() const
     {
         return m_world;
-    }
-
-    HYP_FORCE_INLINE const WorldGridParams& GetParams() const
-    {
-        return m_params;
     }
 
     HYP_METHOD()
@@ -88,18 +64,24 @@ public:
     HYP_METHOD()
     RC<WorldGridPlugin> GetPlugin(int priority) const;
 
-    void Init() override;
+    HYP_METHOD()
+    void AddLayer(const Handle<WorldGridLayer>& layer);
+
+    HYP_METHOD()
+    bool RemoveLayer(WorldGridLayer* layer);
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Array<Handle<WorldGridLayer>>& GetLayers() const
+    {
+        return m_layers;
+    }
+
     void Shutdown();
     void Update(GameCounter::TickUnit delta);
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HashCode hc;
-        hc.Add(m_params);
-        return hc;
-    }
-
 private:
+    void Init() override;
+
     // void CreatePatches();
 
     void GetDesiredPatches(HashSet<Vec2i>& out_patch_coords) const;
@@ -108,8 +90,6 @@ private:
 
     World* m_world;
 
-    const WorldGridParams m_params;
-
     Handle<StreamingManager> m_streaming_manager;
 
     // Array<WorldGridPatchDesc> m_patches;
@@ -117,6 +97,9 @@ private:
     WorldGridState m_state;
 
     SortedArray<KeyValuePair<int, RC<WorldGridPlugin>>> m_plugins;
+
+    HYP_FIELD(Property="Layers", Serialize=true)
+    Array<Handle<WorldGridLayer>> m_layers;
 };
 
 } // namespace hyperion

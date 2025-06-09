@@ -6,6 +6,8 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 
+#include <core/Handle.hpp>
+
 namespace hyperion {
 
 void PhysicsSystem::OnEntityAdded(const Handle<Entity>& entity)

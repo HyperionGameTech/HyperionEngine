@@ -53,12 +53,12 @@ public:
         return m_scene;
     }
 
-    const RC<AppContextBase>& GetAppContext() const
+    const Handle<AppContextBase>& GetAppContext() const
     {
         return m_app_context;
     }
 
-    void SetAppContext(const RC<AppContextBase>& app_context)
+    void SetAppContext(const Handle<AppContextBase>& app_context)
     {
         m_app_context = app_context;
     }
@@ -84,7 +84,7 @@ protected:
         return m_ui_subsystem;
     }
 
-    RC<AppContextBase> m_app_context;
+    Handle<AppContextBase> m_app_context;
 
     Handle<Scene> m_scene;
 

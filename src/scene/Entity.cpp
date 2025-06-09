@@ -41,4 +41,9 @@ Entity::~Entity()
         });
 }
 
+void Entity::Init()
+{
+    SetReady(true);
+}
+
 } // namespace hyperion

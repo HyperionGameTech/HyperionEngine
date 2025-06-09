@@ -206,17 +206,12 @@ Result AssetObject::Save() const
 
 void AssetObject::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     if (m_resource != nullptr)
     {
         m_resource->m_asset_object = WeakHandleFromThis();
     }
+
+    SetReady(true);
 }
 
 #pragma endregion AssetObject
@@ -341,13 +336,6 @@ String AssetPackage::BuildAssetPath(Name asset_name) const
 
 void AssetPackage::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     Array<Handle<AssetObject>> asset_objects;
     Array<Handle<AssetPackage>> subpackages;
 
@@ -376,6 +364,8 @@ void AssetPackage::Init()
     {
         OnAssetObjectAdded(asset_object.Get());
     }
+
+    SetReady(true);
 }
 
 #pragma endregion AssetPackage
@@ -421,21 +411,14 @@ AssetRegistry::AssetRegistry(const String& root_path)
 
 void AssetRegistry::Init()
 {
-    if (IsInitCalled())
+    Mutex::Guard guard(m_mutex);
+
+    for (const Handle<AssetPackage>& package : m_packages)
     {
-        return;
+        InitObject(package);
     }
 
-    HypObject::Init();
-
-    {
-        Mutex::Guard guard(m_mutex);
-
-        for (const Handle<AssetPackage>& package : m_packages)
-        {
-            InitObject(package);
-        }
-    }
+    SetReady(true);
 }
 
 FilePath AssetRegistry::GetAbsolutePath() const

@@ -148,13 +148,6 @@ void RenderGroup::Init()
 {
     HYP_SCOPE;
 
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             HYP_SCOPE;

@@ -30,6 +30,7 @@
 
 #include <Engine.hpp>
 
+// #define HYP_DISABLE_VISIBILITY_CHECK
 namespace hyperion {
 
 #pragma region View
@@ -62,13 +63,6 @@ View::~View()
 
 void View::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             if (m_render_resource)
@@ -114,7 +108,7 @@ void View::Update(GameCounter::TickUnit delta)
     //     m_scenes.Size(),
     //     String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
     //                      {
-    //                          return scene->GetName().LookupString();
+    //                          return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
     //                      }),
     //         ", "));
 

@@ -68,7 +68,7 @@ enum class MaterialTextureKey : uint64
 };
 
 HYP_CLASS()
-class HYP_API Material : public HypObject<Material>
+class HYP_API Material final : public HypObject<Material>
 {
     HYP_OBJECT_BODY(Material);
 
@@ -439,19 +439,13 @@ public:
     static const ParameterTable& DefaultParameters();
 
     Material();
-    Material(
-        Name name,
-        Bucket bucket = Bucket::BUCKET_OPAQUE);
-    Material(
-        Name name,
-        const MaterialAttributes& attributes,
-        const ParameterTable& parameters,
-        const TextureSet& textures);
+    Material(Name name, Bucket bucket = Bucket::BUCKET_OPAQUE);
+    Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures);
     Material(const Material& other) = delete;
     Material& operator=(const Material& other) = delete;
     Material(Material&& other) noexcept = delete;
     Material& operator=(Material&& other) noexcept = delete;
-    ~Material();
+    ~Material() override;
 
     HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
     HYP_FORCE_INLINE Name GetName() const
@@ -726,8 +720,6 @@ public:
         m_is_dynamic = is_dynamic;
     }
 
-    void Init() override;
-
     /*! \brief If the Material's mutation state is dirty, this will
      * create a task on the render thread to update the Material's
      * data on the GPU. */
@@ -747,6 +739,8 @@ public:
     HashCode GetHashCode() const;
 
 private:
+    void Init() override;
+
     Name m_name;
 
     ShaderRef m_shader;
@@ -764,7 +758,7 @@ private:
 };
 
 HYP_CLASS()
-class MaterialGroup : public HypObject<MaterialGroup>
+class MaterialGroup final : public HypObject<MaterialGroup>
 {
     HYP_OBJECT_BODY(MaterialGroup);
 
@@ -772,9 +766,8 @@ public:
     MaterialGroup();
     MaterialGroup(const MaterialGroup& other) = delete;
     MaterialGroup& operator=(const MaterialGroup& other) = delete;
-    ~MaterialGroup();
+    ~MaterialGroup() override;
 
-    void Init() override;
     void Add(const String& name, Handle<Material>&& material);
     bool Remove(const String& name);
 
@@ -794,6 +787,8 @@ public:
     }
 
 private:
+    void Init() override;
+
     HashMap<String, Handle<Material>> m_materials;
 };
 

@@ -8,8 +8,6 @@
 
 #include <core/utilities/StringView.hpp>
 
-#include <core/object/HypData.hpp>
-
 #include <dotnet/Helpers.hpp>
 #include <dotnet/Attribute.hpp>
 

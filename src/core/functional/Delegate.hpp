@@ -6,14 +6,11 @@
 #include <core/functional/Proc.hpp>
 
 #include <core/containers/Array.hpp>
-#include <core/containers/FlatMap.hpp>
 
 #include <core/threading/Mutex.hpp>
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/Scheduler.hpp>
-
-#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/Name.hpp>
 
@@ -213,46 +210,46 @@ struct DelegateHandler
 };
 
 /*! \brief Stores a set of DelegateHandlers, intended to hold references to delegates and remove them upon destruction of the owner object. */
-class DelegateHandlerSet
+class DelegateHandlerSet : HashMap<Name, DelegateHandler, HashTable_DynamicNodeAllocator<KeyValuePair<Name, DelegateHandler>>>
 {
 public:
-    using Iterator = typename FlatMap<Name, DelegateHandler>::Iterator;
-    using ConstIterator = typename FlatMap<Name, DelegateHandler>::ConstIterator;
+    using HashMap::ConstIterator;
+    using HashMap::Iterator;
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(DelegateHandler&& delegate_handler)
     {
-        m_delegate_handlers.Insert({ Name::Unique("DelegateHandler_"), std::move(delegate_handler) });
+        HashMap::Insert({ Name::Unique("DelegateHandler_"), std::move(delegate_handler) });
         return *this;
     }
 
     HYP_FORCE_INLINE DelegateHandlerSet& Add(Name name, DelegateHandler&& delegate_handler)
     {
-        m_delegate_handlers.Insert({ name, std::move(delegate_handler) });
+        HashMap::Insert({ name, std::move(delegate_handler) });
         return *this;
     }
 
     HYP_FORCE_INLINE bool Remove(WeakName name)
     {
-        auto it = m_delegate_handlers.FindAs(name);
+        auto it = HashMap::FindAs(name);
 
-        if (it == m_delegate_handlers.End())
+        if (it == HashMap::End())
         {
             return false;
         }
 
-        m_delegate_handlers.Erase(it);
+        HashMap::Erase(it);
 
         return true;
     }
 
     HYP_FORCE_INLINE bool Remove(ConstIterator it)
     {
-        if (it == m_delegate_handlers.End())
+        if (it == HashMap::End())
         {
             return false;
         }
 
-        m_delegate_handlers.Erase(it);
+        HashMap::Erase(it);
 
         return true;
     }
@@ -264,13 +261,13 @@ public:
     {
         Array<DelegateHandler> delegate_handlers;
 
-        for (auto it = m_delegate_handlers.Begin(); it != m_delegate_handlers.End();)
+        for (auto it = HashMap::Begin(); it != HashMap::End();)
         {
             if (it->second.delegate == delegate)
             {
                 delegate_handlers.PushBack(std::move(it->second));
 
-                it = m_delegate_handlers.Erase(it);
+                it = HashMap::Erase(it);
 
                 continue;
             }
@@ -283,23 +280,20 @@ public:
 
     HYP_FORCE_INLINE Iterator Find(WeakName name)
     {
-        return m_delegate_handlers.FindAs(name);
+        return HashMap::FindAs(name);
     }
 
     HYP_FORCE_INLINE ConstIterator Find(WeakName name) const
     {
-        return m_delegate_handlers.FindAs(name);
+        return HashMap::FindAs(name);
     }
 
     HYP_FORCE_INLINE bool Contains(WeakName name) const
     {
-        return m_delegate_handlers.Contains(name);
+        return HashMap::FindAs(name) != HashMap::End();
     }
 
-    HYP_DEF_STL_BEGIN_END(m_delegate_handlers.Begin(), m_delegate_handlers.End())
-
-private:
-    FlatMap<Name, DelegateHandler> m_delegate_handlers;
+    HYP_DEF_STL_BEGIN_END(HashMap::Begin(), HashMap::End())
 };
 
 class IDelegate

@@ -42,9 +42,9 @@ public:
         //     return { FBOMResult::FBOM_OK };
         // }
 
-        EntityManager* entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity.GetID());
+        Handle<EntityManager> entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity.GetID());
 
-        if (!entity_manager)
+        if (!entity_manager.IsValid())
         {
             return { FBOMResult::FBOM_ERR, "Entity not attached to an EntityManager" };
         }

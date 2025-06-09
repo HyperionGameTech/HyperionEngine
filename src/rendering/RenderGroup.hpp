@@ -49,7 +49,7 @@ HYP_MAKE_ENUM_FLAGS(RenderGroupFlags)
 struct ParallelRenderingState;
 
 HYP_CLASS()
-class HYP_API RenderGroup : public HypObject<RenderGroup>
+class HYP_API RenderGroup final : public HypObject<RenderGroup>
 {
     HYP_OBJECT_BODY(RenderGroup);
 
@@ -133,9 +133,9 @@ public:
 
     void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
 
-    void Init() override;
-
 private:
+    void Init() override;
+    
     void CreateIndirectRenderer();
     void CreateGraphicsPipeline();
 

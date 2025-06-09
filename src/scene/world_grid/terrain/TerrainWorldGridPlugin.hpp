@@ -4,6 +4,7 @@
 #define HYPERION_TERRAIN_WORLD_GRID_PLUGIN_HPP
 
 #include <scene/world_grid/WorldGridPlugin.hpp>
+#include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <core/Handle.hpp>
 
@@ -22,7 +23,7 @@ class HYP_API TerrainStreamingCell : public StreamingCell
 
 public:
     TerrainStreamingCell();
-    TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material);
+    TerrainStreamingCell(const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material);
     virtual ~TerrainStreamingCell() override;
 
 protected:
@@ -42,13 +43,13 @@ protected:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API TerrainWorldGridPlugin : public WorldGridPlugin
+class HYP_API TerrainWorldGridLayer : public WorldGridLayer
 {
-    HYP_OBJECT_BODY(TerrainWorldGridPlugin);
+    HYP_OBJECT_BODY(TerrainWorldGridLayer);
 
 public:
-    TerrainWorldGridPlugin();
-    virtual ~TerrainWorldGridPlugin() override;
+    TerrainWorldGridLayer();
+    virtual ~TerrainWorldGridLayer() override;
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
@@ -58,16 +59,16 @@ public:
 
 protected:
     HYP_METHOD()
-    virtual void Initialize_Impl(WorldGrid* world_grid) override final;
+    virtual void Init() override;
 
     HYP_METHOD()
-    virtual void Shutdown_Impl(WorldGrid* world_grid) override final;
+    virtual void OnAdded_Impl(WorldGrid* world_grid) override;
 
     HYP_METHOD()
-    virtual void Update_Impl(float delta) override final;
+    virtual void OnRemoved_Impl(WorldGrid* world_grid) override;
 
     HYP_METHOD()
-    virtual Handle<StreamingCell> CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info) override final;
+    virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cell_info) override;
 
     Handle<Scene> m_scene;
     Handle<Material> m_material;

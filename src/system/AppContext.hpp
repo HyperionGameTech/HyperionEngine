@@ -84,7 +84,7 @@ struct WindowOptions
 };
 
 HYP_CLASS(Abstract)
-class HYP_API ApplicationWindow : public EnableRefCountedPtrFromThis<ApplicationWindow>
+class HYP_API ApplicationWindow : public HypObject<ApplicationWindow>
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
@@ -154,7 +154,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API AppContextBase : public EnableRefCountedPtrFromThis<AppContextBase>
+class HYP_API AppContextBase : public HypObject<AppContextBase>
 {
     HYP_OBJECT_BODY(AppContextBase);
 
@@ -184,7 +184,7 @@ public:
         return m_main_window.Get();
     }
 
-    void SetMainWindow(const RC<ApplicationWindow>& window);
+    void SetMainWindow(const Handle<ApplicationWindow>& window);
 
     HYP_FORCE_INLINE const Handle<InputManager>& GetInputManager() const
     {
@@ -194,7 +194,7 @@ public:
     void SetGame(Game* game);
     Game* GetGame() const;
 
-    virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 
     virtual void UpdateConfigurationOverrides();
@@ -206,7 +206,7 @@ public:
     Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
 
 protected:
-    RC<ApplicationWindow> m_main_window;
+    Handle<ApplicationWindow> m_main_window;
     Handle<InputManager> m_input_manager;
     ANSIString m_name;
     UniquePtr<CommandLineArguments> m_arguments;
@@ -223,7 +223,7 @@ public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
     virtual ~SDLAppContext() override;
 
-    virtual RC<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
 
     virtual int PollEvent(SystemEvent& event) override;
 

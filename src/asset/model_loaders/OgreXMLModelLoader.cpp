@@ -302,43 +302,29 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             sub_mesh.indices,
             Topology::TRIANGLES);
 
-        // if (model.normals.Empty()) {
         mesh->CalculateNormals();
-        // }
-
-        // mesh->CalculateTangents();
-        InitObject(mesh);
 
         ShaderProperties shader_properties(mesh->GetVertexAttributes());
 
         Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())));
         material->SetShader(ShaderManager::GetInstance()->GetOrCreate(NAME("Forward"), shader_properties));
-        InitObject(material);
 
-        scene->GetEntityManager()->AddComponent<MeshComponent>(
-            entity,
-            MeshComponent {
-                mesh,
-                material,
-                skeleton });
+        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
-            entity,
-            BoundingBoxComponent {
-                mesh->GetAABB() });
+        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
 
         if (skeleton.IsValid())
         {
-            InitObject(skeleton);
+            AnimationComponent animation_component {};
+            animation_component.playback_state = {
+                .animation_index = 0,
+                .status = AnimationPlaybackStatus::PLAYING,
+                .loop_mode = AnimationLoopMode::REPEAT,
+                .speed = 1.0f,
+                .current_time = 0.0f
+            };
 
-            scene->GetEntityManager()->AddComponent<AnimationComponent>(
-                entity,
-                AnimationComponent {
-                    { .animation_index = 0,
-                        .status = AnimationPlaybackStatus::PLAYING,
-                        .loop_mode = AnimationLoopMode::REPEAT,
-                        .speed = 1.0f,
-                        .current_time = 0.0f } });
+            scene->GetEntityManager()->AddComponent<AnimationComponent>(entity, animation_component);
         }
 
         Handle<Node> node = CreateObject<Node>();

@@ -39,7 +39,7 @@ namespace hyperion {
 
 World::World()
     : HypObject(),
-      m_world_grid(CreateObject<WorldGrid>(this, WorldGridParams {})),
+      m_world_grid(CreateObject<WorldGrid>(this)),
       m_detached_scenes(this),
       m_render_resource(nullptr)
 {
@@ -116,11 +116,6 @@ World::~World()
 
 void World::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
         {
             if (m_render_resource != nullptr)
@@ -220,8 +215,6 @@ void World::Init()
     }
 
     m_render_resource->IncRef();
-
-    HypObject::Init();
 
     m_physics_world.Init();
 

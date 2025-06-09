@@ -6,7 +6,15 @@
 #include <scene/animation/Animation.hpp>
 #include <scene/animation/Skeleton.hpp>
 
+#include <core/Handle.hpp>
+
 namespace hyperion {
+
+void AnimationSystem::OnEntityAdded(const Handle<Entity>& entity)
+{
+    const MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
+    InitObject(mesh_component.skeleton);
+}
 
 void AnimationSystem::Process(float delta)
 {

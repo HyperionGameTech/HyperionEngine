@@ -5,6 +5,7 @@
 #include <scene/Mesh.hpp>
 #include <scene/World.hpp>
 #include <scene/Material.hpp>
+#include <scene/Node.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>

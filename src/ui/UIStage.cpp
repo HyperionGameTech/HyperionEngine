@@ -210,7 +210,7 @@ void UIStage::Init()
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (const RC<AppContextBase>& app_context = g_engine->GetAppContext())
+    if (const Handle<AppContextBase>& app_context = g_engine->GetAppContext())
     {
         const auto update_surface_size = [this](ApplicationWindow* window)
         {

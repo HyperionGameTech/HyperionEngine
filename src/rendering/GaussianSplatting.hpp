@@ -41,7 +41,7 @@ struct GaussianSplattingModelData
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplattingInstance : public HypObject<GaussianSplattingInstance>
+class HYP_API GaussianSplattingInstance final : public HypObject<GaussianSplattingInstance>
 {
     HYP_OBJECT_BODY(GaussianSplattingInstance);
 
@@ -89,10 +89,11 @@ public:
         return m_sort_splats;
     }
 
-    void Init() override;
     void Record(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
+    void Init() override;
+
     void CreateBuffers();
     void CreateShader();
     void CreateRenderGroup();
@@ -117,7 +118,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplatting : public HypObject<GaussianSplatting>
+class HYP_API GaussianSplatting final : public HypObject<GaussianSplatting>
 {
     HYP_OBJECT_BODY(GaussianSplatting);
 
@@ -134,13 +135,12 @@ public:
 
     void SetGaussianSplattingInstance(Handle<GaussianSplattingInstance> gaussian_splatting_instance);
 
-    void Init() override;
-
     void UpdateSplats(FrameBase* frame, const RenderSetup& render_setup);
 
     void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
+    void Init() override;
     void CreateBuffers();
 
     Handle<Mesh> m_quad_mesh;

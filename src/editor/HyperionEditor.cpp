@@ -108,11 +108,13 @@ void HyperionEditor::Init()
 
     m_scene = editor_subsystem->GetScene();
 
-    // if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
-    // {
-    //     // Initialize the world grid subsystem
-    //     world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
-    // }
+    if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
+    {
+        // // Initialize the world grid subsystem
+        // world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
+
+        world_grid->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    }
 
     // Calculate memory pool usage
     Array<SizeType> memory_usage_per_pool;
@@ -247,7 +249,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (false)
+    if (true)
     {
         Handle<Entity> skybox_entity = m_scene->GetEntityManager()->AddEntity();
 
@@ -287,7 +289,7 @@ void HyperionEditor::Init()
 
                              GetScene()->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
                              Handle<Entity> env_grid_entity = m_scene->GetEntityManager()->AddEntity();
 
                              m_scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {});
@@ -407,8 +409,8 @@ void HyperionEditor::Init()
             json::JSONObject entity_json_object;
             entity_json_object["id"] = entity->GetID().Value();
 
-            EntityManager* entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
-            AssertThrow(entity_manager != nullptr);
+            Handle<EntityManager> entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+            AssertThrow(entity_manager.IsValid());
 
             Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(entity);
             AssertThrow(all_components.HasValue());

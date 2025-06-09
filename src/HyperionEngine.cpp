@@ -27,22 +27,25 @@
 
 #include <audio/AudioManager.hpp>
 
+#include <core/Handle.hpp>
+
 #include <Game.hpp>
 
 namespace hyperion {
 
-HYP_API void InitializeAppContext(const RC<AppContextBase>& app_context, Game* game)
+HYP_API void InitializeAppContext(const Handle<AppContextBase>& app_context, Game* game)
 {
-    AssertThrow(app_context != nullptr);
-
-    AssertThrow(game != nullptr);
-    game->SetAppContext(app_context);
-
     Threads::AssertOnThread(g_main_thread);
 
-    AssertThrowMsg(g_engine.IsValid(), "Engine is null!");
+    AssertThrow(app_context != nullptr);
 
-    g_engine->Initialize(app_context);
+    AssertThrowMsg(g_engine.IsValid(), "Engine is null!");
+    AssertThrowMsg(game != nullptr, "Game is null!");
+
+    game->SetAppContext(app_context);
+    g_engine->SetAppContext(app_context);
+
+    InitObject(g_engine);
 }
 
 HYP_API void InitializeEngine(const FilePath& base_path)
@@ -55,13 +58,9 @@ HYP_API void InitializeEngine(const FilePath& base_path)
     AudioManager::GetInstance().Initialize();
 
     g_engine = CreateObject<Engine>();
-    InitObject(g_engine);
 
     g_asset_manager = CreateObject<AssetManager>();
     InitObject(g_asset_manager);
-
-    // g_streaming_manager = CreateObject<StreamingManager>();
-    // InitObject(g_streaming_manager);
 
     g_shader_manager = new ShaderManager;
     g_material_system = new MaterialCache;

@@ -6,17 +6,13 @@
 
 namespace hyperion {
 
-BoundingBox StreamingCell::GetBoundingBox_Impl() const
+StreamingCell::StreamingCell(const StreamingCellInfo& cell_info)
+    : m_cell_info(cell_info)
 {
-    const Vec3f min = {
-        m_world_grid->GetParams().offset.x + (float(m_cell_info.coord.x) - 0.5f) * (float(m_cell_info.extent.x) - 1.0f) * m_cell_info.scale.x,
-        m_world_grid->GetParams().offset.y,
-        m_world_grid->GetParams().offset.z + (float(m_cell_info.coord.y) - 0.5f) * (float(m_cell_info.extent.y) - 1.0f) * m_cell_info.scale.z
-    };
+}
 
-    const Vec3f max = min + Vec3f(m_cell_info.extent) * m_cell_info.scale;
-
-    return BoundingBox(min, max);
+StreamingCell::~StreamingCell()
+{
 }
 
 } // namespace hyperion

@@ -9,6 +9,7 @@
 #include <core/filesystem/FsUtil.hpp>
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -62,12 +63,11 @@ enum AssetLoadFlagBits : AssetLoadFlags
 HYP_STRUCT()
 struct AssetLoaderDefinition
 {
-    const StringView<StringType::ANSI> name;
     TypeID loader_type_id;
     TypeID result_type_id;
     const HypClass* result_hyp_class = nullptr;
     FlatSet<String> extensions;
-    RC<AssetLoaderBase> loader;
+    Handle<AssetLoaderBase> loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeID type_id) const
     {
@@ -102,7 +102,7 @@ enum class AssetChangeType : uint32
 };
 
 HYP_CLASS()
-class AssetCollector : public HypObject<AssetCollector>
+class AssetCollector final : public HypObject<AssetCollector>
 {
     HYP_OBJECT_BODY(AssetCollector);
 
@@ -132,8 +132,6 @@ public:
     HYP_METHOD()
     HYP_API void NotifyAssetChanged(const FilePath& path, AssetChangeType change_type);
 
-    HYP_API void Init();
-
     HYP_METHOD(Scriptable)
     bool IsWatching() const;
 
@@ -147,6 +145,8 @@ public:
     void OnAssetChanged(const FilePath& path, AssetChangeType change_type);
 
 private:
+    HYP_API void Init() override;
+
     bool IsWatching_Impl() const
     {
         return false;
@@ -170,7 +170,7 @@ private:
 class AssetManagerThreadPool;
 
 HYP_CLASS()
-class AssetManager : public HypObject<AssetManager>
+class AssetManager final : public HypObject<AssetManager>
 {
     friend class AssetBatch;
     friend class AssetLoaderBase;
@@ -225,15 +225,12 @@ public:
             String(formats)...
         };
 
-        static const auto loader_type_name = TypeNameWithoutNamespace<Loader>();
-
-        m_loaders.PushBack(AssetLoaderDefinition {
-            loader_type_name,
-            TypeID::ForType<Loader>(),
-            TypeID::ForType<ResultType>(),
-            GetClass(TypeID::ForType<ResultType>()),
-            FlatSet<String>(format_strings.Begin(), format_strings.End()),
-            MakeRefCountedPtr<Loader>() });
+        AssetLoaderDefinition& asset_loader_definition = m_loaders.EmplaceBack();
+        asset_loader_definition.loader_type_id = TypeID::ForType<Loader>();
+        asset_loader_definition.result_type_id = TypeID::ForType<ResultType>();
+        asset_loader_definition.result_hyp_class = GetClass(TypeID::ForType<ResultType>());
+        asset_loader_definition.extensions = FlatSet<String>(format_strings.Begin(), format_strings.End());
+        asset_loader_definition.loader = CreateObject<Loader>();
 
         m_functor_factories.Set<Loader>([](const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr) -> UniquePtr<ProcessAssetFunctorBase>
             {
@@ -255,8 +252,8 @@ public:
             return HYP_MAKE_ERROR(AssetLoadError, "No registered loader for the given path", AssetLoadError::ERR_NO_LOADER);
         }
 
-        AssetLoaderBase* loader = loader_definition->loader.Get();
-        AssertThrow(loader != nullptr);
+        const Handle<AssetLoaderBase>& loader = loader_definition->loader;
+        AssertThrow(loader.IsValid());
 
         return AssetLoadResult(loader->Load(*this, path));
     }
@@ -291,7 +288,6 @@ public:
         return m_asset_cache.Get();
     }
 
-    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -304,6 +300,8 @@ public:
     Delegate<void, const Handle<AssetCollector>&> OnBaseAssetCollectorChanged;
 
 private:
+    void Init() override;
+
     /*! \internal Called from AssetBatch on LoadAsync() */
     HYP_API void AddPendingBatch(const RC<AssetBatch>& batch);
 

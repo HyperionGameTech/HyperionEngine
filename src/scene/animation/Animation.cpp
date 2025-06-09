@@ -20,6 +20,11 @@ AnimationTrack::AnimationTrack(const AnimationTrackDesc& desc)
 {
 }
 
+void AnimationTrack::Init()
+{
+    SetReady(true);
+}
+
 float AnimationTrack::GetLength() const
 {
     if (m_desc.keyframes.Empty())
@@ -77,6 +82,16 @@ Animation::Animation() = default;
 Animation::Animation(const String& name)
     : m_name(name)
 {
+}
+
+void Animation::Init()
+{
+    for (const Handle<AnimationTrack>& track : m_tracks)
+    {
+        InitObject(track);
+    }
+
+    SetReady(true);
 }
 
 void Animation::Apply(float time)

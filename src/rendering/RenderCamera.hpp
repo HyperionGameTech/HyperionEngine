@@ -17,6 +17,7 @@
 namespace hyperion {
 
 class Camera;
+struct RenderSetup;
 
 struct CameraShaderData
 {
@@ -69,7 +70,7 @@ public:
 
     void SetFramebuffer(const FramebufferRef& framebuffer);
 
-    void ApplyJitter();
+    void ApplyJitter(const RenderSetup& render_setup);
 
     void EnqueueBind();
     void EnqueueUnbind();

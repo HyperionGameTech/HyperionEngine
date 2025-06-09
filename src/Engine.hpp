@@ -82,7 +82,7 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class Engine : public HypObject<Engine>
+class Engine final : public HypObject<Engine>
 {
     HYP_OBJECT_BODY(Engine);
 
@@ -93,11 +93,16 @@ public:
     HYP_API static const Handle<Engine>& GetInstance();
 
     HYP_API Engine();
-    HYP_API ~Engine();
+    HYP_API ~Engine() override;
 
-    HYP_FORCE_INLINE const RC<AppContextBase>& GetAppContext() const
+    HYP_FORCE_INLINE const Handle<AppContextBase>& GetAppContext() const
     {
         return m_app_context;
+    }
+
+    HYP_FORCE_INLINE void SetAppContext(const Handle<AppContextBase>& app_context)
+    {
+        m_app_context = app_context;
     }
 
     // Temporary stopgap
@@ -210,18 +215,19 @@ public:
 
     HYP_API bool IsRenderLoopActive() const;
 
-    HYP_API void Initialize(const RC<AppContextBase>& app_context);
-
+    
     HYP_API void RenderNextFrame(Game* game);
     HYP_API void RequestStop();
-
+    
     AtomicVar<bool> m_stop_requested;
-
+    
     void FinalizeStop();
-
+    
     Delegate<void, EngineRenderStats> OnRenderStatsUpdated;
-
+    
 private:
+    HYP_API void Init() override;
+
     void PreFrameUpdate(FrameBase* frame);
 
     void CreateBlueNoiseBuffer();
@@ -229,7 +235,7 @@ private:
 
     void FindTextureFormatDefaults();
 
-    RC<AppContextBase> m_app_context;
+    Handle<AppContextBase> m_app_context;
 
     UniquePtr<RenderThread> m_render_thread;
 
@@ -267,7 +273,6 @@ private:
     EngineRenderStats m_render_stats;
 
     AtomicVar<bool> m_is_shutting_down;
-    bool m_is_initialized;
     bool m_should_recreate_swapchain;
 };
 

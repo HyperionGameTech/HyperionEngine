@@ -49,7 +49,6 @@
 #include <Engine.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
-// #define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion {
 
@@ -219,13 +218,6 @@ Scene::~Scene()
 
 void Scene::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
         {
             if (m_render_resource != nullptr)

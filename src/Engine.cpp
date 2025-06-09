@@ -97,7 +97,7 @@ static struct GlobalDescriptorSetsDeclarations
 class RenderThread final : public Thread<Scheduler>
 {
 public:
-    RenderThread(const RC<AppContextBase>& app_context)
+    RenderThread(const Handle<AppContextBase>& app_context)
         : Thread(g_render_thread, ThreadPriorityValue::HIGHEST),
           m_app_context(app_context),
           m_is_running(false)
@@ -162,7 +162,7 @@ private:
         }
     }
 
-    RC<AppContextBase> m_app_context;
+    Handle<AppContextBase> m_app_context;
     AtomicVar<bool> m_is_running;
 };
 
@@ -207,7 +207,6 @@ const Handle<Engine>& Engine::GetInstance()
 
 Engine::Engine()
     : m_is_shutting_down(false),
-      m_is_initialized(false),
       m_should_recreate_swapchain(false)
 {
 }
@@ -216,39 +215,35 @@ Engine::~Engine()
 {
 }
 
-HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
+HYP_API void Engine::Init()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_main_thread);
 
-    AssertThrow(!m_is_initialized);
-    m_is_initialized = true;
+    // Set ready to false after render thread stops running.
+    HYP_DEFER({ SetReady(false); });
 
-    HYP_DEFER({
-        m_is_initialized = false;
-    });
-
-    AssertThrow(app_context != nullptr);
-    m_app_context = app_context;
+    AssertThrowMsg(m_app_context != nullptr, "App context must be set before initializing the engine!");
 
     m_render_thread = MakeUnique<RenderThread>(m_app_context);
 
     AssertThrow(m_app_context->GetMainWindow() != nullptr);
 
-    m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i new_window_size)
-                                                           {
-                                                               HYP_LOG(Engine, Info, "Resize window to {}", new_window_size);
+    // m_app_context->GetMainWindow()->OnWindowSizeChanged.Bind(
+    //                                                        [this](Vec2i new_window_size)
+    //                                                        {
+    //                                                            HYP_LOG(Engine, Info, "Resize window to {}", new_window_size);
 
-                                                               // m_final_pass->Resize(Vec2u(new_window_size));
-                                                           })
-        .Detach();
+    //                                                            // m_final_pass->Resize(Vec2u(new_window_size));
+    //                                                        })
+    //     .Detach();
 
     RenderObjectDeleter<renderer::Platform::current>::Initialize();
 
     TaskSystem::GetInstance().Start();
 
     AssertThrow(g_rendering_api != nullptr);
-    HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*app_context));
+    HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*m_app_context));
 
     g_rendering_api->GetOnSwapchainRecreatedDelegate().Bind([this](SwapchainBase* swapchain)
                                                           {
@@ -391,10 +386,11 @@ HYP_API void Engine::Initialize(const RC<AppContextBase>& app_context)
     m_view->IncRef();
 
     m_world = CreateObject<World>();
-    InitObject(m_world);
 
     AssertThrowMsg(m_app_context->GetGame() != nullptr, "Game not set on AppContext!");
     m_app_context->GetGame()->Init_Internal();
+
+    SetReady(true);
 
     // RenderThread::Start() is blocking, runs until exit
     AssertThrowMsg(m_render_thread->Start(), "Failed to start render thread!");
@@ -623,7 +619,6 @@ void Engine::PreFrameUpdate(FrameBase* frame)
     g_safe_deleter->PerformEnqueuedDeletions();
 
     m_render_state->ResetStates(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_ACTIVE_LIGHT);
-    m_render_state->AdvanceFrameCounter();
 }
 
 #pragma endregion Engine

@@ -19,7 +19,6 @@ namespace threading {
 constexpr uint32 g_thread_dynamic_mask = ~(~0u >> 1); // last bit
 constexpr uint32 g_thread_category_mask = ~(~0u << 4);
 constexpr uint32 g_thread_id_mask = ~(g_thread_category_mask | g_thread_dynamic_mask);
-
 constexpr uint32 g_max_static_thread_ids = uint32(MathUtil::FastLog2_Pow2((~0u & g_thread_id_mask) >> 4));
 
 using ThreadMask = uint32;

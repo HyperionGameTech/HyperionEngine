@@ -112,13 +112,6 @@ Material::~Material()
 
 void Material::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     m_render_resource = AllocateResource<RenderMaterial>(this);
 
     if (!m_shader.IsValid())
@@ -423,17 +416,12 @@ MaterialGroup::~MaterialGroup()
 
 void MaterialGroup::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     for (auto& it : m_materials)
     {
         InitObject(it.second);
     }
+
+    SetReady(true);
 }
 
 void MaterialGroup::Add(const String& name, Handle<Material>&& material)

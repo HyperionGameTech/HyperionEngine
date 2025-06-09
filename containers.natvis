@@ -141,8 +141,8 @@
   <Type Name="hyperion::memory::RefCountedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
-      <Item Name="[Strong Count]">(m_ref.m_ptr->strong_count)</Item>
-      <Item Name="[Weak Count]">(m_ref.m_ptr->weak_count)</Item>
+      <Item Name="[Strong Count]">(m_ref.m_ptr-&gt;strong_count)</Item>
+      <Item Name="[Weak Count]">(m_ref.m_ptr-&gt;weak_count)</Item>
       <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
     </Expand>
   </Type>
@@ -150,9 +150,9 @@
   <Type Name="hyperion::memory::WeakRefCountedPtr&lt;*,*&gt;">
     <DisplayString>{{ {($T1 *)m_ptr} }}</DisplayString>
     <Expand>
-      <Item Name="[Alive]">(m_ref.m_ptr->strong_count.m_value._Storage._Value != 0)</Item>
-      <Item Name="[Strong Count]">(m_ref.m_ptr->strong_count)</Item>
-      <Item Name="[Weak Count]">(m_ref.m_ptr->weak_count)</Item>
+      <Item Name="[Alive]">(m_ref.m_ptr-&gt;strong_count.m_value._Storage._Value != 0)</Item>
+      <Item Name="[Strong Count]">(m_ref.m_ptr-&gt;strong_count)</Item>
+      <Item Name="[Weak Count]">(m_ref.m_ptr-&gt;weak_count)</Item>
       <ExpandedItem>($T1 *)m_ptr</ExpandedItem>
     </Expand>
   </Type>
@@ -292,14 +292,14 @@
   </Type>
 
   <Type Name="hyperion::renderer::RenderObjectHandle_Strong&lt;*,*&gt;">
-    <DisplayString>{{ ID={index} Strong={s_container->m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container->m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
+    <DisplayString>{{ ID={index} Strong={s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value} Weak={s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value} }}</DisplayString>
 
     <Expand>
-      <Item Name="[Strong]">(s_container->m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
-      <Item Name="[Weak]">s_container->m_data.m_values[index - 1].ref_count_weak.m_value</Item>
+      <Item Name="[Strong]">(s_container-&gt;m_data.m_values[index - 1].ref_count_strong.m_value)</Item>
+      <Item Name="[Weak]">s_container-&gt;m_data.m_values[index - 1].ref_count_weak.m_value</Item>
       <!--<Item Name="[Name]">_container->m_debug_names.m_values[index]</Item>-->
 
-      <ExpandedItem>($T1 *)(&amp;(s_container->m_data.m_values[index - 1].storage))</ExpandedItem>
+      <ExpandedItem>($T1 *)(&amp;(s_container-&gt;m_data.m_values[index - 1].storage))</ExpandedItem>
     </Expand>
   </Type>
 

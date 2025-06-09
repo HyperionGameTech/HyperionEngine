@@ -5,8 +5,6 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 
-#include <rendering/backend/RendererFramebuffer.hpp>
-
 #include <scene/camera/Camera.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -26,13 +24,6 @@ RenderState::~RenderState() = default;
 
 void RenderState::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     SetReady(true);
 }
 
