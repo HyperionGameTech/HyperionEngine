@@ -7,8 +7,6 @@
 
 #include <core/object/HypObjectFwd.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
-
 #include <core/memory/resource/Resource.hpp>
 
 #include <core/utilities/EnumFlags.hpp>

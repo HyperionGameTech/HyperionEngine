@@ -35,9 +35,6 @@ public:
     HYP_METHOD(Scriptable)
     void Update(float delta);
 
-    HYP_METHOD(Scriptable)
-    Handle<StreamingCell> CreatePatch(WorldGrid* world_grid, const StreamingCellInfo& cell_info);
-
 protected:
     HYP_METHOD()
     virtual void Initialize_Impl(WorldGrid* world_grid)
@@ -53,12 +50,6 @@ protected:
 
     HYP_METHOD()
     virtual void Update_Impl(float delta)
-    {
-        HYP_PURE_VIRTUAL();
-    }
-
-    HYP_METHOD()
-    virtual Handle<StreamingCell> CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
     {
         HYP_PURE_VIRTUAL();
     }

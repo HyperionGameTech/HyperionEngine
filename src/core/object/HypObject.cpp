@@ -71,6 +71,7 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 #pragma region HypObjectBase
 
 HypObjectBase::HypObjectBase()
+    : m_init_state(INIT_STATE_UNINITIALIZED)
 {
     HypObjectInitializerContext* context = GetGlobalContext<HypObjectInitializerContext>();
     AssertThrow(context != nullptr);

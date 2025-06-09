@@ -396,7 +396,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API EntityManager : public HypObject<EntityManager>
+class HYP_API EntityManager final : public HypObject<EntityManager>
 {
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
 
@@ -1074,7 +1074,6 @@ public:
             });
     }
 
-    void Init() override;
     void Shutdown();
 
     void BeginAsyncUpdate(GameCounter::TickUnit delta);
@@ -1121,6 +1120,8 @@ public:
     }
 
 private:
+    void Init() override;
+
     template <class Component>
     static void EnsureValidComponentType()
     {

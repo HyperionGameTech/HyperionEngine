@@ -3,7 +3,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Handle.hpp>
 
 namespace hyperion {
 
@@ -31,7 +31,7 @@ public:
     App& operator=(App&& other) noexcept = delete;
     virtual ~App();
 
-    const RC<AppContextBase>& GetAppContext() const
+    const Handle<AppContextBase>& GetAppContext() const
     {
         return m_app_context;
     }
@@ -39,12 +39,12 @@ public:
     virtual void Launch(Game* game, const CommandLineArguments& arguments) final;
 
 protected:
-    virtual RC<AppContextBase> InitAppContext(Game* game, const CommandLineArguments& arguments);
+    virtual Handle<AppContextBase> InitAppContext(Game* game, const CommandLineArguments& arguments);
 
 private:
     void RunMainLoop(Game* game);
 
-    RC<AppContextBase> m_app_context;
+    Handle<AppContextBase> m_app_context;
 };
 
 } // namespace sys

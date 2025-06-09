@@ -12,8 +12,6 @@
 
 namespace hyperion {
 
-class Engine;
-
 struct IDBase
 {
     constexpr IDBase() = default;

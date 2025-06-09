@@ -475,7 +475,7 @@ void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
         return;
     }
 
-    Execute([this, &out_byte_buffer, task_executor = task.Initialize()]()
+    Execute([this, &out_byte_buffer, promise = task.Promise()]()
         {
             Threads::AssertOnThread(g_render_thread);
 
@@ -502,7 +502,7 @@ void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
 
             if (result.HasError())
             {
-                task_executor->Fulfill(result.GetError());
+                promise->Fulfill(result.GetError());
 
                 return;
             }
@@ -512,7 +512,7 @@ void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
 
             gpu_buffer->Destroy();
 
-            task_executor->Fulfill(Result());
+            promise->Fulfill(Result());
         },
         /* force_owner_thread */ true);
 

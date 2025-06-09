@@ -962,7 +962,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     if (use_temporal_aa)
     {
-        m_render_camera->ApplyJitter();
+        m_render_camera->ApplyJitter(render_setup);
     }
 
     struct

@@ -6,6 +6,8 @@
 #include <scene/Entity.hpp>
 #include <scene/Scene.hpp>
 
+#include <core/Handle.hpp>
+
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/utilities/Format.hpp>
@@ -192,13 +194,13 @@ Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, Proc
     }
     else
     {
-        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakHandleFromThis(), id, callback = std::move(callback), task_executor = task.Initialize()]()
+        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakHandleFromThis(), id, callback = std::move(callback), promise = task.Promise()]()
             {
                 Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
 
                 if (!entity_manager)
                 {
-                    task_executor->Fulfill(false);
+                    promise->Fulfill(false);
 
                     return;
                 }
@@ -207,11 +209,11 @@ Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, Proc
                 {
                     callback(entity_manager.Get(), id);
 
-                    task_executor->Fulfill(true);
+                    promise->Fulfill(true);
                 }
                 else
                 {
-                    task_executor->Fulfill(false);
+                    promise->Fulfill(false);
                 }
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -386,13 +388,6 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
 
 void EntityManager::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     Threads::AssertOnThread(m_owner_thread_id);
 
     MoveEntityGuard move_entity_guard(*this);

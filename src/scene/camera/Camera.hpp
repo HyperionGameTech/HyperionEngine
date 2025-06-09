@@ -4,6 +4,7 @@
 #define HYPERION_CAMERA_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/containers/Queue.hpp>
 
@@ -210,6 +211,9 @@ public:
     virtual void UpdateLogic(double dt) override;
     virtual void UpdateViewMatrix() override;
     virtual void UpdateProjectionMatrix() override;
+
+private:
+    void Init() override;
 };
 
 class PerspectiveCameraController;
@@ -218,7 +222,7 @@ class FirstPersonCameraController;
 class FollowCameraController;
 
 HYP_CLASS()
-class HYP_API Camera : public HypObject<Camera>
+class HYP_API Camera final : public HypObject<Camera>
 {
     HYP_OBJECT_BODY(Camera);
 
@@ -233,7 +237,7 @@ public:
     Camera(int width, int height);
     Camera(float fov, int width, int height, float _near, float _far);
     Camera(int width, int height, float left, float right, float bottom, float top, float _near, float _far);
-    ~Camera();
+    ~Camera() override;
 
     HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
     HYP_FORCE_INLINE Name GetName() const
@@ -596,9 +600,9 @@ public:
     void Update(GameCounter::TickUnit dt);
     void UpdateMatrices();
 
+protected:
     void Init() override;
 
-protected:
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();

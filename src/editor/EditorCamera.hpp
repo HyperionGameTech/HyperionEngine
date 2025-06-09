@@ -23,7 +23,7 @@ class HYP_API EditorCameraInputHandler : public InputHandlerBase
     HYP_OBJECT_BODY(EditorCameraInputHandler);
 
 public:
-    EditorCameraInputHandler(CameraController* controller);
+    EditorCameraInputHandler(const WeakHandle<CameraController>& controller);
     virtual ~EditorCameraInputHandler() override = default;
 
 protected:
@@ -36,7 +36,7 @@ protected:
     virtual bool OnClick_Impl(const MouseEvent& evt) override;
 
 private:
-    EditorCameraController* m_controller;
+    WeakHandle<EditorCameraController> m_controller;
 };
 
 HYP_CLASS()

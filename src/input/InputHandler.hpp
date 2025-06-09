@@ -91,7 +91,12 @@ public:
     NullInputHandler() = default;
     virtual ~NullInputHandler() override = default;
 
-protected:
+private:
+    void Init() override
+    {
+        SetReady(true);
+    }
+
     virtual bool OnKeyDown_Impl(const KeyboardEvent& evt) override
     {
         return false;

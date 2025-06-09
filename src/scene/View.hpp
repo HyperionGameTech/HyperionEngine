@@ -65,7 +65,7 @@ struct ViewDesc
 };
 
 HYP_CLASS()
-class HYP_API View : public HypObject<View>
+class HYP_API View final : public HypObject<View>
 {
     HYP_OBJECT_BODY(View);
 
@@ -131,10 +131,11 @@ public:
         return m_last_collection_result;
     }
 
-    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
 protected:
+    void Init() override;
+    
     void CollectLights();
     void CollectLightmapVolumes();
 

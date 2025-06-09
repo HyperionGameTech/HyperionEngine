@@ -86,13 +86,6 @@ AudioSource::~AudioSource()
 
 void AudioSource::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     if (AudioManager::GetInstance().IsInitialized())
     {
         auto al_format = AL_FORMAT_MONO8;
@@ -123,6 +116,8 @@ void AudioSource::Init()
 
         // drop reference
         m_data = ByteBuffer();
+
+        SetReady(true);
     }
 }
 

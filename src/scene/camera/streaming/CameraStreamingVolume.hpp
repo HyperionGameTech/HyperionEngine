@@ -3,6 +3,8 @@
 #ifndef HYPERION_CAMERA_STREAMING_VOLUME_HPP
 #define HYPERION_CAMERA_STREAMING_VOLUME_HPP
 
+#include <streaming/StreamingVolume.hpp>
+
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>
@@ -10,8 +12,6 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/math/Frustum.hpp>
-
-#include <streaming/StreamingManager.hpp>
 
 namespace hyperion {
 
@@ -24,9 +24,16 @@ public:
     CameraStreamingVolume() = default;
     virtual ~CameraStreamingVolume() override = default;
 
-    HYP_FORCE_INLINE void SetBoundingBox(const BoundingBox &aabb)
+    void SetBoundingBox(const BoundingBox& aabb)
     {
+        if (m_aabb == aabb)
+        {
+            return;
+        }
+        
         m_aabb = aabb;
+
+        NotifyUpdate();
     }
     
 protected:
@@ -51,7 +58,7 @@ protected:
     }
 
     HYP_METHOD()
-    virtual bool ContainsPoint_Impl(const Vec3f &point) const override
+    virtual bool ContainsPoint_Impl(const Vec3f& point) const override
     {
         return m_aabb.ContainsPoint(point);
     }

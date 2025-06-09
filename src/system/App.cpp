@@ -32,14 +32,14 @@ void App::Launch(Game* game, const CommandLineArguments& arguments)
     hyperion::DestroyEngine();
 }
 
-RC<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& arguments)
+Handle<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& arguments)
 {
     AssertThrow(game != nullptr);
 
-    RC<AppContextBase> app_context;
+    Handle<AppContextBase> app_context;
 
 #ifdef HYP_SDL
-    app_context = MakeRefCountedPtr<SDLAppContext>("Hyperion", arguments);
+    app_context = CreateObject<SDLAppContext>("Hyperion", arguments);
 #else
     HYP_FAIL("AppContext not implemented for this platform");
 #endif
@@ -71,9 +71,7 @@ RC<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& a
     {
         HYP_LOG(Core, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
 
-        app_context->SetMainWindow(app_context->CreateSystemWindow({ "Hyperion Engine",
-            resolution,
-            window_flags }));
+        app_context->SetMainWindow(app_context->CreateSystemWindow({ "Hyperion Engine", resolution, window_flags }));
     }
     else
     {

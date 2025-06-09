@@ -79,7 +79,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API Scene : public HypObject<Scene>
+class HYP_API Scene final : public HypObject<Scene>
 {
     friend class World;
     friend class UIStage;
@@ -215,8 +215,6 @@ public:
         m_is_audio_listener = is_audio_listener;
     }
 
-    void Init() override;
-
     void Update(GameCounter::TickUnit delta);
 
     HYP_METHOD()
@@ -235,6 +233,8 @@ public:
     Delegate<void, const Handle<Node>& /* new */, const Handle<Node>& /* prev */> OnRootNodeChanged;
 
 private:
+    void Init() override;
+
     template <class SystemType>
     void AddSystemIfApplicable();
 

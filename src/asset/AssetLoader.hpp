@@ -148,7 +148,7 @@ using TAssetLoadResult = TResult<Asset<T>, AssetLoadError>;
 // static_assert(sizeof(Asset) == sizeof(LoadedAsset), "sizeof(Asset<T>) must match the size of its parent class, to enable type punning");
 
 HYP_CLASS(Abstract)
-class HYP_API AssetLoaderBase : public EnableRefCountedPtrFromThis<AssetLoaderBase>
+class HYP_API AssetLoaderBase : public HypObject<AssetLoaderBase>
 {
     HYP_OBJECT_BODY(AssetLoaderBase);
 

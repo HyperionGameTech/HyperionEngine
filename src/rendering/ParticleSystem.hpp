@@ -36,7 +36,7 @@ struct ParticleSpawnerParams
 };
 
 HYP_CLASS()
-class HYP_API ParticleSpawner : public HypObject<ParticleSpawner>
+class HYP_API ParticleSpawner final : public HypObject<ParticleSpawner>
 {
     HYP_OBJECT_BODY(ParticleSpawner);
 
@@ -76,10 +76,10 @@ public:
     {
         return BoundingSphere(m_params.origin, m_params.radius);
     }
-
+    
+private:
     void Init() override;
 
-private:
     void CreateNoiseMap();
     void CreateBuffers();
     void CreateRenderGroup();
@@ -116,14 +116,14 @@ public:
         return m_particle_spawners;
     }
 
-    void Init() override;
-
     // called in render thread, updates particles using compute shader
     void UpdateParticles(FrameBase* frame, const RenderSetup& render_setup);
 
     void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
+    void Init() override;
+
     void CreateBuffers();
 
     Handle<Mesh> m_quad_mesh;

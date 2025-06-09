@@ -15,8 +15,8 @@
 #include <Engine.hpp>
 
 #ifdef HYP_SDL
-    #include <SDL2/SDL.h>
-    #include <SDL2/SDL_vulkan.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 #endif
 
 namespace hyperion {
@@ -216,9 +216,9 @@ SDLAppContext::~SDLAppContext()
     SDL_Quit();
 }
 
-RC<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window_options)
+Handle<ApplicationWindow> SDLAppContext::CreateSystemWindow(WindowOptions window_options)
 {
-    RC<SDLApplicationWindow> window = MakeRefCountedPtr<SDLApplicationWindow>(window_options.title, window_options.size);
+    Handle<SDLApplicationWindow> window = CreateObject<SDLApplicationWindow>(window_options.title, window_options.size);
     window->Initialize(window_options);
 
     return window;
@@ -334,7 +334,7 @@ const CommandLineArguments& AppContextBase::GetArguments() const
     return *m_arguments;
 }
 
-void AppContextBase::SetMainWindow(const RC<ApplicationWindow>& window)
+void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 {
     m_main_window = window;
     m_input_manager->SetWindow(m_main_window.Get());

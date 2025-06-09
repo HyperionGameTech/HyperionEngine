@@ -142,8 +142,6 @@ public:
         m_aabb = aabb;
     }
 
-    void Init() override;
-
     /*! \brief Set the mesh to be able to have Render* methods called without needing to have its resources claimed.
      *  \note Init() must be called before this method. */
     void SetPersistentRenderResourceEnabled(bool enabled);
@@ -151,6 +149,8 @@ public:
     bool BuildBVH(BVHNode& out_bvh_node, int max_depth = 3);
 
 private:
+    void Init() override;
+
     void CalculateAABB();
 
     Name m_name;

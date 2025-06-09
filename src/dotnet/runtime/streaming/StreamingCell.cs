@@ -29,23 +29,20 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name = "StreamingCellInfo")]
-    [StructLayout(LayoutKind.Explicit, Size = 128)]
+    [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 16)]
     public struct StreamingCellInfo
     {
-        [FieldOffset(0)]
-        Vec3i extent;
+        [FieldOffset(9)]
+        Vec2i coord;
 
         [FieldOffset(16)]
-        Vec2i coord;
+        Vec3i extent;
 
         [FieldOffset(32)]
         Vec3f scale;
 
         [FieldOffset(48)]
-        StreamingCellState state;
-
-        [FieldOffset(56), MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-        public StreamingCellNeighbor[] neighbors;
+        BoundingBox bounds;
     }
 
     [HypClassBinding(Name = "StreamingCell")]

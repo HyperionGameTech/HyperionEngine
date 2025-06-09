@@ -29,7 +29,7 @@ struct AnimationTrackDesc
 };
 
 HYP_CLASS()
-class AnimationTrack : public HypObject<AnimationTrack>
+class AnimationTrack final : public HypObject<AnimationTrack>
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -41,7 +41,7 @@ public:
     HYP_API AnimationTrack(const AnimationTrackDesc& desc);
     AnimationTrack(const AnimationTrack& other) = delete;
     AnimationTrack& operator=(const AnimationTrack& other) = delete;
-    ~AnimationTrack() = default;
+    ~AnimationTrack() override = default;
 
     HYP_FORCE_INLINE Bone* GetBone() const
     {
@@ -66,12 +66,14 @@ public:
     HYP_API Keyframe GetKeyframe(float time) const;
 
 private:
+    void Init() override;
+
     mutable Bone* m_bone;
     AnimationTrackDesc m_desc;
 };
 
 HYP_CLASS()
-class Animation : public HypObject<Animation>
+class Animation final : public HypObject<Animation>
 {
     HYP_OBJECT_BODY(Animation);
 
@@ -137,6 +139,8 @@ public:
     HYP_API void ApplyBlended(float time, float blend);
 
 private:
+    void Init() override;
+
     String m_name;
     Array<Handle<AnimationTrack>> m_tracks;
 };

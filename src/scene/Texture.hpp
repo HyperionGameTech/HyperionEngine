@@ -37,7 +37,7 @@ class StreamedTextureData;
 class RenderTexture;
 
 HYP_CLASS()
-class HYP_API Texture : public HypObject<Texture>
+class HYP_API Texture final : public HypObject<Texture>
 {
     HYP_OBJECT_BODY(Texture);
 
@@ -148,8 +148,6 @@ public:
         return m_texture_desc.wrap_mode;
     }
 
-    void Init() override;
-
     void GenerateMipmaps();
 
     /*! \brief Copies the texture data to the CPU. Waits (blocking) for the render thread to execute the task.
@@ -170,6 +168,8 @@ public:
     void SetPersistentRenderResourceEnabled(bool enabled);
 
 protected:
+    void Init() override;
+
     /*! \brief Readback() implementation, without locking mutex. */
     void Readback_Internal();
 
@@ -185,37 +185,6 @@ protected:
     RC<StreamedTextureData> m_streamed_texture_data;
 
     Mutex m_readback_mutex;
-};
-
-class HYP_API Texture2D : public Texture
-{
-public:
-    Texture2D(
-        const Vec2u& extent,
-        InternalFormat format,
-        FilterMode filter_mode,
-        WrapMode wrap_mode)
-        : Texture(
-              TextureDesc {
-                  ImageType::TEXTURE_TYPE_2D,
-                  format,
-                  Vec3u { extent.x, extent.y, 1 },
-                  filter_mode,
-                  filter_mode,
-                  wrap_mode })
-    {
-    }
-
-    Texture2D(
-        const Vec2u& extent,
-        InternalFormat format)
-        : Texture(
-              TextureDesc {
-                  ImageType::TEXTURE_TYPE_2D,
-                  format,
-                  Vec3u { extent.x, extent.y, 1 } })
-    {
-    }
 };
 
 } // namespace hyperion

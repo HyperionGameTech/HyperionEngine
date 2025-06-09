@@ -32,7 +32,7 @@ enum class AudioSourceState : uint32
 };
 
 HYP_CLASS()
-class AudioSource : public HypObject<AudioSource>
+class AudioSource final : public HypObject<AudioSource>
 {
     HYP_OBJECT_BODY(AudioSource);
 
@@ -47,8 +47,6 @@ public:
     AudioSource& operator=(AudioSource&& other) noexcept;
 
     ~AudioSource();
-
-    void Init() override;
 
     HYP_METHOD(Property = "Format", Serialize = true, Editor = true)
     HYP_FORCE_INLINE AudioSourceFormat GetFormat() const
@@ -124,6 +122,8 @@ public:
     void Stop();
 
 private:
+    void Init() override;
+
     void FindSampleLength();
 
     AudioSourceFormat m_format;

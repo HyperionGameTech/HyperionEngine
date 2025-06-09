@@ -11,6 +11,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <dotnet/Class.hpp>
+#include <dotnet/Object.hpp>
 #include <dotnet/DotNetSystem.hpp>
 
 #include <scripting/ScriptingService.hpp>

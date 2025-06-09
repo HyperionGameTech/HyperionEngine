@@ -336,7 +336,7 @@ class HYP_API EditorSubsystem : public Subsystem
     HYP_OBJECT_BODY(EditorSubsystem);
 
 public:
-    EditorSubsystem(const RC<AppContextBase>& app_context);
+    EditorSubsystem(const Handle<AppContextBase>& app_context);
     virtual ~EditorSubsystem() override;
 
     virtual void Initialize() override;
@@ -346,7 +346,7 @@ public:
     virtual void OnSceneAttached(const Handle<Scene>& scene) override;
     virtual void OnSceneDetached(const Handle<Scene>& scene) override;
 
-    HYP_FORCE_INLINE const RC<AppContextBase>& GetAppContext() const
+    HYP_FORCE_INLINE const Handle<AppContextBase>& GetAppContext() const
     {
         return m_app_context;
     }
@@ -440,7 +440,7 @@ private:
         return m_hovered_manipulation_widget.IsValid() && m_hovered_manipulation_widget_node.IsValid();
     }
 
-    RC<AppContextBase> m_app_context;
+    Handle<AppContextBase> m_app_context;
     Handle<Scene> m_scene;
     Handle<Camera> m_camera;
 

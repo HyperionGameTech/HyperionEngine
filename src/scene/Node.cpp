@@ -25,8 +25,8 @@
 #include <core/object/HypData.hpp>
 
 #ifdef HYP_EDITOR
-    #include <editor/EditorDelegates.hpp>
-    #include <editor/EditorSubsystem.hpp>
+#include <editor/EditorDelegates.hpp>
+#include <editor/EditorSubsystem.hpp>
 #endif
 
 #include <Engine.hpp>
@@ -250,6 +250,11 @@ Node::~Node()
 
         child->m_parent_node = nullptr;
     }
+}
+
+void Node::Init()
+{
+    SetReady(true);
 }
 
 void Node::SetName(const String& name)

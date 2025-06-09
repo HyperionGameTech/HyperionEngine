@@ -103,7 +103,7 @@ struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 };
 
 HYP_CLASS()
-class HYP_API LightmapVolume : public HypObject<LightmapVolume>
+class HYP_API LightmapVolume final : public HypObject<LightmapVolume>
 {
     HYP_OBJECT_BODY(LightmapVolume);
 
@@ -114,7 +114,7 @@ public:
 
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
-    ~LightmapVolume();
+    ~LightmapVolume() override;
 
     HYP_FORCE_INLINE RenderLightmapVolume& GetRenderResource() const
     {
@@ -150,9 +150,9 @@ public:
 
     bool BuildElementTextures(const LightmapUVMap& uv_map, uint32 index);
 
+private:
     void Init() override;
 
-private:
     void UpdateAtlasTextures();
 
     RenderLightmapVolume* m_render_resource;

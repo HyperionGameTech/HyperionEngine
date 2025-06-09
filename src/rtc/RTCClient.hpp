@@ -4,9 +4,15 @@
 #define HYPERION_RTC_CLIENT_HPP
 
 #include <core/containers/String.hpp>
+#include <core/containers/FlatMap.hpp>
+#include <core/containers/Array.hpp>
+
 #include <core/memory/RefCountedPtr.hpp>
+
 #include <core/functional/Delegate.hpp>
+
 #include <core/utilities/Optional.hpp>
+
 #include <core/Name.hpp>
 
 #ifdef HYP_LIBDATACHANNEL
@@ -15,7 +21,7 @@ class PeerConnection;
 class DataChannel;
 } // namespace rtc
 
-    #include <memory>
+#include <memory>
 
 #endif
 

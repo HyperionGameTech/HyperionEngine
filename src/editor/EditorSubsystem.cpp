@@ -724,7 +724,7 @@ void EditorManipulationWidgetHolder::Shutdown()
 
 #ifdef HYP_EDITOR
 
-EditorSubsystem::EditorSubsystem(const RC<AppContextBase>& app_context)
+EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
     : m_app_context(app_context),
       m_editor_camera_enabled(false),
       m_should_cancel_next_click(false),
@@ -2260,15 +2260,16 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
             RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             cancel_button->SetText("Cancel");
             cancel_button->OnClick.Bind(
-                [task_weak = task.ToWeak()](...)
-                {
-                    if (Handle<EditorTaskBase> task = task_weak.Lock())
-                    {
-                        task->Cancel();
-                    }
+                                      [task_weak = task.ToWeak()](...)
+                                      {
+                                          if (Handle<EditorTaskBase> task = task_weak.Lock())
+                                          {
+                                              task->Cancel();
+                                          }
 
-                    return UIEventHandlerResult::OK;
-                }).Detach();
+                                          return UIEventHandlerResult::OK;
+                                      })
+                .Detach();
             task_grid_column_right->AddChildUIObject(cancel_button);
 
             running_task.m_ui_object = task_grid;

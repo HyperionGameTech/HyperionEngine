@@ -62,13 +62,6 @@ View::~View()
 
 void View::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             if (m_render_resource)
@@ -109,14 +102,14 @@ void View::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}",
-    //     GetID().Value(),
-    //     m_scenes.Size(),
-    //     String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
-    //                      {
-    //                          return scene->GetName().LookupString();
-    //                      }),
-    //         ", "));
+    HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}",
+        GetID().Value(),
+        m_scenes.Size(),
+        String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
+                         {
+                             return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
+                         }),
+            ", "));
 
     CollectLights();
     CollectLightmapVolumes();

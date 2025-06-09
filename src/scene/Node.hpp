@@ -698,6 +698,8 @@ public:
     }
 
 protected:
+    static Scene* GetDefaultScene();
+
     Node(
         Type type,
         const String& name,
@@ -705,7 +707,7 @@ protected:
         const Transform& local_transform = Transform(),
         Scene* scene = nullptr);
 
-    static Scene* GetDefaultScene();
+    virtual void Init() override;
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */

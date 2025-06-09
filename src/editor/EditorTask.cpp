@@ -55,10 +55,9 @@ void TickableEditorTask::Cancel_Impl()
 
             AssertThrow(m_task.Cancel());
 
-            auto* executor = m_task.Initialize();
-            AssertThrow(executor != nullptr);
+            auto* promise = m_task.Promise();
 
-            executor->Fulfill();
+            promise->Fulfill();
         }
 
         OnCancel();

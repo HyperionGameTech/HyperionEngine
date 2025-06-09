@@ -127,6 +127,11 @@ NullCameraController::NullCameraController()
 {
 }
 
+void NullCameraController::Init()
+{
+    SetReady(true);
+}
+
 void NullCameraController::UpdateLogic(double dt)
 {
 }
@@ -229,13 +234,6 @@ Camera::~Camera()
 
 void Camera::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     m_streaming_volume = CreateObject<CameraStreamingVolume>();
     /// \todo: Set a proper bounding box for the streaming volume
     m_streaming_volume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
@@ -245,7 +243,7 @@ void Camera::Init()
     {
         auto init_match_window_size = [this]() -> TResult<>
         {
-            const RC<AppContextBase>& app_context = g_engine->GetAppContext();
+            const Handle<AppContextBase>& app_context = g_engine->GetAppContext();
 
             if (!app_context)
             {
@@ -306,7 +304,7 @@ void Camera::Init()
         InitObject(camera_controller);
     }
 
-    if (const Handle<CameraController> &camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
+    if (const Handle<CameraController>& camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
     {
         camera_controller->OnAdded(this);
         camera_controller->OnActivated();
@@ -751,7 +749,7 @@ void Camera::UpdateMouseLocked()
     {
         if (!m_mouse_lock_scope)
         {
-            if (const RC<AppContextBase>& app_context = g_engine->GetAppContext())
+            if (const Handle<AppContextBase>& app_context = g_engine->GetAppContext())
             {
                 m_mouse_lock_scope = app_context->GetInputManager()->AcquireMouseLock();
             }

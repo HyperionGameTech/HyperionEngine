@@ -60,7 +60,7 @@ public:
     friend class EntityManager;
     friend class SystemExecutionGroup;
 
-    virtual ~SystemBase() = default;
+    virtual ~SystemBase() override = default;
 
     Name GetName() const;
     TypeID GetTypeID() const;
@@ -201,18 +201,6 @@ public:
     {
     }
 
-    virtual void Init() override
-    {
-        if (IsInitCalled())
-        {
-            return;
-        }
-
-        HypObject::Init();
-
-        SetReady(true);
-    }
-
     virtual void Shutdown()
     {
     }
@@ -245,6 +233,11 @@ protected:
     void AfterProcess(Func&& fn)
     {
         m_after_process_procs.EmplaceBack(std::forward<Func>(fn));
+    }
+
+    virtual void Init() override
+    {
+        SetReady(true);
     }
 
     virtual SystemComponentDescriptors GetComponentDescriptors() const = 0;

@@ -1,8 +1,10 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderCamera.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/RenderState.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -121,7 +123,7 @@ void RenderCamera::EnqueueUnbind()
         /* force_render_thread */ true);
 }
 
-void RenderCamera::ApplyJitter()
+void RenderCamera::ApplyJitter(const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -130,7 +132,7 @@ void RenderCamera::ApplyJitter()
 
     AssertThrow(m_buffer_index != ~0u);
 
-    const uint32 frame_counter = g_engine->GetRenderState()->frame_counter + 1;
+    const uint32 frame_counter = render_setup.world->GetBufferData().frame_counter + 1;
 
     CameraShaderData& buffer_data = *static_cast<CameraShaderData*>(m_buffer_address);
 

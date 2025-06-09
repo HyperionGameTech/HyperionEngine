@@ -19,10 +19,10 @@ HYP_DECLARE_LOG_CHANNEL(Camera);
 
 #pragma region EditorCameraInputHandler
 
-EditorCameraInputHandler::EditorCameraInputHandler(CameraController* controller)
-    : m_controller(dynamic_cast<EditorCameraController*>(controller))
+EditorCameraInputHandler::EditorCameraInputHandler(const WeakHandle<CameraController>& controller)
+    : m_controller(WeakHandle<EditorCameraController>(controller))
 {
-    AssertThrowMsg(m_controller != nullptr, "Null camera controller or not of type EditorCameraController");
+    AssertThrowMsg(m_controller.IsValid(), "Null camera controller or not of type EditorCameraController");
 }
 
 bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
@@ -39,18 +39,28 @@ bool EditorCameraInputHandler::OnMouseDown_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    m_controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
+    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    {
+        controller->SetMode(EditorCameraControllerMode::MOUSE_LOCKED);
 
-    return true;
+        return true;
+    }
+
+    return false;
 }
 
 bool EditorCameraInputHandler::OnMouseUp_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    m_controller->SetMode(EditorCameraControllerMode::INACTIVE);
+    if (Handle<EditorCameraController> controller = m_controller.Lock())
+    {
+        controller->SetMode(EditorCameraControllerMode::INACTIVE);
 
-    return true;
+        return true;
+    }
+
+    return false;
 }
 
 bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
@@ -64,7 +74,14 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    Camera* camera = m_controller->GetCamera();
+    Handle<EditorCameraController> controller = m_controller.Lock();
+
+    if (!controller.IsValid())
+    {
+        return false;
+    }
+
+    Camera* camera = controller->GetCamera();
 
     if (!camera)
     {
@@ -117,7 +134,7 @@ EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
       m_mode(EditorCameraControllerMode::INACTIVE)
 {
-    m_input_handler = CreateObject<EditorCameraInputHandler>(this);
+    m_input_handler = CreateObject<EditorCameraInputHandler>(WeakHandleFromThis());
     InitObject(m_input_handler);
 }
 

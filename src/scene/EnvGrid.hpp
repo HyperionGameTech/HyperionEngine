@@ -113,18 +113,13 @@ struct EnvGridOptions
 };
 
 HYP_CLASS()
-class HYP_API EnvGrid : public HypObject<EnvGrid>
+class HYP_API EnvGrid final : public HypObject<EnvGrid>
 {
     HYP_OBJECT_BODY(EnvGrid);
 
 public:
     EnvGrid();
-
-    EnvGrid(
-        const Handle<Scene>& parent_scene,
-        const BoundingBox& aabb,
-        const EnvGridOptions& options);
-
+    EnvGrid(const Handle<Scene>& parent_scene, const BoundingBox& aabb, const EnvGridOptions& options);
     EnvGrid(const EnvGrid& other) = delete;
     EnvGrid& operator=(const EnvGrid& other) = delete;
     ~EnvGrid();
@@ -187,14 +182,15 @@ public:
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
 
-    void Init() override;
     void Update(GameCounter::TickUnit delta);
-
+    
 private:
     HYP_FORCE_INLINE Vec3f SizeOfProbe() const
     {
         return m_aabb.GetExtent() / Vec3f(m_options.density);
     }
+
+    void Init() override;
 
     void CreateEnvProbes();
 

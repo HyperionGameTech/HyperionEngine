@@ -17,6 +17,9 @@ class Entity final : public HypObject<Entity>
 public:
     HYP_API Entity();
     HYP_API virtual ~Entity() override;
+
+private:
+    void Init() override;
 };
 
 } // namespace hyperion
