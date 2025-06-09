@@ -8,6 +8,7 @@
 #include <core/memory/Any.hpp>
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypObject.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -146,8 +147,11 @@ using TAssetLoadResult = TResult<Asset<T>, AssetLoadError>;
 
 // static_assert(sizeof(Asset) == sizeof(LoadedAsset), "sizeof(Asset<T>) must match the size of its parent class, to enable type punning");
 
-class HYP_API AssetLoaderBase
+HYP_CLASS(Abstract)
+class HYP_API AssetLoaderBase : public EnableRefCountedPtrFromThis<AssetLoaderBase>
 {
+    HYP_OBJECT_BODY(AssetLoaderBase);
+
 public:
     virtual ~AssetLoaderBase() = default;
 

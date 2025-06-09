@@ -12,8 +12,11 @@ namespace hyperion {
 
 using namespace json;
 
+HYP_CLASS(NoScriptBindings)
 class JSONLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(JSONLoader);
+    
 public:
     virtual ~JSONLoader() = default;
 

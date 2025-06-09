@@ -26,7 +26,7 @@ void AudioSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void AudioSystem::Process(GameCounter::TickUnit delta)
+void AudioSystem::Process(float delta)
 {
     if (!AudioManager::GetInstance().IsInitialized())
     {

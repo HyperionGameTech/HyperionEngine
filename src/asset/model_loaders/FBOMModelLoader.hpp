@@ -10,8 +10,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class FBOMModelLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(FBOMModelLoader);
+
 public:
     virtual ~FBOMModelLoader() = default;
 

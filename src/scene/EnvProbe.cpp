@@ -2,6 +2,8 @@
 
 #include <scene/EnvProbe.hpp>
 #include <scene/View.hpp>
+#include <scene/World.hpp>
+#include <scene/Scene.hpp>
 
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderState.hpp>
@@ -220,6 +222,11 @@ void EnvProbe::CreateView()
                 .cull_faces = FaceCullMode::NONE }) });
 
     InitObject(m_view);
+
+    // if (m_parent_scene.IsValid())
+    // {
+    //     m_parent_scene->GetWorld()->AddView(m_view);
+    // }
 }
 
 void EnvProbe::SetAABB(const BoundingBox& aabb)
@@ -264,31 +271,28 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
         return;
     }
 
-    m_parent_scene = parent_scene;
-
     if (IsInitCalled())
     {
+        if (m_parent_scene.IsValid())
+        {
+            m_view->RemoveScene(m_parent_scene);
+            // m_parent_scene->GetWorld()->RemoveView(m_view);
+        }
+
         if (parent_scene.IsValid())
         {
-            InitObject(parent_scene);
-
-            CreateView();
-
-            if (m_view.IsValid())
-            {
-                m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
-            }
+            m_view->AddScene(parent_scene);
+            // parent_scene->GetWorld()->AddView(m_view);
 
             m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
         }
         else
         {
-            m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>());
             m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
-
-            m_view.Reset();
         }
     }
+
+    m_parent_scene = parent_scene;
 
     Invalidate();
 }

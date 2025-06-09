@@ -1,6 +1,9 @@
 #include <parser/Parser.hpp>
 #include <parser/Lexer.hpp>
 
+#include <analyzer/Analyzer.hpp>
+#include <analyzer/Definitions.hpp>
+
 #include <core/utilities/Result.hpp>
 
 #include <core/json/JSON.hpp>
@@ -31,11 +34,11 @@ const ASTType* ExtractInnerType(const ASTType* type)
     }
 }
 
-TResult<String> MapToCSharpType(const ASTType* type)
+TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTType* type)
 {
     if (type->is_pointer && type->ptr_to->IsVoid())
     {
-        return String("IntPtr");
+        return CSharpTypeMapping { "IntPtr", "ReadIntPtr" };
     }
 
     if (type->is_array)
@@ -45,13 +48,13 @@ TResult<String> MapToCSharpType(const ASTType* type)
             return HYP_MAKE_ERROR(Error, "Array type has no inner type");
         }
 
-        if (auto res = MapToCSharpType(type->array_of.Get()); res.HasError())
+        if (auto res = MapToCSharpType(analyzer, type->array_of.Get()); res.HasError())
         {
             return res.GetError();
         }
         else
         {
-            return res.GetValue() + "[]";
+            return CSharpTypeMapping { res.GetValue().type_name + "[]" };
         }
     }
 
@@ -65,35 +68,34 @@ TResult<String> MapToCSharpType(const ASTType* type)
             return HYP_MAKE_ERROR(Error, "Type name has no parts");
         }
 
-        static const HashMap<String, String> mapping {
-            { "int", "int" },
-            { "float", "float" },
-            { "double", "double" },
-            { "bool", "bool" },
-            { "void", "void" },
-            { "char", "char" },
-            { "uint8", "byte" },
-            { "uint16", "ushort" },
-            { "uint32", "uint" },
-            { "uint64", "ulong" },
-            { "int8", "sbyte" },
-            { "int16", "short" },
-            { "int32", "int" },
-            { "int64", "long" },
-            { "string", "string" },
-            { "String", "string" },
-            { "ANSIString", "string" },
-            { "UTF8StringView", "string" },
-            { "ANSIStringView", "string" },
-            { "FilePath", "string" },
-            { "ByteBuffer", "byte[]" },
-            { "ID", "IDBase" },
-            { "Handle<Node>", "Node" },
-            { "Name", "Name" },
-            { "WeakName", "Name" },
-            { "AnyHandle", "object" },
-            { "AnyRef", "object" },
-            { "ConstAnyRef", "object" }
+        static const HashMap<String, CSharpTypeMapping> mapping {
+            { "int", { "int", "ReadInt32" } },
+            { "float", { "float", "ReadFloat" } },
+            { "double", { "double", "ReadDouble" } },
+            { "bool", { "bool", "ReadBool" } },
+            { "void", { "void" } },
+            { "char", { "char" } },
+            { "uint8", { "byte", "ReadUInt8" } },
+            { "uint16", { "ushort", "ReadUInt16" } },
+            { "uint32", { "uint", "ReadUInt32" } },
+            { "uint64", { "ulong", "ReadUInt64" } },
+            { "int8", { "sbyte", "ReadInt8" } },
+            { "int16", { "short", "ReadInt16" } },
+            { "int32", { "int", "ReadInt32" } },
+            { "int64", { "long", "ReadInt64" } },
+            { "string", { "string", "ReadString" } },
+            { "String", { "string", "ReadString" } },
+            { "ANSIString", { "string", "ReadString" } },
+            { "UTF8StringView", { "string", "ReadString" } },
+            { "ANSIStringView", { "string", "ReadString" } },
+            { "FilePath", { "string", "ReadString" } },
+            { "ByteBuffer", { "byte[]", "ReadByteBuffer" } },
+            { "ID", { "IDBase", "ReadID" } },
+            { "Name", { "Name", "ReadName" } },
+            { "WeakName", { "Name", "ReadName" } },
+            { "AnyHandle", { "object" } },
+            { "AnyRef", { "object" } },
+            { "ConstAnyRef", { "object" } }
         };
 
         const String type_name_string = type->type_name->ToString(/* include_namespace */ false);
@@ -111,7 +113,7 @@ TResult<String> MapToCSharpType(const ASTType* type)
 
             if (template_name == "Array")
             {
-                return String("Array");
+                return CSharpTypeMapping { "Array" };
             }
 
             if (template_name == "RC"
@@ -128,7 +130,7 @@ TResult<String> MapToCSharpType(const ASTType* type)
                     return HYP_MAKE_ERROR(Error, "Type template argument is not a type");
                 }
 
-                return MapToCSharpType(type->template_arguments[0]->type.Get());
+                return MapToCSharpType(analyzer, type->template_arguments[0]->type.Get());
             }
 
             HYP_LOG(Parser, Error, "Template type is unable to be mapped to a C# type: {}", type->Format());
@@ -136,7 +138,23 @@ TResult<String> MapToCSharpType(const ASTType* type)
             return HYP_MAKE_ERROR(Error, "Template type is unable to be mapped to a C# type");
         }
 
-        return type_name_string;
+        // Find a HypClass with the same name. HypObjects (classes deriving HypObject.cs) and structs with HypClassBinding
+        // attribute can use custom overloads to try and get a specific method for reading the value.
+        const HypClassDefinition* definition = analyzer.FindHypClassDefinition(type_name_string);
+
+        if (definition)
+        {
+            if (definition->type == HypClassDefinitionType::CLASS)
+            {
+                return CSharpTypeMapping { type_name_string, HYP_FORMAT("ReadObject<{}>", definition->name) };
+            }
+            else if (definition->type == HypClassDefinitionType::STRUCT)
+            {
+                return CSharpTypeMapping { type_name_string, HYP_FORMAT("ReadStruct<{}>", definition->name) };
+            }
+        }
+
+        return CSharpTypeMapping { type_name_string };
     }
 
     HYP_LOG(Parser, Error, "Type is unable to be mapped to a C# type: {}", type->Format());

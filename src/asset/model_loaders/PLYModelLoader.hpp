@@ -10,8 +10,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class PLYModelLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(PLYModelLoader);
+    
 public:
     enum PLYType
     {

@@ -159,12 +159,14 @@ extern "C"
 
     HYP_EXPORT int8 HypData_IsArray(const HypData* hyp_data)
     {
-        if (!hyp_data)
-        {
-            return false;
-        }
+        // if (!hyp_data)
+        // {
+        //     return false;
+        // }
 
-        return hyp_data->Is<Array<HypData>>();
+        // return hyp_data->Is<Array<HypData>>();
+
+        HYP_NOT_IMPLEMENTED();
     }
 
     HYP_EXPORT int8 HypData_GetArray(HypData* hyp_data, HypData** out_array, uint32* out_size)
@@ -187,24 +189,19 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetArray(HypData* hyp_data, HypData** elements, uint32 size)
+    HYP_EXPORT int8 HypData_SetArray(HypData* hyp_data, const HypClass* hyp_class, HypData* elements, uint32 size)
     {
-        if (!hyp_data || !elements)
+        if (!hyp_data || !hyp_class || !elements)
         {
             return false;
         }
 
-        Array<HypData> hyp_data_array;
-        hyp_data_array.Reserve(size);
-
-        for (uint32 i = 0; i < size; i++)
+        if (!hyp_class->CanCreateInstance())
         {
-            hyp_data_array.PushBack(std::move(*(elements[i])));
+            return false;
         }
 
-        *hyp_data = HypData(std::move(hyp_data_array));
-
-        return true;
+        return hyp_class->CreateInstanceArray(Span<HypData>(elements, elements + size), *hyp_data, /* allow_abstract */ false);
     }
 
     HYP_EXPORT int8 HypData_IsString(const HypData* hyp_data)
@@ -275,14 +272,14 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetID(HypData* hyp_data, uint32 id_value)
+    HYP_EXPORT int8 HypData_SetID(HypData* hyp_data, IDBase* id)
     {
-        if (!hyp_data)
+        if (!hyp_data || !id)
         {
             return false;
         }
 
-        *hyp_data = HypData(IDBase { id_value });
+        *hyp_data = HypData(*id);
 
         return true;
     }

@@ -51,7 +51,7 @@ void ScenePrimaryCameraSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
-void ScenePrimaryCameraSystem::Process(GameCounter::TickUnit delta)
+void ScenePrimaryCameraSystem::Process(float delta)
 {
     // Never called
 }

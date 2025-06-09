@@ -51,8 +51,6 @@ static_assert(sizeof(EntityInstanceBatch) == 4096);
 
 struct DrawCallID
 {
-    static_assert(sizeof(ID<Mesh>) == 4, "Handle ID should be 32 bit for DrawCallID to be able to store two IDs.");
-
     static constexpr uint64 mesh_mask = uint64(0xFFFFFFFF);
     static constexpr uint64 material_mask = uint64(0xFFFFFFFF) << 32;
 

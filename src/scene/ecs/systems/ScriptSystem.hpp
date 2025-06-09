@@ -12,8 +12,11 @@
 
 namespace hyperion {
 
-class ScriptSystem final : public System<ScriptSystem, ComponentDescriptor<ScriptComponent, COMPONENT_RW_FLAGS_READ_WRITE>>
+HYP_CLASS(NoScriptBindings)
+class ScriptSystem final : public SystemBase
 {
+    HYP_OBJECT_BODY(ScriptSystem);
+
 public:
     ScriptSystem(EntityManager& entity_manager);
     virtual ~ScriptSystem() override = default;
@@ -33,9 +36,16 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
 
 private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<ScriptComponent, COMPONENT_RW_FLAGS_READ_WRITE> {}
+        };
+    }
+
     void HandleGameStateChanged(GameStateMode game_state_mode, GameStateMode previous_game_state_mode);
 
     void CallScriptMethod(UTF8StringView method_name);

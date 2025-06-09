@@ -10,8 +10,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class TextureLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(TextureLoader);
+    
 public:
     virtual ~TextureLoader() = default;
 

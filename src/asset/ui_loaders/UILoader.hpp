@@ -9,8 +9,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class UILoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(UILoader);
+    
 public:
     virtual ~UILoader() = default;
 

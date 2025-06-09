@@ -28,7 +28,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(EnvProbe);
 
 ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
 }
 
@@ -99,7 +99,7 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     }
 }
 
-void ReflectionProbeUpdaterSystem::Process(GameCounter::TickUnit delta)
+void ReflectionProbeUpdaterSystem::Process(float delta)
 {
     for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
     {

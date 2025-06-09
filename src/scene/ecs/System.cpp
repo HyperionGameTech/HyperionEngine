@@ -5,16 +5,28 @@
 
 #include <scene/Scene.hpp>
 
+#include <core/object/HypClass.hpp>
+
 namespace hyperion {
+
+Name SystemBase::GetName() const
+{
+    return InstanceClass()->GetName();
+}
+
+TypeID SystemBase::GetTypeID() const
+{
+    return InstanceClass()->GetTypeID();
+}
 
 Scene* SystemBase::GetScene() const
 {
-    return m_entity_manager.GetScene();
+    return GetEntityManager().GetScene();
 }
 
 World* SystemBase::GetWorld() const
 {
-    return m_entity_manager.GetWorld();
+    return GetEntityManager().GetWorld();
 }
 
 void SystemBase::SetWorld(World* world)

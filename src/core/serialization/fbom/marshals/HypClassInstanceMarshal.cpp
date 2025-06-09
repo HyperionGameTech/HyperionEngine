@@ -107,7 +107,10 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
         return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeID: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeID().Value()) };
     }
 
-    hyp_class->CreateInstance(out);
+    if (!hyp_class->CreateInstance(out))
+    {
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, HypClass '{}' instance creation failed", hyp_class->GetName()) };
+    }
 
     if (hyp_class->GetSerializationMode() & HypClassSerializationMode::BITWISE)
     {

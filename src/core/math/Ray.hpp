@@ -26,7 +26,6 @@ class Matrix4;
 using RayHitID = uint32;
 
 HYP_STRUCT(Size = 32, Serialize = "bitwise")
-
 struct HYP_API Ray
 {
     HYP_FIELD(Property = "Position")

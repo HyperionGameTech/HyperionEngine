@@ -3,11 +3,9 @@
 #define HYPERION_CORE_SCHEDULER_HPP
 
 #include <core/containers/Array.hpp>
-#include <core/containers/FixedArray.hpp>
 
 #include <core/functional/Proc.hpp>
 
-#include <core/utilities/Optional.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/StaticMessage.hpp>
 
@@ -15,7 +13,6 @@
 
 #include <core/threading/SchedulerFwd.hpp>
 #include <core/threading/AtomicVar.hpp>
-#include <core/threading/Semaphore.hpp>
 #include <core/threading/Thread.hpp>
 #include <core/threading/Task.hpp>
 #include <core/threading/Threads.hpp>
@@ -36,8 +33,6 @@ namespace threading {
 class HYP_API SchedulerBase
 {
 public:
-    using SemaphoreType = TaskSemaphore;
-
     SchedulerBase() = delete;
     SchedulerBase(const SchedulerBase& other) = delete;
     SchedulerBase& operator=(const SchedulerBase& other) = delete;
@@ -62,7 +57,7 @@ public:
 
     virtual void Await(TaskID id) = 0;
 
-    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, SemaphoreType* semaphore, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) = 0;
+    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, TaskCompleteNotifier* notifier, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) = 0;
 
     virtual bool Dequeue(TaskID id) = 0;
 
@@ -107,8 +102,8 @@ public:
         // If the executor is owned by the scheduler, it will be deleted when this object is destroyed
         bool owns_executor = false;
 
-        // Atomic counter to increment when the task is completed (used for batch tasks)
-        SemaphoreType* semaphore = nullptr;
+        // Task notifier to signal when the task is completed (used for batch tasks)
+        TaskCompleteNotifier* notifier = nullptr;
 
         // Condition variable to notify when the task has been executed (owned by the scheduler)
         std::condition_variable* task_executed = nullptr;
@@ -126,14 +121,14 @@ public:
         ScheduledTask(ScheduledTask&& other) noexcept
             : executor(other.executor),
               owns_executor(other.owns_executor),
-              semaphore(other.semaphore),
+              notifier(other.notifier),
               task_executed(other.task_executed),
               callback(std::move(other.callback)),
               debug_name(std::move(other.debug_name))
         {
             other.executor = nullptr;
             other.owns_executor = false;
-            other.semaphore = nullptr;
+            other.notifier = nullptr;
             other.task_executed = nullptr;
         }
 
@@ -151,14 +146,14 @@ public:
 
             executor = other.executor;
             owns_executor = other.owns_executor;
-            semaphore = other.semaphore;
+            notifier = other.notifier;
             task_executed = other.task_executed;
             callback = std::move(other.callback);
             debug_name = std::move(other.debug_name);
 
             other.executor = nullptr;
             other.owns_executor = false;
-            other.semaphore = nullptr;
+            other.notifier = nullptr;
             other.task_executed = nullptr;
 
             return *this;
@@ -179,9 +174,9 @@ public:
 
             int counter_value = 0;
 
-            if (semaphore != nullptr)
+            if (notifier != nullptr)
             {
-                counter_value = semaphore->Release(1, callback);
+                counter_value = notifier->Release(1, callback);
             }
             else if (callback.IsValid())
             {
@@ -197,9 +192,9 @@ public:
 
             int counter_value = 0;
 
-            if (semaphore != nullptr)
+            if (notifier != nullptr)
             {
-                counter_value = semaphore->Release(1, callback);
+                counter_value = notifier->Release(1, callback);
             }
             else if (callback.IsValid())
             {
@@ -258,9 +253,9 @@ public:
         ScheduledTask scheduled_task;
         scheduled_task.executor = executor;
         scheduled_task.owns_executor = (flags & TaskEnqueueFlags::FIRE_AND_FORGET);
-        scheduled_task.semaphore = &executor->GetSemaphore();
+        scheduled_task.notifier = &executor->GetNotifier();
         scheduled_task.task_executed = &m_task_executed;
-        scheduled_task.callback = &executor->GetCallbackChain();
+        scheduled_task.callback = OnTaskCompletedCallback(&executor->GetCallbackChain());
         scheduled_task.debug_name = debug_name;
 
         Enqueue_Internal(std::move(scheduled_task));
@@ -277,17 +272,17 @@ public:
      *  called from a non-owner thread.
      *  \internal Used by TaskSystem to enqueue batches of tasks.
      *  \param executor_ptr The TaskExecutor to execute (owned by the caller)
-     *  \param atomic_counter A pointer to an atomic uint32 variable that is incremented upon completion.
+     *  \param notifier A TaskCompleteNotifier to be used to notify when the task is completed.
      *  \param callback A callback to be executed after the task is completed.
      *  \param debug_name A StaticMessage instance containing the name of the task (for debugging) */
-    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, SemaphoreType* semaphore, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) override
+    virtual TaskID EnqueueTaskExecutor(TaskExecutorBase* executor_ptr, TaskCompleteNotifier* notifier, OnTaskCompletedCallback&& callback = nullptr, const StaticMessage& debug_name = StaticMessage()) override
     {
         std::unique_lock lock(m_mutex);
 
         ScheduledTask scheduled_task;
         scheduled_task.executor = executor_ptr;
         scheduled_task.owns_executor = false;
-        scheduled_task.semaphore = semaphore;
+        scheduled_task.notifier = notifier;
         scheduled_task.task_executed = &m_task_executed;
         scheduled_task.callback = std::move(callback);
         scheduled_task.debug_name = debug_name;
@@ -396,7 +391,7 @@ public:
         // Release memory from the UniquePtr and assign it to the ScheduledTask
         // the ScheduledTask will delete the executor when it is destructed.
         scheduled_task.executor = executor_casted;
-        scheduled_task.semaphore = &executor_casted->GetSemaphore();
+        scheduled_task.notifier = &executor_casted->GetNotifier();
         scheduled_task.owns_executor = true;
 
         return true;

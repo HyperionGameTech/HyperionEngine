@@ -3,17 +3,35 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [StructLayout(LayoutKind.Sequential, Size = 4)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct IDBase
     {
-        public static readonly IDBase Invalid = new IDBase(0);
+        public static readonly IDBase Invalid = new IDBase();
 
-        [MarshalAs(UnmanagedType.U4)]
+        [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
+        private uint typeIdValue;
+
+        [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
         private uint value;
 
-        public IDBase(uint value)
+        public IDBase()
         {
+            this.typeIdValue = TypeID.Void.Value;
+            this.value = 0;
+        }
+
+        public IDBase(TypeID typeId, uint value)
+        {
+            this.typeIdValue = typeId.Value;
             this.value = value;
+        }
+
+        public TypeID TypeID
+        {
+            get
+            {
+                return new TypeID(typeIdValue);
+            }
         }
 
         public uint Value
@@ -28,7 +46,7 @@ namespace Hyperion
         {
             get
             {
-                return value != 0;
+                return typeIdValue != 0 && value != 0;
             }
         }
 
@@ -44,17 +62,17 @@ namespace Hyperion
 
         public override string ToString()
         {
-            return string.Format("IDBase({0})", value);
+            return string.Format("IDBase(TypeID: {0}, Value: {0})", typeIdValue, value);
         }
 
         public static bool operator==(IDBase a, IDBase b)
         {
-            return a.value == b.value;
+            return a.typeIdValue == b.typeIdValue && a.value == b.value;
         }
 
         public static bool operator!=(IDBase a, IDBase b)
         {
-            return a.value != b.value;
+            return a.typeIdValue != b.typeIdValue || a.value != b.value;
         }
     }
 

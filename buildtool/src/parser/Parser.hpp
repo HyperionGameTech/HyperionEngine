@@ -18,6 +18,8 @@ class JSONValue;
 
 namespace hyperion::buildtool {
 
+class Analyzer;
+
 struct QualifiedName
 {
     Array<String> parts;
@@ -27,7 +29,14 @@ struct QualifiedName
 };
 
 class ASTType;
-TResult<String> MapToCSharpType(const ASTType* type);
+
+struct CSharpTypeMapping
+{
+    String type_name;                    // Name of the type in C#
+    Optional<String> get_value_overload; // Method to use instead of GetValue() if a specific one is defined in HypData.cs
+};
+
+TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTType* type);
 
 struct ASTNode
 {

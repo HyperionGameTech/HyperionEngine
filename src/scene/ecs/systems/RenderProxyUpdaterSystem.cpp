@@ -145,7 +145,7 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     }
 }
 
-void RenderProxyUpdaterSystem::Process(GameCounter::TickUnit delta)
+void RenderProxyUpdaterSystem::Process(float delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
     Array<RenderProxy*> render_proxy_ptrs;

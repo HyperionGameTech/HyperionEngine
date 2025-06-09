@@ -84,9 +84,18 @@ protected:
     {
     }
 
-    virtual void CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(HypData& out) const override
     {
-        HYP_NOT_IMPLEMENTED_VOID();
+        HYP_NOT_IMPLEMENTED();
+
+        return false;
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    {
+        HYP_NOT_IMPLEMENTED();
+
+        return false;
     }
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override

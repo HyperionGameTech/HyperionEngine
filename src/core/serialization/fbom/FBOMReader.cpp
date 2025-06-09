@@ -8,19 +8,13 @@
 #include <core/io/BufferedByteReader.hpp>
 
 #include <core/utilities/Format.hpp>
-#include <core/utilities/DeferredScope.hpp>
 
 #include <core/object/HypData.hpp>
-
-#include <core/threading/Task.hpp>
-#include <core/threading/TaskSystem.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
 #include <core/compression/Archive.hpp>
-
-#include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 namespace utilities {

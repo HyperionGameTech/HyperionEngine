@@ -10,6 +10,7 @@
 
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/TypeID.hpp>
+#include <core/utilities/EnumFlags.hpp>
 
 namespace hyperion {
 
@@ -23,6 +24,9 @@ class FBOMData;
 class FBOMLoadContext;
 
 } // namespace serialization
+
+using serialization::FBOMData;
+using serialization::FBOMLoadContext;
 
 enum class HypMemberType : uint8
 {

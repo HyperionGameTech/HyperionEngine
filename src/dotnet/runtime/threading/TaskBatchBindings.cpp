@@ -29,12 +29,12 @@ extern "C"
 
     HYP_EXPORT int32 TaskBatch_NumCompleted(const TaskBatch* task_batch)
     {
-        return task_batch->semaphore.GetValue();
+        return task_batch->notifier.GetValue();
     }
 
     HYP_EXPORT int32 TaskBatch_NumEnqueued(const TaskBatch* task_batch)
     {
-        return task_batch->num_enqueued;
+        return int32(task_batch->executors.Size());
     }
 
     HYP_EXPORT void TaskBatch_AwaitCompletion(TaskBatch* task_batch)

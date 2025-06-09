@@ -187,8 +187,27 @@ Scene::~Scene()
     }
 
     // Move so destruction of components can check GetEntityManager() returns nullptr
-    RC<EntityManager> entity_manager = std::move(m_entity_manager);
-    entity_manager.Reset();
+    if (RC<EntityManager> entity_manager = std::move(m_entity_manager))
+    {
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+        {
+            // If we are on the same thread, we can safely shutdown the entity manager here:
+            entity_manager->Shutdown();
+        }
+        else
+        {
+            // have to enqueue a task to shut down the entity manager on its owner thread
+            Task<void> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([&entity_manager]()
+                {
+                    entity_manager->Shutdown();
+                });
+
+            // Wait for shut down to complete
+            task.Await();
+        }
+
+        entity_manager.Reset();
+    }
 
     if (m_render_resource != nullptr)
     {
@@ -472,14 +491,14 @@ String Scene::GetUniqueNodeName(UTF8StringView base_name) const
 template <class SystemType>
 void Scene::AddSystemIfApplicable()
 {
-    UniquePtr<SystemType> system = MakeUnique<SystemType>(*m_entity_manager);
+    Handle<SystemType> system = CreateObject<SystemType>(*m_entity_manager);
 
     if (!system->ShouldCreateForScene(this))
     {
         return;
     }
 
-    m_entity_manager->AddSystem(std::move(system));
+    m_entity_manager->AddSystem(system);
 }
 
 #pragma endregion Scene

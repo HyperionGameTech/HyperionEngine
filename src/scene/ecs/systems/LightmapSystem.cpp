@@ -52,7 +52,7 @@ void LightmapSystem::OnEntityRemoved(ID<Entity> entity)
     GetEntityManager().RemoveTag<EntityTag::LIGHTMAP_ELEMENT>(entity);
 }
 
-void LightmapSystem::Process(GameCounter::TickUnit delta)
+void LightmapSystem::Process(float delta)
 {
     for (auto [entity_id, mesh_component, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {

@@ -96,7 +96,7 @@ void LightVisibilityUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     GetEntityManager().RemoveTag<EntityTag::LIGHT>(entity);
 }
 
-void LightVisibilityUpdaterSystem::Process(GameCounter::TickUnit delta)
+void LightVisibilityUpdaterSystem::Process(float delta)
 {
     { // Invalidate visibility state of directional lights that have had their transforms update to refresh the octree
         for (auto [entity_id, light_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos()))

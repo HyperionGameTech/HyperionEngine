@@ -13,6 +13,8 @@
 
 #include <core/utilities/GlobalContext.hpp>
 
+#include <core/Util.hpp>
+
 namespace hyperion {
 
 template <class T>
@@ -90,8 +92,23 @@ struct Handle final : HandleBase
     /*! \brief Construct a handle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit Handle(IDType id)
-        : Handle(id.IsValid() ? GetContainer<T, false>()->GetObjectHeader(id.Value() - 1) : nullptr)
+        : ptr(nullptr)
     {
+        if (id.IsValid())
+        {
+            IObjectContainer* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
+
+            // This really shouldn't happen unless we're doing something wrong.
+            // We shouldn't have an ID for a type that doesn't have a container.
+            AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
+
+            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.Value() - 1));
+
+            ptr = static_cast<HypObjectBase*>(header->GetPointer());
+            AssertThrow(ptr != nullptr);
+
+            header->IncRefStrong();
+        }
     }
 
     template <class TPointerType, typename = std::enable_if_t<IsHypObject<TPointerType>::value && std::is_convertible_v<TPointerType*, T*>>>
@@ -198,7 +215,7 @@ struct Handle final : HandleBase
 
     HYP_FORCE_INLINE operator IDType() const
     {
-        return ptr != nullptr ? IDType(ptr->m_header->index + 1) : IDType();
+        return ptr != nullptr ? IDType(IDBase { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 }) : IDType();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -253,7 +270,7 @@ struct Handle final : HandleBase
 
     /*! \brief Get a referenceable ID for the object that the handle is referencing.
      *  \return The ID of the object. */
-    HYP_DEPRECATED HYP_FORCE_INLINE IDType GetID() const
+    HYP_FORCE_INLINE IDType GetID() const
     {
         return IDType(*this);
     }
@@ -351,8 +368,20 @@ struct WeakHandle final
     /*! \brief Construct a WeakHandle from the given ID.
      *  \param id The ID of the object to reference. */
     explicit WeakHandle(IDType id)
-        : WeakHandle(id.IsValid() ? GetContainer<T, false>()->GetObjectHeader(id.Value() - 1) : nullptr)
+        : ptr(nullptr)
     {
+        if (id.IsValid())
+        {
+            IObjectContainer* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
+            AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
+
+            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.Value() - 1));
+
+            ptr = static_cast<HypObjectBase*>(header->GetPointer());
+            AssertThrow(ptr != nullptr);
+
+            header->IncRefWeak();
+        }
     }
 
     WeakHandle(const Handle<T>& other)
@@ -481,7 +510,7 @@ struct WeakHandle final
 
     HYP_FORCE_INLINE operator IDType() const
     {
-        return ptr != nullptr ? IDType(ptr->m_header->index + 1) : IDType();
+        return ptr != nullptr ? IDType(IDBase { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 }) : IDType();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -738,7 +767,7 @@ public:
     {
         static_assert(offsetof(Handle<T>, ptr) == 0, "Handle<T> must have ptr as first member");
 
-        if (!type_id || type_id != TypeID::ForType<T>())
+        if (!Is<T>())
         {
             return Handle<T>::empty;
         }
@@ -771,8 +800,6 @@ const Handle<T> Handle<T>::empty = {};
 template <class T>
 const WeakHandle<T> WeakHandle<T>::empty = {};
 
-HYP_DISABLE_OPTIMIZATION;
-
 template <class T, class... Args>
 HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args&&... args)
 {
@@ -790,21 +817,8 @@ HYP_NODISCARD HYP_FORCE_INLINE inline Handle<T> CreateObject(Args&&... args)
 
     Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
 
-    // AssertDebugMsg(ptr->m_header == static_cast<HypObjectHeader*>(header),
-    //     "HypObjectHeader pointer does not match HypObjectMemory pointer. "
-    //     "This is likely due to a bug in the HypObjectMemory implementation. Ptr: %p, Header: %p",
-    //     ptr->m_header, header);
-    AssertDebug(ptr->m_header != nullptr);
-    AssertDebugMsg(ptr->m_header->container == &container,
-        "HypObjectHeader container does not match HypObjectMemory container. "
-        "This is likely due to a bug in the HypObjectMemory implementation. Ptr: %p, Header: %p, Container: %p\n"
-        "Expected container type ID: %u, Got container type ID: %u",
-        ptr->m_header, header, &container, container.GetObjectTypeID().Value(), ptr->m_header->container->GetObjectTypeID().Value());
-
     return Handle<T>(ptr->m_header);
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 template <class T>
 HYP_FORCE_INLINE inline bool InitObject(const Handle<T>& handle)

@@ -130,7 +130,7 @@ struct RENDER_COMMAND(RemoveBLASFromTLAS)
 #pragma endregion Render commands
 
 BLASUpdaterSystem::BLASUpdaterSystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
 }
 
@@ -238,7 +238,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     mesh_component.raytracing_data = nullptr;
 }
 
-void BLASUpdaterSystem::Process(GameCounter::TickUnit delta)
+void BLASUpdaterSystem::Process(float delta)
 {
     if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {

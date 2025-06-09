@@ -441,29 +441,38 @@ namespace Hyperion
 
                 InvokeMethodDelegate invokeMethodDelegate = (IntPtr thisObjectReferencePtr, IntPtr argsPtr, IntPtr retPtr) =>
                 {
-                    object[] parameters;
-                    HandleParameters(argsPtr, methodInfo, out parameters);
-
-                    object? thisObject = null;
-
-                    if (!methodInfo.IsStatic)
+                    try
                     {
-                        ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
+                        object[] parameters;
+                        HandleParameters(argsPtr, methodInfo, out parameters);
 
-                        thisObject = objectReferenceRef.LoadObject();
+                        object? thisObject = null;
 
-                        if (thisObject == null)
-                            throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
+                        if (!methodInfo.IsStatic)
+                        {
+                            ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
+
+                            thisObject = objectReferenceRef.LoadObject();
+
+                            if (thisObject == null)
+                                throw new InvalidOperationException("Failed to get object reference for method: " + methodInfo.Name + " from " + methodInfo.DeclaringType.Name);
+                        }
+
+                        if (methodInfo.ReturnType == typeof(void))
+                        {
+                            methodInfo.Invoke(thisObject, parameters);
+                            return;
+                        }
+
+                        object? returnValue = methodInfo.Invoke(thisObject, parameters);
+                        ((HypDataBuffer*)retPtr)->SetValue(returnValue);
                     }
-
-                    if (methodInfo.ReturnType == typeof(void))
+                    catch (Exception ex)
                     {
-                        methodInfo.Invoke(thisObject, parameters);
-                        return;
+                        Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType.Name, ex);
+                        
+                        throw;
                     }
-
-                    object? returnValue = methodInfo.Invoke(thisObject, parameters);
-                    ((HypDataBuffer*)retPtr)->SetValue(returnValue);
                 };
 
                 IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(invokeMethodDelegate);

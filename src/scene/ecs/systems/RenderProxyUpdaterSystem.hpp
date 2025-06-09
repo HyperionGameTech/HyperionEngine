@@ -14,13 +14,14 @@
 
 namespace hyperion {
 
-class RenderProxyUpdaterSystem : public System<RenderProxyUpdaterSystem, ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>, ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ>,
-
-                                     ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ, false>>
+HYP_CLASS(NoScriptBindings)
+class RenderProxyUpdaterSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(RenderProxyUpdaterSystem);
+
 public:
     RenderProxyUpdaterSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -29,7 +30,18 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
+
+private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {},
+            ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ> {},
+            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>, COMPONENT_RW_FLAGS_READ, false> {}
+        };
+    }
 };
 
 } // namespace hyperion

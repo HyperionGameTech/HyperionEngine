@@ -9,8 +9,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class MTLMaterialLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(MTLMaterialLoader);
+    
 public:
     struct MaterialLibrary
     {

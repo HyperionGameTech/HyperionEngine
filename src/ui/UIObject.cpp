@@ -3137,7 +3137,10 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2
     AssertOnOwnerThread();
 
     HypData ui_object_hyp_data;
-    hyp_class->CreateInstance(ui_object_hyp_data);
+    if (!hyp_class->CreateInstance(ui_object_hyp_data))
+    {
+        return nullptr;
+    }
 
     if (!ui_object_hyp_data.IsValid())
     {

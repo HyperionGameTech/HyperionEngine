@@ -80,7 +80,7 @@ public:
     {
     }
 
-    constexpr TypeID(ValueType id)
+    explicit constexpr TypeID(ValueType id)
         : m_value(id)
     {
     }

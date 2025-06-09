@@ -9,11 +9,14 @@
 
 namespace hyperion {
 
-class AudioSystem : public System<AudioSystem, ComponentDescriptor<AudioComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>>
+HYP_CLASS(NoScriptBindings)
+class AudioSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(AudioSystem);
+
 public:
     AudioSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -21,7 +24,16 @@ public:
 
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
+
+private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<AudioComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {}
+        };
+    }
 };
 
 } // namespace hyperion

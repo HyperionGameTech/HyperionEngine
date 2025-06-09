@@ -65,7 +65,7 @@ void AssetBatch::LoadAsync(uint32 num_batches)
         const uint32 max_index = MathUtil::Min(offset_index + items_per_batch, num_items);
         AssertThrow(max_index >= offset_index);
 
-        Array<UniquePtr<ProcessAssetFunctorBase>> batch_procs;
+        Array<UniquePtr<ProcessAssetFunctorBase>, DynamicAllocator> batch_procs;
         batch_procs.Reserve(max_index - offset_index);
 
         for (uint32 i = offset_index; i < max_index; ++i)

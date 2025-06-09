@@ -9,11 +9,18 @@
 
 namespace hyperion {
 
-class PhysicsSystem : public System<PhysicsSystem, ComponentDescriptor<RigidBodyComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE>>
+/*! \brief System for updating transforms of objects with RigidBodyComponent to sync with physics simulation.
+ *
+ * This system processes entities with RigidBodyComponent and TransformComponent,
+ * updating their transforms based on the physics simulation results. */
+HYP_CLASS(NoScriptBindings)
+class PhysicsSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(PhysicsSystem);
+
 public:
     PhysicsSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -22,7 +29,16 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
+
+private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<RigidBodyComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE> {}
+        };
+    }
 };
 
 } // namespace hyperion

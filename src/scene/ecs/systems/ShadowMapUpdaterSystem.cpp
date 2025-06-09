@@ -27,7 +27,7 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Shadows);
 
 ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
 }
 
@@ -68,7 +68,7 @@ void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     }
 }
 
-void ShadowMapUpdaterSystem::Process(GameCounter::TickUnit delta)
+void ShadowMapUpdaterSystem::Process(float delta)
 {
     for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
     {

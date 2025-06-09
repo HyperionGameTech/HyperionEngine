@@ -14,6 +14,24 @@
 namespace hyperion {
 namespace buildtool {
 
+static const HashMap<String, String> g_getvalue_overloads = {
+    { "bool", "ReadBool" },
+    { "sbyte", "ReadInt8" },
+    { "byte", "ReadUInt8" },
+    { "short", "ReadInt16" },
+    { "ushort", "ReadUInt16" },
+    { "int", "ReadInt32" },
+    { "uint", "ReadUInt32" },
+    { "long", "ReadInt64" },
+    { "ulong", "ReadUInt64" },
+    { "float", "ReadFloat" },
+    { "double", "ReadDouble" },
+    { "string", "ReadString" },
+    { "Name", "ReadName" },
+    { "byte[]", "ReadByteBuffer" },
+    { "IDBase", "ReadID" }
+};
+
 FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const
 {
     FilePath relative_path = FilePath(FileSystem::RelativePath(mod.GetPath().Data(), analyzer.GetSourceDirectory().Data()).c_str());
@@ -77,15 +95,15 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                     return HYP_MAKE_ERROR(Error, "Internal error: failed cast to ASTFunctionType");
                 }
 
-                String return_type_name;
+                CSharpTypeMapping return_type_mapping;
 
-                if (TResult<String> res = MapToCSharpType(function_type->return_type); res.HasError())
+                if (TResult<CSharpTypeMapping> res = MapToCSharpType(analyzer, function_type->return_type); res.HasError())
                 {
                     return res.GetError();
                 }
                 else
                 {
-                    return_type_name = res.GetValue();
+                    return_type_mapping = res.GetValue();
                 }
 
                 Array<String> method_arg_decls;
@@ -95,22 +113,22 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                 {
                     const ASTMemberDecl* parameter = function_type->parameters[i];
 
-                    String parameter_type_name;
+                    CSharpTypeMapping parameter_type_mapping;
 
-                    if (TResult<String> res = MapToCSharpType(parameter->type); res.HasError())
+                    if (TResult<CSharpTypeMapping> res = MapToCSharpType(analyzer, parameter->type); res.HasError())
                     {
                         return res.GetError();
                     }
                     else
                     {
-                        parameter_type_name = res.GetValue();
+                        parameter_type_mapping = res.GetValue();
                     }
 
-                    method_arg_decls.PushBack(HYP_FORMAT("{} {}", parameter_type_name, parameter->name));
+                    method_arg_decls.PushBack(HYP_FORMAT("{} {}", parameter_type_mapping.type_name, parameter->name));
                     method_arg_names.PushBack(parameter->name);
                 }
 
-                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_name, managed_name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
+                writer.WriteString(HYP_FORMAT("        public static {} {}(this {} obj{})\n", return_type_mapping.type_name, managed_name, hyp_class.name, method_arg_decls.Any() ? ", " + String::Join(method_arg_decls, ", ") : ""));
                 writer.WriteString("        {\n");
 
                 if (function_type->return_type->IsVoid())
@@ -137,7 +155,16 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                         writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = HypObject.GetMethod(HypClass.GetClass<{}>(), new Name({})).InvokeNative(obj{}))\n",
                             hyp_class.name, uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                         writer.WriteString("            {\n");
-                        writer.WriteString(HYP_FORMAT("                return ({})resultData.GetValue();\n", return_type_name));
+
+                        if (return_type_mapping.get_value_overload.HasValue())
+                        {
+                            writer.WriteString(HYP_FORMAT("                return resultData.{}();\n", return_type_mapping.get_value_overload.Get()));
+                        }
+                        else
+                        {
+                            writer.WriteString(HYP_FORMAT("                return ({})resultData.GetValue();\n", return_type_mapping.type_name));
+                        }
+
                         writer.WriteString("            }\n");
                     }
                     else if (hyp_class.type == HypClassDefinitionType::CLASS)
@@ -145,7 +172,16 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                         writer.WriteString(HYP_FORMAT("            using (HypDataBuffer resultData = obj.GetMethod(new Name({})).InvokeNative(obj{}))\n",
                             uint64(CreateWeakNameFromDynamicString(member.name.Data())), method_arg_names.Any() ? ", " + String::Join(method_arg_names, ", ") : ""));
                         writer.WriteString("            {\n");
-                        writer.WriteString(HYP_FORMAT("                return ({})resultData.GetValue();\n", return_type_name));
+
+                        if (return_type_mapping.get_value_overload.HasValue())
+                        {
+                            writer.WriteString(HYP_FORMAT("                return resultData.{}();\n", return_type_mapping.get_value_overload.Get()));
+                        }
+                        else
+                        {
+                            writer.WriteString(HYP_FORMAT("                return ({})resultData.GetValue();\n", return_type_mapping.type_name));
+                        }
+
                         writer.WriteString("            }\n");
                     }
                     else

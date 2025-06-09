@@ -328,6 +328,119 @@ HYP_FORCE_INLINE void Swap(T& a, T& b)
     b = TryMove(temp);
 }
 
+template <class T>
+struct CheckedPointer
+{
+    T* ptr;
+
+    CheckedPointer(T* ptr = nullptr)
+        : ptr(ptr)
+    {
+    }
+
+    HYP_FORCE_INLINE T& operator*() const
+    {
+        AssertThrowMsg(ptr != nullptr, "Dereferencing a null pointer");
+        return *ptr;
+    }
+
+    HYP_FORCE_INLINE T* operator->() const
+    {
+        AssertThrowMsg(ptr != nullptr, "Dereferencing a null pointer");
+        return ptr;
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE void Reset()
+    {
+        ptr = nullptr;
+    }
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return IsValid();
+    }
+
+    HYP_FORCE_INLINE explicit operator T*() const
+    {
+        return ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
+    {
+        return ptr == nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(std::nullptr_t) const
+    {
+        return ptr != nullptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const CheckedPointer& other) const
+    {
+        return ptr == other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const CheckedPointer& other) const
+    {
+        return ptr != other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const CheckedPointer& other) const
+    {
+        return ptr < other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator>(const CheckedPointer& other) const
+    {
+        return ptr > other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator<=(const CheckedPointer& other) const
+    {
+        return ptr <= other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator>=(const CheckedPointer& other) const
+    {
+        return ptr >= other.ptr;
+    }
+
+    HYP_FORCE_INLINE bool operator==(const T* other) const
+    {
+        return ptr == other;
+    }
+
+    HYP_FORCE_INLINE bool operator!=(const T* other) const
+    {
+        return ptr != other;
+    }
+
+    HYP_FORCE_INLINE bool operator<(const T* other) const
+    {
+        return ptr < other;
+    }
+
+    HYP_FORCE_INLINE bool operator>(const T* other) const
+    {
+        return ptr > other;
+    }
+
+    HYP_FORCE_INLINE bool operator<=(const T* other) const
+    {
+        return ptr <= other;
+    }
+
+    HYP_FORCE_INLINE bool operator>=(const T* other) const
+    {
+        return ptr >= other;
+    }
+};
+
 } // namespace hyperion
 
 #endif

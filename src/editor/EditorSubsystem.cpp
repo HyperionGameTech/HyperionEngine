@@ -1206,7 +1206,7 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& hit : results)
                         {
-                            if (ID<Entity> entity = ID<Entity>(hit.id))
+                            if (ID<Entity> entity = ID<Entity>(IDBase { TypeID::ForType<Entity>(), hit.id }))
                             {
                                 if (NodeLinkComponent* node_link_component = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity))
                                 {
@@ -1305,7 +1305,7 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& ray_hit : results)
                         {
-                            ID<Entity> entity = ID<Entity>(ray_hit.id);
+                            ID<Entity> entity = ID<Entity>(IDBase { TypeID::ForType<Entity>(), ray_hit.id });
 
                             if (!entity.IsValid())
                             {

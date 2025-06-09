@@ -21,7 +21,7 @@
 namespace hyperion {
 
 SkySystem::SkySystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
 }
 
@@ -57,7 +57,7 @@ void SkySystem::OnEntityRemoved(ID<Entity> entity)
     }
 }
 
-void SkySystem::Process(GameCounter::TickUnit delta)
+void SkySystem::Process(float delta)
 {
     for (auto [entity_id, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos()))
     {

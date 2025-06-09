@@ -7,9 +7,7 @@
 
 #include <core/utilities/StringView.hpp>
 
-#include <core/containers/FixedArray.hpp>
 #include <core/containers/String.hpp>
-#include <core/containers/Queue.hpp>
 
 #include <core/threading/Mutex.hpp>
 
@@ -53,35 +51,35 @@ struct HYP_API ProfileScope
 };
 
 #ifdef HYP_ENABLE_PROFILE
-    #define HYP_NAMED_SCOPE(label)  \
+#define HYP_NAMED_SCOPE(label)  \
         ProfileScope _profile_scope \
         {                           \
             (label), HYP_DEBUG_FUNC \
         }
 
-    #define HYP_NAMED_SCOPE_FMT(label, ...)                                         \
+#define HYP_NAMED_SCOPE_FMT(label, ...)                                         \
         const auto _profile_scope_format_string = HYP_FORMAT(label, ##__VA_ARGS__); \
         ProfileScope _profile_scope                                                 \
         {                                                                           \
             _profile_scope_format_string.Data(), HYP_DEBUG_FUNC                     \
         }
 
-    #define HYP_SCOPE                                                              \
+#define HYP_SCOPE                                                              \
         static const auto _profile_scope_function_name = HYP_PRETTY_FUNCTION_NAME; \
         ProfileScope _profile_scope                                                \
         {                                                                          \
             _profile_scope_function_name, HYP_DEBUG_FUNC                           \
         }
 
-    #define HYP_PROFILE_BEGIN                  \
+#define HYP_PROFILE_BEGIN                  \
         ProfileScope::ResetForCurrentThread(); \
         HYP_NAMED_SCOPE(*Threads::CurrentThreadID().GetName())
 
 #else
-    #define HYP_NAMED_SCOPE(...)
-    #define HYP_NAMED_SCOPE_FMT(label, ...)
-    #define HYP_SCOPE
-    #define HYP_PROFILE_BEGIN
+#define HYP_NAMED_SCOPE(...)
+#define HYP_NAMED_SCOPE_FMT(label, ...)
+#define HYP_SCOPE
+#define HYP_PROFILE_BEGIN
 #endif
 
 } // namespace profiling

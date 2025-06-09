@@ -9,17 +9,29 @@
 
 namespace hyperion {
 
-class AnimationSystem : public System<AnimationSystem, ComponentDescriptor<AnimationComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ>>
+HYP_CLASS(NoScriptBindings)
+class AnimationSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(AnimationSystem);
+
 public:
     AnimationSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
     virtual ~AnimationSystem() override = default;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
+
+private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<AnimationComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ> {}
+        };
+    }
 };
 
 } // namespace hyperion

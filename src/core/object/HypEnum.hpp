@@ -6,8 +6,6 @@
 #include <core/object/HypClass.hpp>
 #include <core/object/HypData.hpp>
 
-#include <core/containers/StaticArray.hpp>
-
 #include <core/utilities/TypeAttributes.hpp>
 
 namespace hyperion {
@@ -52,7 +50,8 @@ protected:
         return nullptr;
     }
 
-    virtual void CreateInstance_Internal(HypData& out) const override = 0;
+    virtual bool CreateInstance_Internal(HypData& out) const override = 0;
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
 };
@@ -103,9 +102,32 @@ public:
     }
 
 protected:
-    virtual void CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(HypData& out) const override
     {
         out = HypData(T {});
+
+        return true;
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    {
+        Array<T> array;
+        array.ResizeUninitialized(elements.Size());
+
+        for (SizeType i = 0; i < elements.Size(); i++)
+        {
+            // strict = false to allow any numeric type.
+            if (!elements[i].Is<std::underlying_type_t<T>>(/* strict */ false))
+            {
+                return false;
+            }
+
+            array[i] = elements[i].Get<T>();
+        }
+
+        out = HypData(std::move(array));
+
+        return true;
     }
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override

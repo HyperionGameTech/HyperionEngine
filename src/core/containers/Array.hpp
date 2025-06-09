@@ -1578,8 +1578,7 @@ void Array<T, AllocatorType>::Clear()
 
 } // namespace containers
 
-template <class T, class AllocatorType = typename containers::ArrayDefaultAllocatorSelector<T>::Type>
-using Array = containers::Array<T, AllocatorType>;
+using containers::Array;
 
 // traits
 template <class T>

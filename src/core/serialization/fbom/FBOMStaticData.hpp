@@ -3,12 +3,8 @@
 #ifndef HYPERION_FBOM_STATIC_DATA_HPP
 #define HYPERION_FBOM_STATIC_DATA_HPP
 
-#include <core/containers/TypeMap.hpp>
-#include <core/containers/FlatMap.hpp>
-#include <core/containers/HashMap.hpp>
 #include <core/containers/String.hpp>
 #include <core/utilities/Optional.hpp>
-#include <core/utilities/Variant.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
@@ -19,8 +15,6 @@
 #include <core/serialization/fbom/FBOMData.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
 #include <core/serialization/fbom/FBOMInterfaces.hpp>
-
-#include <core/filesystem/FsUtil.hpp>
 
 #include <Constants.hpp>
 #include <Types.hpp>

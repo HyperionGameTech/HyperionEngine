@@ -26,8 +26,6 @@ class IError;
 
 HYP_API extern const IError& GetNullError();
 
-HYP_STRUCT()
-
 class IError
 {
 public:
@@ -38,7 +36,6 @@ public:
 };
 
 HYP_STRUCT(Size = 128)
-
 class Error : public IError
 {
 public:

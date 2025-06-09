@@ -94,7 +94,7 @@ HypObjectBase::~HypObjectBase()
 
 IDBase HypObjectBase::GetID_Internal() const
 {
-    return IDBase { m_header->index + 1 };
+    return IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };
 }
 
 #pragma endregion HypObjectBase

@@ -49,7 +49,7 @@ void BVHUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
-void BVHUpdaterSystem::Process(GameCounter::TickUnit delta)
+void BVHUpdaterSystem::Process(float delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
 

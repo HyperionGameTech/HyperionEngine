@@ -15,8 +15,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class OBJModelLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(OBJModelLoader);
+    
 public:
     struct OBJModel
     {

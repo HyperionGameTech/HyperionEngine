@@ -10,7 +10,7 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct TypeID
     {
-        private static readonly TypeID Void = new TypeID(0);
+        public static readonly TypeID Void = new TypeID(0);
 
         private uint value;
 

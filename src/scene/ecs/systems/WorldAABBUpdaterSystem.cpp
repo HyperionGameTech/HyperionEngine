@@ -30,7 +30,7 @@ void WorldAABBUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
-void WorldAABBUpdaterSystem::Process(GameCounter::TickUnit delta)
+void WorldAABBUpdaterSystem::Process(float delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
 

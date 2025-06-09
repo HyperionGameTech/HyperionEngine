@@ -52,8 +52,8 @@ namespace Hyperion
         public bool valueBool;
 
         [FieldOffset(0)]
-        [MarshalAs(UnmanagedType.U4)]
-        public uint valueId;
+        [MarshalAs(UnmanagedType.U8)]
+        public ulong valueId;
 
         [FieldOffset(0)]
         [MarshalAs(UnmanagedType.U8)]
@@ -193,9 +193,9 @@ namespace Hyperion
                 return;
             }
 
-            if (value is IDBase)
+            if (value is IDBase valueId)
             {
-                HypData_SetID(ref this, ((IDBase)value).Value);
+                HypData_SetID(ref this, ref valueId);
                 return;
             }
 
@@ -252,8 +252,6 @@ namespace Hyperion
                             throw new InvalidOperationException("Failed to set byte buffer");
                         }
                     }
-
-                    return;
                 }
 
                 return;
@@ -344,28 +342,41 @@ namespace Hyperion
             {
                 Array array = (Array)value;
 
+                HypClass? hypClass = HypClass.TryGetClass(type.GetElementType());
+
+                if (hypClass == null)
+                {
+                    throw new InvalidOperationException("Failed to get HypClass for type: " + type.GetElementType()?.FullName);
+                }
+
                 unsafe
                 {
                     // Create array of HypData
-                    HypData[] hypDataArray = new HypData[array.Length];
-                    HypDataBuffer*[] hypDataBufferPtrArray = new HypDataBuffer*[array.Length];
+                    HypDataBuffer[] hypDataBufferArray = new HypDataBuffer[array.Length];
 
-                    for (int i = 0; i < hypDataArray.Length; i++)
+                    for (int i = 0; i < hypDataBufferArray.Length; i++)
                     {
-                        hypDataArray[i] = new HypData(array.GetValue(i));
-                        hypDataBufferPtrArray[i] = (HypDataBuffer*)Unsafe.AsPointer(ref hypDataArray[i].Buffer);
+                        hypDataBufferArray[i].SetValue(array.GetValue(i));
                     }
 
-                    fixed (HypDataBuffer** ptr = hypDataBufferPtrArray)
+                    try
                     {
-                        if (!HypData_SetArray(ref this, (IntPtr)ptr, (uint)hypDataBufferPtrArray.Length))
+                        fixed (HypDataBuffer* ptr = hypDataBufferArray)
                         {
-                            throw new InvalidOperationException("Failed to set array");
-                        }
+                            if (!HypData_SetArray(ref this, ((HypClass)hypClass).Address, (IntPtr)ptr, (uint)hypDataBufferArray.Length))
+                            {
+                                throw new InvalidOperationException("Failed to set array!");
+                            }
 
-                        if (!HypData_IsArray(ref this))
+                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((HypClass)hypClass).Name + " with length " + hypDataBufferArray.Length + " type ID: " + this.TypeID.Value);
+                        }
+                    }
+                    finally
+                    {
+                        // Dispose all HypDataBuffer instances
+                        foreach (HypDataBuffer hypDataBuffer in hypDataBufferArray)
                         {
-                            throw new InvalidOperationException("Failed to set array");
+                            hypDataBuffer.Dispose();
                         }
                     }
                 }
@@ -447,7 +458,7 @@ namespace Hyperion
 
             if (HypData_GetID(ref this, out value.valueId))
             {
-                return new IDBase(value.valueId);
+                return new IDBase(new TypeID((uint)(value.valueId >> 32)), (uint)(value.valueId & 0xFFFFFFFFu));
             }
 
             if (HypData_GetName(ref this, out value.valueName))
@@ -467,30 +478,30 @@ namespace Hyperion
                 return Marshal.PtrToStringUTF8(stringPtr);
             }
 
-            if (HypData_IsArray(ref this))
-            {
-                IntPtr arrayPtr;
-                uint arraySize;
+            // if (HypData_IsArray(ref this))
+            // {
+            //     IntPtr arrayPtr;
+            //     uint arraySize;
 
-                if (!HypData_GetArray(ref this, out arrayPtr, out arraySize))
-                {
-                    throw new InvalidOperationException("Failed to get array");
-                }
+            //     if (!HypData_GetArray(ref this, out arrayPtr, out arraySize))
+            //     {
+            //         throw new InvalidOperationException("Failed to get array");
+            //     }
 
-                object[] array = new object[arraySize];
+            //     object[] array = new object[arraySize];
 
-                unsafe
-                {
-                    HypDataBuffer* ptr = (HypDataBuffer*)arrayPtr.ToPointer();
+            //     unsafe
+            //     {
+            //         HypDataBuffer* ptr = (HypDataBuffer*)arrayPtr.ToPointer();
 
-                    for (int i = 0; i < arraySize; i++)
-                    {
-                        array[i] = ptr[i].GetValue();
-                    }
-                }
+            //         for (int i = 0; i < arraySize; i++)
+            //         {
+            //             array[i] = ptr[i].GetValue();
+            //         }
+            //     }
 
-                return array;
-            }
+            //     return array;
+            // }
 
             if (HypData_IsByteBuffer(ref this))
             {
@@ -533,6 +544,331 @@ namespace Hyperion
             }
 
             throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeID: " + TypeID.Value);
+        }
+
+        public sbyte ReadInt8()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            sbyte value;
+
+            if (HypData_GetInt8(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get sbyte from HypData");
+        }
+
+        public short ReadInt16()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            short value;
+
+            if (HypData_GetInt16(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get short from HypData");
+        }
+
+        public int ReadInt32()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            int value;
+
+            if (HypData_GetInt32(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get int from HypData");
+        }
+
+        public long ReadInt64()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            long value;
+
+            if (HypData_GetInt64(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get long from HypData");
+        }
+
+        public byte ReadUInt8()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            byte value;
+
+            if (HypData_GetUInt8(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get byte from HypData");
+        }
+
+        public ushort ReadUInt16()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            ushort value;
+
+            if (HypData_GetUInt16(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get ushort from HypData");
+        }
+
+        public uint ReadUInt32()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            uint value;
+
+            if (HypData_GetUInt32(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get uint from HypData");
+        }
+
+        public ulong ReadUInt64()
+        {
+            if (IsNull)
+            {
+                return 0;
+            }
+
+            ulong value;
+
+            if (HypData_GetUInt64(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get ulong from HypData");
+        }
+
+        public float ReadFloat()
+        {
+            if (IsNull)
+            {
+                return 0f;
+            }
+
+            float value;
+
+            if (HypData_GetFloat(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get float from HypData");
+        }
+
+        public double ReadDouble()
+        {
+            if (IsNull)
+            {
+                return 0.0;
+            }
+
+            double value;
+
+            if (HypData_GetDouble(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get double from HypData");
+        }
+
+        public bool ReadBool()
+        {
+            if (IsNull)
+            {
+                return false;
+            }
+
+            bool value;
+
+            if (HypData_GetBool(ref this, false, out value))
+            {
+                return value;
+            }
+
+            throw new InvalidOperationException("Failed to get bool from HypData");
+        }
+
+        public IntPtr ReadIntPtr()
+        {
+            if (IsNull)
+            {
+                return IntPtr.Zero;
+            }
+
+            InternalHypDataValue value;
+
+            if (HypData_GetIntPtr(ref this, true, out value.valueIntPtr))
+            {
+                return value.valueIntPtr;
+            }
+
+            throw new InvalidOperationException("Failed to get IntPtr from HypData");
+        }
+
+        public string ReadString()
+        {
+            if (IsNull)
+            {
+                return string.Empty;
+            }
+
+            IntPtr stringPtr;
+
+            if (HypData_GetString(ref this, out stringPtr))
+            {
+                return Marshal.PtrToStringUTF8(stringPtr) ?? string.Empty;
+            }
+
+            throw new InvalidOperationException("Failed to get string from HypData");
+        }
+
+        public Name ReadName()
+        {
+            if (IsNull)
+            {
+                return Name.Invalid;
+            }
+
+            Name name;
+
+            if (HypData_GetName(ref this, out name))
+            {
+                return name;
+            }
+
+            throw new InvalidOperationException("Failed to get Name from HypData");
+        }
+
+        public IDBase ReadID()
+        {
+            if (IsNull)
+            {
+                return IDBase.Invalid;
+            }
+
+            ulong idValue;
+
+            if (HypData_GetID(ref this, out idValue))
+            {
+                return new IDBase(new TypeID((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
+            }
+
+            throw new InvalidOperationException("Failed to get ID from HypData");
+        }
+
+        public T? ReadObject<T>() where T : HypObject
+        {
+            if (IsNull)
+            {
+                return default(T);
+            }
+
+            ObjectReference objectReference;
+
+            if (HypData_GetHypObject(ref this, out objectReference))
+            {
+                return (T?)objectReference.LoadObject();
+            }
+
+            throw new InvalidOperationException("Failed to get HypObject from HypData");
+        }
+
+        public T ReadStruct<T>() where T : struct
+        {
+            if (IsNull)
+            {
+                throw new InvalidOperationException("Cannot read struct from null HypData");
+            }
+
+            ObjectReference objectReference;
+
+            if (HypData_GetHypStruct(ref this, out objectReference))
+            {
+                return (T)objectReference.LoadObject();
+            }
+
+            if (DynamicHypStruct.TryGet(TypeID, out DynamicHypStruct? dynamicHypStruct))
+            {
+                return (T)dynamicHypStruct.MarshalFromHypData(ref this);
+            }
+
+            throw new NotImplementedException("Unsupported type to get struct from HypData. Current TypeID: " + TypeID.Value);
+        }
+
+        public byte[] ReadByteBuffer()
+        {
+            if (IsNull)
+            {
+                return Array.Empty<byte>();
+            }
+
+            IntPtr bufferPtr;
+            uint bufferSize;
+
+            if (!HypData_GetByteBuffer(ref this, out bufferPtr, out bufferSize))
+            {
+                throw new InvalidOperationException("Failed to get byte buffer");
+            }
+
+            byte[] buffer = new byte[bufferSize];
+
+            unsafe
+            {
+                void* src = bufferPtr.ToPointer();
+
+                // Memcopy the buffer
+                fixed (byte* dest = buffer)
+                {
+                    Buffer.MemoryCopy(src, dest, bufferSize, bufferSize);
+                }
+            }
+
+            return buffer;
         }
 
         [DllImport("hyperion", EntryPoint = "HypData_Construct")]
@@ -612,7 +948,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_GetID")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetID([In] ref HypDataBuffer hypData, [Out] out uint outIdValue);
+        internal static extern bool HypData_GetID([In] ref HypDataBuffer hypData, [Out] out ulong outIdValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetName")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -748,7 +1084,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetArray")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr arrayPtr, uint arraySize);
+        internal static extern bool HypData_SetArray([In] ref HypDataBuffer hypData, [In] IntPtr hypClassPtr, [In] IntPtr arrayPtr, uint arraySize);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetString")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -756,7 +1092,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetID")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetID([In] ref HypDataBuffer hypData, uint id);
+        internal static extern bool HypData_SetID([In] ref HypDataBuffer hypData, ref IDBase id);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetName")]
         [return: MarshalAs(UnmanagedType.I1)]

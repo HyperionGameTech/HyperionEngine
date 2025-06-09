@@ -31,7 +31,7 @@ void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
     SystemBase::OnEntityRemoved(entity);
 }
 
-void EntityMeshDirtyStateSystem::Process(GameCounter::TickUnit delta)
+void EntityMeshDirtyStateSystem::Process(float delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
 

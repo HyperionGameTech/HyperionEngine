@@ -17,7 +17,6 @@ namespace memory {
 
 /*! \brief A dynamically sized buffer, containing raw bytes. Initially has a size of zero, memory is allocated on the heap when first initialized with a non-zero size. */
 HYP_STRUCT()
-
 class HYP_API ByteBuffer
 {
 public:

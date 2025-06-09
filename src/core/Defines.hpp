@@ -441,6 +441,9 @@
 #define HYP_FREE_ALIGNED(block) free(block)
 #endif
 
+#define HYP_ALIGN_ADDRESS(ptr, alignment) (((uintptr_t(ptr) + (alignment) - 1) / (alignment)) * (alignment))
+#define HYP_ALIGN_PTR_AS(ptr, T) (std::assume_aligned<alignof(T)>(reinterpret_cast<T*>(HYP_ALIGN_ADDRESS(ptr, alignof(T)))))
+
 #pragma endregion Memory Management
 
 #pragma region Engine Static Configuration

@@ -87,7 +87,7 @@ void CameraSystem::OnEntityRemoved(ID<Entity> entity)
     HYP_LOG(Camera, Debug, "CameraSystem::OnEntityRemoved: CameraComponent removed from scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity.Value());
 }
 
-void CameraSystem::Process(GameCounter::TickUnit delta)
+void CameraSystem::Process(float delta)
 {
     HashSet<ID<Entity>> updated_entity_ids;
 

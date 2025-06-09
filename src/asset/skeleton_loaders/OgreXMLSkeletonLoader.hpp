@@ -11,8 +11,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class OgreXMLSkeletonLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(OgreXMLSkeletonLoader);
+    
 public:
     struct OgreXMLSkeleton
     {

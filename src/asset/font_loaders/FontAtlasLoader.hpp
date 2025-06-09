@@ -14,8 +14,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class FontAtlasLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(FontAtlasLoader);
+    
 public:
     virtual ~FontAtlasLoader() = default;
 

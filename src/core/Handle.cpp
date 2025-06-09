@@ -131,7 +131,7 @@ AnyHandle::IDType AnyHandle::GetID() const
         return IDType();
     }
 
-    return IDType { ptr->m_header->index + 1 };
+    return IDType { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 };
 }
 
 TypeID AnyHandle::GetTypeID() const

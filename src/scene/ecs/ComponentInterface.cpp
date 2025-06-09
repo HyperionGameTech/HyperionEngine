@@ -18,9 +18,7 @@ HYP_API bool ComponentInterface_CreateInstance(const HypClass* hyp_class, HypDat
         return false;
     }
 
-    hyp_class->CreateInstance(out_hyp_data);
-
-    return true;
+    return hyp_class->CreateInstance(out_hyp_data);
 }
 
 #pragma region ComponentInterfaceRegistry

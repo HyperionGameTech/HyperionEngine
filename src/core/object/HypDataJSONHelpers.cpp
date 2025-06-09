@@ -483,7 +483,10 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
         if (hyp_class)
         {
             HypData property_value_hyp_data;
-            hyp_class->CreateInstance(property_value_hyp_data);
+            if (!hyp_class->CreateInstance(property_value_hyp_data))
+            {
+                return false;
+            }
 
             if (!JSONToObject(json_value.AsObject(), hyp_class, property_value_hyp_data))
             {

@@ -11,15 +11,14 @@
 
 namespace hyperion {
 
-class WorldAABBUpdaterSystem : public System<WorldAABBUpdaterSystem,
-
-                                   ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ>,
-
-                                   ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, COMPONENT_RW_FLAGS_READ, false>>
+HYP_CLASS(NoScriptBindings)
+class WorldAABBUpdaterSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(WorldAABBUpdaterSystem);
+
 public:
     WorldAABBUpdaterSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -28,9 +27,19 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
 
 private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {},
+
+            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_AABB>, COMPONENT_RW_FLAGS_READ, false> {}
+        };
+    }
+
     bool ProcessEntity(ID<Entity>, BoundingBoxComponent& bounding_box_component, TransformComponent& transform_component);
 };
 

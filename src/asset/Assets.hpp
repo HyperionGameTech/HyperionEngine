@@ -60,7 +60,6 @@ enum AssetLoadFlagBits : AssetLoadFlags
 };
 
 HYP_STRUCT()
-
 struct AssetLoaderDefinition
 {
     const StringView<StringType::ANSI> name;
@@ -68,7 +67,7 @@ struct AssetLoaderDefinition
     TypeID result_type_id;
     const HypClass* result_hyp_class = nullptr;
     FlatSet<String> extensions;
-    UniquePtr<AssetLoaderBase> loader;
+    RC<AssetLoaderBase> loader;
 
     HYP_FORCE_INLINE bool HandlesResultType(TypeID type_id) const
     {
@@ -234,7 +233,7 @@ public:
             TypeID::ForType<ResultType>(),
             GetClass(TypeID::ForType<ResultType>()),
             FlatSet<String>(format_strings.Begin(), format_strings.End()),
-            MakeUnique<Loader>() });
+            MakeRefCountedPtr<Loader>() });
 
         m_functor_factories.Set<Loader>([](const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr) -> UniquePtr<ProcessAssetFunctorBase>
             {

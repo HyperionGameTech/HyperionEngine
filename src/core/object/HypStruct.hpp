@@ -67,7 +67,8 @@ protected:
         return nullptr;
     }
 
-    virtual void CreateInstance_Internal(HypData& out) const override = 0;
+    virtual bool CreateInstance_Internal(HypData& out) const override = 0;
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override = 0;
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override = 0;
 
@@ -269,16 +270,46 @@ protected:
         callback_wrapper_casted->GetCallback()(*static_cast<T*>(object_ptr));
     }
 
-    virtual void CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(HypData& out) const override
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
             out = HypData(T {});
+
+            return true;
         }
         else
         {
-            HYP_NOT_IMPLEMENTED_VOID();
+            return false;
         }
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    {
+        Array<T> array;
+        array.Reserve(elements.Size());
+
+        for (SizeType i = 0; i < elements.Size(); i++)
+        {
+            if (!elements[i].Is<T>())
+            {
+                return false;
+            }
+
+            array.PushBack(std::move(elements[i].Get<T>()));
+        }
+
+        out = HypData(std::move(array));
+
+        // debugging
+        AssertDebug(out.Is<Array<T>>());
+        AssertThrow(out.GetTypeID() == TypeID::ForType<Array<T>>());
+        DebugLog(LogType::Debug, "Created HypData for array type: %s from array with size %zu, TypeID: %u",
+            TypeNameWithoutNamespace<decltype(array)>().Data(),
+            out.Get<Array<T>>().Size(),
+            TypeID::ForType<decltype(array)>().Value());
+
+        return true;
     }
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override

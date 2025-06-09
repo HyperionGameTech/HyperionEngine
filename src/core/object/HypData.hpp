@@ -395,6 +395,9 @@ struct HypData
 };
 
 template <class T>
+constexpr bool is_hypdata_v = std::is_same_v<NormalizedType<T>, HypData>;
+
+template <class T>
 struct DefaultHypDataSerializeFunction
 {
     static inline FBOMResult Serialize(const HypData& data, FBOMData& out)
@@ -921,7 +924,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
     {
-        return value.GetTypeID() == TypeID::ForType<T>();
+        return value.Is<T>();
     }
 
     HYP_FORCE_INLINE Handle<T>& Get(AnyHandle& value) const
@@ -1548,12 +1551,12 @@ struct HypDataHelper<WeakName> : HypDataHelper<Name>
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>>
+struct HypDataHelperDecl<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T> && !is_hypdata_v<T>>>
 {
 };
 
 template <class T, class AllocatorType>
-struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T>>> : HypDataHelper<Any>
+struct HypDataHelper<Array<T, AllocatorType>, std::enable_if_t<!std::is_const_v<T> && !is_hypdata_v<T>>> : HypDataHelper<Any>
 {
     using ConvertibleFrom = Tuple<>;
 
@@ -2901,9 +2904,6 @@ struct HypDataGetter_Tuple<ReturnType, T, Tuple<ConvertibleFrom...>>
 #pragma endregion HypDataGetter implementation
 
 static_assert(sizeof(HypData) == 40, "sizeof(HypData) must match C# struct size");
-
-template <class T>
-constexpr bool is_hypdata_v = std::is_same_v<NormalizedType<T>, HypData>;
 
 } // namespace hyperion
 

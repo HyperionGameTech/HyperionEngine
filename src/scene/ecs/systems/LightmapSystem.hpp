@@ -11,17 +11,15 @@
 namespace hyperion {
 
 // Assigns a MeshComponent with a lightmap volume UUID to a proper LightmapVolume.
-class LightmapSystem : public System<LightmapSystem,
 
-                           ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE>,
-
-                           ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
-
-                           ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false>>
+HYP_CLASS(NoScriptBindings)
+class LightmapSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(LightmapSystem);
+
 public:
     LightmapSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -30,9 +28,20 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
 
 private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+
+            ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+
+            ComponentDescriptor<EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>, COMPONENT_RW_FLAGS_READ_WRITE, false> {}
+        };
+    }
+
     bool AssignLightmapVolume(MeshComponent& mesh_component);
 };
 

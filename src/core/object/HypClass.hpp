@@ -10,18 +10,14 @@
 #include <core/object/HypMemberFwd.hpp>
 #include <core/object/HypClassAttribute.hpp>
 
-#include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/Array.hpp>
 
-#include <core/utilities/ValueStorage.hpp>
 #include <core/utilities/Span.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/Any.hpp>
 #include <core/memory/AnyRef.hpp>
-
-#include <core/serialization/fbom/FBOMResult.hpp>
 
 namespace hyperion {
 
@@ -493,11 +489,20 @@ public:
 
     virtual bool CanCreateInstance() const = 0;
 
-    HYP_FORCE_INLINE void CreateInstance(HypData& out, bool allow_abstract = false) const
+    HYP_FORCE_INLINE bool CreateInstance(HypData& out, bool allow_abstract = false) const
     {
-        AssertThrowMsg(CanCreateInstance() && (allow_abstract || !IsAbstract()), "Cannot create a new instance for HypClass %s", GetName().LookupString());
+        AssertThrowMsg(CanCreateInstance() && (allow_abstract || !IsAbstract()), "Cannot create a new instance for HypClass %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
+            GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allow_abstract ? "true" : "false");
 
-        CreateInstance_Internal(out);
+        return CreateInstance_Internal(out);
+    }
+
+    HYP_FORCE_INLINE bool CreateInstanceArray(Span<HypData> elements, HypData& out, bool allow_abstract = false) const
+    {
+        AssertThrowMsg(CanCreateInstance() && (allow_abstract || !IsAbstract()), "Cannot create a new instance for HypClass %s!\n\tCanCreateInstance: %s\tIsAbstract: %s\tAllow abstract: %s",
+            GetName().LookupString(), CanCreateInstance() ? "true" : "false", IsAbstract() ? "true" : "false", allow_abstract ? "true" : "false");
+
+        return CreateInstanceArray_Internal(elements, out);
     }
 
     /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeID.
@@ -541,7 +546,15 @@ protected:
 
     virtual IHypObjectInitializer* GetObjectInitializer_Internal(void* object_ptr) const = 0;
 
-    virtual void CreateInstance_Internal(HypData& out) const = 0;
+    virtual bool CreateInstance_Internal(HypData& out) const
+    {
+        return false;
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
+    {
+        return false;
+    }
 
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const = 0;
 
@@ -746,26 +759,91 @@ protected:
         return static_cast<T*>(object_ptr)->GetObjectInitializer();
     }
 
-    virtual void CreateInstance_Internal(HypData& out) const override
+    virtual bool CreateInstance_Internal(HypData& out) const override
     {
         if constexpr (std::is_default_constructible_v<T>)
         {
             if constexpr (std::is_base_of_v<HypObjectBase, T>)
             {
                 out = HypData(CreateObject<T>());
+
+                return true;
             }
             else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
             {
                 out = HypData(MakeRefCountedPtr<T>());
+
+                return true;
             }
             else
             {
-                out = HypData(T());
+                return true;
             }
         }
         else
         {
-            HYP_NOT_IMPLEMENTED_VOID();
+            return false;
+        }
+    }
+
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override
+    {
+        if constexpr (std::is_base_of_v<HypObjectBase, T>)
+        {
+            Array<Handle<T>> array;
+            array.Reserve(elements.Size());
+
+            for (SizeType i = 0; i < elements.Size(); i++)
+            {
+                if (!elements[i].Is<Handle<T>>())
+                {
+                    return false;
+                }
+
+                array.PushBack(std::move(elements[i].Get<Handle<T>>()));
+            }
+
+            out = HypData(std::move(array));
+
+            return true;
+        }
+        else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        {
+            Array<RC<T>> array;
+            array.Reserve(elements.Size());
+
+            for (SizeType i = 0; i < elements.Size(); i++)
+            {
+                if (!elements[i].Is<RC<T>>())
+                {
+                    return false;
+                }
+
+                array.PushBack(std::move(elements[i].Get<RC<T>>()));
+            }
+
+            out = HypData(std::move(array));
+
+            return true;
+        }
+        else
+        {
+            Array<T> array;
+            array.Reserve(elements.Size());
+
+            for (SizeType i = 0; i < elements.Size(); i++)
+            {
+                if (!elements[i].Is<T>())
+                {
+                    return false;
+                }
+
+                array.PushBack(std::move(elements[i].Get<T>()));
+            }
+
+            out = HypData(std::move(array));
+
+            return true;
         }
     }
 
@@ -808,7 +886,8 @@ protected:
     virtual void FixupPointer(void* target, IHypObjectInitializer* new_initializer) const override;
     virtual void PostLoad_Internal(void* object_ptr) const override;
     virtual IHypObjectInitializer* GetObjectInitializer_Internal(void* object_ptr) const override;
-    virtual void CreateInstance_Internal(HypData& out) const override;
+    virtual bool CreateInstance_Internal(HypData& out) const override;
+    virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
 
     RC<dotnet::Class> m_class_ptr;

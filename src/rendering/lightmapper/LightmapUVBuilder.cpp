@@ -78,8 +78,6 @@ Bitmap<4, float> LightmapUVMap::ToBitmapIrradiance() const
 
 #pragma region LightmapUVBuilder
 
-HYP_DISABLE_OPTIMIZATION;
-
 LightmapUVBuilder::LightmapUVBuilder(const LightmapUVBuilderParams& params)
     : m_params(params),
       m_mesh_vertex_positions(m_params.sub_elements.Size()),
@@ -398,8 +396,6 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
     return HYP_MAKE_ERROR(Error, "No method to build lightmap");
 #endif
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion LightmapUVBuilder
 

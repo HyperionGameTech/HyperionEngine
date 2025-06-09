@@ -10,8 +10,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class OgreXMLModelLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(OgreXMLModelLoader);
+    
 public:
     struct OgreXMLModel
     {

@@ -17,20 +17,14 @@
 
 namespace hyperion {
 
-class LightVisibilityUpdaterSystem : public System<LightVisibilityUpdaterSystem,
-
-                                         ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE>, ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>, ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>, ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>,
-
-                                         // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
-                                         ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false>, ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ, false>,
-
-                                         // Note: EntityTag::LIGHT is only added/removed from OnEntityAdded/OnEntityRemoved, so we don't need to add it here.
-
-                                         ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false>>
+HYP_CLASS(NoScriptBindings)
+class LightVisibilityUpdaterSystem : public SystemBase
 {
+    HYP_OBJECT_BODY(LightVisibilityUpdaterSystem);
+
 public:
     LightVisibilityUpdaterSystem(EntityManager& entity_manager)
-        : System(entity_manager)
+        : SystemBase(entity_manager)
     {
     }
 
@@ -39,7 +33,26 @@ public:
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 
-    virtual void Process(GameCounter::TickUnit delta) override;
+    virtual void Process(float delta) override;
+
+private:
+    virtual SystemComponentDescriptors GetComponentDescriptors() const override
+    {
+        return {
+            ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
+            ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+            ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+            ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+
+            // Can read and write the MeshComponent but does not receive events (updates material render data for area lights)
+            ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ_WRITE, false> {},
+            ComponentDescriptor<CameraComponent, COMPONENT_RW_FLAGS_READ, false> {},
+
+            // Note: EntityTag::LIGHT is only added/removed from OnEntityAdded/OnEntityRemoved, so we don't need to add it here.
+
+            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false> {}
+        };
+    }
 };
 
 } // namespace hyperion

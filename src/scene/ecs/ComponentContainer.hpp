@@ -44,17 +44,37 @@ struct ComponentDescriptor
     constexpr static bool receives_events = ReceivesEvents;
 };
 
+HYP_STRUCT(Size = 12)
 struct ComponentInfo
 {
+    HYP_FIELD()
     TypeID type_id;
+
+    HYP_FIELD()
     ComponentRWFlags rw_flags;
+
+    HYP_FIELD()
     bool receives_events;
 
+    ComponentInfo()
+        : type_id(TypeID::Void()),
+          rw_flags(COMPONENT_RW_FLAGS_NONE),
+          receives_events(false)
+    {
+    }
+
+    ComponentInfo(TypeID type_id, ComponentRWFlags rw_flags = COMPONENT_RW_FLAGS_NONE, bool receives_events = false)
+        : type_id(type_id),
+          rw_flags(rw_flags),
+          receives_events(receives_events)
+    {
+    }
+
     template <class ComponentDescriptorType>
-    ComponentInfo(ComponentDescriptorType&&)
-        : type_id(TypeID::ForType<typename ComponentDescriptorType::Type>()),
-          rw_flags(ComponentDescriptorType::rw_flags),
-          receives_events(ComponentDescriptorType::receives_events)
+    ComponentInfo(ComponentDescriptorType)
+        : type_id(TypeID::ForType<typename NormalizedType<ComponentDescriptorType>::Type>()),
+          rw_flags(NormalizedType<ComponentDescriptorType>::rw_flags),
+          receives_events(NormalizedType<ComponentDescriptorType>::receives_events)
     {
     }
 };

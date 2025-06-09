@@ -13,6 +13,8 @@
 
 #include <core/functional/Delegate.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/Defines.hpp>
 
 #include <scene/ecs/ComponentContainer.hpp>
@@ -26,28 +28,65 @@ class Scene;
 
 enum class SceneFlags : uint32;
 
-class HYP_API SystemBase
+class SystemComponentDescriptors : HashSet<ComponentInfo, &ComponentInfo::type_id>
 {
+public:
+    template <class... ComponentDescriptors>
+    SystemComponentDescriptors(ComponentDescriptors&&... component_descriptors)
+        : HashSet({ std::forward<ComponentDescriptors>(component_descriptors)... })
+    {
+        AssertThrowMsg(Size() == sizeof...(ComponentDescriptors), "Duplicate component descriptors found");
+    }
+
+    SystemComponentDescriptors(Span<ComponentInfo> component_infos)
+    {
+        for (ComponentInfo& component_info : component_infos)
+        {
+            Insert(component_info);
+        }
+    }
+
+    using HashSet::ToArray;
+
+    HYP_DEF_STL_BEGIN_END(HashSet::Begin(), HashSet::End())
+};
+
+HYP_CLASS(Abstract)
+class HYP_API SystemBase : public HypObject<SystemBase>
+{
+    HYP_OBJECT_BODY(SystemBase);
+
 public:
     friend class EntityManager;
     friend class SystemExecutionGroup;
 
     virtual ~SystemBase() = default;
 
-    virtual ANSIStringView GetName() const = 0;
-
-    virtual TypeID GetTypeID() const = 0;
+    Name GetName() const;
+    TypeID GetTypeID() const;
 
     virtual bool ShouldCreateForScene(Scene* scene) const
     {
         return true;
     }
 
+    /*! \brief Returns true if this System can be executed in parallel, false otherwise.
+     *  If false, the System will be executed on the game thread.
+     *
+     *  \return True if this System can be executed in parallel, false otherwise.
+     */
     virtual bool AllowParallelExecution() const
     {
         return true;
     }
 
+    /*! \brief Returns true if this System requires the game thread to execute, false otherwise.
+     *  \details Use this to ensure that the System can access game thread-only resources or perform operations
+     *  that must be done on the game thread, such as modifying the Scene or World state.
+     *  If true, the System will be executed on the game thread.
+     *
+     *  \return True if this System requires the game thread to execute, false otherwise.
+     */
     virtual bool RequiresGameThread() const
     {
         return false;
@@ -162,43 +201,79 @@ public:
     {
     }
 
-    virtual void Process(GameCounter::TickUnit delta) = 0;
+    virtual void Init()
+    {
+        if (IsInitCalled())
+        {
+            return;
+        }
+
+        HypObject::Init();
+
+        SetReady(true);
+    }
+
+    virtual void Shutdown()
+    {
+    }
+
+    virtual void Process(float delta) = 0;
 
 protected:
-    SystemBase(EntityManager& entity_manager, Array<TypeID>&& component_type_ids, Array<ComponentInfo>&& component_infos)
-        : m_entity_manager(entity_manager),
-          m_component_type_ids(std::move(component_type_ids)),
-          m_component_infos(std::move(component_infos))
+    SystemBase()
+        : m_entity_manager(nullptr)
     {
-        AssertThrowMsg(m_component_type_ids.Size() == m_component_infos.Size(), "Component type ID count and component infos count mismatch");
     }
 
-    HYP_FORCE_INLINE EntityManager& GetEntityManager()
+    SystemBase(EntityManager& entity_manager)
+        : m_entity_manager(&entity_manager)
     {
-        return m_entity_manager;
     }
 
-    /*! \brief Set a Proc<void()> to be called once after the System has processed.
-     *  The Proc<void()> will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
-     *  After the Proc<void()> has been called, it will be reset.
+    HYP_FORCE_INLINE EntityManager& GetEntityManager() const
+    {
+        AssertDebug(m_entity_manager != nullptr);
+        return *m_entity_manager;
+    }
+
+    /*! \brief Set a callback to be called once after the System has processed.
+     *  The callback will be called on the EntityManager's owner thread and will not be parallelized, ensuring proper synchronization.
+     *  After the callback has been called, it will be reset.
      *
-     *  \param proc The Proc<void()> to call after the System has processed.
-     */
-    void AfterProcess(Proc<void()>&& proc)
+     *  \param fn The callback to call after the System has processed. */
+    template <class Func>
+    void AfterProcess(Func&& fn)
     {
-        m_after_process_procs.PushBack(std::move(proc));
+        m_after_process_procs.EmplaceBack(std::forward<Func>(fn));
     }
+
+    virtual SystemComponentDescriptors GetComponentDescriptors() const = 0;
 
     Scene* GetScene() const;
     World* GetWorld() const;
 
     Delegate<void, World* /* new */, World* /* previous */> OnWorldChanged;
 
-    EntityManager& m_entity_manager;
-
+    EntityManager* m_entity_manager;
     DelegateHandlerSet m_delegate_handlers;
 
 private:
+    void InitComponentInfos_Internal()
+    {
+        m_component_type_ids.Clear();
+        m_component_infos.Clear();
+
+        Array<ComponentInfo> component_descriptors_array = GetComponentDescriptors().ToArray();
+        m_component_type_ids.Reserve(component_descriptors_array.Size());
+        m_component_infos.Reserve(component_descriptors_array.Size());
+
+        for (const ComponentInfo& component_info : component_descriptors_array)
+        {
+            m_component_type_ids.PushBack(component_info.type_id);
+            m_component_infos.PushBack(component_info);
+        }
+    }
+
     void SetWorld(World* world);
 
     HashSet<WeakHandle<Entity>> m_initialized_entities;
@@ -206,44 +281,7 @@ private:
     Array<TypeID> m_component_type_ids;
     Array<ComponentInfo> m_component_infos;
 
-    Array<Proc<void()>, DynamicAllocator> m_after_process_procs;
-};
-
-/*! \brief A System is a class that operates on a set of components.
- *
- *  \tparam ComponentDescriptors ComponentDescriptor structs for the Components this System operates on.
- */
-template <class Derived, class... ComponentDescriptors>
-class System : public SystemBase
-{
-public:
-    using ComponentDescriptorTypes = Tuple<ComponentDescriptors...>;
-
-    System(EntityManager& entity_manager)
-        : SystemBase(
-              entity_manager,
-              { TypeID::ForType<typename ComponentDescriptors::Type>()... },
-              { ComponentInfo(ComponentDescriptors())... })
-    {
-    }
-
-    System(const System& other) = delete;
-    System& operator=(const System& other) = delete;
-    System(System&& other) noexcept = delete;
-    System& operator=(System&& other) noexcept = delete;
-    virtual ~System() override = default;
-
-    virtual ANSIStringView GetName() const override final
-    {
-        return ANSIStringView(TypeNameHelper<Derived, true>::value);
-    }
-
-    virtual TypeID GetTypeID() const override final
-    {
-        return TypeID::ForType<Derived>();
-    }
-
-    virtual void Process(GameCounter::TickUnit delta) override = 0;
+    Array<Proc<void()>> m_after_process_procs;
 };
 
 } // namespace hyperion

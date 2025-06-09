@@ -136,7 +136,7 @@ IHypObjectInitializer* DynamicHypClassInstance::GetObjectInitializer_Internal(vo
     return m_parent->GetObjectInitializer(object_ptr);
 }
 
-void DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
+bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 {
     AssertThrow(m_parent != nullptr);
     AssertThrow(m_class_ptr != nullptr);
@@ -146,7 +146,12 @@ void DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 
         {
             HypData value;
-            m_parent->CreateInstance(value, /* allow_abstract */ true);
+
+            if (!m_parent->CreateInstance(value, /* allow_abstract */ true))
+            {
+                return false;
+            }
+
             AssertThrow(value.IsValid());
 
             if (m_parent->UseHandles())
@@ -177,6 +182,20 @@ void DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 
     // Create the managed object
     managed_object_resource->IncRef();
+
+    return true;
+}
+
+bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
+{
+    AssertThrow(m_parent != nullptr);
+    AssertThrow(m_class_ptr != nullptr);
+
+    /// \todo: Find some way to support this.
+
+    HYP_NOT_IMPLEMENTED();
+
+    return false;
 }
 
 HashCode DynamicHypClassInstance::GetInstanceHashCode_Internal(ConstAnyRef ref) const

@@ -99,12 +99,12 @@ public:
         return m_allow_update;
     }
 
-    HYP_FORCE_INLINE TypeMap<UniquePtr<SystemBase>>& GetSystems()
+    HYP_FORCE_INLINE TypeMap<Handle<SystemBase>>& GetSystems()
     {
         return m_systems;
     }
 
-    HYP_FORCE_INLINE const TypeMap<UniquePtr<SystemBase>>& GetSystems() const
+    HYP_FORCE_INLINE const TypeMap<Handle<SystemBase>>& GetSystems() const
     {
         return m_systems;
     }
@@ -196,37 +196,40 @@ public:
 
     /*! \brief Adds a System to the SystemExecutionGroup.
      *
-     *  \tparam SystemType The type of the System to add.
-     *
-     *  \param[in] system_ptr The System to add.
+     *  \param[in] system The System to add.
      */
-    template <class SystemType>
-    SystemBase* AddSystem(UniquePtr<SystemType>&& system_ptr)
+    Handle<SystemBase> AddSystem(const Handle<SystemBase>& system)
     {
-        AssertThrow(system_ptr != nullptr);
-        AssertThrowMsg(IsValidForSystem(system_ptr.Get()), "System is not valid for this SystemExecutionGroup");
+        AssertThrow(system.IsValid());
+        AssertThrowMsg(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
 
-        auto it = m_systems.Find<SystemType>();
+        auto it = m_systems.Find(system->GetTypeID());
         AssertThrowMsg(it == m_systems.End(), "System already exists");
 
-        auto insert_result = m_systems.Set<SystemType>(std::move(system_ptr));
+        auto insert_result = m_systems.Set(system->GetTypeID(), system);
 
-        return insert_result.first->second.Get();
+        return insert_result.first->second;
     }
 
     template <class SystemType>
-    SystemType* GetSystem() const
+    Handle<SystemType> GetSystem() const
     {
         static const TypeID type_id = TypeID::ForType<SystemType>();
 
         const auto it = m_systems.Find(type_id);
 
-        if (it == m_systems.End())
+        if (it == m_systems.End() || !it->second.IsValid())
         {
-            return nullptr;
+            return Handle<SystemType>::empty;
         }
 
-        return static_cast<SystemType*>(it->second.Get());
+        if (!IsInstanceOfHypClass<SystemType>(*it->second))
+        {
+            HYP_BREAKPOINT;
+            return Handle<SystemType>::empty;
+        }
+
+        return Handle<SystemType>(it->second);
     }
 
     /*! \brief Removes a System from the SystemExecutionGroup.
@@ -256,7 +259,7 @@ private:
     bool m_requires_game_thread;
     bool m_allow_update;
 
-    TypeMap<UniquePtr<SystemBase>> m_systems;
+    TypeMap<Handle<SystemBase>> m_systems;
     UniquePtr<TaskBatch> m_task_batch;
 
 #ifdef HYP_DEBUG_MODE
@@ -1026,30 +1029,46 @@ public:
         return static_cast<EntitySet<Components...>&>(*entity_sets_it->second);
     }
 
-    template <class SystemType>
-    HYP_FORCE_INLINE SystemType* AddSystem(UniquePtr<SystemType>&& system)
+    HYP_METHOD()
+    HYP_FORCE_INLINE Handle<SystemBase> AddSystem(const Handle<SystemBase>& system)
     {
-        return AddSystemToExecutionGroup(std::move(system));
+        if (!system.IsValid())
+        {
+            return Handle<SystemBase>::empty;
+        }
+
+        return AddSystemToExecutionGroup(system);
     }
 
-    template <class SystemType, class... Args>
-    HYP_FORCE_INLINE SystemType* AddSystem(Args&&... args)
-    {
-        return AddSystemToExecutionGroup(MakeUnique<SystemType>(*this, std::forward<Args>(args)...));
-    }
-
     template <class SystemType>
-    HYP_FORCE_INLINE SystemType* GetSystem() const
+    Handle<SystemType> GetSystem() const
     {
         for (const SystemExecutionGroup& system_execution_group : m_system_execution_groups)
         {
-            if (SystemType* system = system_execution_group.GetSystem<SystemType>())
+            if (Handle<SystemType> system = system_execution_group.GetSystem<SystemType>())
             {
                 return system;
             }
         }
 
-        return nullptr;
+        return Handle<SystemType>::empty;
+    }
+
+    HYP_METHOD()
+    Handle<SystemBase> GetSystemByTypeID(TypeID system_type_id) const
+    {
+        for (const SystemExecutionGroup& system_execution_group : m_system_execution_groups)
+        {
+            for (const auto& it : system_execution_group.GetSystems())
+            {
+                if (it.first == system_type_id)
+                {
+                    return it.second;
+                }
+            }
+        }
+
+        return Handle<SystemBase>::empty;
     }
 
     template <class Callback>
@@ -1077,6 +1096,7 @@ public:
     }
 
     void Initialize();
+    void Shutdown();
 
     void BeginAsyncUpdate(GameCounter::TickUnit delta);
     void EndAsyncUpdate();
@@ -1149,37 +1169,51 @@ private:
         ((HasTag<EntityTag(Indices + 1)>(id) ? (void)(out_mask |= (1u << uint32(Indices))) : void()), ...);
     }
 
-    template <class SystemType>
-    SystemType* AddSystemToExecutionGroup(UniquePtr<SystemType>&& system_ptr)
+    Handle<SystemBase> AddSystemToExecutionGroup(const Handle<SystemBase>& system)
     {
-        AssertThrow(system_ptr != nullptr);
+        AssertThrow(system.IsValid());
+        AssertThrow(system->m_entity_manager == nullptr || system->m_entity_manager == this);
 
-        SystemType* ptr = nullptr;
+        bool was_added = false;
 
-        if ((m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION) && system_ptr->AllowParallelExecution())
+        if ((m_flags & EntityManagerFlags::PARALLEL_SYSTEM_EXECUTION) && system->AllowParallelExecution())
         {
             for (SystemExecutionGroup& system_execution_group : m_system_execution_groups)
             {
-                if (system_execution_group.IsValidForSystem(system_ptr.Get()))
+                if (system_execution_group.IsValidForSystem(system.Get()))
                 {
-                    ptr = static_cast<SystemType*>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
+                    if (system_execution_group.AddSystem(system))
+                    {
+                        was_added = true;
 
-                    break;
+                        break;
+                    }
                 }
             }
         }
 
-        if (!ptr)
+        if (!was_added)
         {
-            SystemExecutionGroup& system_execution_group = m_system_execution_groups.EmplaceBack(
-                system_ptr->RequiresGameThread(),
-                system_ptr->AllowUpdate());
+            SystemExecutionGroup& system_execution_group = m_system_execution_groups.EmplaceBack(system->RequiresGameThread(), system->AllowUpdate());
 
-            ptr = static_cast<SystemType*>(system_execution_group.AddSystem<SystemType>(std::move(system_ptr)));
+            if (system_execution_group.AddSystem(system))
+            {
+                was_added = true;
+            }
         }
 
-        return ptr;
+        system->m_entity_manager = this;
+
+        // If the EntityManager is initialized, call Initialize() on the System.
+        if (m_is_initialized && was_added)
+        {
+            InitializeSystem(system);
+        }
+
+        return system;
     }
+
+    void InitializeSystem(const Handle<SystemBase>& system);
 
     void NotifySystemsOfEntityAdded(ID<Entity> entity, const TypeMap<ComponentID>& component_ids);
     void NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMap<ComponentID>& component_ids);
@@ -1193,6 +1227,8 @@ private:
     bool RemoveEntity(ID<Entity> id);
 
     bool IsEntityInitializedForSystem(SystemBase* system, ID<Entity> entity) const;
+
+    void GetSystemClasses(Array<const HypClass*>& out_classes) const;
 
     ThreadID m_owner_thread_id;
     World* m_world;

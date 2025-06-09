@@ -78,7 +78,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity_id)
     visibility_state_component.visibility_state = nullptr;
 }
 
-void VisibilityStateUpdaterSystem::Process(GameCounter::TickUnit delta)
+void VisibilityStateUpdaterSystem::Process(float delta)
 {
     Octree& octree = GetEntityManager().GetScene()->GetOctree();
 

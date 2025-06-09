@@ -10,8 +10,11 @@
 
 namespace hyperion {
 
+HYP_CLASS(NoScriptBindings)
 class WAVAudioLoader : public AssetLoaderBase
 {
+    HYP_OBJECT_BODY(WAVAudioLoader);
+    
 public:
     struct WAVAudio
     {

@@ -10,6 +10,8 @@
 
 #include <core/utilities/Format.hpp>
 
+#include <core/object/HypClassRegistry.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -314,6 +316,54 @@ EntityManager::~EntityManager()
     GetEntityToEntityManagerMap().RemoveEntityManager(this);
 }
 
+void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
+{
+    HYP_SCOPE;
+
+    AssertThrow(system.IsValid());
+
+    InitObject(system);
+
+    system->InitComponentInfos_Internal();
+
+    for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it)
+    {
+        const Handle<Entity> entity = entities_it->first.Lock();
+
+        if (!entity.IsValid())
+        {
+            HYP_LOG(ECS, Warning, "Entity with ID #{} is expired or invalid", entities_it->first.GetID().Value());
+
+            continue;
+        }
+
+        EntityData& entity_data = entities_it->second;
+
+        const TypeMap<ComponentID>& component_ids = entity_data.components;
+
+        if (system->ActsOnComponents(component_ids.Keys(), true))
+        {
+            { // critical section
+                Mutex::Guard guard(m_system_entity_map_mutex);
+
+                auto system_entity_it = m_system_entity_map.Find(system.Get());
+
+                // Check if the system already has this entity initialized
+                if (system_entity_it != m_system_entity_map.End() && (system_entity_it->second.FindAs(entity) != system_entity_it->second.End()))
+                {
+                    continue;
+                }
+
+                m_system_entity_map[system.Get()].Insert(entity);
+            }
+
+            HYP_LOG(ECS, Debug, "Adding entity #{} to system {}", entity.GetID().Value(), system->GetName());
+
+            system->OnEntityAdded(entity);
+        }
+    }
+}
+
 void EntityManager::Initialize()
 {
     Threads::AssertOnThread(m_owner_thread_id);
@@ -326,6 +376,34 @@ void EntityManager::Initialize()
     {
         for (auto& system_it : group.GetSystems())
         {
+            const Handle<SystemBase>& system = system_it.second;
+            AssertThrow(system.IsValid());
+
+            InitializeSystem(system);
+        }
+    }
+
+    m_is_initialized = true;
+}
+
+void EntityManager::Shutdown()
+{
+    HYP_SCOPE;
+
+    if (!m_is_initialized)
+    {
+        return;
+    }
+
+    MoveEntityGuard move_entity_guard(*this);
+
+    for (SystemExecutionGroup& group : m_system_execution_groups)
+    {
+        for (auto& system_it : group.GetSystems())
+        {
+            const Handle<SystemBase>& system = system_it.second;
+            AssertThrow(system.IsValid());
+
             for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it)
             {
                 const Handle<Entity> entity = entities_it->first.Lock();
@@ -341,12 +419,12 @@ void EntityManager::Initialize()
 
                 const TypeMap<ComponentID>& component_ids = entity_data.components;
 
-                if (system_it.second->ActsOnComponents(component_ids.Keys(), true))
+                if (system->ActsOnComponents(component_ids.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
                 {
                     { // critical section
                         Mutex::Guard guard(m_system_entity_map_mutex);
 
-                        auto system_entity_it = m_system_entity_map.Find(system_it.second.Get());
+                        auto system_entity_it = m_system_entity_map.Find(system.Get());
 
                         // Check if the system already has this entity initialized
                         if (system_entity_it != m_system_entity_map.End() && (system_entity_it->second.FindAs(entity) != system_entity_it->second.End()))
@@ -354,18 +432,20 @@ void EntityManager::Initialize()
                             continue;
                         }
 
-                        m_system_entity_map[system_it.second.Get()].Insert(entity);
+                        m_system_entity_map[system_it.second.Get()].Erase(entity);
                     }
 
-                    HYP_LOG(ECS, Debug, "Adding entity #{} to system {}", entity.GetID().Value(), system_it.second->GetName());
+                    HYP_LOG(ECS, Debug, "Removing entity #{} from system {}", entity.GetID().Value(), system->GetName());
 
-                    system_it.second->OnEntityAdded(entity);
+                    system->OnEntityRemoved(entity);
                 }
             }
+
+            system->Shutdown();
         }
     }
 
-    m_is_initialized = true;
+    m_is_initialized = false;
 }
 
 void EntityManager::SetWorld(World* world)
@@ -941,6 +1021,9 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
         }
 
         TaskBatch* current_task_batch = system_execution_group.GetTaskBatch();
+        AssertDebug(current_task_batch != nullptr);
+
+        AssertDebugMsg(current_task_batch->IsCompleted(), "TaskBatch for SystemExecutionGroup is not completed: %u tasks enqueued", current_task_batch->num_enqueued);
 
         current_task_batch->ResetState();
 
@@ -968,7 +1051,7 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
 
         if (last_task_batch != nullptr)
         {
-            if (current_task_batch->num_enqueued > 0)
+            if (current_task_batch->executors.Any())
             {
                 last_task_batch->next_batch = current_task_batch;
                 last_task_batch = current_task_batch;
@@ -981,7 +1064,7 @@ void EntityManager::BeginAsyncUpdate(GameCounter::TickUnit delta)
     }
 
     // Kickoff first task
-    if (root_task_batch != nullptr && (root_task_batch->num_enqueued > 0 || root_task_batch->next_batch != nullptr))
+    if (root_task_batch != nullptr && (root_task_batch->executors.Any() || root_task_batch->next_batch != nullptr))
     {
 #ifdef HYP_SYSTEMS_PARALLEL_EXECUTION
         TaskSystem::GetInstance().EnqueueBatch(root_task_batch);
@@ -1062,6 +1145,11 @@ bool EntityManager::IsEntityInitializedForSystem(SystemBase* system, ID<Entity> 
     return it->second.FindAs(entity_id) != it->second.End();
 }
 
+void EntityManager::GetSystemClasses(Array<const HypClass*>& out_classes) const
+{
+    HYP_NOT_IMPLEMENTED();
+}
+
 #pragma endregion EntityManager
 
 #pragma region SystemExecutionGroup
@@ -1097,9 +1185,6 @@ void SystemExecutionGroup::StartProcessing(GameCounter::TickUnit delta)
     for (auto& it : m_systems)
     {
         SystemBase* system = it.second.Get();
-
-        StaticMessage debug_name;
-        debug_name.value = system->GetName();
 
         m_task_batch->AddTask([this, system, delta]
             {

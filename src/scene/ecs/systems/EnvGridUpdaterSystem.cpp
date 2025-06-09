@@ -77,7 +77,7 @@ private:
 #pragma region EnvGridUpdaterSystem
 
 EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
 }
 
@@ -140,7 +140,7 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
     }
 }
 
-void EnvGridUpdaterSystem::Process(GameCounter::TickUnit delta)
+void EnvGridUpdaterSystem::Process(float delta)
 {
     { // Determine which EnvGrids needs to be updated on the game thread
         AfterProcess([this]()

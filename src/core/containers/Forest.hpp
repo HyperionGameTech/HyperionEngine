@@ -1,7 +1,6 @@
 #ifndef HYPERION_FOREST_HPP
 #define HYPERION_FOREST_HPP
 
-#include <core/containers/Array.hpp>
 #include <core/containers/Queue.hpp>
 
 #include <core/memory/UniquePtr.hpp>

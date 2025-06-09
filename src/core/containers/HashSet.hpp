@@ -330,7 +330,7 @@ struct HashTable_PooledNodeAllocator
                 return nullptr;
             }
 
-            return const_cast<Node*>(new_base) + (p - const_cast<Node*>(previous_base));
+            return reinterpret_cast<Node*>(uintptr_t(new_base) + (uintptr_t(p) - uintptr_t(previous_base)));
         };
 
         for (Bucket& bucket : buckets)
@@ -371,7 +371,7 @@ struct HashTable_PooledNodeAllocator
     {
         std::swap(m_free_nodes_head, other.m_free_nodes_head);
 
-        Node* previous_base = other.m_pool.Any() ? other.m_pool.Data() : nullptr;
+        Node* previous_base = other.m_pool.Data();
 
         m_pool = std::move(other.m_pool);
 
@@ -435,6 +435,8 @@ protected:
     using Bucket = HashSetBucket<Value>;
 
     using BucketArray = Array<Bucket, InlineAllocator<initial_bucket_size>>;
+
+    static_assert(std::is_trivial_v<Bucket>, "Bucket must be a trivial type");
 
     template <class IteratorType>
     static inline void AdvanceIteratorBucket(IteratorType& iter)

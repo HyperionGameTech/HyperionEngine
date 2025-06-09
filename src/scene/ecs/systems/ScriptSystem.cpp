@@ -24,7 +24,7 @@ namespace hyperion {
 constexpr bool g_enable_script_reloading = true;
 
 ScriptSystem::ScriptSystem(EntityManager& entity_manager)
-    : System(entity_manager)
+    : SystemBase(entity_manager)
 {
     // @FIXME: Issue with reloaded assemblies that spawn native objects having their classes change.
 
@@ -290,7 +290,7 @@ void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
     script_component.flags &= ~(ScriptComponentFlags::INITIALIZED | ScriptComponentFlags::BEFORE_INIT_CALLED | ScriptComponentFlags::INIT_CALLED);
 }
 
-void ScriptSystem::Process(GameCounter::TickUnit delta)
+void ScriptSystem::Process(float delta)
 {
     World* world = GetWorld();
 

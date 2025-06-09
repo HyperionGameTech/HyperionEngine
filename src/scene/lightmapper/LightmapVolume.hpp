@@ -52,8 +52,7 @@ struct LightmapElementTextureEntry
     Handle<Texture> texture;
 };
 
-HYP_STRUCT()
-
+HYP_STRUCT(NoScriptBindings)
 struct LightmapElement
 {
     HYP_FIELD(Property = "Index", Serialize = true)
@@ -75,7 +74,6 @@ struct LightmapElement
     Vec2f scale;
 
     HYP_METHOD()
-
     bool IsValid() const
     {
         return index != ~0u;
@@ -148,7 +146,6 @@ public:
     /*! \brief Add a LightmapElement to this volume. */
     bool AddElement(const LightmapUVMap& uv_map, LightmapElement& out_element, bool shrink_to_fit = true, float downscale_limit = 0.1f);
 
-    HYP_METHOD()
     const LightmapElement* GetElement(uint32 index) const;
 
     bool BuildElementTextures(const LightmapUVMap& uv_map, uint32 index);

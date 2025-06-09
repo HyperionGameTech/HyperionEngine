@@ -533,7 +533,7 @@ public:
 
     HYP_FORCE_INLINE constexpr bool operator<=(const Tuple& other) const
     {
-        return Tuple_Compare<std::less<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
+        return Tuple_Compare<std::less_equal<>, 0>(m_impl, other.m_impl);
     }
 
     HYP_FORCE_INLINE constexpr bool operator>(const Tuple& other) const
@@ -543,7 +543,7 @@ public:
 
     HYP_FORCE_INLINE constexpr bool operator>=(const Tuple& other) const
     {
-        return Tuple_Compare<std::greater<>, 0>(m_impl, other.m_impl) || m_impl == other.m_impl;
+        return Tuple_Compare<std::greater_equal<>, 0>(m_impl, other.m_impl);
     }
 
     template <SizeType Index>

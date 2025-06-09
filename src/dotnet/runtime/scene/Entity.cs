@@ -10,11 +10,12 @@ namespace Hyperion
         {
             get
             {
-                return new IDBase(Entity_GetID(NativeAddress));
+                ulong idValue = Entity_GetID(NativeAddress);
+                return new IDBase(new TypeID((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFF));
             }
         }
 
         [DllImport("hyperion", EntryPoint = "Entity_GetID")]
-        private static extern uint Entity_GetID(IntPtr entityPtr);
+        private static extern ulong Entity_GetID(IntPtr entityPtr);
     }
 }

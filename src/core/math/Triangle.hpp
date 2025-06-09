@@ -13,7 +13,6 @@
 namespace hyperion {
 
 HYP_STRUCT(Serialize = "bitwise")
-
 struct HYP_API Triangle
 {
     HYP_FIELD()
