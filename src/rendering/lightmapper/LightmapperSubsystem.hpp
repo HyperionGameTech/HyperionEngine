@@ -3,16 +3,26 @@
 #ifndef HYPERION_LIGHTMAPPER_SUBSYSTEM_HPP
 #define HYPERION_LIGHTMAPPER_SUBSYSTEM_HPP
 
+#include <scene/Subsystem.hpp>
+
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/HashMap.hpp>
 
 #include <core/threading/Task.hpp>
 
-#include <scene/Subsystem.hpp>
+#include <core/memory/UniquePtr.hpp>
+
+#include <core/math/BoundingBox.hpp>
+
+#include <core/Handle.hpp>
+#include <core/Defines.hpp>
+
+#include <GameCounter.hpp>
 
 namespace hyperion {
 
 class Lightmapper;
-struct BoundingBox;
+class Scene;
 
 HYP_CLASS()
 class HYP_API LightmapperSubsystem : public Subsystem

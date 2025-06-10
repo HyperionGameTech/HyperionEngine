@@ -121,7 +121,6 @@ UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
-      m_is_position_absolute(false),
       m_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_inner_size(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT })),
       m_depth(0),
@@ -133,12 +132,13 @@ UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
       m_is_visible(true),
       m_computed_visibility(false),
       m_is_enabled(true),
-      m_computed_depth(0),
       m_accepts_focus(true),
       m_receives_update(true),
-      m_data_source_element_uuid(UUID::Invalid()),
       m_affects_parent_size(true),
       m_needs_repaint(true),
+      m_is_position_absolute(false),
+      m_computed_depth(0),
+      m_data_source_element_uuid(UUID::Invalid()),
       m_deferred_updates(UIObjectUpdateType::NONE),
       m_locked_updates(UIObjectUpdateType::NONE)
 {
@@ -171,16 +171,6 @@ UIObject::UIObject()
 
 UIObject::~UIObject()
 {
-    HYP_LOG(UI, Debug, "Destroying UIObject {} (address: {}) on thread {} ({})", GetName(), (void*)this, Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
-
-    for (const RC<UIObject>& child_ui_object : m_child_ui_objects)
-    {
-        if (child_ui_object)
-        {
-            HYP_LOG(UI, Debug, "\t\tHas child UIObject {} (address: {}, refs: {}) on thread {} ({})", child_ui_object->GetName(), (void*)child_ui_object.Get(), child_ui_object.GetRefCountData_Internal()->UseCount_Strong(), Threads::CurrentThreadID().GetValue(), Threads::CurrentThreadID().GetName());
-        }
-    }
-
     m_child_ui_objects.Clear();
 
     static const auto remove_ui_component = [](Scene* scene, Handle<Entity> entity, Handle<Node> node)
@@ -2705,7 +2695,7 @@ void UIObject::SetNodeProxy(Handle<Node> node)
     if (m_node.IsValid() && m_node->GetEntity().IsValid() && m_node->GetScene() != nullptr)
     {
         const Handle<Entity>& entity = m_node->GetEntity();
-        const RC<EntityManager>& entity_manager = m_node->GetScene()->GetEntityManager();
+        const Handle<EntityManager>& entity_manager = m_node->GetScene()->GetEntityManager();
 
         if (entity_manager->HasComponent<UIComponent>(entity))
         {

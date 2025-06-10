@@ -29,12 +29,27 @@ class Camera;
 #pragma region CameraController
 
 CameraController::CameraController(CameraProjectionMode projection_mode)
-    : m_input_handler(MakeRefCountedPtr<NullInputHandler>()),
+    : m_input_handler(CreateObject<NullInputHandler>()),
       m_camera(nullptr),
       m_projection_mode(projection_mode),
       m_command_queue_count { 0 },
       m_mouse_lock_requested(false)
 {
+}
+
+void CameraController::SetInputHandler(const Handle<InputHandlerBase>& input_handler)
+{
+    if (m_input_handler == input_handler)
+    {
+        return;
+    }
+
+    m_input_handler = input_handler;
+
+    if (IsInitCalled())
+    {
+        InitObject(m_input_handler);
+    }
 }
 
 void CameraController::OnAdded(Camera* camera)
@@ -153,7 +168,7 @@ Camera::Camera(int width, int height)
       m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
-    m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
+    m_camera_controllers.PushBack(CreateObject<NullCameraController>());
 }
 
 Camera::Camera(float fov, int width, int height, float _near, float _far)
@@ -170,7 +185,7 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
-    m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
+    m_camera_controllers.PushBack(CreateObject<NullCameraController>());
 
     SetToPerspectiveProjection(fov, _near, _far);
 }
@@ -189,7 +204,7 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_render_resource(nullptr)
 {
     // make sure there is always at least 1 camera controller
-    m_camera_controllers.PushBack(MakeRefCountedPtr<NullCameraController>());
+    m_camera_controllers.PushBack(CreateObject<NullCameraController>());
 
     SetToOrthographicProjection(left, right, bottom, top, _near, _far);
 }
@@ -198,7 +213,7 @@ Camera::~Camera()
 {
     while (HasActiveCameraController())
     {
-        const RC<CameraController> camera_controller = m_camera_controllers.PopBack();
+        const Handle<CameraController> camera_controller = m_camera_controllers.PopBack();
 
         camera_controller->OnDeactivated();
         camera_controller->OnRemoved();
@@ -286,9 +301,24 @@ void Camera::Init()
             }
         }));
 
-    m_render_resource = AllocateResource<RenderCamera>(this);
+    for (const Handle<CameraController>& camera_controller : m_camera_controllers)
+    {
+        InitObject(camera_controller);
+    }
 
-    UpdateMatrices();
+    if (const Handle<CameraController> &camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
+    {
+        camera_controller->OnAdded(this);
+        camera_controller->OnActivated();
+    }
+
+    UpdateMouseLocked();
+
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    UpdateViewProjectionMatrix();
+
+    m_render_resource = AllocateResource<RenderCamera>(this);
 
     m_render_resource->SetBufferData(CameraShaderData {
         .view = m_view_mat,
@@ -307,13 +337,13 @@ void Camera::Init()
     SetReady(true);
 }
 
-void Camera::SetCameraControllers(const Array<RC<CameraController>>& camera_controllers)
+void Camera::SetCameraControllers(const Array<Handle<CameraController>>& camera_controllers)
 {
     HYP_SCOPE;
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& current_camera_controller = GetCameraController())
+        if (const Handle<CameraController>& current_camera_controller = GetCameraController())
         {
             current_camera_controller->OnDeactivated();
         }
@@ -328,7 +358,7 @@ void Camera::SetCameraControllers(const Array<RC<CameraController>>& camera_cont
 
     CameraController* active_camera_controller = nullptr;
 
-    for (const RC<CameraController>& camera_controller : camera_controllers)
+    for (const Handle<CameraController>& camera_controller : camera_controllers)
     {
         if (!camera_controller || camera_controller->IsInstanceOf<NullCameraController>())
         {
@@ -354,7 +384,7 @@ void Camera::SetCameraControllers(const Array<RC<CameraController>>& camera_cont
     }
 }
 
-void Camera::AddCameraController(const RC<CameraController>& camera_controller)
+void Camera::AddCameraController(const Handle<CameraController>& camera_controller)
 {
     HYP_SCOPE;
 
@@ -370,7 +400,7 @@ void Camera::AddCameraController(const RC<CameraController>& camera_controller)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& current_camera_controller = GetCameraController())
+        if (const Handle<CameraController>& current_camera_controller = GetCameraController())
         {
             current_camera_controller->OnDeactivated();
         }
@@ -378,17 +408,22 @@ void Camera::AddCameraController(const RC<CameraController>& camera_controller)
 
     m_camera_controllers.PushBack(camera_controller);
 
-    camera_controller->OnAdded(this);
-    camera_controller->OnActivated();
+    if (IsInitCalled())
+    {
+        InitObject(camera_controller);
 
-    UpdateMouseLocked();
+        camera_controller->OnAdded(this);
+        camera_controller->OnActivated();
 
-    UpdateViewMatrix();
-    UpdateProjectionMatrix();
-    UpdateViewProjectionMatrix();
+        UpdateMouseLocked();
+
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+        UpdateViewProjectionMatrix();
+    }
 }
 
-bool Camera::RemoveCameraController(const RC<CameraController>& camera_controller)
+bool Camera::RemoveCameraController(const Handle<CameraController>& camera_controller)
 {
     HYP_SCOPE;
 
@@ -404,32 +439,35 @@ bool Camera::RemoveCameraController(const RC<CameraController>& camera_controlle
         return false;
     }
 
-    bool should_activate_camera_controller = false;
-
-    if (camera_controller == GetCameraController())
-    {
-        camera_controller->OnDeactivated();
-
-        should_activate_camera_controller = true;
-    }
-
-    camera_controller->OnRemoved();
-
     m_camera_controllers.Erase(it);
 
-    if (should_activate_camera_controller && HasActiveCameraController())
+    if (IsInitCalled())
     {
-        if (const RC<CameraController>& current_camera_controller = GetCameraController())
+        bool should_activate_camera_controller = false;
+
+        if (camera_controller == GetCameraController())
         {
-            current_camera_controller->OnActivated();
+            camera_controller->OnDeactivated();
+
+            should_activate_camera_controller = true;
         }
+
+        camera_controller->OnRemoved();
+
+        if (should_activate_camera_controller && HasActiveCameraController())
+        {
+            if (const Handle<CameraController>& current_camera_controller = GetCameraController())
+            {
+                current_camera_controller->OnActivated();
+            }
+        }
+
+        UpdateMouseLocked();
+
+        UpdateViewMatrix();
+        UpdateProjectionMatrix();
+        UpdateViewProjectionMatrix();
     }
-
-    UpdateMouseLocked();
-
-    UpdateViewMatrix();
-    UpdateProjectionMatrix();
-    UpdateViewProjectionMatrix();
 
     return true;
 }
@@ -445,7 +483,7 @@ void Camera::SetTranslation(const Vec3f& translation)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->SetTranslation(translation);
         }
@@ -463,7 +501,7 @@ void Camera::SetNextTranslation(const Vec3f& translation)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->SetNextTranslation(translation);
         }
@@ -478,7 +516,7 @@ void Camera::SetDirection(const Vec3f& direction)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->SetDirection(direction);
         }
@@ -496,7 +534,7 @@ void Camera::SetUpVector(const Vec3f& up)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->SetUpVector(up);
         }
@@ -617,7 +655,7 @@ void Camera::Update(GameCounter::TickUnit dt)
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             UpdateMouseLocked();
 
@@ -657,7 +695,7 @@ void Camera::UpdateViewMatrix()
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->UpdateViewMatrix();
         }
@@ -670,7 +708,7 @@ void Camera::UpdateProjectionMatrix()
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->UpdateProjectionMatrix();
         }
@@ -685,7 +723,7 @@ void Camera::UpdateMatrices()
 
     if (HasActiveCameraController())
     {
-        if (const RC<CameraController>& camera_controller = GetCameraController())
+        if (const Handle<CameraController>& camera_controller = GetCameraController())
         {
             camera_controller->UpdateViewMatrix();
             camera_controller->UpdateProjectionMatrix();
@@ -701,7 +739,7 @@ void Camera::UpdateMouseLocked()
 
     bool should_lock_mouse = false;
 
-    if (const RC<CameraController>& camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
+    if (const Handle<CameraController>& camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
     {
         if (camera_controller->IsMouseLockAllowed() && camera_controller->IsMouseLockRequested())
         {

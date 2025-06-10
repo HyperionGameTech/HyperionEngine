@@ -77,7 +77,7 @@ public:
         return BoundingSphere(m_params.origin, m_params.radius);
     }
 
-    void Init();
+    void Init() override;
 
 private:
     void CreateNoiseMap();
@@ -116,7 +116,7 @@ public:
         return m_particle_spawners;
     }
 
-    void Init();
+    void Init() override;
 
     // called in render thread, updates particles using compute shader
     void UpdateParticles(FrameBase* frame, const RenderSetup& render_setup);

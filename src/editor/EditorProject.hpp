@@ -130,7 +130,7 @@ public:
     HYP_METHOD()
     void Close();
 
-    void Init();
+    void Init() override;
 
 private:
     Name GetNextDefaultProjectName_Impl(const String& default_project_name) const;

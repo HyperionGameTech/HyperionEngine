@@ -88,7 +88,7 @@ public:
     HYP_METHOD()
     RC<WorldGridPlugin> GetPlugin(int priority) const;
 
-    void Init();
+    void Init() override;
     void Shutdown();
     void Update(GameCounter::TickUnit delta);
 

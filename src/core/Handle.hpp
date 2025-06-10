@@ -53,9 +53,7 @@ struct HandleBase
 
 /*! \brief Definition of a handle for a type.
  *  \details In Hyperion, a handle is a reference to an instance of a specific core engine object type.
- *  These objects are managed by the ObjectPool and are reference counted.
- *  \note Objects that are managed by the ObjectPool must have a HandleDefinition defined for them.
- *  Check the HandleDefinitions.inl file for list of defined handles.
+ *  These objects are use memory pools for each type used, and are reference counted.
  *  \tparam T The type of object that the handle is referencing.
  */
 template <class T>
@@ -282,6 +280,11 @@ struct Handle final : HandleBase
         return static_cast<T*>(ptr);
     }
 
+    HYP_FORCE_INLINE operator T*() const
+    {
+        return Get();
+    }
+
     /*! \brief Reset the handle to an empty state.
      *  \details This will decrement the strong reference count of the object that the handle is referencing.
      *  The index is set to 0. */
@@ -293,11 +296,6 @@ struct Handle final : HandleBase
         }
 
         ptr = nullptr;
-    }
-
-    HYP_FORCE_INLINE operator T*() const
-    {
-        return Get();
     }
 
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
@@ -316,6 +314,9 @@ struct Handle final : HandleBase
     {
         if (ptr)
         {
+            const bool instance_of_check = IsInstanceOfHypClass(GetClass(TypeID::ForType<Ty>()), ptr, ptr->m_header->container->GetObjectTypeID());
+            AssertThrowMsg(instance_of_check, "Cannot cast Handle<T> to Handle<Ty> because T is not a base class of Ty!");
+
             return Handle<Ty>(static_cast<Ty*>(ptr));
         }
 
@@ -586,6 +587,31 @@ struct WeakHandle final
         }
 
         ptr = nullptr;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
+    HYP_FORCE_INLINE operator WeakHandle<Ty>() const
+    {
+        if (ptr)
+        {
+            return WeakHandle<Ty>(static_cast<Ty*>(ptr));
+        }
+
+        return WeakHandle<Ty>::empty;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE explicit operator WeakHandle<Ty>() const
+    {
+        if (ptr)
+        {
+            const bool instance_of_check = IsInstanceOfHypClass(GetClass(TypeID::ForType<Ty>()), ptr, ptr->m_header->container->GetObjectTypeID());
+            AssertThrowMsg(instance_of_check, "Cannot cast WeakHandle<T> to WeakHandle<Ty> because T is not a base class of Ty!");
+
+            return WeakHandle<Ty>(ptr->m_header);
+        }
+
+        return WeakHandle<Ty>::empty;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

@@ -56,18 +56,18 @@ class RunningEditorTask
 public:
     friend class EditorSubsystem;
 
-    RunningEditorTask(const RC<EditorTaskBase>& task)
+    RunningEditorTask(const Handle<EditorTaskBase>& task)
         : m_task(task)
     {
     }
 
-    RunningEditorTask(const RC<EditorTaskBase>& task, const RC<UIObject>& ui_object)
+    RunningEditorTask(const Handle<EditorTaskBase>& task, const RC<UIObject>& ui_object)
         : m_task(task),
           m_ui_object(ui_object)
     {
     }
 
-    HYP_FORCE_INLINE const RC<EditorTaskBase>& GetTask() const
+    HYP_FORCE_INLINE const Handle<EditorTaskBase>& GetTask() const
     {
         return m_task;
     }
@@ -80,7 +80,7 @@ public:
     RC<UIObject> CreateUIObject(UIStage* ui_stage) const;
 
 private:
-    RC<EditorTaskBase> m_task;
+    Handle<EditorTaskBase> m_task;
     RC<UIObject> m_ui_object;
 };
 
@@ -380,7 +380,7 @@ public:
     void OpenProject(const Handle<EditorProject>& project);
 
     HYP_METHOD()
-    void AddTask(const RC<EditorTaskBase>& task);
+    void AddTask(const Handle<EditorTaskBase>& task);
 
     HYP_METHOD()
     void SetFocusedNode(const Handle<Node>& focused_node, bool should_select_in_outline = true);

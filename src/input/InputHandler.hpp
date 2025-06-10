@@ -18,7 +18,7 @@ namespace hyperion {
 struct InputState;
 
 HYP_CLASS(Abstract)
-class HYP_API InputHandlerBase : public EnableRefCountedPtrFromThis<InputHandlerBase>
+class HYP_API InputHandlerBase : public HypObject<InputHandlerBase>
 {
     HYP_OBJECT_BODY(InputHandlerBase);
 

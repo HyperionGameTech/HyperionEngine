@@ -26,7 +26,6 @@ struct RenderCommand_DestroyRTRadianceRenderer;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.rt.reflections")
-
 struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
 {
     HYP_FIELD()

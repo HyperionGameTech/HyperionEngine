@@ -150,7 +150,7 @@ Scene::Scene(
       m_owner_thread_id(owner_thread_id),
       m_world(world),
       m_is_audio_listener(false),
-      m_entity_manager(MakeRefCountedPtr<EntityManager>(owner_thread_id, this)),
+      m_entity_manager(CreateObject<EntityManager>(owner_thread_id, this)),
       m_octree(m_entity_manager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previous_delta(0.01667f),
       m_render_resource(nullptr)
@@ -187,7 +187,7 @@ Scene::~Scene()
     }
 
     // Move so destruction of components can check GetEntityManager() returns nullptr
-    if (RC<EntityManager> entity_manager = std::move(m_entity_manager))
+    if (Handle<EntityManager> entity_manager = std::move(m_entity_manager))
     {
         if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
         {
@@ -261,7 +261,7 @@ void Scene::Init()
     // (OnEntityAdded() calls on Systems may require this)
     SetReady(true);
 
-    m_entity_manager->Initialize();
+    InitObject(m_entity_manager);
 }
 
 void Scene::SetOwnerThreadID(ThreadID owner_thread_id)

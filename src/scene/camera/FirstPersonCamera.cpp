@@ -14,10 +14,10 @@ static const float movement_blending = 0.01f;
 
 #pragma region FirstPersonCameraInputHandler
 
-FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(CameraController* controller)
-    : m_controller(dynamic_cast<FirstPersonCameraController*>(controller))
+FirstPersonCameraInputHandler::FirstPersonCameraInputHandler(const WeakHandle<CameraController>& controller)
+    : m_controller(WeakHandle<FirstPersonCameraController>(controller))
 {
-    AssertThrowMsg(m_controller != nullptr, "Null camera controller or not of type FirstPersonCameraInputHandler");
+    AssertThrowMsg(m_controller.IsValid(), "Null camera controller or not of type FirstPersonCameraInputHandler");
 }
 
 bool FirstPersonCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)
@@ -44,7 +44,14 @@ bool FirstPersonCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
 
-    Camera* camera = m_controller->GetCamera();
+    Handle<FirstPersonCameraController> controller = m_controller.Lock();
+
+    if (!controller.IsValid())
+    {
+        return false;
+    }
+
+    Camera* camera = controller->GetCamera();
 
     if (!camera)
     {
@@ -90,7 +97,7 @@ FirstPersonCameraController::FirstPersonCameraController(FirstPersonCameraContro
       m_prev_mouse_x(0.0f),
       m_prev_mouse_y(0.0f)
 {
-    m_input_handler = MakeRefCountedPtr<FirstPersonCameraInputHandler>(this);
+    m_input_handler = CreateObject<FirstPersonCameraInputHandler>(WeakHandleFromThis());
 }
 
 void FirstPersonCameraController::OnActivated()
@@ -124,6 +131,18 @@ void FirstPersonCameraController::SetMode(FirstPersonCameraControllerMode mode)
     }
 
     m_mode = mode;
+}
+
+void FirstPersonCameraController::Init()
+{
+    if (IsInitCalled())
+    {
+        return;
+    }
+
+    CameraController::Init();
+
+    InitObject(m_input_handler);
 }
 
 void FirstPersonCameraController::UpdateLogic(double dt)

@@ -148,7 +148,7 @@ public:
         return m_texture_desc.wrap_mode;
     }
 
-    void Init();
+    void Init() override;
 
     void GenerateMipmaps();
 

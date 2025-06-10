@@ -122,6 +122,27 @@ void EntityManagerCommandQueue::Execute(EntityManager& mgr, GameCounter::TickUni
 
 #pragma region EntityToEntityManagerMap
 
+void EntityToEntityManagerMap::ForEachEntityManager(ProcRef<void(EntityManager* entity_manager)> proc) const
+{
+    HashSet<Handle<EntityManager>> entity_managers;
+
+    {
+        Mutex::Guard guard(m_mutex);
+
+        entity_managers.Reserve(m_map.Size());
+
+        for (auto& it : m_map)
+        {
+            entity_managers.Insert(it.second->HandleFromThis());
+        }
+    }
+
+    for (const Handle<EntityManager>& entity_manager : entity_managers)
+    {
+        proc(entity_manager.Get());
+    }
+}
+
 Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, Proc<void(EntityManager* entity_manager, ID<Entity> id)>&& callback)
 {
     HYP_SCOPE;
@@ -171,9 +192,9 @@ Task<bool> EntityToEntityManagerMap::PerformActionWithEntity(ID<Entity> id, Proc
     }
     else
     {
-        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakRefCountedPtrFromThis(), id, callback = std::move(callback), task_executor = task.Initialize()]()
+        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakHandleFromThis(), id, callback = std::move(callback), task_executor = task.Initialize()]()
             {
-                RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+                Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
 
                 if (!entity_manager)
                 {
@@ -236,9 +257,9 @@ void EntityToEntityManagerMap::PerformActionWithEntity_FireAndForget(ID<Entity> 
     }
     else
     {
-        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakRefCountedPtrFromThis(), id, callback = std::move(callback)]()
+        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([entity_manager_weak = entity_manager->WeakHandleFromThis(), id, callback = std::move(callback)]()
             {
-                RC<EntityManager> entity_manager = entity_manager_weak.Lock();
+                Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
 
                 if (!entity_manager)
                 {
@@ -291,7 +312,6 @@ EntityManager::EntityManager(const ThreadID& owner_thread_id, Scene* scene, Enum
       m_flags(flags),
       m_command_queue(g_game_thread == owner_thread_id ? EntityManagerCommandQueueFlags::EXEC_COMMANDS : EntityManagerCommandQueueFlags::NONE),
       m_root_synchronous_execution_group(nullptr),
-      m_is_initialized(false),
       m_move_entity_rw_mask(0)
 {
     AssertThrow(scene != nullptr);
@@ -364,11 +384,16 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
     }
 }
 
-void EntityManager::Initialize()
+void EntityManager::Init()
 {
-    Threads::AssertOnThread(m_owner_thread_id);
+    if (IsInitCalled())
+    {
+        return;
+    }
 
-    AssertThrow(!m_is_initialized);
+    HypObject::Init();
+
+    Threads::AssertOnThread(m_owner_thread_id);
 
     MoveEntityGuard move_entity_guard(*this);
 
@@ -383,14 +408,14 @@ void EntityManager::Initialize()
         }
     }
 
-    m_is_initialized = true;
+    SetReady(true);
 }
 
 void EntityManager::Shutdown()
 {
     HYP_SCOPE;
 
-    if (!m_is_initialized)
+    if (!IsReady())
     {
         return;
     }
@@ -445,7 +470,7 @@ void EntityManager::Shutdown()
         }
     }
 
-    m_is_initialized = false;
+    SetReady(false);
 }
 
 void EntityManager::SetWorld(World* world)
@@ -460,7 +485,7 @@ void EntityManager::SetWorld(World* world)
     }
 
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
-    if (m_is_initialized)
+    if (IsInitCalled())
     {
         for (SystemExecutionGroup& group : m_system_execution_groups)
         {
@@ -558,12 +583,12 @@ bool EntityManager::RemoveEntity(ID<Entity> id)
     return true;
 }
 
-void EntityManager::MoveEntity(const Handle<Entity>& entity, const RC<EntityManager>& other)
+void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<EntityManager>& other)
 {
     HYP_SCOPE;
 
     AssertThrow(entity.IsValid());
-    AssertThrow(other != nullptr);
+    AssertThrow(other.IsValid());
 
     if (this == other.Get())
     {
@@ -921,7 +946,7 @@ void EntityManager::NotifySystemsOfEntityAdded(ID<Entity> entity_id, const TypeM
 
     // If the EntityManager is initialized, notify systems of the entity being added
     // otherwise, the systems will be notified when the EntityManager is initialized
-    if (!m_is_initialized)
+    if (!IsInitCalled())
     {
         return;
     }
@@ -963,7 +988,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity, const TypeMa
         return;
     }
 
-    if (!m_is_initialized)
+    if (!IsInitCalled())
     {
         return;
     }

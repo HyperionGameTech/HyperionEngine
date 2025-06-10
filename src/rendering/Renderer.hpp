@@ -116,7 +116,7 @@ public:
 
 /*! \brief Special null RenderSetup that can be used for simple rendering tasks that don't make sense to use a RenderWorld, such as rendering texture mipmaps.
  *  \internal Use sparingly as most rendering tasks should have a valid RenderWorld and using this will cause the IsValid() check to return false */
-HYP_API extern const RenderSetup& NullRenderSetup();
+extern const RenderSetup& NullRenderSetup();
 
 } // namespace hyperion
 

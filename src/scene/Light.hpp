@@ -26,6 +26,7 @@ class Camera;
 class Material;
 class RenderLight;
 
+HYP_ENUM()
 enum class LightType : uint32
 {
     DIRECTIONAL,
@@ -325,7 +326,7 @@ public:
 
     BoundingSphere GetBoundingSphere() const;
 
-    void Init();
+    void Init() override;
 
     void EnqueueRenderUpdates();
 

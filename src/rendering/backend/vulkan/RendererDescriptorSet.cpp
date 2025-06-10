@@ -138,7 +138,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
 
             if (is_dynamic)
             {
-                AssertThrowMsg(layout_element->size != 0, "Buffer size not set for dynamic buffer element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
+                AssertThrowMsg(layout_element->size != 0, "Buffer size not set for dynamic buffer element: %s.%s", m_layout.GetName().LookupString(), name.LookupString());
             }
 
             for (auto& values_it : element.values)

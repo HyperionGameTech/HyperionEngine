@@ -60,7 +60,6 @@ enum NodeFlags : uint32
 HYP_MAKE_ENUM_FLAGS(NodeFlags)
 
 HYP_STRUCT()
-
 struct NodeTag
 {
     using VariantType = Variant<

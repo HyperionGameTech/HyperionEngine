@@ -328,8 +328,8 @@ public:
     using ProcType = Proc<ReturnType(Args...)>;
 
     Delegate()
-        : m_id_counter(0),
-          m_num_procs(0)
+        : m_num_procs(0),
+          m_id_counter(0)
     {
     }
 
@@ -685,14 +685,11 @@ protected:
     }
 
     Array<DelegateHandlerEntry<ProcType>*, DynamicAllocator> m_procs;
-
-    AtomicVar<uint32> m_num_procs;
-    Mutex m_mutex;
-
-    uint32 m_id_counter;
-
     Array<DelegateHandler, DynamicAllocator> m_detached_handlers;
     Mutex m_detached_handlers_mutex;
+    Mutex m_mutex;
+    AtomicVar<uint32> m_num_procs;
+    uint32 m_id_counter;
 };
 
 } // namespace functional

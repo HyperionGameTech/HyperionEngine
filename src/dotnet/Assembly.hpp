@@ -29,7 +29,7 @@ class Class;
 class Assembly;
 class Method;
 
-class Assembly : public EnableRefCountedPtrFromThis<Assembly>
+class HYP_API Assembly : public EnableRefCountedPtrFromThis<Assembly>
 {
 public:
     Assembly();

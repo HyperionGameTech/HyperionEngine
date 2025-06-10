@@ -117,7 +117,8 @@ EditorCameraController::EditorCameraController()
     : FirstPersonCameraController(),
       m_mode(EditorCameraControllerMode::INACTIVE)
 {
-    m_input_handler = MakeRefCountedPtr<EditorCameraInputHandler>(this);
+    m_input_handler = CreateObject<EditorCameraInputHandler>(this);
+    InitObject(m_input_handler);
 }
 
 void EditorCameraController::OnActivated()

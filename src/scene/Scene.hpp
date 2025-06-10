@@ -163,7 +163,7 @@ public:
     void SetRoot(const Handle<Node>& root);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<EntityManager>& GetEntityManager() const
+    HYP_FORCE_INLINE const Handle<EntityManager>& GetEntityManager() const
     {
         return m_entity_manager;
     }
@@ -215,7 +215,7 @@ public:
         m_is_audio_listener = is_audio_listener;
     }
 
-    void Init();
+    void Init() override;
 
     void Update(GameCounter::TickUnit delta);
 
@@ -252,7 +252,7 @@ private:
 
     FogParams m_fog_params;
 
-    RC<EntityManager> m_entity_manager;
+    Handle<EntityManager> m_entity_manager;
 
     Octree m_octree;
 

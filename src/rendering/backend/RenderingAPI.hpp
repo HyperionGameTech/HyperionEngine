@@ -36,7 +36,7 @@ class AsyncComputeBase;
 struct TextureDesc;
 
 class DescriptorSetLayout;
-class DescriptorTableDeclaration;
+struct DescriptorTableDeclaration;
 
 enum class GPUBufferType : uint8;
 enum class RenderPassStage : uint8;

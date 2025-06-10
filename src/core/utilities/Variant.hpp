@@ -905,7 +905,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
             return AnyRef();
         }
 
-        return AnyRef(m_holder.GetPointer(), m_holder.GetTypeID());
+        return AnyRef(m_holder.GetTypeID(), m_holder.GetPointer());
     }
 
     HYP_FORCE_INLINE ConstAnyRef ToRef() const
@@ -915,7 +915,7 @@ struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelpe
             return ConstAnyRef();
         }
 
-        return ConstAnyRef(m_holder.GetPointer(), m_holder.GetTypeID());
+        return ConstAnyRef(m_holder.GetTypeID(), m_holder.GetPointer());
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const

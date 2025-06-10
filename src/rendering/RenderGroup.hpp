@@ -133,7 +133,7 @@ public:
 
     void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
 
-    void Init();
+    void Init() override;
 
 private:
     void CreateIndirectRenderer();

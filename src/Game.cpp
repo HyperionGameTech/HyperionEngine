@@ -303,7 +303,7 @@ void Game::OnInputEvent(const SystemEvent& event)
 
                 event.GetMouseWheel(&wheel_x, &wheel_y);
 
-                if (const RC<CameraController>& controller = primary_camera->GetCameraController())
+                if (const Handle<CameraController>& controller = primary_camera->GetCameraController())
                 {
                     controller->PushCommand(CameraCommand {
                         .command = CameraCommand::CAMERA_COMMAND_SCROLL,
@@ -330,7 +330,7 @@ void Game::OnInputEvent(const SystemEvent& event)
             {
                 if (const Handle<Camera>& primary_camera = m_scene->GetPrimaryCamera())
                 {
-                    if (const RC<CameraController>& controller = primary_camera->GetCameraController())
+                    if (const Handle<CameraController>& controller = primary_camera->GetCameraController())
                     {
                         controller->PushCommand(CameraCommand {
                             .command = CameraCommand::CAMERA_COMMAND_MAG,

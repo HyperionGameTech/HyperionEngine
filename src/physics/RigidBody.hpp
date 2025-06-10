@@ -198,7 +198,7 @@ public:
     RigidBody& operator=(const RigidBody& other) = delete;
     ~RigidBody();
 
-    void Init();
+    void Init() override;
 
     /*! \brief Get the world-space transform of this RigidBody. */
     HYP_METHOD(Serialize, Property = "Transform")

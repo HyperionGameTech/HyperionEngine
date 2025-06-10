@@ -56,7 +56,6 @@ enum class LightmapShadingType
 };
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "lightmapper")
-
 struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 {
     HYP_FIELD()

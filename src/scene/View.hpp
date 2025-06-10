@@ -131,7 +131,7 @@ public:
         return m_last_collection_result;
     }
 
-    void Init();
+    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
 protected:

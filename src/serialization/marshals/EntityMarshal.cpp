@@ -165,7 +165,7 @@ public:
         // }
 
         const Handle<Scene>& detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(ThreadID::Current());
-        const RC<EntityManager>& entity_manager = detached_scene->GetEntityManager();
+        const Handle<EntityManager>& entity_manager = detached_scene->GetEntityManager();
 
         Handle<Entity> entity = entity_manager->AddEntity();
 

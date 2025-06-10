@@ -21,19 +21,19 @@
 
 namespace hyperion {
 
-Octree::Octree(const RC<EntityManager>& entity_manager)
+Octree::Octree(const Handle<EntityManager>& entity_manager)
     : OctreeBase(),
       m_entity_manager(entity_manager)
 {
 }
 
-Octree::Octree(const RC<EntityManager>& entity_manager, const BoundingBox& aabb)
+Octree::Octree(const Handle<EntityManager>& entity_manager, const BoundingBox& aabb)
     : OctreeBase(aabb),
       m_entity_manager(entity_manager)
 {
 }
 
-Octree::Octree(const RC<EntityManager>& entity_manager, const BoundingBox& aabb, Octree* parent, uint8 index)
+Octree::Octree(const Handle<EntityManager>& entity_manager, const BoundingBox& aabb, Octree* parent, uint8 index)
     : OctreeBase(aabb, parent, index),
       m_entity_manager(entity_manager)
 {
@@ -41,7 +41,7 @@ Octree::Octree(const RC<EntityManager>& entity_manager, const BoundingBox& aabb,
 
 Octree::~Octree() = default;
 
-void Octree::SetEntityManager(const RC<EntityManager>& entity_manager)
+void Octree::SetEntityManager(const Handle<EntityManager>& entity_manager)
 {
     HYP_SCOPE;
 

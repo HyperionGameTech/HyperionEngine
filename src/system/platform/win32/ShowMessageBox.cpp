@@ -88,16 +88,16 @@ extern "C"
         wchar_t* wide_title = new wchar_t[title_length];
         wchar_t* wide_message = new wchar_t[message_length];
 
-        MultiByteToWideChar(CP_UTF8, 0, title, -1, wideTitle, titleLength);
-        MultiByteToWideChar(CP_UTF8, 0, message, -1, wideMessage, messageLength);
+        MultiByteToWideChar(CP_UTF8, 0, title, -1, wide_title, title_length);
+        MultiByteToWideChar(CP_UTF8, 0, message, -1, wide_message, message_length);
 
         wchar_t* wide_button_texts[3] = {};
 
         for (int i = 0; i < buttons; i++)
         {
-            int button_text_length = MultiByteToWideChar(CP_UTF8, 0, buttonTexts[i], -1, nullptr, 0);
+            int button_text_length = MultiByteToWideChar(CP_UTF8, 0, button_texts[i], -1, nullptr, 0);
             wide_button_texts[i] = new wchar_t[button_text_length];
-            MultiByteToWideChar(CP_UTF8, 0, buttonTexts[i], -1, wideButtonTexts[i], buttonTextLength);
+            MultiByteToWideChar(CP_UTF8, 0, button_texts[i], -1, wide_button_texts[i], button_text_length);
         }
 
         UINT type_flags = 0;
@@ -105,55 +105,55 @@ extern "C"
         switch (type)
         {
         case 0:
-            typeFlags = MB_ICONINFORMATION;
+            type_flags = MB_ICONINFORMATION;
             break;
         case 1:
-            typeFlags = MB_ICONWARNING;
+            type_flags = MB_ICONWARNING;
             break;
         case 2:
-            typeFlags = MB_ICONERROR;
+            type_flags = MB_ICONERROR;
             break;
         }
 
-        if (buttonIndices[IDOK] != -1)
+        if (button_indices[IDOK] != -1)
         {
-            typeFlags |= MB_OK;
+            type_flags |= MB_OK;
         }
 
-        if (buttonIndices[IDCANCEL] != -1)
+        if (button_indices[IDCANCEL] != -1)
         {
-            if (buttonIndices[IDOK] != -1)
+            if (button_indices[IDOK] != -1)
             {
-                typeFlags |= MB_OKCANCEL;
+                type_flags |= MB_OKCANCEL;
             }
-            else if (buttonIndices[IDRETRY] != -1)
+            else if (button_indices[IDRETRY] != -1)
             {
-                typeFlags |= MB_RETRYCANCEL;
+                type_flags |= MB_RETRYCANCEL;
             }
-            else if (buttonIndices[IDTRYAGAIN] != -1 && buttonIndices[IDCONTINUE] != -1)
+            else if (button_indices[IDTRYAGAIN] != -1 && button_indices[IDCONTINUE] != -1)
             {
-                typeFlags |= MB_CANCELTRYCONTINUE;
+                type_flags |= MB_CANCELTRYCONTINUE;
             }
         }
 
-        if (buttonIndices[IDYES] != -1 && buttonIndices[IDNO] == -1)
+        if (button_indices[IDYES] != -1 && button_indices[IDNO] == -1)
         {
-            if (buttonIndices[IDCANCEL] != -1)
+            if (button_indices[IDCANCEL] != -1)
             {
-                typeFlags |= MB_YESNOCANCEL;
+                type_flags |= MB_YESNOCANCEL;
             }
             else
             {
-                typeFlags |= MB_YESNO;
+                type_flags |= MB_YESNO;
             }
         }
 
-        if (buttonIndices[IDHELP] != -1)
+        if (button_indices[IDHELP] != -1)
         {
-            typeFlags |= MB_HELP;
+            type_flags |= MB_HELP;
         }
 
-        int result = MessageBoxW(NULL, wideMessage, wideTitle, typeFlags);
+        int result = MessageBoxW(NULL, wide_message, wide_title, type_flags);
         int button_index;
 
         if (result < 16)

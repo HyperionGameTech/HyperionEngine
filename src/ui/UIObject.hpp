@@ -80,7 +80,6 @@ enum class UIObjectType : uint32
 HYP_MAKE_ENUM_FLAGS(UIObjectType)
 
 HYP_STRUCT(Size = 24)
-
 struct alignas(8) UIEventHandlerResult
 {
     enum Value : uint32
@@ -299,7 +298,6 @@ static constexpr inline int UIObjectScrollbarOrientationToIndex(UIObjectScrollba
 }
 
 HYP_STRUCT()
-
 struct UIObjectAspectRatio
 {
     HYP_FIELD()
@@ -341,7 +339,6 @@ struct UIObjectAspectRatio
 #pragma region UIObjectSize
 
 HYP_STRUCT()
-
 struct UIObjectSize
 {
     enum Flags
@@ -462,10 +459,6 @@ public:
 };
 
 #pragma endregion UIObjectQuadMeshHelper
-
-#pragma region UIObjectRenderProxy
-
-#pragma endregion UIObjectRenderProxy
 
 #pragma region UILockedUpdatesScope
 
@@ -1210,9 +1203,7 @@ public:
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD RC<T> CreateUIObject(
-        Vec2i position,
-        UIObjectSize size)
+    HYP_NODISCARD RC<T> CreateUIObject(Vec2i position, UIObjectSize size)
     {
         return CreateUIObject<T>(Name::Invalid(), position, size);
     }
@@ -1226,10 +1217,7 @@ public:
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD RC<T> CreateUIObject(
-        Name name,
-        Vec2i position,
-        UIObjectSize size)
+    HYP_NODISCARD RC<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
     {
         AssertOnOwnerThread();
 
@@ -1442,7 +1430,6 @@ protected:
 
     Vec2i m_position;
     Vec2f m_offset_position;
-    bool m_is_position_absolute;
 
     UIObjectSize m_size;
     Vec2i m_actual_size;
@@ -1544,25 +1531,22 @@ private:
     const UIObjectID m_id;
     const UIObjectType m_type;
 
-    bool m_is_init;
-
     EnumFlags<UIObjectFocusState> m_focus_state;
 
-    bool m_is_visible;
-    bool m_computed_visibility;
+    bool m_is_init;
 
-    bool m_is_enabled;
+    bool m_is_visible : 1;
+    bool m_computed_visibility : 1;
+    bool m_is_enabled : 1;
+    bool m_accepts_focus : 1;
+    bool m_receives_update : 1;
+    bool m_affects_parent_size : 1;
+    bool m_is_position_absolute : 1;
 
     int m_computed_depth;
 
     float m_text_size;
     float m_computed_text_size;
-
-    bool m_accepts_focus;
-
-    bool m_receives_update;
-
-    bool m_affects_parent_size;
 
     AtomicVar<bool> m_needs_repaint;
 

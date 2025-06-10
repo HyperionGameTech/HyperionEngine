@@ -48,7 +48,7 @@ public:
 
     ~AudioSource();
 
-    void Init();
+    void Init() override;
 
     HYP_METHOD(Property = "Format", Serialize = true, Editor = true)
     HYP_FORCE_INLINE AudioSourceFormat GetFormat() const

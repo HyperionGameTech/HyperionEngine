@@ -142,7 +142,7 @@ public:
         m_aabb = aabb;
     }
 
-    void Init();
+    void Init() override;
 
     /*! \brief Set the mesh to be able to have Render* methods called without needing to have its resources claimed.
      *  \note Init() must be called before this method. */

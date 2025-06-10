@@ -165,8 +165,8 @@ private:
 
     BoundingBox m_aabb;
     LinkedList<BVHNode> m_children;
-    Array<Triangle> m_triangles;
-    bool m_is_leaf_node;
+    Array<Triangle, DynamicAllocator> m_triangles;
+    bool m_is_leaf_node : 1;
 };
 
 } // namespace hyperion

@@ -165,7 +165,7 @@ public:
      */
     const Animation* FindAnimation(UTF8StringView name, uint32* out_index) const;
 
-    void Init();
+    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
 private:

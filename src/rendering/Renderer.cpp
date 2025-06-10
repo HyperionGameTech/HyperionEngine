@@ -4,7 +4,7 @@
 
 namespace hyperion {
 
-HYP_API const RenderSetup& NullRenderSetup()
+const RenderSetup& NullRenderSetup()
 {
     static const RenderSetup null_render_setup;
     return null_render_setup;

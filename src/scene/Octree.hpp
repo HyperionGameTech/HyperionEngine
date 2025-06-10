@@ -38,9 +38,9 @@ class Octree;
 class HYP_API Octree final : public OctreeBase<Octree, WeakHandle<Entity>>
 {
 public:
-    Octree(const RC<EntityManager>& entity_manager);
-    Octree(const RC<EntityManager>& entity_manager, const BoundingBox& aabb);
-    Octree(const RC<EntityManager>& entity_manager, const BoundingBox& aabb, Octree* parent, uint8 index);
+    Octree(const Handle<EntityManager>& entity_manager);
+    Octree(const Handle<EntityManager>& entity_manager, const BoundingBox& aabb);
+    Octree(const Handle<EntityManager>& entity_manager, const BoundingBox& aabb, Octree* parent, uint8 index);
 
     virtual ~Octree() override;
 
@@ -56,14 +56,14 @@ public:
 
     /*! \brief Get the EntityManager the Octree is using to manage entities.
      *  \returns The EntityManager the Octree is set to use */
-    const RC<EntityManager>& GetEntityManager() const
+    const Handle<EntityManager>& GetEntityManager() const
     {
         return m_entity_manager;
     }
 
     /*! \brief Set the EntityManager for the Octree to use. For internal use from \ref{Scene} only
      *  \internal */
-    void SetEntityManager(const RC<EntityManager>& entity_manager);
+    void SetEntityManager(const Handle<EntityManager>& entity_manager);
 
     /*! \brief Get a hashcode of all entities currently in this Octant that have the given tags (child octants affect this too)
      */
@@ -115,7 +115,7 @@ private:
 
     void UpdateVisibilityState(const Handle<Camera>& camera, uint16 validity_marker);
 
-    RC<EntityManager> m_entity_manager;
+    Handle<EntityManager> m_entity_manager;
 
     FixedArray<HashCode, num_entry_hashes> m_entry_hashes;
 

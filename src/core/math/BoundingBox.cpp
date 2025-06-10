@@ -56,17 +56,6 @@ FixedArray<Vec3f, 8> BoundingBox::GetCorners() const
     };
 }
 
-Vec3f BoundingBox::GetCorner(uint32 index) const
-{
-    const uint32 mask = 1u << index;
-
-    return {
-        MathUtil::Lerp(min.x, max.x, int((mask & 1) != 0)),
-        MathUtil::Lerp(min.y, max.y, int((mask & 2) != 0)),
-        MathUtil::Lerp(min.z, max.z, int((mask & 4) != 0))
-    };
-}
-
 void BoundingBox::SetCenter(const Vec3f& center)
 {
     Vec3f dimensions = GetExtent();

@@ -14,7 +14,6 @@ enum class GameStateMode : uint32
 };
 
 HYP_STRUCT()
-
 struct GameState
 {
     HYP_FIELD()

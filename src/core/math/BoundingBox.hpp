@@ -18,8 +18,7 @@ namespace hyperion {
 struct Triangle;
 
 HYP_STRUCT(Size = 32)
-
-class HYP_API BoundingBox
+struct HYP_API BoundingBox
 {
 public:
     BoundingBox();
@@ -54,8 +53,6 @@ public:
     }
 
     FixedArray<Vec3f, 8> GetCorners() const;
-
-    Vec3f GetCorner(uint32 index) const;
 
     HYP_FORCE_INLINE Vec3f GetCenter() const
     {

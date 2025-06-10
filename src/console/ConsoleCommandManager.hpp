@@ -9,7 +9,7 @@
 
 #include <core/utilities/Result.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Handle.hpp>
 
 namespace hyperion {
 
@@ -34,7 +34,7 @@ public:
     void Initialize();
     void Shutdown();
 
-    void RegisterCommand(const RC<ConsoleCommandBase>& command);
+    void RegisterCommand(const Handle<ConsoleCommandBase>& command);
 
     Result ExecuteCommand(const String& command_line);
 

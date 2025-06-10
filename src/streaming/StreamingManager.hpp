@@ -147,7 +147,7 @@ public:
     HYP_METHOD()
     void UnregisterAllStreamables();
 
-    void Init();
+    void Init() override;
     void Start();
     void Stop();
     void Update(GameCounter::TickUnit delta);

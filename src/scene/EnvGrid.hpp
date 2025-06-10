@@ -187,7 +187,7 @@ public:
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
 
-    void Init();
+    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
 private:

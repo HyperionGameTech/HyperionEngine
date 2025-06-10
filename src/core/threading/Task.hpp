@@ -36,7 +36,7 @@ HYP_MAKE_ENUM_FLAGS(TaskEnqueueFlags)
 namespace threading {
 
 class TaskThread;
-class TaskBatch;
+struct TaskBatch;
 class SchedulerBase;
 
 class TaskCompleteNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>

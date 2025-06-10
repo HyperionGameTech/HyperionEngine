@@ -30,7 +30,6 @@ struct MeshInstanceData;
 HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
 
 HYP_STRUCT(PostLoad = "MeshInstanceData_PostLoad", Size = 104)
-
 struct MeshInstanceData
 {
     static constexpr uint32 max_buffers = 8;
@@ -100,7 +99,6 @@ struct MeshInstanceData
 };
 
 HYP_STRUCT()
-
 struct MeshRaytracingData
 {
     HYP_FIELD()

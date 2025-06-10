@@ -242,7 +242,7 @@ public:
         return m_current_enabled_render_subsystems_mask;
     }
 
-    void Init();
+    void Init() override;
     void Update(GameCounter::TickUnit delta);
 
     void RenderRTRadiance(FrameBase* frame, const RenderSetup& render_setup);

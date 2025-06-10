@@ -765,7 +765,7 @@ void Node::LockTransform()
     // set entity to static
     if (m_entity.IsValid())
     {
-        if (const RC<EntityManager>& entity_manager = m_scene->GetEntityManager())
+        if (const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager())
         {
             entity_manager->AddTag<EntityTag::STATIC>(m_entity);
             entity_manager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
@@ -1056,7 +1056,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
 
     if (m_entity.IsValid())
     {
-        const RC<EntityManager>& entity_manager = m_scene->GetEntityManager();
+        const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager();
 
         // if (!m_transform_changed) {
         //     // Set to dynamic
@@ -1072,7 +1072,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
         //     m_transform_changed = true;
         // }
 
-        if (entity_manager != nullptr)
+        if (entity_manager.IsValid())
         {
             if (TransformComponent* transform_component = entity_manager->TryGetComponent<TransformComponent>(m_entity))
             {

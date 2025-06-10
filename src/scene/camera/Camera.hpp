@@ -98,7 +98,7 @@ struct CameraCommand
 class Camera;
 
 HYP_CLASS(Abstract)
-class HYP_API CameraController : public EnableRefCountedPtrFromThis<CameraController>
+class HYP_API CameraController : public HypObject<CameraController>
 {
     friend class Camera;
 
@@ -109,16 +109,13 @@ public:
     virtual ~CameraController() = default;
 
     HYP_METHOD(Property = "InputHandler")
-    HYP_FORCE_INLINE const RC<InputHandlerBase>& GetInputHandler() const
+    HYP_FORCE_INLINE const Handle<InputHandlerBase>& GetInputHandler() const
     {
         return m_input_handler;
     }
 
     HYP_METHOD(Property = "InputHandler")
-    HYP_FORCE_INLINE void SetInputHandler(const RC<InputHandlerBase>& input_handler)
-    {
-        m_input_handler = input_handler;
-    }
+    void SetInputHandler(const Handle<InputHandlerBase>& input_handler);
 
     HYP_METHOD(Property = "Camera")
     Camera* GetCamera() const
@@ -187,7 +184,7 @@ protected:
 
     Camera* m_camera;
 
-    RC<InputHandlerBase> m_input_handler;
+    Handle<InputHandlerBase> m_input_handler;
 
     CameraProjectionMode m_projection_mode;
 
@@ -280,17 +277,17 @@ public:
     }
 
     HYP_METHOD(Property = "CameraControllers", Serialize = true)
-    HYP_FORCE_INLINE const Array<RC<CameraController>>& GetCameraControllers() const
+    HYP_FORCE_INLINE const Array<Handle<CameraController>>& GetCameraControllers() const
     {
         return m_camera_controllers;
     }
 
     /*! \internal For serialization only. */
     HYP_METHOD(Property = "CameraControllers", Serialize = true)
-    void SetCameraControllers(const Array<RC<CameraController>>& camera_controllers);
+    void SetCameraControllers(const Array<Handle<CameraController>>& camera_controllers);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<CameraController>& GetCameraController() const
+    HYP_FORCE_INLINE const Handle<CameraController>& GetCameraController() const
     {
         return m_camera_controllers.Back();
     }
@@ -302,10 +299,10 @@ public:
     }
 
     HYP_METHOD()
-    void AddCameraController(const RC<CameraController>& camera_controller);
+    void AddCameraController(const Handle<CameraController>& camera_controller);
 
     HYP_METHOD()
-    bool RemoveCameraController(const RC<CameraController>& camera_controller);
+    bool RemoveCameraController(const Handle<CameraController>& camera_controller);
 
     void SetToPerspectiveProjection(
         float fov, float _near, float _far)
@@ -599,7 +596,7 @@ public:
     void Update(GameCounter::TickUnit dt);
     void UpdateMatrices();
 
-    void Init();
+    void Init() override;
 
 protected:
     void UpdateViewMatrix();
@@ -612,7 +609,7 @@ protected:
 
     float m_match_window_size_ratio;
 
-    Array<RC<CameraController>> m_camera_controllers;
+    Array<Handle<CameraController>> m_camera_controllers;
 
     Vec3f m_translation, m_next_translation, m_direction, m_up;
     Matrix4 m_view_mat, m_proj_mat;

@@ -120,7 +120,7 @@ public:
     RenderState& operator=(RenderState&&) noexcept = delete;
     HYP_API ~RenderState();
 
-    HYP_API void Init();
+    HYP_API void Init() override;
 
     HYP_FORCE_INLINE void AdvanceFrameCounter()
     {

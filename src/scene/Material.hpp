@@ -726,7 +726,7 @@ public:
         m_is_dynamic = is_dynamic;
     }
 
-    void Init();
+    void Init() override;
 
     /*! \brief If the Material's mutation state is dirty, this will
      * create a task on the render thread to update the Material's
@@ -774,7 +774,7 @@ public:
     MaterialGroup& operator=(const MaterialGroup& other) = delete;
     ~MaterialGroup();
 
-    void Init();
+    void Init() override;
     void Add(const String& name, Handle<Material>&& material);
     bool Remove(const String& name);
 

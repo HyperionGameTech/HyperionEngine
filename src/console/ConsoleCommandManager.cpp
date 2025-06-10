@@ -23,7 +23,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Console, Core);
 
 #pragma region ConsoleCommandManagerImpl
 
-static ANSIStringView ConsoleCommand_KeyByFunction(const RC<ConsoleCommandBase>& command)
+static ANSIStringView ConsoleCommand_KeyByFunction(const Handle<ConsoleCommandBase>& command)
 {
     return command->InstanceClass()->GetAttribute("command").GetString().Data();
 }
@@ -40,7 +40,7 @@ public:
     }
 
     Mutex m_mutex;
-    HashSet<RC<ConsoleCommandBase>, &ConsoleCommand_KeyByFunction> m_commands;
+    HashSet<Handle<ConsoleCommandBase>, &ConsoleCommand_KeyByFunction> m_commands;
 };
 
 #pragma endregion ConsoleCommandManagerImpl
@@ -88,7 +88,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
 {
     const HypClass* parent_hyp_class = ConsoleCommandBase::Class();
 
-    Array<RC<ConsoleCommandBase>> commands;
+    Array<Handle<ConsoleCommandBase>> commands;
 
     HypClassRegistry::GetInstance().ForEachClass([this, parent_hyp_class, &commands](const HypClass* hyp_class)
         {
@@ -100,9 +100,14 @@ int ConsoleCommandManager::FindAndRegisterCommands()
             if (hyp_class->HasParent(parent_hyp_class))
             {
                 HypData hyp_data;
-                hyp_class->CreateInstance(hyp_data);
+                if (!hyp_class->CreateInstance(hyp_data))
+                {
+                    HYP_LOG(Console, Error, "Failed to create instance of class: {}", hyp_class->GetName());
 
-                commands.PushBack(std::move(hyp_data.Get<RC<ConsoleCommandBase>>()));
+                    return IterationResult::CONTINUE;
+                }
+
+                commands.PushBack(std::move(hyp_data.Get<Handle<ConsoleCommandBase>>()));
 
                 return IterationResult::CONTINUE;
             }
@@ -119,7 +124,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
 
     int num_registered_commands = 0;
 
-    for (RC<ConsoleCommandBase>& command : commands)
+    for (const Handle<ConsoleCommandBase>& command : commands)
     {
         if (!command->InstanceClass()->GetAttribute("command"))
         {
@@ -142,7 +147,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
     return num_registered_commands;
 }
 
-void ConsoleCommandManager::RegisterCommand(const RC<ConsoleCommandBase>& command)
+void ConsoleCommandManager::RegisterCommand(const Handle<ConsoleCommandBase>& command)
 {
     if (!command)
     {

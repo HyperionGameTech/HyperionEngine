@@ -136,8 +136,8 @@ RenderShadowMap* ShadowMapManager::AllocateShadowMap(ShadowMapType shadow_map_ty
         const ShadowMapAtlasElement atlas_element {
             .atlas_index = ~0u,
             .point_light_index = point_light_index,
-            .offset_coords = Vec2u::Zero(),
             .offset_uv = Vec2f::Zero(),
+            .offset_coords = Vec2u::Zero(),
             .dimensions = dimensions,
             .scale = Vec2f::One()
         };

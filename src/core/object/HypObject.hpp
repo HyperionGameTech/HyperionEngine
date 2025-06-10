@@ -430,7 +430,7 @@ public:
     // HYP_FORCE_INLINE static const HypClass *GetClass()
     //     { return s_class_info.GetClass(); }
 
-    void Init()
+    virtual void Init()
     {
         m_init_state.BitOr(INIT_STATE_INIT_CALLED, MemoryOrder::RELAXED);
     }
@@ -469,7 +469,7 @@ protected:
             return *this;
         }
 
-        m_init_state = other.m_init_state.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE);
+        m_init_state.Set(other.m_init_state.Exchange(INIT_STATE_UNINITIALIZED, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
         m_delegate_handlers = std::move(other.m_delegate_handlers);
 
         return *this;

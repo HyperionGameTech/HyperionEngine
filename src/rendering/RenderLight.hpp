@@ -6,8 +6,6 @@
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
 
-#include <core/containers/Bitset.hpp>
-
 #include <core/utilities/DataMutationState.hpp>
 
 #include <core/object/HypObject.hpp>

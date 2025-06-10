@@ -365,7 +365,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
         return;
     }
 
-    const RC<EntityManager>& entity_manager = m_scene->GetEntityManager();
+    const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager();
     AssertThrow(entity_manager != nullptr);
 
     const WorldGridParams& params = m_world_grid->GetParams();

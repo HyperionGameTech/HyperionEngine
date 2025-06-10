@@ -80,6 +80,7 @@ struct ShaderDataOffset
 namespace renderer {
 
 struct DescriptorSetDeclaration;
+struct DescriptorTableDeclaration;
 
 enum class DescriptorSetElementType : uint32
 {
@@ -154,7 +155,7 @@ struct DescriptorSetLayoutElement
 
     HYP_FORCE_INLINE bool IsBindless() const
     {
-        return count == ~0u;
+        return count == uint32(-1);
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -183,7 +184,6 @@ enum DescriptorSlot : uint32
 };
 
 HYP_STRUCT()
-
 struct DescriptorDeclaration
 {
     using ConditionFunction = bool (*)();
@@ -226,7 +226,6 @@ struct DescriptorDeclaration
 };
 
 HYP_STRUCT()
-
 struct DescriptorSetDeclaration
 {
     HYP_FIELD(Property = "SetIndex", Serialize = true)
@@ -290,7 +289,6 @@ struct DescriptorSetDeclaration
 };
 
 HYP_STRUCT()
-
 struct DescriptorTableDeclaration
 {
     HYP_FIELD(Property = "Elements", Serialize = true)

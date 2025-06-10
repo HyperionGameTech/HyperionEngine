@@ -22,7 +22,7 @@ namespace hyperion {
 class UIObject;
 
 HYP_CLASS(Abstract)
-class EditorTaskBase : public EnableRefCountedPtrFromThis<EditorTaskBase>
+class EditorTaskBase : public HypObject<EditorTaskBase>
 {
     HYP_OBJECT_BODY(EditorTaskBase);
 

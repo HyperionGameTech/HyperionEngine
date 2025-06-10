@@ -12,7 +12,6 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -45,7 +44,7 @@
 namespace hyperion {
 
 namespace threading {
-class TaskBatch;
+struct TaskBatch;
 } // namespace threading
 
 using threading::TaskBatch;
@@ -387,27 +386,7 @@ public:
         it->second = new_entity_manager;
     }
 
-    void ForEachEntityManager(ProcRef<void(EntityManager* entity_manager)> proc) const
-    {
-        HashSet<RC<EntityManager>> entity_managers;
-
-        {
-            Mutex::Guard guard(m_mutex);
-
-            entity_managers.Reserve(m_map.Size());
-
-            for (auto& it : m_map)
-            {
-                entity_managers.Insert(ToRefCountedPtr(it.second));
-            }
-        }
-
-        for (const RC<EntityManager>& entity_manager : entity_managers)
-        {
-            proc(entity_manager.Get());
-        }
-    }
-
+    HYP_API void ForEachEntityManager(ProcRef<void(EntityManager* entity_manager)> proc) const;
     HYP_API Task<bool> PerformActionWithEntity(ID<Entity> id, Proc<void(EntityManager* entity_manager, ID<Entity> id)>&& callback);
     HYP_API void PerformActionWithEntity_FireAndForget(ID<Entity> id, Proc<void(EntityManager* entity_manager, ID<Entity> id)>&& callback);
 
@@ -417,7 +396,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API EntityManager : public EnableRefCountedPtrFromThis<EntityManager>
+class HYP_API EntityManager : public HypObject<EntityManager>
 {
     static EntityToEntityManagerMap s_entity_to_entity_manager_map;
 
@@ -561,7 +540,7 @@ public:
      *  \param[in] entity The Entity to move.
      *  \param[in] other The EntityManager to move the entity to.
      */
-    void MoveEntity(const Handle<Entity>& entity, const RC<EntityManager>& other);
+    void MoveEntity(const Handle<Entity>& entity, const Handle<EntityManager>& other);
 
     HYP_FORCE_INLINE bool HasEntity(ID<Entity> entity) const
     {
@@ -1095,7 +1074,7 @@ public:
             });
     }
 
-    void Initialize();
+    void Init() override;
     void Shutdown();
 
     void BeginAsyncUpdate(GameCounter::TickUnit delta);
@@ -1205,7 +1184,7 @@ private:
         system->m_entity_manager = this;
 
         // If the EntityManager is initialized, call Initialize() on the System.
-        if (m_is_initialized && was_added)
+        if (IsInitCalled() && was_added)
         {
             InitializeSystem(system);
         }
@@ -1252,8 +1231,6 @@ private:
 
     HashMap<SystemBase*, HashSet<WeakHandle<Entity>>> m_system_entity_map;
     mutable Mutex m_system_entity_map_mutex;
-
-    bool m_is_initialized;
 };
 
 } // namespace hyperion

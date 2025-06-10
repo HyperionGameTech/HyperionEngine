@@ -24,9 +24,9 @@ void TickableEditorTask::Commit()
     IThread* game_thread = Threads::GetThread(g_game_thread);
     AssertThrow(game_thread != nullptr);
 
-    m_task = game_thread->GetScheduler().Enqueue([weak_this = WeakRefCountedPtrFromThis()]()
+    m_task = game_thread->GetScheduler().Enqueue([weak_this = WeakHandleFromThis()]()
         {
-            if (RC<TickableEditorTask> task = weak_this.Lock().CastUnsafe<TickableEditorTask>())
+            if (Handle<TickableEditorTask> task = Handle<TickableEditorTask>(weak_this.Lock()))
             {
                 task->m_is_committed.Set(true, MemoryOrder::RELEASE);
 

@@ -150,7 +150,7 @@ public:
 
     bool BuildElementTextures(const LightmapUVMap& uv_map, uint32 index);
 
-    void Init();
+    void Init() override;
 
 private:
     void UpdateAtlasTextures();

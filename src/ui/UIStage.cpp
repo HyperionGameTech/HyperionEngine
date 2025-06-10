@@ -59,7 +59,7 @@ UIStage::UIStage(ThreadID owner_thread_id)
     SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
     m_camera = CreateObject<Camera>();
-    m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
         0.0f, -float(m_surface_size.x),
         0.0f, float(m_surface_size.y),
         float(g_min_depth), float(g_max_depth)));
@@ -100,7 +100,7 @@ void UIStage::SetSurfaceSize(Vec2i surface_size)
 
         // @FIXME: needs to remove and re-add the camera controller
 
-        m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+        m_camera->AddCameraController(CreateObject<OrthoCameraController>(
             0.0f, -float(surface_size.x),
             0.0f, float(surface_size.y),
             float(g_min_depth), float(g_max_depth)));
@@ -225,7 +225,7 @@ void UIStage::Init()
 
             if (m_camera.IsValid())
             {
-                m_camera->AddCameraController(MakeRefCountedPtr<OrthoCameraController>(
+                m_camera->AddCameraController(CreateObject<OrthoCameraController>(
                     0.0f, -float(m_surface_size.x),
                     0.0f, float(m_surface_size.y),
                     float(g_min_depth), float(g_max_depth)));

@@ -769,7 +769,7 @@ EditorSubsystem::EditorSubsystem(const RC<AppContextBase>& app_context)
                            AssertThrowMsg(InitObject(m_camera), "Failed to initialize editor camera for scene %s", *m_scene->GetName());
 
                            // // @TODO: Don't serialize the editor camera controller
-                           m_camera->AddCameraController(MakeRefCountedPtr<EditorCameraController>());
+                           m_camera->AddCameraController(CreateObject<EditorCameraController>());
 
                            m_delegate_handlers.Remove("OnPackageAdded");
 
@@ -2218,7 +2218,7 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     }
 }
 
-void EditorSubsystem::AddTask(const RC<EditorTaskBase>& task)
+void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 {
     HYP_SCOPE;
 
@@ -2259,16 +2259,16 @@ void EditorSubsystem::AddTask(const RC<EditorTaskBase>& task)
 
             RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             cancel_button->SetText("Cancel");
-            cancel_button->OnClick.Bind([task_weak = task.ToWeak()](...)
-                                      {
-                                          if (RC<EditorTaskBase> task = task_weak.Lock())
-                                          {
-                                              task->Cancel();
-                                          }
+            cancel_button->OnClick.Bind(
+                [task_weak = task.ToWeak()](...)
+                {
+                    if (Handle<EditorTaskBase> task = task_weak.Lock())
+                    {
+                        task->Cancel();
+                    }
 
-                                          return UIEventHandlerResult::OK;
-                                      })
-                .Detach();
+                    return UIEventHandlerResult::OK;
+                }).Detach();
             task_grid_column_right->AddChildUIObject(cancel_button);
 
             running_task.m_ui_object = task_grid;

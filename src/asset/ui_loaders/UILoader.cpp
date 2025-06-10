@@ -91,13 +91,13 @@ static const FlatMap<String, std::add_pointer_t<Pair<RC<UIObject>, const HypClas
 #define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                      \
     {                                                              \
         String(HYP_STR(name)).ToUpper(),                           \
-        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult>* \
+        [](UIObject* ui_object) -> ScriptableDelegate<UIEventHandlerResult>* \
         {                                                          \
             return &ui_object->name;                               \
         }                                                          \
     }
 
-static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult>*(UIObject*)>> g_get_delegate_functions {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult>*(UIObject*)>> g_get_delegate_functions {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnInit),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnRemoved)
@@ -108,13 +108,13 @@ static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult>*(
 #define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                 \
     {                                                                         \
         String(HYP_STR(name)).ToUpper(),                                      \
-        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, UIObject*>* \
+        [](UIObject* ui_object) -> ScriptableDelegate<UIEventHandlerResult, UIObject*>* \
         {                                                                     \
             return &ui_object->name;                                          \
         }                                                                     \
     }
 
-static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> g_get_delegate_functions_children {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, UIObject*>*(UIObject*)>> g_get_delegate_functions_children {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildAttached),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnChildRemoved)
 };
@@ -124,13 +124,13 @@ static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, U
 #define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                         \
     {                                                                                 \
         String(HYP_STR(name)).ToUpper(),                                              \
-        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, const MouseEvent&>* \
+        [](UIObject* ui_object) -> ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* \
         {                                                                             \
             return &ui_object->name;                                                  \
         }                                                                             \
     }
 
-static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> g_get_delegate_functions_mouse {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>*(UIObject*)>> g_get_delegate_functions_mouse {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseUp),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnMouseDrag),
@@ -148,13 +148,13 @@ static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, c
 #define UI_OBJECT_GET_DELEGATE_FUNCTION(name)                                            \
     {                                                                                    \
         String(HYP_STR(name)).ToUpper(),                                                 \
-        [](UIObject* ui_object) -> Delegate<UIEventHandlerResult, const KeyboardEvent&>* \
+        [](UIObject* ui_object) -> ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* \
         {                                                                                \
             return &ui_object->name;                                                     \
         }                                                                                \
     }
 
-static const FlatMap<String, std::add_pointer_t<Delegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> g_get_delegate_functions_keyboard {
+static const FlatMap<String, std::add_pointer_t<ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>*(UIObject*)>> g_get_delegate_functions_keyboard {
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyDown),
     UI_OBJECT_GET_DELEGATE_FUNCTION(OnKeyUp)
 };
@@ -624,24 +624,25 @@ public:
 
                         IScriptableDelegate* scriptable_delegate = reinterpret_cast<IScriptableDelegate*>(field_address);
 
-                        scriptable_delegate->BindManaged(attribute_value, [ui_object_weak = ui_object->WeakRefCountedPtrFromThis()]() -> ManagedObjectResource*
-                                               {
-                                                   RC<UIObject> ui_object = ui_object_weak.Lock();
+                        scriptable_delegate->BindManaged(attribute_value,
+                            [ui_object_weak = ui_object->WeakRefCountedPtrFromThis()]() -> ManagedObjectResource*
+                            {
+                                RC<UIObject> ui_object = ui_object_weak.Lock();
 
-                                                   if (!ui_object)
-                                                   {
-                                                       return nullptr;
-                                                   }
+                                if (!ui_object)
+                                {
+                                    return nullptr;
+                                }
 
-                                                   ScriptComponent* script_component = ui_object->GetScriptComponent(true);
+                                ScriptComponent* script_component = ui_object->GetScriptComponent(true);
 
-                                                   if (!script_component)
-                                                   {
-                                                       return nullptr;
-                                                   }
+                                if (!script_component)
+                                {
+                                    return nullptr;
+                                }
 
-                                                   return script_component->resource;
-                                               })
+                                return script_component->resource;
+                            })
                             .Detach();
 
                         continue;
@@ -654,7 +655,7 @@ public:
 
                     if (get_delegate_functions_it != g_get_delegate_functions.End())
                     {
-                        Delegate<UIEventHandlerResult>* delegate = get_delegate_functions_it->second(ui_object.Get());
+                        ScriptableDelegate<UIEventHandlerResult>* delegate = get_delegate_functions_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
@@ -670,7 +671,7 @@ public:
 
                     if (get_delegate_functions_children_it != g_get_delegate_functions_children.End())
                     {
-                        Delegate<UIEventHandlerResult, UIObject*>* delegate = get_delegate_functions_children_it->second(ui_object.Get());
+                        ScriptableDelegate<UIEventHandlerResult, UIObject*>* delegate = get_delegate_functions_children_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<UIObject*> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
@@ -686,7 +687,7 @@ public:
 
                     if (get_delegate_functions_mouse_it != g_get_delegate_functions_mouse.End())
                     {
-                        Delegate<UIEventHandlerResult, const MouseEvent&>* delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
+                        ScriptableDelegate<UIEventHandlerResult, const MouseEvent&>* delegate = get_delegate_functions_mouse_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<MouseEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 
@@ -702,7 +703,7 @@ public:
 
                     if (get_delegate_functions_keyboard_it != g_get_delegate_functions_keyboard.End())
                     {
-                        Delegate<UIEventHandlerResult, const KeyboardEvent&>* delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
+                        ScriptableDelegate<UIEventHandlerResult, const KeyboardEvent&>* delegate = get_delegate_functions_keyboard_it->second(ui_object.Get());
 
                         delegate->Bind(UIScriptDelegate<KeyboardEvent> { ui_object.Get(), attribute.second, UIScriptDelegateFlags::ALLOW_NESTED }).Detach();
 

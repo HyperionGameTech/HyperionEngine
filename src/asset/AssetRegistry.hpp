@@ -190,7 +190,7 @@ public:
     HYP_METHOD()
     Result Save() const;
 
-    void Init();
+    void Init() override;
 
 private:
     HYP_FIELD(Property = "UUID", Serialize = true)
@@ -295,7 +295,7 @@ public:
     HYP_METHOD(Scriptable)
     Name GetUniqueAssetName(Name base_name) const;
 
-    void Init();
+    void Init() override;
 
     Delegate<void, AssetObject*> OnAssetObjectAdded;
     Delegate<void, AssetObject*> OnAssetObjectRemoved;
@@ -370,7 +370,7 @@ public:
     HYP_METHOD()
     Handle<AssetPackage> GetPackageFromPath(const UTF8StringView& path, bool create_if_not_exist = true);
 
-    void Init();
+    void Init() override;
 
     Delegate<void, const Handle<AssetPackage>&> OnPackageAdded;
 
