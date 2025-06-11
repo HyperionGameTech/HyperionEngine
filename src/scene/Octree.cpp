@@ -115,19 +115,22 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox& new_aabb, bool allow_gro
             return insert_result;
         }
 
-        VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(it.value.GetID());
-
-        if (visibility_state_component)
+        if (Handle<Entity> entity = it.value.Lock())
         {
-            visibility_state_component->octant_id = insert_result.second;
-            visibility_state_component->visibility_state = nullptr;
-        }
-        else
-        {
-            m_entity_manager->AddComponent<VisibilityStateComponent>(it.value.GetID(), VisibilityStateComponent { .octant_id = insert_result.second, .visibility_state = nullptr });
-        }
+            VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entity);
 
-        m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(it.value.GetID());
+            if (visibility_state_component)
+            {
+                visibility_state_component->octant_id = insert_result.second;
+                visibility_state_component->visibility_state = nullptr;
+            }
+            else
+            {
+                m_entity_manager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { .octant_id = insert_result.second, .visibility_state = nullptr });
+            }
+
+            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+        }
     }
 
     return {

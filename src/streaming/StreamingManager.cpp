@@ -57,7 +57,7 @@ static Vec2i WorldSpaceToCellCoord(const WorldGridLayerInfo& layer_info, const V
     scaled *= Vec3f::One() / (layer_info.scale * (Vec3f(layer_info.cell_size) - 1.0f));
     scaled = MathUtil::Floor(scaled);
 
-    return Vec2i { int(scaled.x), int(scaled.z) };
+    return { int(scaled.x), int(scaled.z) };
 }
 
 #pragma endregion Helpers
@@ -198,7 +198,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, volume = volume]()
+            m_scheduler.Enqueue([this, volume]()
                 {
                     auto it = m_volumes.FindAs(volume);
                     AssertThrowMsg(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
@@ -269,7 +269,7 @@ public:
         }
         else
         {
-            m_scheduler.Enqueue([this, layer = layer]()
+            m_scheduler.Enqueue([this, layer]()
                 {
                     auto it = m_layers.FindIf([layer](const LayerData& data)
                         {
@@ -341,11 +341,18 @@ private:
         while (!m_stop_requested.Get(MemoryOrder::RELAXED))
         {
             m_notifier.Acquire();
-            const uint32 notify_count = m_notifier.GetValue();
 
-            DoWork(streaming_manager);
+            int32 num = m_notifier.GetValue();
 
-            m_notifier.Release(notify_count);
+            do
+            {
+                DoWork(streaming_manager);
+
+                num = m_notifier.Release(num);
+
+                AssertDebug(num >= 0); // sanity check
+            }
+            while (num > 0 && !m_stop_requested.Get(MemoryOrder::RELAXED));
         }
 
         m_is_running.Set(false, MemoryOrder::RELAXED);
@@ -671,6 +678,8 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
 
 void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layer_data, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& out_cell_coords) const
 {
+    constexpr Vec2i cell_neighbor_directions[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+
     const WorldGridLayerInfo& layer_info = layer_data.layer->GetLayerInfo();
 
     BoundingBox aabb;
@@ -680,13 +689,37 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layer_data
         return;
     }
 
-    const Vec2i coord = WorldSpaceToCellCoord(layer_info, aabb.GetCenter());
+    Queue<Vec2f> queue;
+    HashSet<Vec2i> visited;
 
-    for (int x = MathUtil::Floor(-layer_info.max_distance); x <= MathUtil::Ceil(layer_info.max_distance) + 1; ++x)
+    const Vec2f center_coord = Vec2f(WorldSpaceToCellCoord(layer_info, aabb.GetCenter()));
+
+    queue.Push(center_coord);
+    visited.Insert(Vec2i(center_coord));
+
+    const float max_dist_sq = layer_info.max_distance * layer_info.max_distance;
+
+    while (queue.Any())
     {
-        for (int z = MathUtil::Floor(-layer_info.max_distance); z <= MathUtil::Ceil(layer_info.max_distance) + 1; ++z)
+        const Vec2f current = queue.Pop();
+
+        // euclidean distance check
+        if (Vec2f(current).DistanceSquared(center_coord) > max_dist_sq)
         {
-            out_cell_coords.Insert(coord + Vec2i { x, z });
+            continue;
+        }
+
+        out_cell_coords.Insert(Vec2i(current));
+        break; // temp
+
+        for (const Vec2i dir : cell_neighbor_directions)
+        {
+            const Vec2f neighbor = current + Vec2f(dir);
+
+            if (visited.Insert(Vec2i(neighbor)).second)
+            {
+                queue.Push(neighbor);
+            }
         }
     }
 }

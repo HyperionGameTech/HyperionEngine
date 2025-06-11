@@ -38,9 +38,7 @@ namespace Hyperion
         {
             fixed (void* ptr = &component)
             {
-                IDBase entityId = entity.ID;
-
-                EntityManager_AddComponent(NativeAddress, ref entityId, componentHypClass.TypeID, new IntPtr(ptr));
+                EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, new IntPtr(ptr));
             }
         }
 
@@ -71,6 +69,6 @@ namespace Hyperion
         private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, ref IDBase entityId);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
-        private static extern void EntityManager_AddComponent(IntPtr entityManagerPtr, ref IDBase entityId, TypeID componentTypeId, IntPtr componentPtr);
+        private static extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, IntPtr componentPtr);
     }
 }

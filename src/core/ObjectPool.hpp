@@ -69,19 +69,12 @@ struct HypObjectHeader
     AtomicVar<uint32> ref_count_strong;
     AtomicVar<uint32> ref_count_weak;
 
-#ifdef HYP_DEBUG_MODE
-    AtomicVar<bool> has_value;
-#endif
-
     HypObjectHeader()
         : container(nullptr),
           index(~0u),
           ref_count_strong(0),
           ref_count_weak(0)
     {
-#ifdef HYP_DEBUG_MODE
-        has_value.Set(false, MemoryOrder::SEQUENTIAL);
-#endif
     }
 
     HypObjectHeader(const HypObjectHeader&) = delete;
@@ -167,13 +160,6 @@ struct HypObjectMemory final : HypObjectHeader
 
         if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1)
         {
-#ifdef HYP_DEBUG_MODE
-            AssertThrow(has_value.Exchange(false, MemoryOrder::SEQUENTIAL));
-
-            AssertThrow(container != nullptr);
-            AssertThrow(index != ~0u);
-#endif
-
             // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause FreeID() to be called.
             ref_count_weak.Increment(1, MemoryOrder::RELEASE);
 
@@ -183,10 +169,6 @@ struct HypObjectMemory final : HypObjectHeader
 
             if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1)
             {
-#ifdef HYP_DEBUG_MODE
-                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
-#endif
-
                 // Free the slot for this
                 container->ReleaseIndex(index);
             }
@@ -205,17 +187,8 @@ struct HypObjectMemory final : HypObjectHeader
 
         if ((count = ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1)
         {
-#ifdef HYP_DEBUG_MODE
-            AssertThrow(container != nullptr);
-            AssertThrow(index != ~0u);
-#endif
-
             if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0)
             {
-#ifdef HYP_DEBUG_MODE
-                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
-#endif
-
                 // Free the slot for this
                 container->ReleaseIndex(index);
             }

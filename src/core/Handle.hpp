@@ -8,6 +8,8 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/Util.hpp>
 
 namespace hyperion {
@@ -73,12 +75,14 @@ struct Handle final : HandleBase
             // We shouldn't have an ID for a type that doesn't have a container.
             AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
 
-            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.Value() - 1));
+            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.ToIndex()));
 
             ptr = static_cast<HypObjectBase*>(header->GetPointer());
             AssertThrow(ptr != nullptr);
 
-            header->IncRefStrong();
+            // If strong count == 1 after incrementing, the object has already been destructed and it is invalid to create a strong reference
+            const uint32 strong_count = header->IncRefStrong();
+            AssertThrowMsg(strong_count > 0, "Object is no longer alive!");
         }
     }
 
@@ -356,12 +360,15 @@ struct WeakHandle final
             IObjectContainer* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
             AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
 
-            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.Value() - 1));
+            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.ToIndex()));
 
             ptr = static_cast<HypObjectBase*>(header->GetPointer());
             AssertThrow(ptr != nullptr);
 
-            header->IncRefWeak();
+            // All HypObjectBase types have an initial weak count that gets decremented on destruction.
+            // If we hit 1, it means the object is not only no longer alive - but that the ID is totally invalid and would sometimes point to the wrong object!
+            const uint32 weak_count = header->IncRefWeak();
+            AssertThrowMsg(weak_count > 0, "Object overwriting detected! This is likely due to attempting to create a WeakHandle from an ID that is no longer valid or has been reused for another object.");
         }
     }
 
@@ -469,6 +476,8 @@ struct WeakHandle final
             return Handle<T>();
         }
 
+        /// \todo: Fix this potential race condition. What if the object is destroyed while we are locking it?
+        /// we should instead increment the strong reference count and then check if it is still alive. (we'll need to update the semantics around HypObject_OnIncRefCount_Strong first)
         return ptr->m_header->ref_count_strong.Get(MemoryOrder::ACQUIRE) != 0
             ? Handle<T>(static_cast<T*>(ptr))
             : Handle<T>();
@@ -834,15 +843,18 @@ inline Handle<T> CreateObject(Args&&... args)
     ObjectContainer<T>& container = ObjectPool::GetObjectContainerHolder().GetOrCreate<T>();
 
     HypObjectMemory<T>* header = container.Allocate();
-    AssertThrow(!header->has_value.Exchange(true, MemoryOrder::SEQUENTIAL));
 
-    header->IncRefWeak();
+    // Add initial strong reference for the Handle<T> - if the object is alive, it will have at least 1 strong ref.
+    header->ref_count_strong.Increment(1, MemoryOrder::RELEASE);
 
     T* ptr = header->storage.GetPointer();
 
     Memory::ConstructWithContext<T, HypObjectInitializerGuard<T>>(ptr, std::forward<Args>(args)...);
 
-    return Handle<T>(ptr);
+    Handle<T> handle;
+    handle.ptr = static_cast<HypObjectBase*>(ptr);
+
+    return handle;
 }
 
 template <class T>

@@ -373,7 +373,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             textures.Set(it.mapping.key, std::move(texture));
         }
 
-        Handle<Material> material = MaterialCache::GetInstance()->GetOrCreate(
+        Handle<Material> material = MaterialCache::GetInstance()->CreateMaterial( // MaterialCache::GetInstance()->GetOrCreate(
             CreateNameFromDynamicString(item.tag),
             attributes,
             parameters,

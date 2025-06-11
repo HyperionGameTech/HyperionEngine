@@ -30,6 +30,7 @@
 
 #include <Engine.hpp>
 
+// #define HYP_DISABLE_VISIBILITY_CHECK
 namespace hyperion {
 
 #pragma region View
@@ -102,14 +103,14 @@ void View::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}",
-        GetID().Value(),
-        m_scenes.Size(),
-        String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
-                         {
-                             return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
-                         }),
-            ", "));
+    // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}",
+    //     GetID().Value(),
+    //     m_scenes.Size(),
+    //     String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
+    //                      {
+    //                          return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
+    //                      }),
+    //         ", "));
 
     CollectLights();
     CollectLightmapVolumes();

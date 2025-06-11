@@ -241,6 +241,7 @@ Node& Node::operator=(Node&& other) noexcept
 
 Node::~Node()
 {
+    HYP_LOG(Node, Debug, "Destroying Node {}", m_name);
     for (const Handle<Node>& child : m_child_nodes)
     {
         if (!child.IsValid())
@@ -370,25 +371,28 @@ void Node::SetScene(Scene* scene)
         // Move entity from previous scene to new scene
         if (m_entity.IsValid())
         {
-            if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr)
+            if (previous_scene->GetEntityManager() != m_scene->GetEntityManager())
             {
-                AssertThrow(m_scene->GetEntityManager() != nullptr);
+                if (previous_scene != nullptr && previous_scene->GetEntityManager() != nullptr)
+                {
+                    AssertThrow(m_scene->GetEntityManager() != nullptr);
 
-                previous_scene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager());
-            }
-            else
-            {
-                // Entity manager null - exiting engine is likely cause here
+                    previous_scene->GetEntityManager()->MoveEntity(m_entity, m_scene->GetEntityManager());
+                }
+                else
+                {
+                    // Entity manager null - exiting engine is likely cause here
 
-                // Unset the entity
-                m_entity.Reset();
+                    // Unset the entity
+                    m_entity.Reset();
 
 #ifdef HYP_EDITOR
-                GetEditorDelegates([this](EditorDelegates* editor_delegates)
-                    {
-                        editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
-                    });
+                    GetEditorDelegates([this](EditorDelegates* editor_delegates)
+                        {
+                            editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
+                        });
 #endif
+                }
             }
 
             if (m_flags & NodeFlags::BUILD_BVH)
@@ -859,18 +863,25 @@ void Node::SetEntity(const Handle<Entity>& entity)
             });
 #endif
 
-        EntityManager* previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
-        AssertThrow(previous_entity_manager != nullptr);
+        Handle<EntityManager> previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
 
         // need to move the entity between EntityManagers
-        if (previous_entity_manager != nullptr && previous_entity_manager != m_scene->GetEntityManager().Get())
+        if (previous_entity_manager.IsValid())
         {
-            previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
+            if (previous_entity_manager != m_scene->GetEntityManager().Get())
+            {
+                previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
 
 #ifdef HYP_DEBUG_MODE
-            // Sanity check
-            AssertThrow(EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity) == m_scene->GetEntityManager().Get());
+                // Sanity check
+                AssertThrow(EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity) == m_scene->GetEntityManager().Get());
 #endif
+            }
+        }
+        else
+        {
+            // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
+            m_scene->GetEntityManager()->AddExistingEntity(m_entity);
         }
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
@@ -932,6 +943,8 @@ void Node::SetEntity(const Handle<Entity>& entity)
 
         UpdateWorldTransform();
     }
+
+    HYP_LOG(Node, Debug, "Node: {} Set Entity #{}\tScene: {}", m_name, m_entity.IsValid() ? m_entity.GetID().Value() : 0, m_scene ? m_scene->GetName() : Name::Invalid());
 }
 
 void Node::SetEntityAABB(const BoundingBox& aabb)

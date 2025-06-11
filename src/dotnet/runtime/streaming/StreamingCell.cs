@@ -32,7 +32,7 @@ namespace Hyperion
     [StructLayout(LayoutKind.Explicit, Size = 80, Pack = 16)]
     public struct StreamingCellInfo
     {
-        [FieldOffset(9)]
+        [FieldOffset(0)]
         Vec2i coord;
 
         [FieldOffset(16)]

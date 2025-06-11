@@ -506,9 +506,9 @@ public:
             return grid;
         }
 
-        EntityManager* entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+        Handle<EntityManager> entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
 
-        if (!entity_manager)
+        if (!entity_manager.IsValid())
         {
             HYP_LOG(Editor, Error, "No EntityManager found for Entity #{}", entity->GetID().Value());
 
@@ -781,7 +781,7 @@ public:
             } else {
                 RC<UIButton> attach_script_button = parent->CreateUIObject<UIButton>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
                 attach_script_button->SetText("Attach Script");
-                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis(), entity_manager_weak = entity_manager->WeakHandleFromThis(), entity](...)
+                attach_script_button->OnClick.Bind([world = entity_manager->GetWorld()->HandleFromThis(), entity_manager_weak = entity_manager->ToWeak(), entity](...)
                 {
                     Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
                     

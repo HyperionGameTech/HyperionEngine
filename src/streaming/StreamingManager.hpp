@@ -34,7 +34,7 @@ class StreamingVolumeBase;
 class WorldGrid;
 class WorldGridLayer;
 
-class StreamingNotifier final : public Semaphore<uint32, SemaphoreDirection::WAIT_FOR_POSITIVE>
+class StreamingNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>
 {
 };
 

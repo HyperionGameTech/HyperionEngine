@@ -49,7 +49,6 @@
 #include <Engine.hpp>
 
 // #define HYP_VISIBILITY_CHECK_DEBUG
-// #define HYP_DISABLE_VISIBILITY_CHECK
 
 namespace hyperion {
 

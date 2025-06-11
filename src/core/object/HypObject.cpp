@@ -85,6 +85,7 @@ HypObjectBase::HypObjectBase()
     const SizeType header_offset = ((sizeof(HypObjectHeader) + alignment - 1) / alignment) * alignment;
 
     m_header = reinterpret_cast<HypObjectHeader*>(uintptr_t(this) - header_offset);
+    m_header->IncRefWeak();
 }
 
 HypObjectBase::~HypObjectBase()

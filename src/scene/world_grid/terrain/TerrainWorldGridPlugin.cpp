@@ -364,37 +364,38 @@ void TerrainStreamingCell::OnLoaded_Impl()
     transform.SetTranslation(m_cell_info.bounds.min);
     transform.SetScale(m_cell_info.scale);
 
-    Handle<Entity> patch_entity = entity_manager->AddEntity();
+    Handle<Entity> entity = entity_manager->AddEntity();
+    entity_manager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+    entity_manager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
+    entity_manager->AddComponent<TransformComponent>(entity, TransformComponent { transform });
 
-    entity_manager->AddComponent<VisibilityStateComponent>(patch_entity, VisibilityStateComponent {});
-    entity_manager->AddComponent<BoundingBoxComponent>(patch_entity, BoundingBoxComponent {});
+    MeshComponent* mesh_component = entity_manager->TryGetComponent<MeshComponent>(entity);
 
-    MeshComponent* patch_mesh_component = entity_manager->TryGetComponent<MeshComponent>(patch_entity);
-    BoundingBoxComponent* patch_bounding_box_component = entity_manager->TryGetComponent<BoundingBoxComponent>(patch_entity);
-
-    if (patch_bounding_box_component)
+    if (mesh_component)
     {
-        patch_bounding_box_component->local_aabb = m_mesh->GetAABB();
-    }
-
-    if (patch_mesh_component)
-    {
-        patch_mesh_component->mesh = m_mesh;
-        patch_mesh_component->material = m_material;
+        mesh_component->mesh = m_mesh;
+        mesh_component->material = m_material;
     }
     else
     {
         // Add MeshComponent to patch entity
-        entity_manager->AddComponent<MeshComponent>(patch_entity, MeshComponent { m_mesh, m_material });
+        entity_manager->AddComponent<MeshComponent>(entity, MeshComponent { m_mesh, m_material });
     }
 
-    entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(patch_entity);
+    entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+
+    // m_node = m_scene->GetRoot()->AddChild();
+    // m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
+    // m_node->SetEntity(entity);
+    // HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetEntityAABB(), m_node->GetWorldTranslation());
+
+    auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
+    AssertThrow(result.HasValue());
 
     m_node = m_scene->GetRoot()->AddChild();
-    m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
-    m_node->SetEntity(patch_entity);
-    m_node->SetWorldTransform(transform);
-    m_node->SetEntityAABB(m_mesh->GetAABB());
+    m_node->AddChild(result.GetValue().Result()->GetChild(0));
+    // m_node->Scale(30.0f);
+    m_node->SetWorldTranslation(transform.GetTranslation());
 }
 
 void TerrainStreamingCell::OnRemoved_Impl()
@@ -485,10 +486,10 @@ void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* world_grid)
 
     HYP_LOG(WorldGrid, Info, "Removing TerrainWorldGridPlugin");
 
-    world_grid->GetWorld()->RemoveScene(m_scene);
+    // world_grid->GetWorld()->RemoveScene(m_scene);
 
-    m_scene.Reset();
-    m_material.Reset();
+    // m_scene.Reset();
+    // m_material.Reset();
 }
 
 // void TerrainWorldGridLayer::Shutdown_Impl(WorldGrid* world_grid)
