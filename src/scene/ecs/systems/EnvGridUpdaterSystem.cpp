@@ -15,6 +15,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderState.hpp>
 
@@ -98,31 +99,28 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
         return;
     }
 
-    if (GetScene()->IsForegroundScene())
+    EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
+
+    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool()
+        || g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString().ToLower() == "voxel")
     {
-        EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
-
-        if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.reflections.enabled").ToBool()
-            || g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.mode").ToString().ToLower() == "voxel")
-        {
-            flags |= EnvGridFlags::USE_VOXEL_GRID;
-        }
-
-        env_grid_component.env_grid = CreateObject<EnvGrid>(
-            GetScene()->HandleFromThis(),
-            bounding_box_component.world_aabb,
-            EnvGridOptions {
-                .type = env_grid_component.env_grid_type,
-                .density = env_grid_component.grid_size,
-                .flags = flags });
-
-        InitObject(env_grid_component.env_grid);
-
-        env_grid_component.env_render_grid = TResourceHandle<RenderEnvGrid>(env_grid_component.env_grid->GetRenderResource());
-        env_grid_component.env_grid_render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
-            Name::Unique("EnvGridRenderSubsystem"),
-            env_grid_component.env_render_grid);
+        flags |= EnvGridFlags::USE_VOXEL_GRID;
     }
+
+    env_grid_component.env_grid = CreateObject<EnvGrid>(
+        GetScene()->HandleFromThis(),
+        bounding_box_component.world_aabb,
+        EnvGridOptions {
+            .type = env_grid_component.env_grid_type,
+            .density = env_grid_component.grid_size,
+            .flags = flags });
+
+    InitObject(env_grid_component.env_grid);
+
+    env_grid_component.env_render_grid = TResourceHandle<RenderEnvGrid>(env_grid_component.env_grid->GetRenderResource());
+    env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
+        Name::Unique("EnvGridRenderSubsystem"),
+        env_grid_component.env_render_grid);
 }
 
 void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)

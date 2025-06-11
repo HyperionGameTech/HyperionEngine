@@ -11,6 +11,8 @@
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Task.hpp>
 
+#include <core/memory/UniquePtr.hpp>
+
 #include <core/ID.hpp>
 #include <core/Handle.hpp>
 
@@ -78,6 +80,11 @@ public:
     const EngineRenderStats& GetRenderStats() const;
     void SetRenderStats(const EngineRenderStats& render_stats);
 
+    HYP_FORCE_INLINE RenderEnvironment* GetEnvironment() const
+    {
+        return m_render_environment.Get();
+    }
+
     void SetBufferData(const WorldShaderData& buffer_data);
 
     /*! \note Only to be called from render thread or render task */
@@ -107,6 +114,8 @@ private:
     Array<TResourceHandle<RenderScene>> m_render_scenes;
 
     UniquePtr<ShadowMapManager> m_shadow_map_manager;
+
+    UniquePtr<RenderEnvironment> m_render_environment;
 
     FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX> m_render_stats;
 

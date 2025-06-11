@@ -33,8 +33,10 @@ namespace hyperion {
 RenderWorld::RenderWorld(World* world)
     : m_world(world),
       m_shadow_map_manager(MakeUnique<ShadowMapManager>()),
+      m_render_environment(MakeUnique<RenderEnvironment>()),
       m_buffer_data {}
 {
+    m_render_environment->Initialize();
 }
 
 RenderWorld::~RenderWorld() = default;
@@ -262,10 +264,7 @@ void RenderWorld::Render(FrameBase* frame)
 
     const RenderSetup render_setup { this, nullptr };
 
-    for (const TResourceHandle<RenderScene>& render_scene : m_render_scenes)
-    {
-        render_scene->GetEnvironment()->RenderSubsystems(frame, render_setup);
-    }
+    m_render_environment->RenderSubsystems(frame, render_setup);
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {

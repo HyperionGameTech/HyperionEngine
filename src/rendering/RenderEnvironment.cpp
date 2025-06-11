@@ -73,8 +73,7 @@ struct RENDER_COMMAND(RemoveAllRenderSubsystems)
 #pragma endregion Render commands
 
 RenderEnvironment::RenderEnvironment()
-    : HypObject(),
-      m_current_enabled_render_subsystems_mask(0),
+    : m_current_enabled_render_subsystems_mask(0),
       m_next_enabled_render_subsystems_mask(0),
       m_ddgi(DDGIInfo {
           .aabb = { { -45.0f, -5.0f, -45.0f }, { 45.0f, 60.0f, 45.0f } } }),
@@ -110,7 +109,7 @@ RenderEnvironment::~RenderEnvironment()
     HYP_SYNC_RENDER();
 }
 
-void RenderEnvironment::Init()
+void RenderEnvironment::Initialize()
 {
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);
@@ -137,15 +136,11 @@ void RenderEnvironment::Init()
         m_has_rt_radiance = true;
         m_has_ddgi_probes = true;
     }
-
-    SetReady(true);
 }
 
 void RenderEnvironment::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(g_game_thread);
-
-    AssertReady();
 
     if (GetUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_GAME))
     {
@@ -191,7 +186,6 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
 void RenderEnvironment::ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags flags)
 {
     Threads::AssertOnThread(g_render_thread);
-    AssertReady();
 
     static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
     AssertThrow(is_raytracing_supported);
@@ -210,7 +204,6 @@ void RenderEnvironment::ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags fl
 void RenderEnvironment::RenderRTRadiance(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
-    AssertReady();
 
     if (m_has_rt_radiance)
     {
@@ -221,7 +214,6 @@ void RenderEnvironment::RenderRTRadiance(FrameBase* frame, const RenderSetup& re
 void RenderEnvironment::RenderDDGIProbes(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
-    AssertReady();
 
     AssertThrow(g_rendering_api->GetRenderConfig().IsRaytracingSupported());
 
@@ -235,7 +227,6 @@ void RenderEnvironment::RenderDDGIProbes(FrameBase* frame, const RenderSetup& re
 void RenderEnvironment::RenderSubsystems(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
-    AssertReady();
 
     if (GetUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_RENDER))
     {
@@ -306,12 +297,12 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
     struct RENDER_COMMAND(AddRenderSubsystem)
         : renderer::RenderCommand
     {
-        WeakHandle<RenderEnvironment> render_environment_weak;
+        RenderEnvironment* render_environment;
         TypeID type_id;
         RC<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(AddRenderSubsystem)(const WeakHandle<RenderEnvironment>& render_environment_weak, TypeID type_id, const RC<RenderSubsystem>& render_subsystem)
-            : render_environment_weak(render_environment_weak),
+        RENDER_COMMAND(AddRenderSubsystem)(RenderEnvironment* render_environment, TypeID type_id, const RC<RenderSubsystem>& render_subsystem)
+            : render_environment(render_environment),
               type_id(type_id),
               render_subsystem(render_subsystem)
         {
@@ -321,13 +312,6 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
         virtual RendererResult operator()() override
         {
-            Handle<RenderEnvironment> render_environment = render_environment_weak.Lock();
-
-            if (!render_environment)
-            {
-                return HYP_MAKE_ERROR(RendererError, "RenderEnvironment is null");
-            }
-
             const Name name = render_subsystem->GetName();
 
             Mutex::Guard guard(render_environment->m_render_subsystems_mutex);
@@ -358,7 +342,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
             AssertDebug(index != SizeType(-1));
 
-            render_subsystem->SetParent(render_environment.Get());
+            render_subsystem->SetParent(render_environment);
 
             if (!render_subsystem->IsInitialized())
             {
@@ -374,7 +358,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
     AssertThrow(render_subsystem != nullptr);
 
-    PUSH_RENDER_COMMAND(AddRenderSubsystem, WeakHandleFromThis(), type_id, render_subsystem);
+    PUSH_RENDER_COMMAND(AddRenderSubsystem, this, type_id, render_subsystem);
 }
 
 void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem* render_subsystem)
@@ -387,11 +371,11 @@ void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem* render_subs
     struct RENDER_COMMAND(RemoveRenderSubsystem)
         : renderer::RenderCommand
     {
-        WeakHandle<RenderEnvironment> render_environment_weak;
+        RenderEnvironment* render_environment;
         RC<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(RemoveRenderSubsystem)(WeakHandle<RenderEnvironment>&& render_environment_weak, RC<RenderSubsystem>&& render_subsystem)
-            : render_environment_weak(std::move(render_environment_weak)),
+        RENDER_COMMAND(RemoveRenderSubsystem)(RenderEnvironment* render_environment, RC<RenderSubsystem>&& render_subsystem)
+            : render_environment(render_environment),
               render_subsystem(std::move(render_subsystem))
         {
         }
@@ -400,13 +384,6 @@ void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem* render_subs
 
         virtual RendererResult operator()() override
         {
-            Handle<RenderEnvironment> render_environment = render_environment_weak.Lock();
-
-            if (!render_environment)
-            {
-                return HYP_MAKE_ERROR(RendererError, "RenderEnvironment is null");
-            }
-
             Mutex::Guard guard(render_environment->m_render_subsystems_mutex);
 
             const auto components_it = render_environment->m_render_subsystems.Find(GetRenderSubsystemTypeID(render_subsystem->InstanceClass()));
@@ -447,7 +424,7 @@ void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem* render_subs
         }
     };
 
-    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, WeakHandleFromThis(), render_subsystem->RefCountedPtrFromThis());
+    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, this, render_subsystem->RefCountedPtrFromThis());
 }
 
 void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hyp_class, Name name)
@@ -455,13 +432,13 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hy
     struct RENDER_COMMAND(RemoveRenderSubsystem)
         : renderer::RenderCommand
     {
-        WeakHandle<RenderEnvironment> render_environment_weak;
+        RenderEnvironment* render_environment;
         TypeID type_id;
         const HypClass* hyp_class;
         Name name;
 
-        RENDER_COMMAND(RemoveRenderSubsystem)(const WeakHandle<RenderEnvironment>& render_environment_weak, TypeID type_id, const HypClass* hyp_class, Name name)
-            : render_environment_weak(render_environment_weak),
+        RENDER_COMMAND(RemoveRenderSubsystem)(RenderEnvironment* render_environment, TypeID type_id, const HypClass* hyp_class, Name name)
+            : render_environment(render_environment),
               type_id(type_id),
               hyp_class(hyp_class),
               name(name)
@@ -472,13 +449,6 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hy
 
         virtual RendererResult operator()() override
         {
-            Handle<RenderEnvironment> render_environment = render_environment_weak.Lock();
-
-            if (!render_environment)
-            {
-                return HYP_MAKE_ERROR(RendererError, "RenderEnvironment is null");
-            }
-
             const bool skip_instance_class_check = hyp_class->GetTypeID() == type_id;
 
             Mutex::Guard guard(render_environment->m_render_subsystems_mutex);
@@ -551,7 +521,7 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hy
         }
     };
 
-    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, WeakHandleFromThis(), type_id, hyp_class, name);
+    PUSH_RENDER_COMMAND(RemoveRenderSubsystem, this, type_id, hyp_class, name);
 }
 
 void RenderEnvironment::InitializeRT()
@@ -599,8 +569,6 @@ void RenderEnvironment::InitializeRT()
 bool RenderEnvironment::CreateTopLevelAccelerationStructures()
 {
     HYP_SCOPE;
-
-    AssertIsInitCalled();
 
     if (!g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {

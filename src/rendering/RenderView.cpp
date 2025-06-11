@@ -932,7 +932,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     /// \todo: Remove SetActiveScene and GetActiveScene
     g_engine->GetRenderState()->SetActiveScene(m_render_scenes[0]->GetScene());
 
-    const Handle<RenderEnvironment>& environment = m_render_scenes[0]->GetEnvironment();
+    // @TODO: Refactor to put this in the RenderWorld
+    RenderEnvironment* environment = render_world->GetEnvironment();
 
     const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
     const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
@@ -940,8 +941,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
     const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
-    const bool is_render_environment_ready = environment && environment->IsReady();
 
     const bool do_particles = true;
     const bool do_gaussian_splatting = false; // environment && environment->IsReady();
@@ -984,17 +983,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     CollectDrawCalls(frame, render_setup);
 
-    if (is_render_environment_ready)
+    if (do_particles)
     {
-        if (do_particles)
-        {
-            environment->GetParticleSystem()->UpdateParticles(frame, render_setup);
-        }
+        environment->GetParticleSystem()->UpdateParticles(frame, render_setup);
+    }
 
-        if (do_gaussian_splatting)
-        {
-            environment->GetGaussianSplatting()->UpdateSplats(frame, render_setup);
-        }
+    if (do_gaussian_splatting)
+    {
+        environment->GetGaussianSplatting()->UpdateSplats(frame, render_setup);
     }
 
     m_indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
@@ -1030,17 +1026,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     // otherwise the same pass will be executed for each view (shared).
     // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
     // so it is rendered with the RenderWorld rather than the RenderView.
-    if (is_render_environment_ready)
+    if (use_rt_radiance)
     {
-        if (use_rt_radiance)
-        {
-            environment->RenderRTRadiance(frame, render_setup);
-        }
+        environment->RenderRTRadiance(frame, render_setup);
+    }
 
-        if (use_ddgi)
-        {
-            environment->RenderDDGIProbes(frame, render_setup);
-        }
+    if (use_ddgi)
+    {
+        environment->RenderDDGIProbes(frame, render_setup);
     }
 
     if (use_hbao || use_hbil)
@@ -1130,17 +1123,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
 
-        if (is_render_environment_ready)
+        if (do_particles)
         {
-            if (do_particles)
-            {
-                environment->GetParticleSystem()->Render(frame, render_setup);
-            }
+            environment->GetParticleSystem()->Render(frame, render_setup);
+        }
 
-            if (do_gaussian_splatting)
-            {
-                environment->GetGaussianSplatting()->Render(frame, render_setup);
-            }
+        if (do_gaussian_splatting)
+        {
+            environment->GetGaussianSplatting()->Render(frame, render_setup);
         }
 
         if (is_sky_set)

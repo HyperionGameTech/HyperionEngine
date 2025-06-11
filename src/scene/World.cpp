@@ -289,6 +289,8 @@ void World::Update(GameCounter::TickUnit delta)
     }
 #endif
 
+    m_render_resource->GetEnvironment()->Update(delta);
+
     Array<EntityManager*> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
 
@@ -304,8 +306,6 @@ void World::Update(GameCounter::TickUnit delta)
         // sanity checks
         AssertThrow(scene->GetWorld() == this);
         AssertThrow(!(scene->GetFlags() & SceneFlags::DETACHED));
-
-        scene->GetRenderResource().GetEnvironment()->Update(delta);
 
         scene->Update(delta);
 

@@ -17,8 +17,6 @@ namespace hyperion {
 RenderScene::RenderScene(Scene* scene)
     : m_scene(scene)
 {
-    m_environment = CreateObject<RenderEnvironment>();
-    InitObject(m_environment);
 }
 
 RenderScene::~RenderScene() = default;

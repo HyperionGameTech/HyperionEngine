@@ -10,6 +10,7 @@
 
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderScene.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvironment.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
@@ -64,13 +65,13 @@ struct RENDER_COMMAND(UpdateBLASTransform)
 struct RENDER_COMMAND(AddBLASToTLAS)
     : renderer::RenderCommand
 {
-    WeakHandle<RenderEnvironment> environment_weak;
+    TResourceHandle<RenderWorld> render_world;
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
 
     RENDER_COMMAND(AddBLASToTLAS)(
-        const WeakHandle<RenderEnvironment>& environment_weak,
+        const TResourceHandle<RenderWorld>& render_world,
         const FixedArray<BLASRef, max_frames_in_flight>& bottom_level_acceleration_structures)
-        : environment_weak(environment_weak),
+        : render_world(render_world),
           bottom_level_acceleration_structures(bottom_level_acceleration_structures)
     {
     }
@@ -79,14 +80,14 @@ struct RENDER_COMMAND(AddBLASToTLAS)
 
     virtual RendererResult operator()() override
     {
-        if (Handle<RenderEnvironment> environment = environment_weak.Lock())
+        RenderEnvironment* environment = render_world->GetEnvironment();
+        AssertThrow(environment != nullptr);
+
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+            if (bottom_level_acceleration_structures[frame_index].IsValid())
             {
-                if (bottom_level_acceleration_structures[frame_index].IsValid())
-                {
-                    environment->GetTopLevelAccelerationStructures()[frame_index]->AddBLAS(bottom_level_acceleration_structures[frame_index]);
-                }
+                environment->GetTopLevelAccelerationStructures()[frame_index]->AddBLAS(bottom_level_acceleration_structures[frame_index]);
             }
         }
 
@@ -97,13 +98,13 @@ struct RENDER_COMMAND(AddBLASToTLAS)
 struct RENDER_COMMAND(RemoveBLASFromTLAS)
     : renderer::RenderCommand
 {
-    WeakHandle<RenderEnvironment> environment_weak;
+    TResourceHandle<RenderWorld> render_world;
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
 
     RENDER_COMMAND(RemoveBLASFromTLAS)(
-        const WeakHandle<RenderEnvironment>& environment_weak,
+        const TResourceHandle<RenderWorld>& render_world,
         const FixedArray<BLASRef, max_frames_in_flight>& bottom_level_acceleration_structures)
-        : environment_weak(environment_weak),
+        : render_world(render_world),
           bottom_level_acceleration_structures(bottom_level_acceleration_structures)
     {
     }
@@ -112,14 +113,14 @@ struct RENDER_COMMAND(RemoveBLASFromTLAS)
 
     virtual RendererResult operator()() override
     {
-        if (Handle<RenderEnvironment> environment = environment_weak.Lock())
+        RenderEnvironment* environment = render_world->GetEnvironment();
+        AssertThrow(environment != nullptr);
+
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+            if (bottom_level_acceleration_structures[frame_index].IsValid())
             {
-                if (bottom_level_acceleration_structures[frame_index].IsValid())
-                {
-                    environment->GetTopLevelAccelerationStructures()[frame_index]->RemoveBLAS(bottom_level_acceleration_structures[frame_index]);
-                }
+                environment->GetTopLevelAccelerationStructures()[frame_index]->RemoveBLAS(bottom_level_acceleration_structures[frame_index]);
             }
         }
 
@@ -206,7 +207,7 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
         return;
     }
 
-    PUSH_RENDER_COMMAND(AddBLASToTLAS, GetScene()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
+    PUSH_RENDER_COMMAND(AddBLASToTLAS, TResourceHandle<RenderWorld>(GetWorld()->GetRenderResource()), mesh_component.raytracing_data->bottom_level_acceleration_structures);
 
     GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity);
 }
@@ -222,7 +223,7 @@ void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
         return;
     }
 
-    PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, GetScene()->GetRenderResource().GetEnvironment().ToWeak(), mesh_component.raytracing_data->bottom_level_acceleration_structures);
+    PUSH_RENDER_COMMAND(RemoveBLASFromTLAS, TResourceHandle<RenderWorld>(GetWorld()->GetRenderResource()), mesh_component.raytracing_data->bottom_level_acceleration_structures);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
