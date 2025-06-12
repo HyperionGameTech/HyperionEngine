@@ -3,20 +3,13 @@
 #include <streaming/StreamingManager.hpp>
 #include <streaming/StreamingCell.hpp>
 #include <streaming/StreamingCellCollection.hpp>
-#include <streaming/StreamingVolume.hpp>
-
-#include <scene/world_grid/WorldGrid.hpp>
-#include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/TaskThread.hpp>
 #include <core/threading/TaskSystem.hpp>
 
 #include <core/containers/Queue.hpp>
-
-#include <core/object/HypClass.hpp>
-
-#include <core/math/MathUtil.hpp>
+#include <core/containers/Forest.hpp>
 
 #include <core/memory/MemoryPool.hpp>
 
@@ -24,8 +17,6 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/utilities/ForEach.hpp>
-
-#include <core/algorithm/Map.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -35,32 +26,36 @@
 
 namespace hyperion {
 
-#pragma region Helpers
+#pragma region StreamingOctree
 
-static const FixedArray<StreamingCellNeighbor, 8> GetCellNeighbors(const Vec2i& coord)
+class StreamingOctree final : public OctreeBase<StreamingOctree, Handle<StreamableBase>>
 {
-    return {
-        StreamingCellNeighbor { coord + Vec2i { 1, 0 } },
-        StreamingCellNeighbor { coord + Vec2i { -1, 0 } },
-        StreamingCellNeighbor { coord + Vec2i { 0, 1 } },
-        StreamingCellNeighbor { coord + Vec2i { 0, -1 } },
-        StreamingCellNeighbor { coord + Vec2i { 1, -1 } },
-        StreamingCellNeighbor { coord + Vec2i { -1, -1 } },
-        StreamingCellNeighbor { coord + Vec2i { 1, 1 } },
-        StreamingCellNeighbor { coord + Vec2i { -1, 1 } }
-    };
-}
+public:
+    StreamingOctree()
+        : OctreeBase()
+    {
+    }
 
-static Vec2i WorldSpaceToCellCoord(const WorldGridLayerInfo& layer_info, const Vec3f& world_position)
-{
-    Vec3f scaled = world_position - layer_info.offset;
-    scaled *= Vec3f::One() / (layer_info.scale * (Vec3f(layer_info.cell_size) - 1.0f));
-    scaled = MathUtil::Floor(scaled);
+    StreamingOctree(const BoundingBox& aabb)
+        : OctreeBase(aabb)
+    {
+    }
 
-    return { int(scaled.x), int(scaled.z) };
-}
+    StreamingOctree(const BoundingBox& aabb, OctreeBase<StreamingOctree, Handle<StreamableBase>>* parent, uint8 index)
+        : OctreeBase(aabb, parent, index)
+    {
+    }
 
-#pragma endregion Helpers
+    virtual ~StreamingOctree() override = default;
+
+private:
+    virtual UniquePtr<StreamingOctree> CreateChildOctant(const BoundingBox& aabb, StreamingOctree* parent, uint8 index) override
+    {
+        return MakeUnique<StreamingOctree>(aabb, parent, index);
+    }
+};
+
+#pragma endregion StreamingOctree
 
 #pragma region StreamingWorkerThread
 
@@ -96,52 +91,6 @@ public:
 
 class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
 {
-    struct LayerData
-    {
-        enum LayerDataFlags
-        {
-            LDF_NONE = 0x0,
-            LDF_LOCKED = 0x1,
-            LDF_PENDING_REMOVAL = 0x2
-        };
-
-        Handle<WorldGridLayer> layer;
-        StreamingCellCollection cells;
-        Queue<StreamingCellUpdate> cell_update_queue;
-        AtomicVar<uint8> flags { LDF_NONE };
-
-        LayerData(const Handle<WorldGridLayer>& layer)
-            : layer(layer)
-        {
-            AssertThrow(layer.IsValid());
-        }
-
-        void Lock()
-        {
-            flags.BitOr(LDF_LOCKED, MemoryOrder::RELEASE);
-        }
-
-        void Unlock()
-        {
-            flags.BitAnd(~LDF_LOCKED, MemoryOrder::RELEASE);
-        }
-
-        bool IsLocked() const
-        {
-            return flags.Get(MemoryOrder::ACQUIRE) & LDF_LOCKED;
-        }
-
-        void SetPendingRemoval()
-        {
-            flags.BitOr(LDF_PENDING_REMOVAL, MemoryOrder::RELEASE);
-        }
-
-        bool IsPendingRemoval() const
-        {
-            return flags.Get(MemoryOrder::ACQUIRE) & LDF_PENDING_REMOVAL;
-        }
-    };
-
 public:
     friend class StreamingManager;
 
@@ -151,157 +100,6 @@ public:
           m_stop_requested { false },
           m_thread_pool(MakeUnique<StreamingThreadPool>())
     {
-    }
-
-    virtual ~StreamingManagerThread() override
-    {
-        for (const Handle<StreamingVolumeBase>& volume : m_volumes)
-        {
-            if (volume.IsValid())
-            {
-                volume->UnregisterNotifier(&m_notifier);
-            }
-        }
-    }
-
-    void AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)
-    {
-        if (!volume.IsValid())
-        {
-            return;
-        }
-
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
-        {
-            m_volumes.PushBack(volume);
-        }
-        else
-        {
-            m_scheduler.Enqueue([this, volume = volume]()
-                {
-                    m_volumes.PushBack(volume);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
-        }
-    }
-
-    void RemoveStreamingVolume(const StreamingVolumeBase* volume)
-    {
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
-        {
-            auto it = m_volumes.FindAs(volume);
-            AssertThrowMsg(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
-
-            m_volumes.Erase(it);
-        }
-        else
-        {
-            m_scheduler.Enqueue([this, volume]()
-                {
-                    auto it = m_volumes.FindAs(volume);
-                    AssertThrowMsg(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
-
-                    m_volumes.Erase(it);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
-        }
-    }
-
-    void AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
-    {
-        if (!layer.IsValid())
-        {
-            return;
-        }
-
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
-        {
-            auto it = m_layers.FindIf([layer](const LayerData& data)
-                {
-                    return data.layer == layer;
-                });
-
-            AssertThrowMsg(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
-
-            m_layers.EmplaceBack(layer);
-        }
-        else
-        {
-            m_scheduler.Enqueue([this, layer = layer]()
-                {
-                    auto it = m_layers.FindIf([layer](const LayerData& data)
-                        {
-                            return data.layer == layer;
-                        });
-
-                    AssertThrowMsg(it == m_layers.End(), "WorldGridLayer already exists in streaming manager!");
-
-                    m_layers.EmplaceBack(layer);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
-        }
-    }
-
-    void RemoveWorldGridLayer(const WorldGridLayer* layer)
-    {
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
-        {
-            auto it = m_layers.FindIf([layer](const LayerData& data)
-                {
-                    return data.layer == layer;
-                });
-
-            AssertThrowMsg(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
-
-            if (it->IsLocked())
-            {
-                it->SetPendingRemoval();
-                return;
-            }
-
-            m_layers.Erase(it);
-        }
-        else
-        {
-            m_scheduler.Enqueue([this, layer]()
-                {
-                    auto it = m_layers.FindIf([layer](const LayerData& data)
-                        {
-                            return data.layer == layer;
-                        });
-
-                    AssertThrowMsg(it != m_layers.End(), "WorldGridLayer not found in streaming manager!");
-
-                    if (it->IsLocked())
-                    {
-                        it->SetPendingRemoval();
-                        return;
-                    }
-
-                    m_layers.Erase(it);
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            m_notifier.Produce(1);
-        }
-    }
-
-    void SinkGameThreadUpdates(Array<Pair<Handle<StreamingCell>, StreamingCellState>>& out)
-    {
-        Threads::AssertOnThread(g_game_thread);
-
-        out.Concat(std::move(m_cell_updates_game_thread));
-    }
-
-    HYP_FORCE_INLINE StreamingNotifier& GetNotifier()
-    {
-        return m_notifier;
     }
 
     /*! \brief Atomically load the boolean value indicating that this thread is actively running */
@@ -315,7 +113,6 @@ public:
         m_thread_pool->Stop();
 
         m_stop_requested.Set(true, MemoryOrder::RELAXED);
-        m_notifier.Produce(1); // Wake up the thread if it's waiting on the notifier.
     }
 
 private:
@@ -323,104 +120,53 @@ private:
     {
         m_is_running.Set(true, MemoryOrder::RELAXED);
 
-        for (const Handle<StreamingVolumeBase>& volume : m_volumes)
+        if (StartWorkerThreadPool())
         {
-            InitObject(volume);
-        }
-
-        for (const LayerData& layer_data : m_layers)
-        {
-            InitObject(layer_data.layer);
-        }
-
-        StartWorkerThreadPool();
-
-        // Set the notifier to the initial value of 1 so it won't block the first call.
-        m_notifier.Produce(1);
-
-        while (!m_stop_requested.Get(MemoryOrder::RELAXED))
-        {
-            m_notifier.Acquire();
-
-            int32 num = m_notifier.GetValue();
-
-            do
+            while (!m_stop_requested.Get(MemoryOrder::RELAXED))
             {
                 DoWork(streaming_manager);
-
-                num = m_notifier.Release(num);
-
-                AssertDebug(num >= 0); // sanity check
             }
-            while (num > 0 && !m_stop_requested.Get(MemoryOrder::RELAXED));
+        }
+        else
+        {
+            HYP_LOG(Streaming, Error, "Failed to start StreamingWorkerThreadPool!");
         }
 
         m_is_running.Set(false, MemoryOrder::RELAXED);
     }
 
-    void StartWorkerThreadPool();
+    bool StartWorkerThreadPool();
     void DoWork(StreamingManager* streaming_manager);
-    void ProcessCellUpdatesForLayer(LayerData& layer_data);
-    void GetDesiredCellsForLayer(const LayerData& layer_data, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& out_cell_coords) const;
-
-    void PostCellUpdateToGameThread(Handle<StreamingCell> cell, StreamingCellState state)
-    {
-        Task<void> future;
-        TaskPromise<void>* promise = future.Promise();
-
-        Mutex::Guard guard(m_game_thread_futures_mutex);
-        m_game_thread_futures.PushBack(std::move(future));
-
-        Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
-            {
-                m_cell_updates_game_thread.EmplaceBack(std::move(cell), state);
-
-                promise->Fulfill();
-
-                Mutex::Guard guard(m_game_thread_futures_mutex);
-
-                auto it = m_game_thread_futures.FindIf([promise](const Task<void>& task)
-                    {
-                        return task.GetTaskExecutor() == promise;
-                    });
-
-                AssertThrowMsg(it != m_game_thread_futures.End(), "Task not found in game thread tasks!");
-
-                m_game_thread_futures.Erase(it);
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
-    }
 
     AtomicVar<bool> m_is_running;
     AtomicVar<bool> m_stop_requested;
 
     UniquePtr<StreamingThreadPool> m_thread_pool;
 
-    Array<Handle<StreamingVolumeBase>> m_volumes;
-    LinkedList<LayerData> m_layers;
+    StreamingCellCollection m_cells;
 
-    Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cell_updates_game_thread;
-    Array<Task<void>> m_game_thread_futures;
-    Mutex m_game_thread_futures_mutex;
-
-    StreamingNotifier m_notifier;
+    /// \todo: Add octree for spatial partitioning of streaming units.
+    /// \todo: add buckets for streaming units, based on their state (e.g., loaded, unloading, etc.).
+    /// \todo: Add state machine for streaming units to manage their lifecycle. (see WorldGrid)
 };
 
-void StreamingManagerThread::StartWorkerThreadPool()
+bool StreamingManagerThread::StartWorkerThreadPool()
 {
-    AssertThrow(m_thread_pool != nullptr);
-    AssertThrow(!m_thread_pool->IsRunning());
-
-    m_thread_pool->Start();
-
-    while (!m_thread_pool->IsRunning())
+    if (!m_thread_pool->IsRunning())
     {
-        Threads::Sleep(0);
+        m_thread_pool->Start();
+        return true;
     }
+
+    return false;
 }
 
 void StreamingManagerThread::DoWork(StreamingManager* streaming_manager)
 {
+    /// \todo implement sync between game thread and streaming thread, using semaphore or condition variable.
+
+    Threads::Sleep(100);
+
     Queue<Scheduler::ScheduledTask> tasks;
 
     if (uint32 num_enqueued = m_scheduler.NumEnqueued())
@@ -433,365 +179,326 @@ void StreamingManagerThread::DoWork(StreamingManager* streaming_manager)
         }
     }
 
-    HYP_LOG(Streaming, Debug, "Processing streaming work on thread: {}, {} layers, {} volumes, {} cells",
-        Threads::CurrentThreadID().GetName(),
-        m_layers.Size(),
-        m_volumes.Size(),
-        String::Join(
-            Map(
-                m_layers,
-                [](const LayerData& layer_data)
-                {
-                    return HYP_FORMAT("Layer: #{} : {}", layer_data.layer->GetID().Value(), layer_data.cells.Size());
-                }),
-            ", "));
-
-    for (auto it = m_layers.Begin(); it != m_layers.End();)
+    for (const auto& it : m_cells)
     {
-        LayerData& layer_data = *it;
+        const Handle<StreamingCell>& cell = it.second;
 
-        if (layer_data.IsLocked())
+        if (cell.IsValid())
         {
-            HYP_LOG(Streaming, Debug, "Layer {} is locked, skipping processing", layer_data.layer->GetLayerInfo().grid_size);
-
-            ++it;
-
-            continue;
+            HYP_LOG(Streaming, Debug, "Processing StreamingCell with coord: {}", cell->GetPatchInfo().coord);
         }
+    }
 
-        if (layer_data.IsPendingRemoval())
+#if 0
+    m_octree.PerformUpdates();
+
+    /// \todo Implement the actual streaming work here.
+
+    auto process_streamables = [&](Span<const Handle<StreamableBase>*> streamables)
+    {
+        // for (const Handle<StreamableBase>* entry : streamables)
+        // {
+        //     if (entry->IsValid())
+        //     {
+        //         HYP_LOG(Streaming, Debug, "Processing StreamableBase with UUID: {}", entry->Get()->GetKey().uuid);
+        //     }
+        // }
+
+        /// \todo: Update the states of the streamables based on their current state and the streaming volumes they are in.
+        /// call OnStreamStart() for newly entered streamables, and enqueue OnLoaded() and OnRemoved() to be called on teh game thread for streamables that are loaded or removed, respectively.
+    };
+
+    /// \todo: Process in parallel using the thread pool. Allow tasks to run in background and skip processing if the task batches are still running.
+    ForEachStreamingVolume(streaming_manager, [&](StreamingVolumeBase* volume) -> IterationResult
         {
-            HYP_LOG(Streaming, Debug, "Layer {} is pending removal, erasing", layer_data.layer->GetLayerInfo().grid_size);
-
-            it = m_layers.Erase(it);
-
-            continue;
-        }
-
-        const Handle<WorldGridLayer>& layer = layer_data.layer;
-        AssertThrow(layer.IsValid());
-
-        StreamingCellCollection& cells = layer_data.cells;
-        Queue<StreamingCellUpdate>& cell_update_queue = layer_data.cell_update_queue;
-
-        HYP_LOG(Streaming, Debug, "Processing layer: {} {}", layer->GetLayerInfo().grid_size, layer->GetLayerInfo().cell_size);
-
-        const WorldGridLayerInfo& layer_info = layer->GetLayerInfo();
-
-        HashSet<Vec2i> desired_cells;
-
-        for (const Handle<StreamingVolumeBase>& volume : m_volumes)
-        {
-            if (!volume.IsValid())
+            switch (volume->GetShape())
             {
-                continue;
-            }
-
-            GetDesiredCellsForLayer(layer_data, volume, desired_cells);
-        }
-
-        // @TODO Use bitset via IDs, or by cell index (x * height + y, would need constant max dimensions for that) to track desired cells and undesired cells.
-        Array<Vec2i> cells_to_add = desired_cells.ToArray();
-        Array<Handle<StreamingCell>> cells_to_remove;
-
-        for (const StreamingCellRuntimeInfo& cell_runtime_info : cells)
-        {
-            auto it = desired_cells.Find(cell_runtime_info.coord);
-
-            if (it == desired_cells.End())
+            case StreamingVolumeShape::BOX:
             {
-                AssertThrow(cell_runtime_info.cell.IsValid());
+                BoundingBox aabb;
 
-                // Lock so we can use it safely in the loop below for pushing to queue.
-                if (!cells.SetCellLockState(cell_runtime_info.coord, true))
+                if (volume->GetBoundingBox(aabb))
                 {
-                    // Already locked, skip adding for removal
-                    continue;
+                    Array<const Handle<StreamableBase>*> entries;
+                    m_octree.CollectEntries(aabb, entries);
+
+                    process_streamables(entries);
+                }
+                else
+                {
+                    HYP_LOG(Streaming, Warning, "StreamingVolumeBase with ID: {} has an invalid bounding box!", volume->GetID().Value());
                 }
 
-                cells_to_remove.PushBack(cell_runtime_info.cell);
+                break;
             }
-            else
+            case StreamingVolumeShape::SPHERE:
             {
-                // Already have the cell
-                cells_to_add.Erase(cell_runtime_info.coord);
-            }
-        }
+                BoundingSphere sphere;
 
-        if (cells_to_remove.Any())
-        {
-            for (const Handle<StreamingCell>& cell : cells_to_remove)
-            {
-                AssertThrow(cell.IsValid());
-                AssertDebugMsg(cells.IsCellLocked(cell->GetPatchInfo().coord),
-                    "StreamingCell with coord %d,%d is not locked for unloading!",
-                    cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-                // Cell is locked here -- request unloading.
-                cell_update_queue.Push(StreamingCellUpdate { cell->GetPatchInfo().coord, StreamingCellState::UNLOADING });
-            }
-        }
-
-        if (cells_to_add.Any())
-        {
-            for (const Vec2i& coord : cells_to_add)
-            {
-                AssertThrowMsg(!cells.HasCell(coord), "StreamingCell with coord %d,%d already exists!", coord.x, coord.y);
-
-                cell_update_queue.Push(StreamingCellUpdate { coord, StreamingCellState::WAITING });
-            }
-        }
-
-        ProcessCellUpdatesForLayer(layer_data);
-
-        ++it;
-    }
-}
-
-void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
-{
-    const WorldGridLayerInfo& layer_info = layer_data.layer->GetLayerInfo();
-    StreamingCellCollection& cells = layer_data.cells;
-    Queue<StreamingCellUpdate>& cell_update_queue = layer_data.cell_update_queue;
-
-    if (cell_update_queue.Empty())
-    {
-        return;
-    }
-
-    while (cell_update_queue.Any())
-    {
-        StreamingCellUpdate update = cell_update_queue.Pop();
-
-        HYP_LOG(Streaming, Debug, "Processing StreamingCellUpdate for coord: {}, state: {}", update.coord, update.state);
-
-        switch (update.state)
-        {
-        case StreamingCellState::WAITING:
-        {
-            AssertThrowMsg(!cells.HasCell(update.coord), "StreamingCell with coord %d,%d already exists!", update.coord.x, update.coord.y);
-
-            StreamingCellInfo cell_info;
-            cell_info.coord = update.coord;
-            cell_info.extent = layer_info.cell_size;
-            cell_info.scale = layer_info.scale;
-            cell_info.bounds.min = {
-                layer_info.offset.x + (float(cell_info.coord.x) - 0.5f) * (float(cell_info.extent.x) - 1.0f) * cell_info.scale.x,
-                layer_info.offset.y,
-                layer_info.offset.z + (float(cell_info.coord.y) - 0.5f) * (float(cell_info.extent.y) - 1.0f) * cell_info.scale.z
-            };
-            cell_info.bounds.max = cell_info.bounds.min + Vec3f(cell_info.extent) * cell_info.scale;
-
-            Handle<StreamingCell> cell = layer_data.layer->CreateStreamingCell(cell_info);
-
-            if (!cell.IsValid())
-            {
-                HYP_LOG(Streaming, Error, "Failed to create StreamingCell for coord: {}", update.coord);
-                continue;
-            }
-
-            InitObject(cell);
-
-            const bool was_cell_added = cells.AddCell(cell, StreamingCellState::WAITING, /* lock */ true);
-            AssertThrowMsg(was_cell_added, "Failed to add StreamingCell with coord: %d,%d", update.coord.x, update.coord.y);
-
-            PostCellUpdateToGameThread(cell, StreamingCellState::WAITING);
-
-            layer_data.Lock();
-
-            TaskSystem::GetInstance().Enqueue([this, &layer_data, cell]()
+                if (volume->GetBoundingSphere(sphere))
                 {
-                    HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
-                        cell->GetPatchInfo().coord, Threads::CurrentThreadID().GetName(), layer_data.layer->InstanceClass()->GetName());
+                    Array<const Handle<StreamableBase>*> entries;
+                    m_octree.CollectEntries(sphere, entries);
 
-                    bool is_ok = true;
-
-                    is_ok &= layer_data.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADING);
-                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADING for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-                    PostCellUpdateToGameThread(cell, StreamingCellState::LOADING);
-
-                    cell->OnStreamStart();
-
-                    is_ok &= layer_data.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADED);
-                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADED for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-                    is_ok &= layer_data.cells.SetCellLockState(cell->GetPatchInfo().coord, false);
-                    AssertDebugMsg(is_ok, "Failed to unlock StreamingCell with coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-                    PostCellUpdateToGameThread(cell, StreamingCellState::LOADED);
-
-                    layer_data.Unlock();
-                },
-                *m_thread_pool, TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            break;
-        }
-        case StreamingCellState::UNLOADING:
-        {
-            bool is_ok = true;
-
-            is_ok &= cells.HasCell(update.coord);
-            AssertThrowMsg(is_ok, "StreamingCell with coord %d,%d does not exist!", update.coord.x, update.coord.y);
-
-            // Locked here - see StreamingManagerThread::DoWork where we lock before pushing UNLOADING state.
-
-            is_ok &= cells.IsCellLocked(update.coord);
-            AssertThrowMsg(is_ok, "StreamingCell with coord %d,%d is not locked for unloading!", update.coord.x, update.coord.y);
-
-            Handle<StreamingCell> cell = cells.GetCell(update.coord);
-            AssertThrowMsg(cell.IsValid(), "StreamingCell with coord %d,%d is not valid!", update.coord.x, update.coord.y);
-
-            is_ok &= cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::UNLOADING);
-            AssertDebugMsg(is_ok, "Failed to update StreamingCell state to UNLOADING for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-            PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADING);
-
-            is_ok &= cells.RemoveCell(cell->GetPatchInfo().coord);
-            AssertDebugMsg(is_ok, "Failed to remove StreamingCell with coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
-
-            layer_data.Lock();
-
-            // Call OnStreamEnd on the cell and then Unload it
-            TaskSystem::GetInstance().Enqueue([this, cell = std::move(cell), &layer_data]()
+                    process_streamables(entries);
+                }
+                else
                 {
-                    HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} on thread: {}",
-                        cell->GetPatchInfo().coord, Threads::CurrentThreadID().GetName());
+                    HYP_LOG(Streaming, Warning, "StreamingVolumeBase with ID: {} has an invalid bounding sphere!", volume->GetID().Value());
+                }
 
-                    // cell->OnStreamEnd();
-
-                    PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADED);
-
-                    layer_data.Unlock();
-                },
-                *m_thread_pool, TaskEnqueueFlags::FIRE_AND_FORGET);
-
-            break;
-        }
-        default:
-        {
-            break;
-        }
-        }
-    }
-}
-
-void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layer_data, const Handle<StreamingVolumeBase>& volume, HashSet<Vec2i>& out_cell_coords) const
-{
-    constexpr Vec2i cell_neighbor_directions[4] = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
-
-    const WorldGridLayerInfo& layer_info = layer_data.layer->GetLayerInfo();
-
-    BoundingBox aabb;
-
-    if (!volume->GetBoundingBox(aabb))
-    {
-        return;
-    }
-
-    Queue<Vec2f> queue;
-    HashSet<Vec2i> visited;
-
-    const Vec2f center_coord = Vec2f(WorldSpaceToCellCoord(layer_info, aabb.GetCenter()));
-
-    queue.Push(center_coord);
-    visited.Insert(Vec2i(center_coord));
-
-    const float max_dist_sq = layer_info.max_distance * layer_info.max_distance;
-
-    while (queue.Any())
-    {
-        const Vec2f current = queue.Pop();
-
-        // euclidean distance check
-        if (Vec2f(current).DistanceSquared(center_coord) > max_dist_sq)
-        {
-            continue;
-        }
-
-        out_cell_coords.Insert(Vec2i(current));
-        break; // temp
-
-        for (const Vec2i dir : cell_neighbor_directions)
-        {
-            const Vec2f neighbor = current + Vec2f(dir);
-
-            if (visited.Insert(Vec2i(neighbor)).second)
-            {
-                queue.Push(neighbor);
+                break;
             }
-        }
-    }
+            default:
+                HYP_FAIL("Unsupported streaming volume shape!");
+            }
+
+            return IterationResult::CONTINUE;
+        });
+#endif
 }
 
 #pragma endregion StreamingManagerThread
 
 #pragma region StreamingManager
 
-StreamingManager::StreamingManager()
-    : StreamingManager(WeakHandle<WorldGrid>())
-{
-}
+// const Handle<StreamingManager>& StreamingManager::GetInstance()
+// {
+//     return g_streaming_manager;
+// }
 
-StreamingManager::StreamingManager(const WeakHandle<WorldGrid>& world_grid)
-    : m_world_grid(world_grid),
-      m_thread(MakeUnique<StreamingManagerThread>())
+StreamingManager::StreamingManager()
+    : m_thread(MakeUnique<StreamingManagerThread>())
 {
+    m_scheduler.SetOwnerThread(g_game_thread);
 }
 
 StreamingManager::~StreamingManager()
 {
-    Stop();
 }
 
 void StreamingManager::AddStreamingVolume(const Handle<StreamingVolumeBase>& volume)
 {
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-
-    AssertThrow(volume.IsValid());
-
-    volume->RegisterNotifier(&m_thread->GetNotifier());
-
-    m_thread->AddStreamingVolume(volume);
-}
-
-void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-
-    if (!volume)
+    if (!volume.IsValid())
     {
         return;
     }
 
-    volume->UnregisterNotifier(&m_thread->GetNotifier());
+    Mutex::Guard guard(m_streaming_volumes_mutex);
 
-    m_thread->RemoveStreamingVolume(volume);
-}
+    auto it = m_streaming_volumes.Find(volume);
 
-void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-
-    AssertThrow(layer.IsValid());
-
-    m_thread->AddWorldGridLayer(layer);
-}
-
-void StreamingManager::RemoveWorldGridLayer(WorldGridLayer* layer)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-
-    if (!layer)
+    if (it != m_streaming_volumes.End())
     {
         return;
     }
 
-    m_thread->RemoveWorldGridLayer(layer);
+    m_streaming_volumes.PushBack(volume);
+}
+
+void StreamingManager::RemoveStreamingVolume(const Handle<StreamingVolumeBase>& volume)
+{
+    if (!volume.IsValid())
+    {
+        return;
+    }
+
+    Mutex::Guard guard(m_streaming_volumes_mutex);
+
+    auto it = m_streaming_volumes.Find(volume);
+
+    if (it == m_streaming_volumes.End())
+    {
+        return;
+    }
+
+    m_streaming_volumes.Erase(it);
+}
+
+void StreamingManager::RegisterCell(const Handle<StreamingCell>& cell)
+{
+    HYP_SCOPE;
+
+    if (!cell.IsValid())
+    {
+        HYP_LOG(Streaming, Warning, "Attempted to register an invalid Streamable cell!");
+        return;
+    }
+
+    m_thread->GetScheduler().Enqueue([this, cell = cell]()
+        {
+            InitObject(cell);
+
+            if (Result result = m_thread->m_cells.AddCell(cell); result.HasValue())
+            {
+                HYP_LOG(Streaming, Debug, "Successfully registered StreamingCell with UUID: {}", cell->GetKey().uuid);
+
+                cell->OnStreamStart();
+
+                // call OnLoaded() on the game thread
+                /// \TODO This should all be refactored so that it uses the thread pool to cell OnStreamStart() on and then the main streaming thread can detect completed tasks and call OnLoaded() on the game thread.
+                m_scheduler.Enqueue([cell]()
+                    {
+                        HYP_LOG(Streaming, Debug, "Calling OnLoaded() for StreamingCell with coord: {}", cell->GetPatchInfo().coord);
+                        cell->OnLoaded();
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
+            else
+            {
+                HYP_LOG(Streaming, Error, "Failed to register StreamingCell with coord: {}. Error: {}", cell->GetPatchInfo().coord, result.GetError().GetMessage());
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void StreamingManager::UnregisterCell(const Handle<StreamingCell>& cell)
+{
+    HYP_SCOPE;
+
+    if (!cell.IsValid())
+    {
+        HYP_LOG(Streaming, Warning, "Attempted to unregister an invalid StreamingCell!");
+        return;
+    }
+
+    m_thread->GetScheduler().Enqueue([this, cell = cell]()
+        {
+            if (Result result = m_thread->m_cells.RemoveCell(cell); result.HasValue())
+            {
+                // Call OnRemoved() on the game thread
+                m_scheduler.Enqueue([cell]()
+                    {
+                        HYP_LOG(Streaming, Debug, "Unregistering StreamingCell with coord: {}", cell->GetPatchInfo().coord);
+                        cell->OnRemoved();
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+
+                HYP_LOG(Streaming, Debug, "Successfully unregistered StreamingCell with coord: {}", cell->GetPatchInfo().coord);
+            }
+            else
+            {
+                HYP_LOG(Streaming, Error, "Failed to unregister StreamingCell with coord: {}. Error: {}", cell->GetPatchInfo().coord, result.GetError().GetMessage());
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void StreamingManager::RegisterStreamable(const Handle<StreamableBase>& streamable)
+{
+    HYP_SCOPE;
+
+    if (!streamable.IsValid())
+    {
+        HYP_LOG(Streaming, Warning, "Attempted to register an invalid Streamable!");
+        return;
+    }
+
+#if 0
+    m_thread->GetScheduler().Enqueue([this, streamable = streamable]()
+        {
+            InitObject(streamable);
+
+            HYP_LOG(Streaming, Debug, "Registering StreamableBase with UUID: {}", streamable->GetKey().uuid);
+
+            auto insert_result = m_thread->m_octree.Insert(streamable, streamable->GetBoundingBox());
+
+            if (insert_result.first.result)
+            {
+                HYP_LOG(Streaming, Debug, "Successfully registered StreamableBase with UUID: {}", streamable->GetKey().uuid);
+
+                // Call OnStreamStart() on the game thread
+                m_scheduler.Enqueue([streamable]()
+                    {
+                        streamable->OnStreamStart();
+                    },
+                    TaskEnqueueFlags::FIRE_AND_FORGET);
+            }
+            else
+            {
+                HYP_LOG(Streaming, Error, "Failed to register StreamableBase with UUID: {}. Error: {}", streamable->GetKey().uuid, insert_result.first.message);
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+#endif
+}
+
+void StreamingManager::UnregisterStreamable(const UUID& uuid)
+{
+    HYP_SCOPE;
+
+    if (uuid == UUID::Invalid())
+    {
+        HYP_LOG(Streaming, Warning, "Attempted to unregister a Streamable with an invalid UUID: {}", uuid);
+        return;
+    }
+
+#if 0
+    m_thread->GetScheduler().Enqueue([this, uuid = uuid]()
+        {
+            // Find the streaming unit in the octree and remove it
+            Array<const Handle<StreamableBase>*> entries;
+            m_thread->m_octree.CollectEntries(entries);
+
+            for (const Handle<StreamableBase>* entry : entries)
+            {
+                if (entry->IsValid() && entry->Get()->GetKey().uuid == uuid)
+                {
+                    auto result = m_thread->m_octree.Remove(*entry);
+
+                    if (result)
+                    {
+                        m_scheduler.Enqueue([streamable = *entry]()
+                            {
+                                // Call OnRemoved() on the game thread
+                                streamable->OnRemoved();
+                            },
+                            TaskEnqueueFlags::FIRE_AND_FORGET);
+                    }
+                    else
+                    {
+                        HYP_LOG(Streaming, Error, "Failed to remove StreamableBase with UUID: {} from octree: {}", uuid, result.message);
+                    }
+
+                    break;
+                }
+            }
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+#endif
+}
+
+void StreamingManager::UnregisterAllStreamables()
+{
+    HYP_SCOPE;
+
+#if 0
+    if (!m_thread || !m_thread->IsRunning())
+    {
+        return;
+    }
+
+    Array<Handle<StreamableBase>> streamables;
+
+    Task<void> task = m_thread->GetScheduler().Enqueue([this, &streamables]()
+        {
+            // Clear the octree
+            m_thread->m_octree.Clear(streamables, /* undivide */ true);
+        });
+
+    task.Await();
+
+    for (const Handle<StreamableBase>& streamable : streamables)
+    {
+        if (!streamable.IsValid())
+        {
+            continue;
+        }
+
+        // Call OnRemoved() on the game thread
+        streamable->OnRemoved();
+    }
+#endif
 }
 
 void StreamingManager::Start()
@@ -814,6 +521,11 @@ void StreamingManager::Stop()
         m_thread->Stop();
         m_thread.Reset();
     }
+
+    m_scheduler.Flush([](auto& operation)
+        {
+            // No-op, just to ensure all tasks are flushed before leaving
+        });
 }
 
 void StreamingManager::Init()
@@ -822,42 +534,60 @@ void StreamingManager::Init()
         {
             Stop();
         }));
-
-    SetReady(true);
 }
 
 void StreamingManager::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
 
-    Array<Pair<Handle<StreamingCell>, StreamingCellState>> updates;
-    m_thread->SinkGameThreadUpdates(updates);
+    Queue<Scheduler::ScheduledTask> tasks;
 
-    if (updates.Empty())
+    if (uint32 num_enqueued = m_scheduler.NumEnqueued())
     {
-        return;
-    }
+        m_scheduler.AcceptAll(tasks);
 
-    for (Pair<Handle<StreamingCell>, StreamingCellState>& update : updates)
-    {
-        Handle<StreamingCell> cell = std::move(update.first);
-        AssertThrowMsg(cell.IsValid(), "StreamingCell is not valid!");
-
-        switch (update.second)
+        while (tasks.Any())
         {
-        case StreamingCellState::LOADED:
-            cell->OnLoaded();
-            break;
-        case StreamingCellState::UNLOADED:
-            cell->OnRemoved();
-            break;
-        default:
-            break;
+            tasks.Pop().Execute();
         }
     }
 }
 
 #pragma endregion StreamingManager
+
+void PostStreamingManagerUpdate(StreamingManager* streaming_manager, Proc<void()>&& proc)
+{
+    if (!streaming_manager)
+    {
+        return;
+    }
+
+    streaming_manager->m_scheduler.Enqueue(std::move(proc), TaskEnqueueFlags::FIRE_AND_FORGET);
+}
+
+void ForEachStreamingVolume(StreamingManager* streaming_manager, ProcRef<IterationResult(StreamingVolumeBase*)> proc)
+{
+    if (!streaming_manager)
+    {
+        return;
+    }
+
+    Mutex::Guard guard(streaming_manager->m_streaming_volumes_mutex);
+
+    for (const auto& volume : streaming_manager->m_streaming_volumes)
+    {
+        if (!volume.IsValid())
+        {
+            continue;
+        }
+
+        IterationResult iteration_result = proc(volume.Get());
+
+        if (iteration_result == IterationResult::STOP)
+        {
+            break;
+        }
+    }
+}
 
 } // namespace hyperion

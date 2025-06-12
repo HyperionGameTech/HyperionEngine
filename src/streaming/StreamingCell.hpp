@@ -9,7 +9,6 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/math/Vector2.hpp>
-#include <core/math/BoundingBox.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
@@ -27,15 +26,10 @@ class Scene;
 HYP_ENUM()
 enum class StreamingCellState : uint32
 {
-    INVALID = ~0u,
-
-    UNLOADED = 0,
+    UNLOADED,
     UNLOADING,
     WAITING,
-    LOADING,
-    LOADED,
-
-    MAX
+    LOADED
 };
 
 HYP_STRUCT()
@@ -50,29 +44,32 @@ struct StreamingCellNeighbor
     }
 };
 
-HYP_STRUCT(Size = 80)
+HYP_STRUCT(Size = 128)
 struct StreamingCellInfo
 {
-    HYP_FIELD(Serialize, Property = "Coord")
-    Vec2i coord;
-
     HYP_FIELD(Serialize, Property = "Extent")
     Vec3u extent;
+
+    HYP_FIELD(Serialize, Property = "Coord")
+    Vec2i coord;
 
     HYP_FIELD(Serialize, Property = "Scale")
     Vec3f scale = Vec3f::One();
 
-    HYP_FIELD(Serialize, Property = "Bounds")
-    BoundingBox bounds;
+    HYP_FIELD(Serialize, Property = "State")
+    StreamingCellState state = StreamingCellState::UNLOADED;
+
+    HYP_FIELD(Serialize, Property = "Neighbors")
+    FixedArray<StreamingCellNeighbor, 8> neighbors;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
         HashCode hash_code;
 
-        hash_code.Add(coord);
         hash_code.Add(extent);
+        hash_code.Add(coord);
         hash_code.Add(scale);
-        hash_code.Add(bounds);
+        hash_code.Add(state);
 
         return hash_code;
     }
@@ -85,8 +82,14 @@ class HYP_API StreamingCell : public StreamableBase
 
 public:
     StreamingCell() = default;
-    StreamingCell(const StreamingCellInfo& cell_info);
+    StreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info);
     virtual ~StreamingCell() override;
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE WorldGrid* GetWorldGrid() const
+    {
+        return m_world_grid;
+    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const StreamingCellInfo& GetPatchInfo() const
@@ -99,16 +102,14 @@ public:
 
 protected:
     HYP_METHOD()
-    virtual BoundingBox GetBoundingBox_Impl() const override
-    {
-        return m_cell_info.bounds;
-    }
+    virtual BoundingBox GetBoundingBox_Impl() const override;
 
     HYP_METHOD()
     virtual void Update_Impl(float delta)
     {
     }
 
+    WorldGrid* m_world_grid;
     StreamingCellInfo m_cell_info;
 };
 

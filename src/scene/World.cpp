@@ -39,7 +39,7 @@ namespace hyperion {
 
 World::World()
     : HypObject(),
-      m_world_grid(CreateObject<WorldGrid>(this)),
+      m_world_grid(CreateObject<WorldGrid>(this, WorldGridParams {})),
       m_detached_scenes(this),
       m_render_resource(nullptr)
 {

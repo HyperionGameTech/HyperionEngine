@@ -44,6 +44,8 @@ struct WorldGridPatchGenerationQueue
 struct WorldGridState
 {
     FlatMap<Vec2i, Task<void>> patch_generation_tasks;
+    Queue<Handle<StreamingCell>> patch_generation_queue_owned;
+    WorldGridPatchGenerationQueue patch_generation_queue_shared;
 
     Queue<StreamingCellUpdate> patch_update_queue;
     AtomicVar<uint32> patch_update_queue_size { 0 };

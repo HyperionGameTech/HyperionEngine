@@ -3,7 +3,7 @@
 #ifndef HYPERION_CAMERA_STREAMING_VOLUME_HPP
 #define HYPERION_CAMERA_STREAMING_VOLUME_HPP
 
-#include <streaming/StreamingVolume.hpp>
+#include <streaming/StreamingManager.hpp>
 
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
@@ -32,8 +32,6 @@ public:
         }
         
         m_aabb = aabb;
-
-        NotifyUpdate();
     }
     
 protected:

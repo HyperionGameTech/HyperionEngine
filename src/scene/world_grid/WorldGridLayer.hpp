@@ -99,7 +99,7 @@ protected:
     HYP_METHOD()
     virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cell_info)
     {
-        return CreateObject<StreamingCell>(cell_info);
+        return CreateObject<StreamingCell>(nullptr, cell_info);
     }
 
     HYP_METHOD(Scriptable)

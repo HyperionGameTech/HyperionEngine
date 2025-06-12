@@ -23,7 +23,7 @@ class HYP_API TerrainStreamingCell : public StreamingCell
 
 public:
     TerrainStreamingCell();
-    TerrainStreamingCell(const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material);
+    TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material);
     virtual ~TerrainStreamingCell() override;
 
 protected:
@@ -69,6 +69,38 @@ protected:
 
     HYP_METHOD()
     virtual Handle<StreamingCell> CreateStreamingCell_Impl(const StreamingCellInfo& cell_info) override;
+
+    Handle<Scene> m_scene;
+    Handle<Material> m_material;
+};
+
+HYP_CLASS(NoScriptBindings)
+class HYP_API TerrainWorldGridPlugin : public WorldGridPlugin
+{
+    HYP_OBJECT_BODY(TerrainWorldGridPlugin);
+
+public:
+    TerrainWorldGridPlugin();
+    virtual ~TerrainWorldGridPlugin() override;
+
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
+    {
+        return m_scene;
+    }
+
+protected:
+    HYP_METHOD()
+    virtual void Initialize_Impl(WorldGrid* world_grid) override final;
+
+    HYP_METHOD()
+    virtual void Shutdown_Impl(WorldGrid* world_grid) override final;
+
+    HYP_METHOD()
+    virtual void Update_Impl(float delta) override final;
+
+    HYP_METHOD()
+    virtual Handle<StreamingCell> CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info) override final;
 
     Handle<Scene> m_scene;
     Handle<Material> m_material;

@@ -324,8 +324,8 @@ TerrainStreamingCell::TerrainStreamingCell()
 {
 }
 
-TerrainStreamingCell::TerrainStreamingCell(const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material)
-    : StreamingCell(cell_info),
+TerrainStreamingCell::TerrainStreamingCell(WorldGrid* world_grid, const StreamingCellInfo& cell_info, const Handle<Scene>& scene, const Handle<Material>& material)
+    : StreamingCell(world_grid, cell_info),
       m_scene(scene),
       m_material(material)
 {
@@ -358,10 +358,8 @@ void TerrainStreamingCell::OnLoaded_Impl()
     const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager();
     AssertThrow(entity_manager != nullptr);
 
-    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh ID: #{}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale, m_cell_info.bounds, m_mesh.GetID().Value());
-
     Transform transform;
-    transform.SetTranslation(m_cell_info.bounds.min);
+    transform.SetTranslation(GetBoundingBox_Impl().min);
     transform.SetScale(m_cell_info.scale);
 
     Handle<Entity> entity = entity_manager->AddEntity();
@@ -519,9 +517,94 @@ Handle<StreamingCell> TerrainWorldGridLayer::CreateStreamingCell_Impl(const Stre
         return Handle<StreamingCell>::empty;
     }
 
-    return CreateObject<TerrainStreamingCell>(cell_info, m_scene, m_material);
+    return CreateObject<TerrainStreamingCell>(nullptr, cell_info, m_scene, m_material);
 }
 
 #pragma endregion TerrainWorldGridLayer
+#pragma region TerrainWorldGridPlugin
+
+TerrainWorldGridPlugin::TerrainWorldGridPlugin()
+    : m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
+{
+    m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
+}
+
+TerrainWorldGridPlugin::~TerrainWorldGridPlugin()
+{
+}
+
+void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    HYP_LOG(WorldGrid, Debug, "Initializing TerrainWorldGridPlugin");
+
+    AssertDebug(m_scene.IsValid());
+    InitObject(m_scene);
+
+    world_grid->GetWorld()->AddScene(m_scene);
+
+    m_material = CreateObject<Material>(NAME("terrain_material"));
+    m_material->SetBucket(BUCKET_OPAQUE);
+    m_material->SetIsDepthTestEnabled(true);
+    m_material->SetIsDepthWriteEnabled(true);
+    m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.85f);
+    m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
+    m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
+
+    // if (auto albedo_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-albedo.png"))
+    // {
+    //     Handle<Texture> albedo_texture = albedo_texture_asset->Result();
+
+    //     TextureDesc texture_desc = albedo_texture->GetTextureDesc();
+    //     texture_desc.format = InternalFormat::RGBA8_SRGB;
+    //     albedo_texture->SetTextureDesc(texture_desc);
+
+    //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);
+    // }
+
+    // if (auto ground_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/mossy-ground1-Unity/mossy-ground1-preview.png"))
+    // {
+    //     m_material->SetTexture(MaterialTextureKey::NORMAL_MAP, ground_texture_asset->Result());
+    // }
+
+    InitObject(m_material);
+}
+
+void TerrainWorldGridPlugin::Shutdown_Impl(WorldGrid* world_grid)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    AssertDebug(world_grid != nullptr);
+
+    HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
+
+    world_grid->GetWorld()->RemoveScene(m_scene);
+}
+
+void TerrainWorldGridPlugin::Update_Impl(float delta)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+}
+
+Handle<StreamingCell> TerrainWorldGridPlugin::CreatePatch_Impl(WorldGrid* world_grid, const StreamingCellInfo& cell_info)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (!m_scene.IsValid())
+    {
+        HYP_LOG(WorldGrid, Error, "Scene is not valid for TerrainWorldGridPlugin");
+
+        return Handle<StreamingCell>::empty;
+    }
+
+    return CreateObject<TerrainStreamingCell>(world_grid, cell_info, m_scene, m_material);
+}
+
+#pragma endregion TerrainWorldGridPlugin
 
 } // namespace hyperion
