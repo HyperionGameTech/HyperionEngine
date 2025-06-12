@@ -743,10 +743,7 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
 
                            HYP_LOG(Editor, Info, "Project {} scene: {}", *project->GetName(), *project_scene->GetName());
 
-                           GetWorld()->AddScene(project_scene);
-
                            m_scene = project_scene;
-                           AssertThrow(InitObject(m_scene));
 
                            { // Ensure nodes with entities have BVH for ray testing on mouse click
                                for (Node* child : m_scene->GetRoot()->GetDescendants())
@@ -764,6 +761,8 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                                                                                         }
                                                                                     }));
                            }
+
+                           GetWorld()->AddScene(project_scene);
 
                            m_camera = m_scene->GetPrimaryCamera();
                            AssertThrowMsg(InitObject(m_camera), "Failed to initialize editor camera for scene %s", *m_scene->GetName());
@@ -1142,6 +1141,9 @@ void EditorSubsystem::InitViewport()
 
         InitObject(view);
 
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
+        m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
+
         GetWorld()->AddView(view);
 
         m_views.PushBack(view);
@@ -1168,9 +1170,6 @@ void EditorSubsystem::InitViewport()
         AssertThrow(ui_image != nullptr);
 
         m_scene_texture.Reset();
-
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
-        m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
 
         m_scene_texture = screen_capture_render_subsystem->GetTexture();
         AssertThrow(m_scene_texture.IsValid());

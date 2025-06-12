@@ -377,7 +377,7 @@ public:
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !require_current_thread, "Cannot use require_current_thread for non-void delegate return type");
 
-        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID());
+        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID::Invalid());
     }
 
     /*! \brief Bind a Proc<> to the Delegate.

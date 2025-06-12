@@ -6,6 +6,7 @@
 #include <Game.hpp>
 
 namespace hyperion {
+class EditorSubsystem;
 namespace editor {
 
 class HyperionEditorImpl;
@@ -27,7 +28,11 @@ public:
     virtual void OnInputEvent(const SystemEvent& event) override;
 
 protected:
+    virtual void PostInit() override;
+
     HyperionEditorImpl* m_impl;
+    Handle<Scene> m_scene; // temp
+    RC<EditorSubsystem> m_editor_subsystem;
 };
 } // namespace editor
 

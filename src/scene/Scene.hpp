@@ -90,15 +90,8 @@ public:
     Scene();
 
     Scene(EnumFlags<SceneFlags> flags);
-
-    Scene(
-        World* world,
-        EnumFlags<SceneFlags> flags = SceneFlags::NONE);
-
-    Scene(
-        World* world,
-        ThreadID owner_thread_id,
-        EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+    Scene(World* world, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+    Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
 
     Scene(const Scene& other) = delete;
     Scene& operator=(const Scene& other) = delete;

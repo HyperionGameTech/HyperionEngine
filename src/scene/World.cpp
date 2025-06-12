@@ -173,11 +173,18 @@ void World::Init()
     shader_data.game_time = m_game_state.game_time;
     m_render_resource->SetBufferData(shader_data);
 
-    InitObject(m_world_grid);
-
     for (auto& it : m_subsystems)
     {
         it.second->Initialize();
+    }
+
+    InitObject(m_world_grid);
+
+    for (const Handle<View>& view : m_views)
+    {
+        InitObject(view);
+
+        m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
     }
 
     for (const Handle<Scene>& scene : m_scenes)
@@ -205,13 +212,6 @@ void World::Init()
         }
 
         m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
-    }
-
-    for (const Handle<View>& view : m_views)
-    {
-        InitObject(view);
-
-        m_render_resource->AddView(TResourceHandle<RenderView>(view->GetRenderResource()));
     }
 
     m_render_resource->IncRef();
@@ -373,12 +373,8 @@ RC<Subsystem> World::AddSubsystem(TypeID type_id, const RC<Subsystem>& subsystem
         return nullptr;
     }
 
-    // If World is already initialized, ensure that the call is made on the correct thread
-    // otherwise, it is safe to call this function from the World constructor (main thread)
-    if (IsInitCalled())
-    {
-        Threads::AssertOnThread(g_game_thread);
-    }
+    // temp; removed for debugging
+    // Threads::AssertOnThread(g_game_thread);
 
     subsystem->SetWorld(this);
 

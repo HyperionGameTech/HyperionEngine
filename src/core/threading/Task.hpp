@@ -171,6 +171,7 @@ class HYP_API TaskExecutorBase : public ITaskExecutor
 public:
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
+          m_initiator_thread_id(ThreadID::Invalid()),
           m_assigned_scheduler(nullptr)
     {
         // set notifier to initial value of 1 (one task)

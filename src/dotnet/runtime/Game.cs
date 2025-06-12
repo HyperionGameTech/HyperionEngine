@@ -5,16 +5,16 @@ namespace Hyperion
 {
     public abstract class Game
     {
-        private Scene? scene;
+        private World? world;
         private InputManager? inputManager;
         private AssetManager? assetManager;
         private UIStage? uiStage;
 
-        protected Scene Scene
+        protected World World
         {
             get
             {
-                return scene!;
+                return world!;
             }
         }
 
@@ -45,9 +45,9 @@ namespace Hyperion
         /// <summary>
         /// Invoked from native code before the Init() is called.
         /// Sets up handles used by the Game instance.
-        internal void BeforeInit(Scene scene, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
+        internal void BeforeInit(World world, InputManager inputManager, AssetManager assetManager, UIStage uiStage)
         {
-            this.scene = scene;
+            this.world = world;
             this.inputManager = inputManager;
             this.assetManager = assetManager;
             this.uiStage = uiStage;

@@ -140,10 +140,7 @@ Scene::Scene(World* world, EnumFlags<SceneFlags> flags)
 {
 }
 
-Scene::Scene(
-    World* world,
-    ThreadID owner_thread_id,
-    EnumFlags<SceneFlags> flags)
+Scene::Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags)
     : m_name(Name::Unique("Scene")),
       m_flags(flags),
       m_owner_thread_id(owner_thread_id),

@@ -40,8 +40,13 @@ public:
     HYP_API static const ThreadID& Current();
     HYP_API static const ThreadID& Invalid();
 
-    constexpr ThreadID()
-        : m_value(0)
+    /// Keep ThreadID constructible - thread_locals must be trivial or face some pretty bad performance issues
+    /// @see https://yosefk.com/blog/cxx-thread-local-storage-performance.html
+    constexpr ThreadID() = default;
+
+    constexpr ThreadID(uint32 value, uint32 name_id)
+        : m_value(value),
+          m_name_id(name_id)
     {
     }
 
@@ -71,7 +76,7 @@ public:
 
     HYP_FORCE_INLINE constexpr Name GetName() const
     {
-        return m_name;
+        return Name(m_name_id);
     }
 
     /*! \brief Check if this thread ID is a dynamic thread ID.
@@ -118,11 +123,11 @@ protected:
     HYP_API ThreadID(Name name, ThreadCategory category, uint32 allocate_flags);
 
     uint32 m_value;
-    Name m_name;
+    uint32 m_name_id;
 };
 
-static_assert(std::is_trivially_destructible_v<ThreadID>,
-    "ThreadID must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
+static_assert(std::is_trivially_constructible_v<ThreadID>, "ThreadID must be trivially constructible! See performance implications of thread_local variables in C++");
+static_assert(std::is_trivially_destructible_v<ThreadID>, "ThreadID must be trivially destructible! See performance implications of thread_local variables in C++");
 
 /*! \brief StaticThreadIDs may be used for bitwise operations as only one bit will be set for the value. */
 class HYP_API StaticThreadID : public ThreadID

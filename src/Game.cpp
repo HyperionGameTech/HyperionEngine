@@ -43,7 +43,6 @@ HYP_DECLARE_LOG_CHANNEL(GameThread);
 
 Game::Game()
     : m_is_init(false),
-      m_render_scene(nullptr),
       m_managed_game_object(nullptr)
 {
 }
@@ -51,8 +50,7 @@ Game::Game()
 Game::Game(Optional<ManagedGameInfo> managed_game_info)
     : m_is_init(false),
       m_managed_game_info(std::move(managed_game_info)),
-      m_managed_game_object(nullptr),
-      m_render_scene(nullptr)
+      m_managed_game_object(nullptr)
 {
 }
 
@@ -87,7 +85,7 @@ void Game::Init_Internal()
 
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
-        [this, window_size, promise = future.Promise()]() -> void
+        [this, window_size]() -> void
         {
             if (m_managed_game_info.HasValue())
             {
@@ -106,69 +104,48 @@ void Game::Init_Internal()
             AssertThrow(world.IsValid());
             InitObject(world);
 
-            m_scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
-            m_scene->SetName(NAME("Scene_Main"));
-            m_scene->SetIsAudioListener(true);
+            // m_scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
+            // m_scene->SetName(NAME("Scene_Main"));
+            // m_scene->SetIsAudioListener(true);
 
-            world->AddScene(m_scene);
-
-            InitObject(m_scene);
+            // world->AddScene(m_scene);
 
             RC<UIStage> ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
             m_ui_subsystem = world->AddSubsystem<UISubsystem>(ui_stage);
 
-            // Call Init method (overridden)
-            Init();
+            // Init();
 
-            promise->Fulfill();
+            // m_is_init = true;
+
+            HYP_LOG(GameThread, Debug, "Game thread initialized successfully");
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_game_thread->Start(this);
 
+    m_game_thread->GetScheduler().Enqueue([this, promise = future.Promise()]()
+        {
+            // Call Init method (overridden)
+            Init();
+            // HYP_BREAKPOINT;
+
+            m_is_init = true;
+            promise->Fulfill();
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+
     future.Await();
 
-    m_is_init = true;
+    m_game_thread->GetScheduler().Enqueue([this]()
+        {
+            PostInit();
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
 }
 
 void Game::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
-
-    struct RENDER_COMMAND(UpdateGameSceneRenderResource)
-        : public renderer::RenderCommand
-    {
-        Game& game;
-        TResourceHandle<RenderScene> render_scene;
-
-        RENDER_COMMAND(UpdateGameSceneRenderResource)(Game& game, const TResourceHandle<RenderScene>& render_scene)
-            : game(game),
-              render_scene(render_scene)
-        {
-        }
-
-        virtual ~RENDER_COMMAND(UpdateGameSceneRenderResource)() override = default;
-
-        virtual RendererResult operator()() override
-        {
-            game.m_render_scene_handle = render_scene;
-
-            HYPERION_RETURN_OK;
-        }
-    };
-
-    if (m_scene.IsValid() && m_scene->IsReady() && &m_scene->GetRenderResource() != m_render_scene)
-    {
-        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<RenderScene>(m_scene->GetRenderResource()));
-
-        m_render_scene = &m_scene->GetRenderResource();
-    }
-    else if ((!m_scene.IsValid() || !m_scene->IsReady()) && m_render_scene != nullptr)
-    {
-        PUSH_RENDER_COMMAND(UpdateGameSceneRenderResource, *this, TResourceHandle<RenderScene>());
-
-        m_render_scene = nullptr;
-    }
 
     g_engine->GetScriptingService()->Update();
 
@@ -192,7 +169,7 @@ void Game::Init()
     {
         m_managed_game_object->InvokeMethodByName<void>(
             "BeforeInit",
-            m_scene,
+            g_engine->GetWorld(),
             m_app_context->GetInputManager(),
             AssetManager::GetInstance(),
             m_ui_subsystem->GetUIStage());
@@ -206,12 +183,6 @@ void Game::Teardown()
     HYP_SCOPE;
 
     HYP_SYNC_RENDER(); // prevent dangling references to this
-
-    if (m_scene)
-    {
-        g_engine->GetWorld()->RemoveScene(m_scene);
-        m_scene.Reset();
-    }
 
     m_is_init = false;
 }
@@ -298,6 +269,7 @@ void Game::OnInputEvent(const SystemEvent& event)
 
     return; // temp
 
+#if 0
     switch (event.GetType())
     {
     case SystemEventType::EVENT_MOUSESCROLL:
@@ -366,6 +338,7 @@ void Game::OnInputEvent(const SystemEvent& event)
     default:
         break;
     }
+#endif
 }
 
 } // namespace hyperion

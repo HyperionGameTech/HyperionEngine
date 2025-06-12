@@ -48,11 +48,6 @@ public:
     HYP_API Game(Optional<ManagedGameInfo> managed_game_info);
     HYP_API virtual ~Game();
 
-    const Handle<Scene>& GetScene() const
-    {
-        return m_scene;
-    }
-
     const Handle<AppContextBase>& GetAppContext() const
     {
         return m_app_context;
@@ -77,6 +72,9 @@ public:
     HYP_API virtual void OnInputEvent(const SystemEvent& event);
 
 protected:
+    HYP_API virtual void PostInit()
+    {
+    } // temp
     virtual void Logic(GameCounter::TickUnit delta) = 0;
 
     const RC<UISubsystem>& GetUISubsystem() const
@@ -85,8 +83,6 @@ protected:
     }
 
     Handle<AppContextBase> m_app_context;
-
-    Handle<Scene> m_scene;
 
     RC<UISubsystem> m_ui_subsystem;
 
@@ -103,9 +99,6 @@ private:
     Optional<ManagedGameInfo> m_managed_game_info;
 
     UniquePtr<GameThread> m_game_thread;
-
-    RenderScene* m_render_scene;
-    ResourceHandle m_render_scene_handle;
 };
 
 } // namespace hyperion
