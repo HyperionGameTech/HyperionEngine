@@ -147,8 +147,6 @@ public:
 
     StreamingManagerThread()
         : Thread(ThreadID(Name::Unique("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
-          m_is_running { false },
-          m_stop_requested { false },
           m_thread_pool(MakeUnique<StreamingThreadPool>())
     {
     }
@@ -304,12 +302,6 @@ public:
         return m_notifier;
     }
 
-    /*! \brief Atomically load the boolean value indicating that this thread is actively running */
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
     void Stop()
     {
         m_thread_pool->Stop();
@@ -321,8 +313,6 @@ public:
 private:
     virtual void operator()(StreamingManager* streaming_manager) override
     {
-        m_is_running.Set(true, MemoryOrder::RELAXED);
-
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
             InitObject(volume);
@@ -354,8 +344,6 @@ private:
             }
             while (num > 0 && !m_stop_requested.Get(MemoryOrder::RELAXED));
         }
-
-        m_is_running.Set(false, MemoryOrder::RELAXED);
     }
 
     void StartWorkerThreadPool();
@@ -390,9 +378,6 @@ private:
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
-
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
 
     UniquePtr<StreamingThreadPool> m_thread_pool;
 

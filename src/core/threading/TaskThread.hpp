@@ -27,11 +27,6 @@ public:
 
     void SetPriority(ThreadPriorityValue priority);
 
-    HYP_FORCE_INLINE bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
     HYP_FORCE_INLINE bool IsFree() const
     {
         return NumTasks() == 0;
@@ -41,8 +36,6 @@ public:
     {
         return m_num_tasks.Get(MemoryOrder::ACQUIRE);
     }
-
-    virtual void Stop();
 
 protected:
     /*! \brief Method to be executed each tick of the task thread, before executing tasks.
@@ -59,8 +52,6 @@ protected:
 
     virtual void operator()() override;
 
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
     AtomicVar<uint32> m_num_tasks;
 
     Queue<Scheduler::ScheduledTask> m_task_queue;

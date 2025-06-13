@@ -68,17 +68,8 @@ public:
     SocketServerThread(const String& socket_name);
     virtual ~SocketServerThread() override = default;
 
-    void Stop();
-
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
 private:
     virtual void operator()(SocketServer*) override;
-
-    AtomicVar<bool> m_is_running;
 };
 
 class HYP_API SocketClient : public SocketConnection

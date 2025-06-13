@@ -386,8 +386,6 @@ HYP_API void Engine::Init()
     m_view->IncRef();
 
     m_world = CreateObject<World>();
-    InitObject(m_world); // temp
-
     AssertThrowMsg(m_app_context->GetGame() != nullptr, "Game not set on AppContext!");
     m_app_context->GetGame()->Init_Internal();
 

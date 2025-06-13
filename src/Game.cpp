@@ -74,18 +74,26 @@ void Game::Init_Internal()
 
     AssertThrowMsg(m_app_context != nullptr, "No valid Application instance was provided to Game constructor!");
 
-    Vec2i window_size;
-
-    if (m_app_context->GetMainWindow())
-    {
-        window_size = m_app_context->GetMainWindow()->GetDimensions();
-    }
-
-    // Task<void> future;
+    Task<void> init_world_future;
 
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
-        [this, window_size]() -> void
+        [this, promise = init_world_future.Promise()]() -> void
+        {
+            const Handle<World>& world = g_engine->GetWorld();
+            AssertThrow(world.IsValid());
+            InitObject(world);
+
+            promise->Fulfill();
+        },
+        TaskEnqueueFlags::FIRE_AND_FORGET);
+
+    m_game_thread->Start(this);
+    init_world_future.Await();
+
+    m_game_thread->GetScheduler().Enqueue(
+        HYP_STATIC_MESSAGE("Initialize game"),
+        [this]() -> void
         {
             if (m_managed_game_info.HasValue())
             {
@@ -102,43 +110,14 @@ void Game::Init_Internal()
 
             const Handle<World>& world = g_engine->GetWorld();
             AssertThrow(world.IsValid());
-            InitObject(world);
-
-            // m_scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
-            // m_scene->SetName(NAME("Scene_Main"));
-            // m_scene->SetIsAudioListener(true);
-
-            // world->AddScene(m_scene);
 
             RC<UIStage> ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
             m_ui_subsystem = world->AddSubsystem<UISubsystem>(ui_stage);
 
-            // Init();
-
-            // m_is_init = true;
-
-            HYP_LOG(GameThread, Debug, "Game thread initialized successfully");
-        },
-        TaskEnqueueFlags::FIRE_AND_FORGET);
-
-    m_game_thread->Start(this);
-
-    m_game_thread->GetScheduler().Enqueue([this /*, promise = future.Promise()*/]()
-        {
-            // Call Init method (overridden)
             Init();
-            // HYP_BREAKPOINT;
+            PostInit(); // temp
 
             m_is_init = true;
-            // promise->Fulfill();
-        },
-        TaskEnqueueFlags::FIRE_AND_FORGET);
-
-    // future.Await();
-
-    m_game_thread->GetScheduler().Enqueue([this]()
-        {
-            PostInit();
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
 }

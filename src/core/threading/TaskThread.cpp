@@ -20,16 +20,12 @@ static const double g_task_thread_single_task_lag_spike_threshold = 10.0;
 
 TaskThread::TaskThread(const ThreadID& thread_id, ThreadPriorityValue priority)
     : Thread(thread_id, priority),
-      m_is_running(false),
-      m_stop_requested(false),
       m_num_tasks(0)
 {
 }
 
 TaskThread::TaskThread(Name name, ThreadPriorityValue priority)
     : Thread(ThreadID(name, THREAD_CATEGORY_TASK), priority),
-      m_is_running(false),
-      m_stop_requested(false),
       m_num_tasks(0)
 {
 }
@@ -40,18 +36,8 @@ void TaskThread::SetPriority(ThreadPriorityValue priority)
     HYP_NOT_IMPLEMENTED();
 }
 
-void TaskThread::Stop()
-{
-    m_stop_requested.Set(true, MemoryOrder::RELAXED);
-
-    m_scheduler.RequestStop();
-
-    m_is_running.Set(false, MemoryOrder::RELAXED);
-}
-
 void TaskThread::operator()()
 {
-    m_is_running.Set(true, MemoryOrder::RELAXED);
     m_num_tasks.Set(m_task_queue.Size(), MemoryOrder::RELEASE);
 
     while (!m_stop_requested.Get(MemoryOrder::RELAXED))
@@ -128,8 +114,6 @@ void TaskThread::operator()()
 
         AfterExecuteTasks();
     }
-
-    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 } // namespace threading
 } // namespace hyperion

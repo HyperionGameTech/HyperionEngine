@@ -33,28 +33,13 @@ class ProfilerConnectionThread final : public Thread<Scheduler, ProfilerConnecti
 {
 public:
     ProfilerConnectionThread()
-        : Thread(ThreadID(Name::Unique("ProfilerConnectionThread")), ThreadPriorityValue::LOWEST),
-          m_is_running { false },
-          m_stop_requested { false }
+        : Thread(ThreadID(Name::Unique("ProfilerConnectionThread")), ThreadPriorityValue::LOWEST)
     {
-    }
-
-    /*! \brief Atomically load the boolean value indicating that this thread is actively running */
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
-    void Stop()
-    {
-        m_stop_requested.Set(true, MemoryOrder::RELAXED);
     }
 
 private:
     virtual void operator()(ProfilerConnection* profiler_connection) override
     {
-        m_is_running.Set(true, MemoryOrder::RELAXED);
-
         if (StartConnection(profiler_connection))
         {
             while (!m_stop_requested.Get(MemoryOrder::RELAXED))
@@ -62,15 +47,10 @@ private:
                 DoWork(profiler_connection);
             }
         }
-
-        m_is_running.Set(false, MemoryOrder::RELAXED);
     }
 
     bool StartConnection(ProfilerConnection* profiler_connection);
     void DoWork(ProfilerConnection* profiler_connection);
-
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
 };
 
 #pragma endregion ProfilerConnectionThread

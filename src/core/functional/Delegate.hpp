@@ -391,6 +391,13 @@ public:
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadID::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
 
+#ifdef HYP_DEBUG_MODE
+        if (calling_thread_id != ThreadID::Invalid())
+        {
+            AssertDebugMsg(Threads::GetThread(calling_thread_id) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");
+        }
+#endif
+
         Mutex::Guard guard(m_mutex);
 
         DelegateHandlerEntry<ProcType>* entry = m_procs.PushBack(new DelegateHandlerEntry<ProcType>());

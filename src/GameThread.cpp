@@ -27,15 +27,8 @@ HYP_DEFINE_LOG_CHANNEL(GameThread);
 static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
 GameThread::GameThread()
-    : Thread(g_game_thread, ThreadPriorityValue::HIGHEST),
-      m_is_running { false },
-      m_stop_requested { false }
+    : Thread(g_game_thread, ThreadPriorityValue::HIGHEST)
 {
-}
-
-void GameThread::Stop()
-{
-    m_stop_requested.Set(true, MemoryOrder::RELAXED);
 }
 
 void GameThread::operator()(Game* game)
@@ -48,8 +41,6 @@ void GameThread::operator()(Game* game)
 #else
     GameCounter counter;
 #endif
-
-    m_is_running.Set(true, MemoryOrder::RELAXED);
 
     g_engine->GetDebugDrawer()->Initialize();
 
@@ -103,8 +94,6 @@ void GameThread::operator()(Game* game)
         });
 
     game->Teardown();
-
-    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 } // namespace hyperion

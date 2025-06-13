@@ -80,8 +80,17 @@ public:
         return m_scheduler;
     }
 
+    HYP_FORCE_INLINE bool IsRunning() const
+    {
+        return m_is_running.Get(MemoryOrder::RELAXED);
+    }
+
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);
+
+    /*! \brief Request the thread to stop running. This does not immediately stop the thread, but sets a flag that the thread should stop.
+     *  The thread should check this flag periodically and exit when it is set. */
+    virtual void Stop();
 
     /*! \brief Detach the thread from the current thread and let it run in the background until it finishes execution */
     void Detach();
@@ -101,14 +110,19 @@ protected:
 
     Scheduler m_scheduler;
 
+    AtomicVar<bool> m_stop_requested;
+
 private:
     std::thread* m_thread;
+    AtomicVar<bool> m_is_running;
 };
 
 template <class Scheduler, class... Args>
 Thread<Scheduler, Args...>::Thread(const ThreadID& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
+      m_is_running(false),
+      m_stop_requested(false),
       m_thread(nullptr)
 {
     RegisterThread(m_id, this);
@@ -139,6 +153,10 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
         return false;
     }
 
+    AssertThrowMsg(!m_is_running.Get(MemoryOrder::RELAXED), "Thread is already running");
+
+    m_is_running.Set(true, MemoryOrder::RELAXED);
+
     m_thread = new std::thread([this, tuple_args = MakeTuple(args...)](...) -> void
         {
             SetCurrentThreadObject(this);
@@ -146,9 +164,19 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
             m_scheduler.SetOwnerThread(GetID());
 
             (*this)((tuple_args.template GetElement<Args>())...);
+
+            m_is_running.Set(false, MemoryOrder::RELAXED);
         });
 
     return true;
+}
+
+template <class Scheduler, class... Args>
+void Thread<Scheduler, Args...>::Stop()
+{
+    m_stop_requested.Set(true, MemoryOrder::RELAXED);
+
+    m_scheduler.RequestStop();
 }
 
 template <class Scheduler, class... Args>

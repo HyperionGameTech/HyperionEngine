@@ -15,7 +15,7 @@
 namespace hyperion {
 namespace threading {
 
-const ThreadID ThreadID::invalid = ThreadID(0, 0);
+const ThreadID ThreadID::invalid = ThreadID();
 
 class GlobalThreadIDCache
 {
@@ -165,12 +165,16 @@ ThreadID::ThreadID(Name name, bool force_unique)
 }
 
 ThreadID::ThreadID(Name name, ThreadCategory category, bool force_unique)
-    : ThreadID(name, category, AllocateFlags::DYNAMIC | (force_unique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
+    : ThreadID(
+          name,
+          category,
+          AllocateFlags::DYNAMIC
+              | (force_unique ? AllocateFlags::FORCE_UNIQUE : AllocateFlags::NONE))
 {
 }
 
 ThreadID::ThreadID(Name name, ThreadCategory category, uint32 allocate_flags)
-    : m_name_id(name.GetID()),
+    : m_name(name),
       m_value(MakeThreadIDValue(name, category, allocate_flags))
 {
 }
@@ -186,7 +190,7 @@ StaticThreadID::StaticThreadID(Name name, bool force_unique)
 
 StaticThreadID::StaticThreadID(uint32 static_thread_index)
 {
-    m_name_id = GetStaticThreadIDCache().FindNameByIndex(static_thread_index + 1).GetID();
+    m_name = GetStaticThreadIDCache().FindNameByIndex(static_thread_index + 1);
     m_value = ((1u << static_thread_index) << 4) & g_thread_id_mask;
 }
 

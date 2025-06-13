@@ -22,19 +22,8 @@ class GameThread final : public Thread<Scheduler, Game*>
 public:
     GameThread();
 
-    /*! \brief Atomically load the boolean value indicating that this thread is actively running */
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
-    void Stop();
-
 private:
     virtual void operator()(Game* game) override;
-
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
 };
 
 } // namespace hyperion
