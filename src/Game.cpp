@@ -82,10 +82,11 @@ void Game::Init_Internal()
     {
         window_size = m_app_context->GetMainWindow()->GetDimensions();
     }
+    // Task<void> future;
 
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
-        [this, window_size]() -> void
+        [this, window_size /* promise = future.Initialize()*/]() -> void
         {
             if (m_managed_game_info.HasValue())
             {
@@ -106,6 +107,7 @@ void Game::Init_Internal()
 
             const Handle<World>& world = g_engine->GetWorld();
             AssertThrow(world.IsValid());
+            // InitObject(world);
 
             world->AddScene(m_scene);
             InitObject(m_scene);
@@ -115,10 +117,14 @@ void Game::Init_Internal()
 
             // Call Init method (overridden)
             Init();
+
+            // promise->Fulfill();
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
 
     m_game_thread->Start(this);
+
+    // future.Await();
 
     m_is_init = true;
 }
