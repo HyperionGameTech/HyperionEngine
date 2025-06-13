@@ -429,10 +429,10 @@ void TerrainStreamingCell::OnRemoved_Impl()
 
 #pragma region TerrainWorldGridPlugin
 
-TerrainWorldGridPlugin::TerrainWorldGridPlugin()
-    : m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
+TerrainWorldGridPlugin::TerrainWorldGridPlugin(const Handle<Scene>& scene)
+    : m_scene(scene) // m_scene(CreateObject<Scene>(SceneFlags::FOREGROUND))
 {
-    m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
+    // m_scene->SetName(Name::Unique("TerrainWorldGridScene"));
 }
 
 TerrainWorldGridPlugin::~TerrainWorldGridPlugin()
@@ -449,7 +449,7 @@ void TerrainWorldGridPlugin::Initialize_Impl(WorldGrid* world_grid)
     AssertDebug(m_scene.IsValid());
     InitObject(m_scene);
 
-    world_grid->GetWorld()->AddScene(m_scene);
+    // world_grid->GetWorld()->AddScene(m_scene);
 
     m_material = CreateObject<Material>(NAME("terrain_material"));
     m_material->SetBucket(BUCKET_OPAQUE);
@@ -487,7 +487,7 @@ void TerrainWorldGridPlugin::Shutdown_Impl(WorldGrid* world_grid)
 
     HYP_LOG(WorldGrid, Info, "Shutting down TerrainWorldGridPlugin");
 
-    world_grid->GetWorld()->RemoveScene(m_scene);
+    // world_grid->GetWorld()->RemoveScene(m_scene);
 }
 
 void TerrainWorldGridPlugin::Update_Impl(float delta)

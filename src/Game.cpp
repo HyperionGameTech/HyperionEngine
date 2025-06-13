@@ -86,7 +86,7 @@ void Game::Init_Internal()
 
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
-        [this, window_size /* promise = future.Initialize()*/]() -> void
+        [this, window_size /*, promise = future.Initialize()*/]() -> void
         {
             if (m_managed_game_info.HasValue())
             {

@@ -47,7 +47,7 @@ class HYP_API TerrainWorldGridPlugin : public WorldGridPlugin
     HYP_OBJECT_BODY(TerrainWorldGridPlugin);
 
 public:
-    TerrainWorldGridPlugin();
+    TerrainWorldGridPlugin(const Handle<Scene>& scene);
     virtual ~TerrainWorldGridPlugin() override;
 
     HYP_METHOD()

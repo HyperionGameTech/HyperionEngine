@@ -111,7 +111,7 @@ void HyperionEditor::Init()
     if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
     {
         // Initialize the world grid subsystem
-        world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
+        world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>(m_scene));
     }
 
     // Calculate memory pool usage
