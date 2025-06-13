@@ -81,7 +81,7 @@ void Game::Init_Internal()
         window_size = m_app_context->GetMainWindow()->GetDimensions();
     }
 
-    Task<void> future;
+    // Task<void> future;
 
     m_game_thread->GetScheduler().Enqueue(
         HYP_STATIC_MESSAGE("Initialize game"),
@@ -123,18 +123,18 @@ void Game::Init_Internal()
 
     m_game_thread->Start(this);
 
-    m_game_thread->GetScheduler().Enqueue([this, promise = future.Promise()]()
+    m_game_thread->GetScheduler().Enqueue([this /*, promise = future.Promise()*/]()
         {
             // Call Init method (overridden)
             Init();
             // HYP_BREAKPOINT;
 
             m_is_init = true;
-            promise->Fulfill();
+            // promise->Fulfill();
         },
         TaskEnqueueFlags::FIRE_AND_FORGET);
 
-    future.Await();
+    // future.Await();
 
     m_game_thread->GetScheduler().Enqueue([this]()
         {

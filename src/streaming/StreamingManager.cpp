@@ -724,9 +724,6 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layer_data
 
         out_cell_coords.Insert(Vec2i(current));
 
-        //
-        break; // temp
-
         for (const Vec2i dir : cell_neighbor_directions)
         {
             const Vec2f neighbor = current + Vec2f(dir);
