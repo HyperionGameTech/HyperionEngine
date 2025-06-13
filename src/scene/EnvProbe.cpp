@@ -141,13 +141,6 @@ EnvProbe::~EnvProbe()
 
 void EnvProbe::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
         {
             m_camera.Reset();

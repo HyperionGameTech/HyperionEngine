@@ -26,13 +26,6 @@ RenderState::~RenderState() = default;
 
 void RenderState::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     SetReady(true);
 }
 

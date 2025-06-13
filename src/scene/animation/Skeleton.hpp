@@ -4,10 +4,13 @@
 #define HYPERION_SKELETON_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
 
 #include <core/utilities/DataMutationState.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
+
+#include <core/math/Matrix4.hpp>
 
 #include <core/containers/Array.hpp>
 

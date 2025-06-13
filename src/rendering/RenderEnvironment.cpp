@@ -112,13 +112,6 @@ RenderEnvironment::~RenderEnvironment()
 
 void RenderEnvironment::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     m_particle_system = CreateObject<ParticleSystem>();
     InitObject(m_particle_system);
 

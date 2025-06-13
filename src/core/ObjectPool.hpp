@@ -168,8 +168,6 @@ struct HypObjectMemory final : HypObjectHeader
         if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1)
         {
 #ifdef HYP_DEBUG_MODE
-            AssertThrow(has_value.Exchange(false, MemoryOrder::SEQUENTIAL));
-
             AssertThrow(container != nullptr);
             AssertThrow(index != ~0u);
 #endif
@@ -183,10 +181,6 @@ struct HypObjectMemory final : HypObjectHeader
 
             if (ref_count_weak.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1)
             {
-#ifdef HYP_DEBUG_MODE
-                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
-#endif
-
                 // Free the slot for this
                 container->ReleaseIndex(index);
             }
@@ -212,9 +206,6 @@ struct HypObjectMemory final : HypObjectHeader
 
             if (ref_count_strong.Get(MemoryOrder::ACQUIRE) == 0)
             {
-#ifdef HYP_DEBUG_MODE
-                AssertThrow(!has_value.Get(MemoryOrder::SEQUENTIAL));
-#endif
 
                 // Free the slot for this
                 container->ReleaseIndex(index);

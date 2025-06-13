@@ -229,13 +229,6 @@ Camera::~Camera()
 
 void Camera::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     m_streaming_volume = CreateObject<CameraStreamingVolume>();
     /// \todo: Set a proper bounding box for the streaming volume
     m_streaming_volume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
@@ -306,7 +299,7 @@ void Camera::Init()
         InitObject(camera_controller);
     }
 
-    if (const Handle<CameraController> &camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
+    if (const Handle<CameraController>& camera_controller = GetCameraController(); camera_controller && !camera_controller->IsInstanceOf<NullCameraController>())
     {
         camera_controller->OnAdded(this);
         camera_controller->OnActivated();

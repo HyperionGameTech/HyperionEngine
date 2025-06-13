@@ -128,13 +128,6 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uv_map, uint32 in
 
 void LightmapVolume::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind(
         [this]()
         {

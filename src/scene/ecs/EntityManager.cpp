@@ -386,13 +386,6 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
 
 void EntityManager::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     Threads::AssertOnThread(m_owner_thread_id);
 
     MoveEntityGuard move_entity_guard(*this);

@@ -34,12 +34,6 @@ RigidBody::~RigidBody()
 
 void RigidBody::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
 }
 
 void RigidBody::SetShape(const RC<PhysicsShape>& shape)

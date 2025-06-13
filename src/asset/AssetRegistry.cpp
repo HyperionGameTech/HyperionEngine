@@ -206,13 +206,6 @@ Result AssetObject::Save() const
 
 void AssetObject::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     if (m_resource != nullptr)
     {
         m_resource->m_asset_object = WeakHandleFromThis();
@@ -341,13 +334,6 @@ String AssetPackage::BuildAssetPath(Name asset_name) const
 
 void AssetPackage::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     Array<Handle<AssetObject>> asset_objects;
     Array<Handle<AssetPackage>> subpackages;
 
@@ -421,13 +407,6 @@ AssetRegistry::AssetRegistry(const String& root_path)
 
 void AssetRegistry::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     {
         Mutex::Guard guard(m_mutex);
 

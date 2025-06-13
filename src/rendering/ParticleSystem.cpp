@@ -196,13 +196,6 @@ ParticleSpawner::~ParticleSpawner()
 
 void ParticleSpawner::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     if (m_params.texture)
     {
         InitObject(m_params.texture);
@@ -326,13 +319,6 @@ ParticleSystem::~ParticleSystem()
 
 void ParticleSystem::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     m_quad_mesh = MeshBuilder::Quad();
     InitObject(m_quad_mesh);
 

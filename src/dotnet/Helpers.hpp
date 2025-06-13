@@ -6,6 +6,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/object/HypObjectFwd.hpp>
+#include <core/object/HypData.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
 
@@ -166,6 +167,33 @@ struct TransformArgument<FilePath>
 {
     HYP_API const char* operator()(const FilePath& value) const;
 };
+
+// Conditionally construct or reference existing HypData
+template <class T>
+static inline const HypData* SetArg_HypData(HypData* arr, SizeType index, T&& arg)
+{
+    if constexpr (is_hypdata_v<T>)
+    {
+        return &arg;
+    }
+    else
+    {
+        new (&arr[index]) HypData(std::forward<T>(arg));
+        return &arr[index];
+    }
+}
+
+// NOLINTBEGIN
+// ^^^ clang-lint wants to treat this as a global variable?
+// Expand over each argument to fill args_array and args_array_ptr
+template <class... Args, SizeType... Indices>
+static inline void SetArgs_HypData(std::index_sequence<Indices...>, HypData* arr, const HypData* (&array_ptr)[sizeof...(Args) + 1], Args&&... args)
+{
+    ((array_ptr[Indices] = SetArg_HypData(arr, Indices, std::forward<Args>(args))), ...);
+    array_ptr[sizeof...(Args)] = nullptr;
+}
+
+// NOLINTEND
 
 } // namespace hyperion::dotnet
 

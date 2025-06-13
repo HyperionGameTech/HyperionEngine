@@ -66,13 +66,6 @@ EditorProject::~EditorProject()
 
 void EditorProject::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     InitObject(m_asset_registry);
     InitObject(m_scene);
     InitObject(m_action_stack);

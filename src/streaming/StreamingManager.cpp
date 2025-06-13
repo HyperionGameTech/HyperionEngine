@@ -530,13 +530,6 @@ void StreamingManager::Stop()
 
 void StreamingManager::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             Stop();

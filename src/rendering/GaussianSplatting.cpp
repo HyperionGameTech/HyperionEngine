@@ -192,13 +192,6 @@ GaussianSplattingInstance::~GaussianSplattingInstance()
 
 void GaussianSplattingInstance::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     CreateBuffers();
     CreateShader();
     CreateRenderGroup();
@@ -583,13 +576,6 @@ GaussianSplatting::~GaussianSplatting()
 
 void GaussianSplatting::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]()
         {
             m_quad_mesh.Reset();

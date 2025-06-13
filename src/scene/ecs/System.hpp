@@ -203,13 +203,6 @@ public:
 
     virtual void Init() override
     {
-        if (IsInitCalled())
-        {
-            return;
-        }
-
-        HypObject::Init();
-
         SetReady(true);
     }
 

@@ -15,4 +15,4 @@ if [ ! -f ./build/hyperion-buildtool ]; then
 fi
 
 WORKING_DIR=`pwd`
-./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/build/generated --CSharpOutputDirectory=$WORKING_DIR/src/dotnet/runtime/gen --ExcludeDirectories=$WORKING_DIR/src/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp
+./build/hyperion-buildtool --WorkingDirectory=$WORKING_DIR --SourceDirectory=$WORKING_DIR/src --CXXOutputDirectory=$WORKING_DIR/build/generated --CSharpOutputDirectory=$WORKING_DIR/build/generated/dotnet/runtime --ExcludeDirectories=$WORKING_DIR/src/generated --ExcludeFiles=$WORKING_DIR/src/core/Defines.hpp

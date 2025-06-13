@@ -116,13 +116,6 @@ WorldGrid::~WorldGrid()
 
 void WorldGrid::Init()
 {
-    if (IsInitCalled())
-    {
-        return;
-    }
-
-    HypObject::Init();
-
     AddDelegateHandler(g_engine->GetDelegates().OnShutdown.Bind([this]
         {
             if (IsInitCalled())

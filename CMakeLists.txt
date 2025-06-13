@@ -57,6 +57,16 @@ function(RunHypBuildTool)
     if(NOT EXISTS ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH})
         message(FATAL_ERROR "RunHypBuildTool script not found in tools/scripts! Expected path: ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}")
     endif()
+
+    # # if the generated directory does not exist, create it
+    # file(MAKE_DIRECTORY ${HYP_GENERATED_DIR})
+    
+    # # if it does exist.. remove all source files in it
+    # file(GLOB_RECURSE GENERATED_FILES "${HYP_GENERATED_DIR}/**/*.generated.cpp" "${HYP_GENERATED_DIR}/*.cs")
+    # foreach(GENERATED_FILE ${GENERATED_FILES})
+    #     message(STATUS "Removing generated file: ${GENERATED_FILE}")
+    #     file(REMOVE ${GENERATED_FILE})
+    # endforeach()
     
     execute_process(
         COMMAND ${HYP_BUILD_TOOL_RUN_SCRIPT_PATH}
@@ -607,6 +617,7 @@ if(HYP_BUILD_CSHARP_LIBRARIES)
 
     file(GLOB_RECURSE CSHARP_CORE_SOURCES "src/dotnet/core/**.cs")
     file(GLOB_RECURSE CSHARP_RUNTIME_SOURCES "src/dotnet/runtime/**.cs")
+    file(GLOB_RECURSE CSHARP_RUNTIME_GENERATED_SOURCES "${HYP_GENERATED_DIR}/dotnet/runtime/**.cs")
     file(GLOB_RECURSE CSHARP_INTEROP_SOURCES "src/dotnet/interop/**.cs")
     file(GLOB_RECURSE CSHARP_SCRIPTING_SOURCES "src/dotnet/scripting/**.cs")
 
@@ -669,7 +680,8 @@ if(HYP_BUILD_CSHARP_LIBRARIES)
         )
     endif()
 
-    if(CSHARP_RUNTIME_SOURCES)# make a directory for the .csproj file
+    # check for any runtime sources or generated sources
+    if(CSHARP_RUNTIME_SOURCES OR CSHARP_RUNTIME_GENERATED_SOURCES)
         file(MAKE_DIRECTORY ${CSHARP_PROJECTS_DIR}/HyperionRuntime)
 
         # generate .csproj file
@@ -687,8 +699,15 @@ if(HYP_BUILD_CSHARP_LIBRARIES)
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "  <ItemGroup>\n")
         file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <PackageReference Include=\"Microsoft.NETCore.DotNetAppHost\" Version=\"8.0.1\" />\n")
+        
+        # add runtime sources
         foreach(CSHARP_RUNTIME_SOURCE ${CSHARP_RUNTIME_SOURCES})
             file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <Compile Include=\"${CSHARP_RUNTIME_SOURCE}\" />\n")
+        endforeach()
+
+        # add generated sources
+        foreach(CSHARP_RUNTIME_GENERATED_SOURCE ${CSHARP_RUNTIME_GENERATED_SOURCES})
+            file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <Compile Include=\"${CSHARP_RUNTIME_GENERATED_SOURCE}\" />\n")
         endforeach()
 
         file(APPEND ${CSHARP_PROJECTS_DIR}/HyperionRuntime/HyperionRuntime.csproj "    <ProjectReference Include=\"${CSHARP_PROJECTS_DIR}/HyperionCore/HyperionCore.csproj\" >\n")
