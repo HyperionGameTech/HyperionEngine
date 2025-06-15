@@ -37,11 +37,6 @@ public:
 
     void SetCameraRenderResourceHandle(const TResourceHandle<RenderCamera>& render_camera);
 
-    HYP_FORCE_INLINE const Handle<RenderEnvironment>& GetEnvironment() const
-    {
-        return m_environment;
-    }
-
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
@@ -53,8 +48,6 @@ private:
     Scene* m_scene;
 
     TResourceHandle<RenderCamera> m_render_camera;
-
-    Handle<RenderEnvironment> m_environment;
 
     ImageRef m_shadows_texture_array_image;
     ImageViewRef m_shadows_texture_array_image_view;

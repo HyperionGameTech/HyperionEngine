@@ -141,7 +141,7 @@ void HyperionEditor::Init()
         .has_physics = true });
     InitObject(test_particle_spawner);
 
-    m_scene->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
+    m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
 
     if (false)
     { // add test area light

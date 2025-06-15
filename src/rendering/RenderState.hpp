@@ -45,58 +45,6 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_ALL = 0xFFFFFFFFu
 };
 
-// Basic render side binding, by default holding only ID of an object.
-template <class T>
-struct RenderBinding
-{
-    static const RenderBinding empty;
-
-    ID<T> id;
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return bool(id);
-    }
-
-    HYP_FORCE_INLINE explicit operator ID<T>() const
-    {
-        return id;
-    }
-
-    HYP_FORCE_INLINE bool operator==(const RenderBinding& other) const
-    {
-        return id == other.id;
-    }
-
-    HYP_FORCE_INLINE bool operator<(const RenderBinding& other) const
-    {
-        return id < other.id;
-    }
-
-    HYP_FORCE_INLINE bool operator==(ID<T> id) const
-    {
-        return this->id == id;
-    }
-};
-
-template <class T>
-const RenderBinding<T> RenderBinding<T>::empty = RenderBinding {};
-
-template <>
-struct RenderBinding<Scene>
-{
-    static const RenderBinding empty;
-
-    ID<Scene> id;
-    Handle<RenderEnvironment> render_environment;
-    const RenderCollector* render_collector = nullptr;
-
-    HYP_FORCE_INLINE explicit operator bool() const
-    {
-        return bool(id);
-    }
-};
-
 HYP_CLASS()
 class RenderState final : public HypObject<RenderState>
 {

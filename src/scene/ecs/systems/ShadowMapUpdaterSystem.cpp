@@ -138,6 +138,11 @@ void ShadowMapUpdaterSystem::Process(float delta)
 
 void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent& shadow_map_component, LightComponent& light_component)
 {
+    if (!GetWorld())
+    {
+        return;
+    }
+
     AssertThrow(light_component.light->IsReady());
 
     if (shadow_map_component.render_subsystem)
@@ -149,7 +154,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent&
     switch (light_component.light->GetLightType())
     {
     case LightType::DIRECTIONAL:
-        shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
+        shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_directional"),
             GetScene()->HandleFromThis(),
             TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
@@ -158,7 +163,7 @@ void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent&
 
         break;
     case LightType::POINT:
-        shadow_map_component.render_subsystem = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
+        shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
             Name::Unique("shadow_map_renderer_point"),
             GetScene()->HandleFromThis(),
             TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),

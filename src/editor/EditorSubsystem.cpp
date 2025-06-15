@@ -834,7 +834,7 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
 
                                 // @TODO Remove camera controller
 
-                                project_scene->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
+                                GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
 
                                 if (m_camera)
                                 {
@@ -1169,7 +1169,7 @@ void EditorSubsystem::InitViewport()
 
         m_scene_texture.Reset();
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = m_scene->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
+        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
         m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
 
         m_scene_texture = screen_capture_render_subsystem->GetTexture();

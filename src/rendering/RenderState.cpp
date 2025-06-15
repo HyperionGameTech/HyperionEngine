@@ -14,8 +14,6 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 HYP_DEFINE_LOG_SUBCHANNEL(RenderState, Rendering);
 
-const RenderBinding<Scene> RenderBinding<Scene>::empty = {};
-
 RenderState::RenderState()
 {
 }

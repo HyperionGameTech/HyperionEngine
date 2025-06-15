@@ -159,9 +159,14 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
 
 void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent& reflection_probe_component)
 {
+    if (!GetWorld())
+    {
+        return;
+    }
+
     if (reflection_probe_component.reflection_probe_renderer)
     {
-        GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
+        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
     }
     else
     {
@@ -174,7 +179,7 @@ void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionPro
 
         InitObject(reflection_probe_component.env_probe);
 
-        reflection_probe_component.reflection_probe_renderer = GetScene()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+        reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
             Name::Unique("ReflectionProbeRenderer"),
             TResourceHandle<RenderEnvProbe>(reflection_probe_component.env_probe->GetRenderResource()));
     }

@@ -47,7 +47,7 @@ public:
 
 private:
     RC<UIStage> m_ui_stage;
-    HashMap<Scene*, RC<UIRenderSubsystem>> m_ui_render_subsystems;
+    RC<UIRenderSubsystem> m_ui_render_subsystem;
 };
 
 } // namespace hyperion
