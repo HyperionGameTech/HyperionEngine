@@ -402,6 +402,9 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
 
+    /// @TODO: Do auto instancing here so we can enable INSTANCING shader flag to create render groups
+    /// Create RenderGroups here rather than in RenderView ??
+
     Array<IteratorType> iterators;
 
     for (Bitset::BitIndex bit_index : bucket_bits)
@@ -512,7 +515,7 @@ void RenderCollector::ExecuteDrawCalls(
                 task_batch->pool = &pool;
 
                 m_parallel_rendering_state->task_batch = task_batch;
-                m_parallel_rendering_state->num_batches = num_async_rendering_command_buffers;
+                m_parallel_rendering_state->num_batches = ParallelRenderingState::max_batches;
             }
 
             head = m_parallel_rendering_state;
@@ -530,7 +533,7 @@ void RenderCollector::ExecuteDrawCalls(
                 task_batch->pool = &pool;
 
                 new_parallel_rendering_state->task_batch = task_batch;
-                new_parallel_rendering_state->num_batches = num_async_rendering_command_buffers;
+                new_parallel_rendering_state->num_batches = ParallelRenderingState::max_batches;
 
                 head->next = new_parallel_rendering_state;
             }
@@ -654,9 +657,9 @@ void RenderCollector::ExecuteDrawCalls(
             frame->GetCommandList().Concat(std::move(state->base_command_list));
 
             // Add command lists to the frame's command list
-            for (uint32 i = 0; i < num_async_rendering_command_buffers; i++)
+            for (RHICommandList& command_list : state->command_lists)
             {
-                frame->GetCommandList().Concat(std::move(state->command_lists[i]));
+                frame->GetCommandList().Concat(std::move(command_list));
             }
 
             // Add render stats counts to the engine's render stats
@@ -667,8 +670,11 @@ void RenderCollector::ExecuteDrawCalls(
                 counts = EngineRenderStatsCounts(); // Reset counts after adding for next use
             }
 
-            // @TODO: Reserve first element of proc_memory
-            state->proc_memory.Clear();
+            state->draw_calls.Clear();
+            state->draw_call_procs.Clear();
+            state->instanced_draw_calls.Clear();
+            state->instanced_draw_call_procs.Clear();
+
             state->task_batch->ResetState();
 
             state = state->next;

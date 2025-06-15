@@ -82,6 +82,8 @@ private:
 
 struct ParallelRenderingState
 {
+    static constexpr uint32 max_batches = num_async_rendering_command_buffers;
+
     TaskBatch* task_batch = nullptr;
 
     uint32 num_batches = 0;
@@ -89,11 +91,14 @@ struct ParallelRenderingState
     // Non-async rendering command list - used for binding state at the start of the pass before async stuff
     RHICommandList base_command_list;
 
-    FixedArray<RHICommandList, num_async_rendering_command_buffers> command_lists {};
-    FixedArray<EngineRenderStatsCounts, num_async_rendering_command_buffers> render_stats_counts {};
+    FixedArray<RHICommandList, max_batches> command_lists {};
+    FixedArray<EngineRenderStatsCounts, max_batches> render_stats_counts {};
 
-    // Temporary storage for enqueued functors that will be executed in parallel
-    LinkedList<Proc<void(Span<const DrawCall>, uint32, uint32)>> proc_memory;
+    // Temporary storage for data that will be executed in parallel during the frame
+    Array<Span<const DrawCall>, FixedAllocator<max_batches>> draw_calls;
+    Array<Span<const InstancedDrawCall>, FixedAllocator<max_batches>> instanced_draw_calls;
+    Array<Proc<void(Span<const DrawCall>, uint32, uint32)>, FixedAllocator<1>> draw_call_procs;
+    Array<Proc<void(Span<const InstancedDrawCall>, uint32, uint32)>, FixedAllocator<1>> instanced_draw_call_procs;
 
     ParallelRenderingState* next = nullptr;
 };

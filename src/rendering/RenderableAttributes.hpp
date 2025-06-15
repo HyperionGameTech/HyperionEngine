@@ -128,19 +128,18 @@ class RenderableAttributeSet
     MeshAttributes m_mesh_attributes;
     MaterialAttributes m_material_attributes;
     uint32 m_override_flags;
-    uint32 m_drawable_layer = 0;
+    uint32 m_drawable_layer;
 
     mutable HashCode m_cached_hash_code;
-    mutable bool m_needs_hash_code_recalculation = true;
+    mutable bool m_needs_hash_code_recalculation;
 
 public:
-    RenderableAttributeSet(
-        const MeshAttributes& mesh_attributes = {},
-        const MaterialAttributes& material_attributes = {},
-        uint32 override_flags = 0)
+    RenderableAttributeSet(const MeshAttributes& mesh_attributes = {}, const MaterialAttributes& material_attributes = {}, uint32 override_flags = 0)
         : m_mesh_attributes(mesh_attributes),
           m_material_attributes(material_attributes),
-          m_override_flags(override_flags)
+          m_override_flags(override_flags),
+          m_drawable_layer(0),
+          m_needs_hash_code_recalculation(true)
     {
     }
 

@@ -132,6 +132,11 @@ void View::Update(GameCounter::TickUnit delta)
     //                      }),
     //         ", "));
 
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        scene->GetOctree().CalculateVisibility(m_camera);
+    }
+
     CollectLights();
     CollectLightmapVolumes();
     m_last_collection_result = CollectEntities();

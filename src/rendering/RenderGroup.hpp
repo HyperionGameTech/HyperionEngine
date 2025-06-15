@@ -153,9 +153,6 @@ private:
 
     Array<FramebufferRef> m_fbos;
 
-    // cache so we don't allocate every frame
-    Array<Span<const DrawCall>> m_divided_draw_calls;
-
     DrawCallCollection m_draw_state;
 
     FlatMap<ID<Entity>, const RenderProxy*> m_render_proxies;

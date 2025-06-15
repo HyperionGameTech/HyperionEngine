@@ -80,14 +80,6 @@ public:
         //     }
         // }
 
-        if (const ShaderRef& shader = in_object.GetShader())
-        {
-            if (shader.IsValid())
-            {
-                // @TODO serialize the shader
-            }
-        }
-
         out.SetProperty(
             "TextureKeys",
             FBOMSequence(FBOMUInt32(), texture_keys.Size()),

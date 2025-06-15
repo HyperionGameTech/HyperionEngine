@@ -306,9 +306,7 @@ void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_c
 void RenderGroup::CollectDrawCalls()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
     AssertReady();
 
     static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
@@ -317,8 +315,6 @@ void RenderGroup::CollectDrawCalls()
     {
         m_indirect_renderer->GetDrawState().ResetDrawState();
     }
-
-    m_divided_draw_calls = {};
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
@@ -331,23 +327,23 @@ void RenderGroup::CollectDrawCalls()
             continue;
         }
 
-        AssertDebug(render_proxy->mesh.IsValid());
-        AssertDebugMsg(render_proxy->mesh->IsReady(), "Mesh #%u is not ready", render_proxy->mesh->GetID().Value());
-
-        AssertDebug(render_proxy->material.IsValid());
-        AssertDebugMsg(render_proxy->material->IsReady(), "Material #%u is not ready", render_proxy->material->GetID().Value());
-
         DrawCallID draw_call_id;
 
         if (unique_per_material)
         {
-            // @TODO: Rather than using Material ID we could use hashcode of the material,
-            // so that we can use the same material with different IDs
             draw_call_id = DrawCallID(render_proxy->mesh->GetID(), render_proxy->material->GetID());
         }
         else
         {
             draw_call_id = DrawCallID(render_proxy->mesh->GetID());
+        }
+
+        if (!render_proxy->instance_data.enable_auto_instancing
+            && render_proxy->instance_data.num_instances == 1)
+        {
+            m_draw_state.PushRenderProxy(draw_call_id, *render_proxy);
+
+            continue;
         }
 
         EntityInstanceBatch* batch = nullptr;
@@ -364,7 +360,7 @@ void RenderGroup::CollectDrawCalls()
             m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
         }
 
-        m_draw_state.PushDrawCallToBatch(batch, draw_call_id, *render_proxy);
+        m_draw_state.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
     }
 
     previous_draw_state.ResetDrawCalls();
@@ -394,9 +390,12 @@ void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& r
     m_indirect_renderer->ExecuteCullShaderInBatches(frame, render_setup);
 }
 
-static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batches, Array<Span<const DrawCall>>& out_divided_draw_calls)
+template <class T, class OutArray, typename = std::enable_if_t<std::is_base_of_v<DrawCallBase, T>>>
+static void DivideDrawCalls(Span<const T> draw_calls, uint32 num_batches, OutArray& out_divided_draw_calls)
 {
     HYP_SCOPE;
+
+    out_divided_draw_calls.Clear();
 
     const uint32 num_draw_calls = uint32(draw_calls.Size());
 
@@ -424,7 +423,7 @@ static void GetDividedDrawCalls(Span<const DrawCall> draw_calls, uint32 num_batc
     }
 }
 
-template <bool IsIndirect>
+template <bool UseIndirectRendering>
 static void RenderAll(
     FrameBase* frame,
     const RenderSetup& render_setup,
@@ -436,8 +435,9 @@ static void RenderAll(
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    if (draw_state.GetDrawCalls().Empty())
+    if (draw_state.GetInstancedDrawCalls().Size() == 0 && draw_state.GetDrawCalls().Size() == 0)
     {
+        // No draw calls to render
         return;
     }
 
@@ -509,43 +509,22 @@ static void RenderAll(
 
     for (const DrawCall& draw_call : draw_state.GetDrawCalls())
     {
-        EntityInstanceBatch* entity_instance_batch = draw_call.batch;
-        AssertDebug(entity_instance_batch != nullptr);
-
         if (entity_descriptor_set.IsValid())
         {
+            ArrayMap<Name, uint32> offsets;
+            offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
+            offsets[NAME("CurrentObject")] = ShaderDataOffset<EntityShaderData>(draw_call.entity_id.ToIndex());
+
             if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
             {
-                frame->GetCommandList().Add<BindDescriptorSet>(
-                    entity_descriptor_set,
-                    pipeline,
-                    ArrayMap<Name, uint32> {
-                        { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0) },
-                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0) } },
-                    entity_descriptor_set_index);
+                offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
             }
-            else
-            {
-                frame->GetCommandList().Add<BindDescriptorSet>(
-                    entity_descriptor_set,
-                    pipeline,
-                    ArrayMap<Name, uint32> {
-                        { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0) } },
-                    entity_descriptor_set_index);
-            }
-        }
-
-        if (instancing_descriptor_set.IsValid())
-        {
-            const SizeType offset = entity_instance_batch->batch_index * draw_state.GetImpl()->GetBatchSizeOf();
-            AssertDebug(entity_instance_batch->batch_index < draw_state.GetImpl()->GetEntityInstanceBatchHolder()->Count());
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                instancing_descriptor_set,
+                entity_descriptor_set,
                 pipeline,
-                ArrayMap<Name, uint32> {
-                    { NAME("EntityInstanceBatchesBuffer"), uint32(offset) } },
-                instancing_descriptor_set_index);
+                offsets,
+                entity_descriptor_set_index);
         }
 
         // Bind material descriptor set
@@ -561,7 +540,7 @@ static void RenderAll(
                 material_descriptor_set_index);
         }
 
-        if constexpr (IsIndirect)
+        if (UseIndirectRendering && draw_call.draw_command_index != ~0u)
         {
             draw_call.render_mesh->RenderIndirect(
                 frame->GetCommandList(),
@@ -570,23 +549,85 @@ static void RenderAll(
         }
         else
         {
-            draw_call.render_mesh->Render(frame->GetCommandList(), entity_instance_batch ? entity_instance_batch->num_entities : 1);
+            draw_call.render_mesh->Render(frame->GetCommandList(), 1);
         }
 
         counts[ERS_DRAW_CALLS]++;
         counts[ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
     }
 
+    for (const InstancedDrawCall& draw_call : draw_state.GetInstancedDrawCalls())
+    {
+        EntityInstanceBatch* entity_instance_batch = draw_call.batch;
+        AssertDebug(entity_instance_batch != nullptr);
+
+        AssertThrow(instancing_descriptor_set.IsValid());
+
+        if (entity_descriptor_set.IsValid())
+        {
+            ArrayMap<Name, uint32> offsets;
+            offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
+
+            if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+            {
+                offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
+            }
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                entity_descriptor_set,
+                pipeline,
+                offsets,
+                entity_descriptor_set_index);
+        }
+
+        const SizeType offset = entity_instance_batch->batch_index * draw_state.GetImpl()->GetBatchSizeOf();
+
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            instancing_descriptor_set,
+            pipeline,
+            ArrayMap<Name, uint32> {
+                { NAME("EntityInstanceBatchesBuffer"), uint32(offset) } },
+            instancing_descriptor_set_index);
+
+        // Bind material descriptor set
+        if (material_descriptor_set_index != ~0u && !use_bindless_textures)
+        {
+            const DescriptorSetRef& material_descriptor_set = draw_call.render_material->GetDescriptorSets()[frame_index];
+            AssertThrow(material_descriptor_set.IsValid());
+
+            frame->GetCommandList().Add<BindDescriptorSet>(
+                material_descriptor_set,
+                pipeline,
+                ArrayMap<Name, uint32> {},
+                material_descriptor_set_index);
+        }
+
+        if (UseIndirectRendering && draw_call.draw_command_index != ~0u)
+        {
+            draw_call.render_mesh->RenderIndirect(
+                frame->GetCommandList(),
+                indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
+                draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand)));
+        }
+        else
+        {
+            draw_call.render_mesh->Render(frame->GetCommandList(), entity_instance_batch->num_entities);
+        }
+
+        counts[ERS_DRAW_CALLS]++;
+        counts[ERS_INSTANCED_DRAW_CALLS]++;
+        counts[ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
+    }
+
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
-template <bool IsIndirect>
+template <bool UseIndirectRendering>
 static void RenderAll_Parallel(
     FrameBase* frame,
     const RenderSetup& render_setup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
-    Array<Span<const DrawCall>>& divided_draw_calls,
     const DrawCallCollection& draw_state,
     ParallelRenderingState* parallel_rendering_state)
 {
@@ -596,8 +637,9 @@ static void RenderAll_Parallel(
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    if (draw_state.GetDrawCalls().Empty())
+    if (draw_state.GetInstancedDrawCalls().Size() == 0 && draw_state.GetDrawCalls().Size() == 0)
     {
+        // No draw calls to render
         return;
     }
 
@@ -612,8 +654,6 @@ static void RenderAll_Parallel(
 
     const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
-
-    GetDividedDrawCalls(draw_state.GetDrawCalls().ToSpan(), num_async_rendering_command_buffers, divided_draw_calls);
 
     RHICommandList& base_command_list = parallel_rendering_state->base_command_list;
 
@@ -663,55 +703,124 @@ static void RenderAll_Parallel(
     }
 
     // Store the proc in the parallel rendering state so that it doesn't get destroyed until we're done with it
-    ProcRef<void(Span<const DrawCall>, uint32, uint32)> proc = parallel_rendering_state->proc_memory.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const DrawCall> draw_calls, uint32 index, uint32)
-        {
-            if (!draw_calls)
+    if (draw_state.GetDrawCalls().Size() != 0)
+    {
+        DivideDrawCalls(draw_state.GetDrawCalls(), parallel_rendering_state->num_batches, parallel_rendering_state->draw_calls);
+
+        ProcRef<void(Span<const DrawCall>, uint32, uint32)> proc = parallel_rendering_state->draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const DrawCall> draw_calls, uint32 index, uint32)
             {
-                return;
-            }
-
-            RHICommandList& command_list = parallel_rendering_state->command_lists[index];
-
-            const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
-            const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
-
-            const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
-            const DescriptorSetRef& instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
-
-            for (const DrawCall& draw_call : draw_calls)
-            {
-                EntityInstanceBatch* entity_instance_batch = draw_call.batch;
-                AssertDebug(entity_instance_batch != nullptr);
-
-                if (entity_descriptor_set.IsValid())
+                if (!draw_calls)
                 {
-                    static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+                    return;
+                }
 
-                    if (unique_per_material)
+                RHICommandList& command_list = parallel_rendering_state->command_lists[index];
+
+                const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
+                const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
+
+                for (const DrawCall& draw_call : draw_calls)
+                {
+                    if (entity_descriptor_set.IsValid())
                     {
+                        ArrayMap<Name, uint32> offsets;
+                        offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
+                        offsets[NAME("CurrentObject")] = ShaderDataOffset<EntityShaderData>(draw_call.entity_id.ToIndex());
+
+                        if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        {
+                            offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
+                        }
+
                         command_list.Add<BindDescriptorSet>(
                             entity_descriptor_set,
                             pipeline,
-                            ArrayMap<Name, uint32> {
-                                { NAME("MaterialsBuffer"), ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0) },
-                                { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0) } },
+                            offsets,
                             entity_descriptor_set_index);
+                    }
+
+                    // Bind material descriptor set
+                    if (material_descriptor_set_index != ~0u && !use_bindless_textures)
+                    {
+                        const DescriptorSetRef& material_descriptor_set = draw_call.render_material->GetDescriptorSets()[frame_index];
+                        AssertDebug(material_descriptor_set.IsValid());
+
+                        command_list.Add<BindDescriptorSet>(
+                            material_descriptor_set,
+                            pipeline,
+                            ArrayMap<Name, uint32> {},
+                            material_descriptor_set_index);
+                    }
+
+                    if (UseIndirectRendering && draw_call.draw_command_index != ~0u)
+                    {
+                        draw_call.render_mesh->RenderIndirect(
+                            command_list,
+                            indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
+                            draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand)));
                     }
                     else
                     {
+                        draw_call.render_mesh->Render(command_list, 1);
+                    }
+
+                    parallel_rendering_state->render_stats_counts[index][ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
+                    parallel_rendering_state->render_stats_counts[index][ERS_DRAW_CALLS]++;
+                }
+            });
+
+        TaskSystem::GetInstance().ParallelForEach_Batch(
+            *parallel_rendering_state->task_batch,
+            parallel_rendering_state->num_batches,
+            parallel_rendering_state->draw_calls,
+            std::move(proc));
+    }
+
+    if (draw_state.GetInstancedDrawCalls().Size() != 0)
+    {
+        DivideDrawCalls(draw_state.GetInstancedDrawCalls(), parallel_rendering_state->num_batches, parallel_rendering_state->instanced_draw_calls);
+
+        ProcRef<void(Span<const InstancedDrawCall>, uint32, uint32)> proc = parallel_rendering_state->instanced_draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const InstancedDrawCall> draw_calls, uint32 index, uint32)
+            {
+                if (!draw_calls)
+                {
+                    return;
+                }
+
+                RHICommandList& command_list = parallel_rendering_state->command_lists[index];
+
+                const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
+                const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
+
+                const uint32 instancing_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
+                const DescriptorSetRef& instancing_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frame_index);
+
+                AssertDebug(instancing_descriptor_set.IsValid());
+
+                for (const InstancedDrawCall& draw_call : draw_calls)
+                {
+                    // @TODO: Skip using an EntityInstanceBatch if the draw call is not instanced
+                    EntityInstanceBatch* entity_instance_batch = draw_call.batch;
+                    AssertDebug(entity_instance_batch != nullptr);
+
+                    if (entity_descriptor_set.IsValid())
+                    {
+                        ArrayMap<Name, uint32> offsets;
+                        offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
+
+                        if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        {
+                            offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
+                        }
+
                         command_list.Add<BindDescriptorSet>(
                             entity_descriptor_set,
                             pipeline,
-                            ArrayMap<Name, uint32> {
-                                { NAME("SkeletonsBuffer"), ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0) } },
+                            offsets,
                             entity_descriptor_set_index);
                     }
-                }
 
-                if (instancing_descriptor_set.IsValid())
-                {
                     const SizeType offset = entity_instance_batch->batch_index * draw_state.GetImpl()->GetBatchSizeOf();
-                    AssertDebug(entity_instance_batch->batch_index < draw_state.GetImpl()->GetEntityInstanceBatchHolder()->Count());
 
                     command_list.Add<BindDescriptorSet>(
                         instancing_descriptor_set,
@@ -719,39 +828,44 @@ static void RenderAll_Parallel(
                         ArrayMap<Name, uint32> {
                             { NAME("EntityInstanceBatchesBuffer"), uint32(offset) } },
                         instancing_descriptor_set_index);
+
+                    // Bind material descriptor set
+                    if (material_descriptor_set_index != ~0u && !use_bindless_textures)
+                    {
+                        const DescriptorSetRef& material_descriptor_set = draw_call.render_material->GetDescriptorSets()[frame_index];
+                        AssertDebug(material_descriptor_set.IsValid());
+
+                        command_list.Add<BindDescriptorSet>(
+                            material_descriptor_set,
+                            pipeline,
+                            ArrayMap<Name, uint32> {},
+                            material_descriptor_set_index);
+                    }
+
+                    if (UseIndirectRendering && draw_call.draw_command_index != ~0u)
+                    {
+                        draw_call.render_mesh->RenderIndirect(
+                            command_list,
+                            indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
+                            draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand)));
+                    }
+                    else
+                    {
+                        draw_call.render_mesh->Render(command_list, entity_instance_batch->num_entities);
+                    }
+
+                    parallel_rendering_state->render_stats_counts[index][ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
+                    parallel_rendering_state->render_stats_counts[index][ERS_DRAW_CALLS]++;
+                    parallel_rendering_state->render_stats_counts[index][ERS_INSTANCED_DRAW_CALLS]++;
                 }
+            });
 
-                // Bind material descriptor set
-                if (material_descriptor_set_index != ~0u && !use_bindless_textures)
-                {
-                    const DescriptorSetRef& material_descriptor_set = draw_call.render_material->GetDescriptorSets()[frame_index];
-                    AssertDebug(material_descriptor_set.IsValid());
-
-                    command_list.Add<BindDescriptorSet>(
-                        material_descriptor_set,
-                        pipeline,
-                        ArrayMap<Name, uint32> {},
-                        material_descriptor_set_index);
-                }
-
-                if constexpr (IsIndirect)
-                {
-                    draw_call.render_mesh->RenderIndirect(
-                        command_list,
-                        indirect_renderer->GetDrawState().GetIndirectBuffer(frame_index),
-                        draw_call.draw_command_index * uint32(sizeof(IndirectDrawCommand)));
-                }
-                else
-                {
-                    draw_call.render_mesh->Render(command_list, entity_instance_batch ? entity_instance_batch->num_entities : 1);
-                }
-
-                parallel_rendering_state->render_stats_counts[index][ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
-                parallel_rendering_state->render_stats_counts[index][ERS_DRAW_CALLS]++;
-            }
-        });
-
-    TaskSystem::GetInstance().ParallelForEach_Batch(*parallel_rendering_state->task_batch, parallel_rendering_state->num_batches, divided_draw_calls, std::move(proc));
+        TaskSystem::GetInstance().ParallelForEach_Batch(
+            *parallel_rendering_state->task_batch,
+            parallel_rendering_state->num_batches,
+            parallel_rendering_state->instanced_draw_calls,
+            std::move(proc));
+    }
 }
 
 void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state)
@@ -763,14 +877,13 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
     AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
 
-    if (m_draw_state.GetDrawCalls().Empty())
-    {
-        return;
-    }
-
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
-    if (is_indirect_rendering_enabled && (m_flags & RenderGroupFlags::INDIRECT_RENDERING) && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr)
+    const bool use_indirect_rendering = is_indirect_rendering_enabled
+        && m_flags[RenderGroupFlags::INDIRECT_RENDERING]
+        && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr;
+
+    if (use_indirect_rendering)
     {
         if (m_flags & RenderGroupFlags::PARALLEL_RENDERING)
         {
@@ -779,7 +892,6 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 render_setup,
                 m_pipeline,
                 m_indirect_renderer.Get(),
-                m_divided_draw_calls,
                 m_draw_state,
                 parallel_rendering_state);
         }
@@ -804,7 +916,6 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 render_setup,
                 m_pipeline,
                 m_indirect_renderer.Get(),
-                m_divided_draw_calls,
                 m_draw_state,
                 parallel_rendering_state);
         }

@@ -98,18 +98,56 @@ static RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy&
     return attributes;
 }
 
-static void AddRenderProxy(
-    EntityDrawCollection* collection,
-    RenderProxyTracker& render_proxy_tracker,
-    RenderProxy&& proxy,
-    RenderCamera* render_camera,
-    RenderView* render_view,
-    const RenderableAttributeSet& attributes,
-    Bucket bucket)
+static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
 
-    const ID<Entity> entity = proxy.entity.GetID();
+    union
+    {
+        struct
+        {
+            bool has_instancing : 1;
+            bool has_forward_lighting : 1;
+        };
+
+        uint64 overridden;
+    };
+
+    overridden = 0;
+
+    has_instancing = proxy->instance_data.enable_auto_instancing || proxy->instance_data.num_instances > 1;
+    has_forward_lighting = attributes.GetMaterialAttributes().bucket == BUCKET_TRANSLUCENT;
+
+    if (!overridden)
+    {
+        return;
+    }
+
+    bool shader_definition_changed = false;
+    ShaderDefinition shader_definition = attributes.GetShaderDefinition();
+
+    if (has_instancing)
+    {
+        shader_definition.GetProperties().Set("INSTANCING");
+        shader_definition_changed = true;
+    }
+
+    if (has_forward_lighting)
+    {
+        shader_definition.GetProperties().Set("FORWARD_LIGHTING");
+        shader_definition_changed = true;
+    }
+
+    if (shader_definition_changed)
+    {
+        // Update the shader definition in the attributes
+        attributes.SetShaderDefinition(shader_definition);
+    }
+}
+
+static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, RenderCamera* render_camera, RenderView* render_view, const RenderableAttributeSet& attributes, Bucket bucket)
+{
+    HYP_SCOPE;
 
     // Add proxy to group
     Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
@@ -126,11 +164,19 @@ static void AddRenderProxy(
             render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
         }
 
+        ShaderDefinition shader_definition = attributes.GetShaderDefinition();
+
+        ShaderRef shader = g_shader_manager->GetOrCreate(shader_definition);
+
+        if (!shader.IsValid())
+        {
+            HYP_LOG(Rendering, Error, "Failed to create shader for RenderProxy");
+
+            return;
+        }
+
         // Create RenderGroup
-        render_group = CreateObject<RenderGroup>(
-            g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
-            attributes,
-            render_group_flags);
+        render_group = CreateObject<RenderGroup>(shader, attributes, render_group_flags);
 
         FramebufferRef framebuffer;
 
@@ -160,7 +206,8 @@ static void AddRenderProxy(
         InitObject(render_group);
     }
 
-    auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
+    const ID<Entity> entity_id = proxy.entity.GetID();
+    auto iter = render_proxy_tracker.Track(entity_id, std::move(proxy));
 
     render_group->AddRenderProxy(&iter->second);
 }
@@ -742,7 +789,9 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderP
 
                         proxy->DecRefs();
 
-                        const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
+                        RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
+                        UpdateRenderableAttributesDynamic(proxy, attributes);
+
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
                         AssertThrow(RemoveRenderProxy(collection, render_proxy_tracker, entity_id, attributes, bucket));
@@ -757,7 +806,9 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderP
                         const Handle<Material>& material = proxy.material;
                         AssertThrow(material.IsValid());
 
-                        const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy, override_attributes);
+                        RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy, override_attributes);
+                        UpdateRenderableAttributesDynamic(&proxy, attributes);
+
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
                         AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);

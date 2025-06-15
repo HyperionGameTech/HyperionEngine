@@ -11,7 +11,7 @@ ObjectPool::ObjectContainerMap& ObjectPool::GetObjectContainerHolder()
     return holder;
 }
 
-IObjectContainer& ObjectPool::ObjectContainerMap::Add(TypeID type_id)
+ObjectContainerBase& ObjectPool::ObjectContainerMap::Add(TypeID type_id)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -32,7 +32,7 @@ IObjectContainer& ObjectPool::ObjectContainerMap::Add(TypeID type_id)
     return *m_map.Back().second;
 }
 
-IObjectContainer& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
+ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -51,7 +51,7 @@ IObjectContainer& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
     return *it->second;
 }
 
-IObjectContainer* ObjectPool::ObjectContainerMap::TryGet(TypeID type_id)
+ObjectContainerBase* ObjectPool::ObjectContainerMap::TryGet(TypeID type_id)
 {
     Mutex::Guard guard(m_mutex);
 

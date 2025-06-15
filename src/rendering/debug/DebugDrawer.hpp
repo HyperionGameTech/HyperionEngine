@@ -46,7 +46,6 @@ class UIStage;
 struct RenderSetup;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.debug.debug_drawer")
-
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
     HYP_FIELD(Description = "Enable or disable the debug drawer.")

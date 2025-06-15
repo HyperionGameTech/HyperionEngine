@@ -418,13 +418,196 @@ struct InlineAllocator : Allocator<InlineAllocator<Count, DynamicAllocatorType>>
     };
 };
 
-template <class T, class AllocatorType>
-using Allocation = typename AllocatorType::template Allocation<T>;
+template <SizeType Count>
+struct FixedAllocator : Allocator<FixedAllocator<Count>>
+{
+    template <class T>
+    struct Allocation : AllocationBase<Allocation<T>>
+    {
+        static constexpr AllocationType allocation_type = AT_INLINE;
+        static constexpr SizeType capacity = Count;
+
+        HYP_FORCE_INLINE T* GetBuffer()
+        {
+            return storage.GetPointer();
+        }
+
+        HYP_FORCE_INLINE const T* GetBuffer() const
+        {
+            return storage.GetPointer();
+        }
+
+        HYP_FORCE_INLINE constexpr bool IsDynamic() const
+        {
+            return false;
+        }
+
+        HYP_FORCE_INLINE constexpr SizeType GetCapacity() const
+        {
+            return Count;
+        }
+
+        HYP_FORCE_INLINE void Allocate(SizeType count)
+        {
+            AssertDebugMsg(count <= Count, "Allocation size exceeds fixed capacity!");
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        HYP_FORCE_INLINE void Free()
+        {
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+
+            SetToInitialState();
+        }
+
+        void TakeOwnership(T* begin, T* end)
+        {
+            AssertDebug(end >= begin);
+
+            const SizeType count = end - begin;
+
+            if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
+            {
+                Memory::MemCpy(storage.GetPointer(), begin, count * sizeof(T));
+            }
+            else
+            {
+                // placement new
+                for (SizeType i = 0; i < count; i++)
+                {
+                    new (storage.GetPointer()) T(begin[i]);
+                }
+            }
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        void InitFromRangeCopy(const T* begin, const T* end, SizeType offset = 0)
+        {
+            AssertDebug(end >= begin);
+
+            const SizeType count = end - begin;
+
+            AssertDebug(offset + count <= Count);
+
+            if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
+            {
+                Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+            }
+            else
+            {
+                // placement new
+                for (SizeType i = 0; i < count; i++)
+                {
+                    new (storage.GetPointer() + offset + i) T(begin[i]);
+                }
+            }
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        void InitFromRangeMove(T* begin, T* end, SizeType offset = 0)
+        {
+            AssertDebug(end >= begin);
+
+            const SizeType count = end - begin;
+
+            AssertDebug(offset + count <= Count);
+
+            if constexpr (std::is_fundamental_v<T> || std::is_trivial_v<T>)
+            {
+                Memory::MemCpy(storage.GetPointer() + offset, begin, count * sizeof(T));
+            }
+            else
+            {
+                // placement new
+                for (SizeType i = 0; i < count; i++)
+                {
+                    new (storage.GetPointer() + offset + i) T(std::move(begin[i]));
+                }
+            }
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        void InitZeroed(SizeType count, SizeType offset = 0)
+        {
+            AssertDebug(offset + count <= Count);
+
+            Memory::MemSet(storage.GetPointer() + offset, 0, count * sizeof(T));
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        void DestructInRange(SizeType start_index, SizeType last_index)
+        {
+            AssertDebug(last_index <= Count);
+            AssertDebug(start_index <= last_index);
+
+            if constexpr (!std::is_trivially_destructible_v<T>)
+            {
+                for (SizeType i = last_index; i > start_index;)
+                {
+                    storage.GetPointer()[--i].~T();
+                }
+            }
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        void SetToInitialState()
+        {
+            storage = ValueStorageArray<T, Count, alignof(T)>();
+
+#ifdef HYP_DEBUG_MODE
+            AssertDebugMsg(magic == 0xBADA55u, "stomp detected!");
+#endif
+        }
+
+        union
+        {
+            ValueStorageArray<T, Count, alignof(T)> storage;
+
+#ifdef HYP_DEBUG_MODE
+            // The following nested union fields are unused but make natvis work correctly for arrays.
+            union
+            {
+                uintptr_t buffer;
+                SizeType capacity;
+            } dynamic_allocation;
+
+            T* buffer; // for natvis
+#endif
+        };
+
+#ifdef HYP_DEBUG_MODE
+        // for debugging - to ensure we haven't written past the structure; // to ensure that the union is not empty and has a valid size
+        uint32 magic : 31 = 0xBADA55u;
+        bool is_dynamic : 1 = false;
+#endif
+    };
+};
 
 } // namespace memory
 
 using memory::Allocator;
 using memory::DynamicAllocator;
+using memory::FixedAllocator;
 using memory::InlineAllocator;
 
 template <class T, class AllocatorType>

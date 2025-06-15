@@ -587,7 +587,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                 // disable depth write and depth test
                 material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
-                material_attributes.bucket = Bucket::BUCKET_TRANSLUCENT;
+                material_attributes.bucket = Bucket::BUCKET_DEBUG;
 
                 // testing
                 material_attributes.stencil_function = StencilFunction {
@@ -1016,16 +1016,16 @@ void EditorSubsystem::Initialize()
             })
         .Detach();
 
-    // NewProject();
+    NewProject();
 
-    auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "UntitledProject7");
+    // auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "UntitledProject7");
 
-    if (!result)
-    {
-        HYP_BREAKPOINT;
-    }
+    // if (!result)
+    // {
+    //     HYP_BREAKPOINT;
+    // }
 
-    OpenProject(*result);
+    // OpenProject(*result);
 }
 
 void EditorSubsystem::Shutdown()

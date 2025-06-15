@@ -6,6 +6,7 @@ namespace Hyperion
     public enum EngineRenderStatsCountType : uint
     {
         DrawCalls = 0,
+        InstancedDrawCalls,
         Triangles,
         RenderGroups,
         Views,

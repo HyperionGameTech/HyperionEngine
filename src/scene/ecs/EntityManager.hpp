@@ -387,7 +387,6 @@ public:
     }
 
     HYP_API void ForEachEntityManager(ProcRef<void(EntityManager*)> proc) const;
-    HYP_API Task<bool> PerformActionWithEntity(ID<Entity> entity_id, Proc<void(EntityManager*, ID<Entity>)>&& callback);
     HYP_API void PerformActionWithEntity_FireAndForget(ID<Entity> entity_id, Proc<void(EntityManager*, ID<Entity>)>&& callback);
 
 private:

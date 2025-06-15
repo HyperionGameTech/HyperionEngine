@@ -82,11 +82,6 @@ void CameraSystem::Process(float delta)
 
         camera_component.camera->Update(delta);
 
-        if (scene != nullptr)
-        {
-            scene->GetOctree().CalculateVisibility(camera_component.camera);
-        }
-
         updated_entity_ids.Insert(entity_id);
     }
 

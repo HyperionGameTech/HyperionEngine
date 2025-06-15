@@ -25,7 +25,7 @@ class Class;
 
 enum class HypClassAllocationMethod : uint8;
 
-class IObjectContainer;
+class ObjectContainerBase;
 class HypClass;
 class HypObjectBase;
 

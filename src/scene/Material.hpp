@@ -440,6 +440,7 @@ public:
 
     Material();
     Material(Name name, Bucket bucket = Bucket::BUCKET_OPAQUE);
+    Material(Name name, const MaterialAttributes& attributes);
     Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures);
     Material(const Material& other) = delete;
     Material& operator=(const Material& other) = delete;
@@ -470,13 +471,6 @@ public:
     {
         return m_mutation_state;
     }
-
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
-    {
-        return m_shader;
-    }
-
-    void SetShader(const ShaderRef& shader);
 
     HYP_FORCE_INLINE ParameterTable& GetParameters()
     {
@@ -742,8 +736,6 @@ private:
     void Init() override;
 
     Name m_name;
-
-    ShaderRef m_shader;
 
     ParameterTable m_parameters;
     TextureSet m_textures;

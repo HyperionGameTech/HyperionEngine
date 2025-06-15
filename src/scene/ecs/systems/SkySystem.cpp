@@ -130,15 +130,17 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
 
         if (!material)
         {
-            material = CreateObject<Material>();
-            material->SetBucket(Bucket::BUCKET_SKYBOX);
-            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.render_subsystem->GetCubemap());
-            material->SetFaceCullMode(FaceCullMode::FRONT);
-            material->SetIsDepthTestEnabled(true);
-            material->SetIsDepthWriteEnabled(false);
-            material->SetShader(ShaderManager::GetInstance()->GetOrCreate(
+            MaterialAttributes material_attributes {};
+            material_attributes.shader_definition = ShaderDefinition {
                 NAME("Skybox"),
-                ShaderProperties(mesh->GetVertexAttributes())));
+                ShaderProperties(mesh->GetVertexAttributes())
+            };
+            material_attributes.bucket = Bucket::BUCKET_SKYBOX;
+            material_attributes.cull_faces = FaceCullMode::FRONT;
+            material_attributes.flags = MaterialAttributeFlags::DEPTH_TEST;
+
+            material = CreateObject<Material>(NAME("SkyboxMaterial"), material_attributes);
+            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.render_subsystem->GetCubemap());
 
             InitObject(material);
         }

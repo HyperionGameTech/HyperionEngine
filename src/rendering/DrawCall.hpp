@@ -97,17 +97,36 @@ struct DrawCallID
     }
 };
 
-struct DrawCall
+/*! \brief Base struct for all draw calls.
+ *  \details This struct contains the common data for all draw calls, such as the ID, render mesh, material, and skeleton.
+ *  It is used as a base class for both `DrawCall` and `InstancedDrawCall`. */
+struct DrawCallBase
 {
     DrawCallID id;
-    EntityInstanceBatch* batch = nullptr;
-    uint32 draw_command_index = 0;
 
     RenderMesh* render_mesh = nullptr;
     RenderMaterial* render_material = nullptr;
     RenderSkeleton* render_skeleton = nullptr;
 
-    uint32 entity_id_count = 0;
+    uint32 draw_command_index = 0;
+};
+
+/*! \brief Represents a draw call for a single entity.
+ *  \details This is used for non-instanced draw calls, where each entity has its own draw call.
+ *  The `entity_id` is the ID of the entity that this draw call represents. */
+struct DrawCall : DrawCallBase
+{
+    ID<Entity> entity_id;
+};
+
+/*! \brief Represents a draw call for multiple entities sharing the same mesh and material.
+ *  \details This is used for instanced draw calls, where multiple entities share the same mesh and material.
+ *  The `batch` is the entity instance batch that contains the instances of the entities. */
+struct InstancedDrawCall : DrawCallBase
+{
+    EntityInstanceBatch* batch = nullptr;
+
+    uint32 count = 0;
     ID<Entity> entity_ids[max_entities_per_instance_batch];
 };
 
@@ -149,18 +168,31 @@ public:
         return m_render_group;
     }
 
-    HYP_FORCE_INLINE Array<DrawCall, InlineAllocator<16>>& GetDrawCalls()
+    HYP_FORCE_INLINE Span<DrawCall> GetDrawCalls()
     {
         return m_draw_calls;
     }
 
-    HYP_FORCE_INLINE const Array<DrawCall, InlineAllocator<16>>& GetDrawCalls() const
+    HYP_FORCE_INLINE Span<const DrawCall> GetDrawCalls() const
     {
         return m_draw_calls;
     }
 
-    void PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy);
+    HYP_FORCE_INLINE Span<InstancedDrawCall> GetInstancedDrawCalls()
+    {
+        return m_instanced_draw_calls;
+    }
+
+    HYP_FORCE_INLINE Span<const InstancedDrawCall> GetInstancedDrawCalls() const
+    {
+        return m_instanced_draw_calls;
+    }
+
+    void PushRenderProxy(DrawCallID id, const RenderProxy& render_proxy);
+    void PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy);
+
     EntityInstanceBatch* TakeDrawCallBatch(DrawCallID id);
+
     void ResetDrawCalls();
 
 protected:
@@ -168,15 +200,16 @@ private:
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(DrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
+    uint32 PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
 
     IDrawCallCollectionImpl* m_impl;
 
     RenderGroup* m_render_group;
 
     Array<DrawCall, InlineAllocator<16>> m_draw_calls;
+    Array<InstancedDrawCall, InlineAllocator<16>> m_instanced_draw_calls;
 
-    // Map from draw call ID to index in draw_calls
+    // Map from draw call ID to index in instanced_draw_calls
     HashMap<uint64, Array<SizeType>> m_index_map;
 };
 

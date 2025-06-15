@@ -76,25 +76,11 @@ void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
 {
     ShaderProperties properties;
 
-    properties.Set(
-        "RT_REFLECTIONS_ENABLED",
-        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
-
-    properties.Set(
-        "RT_GI_ENABLED",
-        g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool());
-
-    properties.Set(
-        "ENV_GRID_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool());
-
-    properties.Set(
-        "HBIL_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
-
-    properties.Set(
-        "HBAO_ENABLED",
-        g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool());
+    properties.Set("RT_REFLECTIONS_ENABLED", g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
+    properties.Set("RT_GI_ENABLED", g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool());
+    properties.Set("ENV_GRID_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool());
+    properties.Set("HBIL_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
+    properties.Set("HBAO_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool());
 
     if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflections").ToBool())
     {

@@ -353,11 +353,10 @@ private:
 
     void PostCellUpdateToGameThread(Handle<StreamingCell> cell, StreamingCellState state)
     {
-        Task<void> future;
-        TaskPromise<void>* promise = future.Promise();
-
         Mutex::Guard guard(m_game_thread_futures_mutex);
-        m_game_thread_futures.PushBack(std::move(future));
+
+        Task<void>& future = m_game_thread_futures.EmplaceBack();
+        TaskPromise<void>* promise = future.Promise();
 
         Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([this, promise, cell = std::move(cell), state]()
             {
@@ -385,7 +384,7 @@ private:
     LinkedList<LayerData> m_layers;
 
     Array<Pair<Handle<StreamingCell>, StreamingCellState>> m_cell_updates_game_thread;
-    Array<Task<void>> m_game_thread_futures;
+    LinkedList<Task<void>> m_game_thread_futures;
     Mutex m_game_thread_futures_mutex;
 
     StreamingNotifier m_notifier;
@@ -647,6 +646,10 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
                 cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
                 layer_data.layer->InstanceClass()->GetName().LookupString());
 
+            HYP_LOG(Streaming, Debug, "Removed StreamingCell at coord: {} for layer: {} on thread: {}",
+                cell->GetPatchInfo().coord, layer_data.layer->InstanceClass()->GetName().LookupString(),
+                Threads::CurrentThreadID().GetName());
+
             layer_data.Lock();
 
             // Call OnStreamEnd on the cell and then Unload it
@@ -708,7 +711,6 @@ void StreamingManagerThread::GetDesiredCellsForLayer(const LayerData& layer_data
         }
 
         out_cell_coords.Insert(Vec2i(current));
-        break; // temp
 
         for (const Vec2i dir : cell_neighbor_directions)
         {

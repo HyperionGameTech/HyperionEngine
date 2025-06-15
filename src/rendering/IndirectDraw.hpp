@@ -28,13 +28,14 @@ struct RenderCommand_CreateIndirectRenderer;
 struct RenderCommand_DestroyIndirectRenderer;
 
 struct DrawCall;
+struct InstancedDrawCall;
+
 class DrawCallCollection;
 
 struct alignas(16) ObjectInstance
 {
     uint32 entity_id;
     uint32 draw_command_index;
-    uint32 instance_index;
     uint32 batch_index;
 };
 
@@ -75,6 +76,8 @@ public:
     void Destroy();
 
     void PushDrawCall(const DrawCall& draw_call, DrawCommandData& out);
+    void PushInstancedDrawCall(const InstancedDrawCall& draw_call, DrawCommandData& out);
+
     void ResetDrawState();
 
     void UpdateBufferData(FrameBase* frame, bool* out_was_resized);

@@ -69,7 +69,7 @@ struct Handle final : HandleBase
     {
         if (id.IsValid())
         {
-            IObjectContainer* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
+            ObjectContainerBase* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an ID for a type that doesn't have a container.
@@ -357,7 +357,7 @@ struct WeakHandle final
     {
         if (id.IsValid())
         {
-            IObjectContainer* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
+            ObjectContainerBase* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
             AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
 
             HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.ToIndex()));
@@ -890,17 +890,17 @@ inline bool InitObject(const Handle<T>& handle)
     return true;
 }
 
-#define DEF_HANDLE(T)                                                   \
-    class T;                                                            \
-                                                                        \
-    extern IObjectContainer* g_container_ptr_##T;                       \
-                                                                        \
-    template <>                                                         \
-    struct HandleDefinition<T>                                          \
-    {                                                                   \
-        static constexpr const char* class_name = HYP_STR(T);           \
-                                                                        \
-        HYP_API static IObjectContainer* GetAllottedContainerPointer(); \
+#define DEF_HANDLE(T)                                                      \
+    class T;                                                               \
+                                                                           \
+    extern ObjectContainerBase* g_container_ptr_##T;                       \
+                                                                           \
+    template <>                                                            \
+    struct HandleDefinition<T>                                             \
+    {                                                                      \
+        static constexpr const char* class_name = HYP_STR(T);              \
+                                                                           \
+        HYP_API static ObjectContainerBase* GetAllottedContainerPointer(); \
     };
 
 #define DEF_HANDLE_NS(ns, T)                                                   \
@@ -908,14 +908,14 @@ inline bool InitObject(const Handle<T>& handle)
     class T;                                                                   \
     }                                                                          \
                                                                                \
-    extern IObjectContainer* g_container_ptr_##T;                              \
+    extern ObjectContainerBase* g_container_ptr_##T;                           \
                                                                                \
     template <>                                                                \
     struct HandleDefinition<ns::T>                                             \
     {                                                                          \
         static constexpr const char* class_name = HYP_STR(ns) "::" HYP_STR(T); \
                                                                                \
-        HYP_API static IObjectContainer* GetAllottedContainerPointer();        \
+        HYP_API static ObjectContainerBase* GetAllottedContainerPointer();     \
     };
 
 #include <core/inl/HandleDefinitions.inl>

@@ -240,19 +240,39 @@ void IndirectDrawState::Destroy()
 
 void IndirectDrawState::PushDrawCall(const DrawCall& draw_call, DrawCommandData& out)
 {
-    // assume render thread or render task thread
-
     out = {};
 
     const uint32 draw_command_index = m_num_draw_commands++;
 
-    for (uint32 index = 0; index < draw_call.entity_id_count; index++)
+    ObjectInstance& instance = m_object_instances.EmplaceBack();
+    instance.entity_id = draw_call.entity_id.Value();
+    instance.draw_command_index = draw_command_index;
+    instance.batch_index = ~0u;
+
+    out.draw_command_index = draw_command_index;
+
+    if (m_draw_commands.Size() < m_num_draw_commands)
     {
-        m_object_instances.EmplaceBack(ObjectInstance {
-            draw_call.entity_ids[index].Value(),
-            draw_command_index,
-            index,
-            draw_call.batch->batch_index });
+        m_draw_commands.Resize(m_num_draw_commands);
+    }
+
+    draw_call.render_mesh->PopulateIndirectDrawCommand(m_draw_commands[draw_command_index]);
+
+    m_dirty_bits |= 0x3;
+}
+
+void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& draw_call, DrawCommandData& out)
+{
+    out = {};
+
+    const uint32 draw_command_index = m_num_draw_commands++;
+
+    for (uint32 index = 0; index < draw_call.count; index++)
+    {
+        ObjectInstance& instance = m_object_instances.EmplaceBack();
+        instance.entity_id = draw_call.entity_ids[index].Value();
+        instance.draw_command_index = draw_command_index;
+        instance.batch_index = draw_call.batch->batch_index;
     }
 
     out.draw_command_index = draw_command_index;
@@ -419,6 +439,14 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
     {
         DrawCommandData draw_command_data;
         m_indirect_draw_state.PushDrawCall(draw_call, draw_command_data);
+
+        draw_call.draw_command_index = draw_command_data.draw_command_index;
+    }
+
+    for (InstancedDrawCall& draw_call : m_draw_call_collection->GetInstancedDrawCalls())
+    {
+        DrawCommandData draw_command_data;
+        m_indirect_draw_state.PushInstancedDrawCall(draw_call, draw_command_data);
 
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }

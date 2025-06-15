@@ -289,25 +289,19 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(
-            entity,
-            TransformComponent {});
+        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
+        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
 
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(
-            entity,
-            VisibilityStateComponent {});
-
-        Handle<Mesh> mesh = CreateObject<Mesh>(
-            model.vertices,
-            sub_mesh.indices,
-            Topology::TRIANGLES);
-
+        Handle<Mesh> mesh = CreateObject<Mesh>(model.vertices, sub_mesh.indices, Topology::TRIANGLES);
         mesh->CalculateNormals();
 
-        ShaderProperties shader_properties(mesh->GetVertexAttributes());
+        MaterialAttributes material_attributes {};
+        material_attributes.shader_definition = ShaderDefinition {
+            NAME("Forward"),
+            ShaderProperties(mesh->GetVertexAttributes())
+        };
 
-        Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())));
-        material->SetShader(ShaderManager::GetInstance()->GetOrCreate(NAME("Forward"), shader_properties));
+        Handle<Material> material = CreateObject<Material>(CreateNameFromDynamicString(ANSIString(sub_mesh.name.Data())), material_attributes);
 
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
 

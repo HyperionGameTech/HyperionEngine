@@ -379,6 +379,19 @@ public:
         return m_optional_vertex_attributes.Has(vertex_attribute);
     }
 
+    HYP_FORCE_INLINE bool Has(ANSIStringView name) const
+    {
+        for (const ShaderProperty& shader_property : m_props)
+        {
+            if (name == shader_property.name.Data())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     HYP_FORCE_INLINE bool Has(const ShaderProperty& shader_property) const
     {
         const auto it = m_props.Find(shader_property);

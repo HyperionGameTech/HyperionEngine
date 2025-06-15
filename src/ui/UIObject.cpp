@@ -246,6 +246,7 @@ void UIObject::Init()
     MeshComponent mesh_component;
     mesh_component.mesh = GetQuadMesh();
     mesh_component.material = CreateMaterial();
+    mesh_component.instance_data.enable_auto_instancing = true;
     mesh_component.user_data = MeshComponentUserData {};
 
     scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(mesh_component));

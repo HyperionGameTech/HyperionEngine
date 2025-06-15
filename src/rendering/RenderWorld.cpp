@@ -221,7 +221,11 @@ void RenderWorld::SetBufferData(const WorldShaderData& buffer_data)
 
     Execute([this, buffer_data]()
         {
+            // Preserve the frame counter
+            const uint32 frame_counter = m_buffer_data.frame_counter;
+
             m_buffer_data = buffer_data;
+            m_buffer_data.frame_counter = frame_counter;
 
             if (IsInitialized())
             {

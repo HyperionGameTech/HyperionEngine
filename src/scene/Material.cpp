@@ -76,6 +76,11 @@ Material::Material(Name name, Bucket bucket)
     ResetParameters();
 }
 
+Material::Material(Name name, const MaterialAttributes& attributes)
+    : Material(name, attributes, DefaultParameters(), TextureSet {})
+{
+}
+
 Material::Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures)
     : m_name(name),
       m_parameters(parameters),
@@ -100,26 +105,11 @@ Material::~Material()
     {
         m_textures.ValueAt(i).Reset();
     }
-
-    SafeRelease(std::move(m_shader));
 }
 
 void Material::Init()
 {
     m_render_resource = AllocateResource<RenderMaterial>(this);
-
-    if (!m_shader.IsValid())
-    {
-        if (m_render_attributes.shader_definition)
-        {
-            m_shader = g_shader_manager->GetOrCreate(m_render_attributes.shader_definition);
-        }
-
-        if (!m_shader.IsValid())
-        {
-            HYP_LOG(Material, Error, "Failed to create shader for material with ID #{} (name: {})", GetID().Value(), GetName());
-        }
-    }
 
     FlatMap<MaterialTextureKey, Handle<Texture>> textures;
 
@@ -193,43 +183,6 @@ void Material::EnqueueRenderUpdates()
     m_render_resource->SetBufferData(buffer_data);
 
     m_mutation_state = DataMutationState::CLEAN;
-}
-
-void Material::SetShader(const ShaderRef& shader)
-{
-    if (IsStatic() && IsReady())
-    {
-        HYP_LOG(Material, Warning, "Setting shader on static material with ID #{} (name: {})", GetID().Value(), GetName());
-#ifdef HYP_DEBUG_MODE
-        HYP_BREAKPOINT;
-#endif // HYP_DEBUG_MODE
-    }
-
-    if (m_shader == shader)
-    {
-        return;
-    }
-
-    if (m_shader.IsValid())
-    {
-        SafeRelease(std::move(m_shader));
-    }
-
-    m_render_attributes.shader_definition = shader.IsValid()
-        ? shader->GetCompiledShader()->GetDefinition()
-        : ShaderDefinition {};
-
-    if (!bool(m_render_attributes.shader_definition))
-    {
-        HYP_BREAKPOINT;
-    }
-
-    m_shader = shader;
-
-    if (IsInitCalled())
-    {
-        m_mutation_state |= DataMutationState::DIRTY;
-    }
 }
 
 void Material::SetParameter(MaterialKey key, const Parameter& value)
@@ -400,11 +353,6 @@ Handle<Material> Material::Clone() const
 HashCode Material::GetHashCode() const
 {
     HashCode hc;
-
-    if (m_shader.IsValid())
-    {
-        hc.Add(m_shader->GetCompiledShader()->GetHashCode());
-    }
 
     hc.Add(m_parameters.GetHashCode());
     hc.Add(m_textures.GetHashCode());

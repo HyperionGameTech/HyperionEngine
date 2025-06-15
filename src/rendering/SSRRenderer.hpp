@@ -21,11 +21,10 @@ class GBuffer;
 class RenderView;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.ssr")
-
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
     HYP_FIELD(Description = "The quality level of the SSR effect. (0 = low, 1 = medium, 2 = high)")
-    int quality = 1;
+    int quality = 2;
 
     HYP_FIELD(Description = "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.")
     bool roughness_scattering = true;

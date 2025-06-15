@@ -351,6 +351,7 @@ HYP_API void Engine::Init()
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("FinalOutputTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
 
         // Object
+        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("CurrentObject"), GetRenderData()->objects->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), GetRenderData()->materials->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), GetRenderData()->skeletons->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());

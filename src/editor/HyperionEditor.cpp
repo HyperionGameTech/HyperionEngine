@@ -102,20 +102,20 @@ void HyperionEditor::Init()
 
     g_engine->GetWorld()->AddSubsystem(m_editor_subsystem);
 
-    // temp
-    return;
+    // // temp
+    // return;
 
-    if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
-    {
-        // // Initialize the world grid subsystem
-        // world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
+    // if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
+    // {
+    //     // // Initialize the world grid subsystem
+    //     // world_grid->AddPlugin(0, MakeRefCountedPtr<TerrainWorldGridPlugin>());
 
-        world_grid->AddLayer(CreateObject<TerrainWorldGridLayer>());
-    }
-    else
-    {
-        HYP_FAIL("World grid is not initialized in the editor!");
-    }
+    //     world_grid->AddLayer(CreateObject<TerrainWorldGridLayer>());
+    // }
+    // else
+    // {
+    //     HYP_FAIL("World grid is not initialized in the editor!");
+    // }
 
     Handle<Scene> scene = CreateObject<Scene>(SceneFlags::FOREGROUND);
     m_editor_subsystem->GetCurrentProject()->AddScene(scene);

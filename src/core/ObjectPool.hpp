@@ -34,15 +34,25 @@ struct HandleDefinition;
 template <class T>
 class ObjectContainer;
 
-class IObjectContainer;
+class ObjectContainerBase;
 
 struct HypObjectHeader;
 class HypClass;
 
-class IObjectContainer
+class ObjectContainerBase
 {
 public:
-    virtual ~IObjectContainer() = default;
+    virtual ~ObjectContainerBase() = default;
+
+    HYP_FORCE_INLINE const TypeID& GetObjectTypeID() const
+    {
+        return m_type_id;
+    }
+
+    HYP_FORCE_INLINE const HypClass* GetHypClass() const
+    {
+        return m_hyp_class;
+    }
 
     virtual SizeType NumAllocatedElements() const = 0;
     virtual SizeType NumAllocatedBytes() const = 0;
@@ -55,16 +65,24 @@ public:
 
     virtual void* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
-    virtual TypeID GetObjectTypeID() const = 0;
-    virtual const HypClass* GetObjectClass() const = 0;
 
     virtual void ReleaseIndex(uint32 index) = 0;
+
+protected:
+    ObjectContainerBase(TypeID type_id, const HypClass* hyp_class)
+        : m_type_id(type_id),
+          m_hyp_class(hyp_class)
+    {
+    }
+
+    TypeID m_type_id;
+    const HypClass* m_hyp_class;
 };
 
 /*! \brief Metadata for a generic object in the object pool. */
 struct HypObjectHeader
 {
-    IObjectContainer* container;
+    ObjectContainerBase* container;
     uint32 index;
     AtomicVar<uint32> ref_count_strong;
     AtomicVar<uint32> ref_count_weak;
@@ -225,7 +243,7 @@ struct HypObjectMemory final : HypObjectHeader
 template <class T>
 static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T>* elements, uint32 offset, uint32 count)
 {
-    IObjectContainer* container = static_cast<ObjectContainer<T>*>(ctx);
+    ObjectContainerBase* container = static_cast<ObjectContainer<T>*>(ctx);
     AssertThrow(container != nullptr);
 
     for (uint32 index = 0; index < count; index++)
@@ -236,7 +254,7 @@ static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T
 }
 
 template <class T>
-class ObjectContainer final : public IObjectContainer
+class ObjectContainer final : public ObjectContainerBase
 {
     using MemoryPoolType = MemoryPool<HypObjectMemory<T>, MemoryPoolInitInfo, ObjectContainer_OnBlockAllocated<T>>;
 
@@ -244,7 +262,8 @@ class ObjectContainer final : public IObjectContainer
 
 public:
     ObjectContainer()
-        : m_pool(2048, /* create_initial_blocks */ true, /* block_init_ctx */ this)
+        : ObjectContainerBase(TypeID::ForType<T>(), GetClass(TypeID::ForType<T>())),
+          m_pool(2048, /* create_initial_blocks */ true, /* block_init_ctx */ this)
     {
     }
 
@@ -314,20 +333,6 @@ public:
         return &m_pool.GetElement(index);
     }
 
-    virtual TypeID GetObjectTypeID() const override
-    {
-        static const TypeID type_id = TypeID::ForType<T>();
-
-        return type_id;
-    }
-
-    virtual const HypClass* GetObjectClass() const override
-    {
-        static const HypClass* hyp_class = GetClass(TypeID::ForType<T>());
-
-        return hyp_class;
-    }
-
     virtual void ReleaseIndex(uint32 index) override
     {
         m_pool.ReleaseIndex(index);
@@ -344,7 +349,7 @@ public:
     {
         // Maps type ID to object container
         // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<TypeID, UniquePtr<IObjectContainer>>> m_map;
+        LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>> m_map;
         Mutex m_mutex;
 
     public:
@@ -359,7 +364,7 @@ public:
         ObjectContainer<T>& GetOrCreate()
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static ObjectContainer<T>& container = static_cast<ObjectContainer<T>&>(GetOrCreate(TypeID::ForType<T>(), []() -> UniquePtr<IObjectContainer>
+            static ObjectContainer<T>& container = static_cast<ObjectContainer<T>&>(GetOrCreate(TypeID::ForType<T>(), []() -> UniquePtr<ObjectContainerBase>
                 {
                     return MakeUnique<ObjectContainer<T>>();
                 }));
@@ -367,13 +372,13 @@ public:
             return container;
         }
 
-        HYP_API IObjectContainer& Add(TypeID type_id);
+        HYP_API ObjectContainerBase& Add(TypeID type_id);
 
-        HYP_API IObjectContainer& Get(TypeID type_id);
-        HYP_API IObjectContainer* TryGet(TypeID type_id);
+        HYP_API ObjectContainerBase& Get(TypeID type_id);
+        HYP_API ObjectContainerBase* TryGet(TypeID type_id);
 
     private:
-        IObjectContainer& GetOrCreate(TypeID type_id, UniquePtr<IObjectContainer> (*create_fn)(void))
+        ObjectContainerBase& GetOrCreate(TypeID type_id, UniquePtr<ObjectContainerBase> (*create_fn)(void))
         {
             Mutex::Guard guard(m_mutex);
 
@@ -392,7 +397,7 @@ public:
                 return *it->second;
             }
 
-            UniquePtr<IObjectContainer> container = create_fn();
+            UniquePtr<ObjectContainerBase> container = create_fn();
             AssertThrow(container != nullptr);
 
             return *m_map.EmplaceBack(type_id, std::move(container)).second;

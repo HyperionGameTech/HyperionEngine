@@ -15,6 +15,7 @@ namespace hyperion {
 enum EngineRenderStatsCountType : uint32
 {
     ERS_DRAW_CALLS = 0,
+    ERS_INSTANCED_DRAW_CALLS,
     ERS_TRIANGLES,
     ERS_RENDER_GROUPS,
     ERS_VIEWS,

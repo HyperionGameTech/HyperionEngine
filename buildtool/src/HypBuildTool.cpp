@@ -83,14 +83,17 @@ public:
     {
         FindModules();
 
-        Task process_modules = ProcessModules();
+        Task<void>* process_modules = ProcessModules();
         WaitWhileTaskRunning(process_modules);
+        delete process_modules;
 
-        Task build_class_tree = BuildClassTree();
+        Task<void>* build_class_tree = BuildClassTree();
         WaitWhileTaskRunning(build_class_tree);
+        delete build_class_tree;
 
-        Task generate_output_files = GenerateOutputFiles();
+        Task<void>* generate_output_files = GenerateOutputFiles();
         WaitWhileTaskRunning(generate_output_files);
+        delete generate_output_files;
 
         if (m_analyzer.GetState().HasErrors())
         {
@@ -186,14 +189,14 @@ private:
         IterateFilesAndSubdirectories(m_analyzer.GetSourceDirectory());
     }
 
-    Task<void> ProcessModules()
+    Task<void>* ProcessModules()
     {
-        Task<void> task;
+        Task<void>* task = new Task<void>();
 
         TaskBatch* batch = new TaskBatch();
         batch->pool = &m_thread_pool;
         batch->OnComplete
-            .Bind([batch, promise = task.Promise()]()
+            .Bind([batch, promise = task->Promise()]()
                 {
                     promise->Fulfill();
 
@@ -221,9 +224,9 @@ private:
         return task;
     }
 
-    Task<void> BuildClassTree()
+    Task<void>* BuildClassTree()
     {
-        return TaskSystem::GetInstance().Enqueue([this]()
+        return new Task(TaskSystem::GetInstance().Enqueue([this]()
             {
                 Array<HypClassDefinition*> hyp_class_definitions;
                 HashMap<String, uint32> hyp_class_definition_ids;
@@ -299,8 +302,8 @@ private:
 
                 uint32 next_out = 0;
 
-                Proc<void(uint32)> TopologicalSort;
-                TopologicalSort = [&](uint32 id)
+                Proc<void(uint32)> topological_sort;
+                topological_sort = [&](uint32 id)
                 {
                     AssertThrow(id < hyp_class_definitions.Size());
 
@@ -316,7 +319,7 @@ private:
                     {
                         if (hyp_class_definitions[child]->static_index == -1)
                         {
-                            TopologicalSort(child);
+                            topological_sort(child);
                         }
                     }
 
@@ -328,7 +331,7 @@ private:
 
                 for (uint32 root : roots)
                 {
-                    TopologicalSort(root);
+                    topological_sort(root);
                 }
 
                 // Log out the class hierarchy with static indices
@@ -340,17 +343,17 @@ private:
                         hyp_class_definition->num_descendants,
                         String::Join(hyp_class_definition->base_class_names, ", "));
                 }
-            });
+            }));
     }
 
-    Task<void> GenerateOutputFiles()
+    Task<void>* GenerateOutputFiles()
     {
-        Task<void> task;
+        Task<void>* task = new Task<void>();
 
         TaskBatch* batch = new TaskBatch();
         batch->pool = &m_thread_pool;
         batch->OnComplete
-            .Bind([batch, promise = task.Promise()]()
+            .Bind([batch, promise = task->Promise()]()
                 {
                     promise->Fulfill();
 

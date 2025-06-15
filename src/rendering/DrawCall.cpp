@@ -28,6 +28,7 @@ HYP_API GPUBufferHolderMap* GetGPUBufferHolderMap()
 DrawCallCollection::DrawCallCollection(DrawCallCollection&& other) noexcept
     : m_impl(other.m_impl),
       m_draw_calls(std::move(other.m_draw_calls)),
+      m_instanced_draw_calls(std::move(other.m_instanced_draw_calls)),
       m_index_map(std::move(other.m_index_map))
 {
 }
@@ -43,6 +44,7 @@ DrawCallCollection& DrawCallCollection::operator=(DrawCallCollection&& other) no
 
     m_impl = other.m_impl;
     m_draw_calls = std::move(other.m_draw_calls);
+    m_instanced_draw_calls = std::move(other.m_instanced_draw_calls);
     m_index_map = std::move(other.m_index_map);
 
     return *this;
@@ -53,7 +55,18 @@ DrawCallCollection::~DrawCallCollection()
     ResetDrawCalls();
 }
 
-void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy)
+void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxy& render_proxy)
+{
+    DrawCall& draw_call = m_draw_calls.EmplaceBack();
+    draw_call.id = id;
+    draw_call.render_mesh = &render_proxy.mesh->GetRenderResource();
+    draw_call.render_material = &render_proxy.material->GetRenderResource();
+    draw_call.render_skeleton = render_proxy.skeleton.IsValid() ? &render_proxy.skeleton->GetRenderResource() : nullptr;
+    draw_call.entity_id = render_proxy.entity.GetID();
+    draw_call.draw_command_index = ~0u;
+}
+
+void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy)
 {
     // Auto-instancing: check if we already have a drawcall we can use for the given DrawCallID.
     auto index_map_it = m_index_map.Find(uint64(id));
@@ -78,12 +91,12 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCal
 
     while (num_instances != 0)
     {
-        DrawCall* draw_call;
+        InstancedDrawCall* draw_call;
 
         if (index_map_index < initial_index_map_size)
         {
             // we have elements for the specific DrawCallID -- try to reuse them as much as possible
-            draw_call = &m_draw_calls[index_map_it->second[index_map_index++]];
+            draw_call = &m_instanced_draw_calls[index_map_it->second[index_map_index++]];
 
             AssertDebug(draw_call->id == id);
             AssertDebug(draw_call->batch != nullptr);
@@ -98,18 +111,18 @@ void DrawCallCollection::PushDrawCallToBatch(EntityInstanceBatch* batch, DrawCal
 
             AssertDebug(batch->batch_index != ~0u);
 
-            draw_call = &m_draw_calls.EmplaceBack();
+            draw_call = &m_instanced_draw_calls.EmplaceBack();
 
-            *draw_call = DrawCall {};
+            *draw_call = InstancedDrawCall {};
             draw_call->id = id;
             draw_call->batch = batch;
             draw_call->draw_command_index = ~0u;
             draw_call->render_mesh = &render_proxy.mesh->GetRenderResource();
             draw_call->render_material = &render_proxy.material->GetRenderResource();
             draw_call->render_skeleton = render_proxy.skeleton.IsValid() ? &render_proxy.skeleton->GetRenderResource() : nullptr;
-            draw_call->entity_id_count = 0;
+            draw_call->count = 0;
 
-            index_map_it->second.PushBack(m_draw_calls.Size() - 1);
+            index_map_it->second.PushBack(m_instanced_draw_calls.Size() - 1);
 
             // Used, set it to nullptr so it doesn't get released
             batch = nullptr;
@@ -136,7 +149,7 @@ EntityInstanceBatch* DrawCallCollection::TakeDrawCallBatch(DrawCallID id)
     {
         for (SizeType draw_call_index : it->second)
         {
-            DrawCall& draw_call = m_draw_calls[draw_call_index];
+            InstancedDrawCall& draw_call = m_instanced_draw_calls[draw_call_index];
 
             if (!draw_call.batch)
             {
@@ -159,7 +172,7 @@ void DrawCallCollection::ResetDrawCalls()
     GPUBufferHolderBase* entity_instance_batches = m_impl->GetEntityInstanceBatchHolder();
     AssertDebug(entity_instance_batches != nullptr);
 
-    for (DrawCall& draw_call : m_draw_calls)
+    for (InstancedDrawCall& draw_call : m_instanced_draw_calls)
     {
         if (draw_call.batch != nullptr)
         {
@@ -175,10 +188,11 @@ void DrawCallCollection::ResetDrawCalls()
     }
 
     m_draw_calls.Clear();
+    m_instanced_draw_calls.Clear();
     m_index_map.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(DrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
+uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
     AssertThrow(num_instances <= mesh_instance_data.num_instances);
@@ -234,7 +248,7 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall& draw_call, ID<Entity> ent
 
             instance_offset++;
 
-            draw_call.entity_ids[draw_call.entity_id_count++] = entity;
+            draw_call.entity_ids[draw_call.count++] = entity;
 
             --num_instances;
 
@@ -250,7 +264,7 @@ uint32 DrawCallCollection::PushEntityToBatch(DrawCall& draw_call, ID<Entity> ent
             draw_call.batch->indices[entity_index] = uint32(entity.ToIndex());
             draw_call.batch->transforms[entity_index] = Matrix4::identity;
 
-            draw_call.entity_ids[draw_call.entity_id_count++] = entity;
+            draw_call.entity_ids[draw_call.count++] = entity;
 
             --num_instances;
 
