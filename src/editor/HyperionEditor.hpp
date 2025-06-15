@@ -31,7 +31,7 @@ protected:
     virtual void Init() override;
 
     HyperionEditorImpl* m_impl;
-    RC<EditorSubsystem> m_editor_subsystem;
+    Handle<EditorSubsystem> m_editor_subsystem;
 };
 } // namespace editor
 

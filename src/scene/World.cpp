@@ -95,7 +95,10 @@ World::~World()
 
         for (auto& it : m_subsystems)
         {
-            it.second->Shutdown();
+            const Handle<Subsystem>& subsystem = it.second;
+            AssertThrow(subsystem.IsValid());
+
+            it.second->OnRemovedFromWorld();
         }
     }
 
@@ -177,7 +180,12 @@ void World::Init()
 
     for (auto& it : m_subsystems)
     {
-        it.second->Initialize();
+        const Handle<Subsystem>& subsystem = it.second;
+        AssertThrow(subsystem.IsValid());
+
+        InitObject(subsystem);
+
+        subsystem->OnAddedToWorld();
     }
 
     InitObject(m_world_grid);
@@ -368,7 +376,7 @@ void World::Update(GameCounter::TickUnit delta)
     m_game_state.game_time += delta;
 }
 
-RC<Subsystem> World::AddSubsystem(TypeID type_id, const RC<Subsystem>& subsystem)
+Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& subsystem)
 {
     HYP_SCOPE;
 
@@ -393,11 +401,16 @@ RC<Subsystem> World::AddSubsystem(TypeID type_id, const RC<Subsystem>& subsystem
     {
         if (insert_result.second)
         {
-            insert_result.first->second->Initialize();
+            const Handle<Subsystem>& new_subsystem = insert_result.first->second;
+            AssertThrow(new_subsystem.IsValid());
+
+            InitObject(new_subsystem);
+
+            new_subsystem->OnAddedToWorld();
 
             for (Handle<Scene>& scene : m_scenes)
             {
-                insert_result.first->second->OnSceneAttached(scene);
+                new_subsystem->OnSceneAttached(scene);
             }
         }
     }
@@ -427,7 +440,7 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
 
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    const auto it = m_subsystems.FindIf([name](const Pair<TypeID, RC<Subsystem>>& item)
+    const auto it = m_subsystems.FindIf([name](const Pair<TypeID, Handle<Subsystem>>& item)
         {
             if (!item.second)
             {

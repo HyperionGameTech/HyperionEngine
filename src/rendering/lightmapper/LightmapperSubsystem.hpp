@@ -33,8 +33,8 @@ public:
     LightmapperSubsystem();
     virtual ~LightmapperSubsystem() override = default;
 
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
+    virtual void OnAddedToWorld() override;
+    virtual void OnRemovedFromWorld() override;
     virtual void Update(GameCounter::TickUnit delta) override;
 
     Task<void>* GenerateLightmaps(const Handle<Scene>& scene, const BoundingBox& aabb);

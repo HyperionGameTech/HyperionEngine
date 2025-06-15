@@ -500,49 +500,50 @@ public:
             Handle<UIButton> add_entity_button = parent->CreateUIObject<UIButton>(NAME("Add_Entity_Button"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             add_entity_button->SetText("Add Entity");
 
-            add_entity_button->OnClick.Bind([world = Handle<World>(parent->GetWorld()), node_weak = context->node](...) -> UIEventHandlerResult
-                                          {
-                                              HYP_LOG(Editor, Debug, "Add Entity clicked");
+            add_entity_button->OnClick
+                .Bind([world = parent->GetWorld()->HandleFromThis(), node_weak = context->node](...) -> UIEventHandlerResult
+                    {
+                        HYP_LOG(Editor, Debug, "Add Entity clicked");
 
-                                              if (Handle<Node> node = node_weak.Lock())
-                                              {
-                                                  world->GetSubsystem<EditorSubsystem>()->GetCurrentProject()->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
-                                                      NAME("AddEntity"),
-                                                      [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
-                                                      {
-                                                          return {
-                                                              [&]()
-                                                              {
-                                                                  Scene* scene = node->GetScene();
+                        if (Handle<Node> node = node_weak.Lock())
+                        {
+                            world->GetSubsystem<EditorSubsystem>()->GetCurrentProject()->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
+                                NAME("AddEntity"),
+                                [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
+                                {
+                                    return {
+                                        [&]()
+                                        {
+                                            Scene* scene = node->GetScene();
 
-                                                                  if (!scene)
-                                                                  {
-                                                                      HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node->GetName());
+                                            if (!scene)
+                                            {
+                                                HYP_LOG(Editor, Error, "GetScene() returned null for Node with name \"{}\", cannot add Entity", node->GetName());
 
-                                                                      return;
-                                                                  }
+                                                return;
+                                            }
 
-                                                                  if (!entity.IsValid())
-                                                                  {
-                                                                      entity = scene->GetEntityManager()->AddEntity();
-                                                                  }
+                                            if (!entity.IsValid())
+                                            {
+                                                entity = scene->GetEntityManager()->AddEntity();
+                                            }
 
-                                                                  node->SetEntity(entity);
-                                                              },
-                                                              [&]()
-                                                              {
-                                                                  node->SetEntity(Handle<Entity>::empty);
-                                                              }
-                                                          };
-                                                      }));
+                                            node->SetEntity(entity);
+                                        },
+                                        [&]()
+                                        {
+                                            node->SetEntity(Handle<Entity>::empty);
+                                        }
+                                    };
+                                }));
 
-                                                  return UIEventHandlerResult::STOP_BUBBLING;
-                                              }
+                            return UIEventHandlerResult::STOP_BUBBLING;
+                        }
 
-                                              HYP_LOG(Editor, Error, "Cannot add Entity to Node, Node reference could not be obtained");
+                        HYP_LOG(Editor, Error, "Cannot add Entity to Node, Node reference could not be obtained");
 
-                                              return UIEventHandlerResult::ERR;
-                                          })
+                        return UIEventHandlerResult::ERR;
+                    })
                 .Detach();
 
             column->AddChildUIObject(add_entity_button);

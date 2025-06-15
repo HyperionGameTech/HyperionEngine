@@ -26,12 +26,12 @@ LightmapperSubsystem::LightmapperSubsystem()
 {
 }
 
-void LightmapperSubsystem::Initialize()
+void LightmapperSubsystem::OnAddedToWorld()
 {
     Threads::AssertOnThread(g_game_thread);
 }
 
-void LightmapperSubsystem::Shutdown()
+void LightmapperSubsystem::OnRemovedFromWorld()
 {
     Threads::AssertOnThread(g_game_thread);
 

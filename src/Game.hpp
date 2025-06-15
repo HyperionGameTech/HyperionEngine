@@ -72,14 +72,14 @@ protected:
     virtual void Logic(GameCounter::TickUnit delta) = 0;
     virtual void OnInputEvent(const SystemEvent& event);
 
-    const RC<UISubsystem>& GetUISubsystem() const
+    const Handle<UISubsystem>& GetUISubsystem() const
     {
         return m_ui_subsystem;
     }
 
     Handle<AppContextBase> m_app_context;
 
-    RC<UISubsystem> m_ui_subsystem;
+    Handle<UISubsystem> m_ui_subsystem;
 
     RC<dotnet::Assembly> m_managed_assembly;
     dotnet::Object* m_managed_game_object;

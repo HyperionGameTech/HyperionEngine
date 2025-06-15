@@ -26,18 +26,19 @@ public:
     UISubsystem(const Handle<UIStage>& ui_stage);
     virtual ~UISubsystem() override;
 
-    virtual bool RequiresUpdateOnGameThread() const
+    bool RequiresUpdateOnGameThread() const override
     {
         return false;
     }
 
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
-    virtual void PreUpdate(GameCounter::TickUnit delta) override;
-    virtual void Update(GameCounter::TickUnit delta) override;
+    void OnAddedToWorld() override;
+    void OnRemovedFromWorld() override;
 
-    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
-    virtual void OnSceneDetached(const Handle<Scene>& scene) override;
+    void PreUpdate(GameCounter::TickUnit delta) override;
+    void Update(GameCounter::TickUnit delta) override;
+
+    void OnSceneAttached(const Handle<Scene>& scene) override;
+    void OnSceneDetached(const Handle<Scene>& scene) override;
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<UIStage>& GetUIStage() const

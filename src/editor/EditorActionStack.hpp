@@ -45,7 +45,7 @@ public:
     virtual ~EditorActionStack() override;
 
     HYP_METHOD()
-    void Push(const RC<IEditorAction>& action);
+    void Push(const Handle<IEditorAction>& action);
 
     HYP_METHOD()
     bool CanUndo() const;
@@ -83,7 +83,7 @@ public:
 private:
     void UpdateState();
 
-    Array<RC<IEditorAction>> m_actions;
+    Array<Handle<IEditorAction>> m_actions;
     int m_current_action_index;
 
     EnumFlags<EditorActionStackState> m_current_state;

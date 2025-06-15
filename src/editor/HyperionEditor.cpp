@@ -98,7 +98,7 @@ void HyperionEditor::Init()
 {
     Game::Init();
 
-    m_editor_subsystem = MakeRefCountedPtr<EditorSubsystem>(GetAppContext());
+    m_editor_subsystem = CreateObject<EditorSubsystem>(GetAppContext());
 
     g_engine->GetWorld()->AddSubsystem(m_editor_subsystem);
 

@@ -158,7 +158,7 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-class HYP_API EditorManipulationWidgetBase : public EnableRefCountedPtrFromThis<EditorManipulationWidgetBase>
+class HYP_API EditorManipulationWidgetBase : public HypObject<EditorManipulationWidgetBase>
 {
     HYP_OBJECT_BODY(EditorManipulationWidgetBase);
 
@@ -186,7 +186,6 @@ public:
         m_editor_subsystem = editor_subsystem;
     }
 
-    void Initialize();
     void Shutdown();
 
     virtual EditorManipulationMode GetManipulationMode() const = 0;
@@ -217,6 +216,8 @@ public:
     }
 
 protected:
+    virtual void Init() override;
+
     virtual Handle<Node> Load_Internal() const = 0;
 
     Handle<EditorProject> GetCurrentProject() const;
@@ -298,7 +299,7 @@ protected:
 
 class HYP_API EditorManipulationWidgetHolder
 {
-    using EditorManipulationWidgetSet = HashSet<RC<EditorManipulationWidgetBase>, &EditorManipulationWidgetBase::GetManipulationMode>;
+    using EditorManipulationWidgetSet = HashSet<Handle<EditorManipulationWidgetBase>, &EditorManipulationWidgetBase::GetManipulationMode>;
 
 public:
     using OnSelectedManipulationWidgetChangeDelegate = Delegate<void, EditorManipulationWidgetBase&, EditorManipulationWidgetBase&>;
@@ -339,12 +340,12 @@ public:
     EditorSubsystem(const Handle<AppContextBase>& app_context);
     virtual ~EditorSubsystem() override;
 
-    virtual void Initialize() override;
-    virtual void Shutdown() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
+    void OnAddedToWorld() override;
+    void OnRemovedFromWorld() override;
+    void Update(GameCounter::TickUnit delta) override;
 
-    virtual void OnSceneAttached(const Handle<Scene>& scene) override;
-    virtual void OnSceneDetached(const Handle<Scene>& scene) override;
+    void OnSceneAttached(const Handle<Scene>& scene) override;
+    void OnSceneDetached(const Handle<Scene>& scene) override;
 
     HYP_FORCE_INLINE const Handle<AppContextBase>& GetAppContext() const
     {
@@ -447,7 +448,7 @@ private:
 
     EditorManipulationWidgetHolder m_manipulation_widget_holder;
 
-    Weak<EditorManipulationWidgetBase> m_hovered_manipulation_widget;
+    WeakHandle<EditorManipulationWidgetBase> m_hovered_manipulation_widget;
     WeakHandle<Node> m_hovered_manipulation_widget_node;
 
     Handle<Texture> m_scene_texture;

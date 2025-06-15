@@ -186,7 +186,7 @@ EditorManipulationWidgetBase::EditorManipulationWidgetBase()
 {
 }
 
-void EditorManipulationWidgetBase::Initialize()
+void EditorManipulationWidgetBase::Init()
 {
     // Keep the node around so we only have to load it once.
     if (m_node.IsValid())
@@ -210,6 +210,8 @@ void EditorManipulationWidgetBase::Initialize()
         | NodeFlags::HIDE_IN_SCENE_OUTLINE // don't display transform widget in the outline
         | NodeFlags::TRANSIENT             // should not ever be serialized to disk
     );
+
+    SetReady(true);
 }
 
 void EditorManipulationWidgetBase::Shutdown()
@@ -223,6 +225,8 @@ void EditorManipulationWidgetBase::Shutdown()
     }
 
     m_focused_node.Reset();
+
+    SetReady(false);
 }
 
 void EditorManipulationWidgetBase::UpdateWidget(const Handle<Node>& focused_node)
@@ -351,9 +355,9 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
     {
         if (Handle<Node> focused_node = m_focused_node.Lock())
         {
-            project->GetActionStack()->Push(MakeRefCountedPtr<FunctionalEditorAction>(
+            project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
                 NAME("Translate"),
-                [editor_subsystem_weak = GetEditorSubsystem()->WeakRefCountedPtrFromThis(), manipulation_mode = GetManipulationMode(), focused_node, node = m_node, final_position = focused_node->GetWorldTranslation(), origin = m_drag_data->node_origin]() -> EditorActionFunctions
+                [editor_subsystem_weak = GetEditorSubsystem()->WeakHandleFromThis(), manipulation_mode = GetManipulationMode(), focused_node, node = m_node, final_position = focused_node->GetWorldTranslation(), origin = m_drag_data->node_origin]() -> EditorActionFunctions
                 {
                     return {
                         [&]()
@@ -366,7 +370,7 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(final_position);
                             }
 
-                            if (RC<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().CastUnsafe<EditorSubsystem>())
+                            if (Handle<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().Cast<EditorSubsystem>())
                             {
                                 editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
 
@@ -383,7 +387,7 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(origin);
                             }
 
-                            if (RC<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().CastUnsafe<EditorSubsystem>())
+                            if (Handle<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().Cast<EditorSubsystem>())
                             {
                                 editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
 
@@ -640,8 +644,8 @@ EditorManipulationWidgetHolder::EditorManipulationWidgetHolder(EditorSubsystem* 
     : m_editor_subsystem(editor_subsystem),
       m_selected_manipulation_mode(EditorManipulationMode::NONE)
 {
-    m_manipulation_widgets.Insert(MakeRefCountedPtr<NullEditorManipulationWidget>());
-    m_manipulation_widgets.Insert(MakeRefCountedPtr<TranslateEditorManipulationWidget>());
+    m_manipulation_widgets.Insert(CreateObject<NullEditorManipulationWidget>());
+    m_manipulation_widgets.Insert(CreateObject<TranslateEditorManipulationWidget>());
 }
 
 EditorManipulationMode EditorManipulationWidgetHolder::GetSelectedManipulationMode() const
@@ -691,12 +695,12 @@ void EditorManipulationWidgetHolder::Initialize()
 {
     Threads::AssertOnThread(g_game_thread);
 
-    for (auto& it : m_manipulation_widgets)
+    for (const Handle<EditorManipulationWidgetBase>& widget : m_manipulation_widgets)
     {
-        it->SetEditorSubsystem(m_editor_subsystem);
-        it->SetCurrentProject(m_current_project);
+        widget->SetEditorSubsystem(m_editor_subsystem);
+        widget->SetCurrentProject(m_current_project);
 
-        it->Initialize();
+        InitObject(widget);
     }
 }
 
@@ -921,7 +925,7 @@ EditorSubsystem::~EditorSubsystem()
     delete m_editor_delegates;
 }
 
-void EditorSubsystem::Initialize()
+void EditorSubsystem::OnAddedToWorld()
 {
     HYP_SCOPE;
 
@@ -1029,7 +1033,7 @@ void EditorSubsystem::Initialize()
     // OpenProject(*result);
 }
 
-void EditorSubsystem::Shutdown()
+void EditorSubsystem::OnRemovedFromWorld()
 {
     HYP_SCOPE;
 
@@ -1330,7 +1334,7 @@ void EditorSubsystem::InitViewport()
                 // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
                 if (IsHoveringManipulationWidget())
                 {
-                    RC<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
                     Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
 
                     if (!manipulation_widget || !node)
@@ -1434,7 +1438,7 @@ void EditorSubsystem::InitViewport()
             {
                 if (IsHoveringManipulationWidget())
                 {
-                    RC<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
                     Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
 
                     if (!manipulation_widget || !node)
@@ -1484,7 +1488,7 @@ void EditorSubsystem::InitViewport()
             {
                 if (IsHoveringManipulationWidget())
                 {
-                    RC<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
                     Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
 
                     if (!manipulation_widget || !node)
@@ -2046,7 +2050,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
     manipulation_widget_menu_items.Reserve(m_manipulation_widget_holder.GetManipulationWidgets().Size());
 
     // add each manipulation widget to the selection menu
-    for (const RC<EditorManipulationWidgetBase>& manipulation_widget : m_manipulation_widget_holder.GetManipulationWidgets())
+    for (const Handle<EditorManipulationWidgetBase>& manipulation_widget : m_manipulation_widget_holder.GetManipulationWidgets())
     {
         if (manipulation_widget->GetManipulationMode() == EditorManipulationMode::NONE)
         {
@@ -2626,7 +2630,7 @@ void EditorSubsystem::SetHoveredManipulationWidget(
     if (m_hovered_manipulation_widget.IsValid() && m_hovered_manipulation_widget_node.IsValid())
     {
         Handle<Node> hovered_manipulation_widget_node = m_hovered_manipulation_widget_node.Lock();
-        RC<EditorManipulationWidgetBase> hovered_manipulation_widget = m_hovered_manipulation_widget.Lock();
+        Handle<EditorManipulationWidgetBase> hovered_manipulation_widget = m_hovered_manipulation_widget.Lock();
 
         if (hovered_manipulation_widget_node && hovered_manipulation_widget)
         {
@@ -2636,7 +2640,7 @@ void EditorSubsystem::SetHoveredManipulationWidget(
 
     if (manipulation_widget != nullptr)
     {
-        m_hovered_manipulation_widget = manipulation_widget->WeakRefCountedPtrFromThis();
+        m_hovered_manipulation_widget = manipulation_widget->WeakHandleFromThis();
     }
     else
     {

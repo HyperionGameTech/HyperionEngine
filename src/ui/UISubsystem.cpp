@@ -29,7 +29,7 @@ UISubsystem::~UISubsystem()
 {
 }
 
-void UISubsystem::Initialize()
+void UISubsystem::OnAddedToWorld()
 {
     HYP_SCOPE;
 
@@ -40,7 +40,7 @@ void UISubsystem::Initialize()
     m_ui_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(Name::Unique("UIRenderSubsystem"), m_ui_stage);
 }
 
-void UISubsystem::Shutdown()
+void UISubsystem::OnRemovedFromWorld()
 {
     HYP_SCOPE;
 

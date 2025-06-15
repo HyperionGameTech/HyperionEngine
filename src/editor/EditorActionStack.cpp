@@ -50,7 +50,7 @@ bool EditorActionStack::CanRedo() const
     return m_current_action_index + 1 < m_actions.Size();
 }
 
-void EditorActionStack::Push(const RC<IEditorAction>& action)
+void EditorActionStack::Push(const Handle<IEditorAction>& action)
 {
     AssertThrow(action != nullptr);
 

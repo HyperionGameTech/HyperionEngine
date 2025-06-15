@@ -21,7 +21,7 @@ class Scene;
 class World;
 
 HYP_CLASS(Abstract)
-class HYP_API Subsystem : public EnableRefCountedPtrFromThis<Subsystem>
+class HYP_API Subsystem : public HypObject<Subsystem>
 {
     HYP_OBJECT_BODY(Subsystem);
 
@@ -40,14 +40,19 @@ public:
         return true;
     }
 
-    virtual void Initialize() = 0;
-    virtual void Shutdown() = 0;
+    virtual void OnAddedToWorld() = 0;
+    virtual void OnRemovedFromWorld() = 0;
     virtual void PreUpdate(GameCounter::TickUnit delta) { }
     virtual void Update(GameCounter::TickUnit delta) = 0;
     virtual void OnSceneAttached(const Handle<Scene>& scene) { };
     virtual void OnSceneDetached(const Handle<Scene>& scene) { };
 
 protected:
+    virtual void Init() override
+    {
+        SetReady(true);
+    }
+
     HYP_FORCE_INLINE World* GetWorld() const
     {
         return m_world;

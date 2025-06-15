@@ -97,22 +97,22 @@ public:
     }
 
     template <class T, class... Args>
-    HYP_FORCE_INLINE RC<T> AddSubsystem(Args&&... args)
+    HYP_FORCE_INLINE Handle<T> AddSubsystem(Args&&... args)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return AddSubsystem(TypeID::ForType<T>(), MakeRefCountedPtr<T>(std::forward<Args>(args)...)).template CastUnsafe<T>();
+        return AddSubsystem(TypeID::ForType<T>(), CreateObject<T>(std::forward<Args>(args)...)).template Cast<T>();
     }
 
     template <class T>
-    HYP_FORCE_INLINE RC<T> AddSubsystem(const RC<T>& subsystem)
+    HYP_FORCE_INLINE Handle<T> AddSubsystem(const Handle<T>& subsystem)
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return AddSubsystem(TypeID::ForType<T>(), subsystem).template CastUnsafe<T>();
+        return AddSubsystem(TypeID::ForType<T>(), subsystem).template Cast<T>();
     }
 
-    RC<Subsystem> AddSubsystem(TypeID type_id, const RC<Subsystem>& subsystem);
+    Handle<Subsystem> AddSubsystem(TypeID type_id, const Handle<Subsystem>& subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T* GetSubsystem()
@@ -199,7 +199,7 @@ private:
     Array<Handle<Scene>> m_scenes;
     Array<Handle<View>> m_views;
 
-    TypeMap<RC<Subsystem>> m_subsystems;
+    TypeMap<Handle<Subsystem>> m_subsystems;
 
     Handle<WorldGrid> m_world_grid;
 
