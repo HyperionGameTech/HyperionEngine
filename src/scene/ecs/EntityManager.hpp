@@ -667,7 +667,7 @@ public:
         AssertThrowMsg(entity_data != nullptr, "Entity does not exist");
 
         const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentID<Component>();
-        AssertThrowMsg(component_id_opt.HasValue(), "Entity does not have component");
+        AssertThrowMsg(component_id_opt.HasValue(), "Entity does not have component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
         static const TypeID component_type_id = TypeID::ForType<Component>();
 
@@ -1188,13 +1188,19 @@ private:
         // If the EntityManager is initialized, call Initialize() on the System.
         if (IsInitCalled() && was_added)
         {
-            InitializeSystem(system);
+            system->InitComponentInfos_Internal();
+
+            if (m_world != nullptr)
+            {
+                InitializeSystem(system);
+            }
         }
 
         return system;
     }
 
     void InitializeSystem(const Handle<SystemBase>& system);
+    void ShutdownSystem(const Handle<SystemBase>& system);
 
     void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentID>& component_ids);
     void NotifySystemsOfEntityRemoved(ID<Entity> entity_id, const TypeMap<ComponentID>& component_ids);

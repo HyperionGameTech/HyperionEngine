@@ -12,6 +12,9 @@
 #include <core/object/HypObject.hpp>
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/functional/Delegate.hpp>
+#include <core/functional/ScriptableDelegate.hpp>
+
 #include <core/utilities/UUID.hpp>
 #include <core/utilities/Result.hpp>
 
@@ -63,16 +66,6 @@ public:
         m_name = name;
     }
 
-    HYP_METHOD(Property = "Scene", Serialize = true)
-    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
-    {
-        return m_scene;
-    }
-
-    /*! \internal For serialization only. */
-    HYP_METHOD(Property = "Scene", Serialize = true)
-    void SetScene(const Handle<Scene>& scene);
-
     HYP_METHOD(Property = "LastSavedTime", Serialize = true)
     HYP_FORCE_INLINE Time GetLastSavedTime() const
     {
@@ -104,6 +97,18 @@ public:
         return m_asset_registry;
     }
 
+    HYP_METHOD(Property = "Scenes")
+    HYP_FORCE_INLINE const Array<Handle<Scene>>& GetScenes() const
+    {
+        return m_scenes;
+    }
+
+    HYP_METHOD()
+    void AddScene(const Handle<Scene>& scene);
+
+    HYP_METHOD()
+    void RemoveScene(const Handle<Scene>& scene);
+
     HYP_METHOD()
     FilePath GetProjectsDirectory() const;
 
@@ -130,6 +135,15 @@ public:
     HYP_METHOD()
     void Close();
 
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<Scene>&> OnSceneAdded;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<Scene>&> OnSceneRemoved;
+
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectSaved;
+
 private:
     void Init() override;
 
@@ -143,7 +157,8 @@ private:
 
     FilePath m_filepath;
 
-    Handle<Scene> m_scene;
+    HYP_FIELD(Property = "Scenes", Serialize = true)
+    Array<Handle<Scene>> m_scenes;
 
     Handle<AssetRegistry> m_asset_registry;
 

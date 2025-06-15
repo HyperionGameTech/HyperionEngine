@@ -10,18 +10,11 @@ RTCServerThread::RTCServerThread()
 {
 }
 
-void RTCServerThread::Stop()
-{
-    m_is_running.Set(false, MemoryOrder::RELAXED);
-}
-
 void RTCServerThread::operator()(RTCServer* server)
 {
-    m_is_running.Set(true, MemoryOrder::RELAXED);
-
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (m_is_running.Get(MemoryOrder::RELAXED))
+    while (!m_stop_requested.Get(MemoryOrder::RELAXED))
     {
         if (uint32 num_enqueued = m_scheduler.NumEnqueued())
         {

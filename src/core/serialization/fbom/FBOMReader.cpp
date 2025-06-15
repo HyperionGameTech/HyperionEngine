@@ -911,10 +911,9 @@ FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* read
 
     FBOMCommand command = FBOM_NONE;
 
-    // read unique ID
-    uint64 unique_id;
-    reader->Read(&unique_id);
-    CheckEndianness(unique_id);
+    uint64 id;
+    reader->Read(&id);
+    CheckEndianness(id);
 
     EnumFlags<FBOMDataAttributes> attributes;
     FBOMDataLocation location;
@@ -957,7 +956,7 @@ FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* read
         }
 
         out_object = FBOMObject(object_type);
-        out_object.m_unique_id = unique_id;
+        out_object.m_unique_id = UniqueID { id };
 
         do
         {

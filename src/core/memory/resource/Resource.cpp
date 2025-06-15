@@ -89,7 +89,7 @@ int ResourceBase::IncRefNoInitialize()
 
 int ResourceBase::IncRef()
 {
-    IThread* owner_thread = GetOwnerThread();
+    ThreadBase* owner_thread = GetOwnerThread();
 
     auto impl = [this]()
     {
@@ -339,14 +339,14 @@ void ResourceBase::WaitForFinalization() const
 
 bool ResourceBase::CanExecuteInline() const
 {
-    IThread* owner_thread = GetOwnerThread();
+    ThreadBase* owner_thread = GetOwnerThread();
 
     return owner_thread == nullptr || Threads::IsOnThread(owner_thread->GetID());
 }
 
 void ResourceBase::FlushScheduledTasks() const
 {
-    IThread* owner_thread = GetOwnerThread();
+    ThreadBase* owner_thread = GetOwnerThread();
     AssertThrow(owner_thread != nullptr);
 
     owner_thread->GetScheduler().Flush([](auto& operation)

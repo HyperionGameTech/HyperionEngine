@@ -6,6 +6,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <Game.hpp>
+#include <GameThread.hpp>
 
 #include <HyperionEngine.hpp>
 
@@ -15,6 +16,12 @@ HYP_DECLARE_LOG_CHANNEL(Core);
 
 namespace sys {
 
+App& App::GetInstance()
+{
+    static App instance;
+    return instance;
+}
+
 App::App()
 {
 }
@@ -23,48 +30,39 @@ App::~App()
 {
 }
 
-void App::Launch(Game* game, const CommandLineArguments& arguments)
+void App::LaunchGame(const Handle<Game>& game)
 {
-    hyperion::InitializeEngine(FilePath(arguments.GetCommand()).BasePath());
+    Threads::AssertOnThread(g_main_thread);
 
-    m_app_context = InitAppContext(game, arguments);
-
-    hyperion::DestroyEngine();
-}
-
-Handle<AppContextBase> App::InitAppContext(Game* game, const CommandLineArguments& arguments)
-{
-    AssertThrow(game != nullptr);
+    AssertThrow(game.IsValid());
 
     Handle<AppContextBase> app_context;
 
 #ifdef HYP_SDL
-    app_context = CreateObject<SDLAppContext>("Hyperion", arguments);
+    app_context = CreateObject<SDLAppContext>("Hyperion", GetCommandLineArguments());
 #else
     HYP_FAIL("AppContext not implemented for this platform");
 #endif
 
     app_context->SetGame(game);
 
-    const CommandLineArguments& app_context_arguments = app_context->GetArguments();
-
     Vec2i resolution = { 1280, 720 };
 
     EnumFlags<WindowFlags> window_flags = WindowFlags::HIGH_DPI;
 
-    if (app_context_arguments["Headless"].ToBool())
+    if (GetCommandLineArguments()["Headless"].ToBool())
     {
         window_flags |= WindowFlags::HEADLESS;
     }
 
-    if (app_context_arguments["ResX"].IsNumber())
+    if (GetCommandLineArguments()["ResX"].IsNumber())
     {
-        resolution.x = app_context_arguments["ResX"].ToInt32();
+        resolution.x = GetCommandLineArguments()["ResX"].ToInt32();
     }
 
-    if (app_context_arguments["ResY"].IsNumber())
+    if (GetCommandLineArguments()["ResY"].IsNumber())
     {
-        resolution.y = app_context_arguments["ResY"].ToInt32();
+        resolution.y = GetCommandLineArguments()["ResY"].ToInt32();
     }
 
     if (!(window_flags & WindowFlags::HEADLESS))
@@ -78,9 +76,16 @@ Handle<AppContextBase> App::InitAppContext(Game* game, const CommandLineArgument
         HYP_LOG(Core, Info, "Running in headless mode");
     }
 
-    hyperion::InitializeAppContext(app_context, game);
+    AssertThrow(g_rendering_api != nullptr);
+    HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*app_context));
+    g_engine->SetAppContext(app_context);
+    InitObject(g_engine);
 
-    return app_context;
+    m_game_thread = MakeUnique<GameThread>(app_context);
+    m_game_thread->SetGame(game);
+    m_game_thread->Start();
+
+    AssertThrow(g_engine->StartRenderLoop());
 }
 
 } // namespace sys

@@ -140,10 +140,7 @@ Scene::Scene(World* world, EnumFlags<SceneFlags> flags)
 {
 }
 
-Scene::Scene(
-    World* world,
-    ThreadID owner_thread_id,
-    EnumFlags<SceneFlags> flags)
+Scene::Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags)
     : m_name(Name::Unique("Scene")),
       m_flags(flags),
       m_owner_thread_id(owner_thread_id),
@@ -160,7 +157,7 @@ Scene::Scene(
         m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
     }
 
-    m_root = CreateObject<Node>("<ROOT>", Handle<Entity>::empty, Transform::identity, this);
+    m_root = CreateObject<Node>(NAME("<ROOT>"), Handle<Entity>::empty, Transform::identity, this);
 }
 
 Scene::~Scene()
@@ -227,6 +224,8 @@ void Scene::Init()
                 m_render_resource = nullptr;
             }
         }));
+
+    m_entity_manager->SetWorld(m_world);
 
     m_render_resource = AllocateResource<RenderScene>(this);
 
@@ -333,7 +332,7 @@ Handle<Node> Scene::FindNodeWithEntity(ID<Entity> entity) const
     return m_root->FindChildWithEntity(entity);
 }
 
-Handle<Node> Scene::FindNodeByName(UTF8StringView name) const
+Handle<Node> Scene::FindNodeByName(WeakName name) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
@@ -459,7 +458,7 @@ bool Scene::RemoveFromWorld()
     return true;
 }
 
-String Scene::GetUniqueNodeName(UTF8StringView base_name) const
+Name Scene::GetUniqueNodeName(UTF8StringView base_name) const
 {
     String unique_name = base_name;
     int counter = 1;
@@ -467,7 +466,7 @@ String Scene::GetUniqueNodeName(UTF8StringView base_name) const
     // Return base_name directly if it's not already used.
     if (!FindNodeByName(unique_name).IsValid())
     {
-        return unique_name;
+        return CreateNameFromDynamicString(unique_name);
     }
 
     // Otherwise, append an increasing counter until a unique name is found.
@@ -477,7 +476,7 @@ String Scene::GetUniqueNodeName(UTF8StringView base_name) const
         ++counter;
     }
 
-    return unique_name;
+    return CreateNameFromDynamicString(unique_name);
 }
 
 template <class SystemType>

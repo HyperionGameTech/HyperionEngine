@@ -20,105 +20,31 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <HyperionEngine.hpp>
+
 namespace hyperion {
 namespace config {
 
 static const ConfigurationValue g_invalid_configuration_value {};
 
-#pragma region ConfigurationDataStore
-
-ConfigurationDataStore::ConfigurationDataStore(UTF8StringView config_name)
-    : DataStoreBase("config", DataStoreOptions { /* flags */ DSF_RW, /* max_size */ 0ull }),
-      m_config_name(config_name)
-{
-}
-
-ConfigurationDataStore::ConfigurationDataStore(ConfigurationDataStore&& other) noexcept
-    : DataStoreBase(static_cast<DataStoreBase&&>(std::move(other))),
-      m_config_name(std::move(other.m_config_name))
-{
-}
-
-ConfigurationDataStore::~ConfigurationDataStore()
-{
-}
-
-FilePath ConfigurationDataStore::GetFilePath() const
-{
-    FilePath config_path = GetDirectory() / m_config_name;
-
-    if (!config_path.EndsWith(".json"))
-    {
-        config_path = config_path + ".json";
-    }
-
-    return config_path;
-}
-
-bool ConfigurationDataStore::Read(json::JSONValue& out_value) const
-{
-    const FilePath config_path = GetFilePath();
-
-    if (!config_path.Exists())
-    {
-        return false;
-    }
-
-    FileBufferedReaderSource source { config_path };
-    BufferedReader reader { &source };
-
-    if (!reader.IsOpen())
-    {
-        HYP_LOG(Config, Warning, "Could not open configuration file at {}!", config_path);
-
-        return false;
-    }
-
-    json::ParseResult parse_result = json::JSON::Parse(String(reader.ReadBytes().ToByteView()));
-
-    if (!parse_result.ok)
-    {
-        HYP_LOG(Config, Warning, "Invalid JSON in configuration file at {}: {}", config_path, parse_result.message);
-
-        return false;
-    }
-
-    out_value = std::move(parse_result.value);
-
-    return true;
-}
-
-bool ConfigurationDataStore::Write(const json::JSONValue& value) const
-{
-    const String value_string = value.ToString(true);
-
-    FileByteWriter writer(GetFilePath());
-    writer.WriteString(value_string, BYTE_WRITER_FLAGS_NONE);
-    writer.Close();
-
-    return true;
-}
-
-#pragma endregion ConfigurationDataStore
-
 #pragma region ConfigurationTable
 
 ConfigurationTable::ConfigurationTable()
-    : m_root_object(json::JSONObject()),
-      m_data_store(nullptr)
+    : m_root_object(json::JSONObject())
 {
 }
 
 ConfigurationTable::ConfigurationTable(const String& config_name, const String& subobject_path)
     : m_subobject_path(subobject_path.Any() ? subobject_path : Optional<String> {}),
       m_root_object(json::JSONObject()),
-      m_data_store(&DataStoreBase::GetOrCreate<ConfigurationDataStore>(config_name)),
-      m_data_store_resource_handle(*m_data_store)
+      m_name(config_name)
 {
     // try to read from config file
-    if (!m_data_store->Read(m_root_object))
+    if (auto result = Read(m_root_object); result.HasError())
     {
-        HYP_LOG(Config, Warning, "Configuration could not be read: {}", m_data_store->GetFilePath());
+        HYP_LOG(Config, Error, "Failed to read configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
+
+        return;
     }
 
     m_cached_hash_code = GetSubobject().GetHashCode();
@@ -137,8 +63,7 @@ ConfigurationTable::ConfigurationTable(const String& config_name, const HypClass
 ConfigurationTable::ConfigurationTable(const ConfigurationTable& other)
     : m_subobject_path(other.m_subobject_path),
       m_root_object(other.m_root_object),
-      m_data_store(other.m_data_store),
-      m_data_store_resource_handle(other.m_data_store_resource_handle),
+      m_name(other.m_name),
       m_cached_hash_code(other.m_cached_hash_code)
 {
 }
@@ -152,8 +77,7 @@ ConfigurationTable& ConfigurationTable::operator=(const ConfigurationTable& othe
 
     m_subobject_path = other.m_subobject_path;
     m_root_object = other.m_root_object;
-    m_data_store = other.m_data_store;
-    m_data_store_resource_handle = other.m_data_store_resource_handle;
+    m_name = other.m_name;
     m_cached_hash_code = other.m_cached_hash_code;
 
     return *this;
@@ -162,11 +86,9 @@ ConfigurationTable& ConfigurationTable::operator=(const ConfigurationTable& othe
 ConfigurationTable::ConfigurationTable(ConfigurationTable&& other) noexcept
     : m_subobject_path(std::move(other.m_subobject_path)),
       m_root_object(std::move(other.m_root_object)),
-      m_data_store(other.m_data_store),
-      m_data_store_resource_handle(std::move(other.m_data_store_resource_handle)),
+      m_name(std::move(other.m_name)),
       m_cached_hash_code(std::move(other.m_cached_hash_code))
 {
-    other.m_data_store = nullptr;
 }
 
 ConfigurationTable& ConfigurationTable::operator=(ConfigurationTable&& other) noexcept
@@ -178,11 +100,8 @@ ConfigurationTable& ConfigurationTable::operator=(ConfigurationTable&& other) no
 
     m_subobject_path = std::move(other.m_subobject_path);
     m_root_object = std::move(other.m_root_object);
-    m_data_store = other.m_data_store;
-    m_data_store_resource_handle = std::move(other.m_data_store_resource_handle);
+    m_name = std::move(other.m_name);
     m_cached_hash_code = std::move(other.m_cached_hash_code);
-
-    other.m_data_store = nullptr;
 
     return *this;
 }
@@ -190,6 +109,58 @@ ConfigurationTable& ConfigurationTable::operator=(ConfigurationTable&& other) no
 bool ConfigurationTable::IsChanged() const
 {
     return GetSubobject().GetHashCode() != m_cached_hash_code;
+}
+
+FilePath ConfigurationTable::GetFilePath() const
+{
+    FilePath config_path = GetResourceDirectory() / "config" / m_name;
+
+    if (!config_path.EndsWith(".json"))
+    {
+        config_path = config_path + ".json";
+    }
+
+    return config_path;
+}
+
+Result ConfigurationTable::Read(json::JSONValue& out_value) const
+{
+    const FilePath config_path = GetFilePath();
+
+    if (!config_path.Exists())
+    {
+        return HYP_MAKE_ERROR(Error, "Configuration file does not exist at {}", config_path);
+    }
+
+    FileBufferedReaderSource source { config_path };
+    BufferedReader reader { &source };
+
+    if (!reader.IsOpen())
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to open configuration file at {}", config_path);
+    }
+
+    json::ParseResult parse_result = json::JSON::Parse(String(reader.ReadBytes().ToByteView()));
+
+    if (!parse_result.ok)
+    {
+        return HYP_MAKE_ERROR(Error, "Failed to parse configuration file at {}: {}", config_path, parse_result.message);
+    }
+
+    out_value = std::move(parse_result.value);
+
+    return {};
+}
+
+Result ConfigurationTable::Write(const json::JSONValue& value) const
+{
+    const String value_string = value.ToString(true);
+
+    FileByteWriter writer { GetFilePath() };
+    writer.WriteString(value_string, BYTE_WRITER_FLAGS_NONE);
+    writer.Close();
+
+    return {};
 }
 
 ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
@@ -239,16 +210,16 @@ void ConfigurationTable::Set(UTF8StringView key, const ConfigurationValue& value
 
 bool ConfigurationTable::Save()
 {
-    AssertThrow(m_data_store != nullptr);
-
-    if (m_data_store->Write(m_root_object))
+    if (auto result = Write(m_root_object); result.HasError())
     {
-        m_cached_hash_code = GetSubobject().GetHashCode();
+        HYP_LOG(Config, Error, "Failed to write configuration file at {}: {}", GetFilePath(), result.GetError().GetMessage());
 
-        return true;
+        return false;
     }
 
-    return false;
+    m_cached_hash_code = GetSubobject().GetHashCode();
+
+    return true;
 }
 
 json::JSONValue& ConfigurationTable::GetSubobject()
@@ -310,9 +281,7 @@ void ConfigurationTable::LogErrors() const
         return;
     }
 
-    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):",
-        m_data_store ? m_data_store->GetConfigName() : "<unknown>",
-        m_data_store ? m_data_store->GetFilePath() : "<unknown>");
+    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):", m_name, GetFilePath());
 
     for (const Error& error : m_errors)
     {
@@ -322,9 +291,7 @@ void ConfigurationTable::LogErrors() const
 
 void ConfigurationTable::LogErrors(UTF8StringView message) const
 {
-    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):",
-        m_data_store ? m_data_store->GetConfigName() : "<unknown>",
-        m_data_store ? m_data_store->GetFilePath() : "<unknown>");
+    HYP_LOG(Config, Error, "Errors in configuration \"{}\" ({}):", m_name, GetFilePath());
 
     for (const Error& error : m_errors)
     {

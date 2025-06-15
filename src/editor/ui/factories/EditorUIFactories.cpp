@@ -404,7 +404,7 @@ public:
 
         if (Handle<Node> node = value.Lock())
         {
-            node_name = node->GetName();
+            node_name = node->GetName().LookupString();
             node_uuid = node->GetUUID();
         }
         else
@@ -412,7 +412,7 @@ public:
             node_uuid = UUID();
         }
 
-        RC<UIText> text = parent->CreateUIObject<UIText>(CreateNameFromDynamicString(ANSIString("Node_") + node_uuid.ToString()), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        RC<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         text->SetText(node_name);
 
         return text;
@@ -426,7 +426,7 @@ public:
         {
             if (Handle<Node> node = value.Lock())
             {
-                text->SetText(node->GetName());
+                text->SetText(node->GetName().LookupString());
             }
             else
             {
@@ -437,6 +437,50 @@ public:
 };
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Node>, EditorWeakNodeFactory);
+
+class EditorWeakSceneFactory : public UIElementFactory<WeakHandle<Scene>, EditorWeakSceneFactory>
+{
+public:
+    RC<UIObject> Create(UIObject* parent, const WeakHandle<Scene>& value) const
+    {
+        String scene_name = "Invalid";
+        UUID scene_uuid = UUID::Invalid();
+
+        if (Handle<Scene> scene = value.Lock())
+        {
+            scene_name = scene->GetName().LookupString();
+            scene_uuid = scene->GetUUID();
+        }
+        else
+        {
+            scene_uuid = UUID();
+        }
+
+        RC<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        text->SetText(scene_name);
+
+        return text;
+    }
+
+    void Update(UIObject* ui_object, const WeakHandle<Scene>& value) const
+    {
+        static const String invalid_scene_name = "<Invalid>";
+
+        if (UIText* text = dynamic_cast<UIText*>(ui_object))
+        {
+            if (Handle<Scene> scene = value.Lock())
+            {
+                text->SetText(scene->GetName().LookupString());
+            }
+            else
+            {
+                text->SetText(invalid_scene_name);
+            }
+        }
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Scene>, EditorWeakSceneFactory);
 
 class EntityUIElementFactory : public UIElementFactory<Handle<Entity>, EntityUIElementFactory>
 {

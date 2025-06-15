@@ -23,6 +23,7 @@ namespace threading {
 
 class SchedulerBase;
 class Scheduler;
+class ThreadLocalStorage;
 
 enum class ThreadPriorityValue
 {
@@ -33,29 +34,45 @@ enum class ThreadPriorityValue
     HIGHEST
 };
 
-class IThread
+class HYP_API ThreadBase
 {
 public:
-    virtual ~IThread() = default;
+    virtual ~ThreadBase();
 
     /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
-    virtual const ThreadID& GetID() const = 0;
+    HYP_FORCE_INLINE const ThreadID& GetID() const
+    {
+        return m_id;
+    }
+
+    /*! \brief Get the thread-local storage for this thread. This is used to store thread-local data that is unique to this thread. */
+    HYP_FORCE_INLINE ThreadLocalStorage* GetTLS() const
+    {
+        return m_tls;
+    }
+
+    /*! \brief Get the priority of this thread. */
+    HYP_FORCE_INLINE ThreadPriorityValue GetPriority() const
+    {
+        return m_priority;
+    }
 
     /*! \brief Get the scheduler that this thread is associated with. */
     virtual Scheduler& GetScheduler() = 0;
 
-    /*! \brief Get the priority of this thread. */
-    virtual ThreadPriorityValue GetPriority() const = 0;
+protected:
+    ThreadBase(const ThreadID& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+
+    const ThreadID m_id;
+    ThreadPriorityValue m_priority;
+    ThreadLocalStorage* m_tls;
 };
 
-extern HYP_API void RegisterThread(const ThreadID& id, IThread* thread);
-extern HYP_API void UnregisterThread(const ThreadID& id);
-
-extern HYP_API void SetCurrentThreadObject(IThread*);
+extern HYP_API void SetCurrentThreadObject(ThreadBase*);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
 template <class Scheduler, class... Args>
-class Thread : public IThread
+class Thread : public ThreadBase
 {
 public:
     Thread(const ThreadID& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
@@ -65,23 +82,22 @@ public:
     Thread& operator=(Thread&& other) noexcept = delete;
     virtual ~Thread() override;
 
-    virtual const ThreadID& GetID() const override final
-    {
-        return m_id;
-    }
-
-    virtual ThreadPriorityValue GetPriority() const override final
-    {
-        return m_priority;
-    }
-
     virtual Scheduler& GetScheduler() override final
     {
         return m_scheduler;
     }
 
+    HYP_FORCE_INLINE bool IsRunning() const
+    {
+        return m_is_running.Get(MemoryOrder::RELAXED);
+    }
+
     /*! \brief Start the thread with the given arguments and run the thread function with them */
     bool Start(Args... args);
+
+    /*! \brief Request the thread to stop running. This does not immediately stop the thread, but sets a flag that the thread should stop.
+     *  The thread should check this flag periodically and exit when it is set. */
+    virtual void Stop();
 
     /*! \brief Detach the thread from the current thread and let it run in the background until it finishes execution */
     void Detach();
@@ -95,23 +111,22 @@ public:
 protected:
     virtual void operator()(Args... args) = 0;
 
-    const ThreadID m_id;
-
-    ThreadPriorityValue m_priority;
-
     Scheduler m_scheduler;
+
+    AtomicVar<bool> m_stop_requested;
 
 private:
     std::thread* m_thread;
+    AtomicVar<bool> m_is_running;
 };
 
 template <class Scheduler, class... Args>
 Thread<Scheduler, Args...>::Thread(const ThreadID& id, ThreadPriorityValue priority)
-    : m_id(id),
-      m_priority(priority),
+    : ThreadBase(id, priority),
+      m_is_running(false),
+      m_stop_requested(false),
       m_thread(nullptr)
 {
-    RegisterThread(m_id, this);
 }
 
 template <class Scheduler, class... Args>
@@ -127,8 +142,6 @@ Thread<Scheduler, Args...>::~Thread()
         delete m_thread;
         m_thread = nullptr;
     }
-
-    UnregisterThread(m_id);
 }
 
 template <class Scheduler, class... Args>
@@ -139,6 +152,10 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
         return false;
     }
 
+    AssertThrowMsg(!m_is_running.Get(MemoryOrder::RELAXED), "Thread is already running");
+
+    m_is_running.Set(true, MemoryOrder::RELAXED);
+
     m_thread = new std::thread([this, tuple_args = MakeTuple(args...)](...) -> void
         {
             SetCurrentThreadObject(this);
@@ -146,9 +163,19 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
             m_scheduler.SetOwnerThread(GetID());
 
             (*this)((tuple_args.template GetElement<Args>())...);
+
+            m_is_running.Set(false, MemoryOrder::RELAXED);
         });
 
     return true;
+}
+
+template <class Scheduler, class... Args>
+void Thread<Scheduler, Args...>::Stop()
+{
+    m_stop_requested.Set(true, MemoryOrder::RELAXED);
+
+    m_scheduler.RequestStop();
 }
 
 template <class Scheduler, class... Args>
@@ -187,8 +214,8 @@ bool Thread<Scheduler, Args...>::CanJoin() const
 }
 } // namespace threading
 
-using threading::IThread;
 using threading::Thread;
+using threading::ThreadBase;
 using threading::ThreadPriorityValue;
 
 } // namespace hyperion

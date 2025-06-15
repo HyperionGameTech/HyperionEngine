@@ -39,9 +39,7 @@ struct DetachedScenesContainer
 
         if (it == scenes.End())
         {
-            it = scenes.Insert({ thread_id,
-                                   CreateSceneForThread(thread_id) })
-                     .first;
+            it = scenes.Insert({ thread_id, CreateSceneForThread(thread_id) }).first;
         }
 
         return it->second;
@@ -50,11 +48,7 @@ struct DetachedScenesContainer
 private:
     Handle<Scene> CreateSceneForThread(const ThreadID& thread_id)
     {
-        Handle<Scene> scene = CreateObject<Scene>(
-            world,
-            thread_id,
-            SceneFlags::DETACHED);
-
+        Handle<Scene> scene = CreateObject<Scene>(world, thread_id, SceneFlags::DETACHED);
         scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.GetName()));
 
         InitObject(scene);
@@ -169,6 +163,12 @@ public:
     const Handle<Scene>& GetSceneByName(Name name) const;
 
     HYP_METHOD()
+    const Array<Handle<Scene>>& GetScenes() const
+    {
+        return m_scenes;
+    }
+
+    HYP_METHOD()
     void AddView(const Handle<View>& view);
 
     HYP_METHOD()
@@ -185,6 +185,9 @@ public:
     void Update(GameCounter::TickUnit delta);
 
     Delegate<void, World*, GameStateMode> OnGameStateChange;
+
+    Delegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
+    Delegate<void, World*, const Handle<Scene>& /* scene */> OnSceneRemoved;
 
 private:
     void Init() override;

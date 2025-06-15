@@ -267,7 +267,7 @@ RC<AssetBatch> AssetManager::CreateBatch()
 
 void AssetManager::RegisterDefaultLoaders()
 {
-    SetBasePath(FilePath::Join(HYP_ROOT_DIR, "res"));
+    SetBasePath(GetResourceDirectory());
 
     Register<OBJModelLoader, Node>("obj");
     Register<OgreXMLModelLoader, Node>("mesh.xml");

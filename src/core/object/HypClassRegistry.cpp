@@ -281,6 +281,8 @@ RC<dotnet::Class> HypClassRegistry::GetManagedClass(const HypClass* hyp_class) c
 
 void HypClassRegistry::Initialize()
 {
+    Threads::AssertOnThread(g_main_thread);
+
     AssertThrow(!m_is_initialized);
 
     // Have to initialize here because HypClass::Initialize will call GetClass() for parent classes.

@@ -4,6 +4,8 @@
 #define HYPERION_CORE_ID_HPP
 
 #include <core/utilities/TypeID.hpp>
+#include <core/utilities/UniqueID.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Types.hpp>
@@ -84,7 +86,12 @@ struct IDBase
         return value ? value - 1 : invalid_value;
     }
 
-    HYP_FORCE_INLINE HashCode GetHashCode() const
+    HYP_FORCE_INLINE operator UniqueID() const
+    {
+        return UniqueID { GetHashCode() };
+    }
+
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         HashCode hc;
         hc.Add(type_id_value);

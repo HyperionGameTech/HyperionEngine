@@ -6,6 +6,7 @@
 #include <core/Defines.hpp>
 
 #include <core/threading/AtomicVar.hpp>
+#include <core/threading/Threads.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -17,78 +18,51 @@ namespace threading {
 class Spinlock
 {
 public:
-    struct Guard
-    {
-        Spinlock& m_spinlock;
-
-        Guard(Spinlock& spinlock)
-            : m_spinlock(spinlock)
-        {
-            m_spinlock.Lock();
-        }
-
-        ~Guard()
-        {
-            m_spinlock.Unlock();
-        }
-    };
-
-    Spinlock()
-        : m_value(0)
+    Spinlock(AtomicVar<uint64>& value)
+        : m_value(value)
     {
     }
 
     Spinlock(const Spinlock&) = delete;
     Spinlock& operator=(const Spinlock&) = delete;
 
-    Spinlock(Spinlock&& other) noexcept
-        : m_value(other.m_value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
-    {
-    }
+    Spinlock(Spinlock&& other) noexcept = delete;
+    Spinlock& operator=(Spinlock&& other) noexcept = delete;
 
-    Spinlock& operator=(Spinlock&& other) noexcept
-    {
-        m_value.Set(other.m_value.Exchange(0, MemoryOrder::ACQUIRE_RELEASE), MemoryOrder::RELEASE);
+    ~Spinlock() = default;
 
-        return *this;
-    }
-
-    ~Spinlock()
+    void LockWriter()
     {
-        AssertThrow(m_value.Get(MemoryOrder::ACQUIRE) == 0);
-    }
-
-    void Lock()
-    {
-        while (true)
+        uint64 state = m_value.BitOr(0x1, MemoryOrder::ACQUIRE_RELEASE);
+        while (state & (~0u << 1))
         {
-            if (TryLock())
-            {
-                return;
-            }
-
-            while (m_value.Get(MemoryOrder::ACQUIRE) != 0)
-            {
-                // Spin
-                HYP_WAIT_IDLE();
-            }
+            state = m_value.Get(MemoryOrder::ACQUIRE);
+            HYP_WAIT_IDLE();
         }
     }
 
-    bool TryLock()
+    void UnlockWriter()
     {
-        uint32 expected = 0;
-
-        return m_value.CompareExchangeStrong(expected, 1, MemoryOrder::ACQUIRE);
+        m_value.BitAnd(~uint64(0x1), MemoryOrder::RELEASE);
     }
 
-    void Unlock()
+    void LockReader()
     {
-        m_value.Set(0, MemoryOrder::RELEASE);
+        uint64 state = m_value.Increment(0x2, MemoryOrder::ACQUIRE_RELEASE);
+        while (state & 0x1)
+        {
+            state = m_value.Get(MemoryOrder::ACQUIRE);
+            HYP_WAIT_IDLE();
+        }
+    }
+
+    void UnlockReader()
+    {
+        m_value.Decrement(0x2, MemoryOrder::RELEASE);
     }
 
 private:
-    AtomicVar<uint32> m_value;
+    AtomicVar<uint64>& m_value;
 };
 
 } // namespace threading

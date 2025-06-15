@@ -8,11 +8,60 @@
 #include <system/SystemEvent.hpp>
 
 #include <core/threading/Threads.hpp>
+#include <core/threading/Spinlock.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
 namespace hyperion {
+
+#pragma region InputEventSink
+
+InputEventSink::InputEventSink()
+    : m_lock_state(0)
+{
+}
+
+InputEventSink::~InputEventSink() = default;
+
+void InputEventSink::Push(SystemEvent&& evt)
+{
+    Spinlock spinlock(m_lock_state);
+    spinlock.LockWriter();
+
+    m_events.PushBack(std::move(evt));
+
+    m_notifier.Produce(1);
+
+    spinlock.UnlockWriter();
+}
+
+bool InputEventSink::Poll(Array<SystemEvent>& out_events)
+{
+    if (!m_notifier.IsInSignalState())
+    {
+        return false;
+    }
+
+    Spinlock spinlock(m_lock_state);
+    spinlock.LockReader();
+
+    if (m_events.Empty())
+    {
+        spinlock.UnlockReader();
+        return false;
+    }
+
+    out_events = std::move(m_events);
+
+    m_notifier.Release(out_events.Size());
+
+    spinlock.UnlockReader();
+
+    return true;
+}
+
+#pragma endregion InputEventSink
 
 #pragma region InputMouseLockScope
 
@@ -209,6 +258,11 @@ void InputManager::UpdateMousePosition()
 void InputManager::UpdateWindowSize(Vec2i new_size)
 {
     if (!m_window)
+    {
+        return;
+    }
+
+    if (m_window_size == new_size)
     {
         return;
     }

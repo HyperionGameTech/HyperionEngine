@@ -21,7 +21,7 @@ TickableEditorTask::TickableEditorTask()
 
 void TickableEditorTask::Commit()
 {
-    IThread* game_thread = Threads::GetThread(g_game_thread);
+    ThreadBase* game_thread = Threads::GetThread(g_game_thread);
     AssertThrow(game_thread != nullptr);
 
     m_task = game_thread->GetScheduler().Enqueue([weak_this = WeakHandleFromThis()]()

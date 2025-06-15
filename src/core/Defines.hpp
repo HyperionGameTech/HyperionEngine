@@ -9,12 +9,10 @@
 #define HYPERION_BUILD_RELEASE 1 // just to ensure
 #endif
 
-#if defined(__GNUC__) || defined(__GNUG__)
-#define HYP_GCC 1
-#endif
-
 #if defined(__clang__)
 #define HYP_CLANG 1
+#elif defined(__GNUC__) || defined(__GNUG__)
+#define HYP_GCC 1
 #endif
 
 #if defined(HYP_GCC) || defined(HYP_CLANG)
@@ -299,10 +297,10 @@
 
 #ifdef __COUNTER__
 #define HYP_UNIQUE_NAME(prefix) \
-        HYP_CONCAT(prefix, __COUNTER__)
+    HYP_CONCAT(prefix, __COUNTER__)
 #else
 #define HYP_UNIQUE_NAME(prefix) \
-        prefix
+    prefix
 #endif
 
 #define HYP_PAD_STRUCT_HERE(type, count) \
@@ -327,14 +325,14 @@
 #if HYP_ENABLE_BREAKPOINTS
 #if (defined(HYP_ARM) && HYP_ARM) || HYP_GCC
 #define HYP_BREAKPOINT    \
-                {                     \
-                    __builtin_trap(); \
-                }
+    {                     \
+        __builtin_trap(); \
+    }
 #else
 #define HYP_BREAKPOINT                 \
-                {                                  \
-                    __asm__ volatile("int $0x03"); \
-                }
+    {                                  \
+        __asm__ volatile("int $0x03"); \
+    }
 #endif
 #endif
 #elif defined(HYP_MSVC) && HYP_MSVC
@@ -371,13 +369,15 @@
 
 #pragma region Synchonization
 
-#define HYP_WAIT_IDLE()        \
-    do                         \
-    {                          \
-        volatile uint32 x = 0; \
-        x = x + 1;             \
-    }                          \
-    while (0)
+#if defined(HYP_MSVC)
+#define HYP_WAIT_IDLE() YieldProcessor()
+#elif defined(HYP_CLANG_OR_GCC)
+#if defined(__x86_64__) || defined(__i386__)
+#define HYP_WAIT_IDLE() asm volatile("pause" ::: "memory")
+#else
+#define HYP_WAIT_IDLE() asm volatile("nop" ::: "memory")
+#endif
+#endif
 
 // conditionals
 

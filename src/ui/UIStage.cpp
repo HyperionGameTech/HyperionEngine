@@ -158,7 +158,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
     }
 
     Handle<Node> camera_node = new_scene->GetRoot()->AddChild();
-    camera_node->SetName("UICamera");
+    camera_node->SetName(NAME_FMT("{}_Camera", GetName()));
 
     Handle<Entity> camera_entity = new_scene->GetEntityManager()->AddEntity();
     new_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { m_camera });

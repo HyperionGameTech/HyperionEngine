@@ -302,7 +302,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    Handle<Node> top = CreateObject<Node>(model.name);
+    Handle<Node> top = CreateObject<Node>(CreateNameFromDynamicString(model.name));
 
     Handle<MaterialGroup> material_library;
 
@@ -469,7 +469,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
             BoundingBoxComponent {
                 mesh->GetAABB() });
 
-        Handle<Node> node = top->AddChild(CreateObject<Node>(obj_mesh.name));
+        Handle<Node> node = top->AddChild(CreateObject<Node>(CreateNameFromDynamicString(obj_mesh.name)));
         node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetEntity(entity);
         node->SetLocalTranslation(mesh_aabb_center);

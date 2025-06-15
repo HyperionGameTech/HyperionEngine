@@ -28,7 +28,7 @@ namespace hyperion {
 
 ShaderGlobals::ShaderGlobals()
 {
-    worlds = g_engine->GetGPUBufferHolderMap()->GetOrCreate<WorldShaderData, GPUBufferType::STORAGE_BUFFER>();
+    worlds = g_engine->GetGPUBufferHolderMap()->GetOrCreate<WorldShaderData, GPUBufferType::CONSTANT_BUFFER>();
     cameras = g_engine->GetGPUBufferHolderMap()->GetOrCreate<CameraShaderData, GPUBufferType::CONSTANT_BUFFER>();
     lights = g_engine->GetGPUBufferHolderMap()->GetOrCreate<LightShaderData, GPUBufferType::STORAGE_BUFFER>();
     objects = g_engine->GetGPUBufferHolderMap()->GetOrCreate<EntityShaderData, GPUBufferType::STORAGE_BUFFER>();

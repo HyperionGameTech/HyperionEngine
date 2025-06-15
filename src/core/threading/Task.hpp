@@ -171,6 +171,7 @@ class HYP_API TaskExecutorBase : public ITaskExecutor
 public:
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
+          m_initiator_thread_id(ThreadID::Invalid()),
           m_assigned_scheduler(nullptr)
     {
         // set notifier to initial value of 1 (one task)
@@ -603,11 +604,11 @@ public:
         return m_assigned_scheduler;
     }
 
-    virtual ITaskExecutor* GetTaskExecutor() const = 0;
+    virtual TaskExecutorBase* GetTaskExecutor() const = 0;
 
     virtual bool IsValid() const
     {
-        const ITaskExecutor* executor = GetTaskExecutor();
+        const TaskExecutorBase* executor = GetTaskExecutor();
 
         return executor != nullptr; // && executor->GetTaskID().IsValid();
     }
@@ -694,7 +695,7 @@ public:
         // otherwise, the executor will be freed when the task is completed
     }
 
-    virtual ITaskExecutor* GetTaskExecutor() const override
+    virtual TaskExecutorBase* GetTaskExecutor() const override
     {
         return m_executor;
     }
@@ -857,7 +858,7 @@ public:
         // otherwise, the executor will be freed when the task is completed
     }
 
-    virtual ITaskExecutor* GetTaskExecutor() const override
+    virtual TaskExecutorBase* GetTaskExecutor() const override
     {
         return m_executor;
     }

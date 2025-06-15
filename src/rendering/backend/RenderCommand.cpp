@@ -18,6 +18,7 @@ RenderCommands::RenderCommandSemaphore RenderCommands::s_semaphore = {};
 
 // // Note: double buffering is currently disabled as some render commands are dependent on being executed sequentially.
 // #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+// #define HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
 
 #pragma region RenderScheduler
 
@@ -72,7 +73,9 @@ RendererResult RenderCommands::Flush()
     {
         RenderCommand* front = commands[index];
 
+#ifdef HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
         HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, buffer_index);
+#endif
 
         const RendererResult command_result = front->Call();
         AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.GetError().GetErrorCode(), command_result.GetError().GetMessage().Data());
@@ -100,11 +103,15 @@ RendererResult RenderCommands::Flush()
     {
         RenderCommand* front = commands[index];
 
-    #ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
+#ifdef HYP_RENDER_COMMANDS_DEBUG_NAME
         HYP_NAMED_SCOPE(front->_debug_name);
-    #else
+#else
         HYP_NAMED_SCOPE("Executing render command");
-    #endif
+#endif
+
+#ifdef HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
+        HYP_LOG(RenderCommands, Debug, "Executing render command {} on buffer {}", front->_debug_name, buffer_index);
+#endif
 
         const RendererResult command_result = front->Call();
         AssertThrowMsg(command_result, "Render command error! [%d]: %s\n", command_result.GetError().GetErrorCode(), command_result.GetError().GetMessage().Data());

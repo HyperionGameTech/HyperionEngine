@@ -54,7 +54,7 @@ public:
     }
 
 protected:
-    virtual IThread* GetOwnerThread() const override final;
+    virtual ThreadBase* GetOwnerThread() const override final;
     virtual bool CanExecuteInline() const override final;
     virtual void FlushScheduledTasks() const override final;
     virtual void EnqueueOp(Proc<void()>&& proc) override final;

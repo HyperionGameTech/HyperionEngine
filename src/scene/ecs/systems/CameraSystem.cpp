@@ -37,37 +37,6 @@ void CameraSystem::OnEntityAdded(const Handle<Entity>& entity)
             world->GetWorldGrid()->GetStreamingManager()->AddStreamingVolume(camera_component.camera->GetStreamingVolume());
         }
     }
-
-    m_delegate_handlers.Add(
-        NAME("OnWorldChange"),
-        OnWorldChanged.Bind([this](World* new_world, World* previous_world)
-            {
-                Threads::AssertOnThread(g_game_thread);
-
-                if (previous_world != nullptr)
-                {
-                    // Remove the camera's streaming volume from the previous world's streaming manager
-                    for (auto [entity_id, camera_component] : GetEntityManager().GetEntitySet<CameraComponent>().GetScopedView(GetComponentInfos()))
-                    {
-                        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
-                        {
-                            previous_world->GetWorldGrid()->GetStreamingManager()->RemoveStreamingVolume(camera_component.camera->GetStreamingVolume());
-                        }
-                    }
-                }
-
-                if (new_world != nullptr)
-                {
-                    // Add the camera's streaming volume to the new world's streaming manager
-                    for (auto [entity_id, camera_component] : GetEntityManager().GetEntitySet<CameraComponent>().GetScopedView(GetComponentInfos()))
-                    {
-                        if (camera_component.camera.IsValid() && camera_component.camera->GetStreamingVolume().IsValid())
-                        {
-                            new_world->GetWorldGrid()->GetStreamingManager()->AddStreamingVolume(camera_component.camera->GetStreamingVolume());
-                        }
-                    }
-                }
-            }));
 }
 
 void CameraSystem::OnEntityRemoved(ID<Entity> entity)

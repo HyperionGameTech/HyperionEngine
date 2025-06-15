@@ -245,8 +245,6 @@ protected:
     Scene* GetScene() const;
     World* GetWorld() const;
 
-    Delegate<void, World* /* new */, World* /* previous */> OnWorldChanged;
-
     EntityManager* m_entity_manager;
     DelegateHandlerSet m_delegate_handlers;
 
@@ -266,8 +264,6 @@ private:
             m_component_infos.PushBack(component_info);
         }
     }
-
-    void SetWorld(World* world);
 
     HashSet<WeakHandle<Entity>> m_initialized_entities;
 

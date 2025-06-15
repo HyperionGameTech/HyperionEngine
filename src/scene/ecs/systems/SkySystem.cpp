@@ -16,6 +16,9 @@
 
 #include <core/containers/HashSet.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 namespace hyperion {
@@ -23,11 +26,32 @@ namespace hyperion {
 SkySystem::SkySystem(EntityManager& entity_manager)
     : SystemBase(entity_manager)
 {
+    // m_delegate_handlers.Add(
+    //     NAME("OnWorldChange"),
+    //     OnWorldChanged.Bind([this](World* new_world, World* previous_world)
+    //         {
+    //             Threads::AssertOnThread(g_game_thread);
+
+    //             for (auto [entity_id, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos()))
+    //             {
+    //                 if (sky_component.render_subsystem)
+    //                 {
+    //                     sky_component.render_subsystem->RemoveFromEnvironment();
+    //                     sky_component.render_subsystem.Reset();
+    //                 }
+
+    //                 MeshComponent* mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity_id);
+
+    //                 AddRenderSubsystemToEnvironment(new_world, GetEntityManager(), Handle<Entity> { entity_id }, sky_component, mesh_component);
+    //             }
+    //         }));
 }
 
 void SkySystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
+
+    HYP_LOG(ECS, Debug, "Adding sky system for entity: #{}, Scene: {}", entity->GetID().Value(), GetScene()->GetName());
 
     SkyComponent& sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
     MeshComponent* mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity);
@@ -38,7 +62,7 @@ void SkySystem::OnEntityAdded(const Handle<Entity>& entity)
         sky_component.render_subsystem.Reset();
     }
 
-    AddRenderSubsystemToEnvironment(GetEntityManager(), entity, sky_component, mesh_component);
+    AddRenderSubsystemToEnvironment(GetWorld(), GetEntityManager(), entity, sky_component, mesh_component);
 
     GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
@@ -46,6 +70,8 @@ void SkySystem::OnEntityAdded(const Handle<Entity>& entity)
 void SkySystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
+
+    HYP_LOG(ECS, Debug, "Removing sky system for entity: #{}, Scene: {}", entity.Value(), GetScene()->GetName());
 
     SkyComponent& sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
     MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
@@ -77,20 +103,20 @@ void SkySystem::Process(float delta)
     }
 }
 
-void SkySystem::AddRenderSubsystemToEnvironment(EntityManager& mgr, const Handle<Entity>& entity, SkyComponent& sky_component, MeshComponent* mesh_component)
+void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, const Handle<Entity>& entity, SkyComponent& sky_component, MeshComponent* mesh_component)
 {
-    if (!GetWorld())
+    if (!world)
     {
         return;
     }
 
     if (sky_component.render_subsystem)
     {
-        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(sky_component.render_subsystem);
+        world->GetRenderResource().GetEnvironment()->AddRenderSubsystem(sky_component.render_subsystem);
     }
     else
     {
-        sky_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<SkydomeRenderer>(Name::Unique("sky_renderer"));
+        sky_component.render_subsystem = world->GetRenderResource().GetEnvironment()->AddRenderSubsystem<SkydomeRenderer>(Name::Unique("sky_renderer"));
 
         Handle<Mesh> mesh = mesh_component ? mesh_component->mesh : Handle<Mesh>::empty;
         Handle<Material> material = mesh_component ? mesh_component->material : Handle<Material>::empty;
@@ -121,6 +147,8 @@ void SkySystem::AddRenderSubsystemToEnvironment(EntityManager& mgr, const Handle
         {
             mesh_component->mesh = std::move(mesh);
             mesh_component->material = std::move(material);
+
+            mgr.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
         }
         else
         {

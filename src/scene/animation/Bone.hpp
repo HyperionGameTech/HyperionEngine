@@ -24,10 +24,11 @@ class HYP_API Bone : public Node
     HYP_OBJECT_BODY(Bone);
 
 public:
-    Bone(const String& name = String::empty);
+    Bone();
+    Bone(Name name);
     Bone(const Bone& other) = delete;
     Bone& operator=(const Bone& other) = delete;
-    ~Bone();
+    virtual ~Bone() override;
 
     Vec3f GetOffsetTranslation() const;
     Quaternion GetOffsetRotation() const;

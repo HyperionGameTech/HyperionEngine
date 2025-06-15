@@ -151,7 +151,7 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
     const ThreadID current_thread_id = Threads::CurrentThreadID();
     const bool is_on_task_thread = (m_thread_mask & current_thread_id.GetMask()) != 0;
 
-    IThread* current_thread_object = Threads::CurrentThreadObject();
+    ThreadBase* current_thread_object = Threads::CurrentThreadObject();
 
     uint32 cycle = m_cycle.Get(MemoryOrder::RELAXED) % num_threads_in_pool;
     uint32 num_spins = 0;

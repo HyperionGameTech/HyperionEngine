@@ -85,16 +85,10 @@ void TaskBase::Await_Internal() const
 {
     AssertThrow(IsValid());
 
-    while (!IsCompleted())
-    {
-        HYP_WAIT_IDLE();
-    }
+    TaskExecutorBase* executor = GetTaskExecutor();
+    AssertThrow(executor != nullptr);
 
-    // if (IsCompleted()) {
-    //     return;
-    // }
-
-    // m_assigned_scheduler->Await(m_id);
+    executor->GetNotifier().Await();
 
 #ifdef HYP_DEBUG_MODE
     AssertThrow(IsCompleted());

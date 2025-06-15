@@ -52,7 +52,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
     InitObject(m_camera);
 
     Handle<Node> camera_node = m_virtual_scene->GetRoot()->AddChild();
-    camera_node->SetName("SkydomeRendererCamera");
+    camera_node->SetName(m_camera->GetName());
 
     Handle<Entity> camera_entity = m_virtual_scene->GetEntityManager()->AddEntity();
     m_virtual_scene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(camera_entity);

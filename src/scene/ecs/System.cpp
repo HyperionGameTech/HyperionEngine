@@ -29,9 +29,4 @@ World* SystemBase::GetWorld() const
     return GetEntityManager().GetWorld();
 }
 
-void SystemBase::SetWorld(World* world)
-{
-    OnWorldChanged(world, GetWorld());
-}
-
 } // namespace hyperion

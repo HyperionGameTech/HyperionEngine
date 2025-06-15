@@ -60,13 +60,16 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <system/AppContext.hpp>
+#include <system/App.hpp>
+
 #include <streaming/StreamingThread.hpp>
 
 #include <scripting/ScriptingService.hpp>
 
 #include <util/BlueNoise.hpp>
 
-#include <Game.hpp>
+#include <HyperionEngine.hpp>
 
 #define HYP_LOG_FRAMES_PER_SECOND
 #define HYP_ENABLE_RENDER_STATS
@@ -134,7 +137,6 @@ private:
     virtual void operator()() override
     {
         AssertThrow(m_app_context != nullptr);
-        AssertThrow(m_app_context->GetGame() != nullptr);
 
         SystemEvent event;
 
@@ -145,7 +147,7 @@ private:
             // input manager stuff
             while (m_app_context->PollEvent(event))
             {
-                m_app_context->GetGame()->PushEvent(std::move(event));
+                m_app_context->GetMainWindow()->GetInputEventSink().Push(std::move(event));
             }
 
             if (uint32 num_enqueued = m_scheduler.NumEnqueued())
@@ -158,7 +160,7 @@ private:
                 }
             }
 
-            g_engine->RenderNextFrame(m_app_context->GetGame());
+            g_engine->RenderNextFrame();
         }
     }
 
@@ -243,13 +245,13 @@ HYP_API void Engine::Init()
     TaskSystem::GetInstance().Start();
 
     AssertThrow(g_rendering_api != nullptr);
-    HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*m_app_context));
 
-    g_rendering_api->GetOnSwapchainRecreatedDelegate().Bind([this](SwapchainBase* swapchain)
-                                                          {
-                                                              m_final_pass = MakeUnique<FinalPass>(swapchain->HandleFromThis());
-                                                              m_final_pass->Create();
-                                                          })
+    g_rendering_api->GetOnSwapchainRecreatedDelegate()
+        .Bind([this](SwapchainBase* swapchain)
+            {
+                m_final_pass = MakeUnique<FinalPass>(swapchain->HandleFromThis());
+                m_final_pass->Create();
+            })
         .Detach();
 
     m_global_descriptor_table = g_rendering_api->MakeDescriptorTable(&renderer::GetStaticDescriptorTableDeclaration());
@@ -276,13 +278,15 @@ HYP_API void Engine::Init()
     m_render_state = CreateObject<RenderState>();
     InitObject(m_render_state);
 
+#ifdef HYP_EDITOR
     // Create script compilation service
     m_scripting_service = MakeUnique<ScriptingService>(
-        g_asset_manager->GetBasePath() / "scripts" / "src",
-        g_asset_manager->GetBasePath() / "scripts" / "projects",
-        g_asset_manager->GetBasePath() / "scripts" / "bin");
+        GetResourceDirectory() / "scripts" / "src",
+        GetResourceDirectory() / "scripts" / "projects",
+        GetResourceDirectory() / "scripts" / "bin");
 
     m_scripting_service->Start();
+#endif
 
     RC<NetRequestThread> net_request_thread = MakeRefCountedPtr<NetRequestThread>();
     SetGlobalNetRequestThread(net_request_thread);
@@ -295,10 +299,10 @@ HYP_API void Engine::Init()
     // g_streaming_manager->Start();
 
     // must start after net request thread
-    if (m_app_context->GetArguments()["Profile"])
+    if (GetCommandLineArguments()["Profile"])
     {
         StartProfilerConnectionThread(ProfilerConnectionParams {
-            /* endpoint_url */ m_app_context->GetArguments()["TraceURL"].ToString(),
+            /* endpoint_url */ GetCommandLineArguments()["TraceURL"].ToString(),
             /* enabled */ true });
     }
 
@@ -387,13 +391,7 @@ HYP_API void Engine::Init()
 
     m_world = CreateObject<World>();
 
-    AssertThrowMsg(m_app_context->GetGame() != nullptr, "Game not set on AppContext!");
-    m_app_context->GetGame()->Init_Internal();
-
     SetReady(true);
-
-    // RenderThread::Start() is blocking, runs until exit
-    AssertThrowMsg(m_render_thread->Start(), "Failed to start render thread!");
 }
 
 void Engine::CreateBlueNoiseBuffer()
@@ -469,6 +467,28 @@ bool Engine::IsRenderLoopActive() const
         && m_render_thread->IsRunning();
 }
 
+bool Engine::StartRenderLoop()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_main_thread);
+
+    if (m_render_thread == nullptr)
+    {
+        HYP_LOG(Engine, Error, "Render thread is not initialized!");
+        return false;
+    }
+
+    if (m_render_thread->IsRunning())
+    {
+        HYP_LOG(Engine, Warning, "Render thread is already running!");
+        return true;
+    }
+
+    m_render_thread->Start();
+
+    return true;
+}
+
 void Engine::RequestStop()
 {
     if (m_render_thread != nullptr)
@@ -491,8 +511,11 @@ void Engine::FinalizeStop()
 
     m_delegates.OnShutdown();
 
-    m_scripting_service->Stop();
-    m_scripting_service.Reset();
+    if (m_scripting_service)
+    {
+        m_scripting_service->Stop();
+        m_scripting_service.Reset();
+    }
 
     // must stop before net request thread
     StopProfilerConnectionThread();
@@ -570,7 +593,7 @@ void Engine::FinalizeStop()
     m_render_thread.Reset();
 }
 
-HYP_API void Engine::RenderNextFrame(Game* game)
+HYP_API void Engine::RenderNextFrame()
 {
     HYP_PROFILE_BEGIN;
 
@@ -584,17 +607,21 @@ HYP_API void Engine::RenderNextFrame(Game* game)
 
     PreFrameUpdate(frame);
 
-    m_world->GetRenderResource().Render(frame);
-
-    m_final_pass->Render(frame, &m_world->GetRenderResource());
-
-    for (auto& it : m_gpu_buffer_holder_map->GetItems())
+    // temp
+    if (m_world->IsReady())
     {
-        it.second->UpdateBufferSize(frame->GetFrameIndex());
-        it.second->UpdateBufferData(frame->GetFrameIndex());
-    }
+        m_world->GetRenderResource().Render(frame);
 
-    m_world->GetRenderResource().PostRender(frame);
+        m_final_pass->Render(frame, &m_world->GetRenderResource());
+
+        for (auto& it : m_gpu_buffer_holder_map->GetItems())
+        {
+            it.second->UpdateBufferSize(frame->GetFrameIndex());
+            it.second->UpdateBufferData(frame->GetFrameIndex());
+        }
+
+        m_world->GetRenderResource().PostRender(frame);
+    }
 
     g_rendering_api->PresentFrame(frame);
 }
@@ -612,7 +639,8 @@ void Engine::PreFrameUpdate(FrameBase* frame)
 
     HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
 
-    m_world->GetRenderResource().PreRender(frame);
+    if (m_world->IsReady())
+        m_world->GetRenderResource().PreRender(frame);
 
     RenderObjectDeleter<renderer::Platform::current>::Iterate();
 

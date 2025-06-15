@@ -2,6 +2,7 @@
 
 #include <core/threading/Thread.hpp>
 #include <core/threading/Threads.hpp>
+#include <core/threading/ThreadLocalStorage.hpp>
 #include <core/threading/Mutex.hpp>
 
 #include <core/containers/HashMap.hpp>
@@ -27,7 +28,7 @@
 namespace hyperion {
 namespace threading {
 
-HYP_API void RegisterThread(const ThreadID& id, IThread* thread)
+HYP_API void RegisterThread(const ThreadID& id, ThreadBase* thread)
 {
     Threads::RegisterThread(id, thread);
 }
@@ -37,7 +38,7 @@ HYP_API void UnregisterThread(const ThreadID& id)
     Threads::UnregisterThread(id);
 }
 
-HYP_API void SetCurrentThreadObject(IThread* thread)
+HYP_API void SetCurrentThreadObject(ThreadBase* thread)
 {
     Threads::SetCurrentThreadObject(thread);
 }
@@ -46,6 +47,27 @@ HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
 {
     Threads::SetCurrentThreadPriority(priority);
 }
+
+#pragma region ThreadBase
+
+ThreadBase::ThreadBase(const ThreadID& id, ThreadPriorityValue priority)
+    : m_id(id),
+      m_priority(priority),
+      m_tls(new ThreadLocalStorage())
+{
+    AssertThrowMsg(id.IsValid(), "ThreadID must be valid");
+
+    RegisterThread(m_id, this);
+}
+
+ThreadBase::~ThreadBase()
+{
+    UnregisterThread(m_id);
+
+    delete m_tls;
+}
+
+#pragma endregion ThreadBase
 
 } // namespace threading
 } // namespace hyperion

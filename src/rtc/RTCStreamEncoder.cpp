@@ -12,18 +12,18 @@
 
 #ifdef HYP_GSTREAMER
 
-    #include <core/filesystem/FsUtil.hpp>
+#include <core/filesystem/FsUtil.hpp>
 
-    #include <gst/gst.h>
-    #include <gst/app/app.h>
-    #include <gst/gstsample.h>
+#include <gst/gst.h>
+#include <gst/app/app.h>
+#include <gst/gstsample.h>
 
 #endif
 
 #ifdef _WIN32
-    #include <winsock2.h>
+#include <winsock2.h>
 #else
-    #include <arpa/inet.h>
+#include <arpa/inet.h>
 #endif
 
 namespace hyperion {
@@ -286,8 +286,6 @@ public:
 protected:
     virtual void operator()() override
     {
-        m_is_running.Set(true, MemoryOrder::RELAXED);
-
         AssertThrow(m_pipeline == nullptr);
         AssertThrow(m_appsrc == nullptr);
         AssertThrow(m_appsink == nullptr);
@@ -487,33 +485,33 @@ Optional<ByteBuffer> GStreamerRTCStreamVideoEncoder::PullData()
 
 #if 0
 
-    #ifdef HYP_GSTREAMER
+#ifdef HYP_GSTREAMER
 NullRTCStream::NullRTCStream(RTCStreamType stream_type)
     : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<GStreamerRTCStreamVideoEncoder>())
 {
 }
-    #else
+#else
 NullRTCStream::NullRTCStream(RTCStreamType stream_type)
     : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<NullRTCStreamVideoEncoder>())
 {
 }
-    #endif // HYP_GSTREAMER
+#endif // HYP_GSTREAMER
 
-    #ifdef HYP_LIBDATACHANNEL
+#ifdef HYP_LIBDATACHANNEL
 
-        #ifdef HYP_GSTREAMER
+#ifdef HYP_GSTREAMER
 LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type)
     : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<GStreamerRTCStreamVideoEncoder>())
 {
 }
-        #else
+#else
 LibDataChannelRTCStream::LibDataChannelRTCStream(RTCStreamType stream_type)
     : RTCStream(RTC_STREAM_TYPE_VIDEO, MakeUnique<NullRTCStreamVideoEncoder>())
 {
 }
-        #endif // HYP_GSTREAMER
+#endif // HYP_GSTREAMER
 
-    #endif // HYP_LIBDATACHANNEL
+#endif // HYP_LIBDATACHANNEL
 
 #endif
 

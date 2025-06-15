@@ -17,6 +17,8 @@
 
 #include <asset/Assets.hpp>
 
+#include <HyperionEngine.hpp>
+
 namespace hyperion {
 namespace filesystem {
 
@@ -237,7 +239,7 @@ bool DataStoreBase::Exists(const String& key) const
 
 FilePath DataStoreBase::GetDirectory() const
 {
-    return AssetManager::GetInstance()->GetBasePath() / "data" / m_prefix;
+    return GetResourceDirectory() / "data" / m_prefix;
 }
 
 } // namespace filesystem

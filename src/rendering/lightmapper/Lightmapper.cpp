@@ -1453,7 +1453,7 @@ Lightmapper::Lightmapper(LightmapperConfig&& config, const Handle<Scene>& scene,
     m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmap_volume_entity, BoundingBoxComponent { m_aabb, m_aabb });
 
     Handle<Node> lightmap_volume_node = m_scene->GetRoot()->AddChild();
-    lightmap_volume_node->SetName("LightmapVolume");
+    lightmap_volume_node->SetName(Name::Unique("LightmapVolume"));
     lightmap_volume_node->SetEntity(lightmap_volume_entity);
 }
 
@@ -1794,7 +1794,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
         else
         {
             // Enqueue the update to be performed on the owner thread
-            IThread* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadID());
+            ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadID());
             AssertThrow(thread != nullptr);
 
             thread->GetScheduler().Enqueue(std::move(update_mesh_component), TaskEnqueueFlags::FIRE_AND_FORGET);

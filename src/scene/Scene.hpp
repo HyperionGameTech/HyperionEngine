@@ -11,6 +11,7 @@
 #include <core/Base.hpp>
 #include <core/Name.hpp>
 
+#include <core/utilities/UUID.hpp>
 #include <core/utilities/DataMutationState.hpp>
 
 #include <core/logging/LoggerFwd.hpp>
@@ -48,7 +49,8 @@ enum class SceneFlags : uint32
     NONE = 0x0,
     FOREGROUND = 0x1,
     DETACHED = 0x2,
-    UI = 0x8
+    UI = 0x8,
+    EDITOR = 0x10
 };
 
 HYP_MAKE_ENUM_FLAGS(SceneFlags);
@@ -88,18 +90,9 @@ class HYP_API Scene final : public HypObject<Scene>
 
 public:
     Scene();
-
     Scene(EnumFlags<SceneFlags> flags);
-
-    Scene(
-        World* world,
-        EnumFlags<SceneFlags> flags = SceneFlags::NONE);
-
-    Scene(
-        World* world,
-        ThreadID owner_thread_id,
-        EnumFlags<SceneFlags> flags = SceneFlags::NONE);
-
+    Scene(World* world, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+    Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
     Scene(const Scene& other) = delete;
     Scene& operator=(const Scene& other) = delete;
     ~Scene();
@@ -136,6 +129,12 @@ public:
     }
 
     HYP_METHOD()
+    HYP_FORCE_INLINE const UUID& GetUUID() const
+    {
+        return m_uuid;
+    }
+
+    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
@@ -151,7 +150,7 @@ public:
     HYP_NODISCARD Handle<Node> FindNodeWithEntity(ID<Entity> entity) const;
 
     HYP_METHOD()
-    HYP_NODISCARD Handle<Node> FindNodeByName(UTF8StringView name) const;
+    HYP_NODISCARD Handle<Node> FindNodeByName(WeakName name) const;
 
     HYP_METHOD(Property = "Root", Serialize = true, Editor = true)
     HYP_FORCE_INLINE const Handle<Node>& GetRoot() const
@@ -228,7 +227,7 @@ public:
      *  \note The node name will be unique only to this scene.
      *  \param base_name The base name to use for the node name. */
     HYP_METHOD()
-    String GetUniqueNodeName(UTF8StringView base_name) const;
+    Name GetUniqueNodeName(UTF8StringView base_name) const;
 
     Delegate<void, const Handle<Node>& /* new */, const Handle<Node>& /* prev */> OnRootNodeChanged;
 
@@ -243,6 +242,9 @@ private:
 
     HYP_FIELD(Property = "Flags", Serialize = true)
     EnumFlags<SceneFlags> m_flags;
+
+    HYP_FIELD(Property = "UUID", Serialize = true)
+    UUID m_uuid;
 
     Handle<Node> m_root;
 

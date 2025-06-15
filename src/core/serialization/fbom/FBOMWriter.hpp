@@ -61,14 +61,13 @@ class FBOMLoadContext;
 
 struct FBOMWriteStream
 {
-    UniqueID m_name_table_id;
+    Array<FBOMObject> m_object_data;
     Array<FBOMObjectLibrary> m_object_libraries;
     HashMap<UniqueID, FBOMStaticData> m_static_data; // map hashcodes to static data to be stored.
-    bool m_is_writing_static_data = false;           // is writing to static data locked? (prevents iterator invalidation)
-    SizeType m_static_data_offset = 0;
-    FlatMap<UniqueID, int> m_hash_use_count_map;
-    Array<FBOMObject> m_object_data;
-    bool m_object_data_write_locked = false; // is writing to object data locked? (prevents iterator invalidation)
+    HashMap<UniqueID, int> m_hash_use_count_map;
+    uint32 m_static_data_offset = 0;
+    bool m_is_writing_static_data : 1 = false;   // is writing to static data locked? (prevents iterator invalidation)
+    bool m_object_data_write_locked : 1 = false; // is writing to object data locked? (prevents iterator invalidation)
     FBOMResult m_last_result = FBOMResult::FBOM_OK;
 
     FBOMWriteStream();

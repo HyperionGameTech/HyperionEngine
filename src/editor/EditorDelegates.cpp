@@ -35,6 +35,27 @@ void EditorDelegates::AddNodeWatcher(Name watcher_key, Node* root_node, Span<con
     }
 }
 
+int EditorDelegates::RemoveNodeWatcher(WeakName watcher_key, Node* root_node)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    AssertThrow(root_node != nullptr);
+
+    int num_removed = 0;
+
+    for (auto it = m_node_watchers.Begin(); it != m_node_watchers.End(); ++it)
+    {
+        if (it->first == watcher_key && it->second.root_node.GetUnsafe() == root_node)
+        {
+            m_node_watchers.Erase(it);
+            ++num_removed;
+        }
+    }
+
+    return num_removed;
+}
+
 int EditorDelegates::RemoveNodeWatchers(WeakName watcher_key)
 {
     HYP_SCOPE;

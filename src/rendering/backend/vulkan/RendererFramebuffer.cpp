@@ -26,6 +26,12 @@ static inline VulkanRenderingAPI* GetRenderingAPI()
 
 RendererResult VulkanAttachmentMap::Create()
 {
+    VulkanFramebufferRef framebuffer = framebuffer_weak.Lock();
+    if (!framebuffer.IsValid())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Framebuffer is not valid");
+    }
+
     Array<VulkanImageRef> images_to_transition;
 
     for (KeyValuePair<uint32, VulkanAttachmentDef>& it : attachments)
@@ -54,13 +60,20 @@ RendererResult VulkanAttachmentMap::Create()
     {
         renderer::SingleTimeCommands commands;
 
-        commands.Push([this, &images_to_transition](RHICommandList& cmd)
+        commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
             {
                 for (const VulkanImageRef& image : images_to_transition)
                 {
                     AssertThrow(image.IsValid());
 
-                    cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                    if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
+                    {
+                        cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+                    }
+                    else
+                    {
+                        cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                    }
                 }
             });
 
@@ -72,6 +85,12 @@ RendererResult VulkanAttachmentMap::Create()
 
 RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 {
+    VulkanFramebufferRef framebuffer = framebuffer_weak.Lock();
+    if (!framebuffer.IsValid())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Framebuffer is not valid");
+    }
+
     Array<VulkanImageRef> images_to_transition;
 
     for (KeyValuePair<uint32, VulkanAttachmentDef>& it : attachments)
@@ -82,7 +101,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 
         VulkanImageRef new_image = def.image;
 
-        if (def.attachment->GetFramebuffer() == framebuffer)
+        if (def.attachment->GetFramebuffer() == framebuffer_weak)
         {
             TextureDesc texture_desc = def.image->GetTextureDesc();
             texture_desc.extent = Vec3u { new_size.x, new_size.y, 1 };
@@ -108,7 +127,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 
         VulkanAttachmentRef new_attachment = MakeRenderObject<VulkanAttachment>(
             new_image,
-            framebuffer,
+            framebuffer_weak,
             def.attachment->GetRenderPassStage(),
             def.attachment->GetLoadOperation(),
             def.attachment->GetStoreOperation());
@@ -133,13 +152,20 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
     {
         renderer::SingleTimeCommands commands;
 
-        commands.Push([this, &images_to_transition](RHICommandList& cmd)
+        commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
             {
                 for (const VulkanImageRef& image : images_to_transition)
                 {
                     AssertThrow(image.IsValid());
 
-                    cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                    if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
+                    {
+                        cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+                    }
+                    else
+                    {
+                        cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                    }
                 }
             });
 
@@ -161,7 +187,7 @@ VulkanFramebuffer::VulkanFramebuffer(
       m_handles { VK_NULL_HANDLE },
       m_render_pass(MakeRenderObject<VulkanRenderPass>(stage, RenderPassMode::RENDER_PASS_INLINE, num_multiview_layers))
 {
-    m_attachment_map.framebuffer = VulkanFramebufferWeakRef(WeakHandleFromThis());
+    m_attachment_map.framebuffer_weak = VulkanFramebufferWeakRef(WeakHandleFromThis());
 }
 
 VulkanFramebuffer::~VulkanFramebuffer()

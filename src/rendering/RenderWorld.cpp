@@ -36,7 +36,6 @@ RenderWorld::RenderWorld(World* world)
       m_render_environment(MakeUnique<RenderEnvironment>()),
       m_buffer_data {}
 {
-    m_render_environment->Initialize();
 }
 
 RenderWorld::~RenderWorld() = default;
@@ -58,8 +57,7 @@ void RenderWorld::AddView(TResourceHandle<RenderView>&& render_view)
                 {
                     return uint32(b->GetPriority()) < uint32(a->GetPriority());
                 });
-        },
-        /* force_owner_thread */ true);
+        });
 }
 
 void RenderWorld::RemoveView(RenderView* render_view)
@@ -85,8 +83,7 @@ void RenderWorld::RemoveView(RenderView* render_view)
 
                 m_render_views.Erase(it);
             }
-        },
-        /* force_owner_thread */ true);
+        });
 }
 
 void RenderWorld::AddScene(TResourceHandle<RenderScene>&& render_scene)
@@ -101,8 +98,7 @@ void RenderWorld::AddScene(TResourceHandle<RenderScene>&& render_scene)
     Execute([this, render_scene = std::move(render_scene)]()
         {
             m_render_scenes.PushBack(std::move(render_scene));
-        },
-        /* force_owner_thread */ true);
+        });
 }
 
 void RenderWorld::RemoveScene(RenderScene* render_scene)
@@ -125,8 +121,7 @@ void RenderWorld::RemoveScene(RenderScene* render_scene)
             {
                 m_render_scenes.Erase(it);
             }
-        },
-        /* force_owner_thread */ true);
+        });
 }
 
 // void RenderWorld::RenderAddShadowMap(const TResourceHandle<RenderShadowMap> &shadow_map_resource_handle)
@@ -198,7 +193,10 @@ void RenderWorld::Initialize_Internal()
 {
     HYP_SCOPE;
 
+    HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with ID: #{}", m_world->GetID().Value());
+
     m_shadow_map_manager->Initialize();
+    m_render_environment->Initialize();
 
     UpdateBufferData();
 }
@@ -295,7 +293,7 @@ void RenderWorld::PostRender(FrameBase* frame)
 
 namespace renderer {
 
-HYP_DESCRIPTOR_SSBO(Global, WorldsBuffer, 1, sizeof(WorldShaderData), true);
+HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), true);
 
 } // namespace renderer
 

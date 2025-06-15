@@ -94,6 +94,16 @@ public:
     ApplicationWindow& operator=(const ApplicationWindow& other) = delete;
     virtual ~ApplicationWindow() = default;
 
+    HYP_FORCE_INLINE InputEventSink& GetInputEventSink()
+    {
+        return m_input_event_sink;
+    }
+
+    HYP_FORCE_INLINE const InputEventSink& GetInputEventSink() const
+    {
+        return m_input_event_sink;
+    }
+
     virtual void SetMousePosition(Vec2i position) = 0;
     virtual Vec2i GetMousePosition() const = 0;
 
@@ -117,6 +127,7 @@ public:
 protected:
     ANSIString m_title;
     Vec2i m_size;
+    InputEventSink m_input_event_sink;
 };
 
 HYP_CLASS()
@@ -166,9 +177,7 @@ public:
     {
         return m_name;
     }
-
-    const CommandLineArguments& GetArguments() const;
-
+    
     HYP_FORCE_INLINE GlobalConfig& GetConfiguration()
     {
         return m_configuration;
@@ -191,8 +200,8 @@ public:
         return m_input_manager;
     }
 
-    void SetGame(Game* game);
-    Game* GetGame() const;
+    void SetGame(const Handle<Game>& game);
+    const Handle<Game>& GetGame() const;
 
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
@@ -209,9 +218,8 @@ protected:
     Handle<ApplicationWindow> m_main_window;
     Handle<InputManager> m_input_manager;
     ANSIString m_name;
-    UniquePtr<CommandLineArguments> m_arguments;
     GlobalConfig m_configuration;
-    Game* m_game;
+    Handle<Game> m_game;
 };
 
 HYP_CLASS()

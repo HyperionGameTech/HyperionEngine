@@ -17,12 +17,11 @@ namespace hyperion {
 
 HYP_API const StaticThreadID g_main_thread = StaticThreadID(NAME("Main"));
 HYP_API const StaticThreadID g_render_thread = g_main_thread;
-
 HYP_API const StaticThreadID g_game_thread = StaticThreadID(NAME("Game"));
 
 namespace threading {
 
-static const ThreadID& ThreadSet_KeyBy(IThread* thread)
+static const ThreadID& ThreadSet_KeyBy(ThreadBase* thread)
 {
     return thread->GetID();
 }
@@ -30,7 +29,7 @@ static const ThreadID& ThreadSet_KeyBy(IThread* thread)
 class ThreadMap
 {
 public:
-    using ThreadSetType = HashSet<IThread*, &ThreadSet_KeyBy>;
+    using ThreadSetType = HashSet<ThreadBase*, &ThreadSet_KeyBy>;
 
     ThreadMap() = default;
 
@@ -42,7 +41,7 @@ public:
     ThreadMap(const ThreadMap& other) = delete;
     ThreadMap& operator=(const ThreadMap& other) = delete;
 
-    IThread* Get(const ThreadID& thread_id)
+    ThreadBase* Get(const ThreadID& thread_id)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -57,7 +56,7 @@ public:
     }
 
     /*! \brief Add a thread to the map. Returns false if the thread is already in the map. Returns true on success. */
-    bool Add(IThread* thread)
+    bool Add(ThreadBase* thread)
     {
         AssertThrow(thread != nullptr);
 
@@ -100,7 +99,7 @@ private:
 static ThreadMap g_static_thread_map = {};
 static ThreadMap g_dynamic_thread_map = {};
 
-thread_local IThread* g_current_thread = nullptr;
+thread_local ThreadBase* g_current_thread = nullptr;
 
 #ifdef HYP_ENABLE_THREAD_ID
 thread_local ThreadID g_current_thread_id = ThreadID::Invalid();
@@ -130,7 +129,7 @@ void Threads::SetCurrentThreadID(const ThreadID& id)
 #endif
 }
 
-void Threads::RegisterThread(const ThreadID& id, IThread* thread)
+void Threads::RegisterThread(const ThreadID& id, ThreadBase* thread)
 {
     AssertThrow(id.IsValid());
     AssertThrow(thread != nullptr);
@@ -184,7 +183,7 @@ bool Threads::IsThreadRegistered(const ThreadID& id)
     }
 }
 
-IThread* Threads::GetThread(const ThreadID& thread_id)
+ThreadBase* Threads::GetThread(const ThreadID& thread_id)
 {
     if (!thread_id.IsValid())
     {
@@ -201,12 +200,12 @@ IThread* Threads::GetThread(const ThreadID& thread_id)
     }
 }
 
-IThread* Threads::CurrentThreadObject()
+ThreadBase* Threads::CurrentThreadObject()
 {
     return g_current_thread;
 }
 
-void Threads::SetCurrentThreadObject(IThread* thread)
+void Threads::SetCurrentThreadObject(ThreadBase* thread)
 {
     AssertThrow(thread != nullptr);
 

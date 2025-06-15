@@ -110,7 +110,7 @@ void Skeleton::Update(GameCounter::TickUnit)
     m_mutation_state = DataMutationState::CLEAN;
 }
 
-Bone* Skeleton::FindBone(UTF8StringView name) const
+Bone* Skeleton::FindBone(WeakName name) const
 {
     if (!m_root_bone)
     {
@@ -145,7 +145,7 @@ Bone* Skeleton::FindBone(UTF8StringView name) const
     return nullptr;
 }
 
-uint32 Skeleton::FindBoneIndex(UTF8StringView name) const
+uint32 Skeleton::FindBoneIndex(WeakName name) const
 {
     if (!m_root_bone)
     {
@@ -226,7 +226,7 @@ void Skeleton::AddAnimation(const Handle<Animation>& animation)
 
     for (const Handle<AnimationTrack>& track : animation->GetTracks())
     {
-        if (track->GetDesc().bone_name.Empty())
+        if (!track->GetDesc().bone_name.IsValid())
         {
             track->SetBone(nullptr);
 

@@ -32,6 +32,7 @@
 #include <core/math/MathUtil.hpp>
 
 #include <Engine.hpp>
+#include <HyperionEngine.hpp>
 
 #include <rendering/backend/RenderConfig.hpp>
 
@@ -452,7 +453,7 @@ static bool PreprocessShaderSource(
 
         const FilePath dir = include_depth > 1
             ? FilePath(includer_name).BasePath()
-            : g_asset_manager->GetBasePath() / FilePath::Relative(base_path, g_asset_manager->GetBasePath());
+            : GetResourceDirectory() / FilePath::Relative(base_path, GetResourceDirectory());
 
         const FilePath path = dir / header_name;
 
@@ -1225,7 +1226,7 @@ void ShaderCompiler::ParseDefinitionSection(
         else if (shader_type_names.Contains(section_it.first))
         {
             bundle.sources[shader_type_names.At(section_it.first)] = SourceFile {
-                g_asset_manager->GetBasePath() / "shaders" / section_it.second.GetValue().name
+                GetResourceDirectory() / "shaders" / section_it.second.GetValue().name
             };
         }
         else
@@ -1431,7 +1432,7 @@ bool ShaderCompiler::LoadOrCompileBatch(
         return LoadBatchFromFile(output_file_path, batch);
     };
 
-    const FilePath output_file_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / name_string + ".hypshader";
+    const FilePath output_file_path = GetResourceDirectory() / "data/compiled_shaders" / name_string + ".hypshader";
 
     if (output_file_path.Exists())
     {
@@ -1464,7 +1465,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         return true;
     }
 
-    const FilePath data_path = g_asset_manager->GetBasePath() / "data/compiled_shaders";
+    const FilePath data_path = GetResourceDirectory() / "data/compiled_shaders";
 
     if (!data_path.Exists())
     {
@@ -1485,7 +1486,7 @@ bool ShaderCompiler::LoadShaderDefinitions(bool precompile_shaders)
         delete m_definitions;
     }
 
-    m_definitions = new INIFile(g_asset_manager->GetBasePath() / "Shaders.ini");
+    m_definitions = new INIFile(GetResourceDirectory() / "Shaders.ini");
 
     if (!m_definitions->IsValid())
     {
@@ -2019,7 +2020,7 @@ bool ShaderCompiler::CompileBundle(
     }
 
     // run with spirv-cross
-    FileSystem::MkDir((g_asset_manager->GetBasePath() / "data/compiled_shaders/tmp").Data());
+    FileSystem::MkDir((GetResourceDirectory() / "data/compiled_shaders/tmp").Data());
 
     Array<LoadedSourceFile> loaded_source_files;
     loaded_source_files.Resize(bundle.sources.Size());
@@ -2296,7 +2297,7 @@ bool ShaderCompiler::CompileBundle(
 
                 // check if a file exists w/ same hash
                 const FilePath output_filepath = item.GetOutputFilepath(
-                    g_asset_manager->GetBasePath(),
+                    GetResourceDirectory(),
                     compiled_shader.definition);
 
                 filepaths[index] = { output_filepath, false };
@@ -2306,7 +2307,7 @@ bool ShaderCompiler::CompileBundle(
                 Array<String> error_messages;
 
                 // set directory to the directory of the shader
-                const FilePath dir = g_asset_manager->GetBasePath() / FilePath::Relative(FilePath(item.file.path).BasePath(), g_asset_manager->GetBasePath());
+                const FilePath dir = GetResourceDirectory() / FilePath::Relative(FilePath(item.file.path).BasePath(), GetResourceDirectory());
 
                 String& processed_source = processed_sources[index];
 
@@ -2467,7 +2468,7 @@ bool ShaderCompiler::CompileBundle(
         return false;
     }
 
-    const FilePath final_output_path = g_asset_manager->GetBasePath() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
+    const FilePath final_output_path = GetResourceDirectory() / "data/compiled_shaders" / String(bundle.name.LookupString()) + ".hypshader";
 
     FileByteWriter byte_writer(final_output_path.Data());
 

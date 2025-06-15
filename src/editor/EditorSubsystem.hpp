@@ -352,12 +352,6 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Scene>& GetScene() const
-    {
-        return m_scene;
-    }
-
-    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<EditorProject>& GetCurrentProject() const
     {
         return m_current_project;
@@ -427,6 +421,9 @@ private:
     void UpdateTasks(GameCounter::TickUnit delta);
     void UpdateDebugOverlays(GameCounter::TickUnit delta);
 
+    void StartWatchingNode(const Handle<Node>& node);
+    void StopWatchingNode(const Handle<Node>& node);
+
     void AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested);
     void SetSelectedPackage(const Handle<AssetPackage>& package);
 
@@ -441,7 +438,7 @@ private:
     }
 
     Handle<AppContextBase> m_app_context;
-    Handle<Scene> m_scene;
+    Handle<Scene> m_editor_scene;
     Handle<Camera> m_camera;
 
     Handle<EditorProject> m_current_project;

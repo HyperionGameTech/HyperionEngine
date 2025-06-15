@@ -88,30 +88,6 @@ private:
     String m_path;
 };
 
-class HYP_API ConfigurationDataStore : public DataStoreBase
-{
-public:
-    ConfigurationDataStore(UTF8StringView config_name);
-    ConfigurationDataStore(const ConfigurationDataStore& other) = delete;
-    ConfigurationDataStore& operator=(const ConfigurationDataStore& other) = delete;
-    ConfigurationDataStore(ConfigurationDataStore&& other) noexcept;
-    ConfigurationDataStore& operator=(ConfigurationDataStore&& other) noexcept = delete;
-    virtual ~ConfigurationDataStore() override;
-
-    HYP_FORCE_INLINE const String& GetConfigName() const
-    {
-        return m_config_name;
-    }
-
-    FilePath GetFilePath() const;
-
-    bool Read(json::JSONValue& out_value) const;
-    bool Write(const json::JSONValue& value) const;
-
-private:
-    String m_config_name;
-};
-
 class HYP_API ConfigurationTable
 {
     template <class Derived>
@@ -154,6 +130,11 @@ public:
 protected:
     static const String& GetDefaultConfigName(const HypClass* hyp_class);
 
+    FilePath GetFilePath() const;
+
+    Result Read(json::JSONValue& out_value) const;
+    Result Write(const json::JSONValue& value) const;
+
     void LogErrors() const;
     void LogErrors(UTF8StringView message) const;
 
@@ -175,9 +156,7 @@ private:
     json::JSONValue& GetSubobject();
     const json::JSONValue& GetSubobject() const;
 
-    ConfigurationDataStore* m_data_store;
-    TResourceHandle<ConfigurationDataStore> m_data_store_resource_handle;
-
+    String m_name;
     Array<Error> m_errors;
 
     mutable HashCode m_cached_hash_code;

@@ -3148,7 +3148,7 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2
         name = Name::Unique(ANSIString("Unnamed_") + hyp_class->GetName().LookupString());
     }
 
-    Handle<Node> node = CreateObject<Node>(name.LookupString());
+    Handle<Node> node = CreateObject<Node>(name);
     // Set it to ignore parent scale so size of the UI object is not affected by the parent
     node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 

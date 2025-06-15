@@ -12,6 +12,11 @@
 
 #include <core/Defines.hpp>
 
+#include <system/AppContext.hpp>
+#include <system/SystemEvent.hpp>
+
+#include <scene/World.hpp>
+
 #include <asset/Assets.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
@@ -26,19 +31,42 @@ HYP_DEFINE_LOG_CHANNEL(GameThread);
 
 static constexpr float game_thread_target_ticks_per_second = 60.0f;
 
-GameThread::GameThread()
+GameThread::GameThread(const Handle<AppContextBase>& app_context)
     : Thread(g_game_thread, ThreadPriorityValue::HIGHEST),
-      m_is_running { false },
-      m_stop_requested { false }
+      m_app_context(app_context)
 {
+    AssertThrow(m_app_context.IsValid());
 }
 
-void GameThread::Stop()
+void GameThread::SetGame(const Handle<Game>& game)
 {
-    m_stop_requested.Set(true, MemoryOrder::RELAXED);
+    if (IsRunning())
+    {
+        Task<void> future;
+
+        GetScheduler().Enqueue([this, game = game, promise = future.Promise()]()
+            {
+                m_game = game;
+
+                if (m_game.IsValid())
+                {
+                    m_game->SetAppContext(m_app_context);
+
+                    InitObject(m_game);
+                }
+
+                promise->Fulfill();
+            });
+
+        future.Await();
+
+        return;
+    }
+
+    m_game = game;
 }
 
-void GameThread::operator()(Game* game)
+void GameThread::operator()()
 {
     uint32 num_frames = 0;
     float delta_time_accum = 0.0f;
@@ -49,11 +77,18 @@ void GameThread::operator()(Game* game)
     GameCounter counter;
 #endif
 
-    m_is_running.Set(true, MemoryOrder::RELAXED);
+    // temp. commented out
+    // g_engine->GetDebugDrawer()->Initialize();
 
-    g_engine->GetDebugDrawer()->Initialize();
+    if (m_game.IsValid())
+    {
+        m_game->SetAppContext(m_app_context);
+
+        InitObject(m_game);
+    }
 
     Queue<Scheduler::ScheduledTask> tasks;
+    Array<SystemEvent> events;
 
     while (!m_stop_requested.Get(MemoryOrder::RELAXED))
     {
@@ -83,6 +118,21 @@ void GameThread::operator()(Game* game)
 
         AssetManager::GetInstance()->Update(counter.delta);
 
+        if (m_app_context->GetMainWindow()->GetInputEventSink().Poll(events))
+        {
+            for (SystemEvent& event : events)
+            {
+                m_app_context->GetInputManager()->CheckEvent(&event);
+
+                if (m_game.IsValid())
+                {
+                    m_game->HandleEvent(std::move(event));
+                }
+            }
+
+            events.Clear();
+        }
+
         if (uint32 num_enqueued = m_scheduler.NumEnqueued())
         {
             m_scheduler.AcceptAll(tasks);
@@ -93,7 +143,12 @@ void GameThread::operator()(Game* game)
             }
         }
 
-        game->Update(counter.delta);
+        if (!m_game.IsValid())
+        {
+            continue;
+        }
+
+        m_game->Update(counter.delta);
     }
 
     // flush scheduler
@@ -101,10 +156,6 @@ void GameThread::operator()(Game* game)
         {
             operation.Execute();
         });
-
-    game->Teardown();
-
-    m_is_running.Set(false, MemoryOrder::RELAXED);
 }
 
 } // namespace hyperion

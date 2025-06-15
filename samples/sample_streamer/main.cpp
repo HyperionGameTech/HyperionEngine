@@ -4,8 +4,6 @@
 
 #include <core/debug/StackDump.hpp>
 
-#include <core/cli/CommandLine.hpp>
-
 #include <core/containers/Bitset.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -65,29 +63,14 @@ int main(int argc, char** argv)
     // handle fatal crashes
     signal(SIGSEGV, HandleSignal);
 
-    HyperionEditor editor;
-    App app;
-
-    CommandLineParser arg_parse { &DefaultCommandLineArgumentDefinitions() };
-    auto parse_result = arg_parse.Parse(argc, argv);
-
-    if (parse_result.HasValue())
+    if (!hyperion::InitializeEngine(argc, argv))
     {
-        app.Launch(&editor, parse_result.GetValue());
-    }
-    else
-    {
-        const Error& error = parse_result.GetError();
-
-        DebugLog(
-            LogType::Error,
-            "Failed to parse arguments!\n\t%s\n",
-            error.GetMessage().Any()
-                ? error.GetMessage().Data()
-                : "<no message>");
-
         return 1;
     }
+
+    Handle<Game> game = CreateObject<HyperionEditor>();
+
+    App::GetInstance().LaunchGame(game);
 
     return 0;
 }

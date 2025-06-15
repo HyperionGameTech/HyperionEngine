@@ -8,6 +8,8 @@
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/resource/Resource.hpp>
 
+#include <core/object/HypObject.hpp>
+
 #include <core/utilities/Optional.hpp>
 
 #include <core/Defines.hpp>
@@ -38,20 +40,18 @@ struct ManagedGameInfo
     String class_name;
 };
 
-class Game
+HYP_CLASS(Abstract)
+class HYP_API Game : public HypObject<Game>
 {
     friend class GameThread;
     friend class Engine;
 
-public:
-    HYP_API Game();
-    HYP_API Game(Optional<ManagedGameInfo> managed_game_info);
-    HYP_API virtual ~Game();
+    HYP_OBJECT_BODY(Game);
 
-    const Handle<Scene>& GetScene() const
-    {
-        return m_scene;
-    }
+public:
+    Game();
+    Game(Optional<ManagedGameInfo> managed_game_info);
+    virtual ~Game();
 
     const Handle<AppContextBase>& GetAppContext() const
     {
@@ -63,21 +63,14 @@ public:
         m_app_context = app_context;
     }
 
-    GameThread* GetGameThread() const
-    {
-        return m_game_thread.Get();
-    }
-
-    HYP_API virtual void Init();
-    HYP_API virtual void Update(GameCounter::TickUnit delta) final;
-    HYP_API virtual void Teardown();
-
-    HYP_API virtual void HandleEvent(SystemEvent&& event) final;
-    HYP_API virtual void PushEvent(SystemEvent&& event) final;
-    HYP_API virtual void OnInputEvent(const SystemEvent& event);
-
+    virtual void Update(GameCounter::TickUnit delta) final;
+    virtual void HandleEvent(SystemEvent&& event) final;
+    
 protected:
+    virtual void Init() override;
+    
     virtual void Logic(GameCounter::TickUnit delta) = 0;
+    virtual void OnInputEvent(const SystemEvent& event);
 
     const RC<UISubsystem>& GetUISubsystem() const
     {
@@ -86,26 +79,13 @@ protected:
 
     Handle<AppContextBase> m_app_context;
 
-    Handle<Scene> m_scene;
-
     RC<UISubsystem> m_ui_subsystem;
 
     RC<dotnet::Assembly> m_managed_assembly;
     dotnet::Object* m_managed_game_object;
 
 private:
-    void Init_Internal();
-
-    void RequestStop();
-
-    bool m_is_init;
-
     Optional<ManagedGameInfo> m_managed_game_info;
-
-    UniquePtr<GameThread> m_game_thread;
-
-    RenderScene* m_render_scene;
-    ResourceHandle m_render_scene_handle;
 };
 
 } // namespace hyperion

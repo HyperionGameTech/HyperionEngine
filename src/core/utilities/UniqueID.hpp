@@ -11,10 +11,9 @@
 #include <HashCode.hpp>
 
 namespace hyperion {
-
 namespace utilities {
 
-struct UniqueID
+class UniqueID
 {
 public:
     UniqueID()
@@ -22,13 +21,18 @@ public:
     {
     }
 
-    UniqueID(const HashCode& hash_code)
+    explicit constexpr UniqueID(const HashCode& hash_code)
         : m_value(hash_code.Value())
     {
     }
 
-    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, UniqueID>>>
-    UniqueID(const T& value)
+    explicit constexpr UniqueID(uint64 value)
+        : m_value(value)
+    {
+    }
+
+    template <class T, typename = std::enable_if_t<!std::is_same_v<NormalizedType<T>, UniqueID> && HYP_HAS_METHOD(T, GetHashCode)>>
+    explicit UniqueID(const T& value)
         : m_value(HashCode::GetHashCode(value).Value())
     {
     }
@@ -38,39 +42,54 @@ public:
     UniqueID(UniqueID&& other) noexcept = default;
     UniqueID& operator=(UniqueID&& other) noexcept = default;
 
-    bool operator==(const UniqueID& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const UniqueID& other) const
     {
         return m_value == other.m_value;
     }
 
-    bool operator!=(const UniqueID& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const UniqueID& other) const
     {
         return m_value != other.m_value;
     }
 
-    bool operator<(const UniqueID& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const UniqueID& other) const
     {
         return m_value < other.m_value;
     }
 
-    operator uint64() const
+    HYP_FORCE_INLINE constexpr operator uint64() const
     {
         return m_value;
     }
 
-    HashCode GetHashCode() const
+    HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
         return HashCode(m_value);
     }
 
-    static inline UniqueID Generate()
+    HYP_FORCE_INLINE ANSIString ToString() const
     {
-        return { UUID {} };
+        return ANSIString::ToString(m_value);
     }
 
-    static inline UniqueID Invalid()
+    static inline UniqueID Generate()
     {
-        return { 0 };
+        return UniqueID { UUID {}.GetHashCode() };
+    }
+
+    static inline constexpr UniqueID Invalid()
+    {
+        return UniqueID { 0 };
+    }
+
+    static UniqueID FromHashCode(const HashCode& hash_code)
+    {
+        return UniqueID { hash_code };
+    }
+
+    static UniqueID FromUUID(const UUID& uuid)
+    {
+        return UniqueID { HashCode::GetHashCode(uuid.data0).Combine(HashCode::GetHashCode(uuid.data1)) };
     }
 
 private:

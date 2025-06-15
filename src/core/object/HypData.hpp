@@ -2829,6 +2829,28 @@ struct HypDataPlaceholderSerializedType
     }
 };
 
+template <class T>
+struct HypDataPlaceholderSerializedType<Handle<T>>
+{
+    static inline FBOMType Get()
+    {
+        thread_local bool is_init = false;
+        thread_local FBOMType placeholder_type = FBOMPlaceholderType();
+
+        if (!is_init)
+        {
+            is_init = true;
+
+            const HypClass* hyp_class = GetClass(TypeID::ForType<T>());
+            AssertThrowMsg(hyp_class, "HypClass for type %s is not registered", TypeName<T>().Data());
+
+            placeholder_type = FBOMObjectType(hyp_class);
+        }
+
+        return placeholder_type;
+    }
+};
+
 #pragma endregion Helpers
 
 #pragma region HypDataGetter implementation

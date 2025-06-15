@@ -97,6 +97,26 @@ void View::Init()
     SetReady(true);
 }
 
+bool View::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) const
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+
+    bool has_hits = false;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        AssertThrow(scene.IsValid());
+
+        if (scene->GetOctree().TestRay(ray, out_results, use_bvh))
+        {
+            has_hits = true;
+        }
+    }
+
+    return has_hits;
+}
+
 void View::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;

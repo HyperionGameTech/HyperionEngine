@@ -101,7 +101,6 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         enum LayerDataFlags
         {
             LDF_NONE = 0x0,
-            LDF_LOCKED = 0x1,
             LDF_PENDING_REMOVAL = 0x2
         };
 
@@ -109,6 +108,7 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
         StreamingCellCollection cells;
         Queue<StreamingCellUpdate> cell_update_queue;
         AtomicVar<uint8> flags { LDF_NONE };
+        AtomicVar<uint32> lock_count { 0 };
 
         LayerData(const Handle<WorldGridLayer>& layer)
             : layer(layer)
@@ -118,17 +118,17 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
 
         void Lock()
         {
-            flags.BitOr(LDF_LOCKED, MemoryOrder::RELEASE);
+            lock_count.Increment(1, MemoryOrder::RELEASE);
         }
 
         void Unlock()
         {
-            flags.BitAnd(~LDF_LOCKED, MemoryOrder::RELEASE);
+            lock_count.Decrement(1, MemoryOrder::RELEASE);
         }
 
         bool IsLocked() const
         {
-            return flags.Get(MemoryOrder::ACQUIRE) & LDF_LOCKED;
+            return lock_count.Get(MemoryOrder::ACQUIRE) > 0;
         }
 
         void SetPendingRemoval()
@@ -147,8 +147,6 @@ public:
 
     StreamingManagerThread()
         : Thread(ThreadID(Name::Unique("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
-          m_is_running { false },
-          m_stop_requested { false },
           m_thread_pool(MakeUnique<StreamingThreadPool>())
     {
     }
@@ -304,12 +302,6 @@ public:
         return m_notifier;
     }
 
-    /*! \brief Atomically load the boolean value indicating that this thread is actively running */
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
     void Stop()
     {
         m_thread_pool->Stop();
@@ -321,8 +313,6 @@ public:
 private:
     virtual void operator()(StreamingManager* streaming_manager) override
     {
-        m_is_running.Set(true, MemoryOrder::RELAXED);
-
         for (const Handle<StreamingVolumeBase>& volume : m_volumes)
         {
             InitObject(volume);
@@ -354,8 +344,6 @@ private:
             }
             while (num > 0 && !m_stop_requested.Get(MemoryOrder::RELAXED));
         }
-
-        m_is_running.Set(false, MemoryOrder::RELAXED);
     }
 
     void StartWorkerThreadPool();
@@ -390,9 +378,6 @@ private:
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }
-
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
 
     UniquePtr<StreamingThreadPool> m_thread_pool;
 
@@ -607,17 +592,23 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
                     bool is_ok = true;
 
                     is_ok &= layer_data.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADING);
-                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADING for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
+                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADING for coord: %d,%d for layer: %s",
+                        cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
+                        layer_data.layer->InstanceClass()->GetName().LookupString());
 
                     PostCellUpdateToGameThread(cell, StreamingCellState::LOADING);
 
                     cell->OnStreamStart();
 
                     is_ok &= layer_data.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADED);
-                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADED for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
+                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADED for coord: %d,%d for layer: %s",
+                        cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
+                        layer_data.layer->InstanceClass()->GetName().LookupString());
 
                     is_ok &= layer_data.cells.SetCellLockState(cell->GetPatchInfo().coord, false);
-                    AssertDebugMsg(is_ok, "Failed to unlock StreamingCell with coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
+                    AssertDebugMsg(is_ok, "Failed to unlock StreamingCell with coord: %d,%d for layer: %s",
+                        cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
+                        layer_data.layer->InstanceClass()->GetName().LookupString());
 
                     PostCellUpdateToGameThread(cell, StreamingCellState::LOADED);
 
@@ -637,26 +628,33 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
             // Locked here - see StreamingManagerThread::DoWork where we lock before pushing UNLOADING state.
 
             is_ok &= cells.IsCellLocked(update.coord);
-            AssertThrowMsg(is_ok, "StreamingCell with coord %d,%d is not locked for unloading!", update.coord.x, update.coord.y);
+            AssertThrowMsg(is_ok, "StreamingCell with coord %d,%d for layer %s is not locked for unloading!",
+                update.coord.x, update.coord.y, layer_data.layer->InstanceClass()->GetName().LookupString());
 
             Handle<StreamingCell> cell = cells.GetCell(update.coord);
-            AssertThrowMsg(cell.IsValid(), "StreamingCell with coord %d,%d is not valid!", update.coord.x, update.coord.y);
+            AssertThrowMsg(cell.IsValid(), "StreamingCell with coord %d,%d for layer %s is not valid!",
+                update.coord.x, update.coord.y, layer_data.layer->InstanceClass()->GetName().LookupString());
 
             is_ok &= cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::UNLOADING);
-            AssertDebugMsg(is_ok, "Failed to update StreamingCell state to UNLOADING for coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
+            AssertDebugMsg(is_ok, "Failed to update StreamingCell state to UNLOADING for coord: %d,%d for layer: %s",
+                cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
+                layer_data.layer->InstanceClass()->GetName().LookupString());
 
             PostCellUpdateToGameThread(cell, StreamingCellState::UNLOADING);
 
             is_ok &= cells.RemoveCell(cell->GetPatchInfo().coord);
-            AssertDebugMsg(is_ok, "Failed to remove StreamingCell with coord: %d,%d", cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y);
+            AssertDebugMsg(is_ok, "Failed to remove StreamingCell with coord: %d,%d for layer: %s",
+                cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
+                layer_data.layer->InstanceClass()->GetName().LookupString());
 
             layer_data.Lock();
 
             // Call OnStreamEnd on the cell and then Unload it
             TaskSystem::GetInstance().Enqueue([this, cell = std::move(cell), &layer_data]()
                 {
-                    HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} on thread: {}",
-                        cell->GetPatchInfo().coord, Threads::CurrentThreadID().GetName());
+                    HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
+                        cell->GetPatchInfo().coord, layer_data.layer->InstanceClass()->GetName().LookupString(),
+                        Threads::CurrentThreadID().GetName());
 
                     // cell->OnStreamEnd();
 
@@ -774,7 +772,7 @@ void StreamingManager::RemoveStreamingVolume(StreamingVolumeBase* volume)
 void StreamingManager::AddWorldGridLayer(const Handle<WorldGridLayer>& layer)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
+    // Threads::AssertOnThread(g_game_thread);
 
     AssertThrow(layer.IsValid());
 

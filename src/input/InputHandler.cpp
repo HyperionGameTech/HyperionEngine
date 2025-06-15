@@ -7,6 +7,8 @@
 
 namespace hyperion {
 
+#pragma region InputHandlerBase
+
 InputHandlerBase::InputHandlerBase()
     : m_input_state(MakePimpl<InputState>())
 {
@@ -101,5 +103,7 @@ bool InputHandlerBase::IsMouseButtonUp(MouseButton btn) const
 
     return false;
 }
+
+#pragma endregion InputHandlerBase
 
 } // namespace hyperion

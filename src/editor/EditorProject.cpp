@@ -24,6 +24,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <HyperionEngine.hpp>
+
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
@@ -40,24 +42,7 @@ EditorProject::EditorProject(Name name)
       m_last_saved_time(~0ull)
 {
     m_asset_registry = CreateObject<AssetRegistry>();
-    m_scene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND);
     m_action_stack = CreateObject<EditorActionStack>();
-
-    Handle<Camera> camera = CreateObject<Camera>();
-    camera->SetName(Name::Unique("EditorDefaultCamera"));
-    camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
-    camera->SetFOV(70.0f);
-    camera->SetNear(0.1f);
-    camera->SetFar(3000.0f);
-
-    Handle<Node> camera_node = m_scene->GetRoot()->AddChild();
-    camera_node->SetName(camera->GetName().LookupString());
-
-    Handle<Entity> camera_entity = m_scene->GetEntityManager()->AddEntity();
-    m_scene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(camera_entity);
-    m_scene->GetEntityManager()->AddComponent<CameraComponent>(camera_entity, CameraComponent { camera });
-
-    camera_node->SetEntity(camera_entity);
 }
 
 EditorProject::~EditorProject()
@@ -67,20 +52,65 @@ EditorProject::~EditorProject()
 void EditorProject::Init()
 {
     InitObject(m_asset_registry);
-    InitObject(m_scene);
     InitObject(m_action_stack);
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        InitObject(scene);
+
+        OnSceneAdded(scene);
+    }
 
     SetReady(true);
 }
 
-void EditorProject::SetScene(const Handle<Scene>& scene)
+void EditorProject::AddScene(const Handle<Scene>& scene)
 {
-    m_scene = scene;
+    HYP_SCOPE;
+
+    if (!scene.IsValid())
+    {
+        return;
+    }
+
+    if (m_scenes.Contains(scene))
+    {
+        return;
+    }
+
+    m_scenes.PushBack(scene);
+
+    if (IsInitCalled())
+    {
+        OnSceneAdded(scene);
+    }
+}
+
+void EditorProject::RemoveScene(const Handle<Scene>& scene)
+{
+    HYP_SCOPE;
+
+    if (!scene.IsValid())
+    {
+        return;
+    }
+
+    if (!m_scenes.Contains(scene))
+    {
+        return;
+    }
+
+    if (IsInitCalled())
+    {
+        OnSceneRemoved(scene);
+    }
+
+    m_scenes.Erase(scene);
 }
 
 FilePath EditorProject::GetProjectsDirectory() const
 {
-    return AssetManager::GetInstance()->GetBasePath() / "projects";
+    return GetResourceDirectory() / "projects";
 }
 
 bool EditorProject::IsSaved() const
@@ -219,6 +249,8 @@ Result EditorProject::SaveAs(FilePath filepath)
 
         m_asset_registry->SetRootPath(FilePath::Relative(filepath, FilePath::Current()));
     }
+
+    OnProjectSaved(HandleFromThis());
 
     return result;
 }

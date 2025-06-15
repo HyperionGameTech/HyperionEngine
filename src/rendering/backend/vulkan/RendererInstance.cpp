@@ -23,13 +23,13 @@
 #include <cstring>
 
 #ifdef HYP_IOS
-    #if MVK_IOS && MVK_OS_SIMULATOR
-        #define MTLPixelFormatR8Unorm_sRGB MTLPixelFormatInvalid
-        #define MTLPixelFormatRG8Unorm_sRGB MTLPixelFormatInvalid
-        #define MTLPixelFormatB5G6R5Unorm MTLPixelFormatInvalid
-        #define MTLPixelFormatA1BGR5Unorm MTLPixelFormatInvalid
-        #define MTLPixelFormatABGR4Unorm MTLPixelFormatInvalid
-    #endif
+#if MVK_IOS && MVK_OS_SIMULATOR
+#define MTLPixelFormatR8Unorm_sRGB MTLPixelFormatInvalid
+#define MTLPixelFormatRG8Unorm_sRGB MTLPixelFormatInvalid
+#define MTLPixelFormatB5G6R5Unorm MTLPixelFormatInvalid
+#define MTLPixelFormatA1BGR5Unorm MTLPixelFormatInvalid
+#define MTLPixelFormatABGR4Unorm MTLPixelFormatInvalid
+#endif
 #endif
 
 namespace hyperion {
@@ -199,12 +199,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     DebugLogRaw(lt, "Vulkan: [%s, %d]:\n\t%s\n",
         callback_data->pMessageIdName, callback_data->messageIdNumber, callback_data->pMessage);
 
-    #if HYP_ENABLE_BREAKPOINTS
+#if HYP_ENABLE_BREAKPOINTS
     if (lt == LogType::RenError)
     {
         HYP_BREAKPOINT;
     }
-    #endif
+#endif
     return VK_FALSE;
 }
 
@@ -287,11 +287,11 @@ RendererResult Instance<Platform::vulkan>::Initialize(const AppContextBase& app_
     create_info.flags = 0;
 
 #if 0
-    #if defined(HYP_APPLE) && HYP_APPLE
+#if defined(HYP_APPLE) && HYP_APPLE
     // for vulkan sdk 1.3.216 and above, enumerate portability extension is required for
     // translation layers such as moltenvk.
     create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-    #endif
+#endif
 #endif
 
     // Setup Vulkan extensions
@@ -305,10 +305,10 @@ RendererResult Instance<Platform::vulkan>::Initialize(const AppContextBase& app_
     extension_names.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 #if 0
-    #if defined(HYP_APPLE) && HYP_APPLE && VK_HEADER_VERSION >= 216
+#if defined(HYP_APPLE) && HYP_APPLE && VK_HEADER_VERSION >= 216
     // add our enumeration extension to our instance extensions
     extension_names.PushBack(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-    #endif
+#endif
 #endif
 
     DebugLog(LogType::Debug, "Got %llu extensions:\n", extension_names.Size());
@@ -432,7 +432,11 @@ RendererResult Instance<Platform::vulkan>::RecreateSwapchain()
     if (m_swapchain.IsValid())
     {
         // Cannot use SafeRelease here; will get NATIVE_WINDOW_IN_USE_KHR error
-        m_swapchain->Destroy();
+        if (m_swapchain->IsCreated())
+        {
+            HYPERION_BUBBLE_ERRORS(m_swapchain->Destroy());
+        }
+
         m_swapchain.Reset();
     }
 
@@ -440,6 +444,8 @@ RendererResult Instance<Platform::vulkan>::RecreateSwapchain()
     {
         return HYP_MAKE_ERROR(RendererError, "Surface not created before initializing swapchain");
     }
+
+    HYP_LOG(RenderingBackend, Info, "Recreating swapchain...");
 
     m_swapchain = MakeRenderObject<VulkanSwapchain>();
     m_swapchain->m_surface = m_surface;

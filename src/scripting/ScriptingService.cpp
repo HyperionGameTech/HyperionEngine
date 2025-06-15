@@ -105,12 +105,8 @@ protected:
     {
         if (!m_script_tracker->GetObject())
         {
-            m_is_running.Set(false, MemoryOrder::RELAXED);
-
             return;
         }
-
-        m_is_running.Set(true, MemoryOrder::RELAXED);
 
         {
             HYP_NAMED_SCOPE("Scripting service: Initialize");

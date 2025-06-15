@@ -214,9 +214,9 @@ public:
     }
 
     HYP_API bool IsRenderLoopActive() const;
+    HYP_API bool StartRenderLoop();
 
-    
-    HYP_API void RenderNextFrame(Game* game);
+    HYP_API void RenderNextFrame();
     HYP_API void RequestStop();
     
     AtomicVar<bool> m_stop_requested;

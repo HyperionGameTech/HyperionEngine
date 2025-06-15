@@ -63,14 +63,14 @@ struct DelegateHandlerEntryBase
         return index == ~0u;
     }
 
-    IThread* GetCallingThread() const
+    ThreadBase* GetCallingThread() const
     {
         if (!calling_thread_id.IsValid())
         {
             return nullptr;
         }
 
-        IThread* thread = Threads::GetThread(calling_thread_id);
+        ThreadBase* thread = Threads::GetThread(calling_thread_id);
         AssertThrow(thread != nullptr);
 
         return thread;
@@ -377,7 +377,7 @@ public:
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !require_current_thread, "Cannot use require_current_thread for non-void delegate return type");
 
-        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID());
+        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID::Invalid());
     }
 
     /*! \brief Bind a Proc<> to the Delegate.
@@ -390,6 +390,13 @@ public:
     HYP_NODISCARD DelegateHandler Bind(ProcType&& proc, const ThreadID& calling_thread_id)
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadID::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
+
+#ifdef HYP_DEBUG_MODE
+        if (calling_thread_id != ThreadID::Invalid())
+        {
+            AssertDebugMsg(Threads::GetThread(calling_thread_id) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");
+        }
+#endif
 
         Mutex::Guard guard(m_mutex);
 

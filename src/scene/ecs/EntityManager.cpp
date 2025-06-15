@@ -360,11 +360,11 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
 {
     HYP_SCOPE;
 
+    AssertThrowMsg(m_world != nullptr, "EntityManager must be associated with a World before initializing systems.");
+
     AssertThrow(system.IsValid());
 
     InitObject(system);
-
-    system->InitComponentInfos_Internal();
 
     for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it)
     {
@@ -404,11 +404,61 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
     }
 }
 
+void EntityManager::ShutdownSystem(const Handle<SystemBase>& system)
+{
+    HYP_SCOPE;
+
+    AssertThrowMsg(m_world != nullptr, "EntityManager must be associated with a World before shutting down systems.");
+
+    AssertThrow(system.IsValid());
+
+    for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it)
+    {
+        const Handle<Entity> entity = entities_it->first.Lock();
+
+        if (!entity.IsValid())
+        {
+            HYP_LOG(ECS, Warning, "Entity with ID #{} is expired or invalid", entities_it->first.GetID().Value());
+
+            continue;
+        }
+
+        EntityData& entity_data = entities_it->second;
+
+        const TypeMap<ComponentID>& component_ids = entity_data.components;
+
+        if (system->ActsOnComponents(component_ids.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
+        {
+            { // critical section
+                Mutex::Guard guard(m_system_entity_map_mutex);
+
+                auto system_entity_it = m_system_entity_map.Find(system.Get());
+
+                // Check if the system already has this entity initialized
+                if (system_entity_it != m_system_entity_map.End() && system_entity_it->second.Contains(entity))
+                {
+                    continue;
+                }
+
+                system_entity_it->second.Erase(entity);
+            }
+
+            HYP_LOG(ECS, Debug, "Removing entity #{} from system {}", entity.GetID().Value(), system->GetName());
+
+            system->OnEntityRemoved(entity);
+        }
+    }
+
+    system->Shutdown();
+}
+
 void EntityManager::Init()
 {
     Threads::AssertOnThread(m_owner_thread_id);
 
     MoveEntityGuard move_entity_guard(*this);
+
+    Array<Handle<SystemBase>> systems;
 
     for (SystemExecutionGroup& group : m_system_execution_groups)
     {
@@ -417,6 +467,22 @@ void EntityManager::Init()
             const Handle<SystemBase>& system = system_it.second;
             AssertThrow(system.IsValid());
 
+            systems.PushBack(system);
+        }
+    }
+
+    for (const Handle<SystemBase>& system : systems)
+    {
+        // Must be called before InitObject() is called on Systems to ensure the system is initialized if
+        // other systems end up adding/removing components that trigger OnEntityAdded() or OnEntityRemoved() calls.
+        system->InitComponentInfos_Internal();
+    }
+
+    if (m_world != nullptr)
+    {
+        for (const Handle<SystemBase>& system : systems)
+        {
+            // Initialize the system
             InitializeSystem(system);
         }
     }
@@ -428,58 +494,27 @@ void EntityManager::Shutdown()
 {
     HYP_SCOPE;
 
-    if (!IsReady())
+    if (IsReady() && m_world != nullptr)
     {
-        return;
-    }
+        MoveEntityGuard move_entity_guard(*this);
 
-    MoveEntityGuard move_entity_guard(*this);
+        Array<Handle<SystemBase>> systems;
 
-    for (SystemExecutionGroup& group : m_system_execution_groups)
-    {
-        for (auto& system_it : group.GetSystems())
+        for (SystemExecutionGroup& group : m_system_execution_groups)
         {
-            const Handle<SystemBase>& system = system_it.second;
-            AssertThrow(system.IsValid());
-
-            for (auto entities_it = m_entities.Begin(); entities_it != m_entities.End(); ++entities_it)
+            for (auto& system_it : group.GetSystems())
             {
-                const Handle<Entity> entity = entities_it->first.Lock();
+                const Handle<SystemBase>& system = system_it.second;
+                AssertThrow(system.IsValid());
 
-                if (!entity.IsValid())
-                {
-                    HYP_LOG(ECS, Warning, "Entity with ID #{} is expired or invalid", entities_it->first.GetID().Value());
-
-                    continue;
-                }
-
-                EntityData& entity_data = entities_it->second;
-
-                const TypeMap<ComponentID>& component_ids = entity_data.components;
-
-                if (system->ActsOnComponents(component_ids.Keys(), true) && IsEntityInitializedForSystem(system.Get(), entity))
-                {
-                    { // critical section
-                        Mutex::Guard guard(m_system_entity_map_mutex);
-
-                        auto system_entity_it = m_system_entity_map.Find(system.Get());
-
-                        // Check if the system already has this entity initialized
-                        if (system_entity_it != m_system_entity_map.End() && (system_entity_it->second.FindAs(entity) != system_entity_it->second.End()))
-                        {
-                            continue;
-                        }
-
-                        m_system_entity_map[system_it.second.Get()].Erase(entity);
-                    }
-
-                    HYP_LOG(ECS, Debug, "Removing entity #{} from system {}", entity.GetID().Value(), system->GetName());
-
-                    system->OnEntityRemoved(entity);
-                }
+                systems.PushBack(system);
             }
+        }
 
-            system->Shutdown();
+        for (const Handle<SystemBase>& system : systems)
+        {
+            // Shutdown the system
+            ShutdownSystem(system);
         }
     }
 
@@ -500,13 +535,41 @@ void EntityManager::SetWorld(World* world)
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
     if (IsInitCalled())
     {
+        Array<Handle<SystemBase>> systems;
+
         for (SystemExecutionGroup& group : m_system_execution_groups)
         {
             for (auto& system_it : group.GetSystems())
             {
-                system_it.second->SetWorld(world);
+                const Handle<SystemBase>& system = system_it.second;
+                AssertThrow(system.IsValid());
+
+                systems.PushBack(system);
             }
         }
+
+        MoveEntityGuard move_entity_guard(*this);
+
+        if (m_world != nullptr)
+        {
+            for (const Handle<SystemBase>& system : systems)
+            {
+                ShutdownSystem(system);
+            }
+        }
+
+        m_world = world;
+
+        if (m_world != nullptr)
+        { // notify systems of entity added for the new world
+
+            for (const Handle<SystemBase>& system : systems)
+            {
+                InitializeSystem(system);
+            }
+        }
+
+        return;
     }
 
     m_world = world;
@@ -998,7 +1061,7 @@ void EntityManager::NotifySystemsOfEntityAdded(const Handle<Entity>& entity, con
 
     // If the EntityManager is initialized, notify systems of the entity being added
     // otherwise, the systems will be notified when the EntityManager is initialized
-    if (!IsInitCalled())
+    if (!IsInitCalled() || m_world == nullptr)
     {
         return;
     }
@@ -1038,7 +1101,7 @@ void EntityManager::NotifySystemsOfEntityRemoved(ID<Entity> entity_id, const Typ
         return;
     }
 
-    if (!IsInitCalled())
+    if (!IsInitCalled() || m_world == nullptr)
     {
         return;
     }

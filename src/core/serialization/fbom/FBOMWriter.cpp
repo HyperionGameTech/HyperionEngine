@@ -974,7 +974,7 @@ UniqueID FBOMWriter::AddStaticData(UniqueID id, FBOMStaticData&& static_data)
     if (it == m_write_stream->m_static_data.End())
     {
         static_data.SetUniqueID(id);
-        static_data.offset = m_write_stream->m_static_data_offset++;
+        static_data.offset = int64(m_write_stream->m_static_data_offset++);
 
         const auto insert_result = m_write_stream->m_static_data.Insert(id, std::move(static_data));
         AssertThrow(insert_result.second);
@@ -1008,17 +1008,6 @@ UniqueID FBOMWriter::AddStaticData(FBOMLoadContext& context, const FBOMType& typ
 
 UniqueID FBOMWriter::AddStaticData(FBOMLoadContext& context, const FBOMObject& object)
 {
-    // for (SizeType index = 0; index < object.nodes->Size(); index++) {
-    //     FBOMObject &subobject = object.nodes->Get(index);
-
-    //     AddStaticData(subobject);
-    // }
-
-    // for (const auto &prop : object.properties) {
-    //     AddStaticData(FBOMData::FromName(prop.first));
-    //     AddStaticData(prop.second);
-    // }
-
     AddStaticData(context, object.GetType());
 
     return AddStaticData(FBOMStaticData(object));

@@ -13,7 +13,7 @@
 #include <core/object/HypObject.hpp>
 
 #include <core/Handle.hpp>
-
+#include <core/Name.hpp>
 #include <core/Base.hpp>
 
 #include <Types.hpp>
@@ -24,7 +24,7 @@ class Bone;
 
 struct AnimationTrackDesc
 {
-    String bone_name;
+    Name bone_name;
     Array<Keyframe> keyframes;
 };
 

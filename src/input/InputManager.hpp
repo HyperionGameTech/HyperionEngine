@@ -7,6 +7,7 @@
 #define NUM_MOUSE_BUTTONS 3
 
 #include <core/Base.hpp>
+#include <core/Defines.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -15,6 +16,8 @@
 #include <core/containers/LinkedList.hpp>
 
 #include <core/math/Vector2.hpp>
+
+#include <core/threading/Semaphore.hpp>
 
 #include <input/Keyboard.hpp>
 #include <input/Mouse.hpp>
@@ -39,6 +42,29 @@ struct InputState
           mouse_button_states { false }
     {
     }
+};
+
+class InputEventNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>
+{
+};
+
+class HYP_API InputEventSink
+{
+public:
+    InputEventSink();
+    InputEventSink(const InputEventSink& other) = delete;
+    InputEventSink& operator=(const InputEventSink& other) = delete;
+    InputEventSink(InputEventSink&& other) noexcept = delete;
+    InputEventSink& operator=(InputEventSink&& other) noexcept = delete;
+    ~InputEventSink();
+
+    void Push(SystemEvent&& evt);
+    bool Poll(Array<SystemEvent>& out_events);
+
+private:
+    InputEventNotifier m_notifier;
+    AtomicVar<uint64> m_lock_state;
+    Array<SystemEvent, DynamicAllocator> m_events;
 };
 
 HYP_CLASS()
@@ -155,11 +181,6 @@ public:
     HYP_FORCE_INLINE void SetWindow(ApplicationWindow* window)
     {
         m_window = window;
-    }
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        return HashCode();
     }
 
 private:

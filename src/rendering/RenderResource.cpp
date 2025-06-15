@@ -61,9 +61,9 @@ void RenderResourceBase::Update()
     Update_Internal();
 }
 
-IThread* RenderResourceBase::GetOwnerThread() const
+ThreadBase* RenderResourceBase::GetOwnerThread() const
 {
-    static IThread* const render_thread = Threads::GetThread(g_render_thread);
+    static ThreadBase* const render_thread = Threads::GetThread(g_render_thread);
 
     return render_thread;
 }

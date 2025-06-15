@@ -10,6 +10,9 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
 namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
@@ -104,6 +107,15 @@ RendererResult VulkanSwapchain::PrepareFrame(bool& out_needs_recreate)
 
 RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
+    // Debug: ensure all images are in the PRESENT state
+#ifdef HYP_DEBUG_MODE
+    for (const ImageRef& image : m_images)
+    {
+        AssertThrow(image.IsValid());
+        AssertThrow(image->GetResourceState() == ResourceState::PRESENT);
+    }
+#endif
+
     const VulkanFrameRef& frame = GetCurrentFrame();
 
     const auto& signal_semaphores = frame->GetPresentSemaphores().GetSignalSemaphoresView();
@@ -128,9 +140,9 @@ RendererResult VulkanSwapchain::Create()
         return HYP_MAKE_ERROR(RendererError, "Cannot initialize swapchain without a surface");
     }
 
-    RetrieveSupportDetails();
-    ChooseSurfaceFormat();
-    ChoosePresentMode();
+    HYPERION_BUBBLE_ERRORS(RetrieveSupportDetails());
+    HYPERION_BUBBLE_ERRORS(ChooseSurfaceFormat());
+    HYPERION_BUBBLE_ERRORS(ChoosePresentMode());
 
     m_extent = {
         m_support_details.capabilities.currentExtent.width,
@@ -193,18 +205,24 @@ RendererResult VulkanSwapchain::Create()
         vkCreateSwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &m_handle),
         "Failed to create Vulkan swapchain!");
 
-    RetrieveImageHandles();
+    HYPERION_BUBBLE_ERRORS(RetrieveImageHandles());
 
     for (const ImageRef& image : m_images)
     {
+        AssertThrow(image != nullptr);
+
+        if (!image->IsCreated())
+        {
+            HYPERION_BUBBLE_ERRORS(HYP_MAKE_ERROR(RendererError, "Image is not created!"));
+        }
+
+        if (image->GetResourceState() != ResourceState::PRESENT)
+        {
+            HYPERION_BUBBLE_ERRORS(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
+        }
+
         VulkanFramebufferRef framebuffer = MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT);
-
-        framebuffer->AddAttachment(
-            0,
-            VulkanImageRef(image),
-            LoadOperation::CLEAR,
-            StoreOperation::STORE);
-
+        framebuffer->AddAttachment(0, VulkanImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
         HYPERION_BUBBLE_ERRORS(framebuffer->Create());
 
         m_framebuffers.PushBack(std::move(framebuffer));
@@ -324,11 +342,13 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     for (uint32 i = 0; i < image_count; i++)
     {
-        VulkanImageRef image = MakeRenderObject<VulkanImage>(
-            TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                m_image_format,
-                Vec3u { m_extent.x, m_extent.y, 1 } });
+        const TextureDesc desc {
+            ImageType::TEXTURE_TYPE_2D,
+            m_image_format,
+            Vec3u { m_extent.x, m_extent.y, 1 }
+        };
+
+        VulkanImageRef image = MakeRenderObject<VulkanImage>(desc);
 
         image->m_handle = vk_images[i];
         image->m_is_handle_owned = false;
@@ -337,6 +357,30 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
         m_images[i] = std::move(image);
     }
+
+    // Transition each image to PRESENT state
+    renderer::SingleTimeCommands commands;
+
+    commands.Push([&](RHICommandList& cmd)
+        {
+            for (const ImageRef& image : m_images)
+            {
+                AssertThrow(image.IsValid());
+
+                cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+            }
+        });
+
+    HYPERION_BUBBLE_ERRORS(commands.Execute());
+
+    // Ensure all images are in the PRESENT state
+    for (const ImageRef& image : m_images)
+    {
+        AssertThrow(image.IsValid());
+        AssertThrow(image->GetResourceState() == ResourceState::PRESENT);
+    }
+
+    HYP_LOG(RenderingBackend, Info, "Created swapchain with {} images", m_images.Size());
 
     HYPERION_RETURN_OK;
 }

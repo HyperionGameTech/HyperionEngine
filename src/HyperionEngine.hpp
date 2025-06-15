@@ -17,9 +17,20 @@ class FilePath;
 
 using filesystem::FilePath;
 
-HYP_API void InitializeAppContext(const Handle<AppContextBase>& app_context, Game* game);
+namespace cli {
 
-HYP_API void InitializeEngine(const FilePath& base_path);
+class CommandLineArguments;
+
+} // namespace cli
+
+using cli::CommandLineArguments;
+
+HYP_API const CommandLineArguments& GetCommandLineArguments();
+HYP_API const FilePath& GetExecutablePath();
+
+HYP_API const FilePath& GetResourceDirectory();
+
+HYP_API bool InitializeEngine(int argc, char** argv);
 HYP_API void DestroyEngine();
 
 } // namespace hyperion

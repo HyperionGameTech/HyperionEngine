@@ -240,7 +240,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
 
     for (const auto& item : object.bones)
     {
-        Handle<Bone> bone = CreateObject<Bone>(item.name);
+        Handle<Bone> bone = CreateObject<Bone>(CreateNameFromDynamicString(item.name));
 
         bone->SetBindingTransform(Transform(
             item.binding_translation,
@@ -275,7 +275,7 @@ AssetLoadResult OgreXMLSkeletonLoader::LoadAsset(LoaderState& state) const
         for (const auto& track_it : animation_it.tracks)
         {
             AnimationTrackDesc animation_track_desc;
-            animation_track_desc.bone_name = track_it.bone_name;
+            animation_track_desc.bone_name = CreateNameFromDynamicString(track_it.bone_name);
             animation_track_desc.keyframes.Reserve(track_it.keyframes.Size());
 
             for (const auto& keyframe_it : track_it.keyframes)

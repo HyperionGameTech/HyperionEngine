@@ -2,6 +2,8 @@
 
 #include <Config.hpp>
 
+#include <core/io/ByteWriter.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -9,8 +11,7 @@
 
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <asset/Assets.hpp>
-#include <core/io/ByteWriter.hpp>
+#include <HyperionEngine.hpp>
 
 namespace hyperion {
 
@@ -176,7 +177,7 @@ Configuration::Configuration() = default;
 
 bool Configuration::LoadFromDefinitionsFile()
 {
-    const INIFile definitions(AssetManager::GetInstance()->GetBasePath() / "Config.ini");
+    const INIFile definitions(GetResourceDirectory() / "Config.ini");
 
     if (!definitions.IsValid())
     {
@@ -274,7 +275,7 @@ bool Configuration::SaveToDefinitionsFile()
         str_result += OptionNameToString(OptionName(index)) + " = " + value_string + "\n";
     }
 
-    const String path = AssetManager::GetInstance()->GetBasePath() / "Config.ini";
+    const String path = GetResourceDirectory() / "Config.ini";
 
     FileByteWriter writer(path.Data());
 

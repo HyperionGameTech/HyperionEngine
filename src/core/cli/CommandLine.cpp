@@ -430,6 +430,11 @@ TResult<CommandLineArguments> CommandLineParser::Parse(const String& command_lin
 
 TResult<CommandLineArguments> CommandLineParser::Parse(int argc, char** argv) const
 {
+    if (argc < 1)
+    {
+        return HYP_MAKE_ERROR(Error, "No command line arguments provided");
+    }
+
     Array<String> args;
 
     for (int i = 1; i < argc; i++)

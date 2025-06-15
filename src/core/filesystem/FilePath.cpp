@@ -28,6 +28,29 @@ bool FilePath::MkDir() const
     return Exists() || std::filesystem::create_directories(Data());
 }
 
+bool FilePath::CanWrite() const
+{
+    struct stat st;
+
+    if (stat(Data(), &st) != 0)
+    {
+        return false;
+    }
+
+    return (st.st_mode & S_IWUSR) != 0 || (st.st_mode & S_IWGRP) != 0 || (st.st_mode & S_IWOTH) != 0;
+}
+
+bool FilePath::CanRead() const
+{
+    struct stat st;
+    if (stat(Data(), &st) != 0)
+    {
+        return false;
+    }
+
+    return (st.st_mode & S_IRUSR) != 0 || (st.st_mode & S_IRGRP) != 0 || (st.st_mode & S_IROTH) != 0;
+}
+
 HYP_API String FilePath::GetExtension() const
 {
     return StringUtil::GetExtension(*this);

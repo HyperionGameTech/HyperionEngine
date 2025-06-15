@@ -6,6 +6,8 @@
 #include <core/Base.hpp>
 #include <core/Handle.hpp>
 
+#include <core/math/Ray.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/memory/resource/Resource.hpp>
@@ -130,6 +132,8 @@ public:
     {
         return m_last_collection_result;
     }
+
+    bool TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh = true) const;
 
     void Update(GameCounter::TickUnit delta);
 

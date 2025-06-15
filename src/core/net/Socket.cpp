@@ -9,10 +9,10 @@
 
 #ifdef HYP_UNIX
 
-    #include <unistd.h>
-    #include <sys/socket.h>
-    #include <sys/un.h>
-    #include <fcntl.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <fcntl.h>
 
 #endif
 
@@ -290,18 +290,11 @@ SocketServerThread::SocketServerThread(const String& socket_name)
 {
 }
 
-void SocketServerThread::Stop()
-{
-    m_is_running.Set(false, MemoryOrder::RELAXED);
-}
-
 void SocketServerThread::operator()(SocketServer* server)
 {
-    m_is_running.Set(true, MemoryOrder::RELAXED);
-
     Queue<Scheduler::ScheduledTask> tasks;
 
-    while (m_is_running.Get(MemoryOrder::RELAXED))
+    while (!m_stop_requested.Get(MemoryOrder::RELAXED))
     {
         // Check for incoming connections
 

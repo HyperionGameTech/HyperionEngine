@@ -271,8 +271,7 @@ bool SDLAppContext::GetVkExtensions(Array<const char*>& out_extensions) const
 #pragma region AppContextBase
 
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
-    : m_configuration("app"),
-      m_game(nullptr)
+    : m_configuration("app")
 {
     m_input_manager = CreateObject<InputManager>();
 
@@ -285,53 +284,18 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
             m_name = m_configuration.Get("app.name").ToString();
         }
     }
-
-    UniquePtr<CommandLineArguments> new_arguments;
-
-    if (json::JSONValue config_args = m_configuration.Get("app.args"))
-    {
-        json::JSONString config_args_string = config_args.ToString();
-        Array<String> config_args_string_split = config_args_string.Split(' ');
-
-        CommandLineParser arg_parse { &DefaultCommandLineArgumentDefinitions() };
-
-        TResult<CommandLineArguments> parse_result = arg_parse.Parse(arguments.GetCommand(), config_args_string_split);
-
-        if (parse_result.HasValue())
-        {
-            new_arguments = MakeUnique<CommandLineArguments>(CommandLineArguments::Merge(*arg_parse.GetDefinitions(), *parse_result, arguments));
-        }
-        else
-        {
-            HYP_LOG(Core, Error, "Failed to parse config command line value \"{}\":\n\t{}", config_args_string, parse_result.GetError().GetMessage());
-        }
-    }
-
-    if (!new_arguments)
-    {
-        new_arguments = MakeUnique<CommandLineArguments>(arguments);
-    }
-
-    m_arguments = std::move(new_arguments);
 }
 
 AppContextBase::~AppContextBase() = default;
 
-Game* AppContextBase::GetGame() const
+const Handle<Game>& AppContextBase::GetGame() const
 {
     return m_game;
 }
 
-void AppContextBase::SetGame(Game* game)
+void AppContextBase::SetGame(const Handle<Game>& game)
 {
     m_game = game;
-}
-
-const CommandLineArguments& AppContextBase::GetArguments() const
-{
-    AssertThrow(m_arguments != nullptr);
-
-    return *m_arguments;
 }
 
 void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)

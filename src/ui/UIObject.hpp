@@ -1229,7 +1229,7 @@ public:
             name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
-        Handle<Node> node = CreateObject<Node>(name.LookupString());
+        Handle<Node> node = CreateObject<Node>(name);
 
         // if (attach_to_root) {
         //     node = GetNode()->AddChild(node);

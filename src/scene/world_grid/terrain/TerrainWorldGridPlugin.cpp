@@ -384,18 +384,19 @@ void TerrainStreamingCell::OnLoaded_Impl()
 
     entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 
-    // m_node = m_scene->GetRoot()->AddChild();
-    // m_node->SetName(HYP_FORMAT("TerrainPatch_{}", m_cell_info.coord));
-    // m_node->SetEntity(entity);
-    // HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetEntityAABB(), m_node->GetWorldTranslation());
-
-    auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
-    AssertThrow(result.HasValue());
-
     m_node = m_scene->GetRoot()->AddChild();
-    m_node->AddChild(result.GetValue().Result()->GetChild(0));
-    // m_node->Scale(30.0f);
-    m_node->SetWorldTranslation(transform.GetTranslation());
+    m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cell_info.coord));
+    m_node->SetEntity(entity);
+    m_node->SetWorldTransform(transform);
+    HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetEntityAABB(), m_node->GetWorldTranslation());
+
+    // auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");
+    // AssertThrow(result.HasValue());
+
+    // m_node = m_scene->GetRoot()->AddChild();
+    // m_node->AddChild(result.GetValue().Result()->GetChild(0));
+    // // m_node->Scale(30.0f);
+    // m_node->SetWorldTranslation(transform.GetTranslation());
 }
 
 void TerrainStreamingCell::OnRemoved_Impl()
@@ -440,6 +441,7 @@ void TerrainWorldGridLayer::Init()
     m_material->SetBucket(BUCKET_OPAQUE);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
+    m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vec4f(0.2f, 0.5f, 0.1f, 1.0f));
     m_material->SetParameter(Material::MATERIAL_KEY_ROUGHNESS, 0.85f);
     m_material->SetParameter(Material::MATERIAL_KEY_METALNESS, 0.0f);
     m_material->SetParameter(Material::MATERIAL_KEY_UV_SCALE, Vec2f(10.0f));
@@ -486,7 +488,7 @@ void TerrainWorldGridLayer::OnRemoved_Impl(WorldGrid* world_grid)
 
     HYP_LOG(WorldGrid, Info, "Removing TerrainWorldGridPlugin");
 
-    // world_grid->GetWorld()->RemoveScene(m_scene);
+    world_grid->GetWorld()->RemoveScene(m_scene);
 
     // m_scene.Reset();
     // m_material.Reset();

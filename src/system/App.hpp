@@ -5,26 +5,22 @@
 
 #include <core/Handle.hpp>
 
+#include <core/memory/UniquePtr.hpp>
+
 namespace hyperion {
 
 class Game;
-
-namespace cli {
-
-class CommandLineArguments;
-
-} // namespace cli
-
-using cli::CommandLineArguments;
+class GameThread;
 
 namespace sys {
 
 class AppContextBase;
 
-class HYP_API App
+class HYP_API App final
 {
 public:
-    App();
+    static App& GetInstance();
+
     App(const App& other) = delete;
     App& operator=(const App& other) = delete;
     App(App&& other) noexcept = delete;
@@ -36,15 +32,16 @@ public:
         return m_app_context;
     }
 
-    virtual void Launch(Game* game, const CommandLineArguments& arguments) final;
+    void LaunchGame(const Handle<Game>& game);
 
 protected:
-    virtual Handle<AppContextBase> InitAppContext(Game* game, const CommandLineArguments& arguments);
+    App();
 
 private:
     void RunMainLoop(Game* game);
 
     Handle<AppContextBase> m_app_context;
+    UniquePtr<GameThread> m_game_thread;
 };
 
 } // namespace sys

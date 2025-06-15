@@ -86,7 +86,7 @@ const ByteBuffer& StreamedDataBase::GetByteBuffer() const
     return default_value;
 }
 
-IThread* StreamedDataBase::GetOwnerThread() const
+ThreadBase* StreamedDataBase::GetOwnerThread() const
 {
     return GetGlobalStreamingThread().Get();
 }

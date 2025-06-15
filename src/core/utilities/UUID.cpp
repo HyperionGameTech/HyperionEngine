@@ -36,8 +36,11 @@ UUID::UUID(UUIDVersion version)
         data1 |= 0x8000000000000000;
 
         break;
+    case UUIDVersion::UUIDv3:
+        HYP_NOT_IMPLEMENTED();
+        break;
     default:
-        AssertThrowMsg(false, "Invalid UUID version");
+        HYP_UNREACHABLE();
     }
 }
 

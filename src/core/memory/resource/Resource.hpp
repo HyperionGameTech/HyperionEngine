@@ -121,6 +121,8 @@ public:
         m_pool_handle = pool_handle;
     }
 
+    bool IsInitialized() const;
+
     /*! \brief Performs an transactional operation on this Resource. Executes on the owner thread if the resources are initialized,
      *  otherwise executes it inline on the calling thread. Initialization on the owner thread will not begin until at least the end of the given proc,
      *  so it is safe to use this method on any thread.
@@ -190,9 +192,7 @@ protected:
     // We can't call Initialize() because it is a virtual function and the object might not be fully constructed yet.
     virtual int IncRefNoInitialize() override final;
 
-    bool IsInitialized() const;
-
-    virtual IThread* GetOwnerThread() const
+    virtual ThreadBase* GetOwnerThread() const
     {
         return nullptr;
     }

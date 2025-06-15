@@ -3,6 +3,7 @@
 #include <rendering/subsystems/ScreenCapture.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/TemporalAA.hpp>
@@ -10,6 +11,7 @@
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <scene/Texture.hpp>
+#include <scene/World.hpp> // temp
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -60,7 +62,8 @@ void ScreenCaptureRenderSubsystem::InitGame()
 void ScreenCaptureRenderSubsystem::OnRemoved()
 {
     SafeRelease(std::move(m_buffer));
-    m_texture.Reset();
+
+    m_texture->SetPersistentRenderResourceEnabled(false);
 }
 
 void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)

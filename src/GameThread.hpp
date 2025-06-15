@@ -3,6 +3,8 @@
 #ifndef HYPERION_GAME_THREAD_HPP
 #define HYPERION_GAME_THREAD_HPP
 
+#include <core/Handle.hpp>
+
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 
@@ -14,27 +16,27 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(GameThread);
 
+namespace sys {
+class AppContextBase;
+} // namespace sys
+
+using sys::AppContextBase;
+
 class Engine;
 class Game;
 
-class GameThread final : public Thread<Scheduler, Game*>
+class GameThread final : public Thread<Scheduler>
 {
 public:
-    GameThread();
+    GameThread(const Handle<AppContextBase>& app_context);
 
-    /*! \brief Atomically load the boolean value indicating that this thread is actively running */
-    bool IsRunning() const
-    {
-        return m_is_running.Get(MemoryOrder::RELAXED);
-    }
-
-    void Stop();
+    void SetGame(const Handle<Game>& game);
 
 private:
-    virtual void operator()(Game* game) override;
+    virtual void operator()() override;
 
-    AtomicVar<bool> m_is_running;
-    AtomicVar<bool> m_stop_requested;
+    Handle<AppContextBase> m_app_context;
+    Handle<Game> m_game;
 };
 
 } // namespace hyperion

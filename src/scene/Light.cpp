@@ -23,21 +23,11 @@ namespace hyperion {
 #pragma region Light
 
 Light::Light()
-    : Light(
-          LightType::DIRECTIONAL,
-          Vec3f::Zero(),
-          Color { 1.0f, 1.0f, 1.0f, 1.0f },
-          1.0f,
-          1.0f)
+    : Light(LightType::DIRECTIONAL, Vec3f::Zero(), Color::White(), 1.0f, 1.0f)
 {
 }
 
-Light::Light(
-    LightType type,
-    const Vec3f& position,
-    const Color& color,
-    float intensity,
-    float radius)
+Light::Light(LightType type, const Vec3f& position, const Color& color, float intensity, float radius)
     : HypObject(),
       m_type(type),
       m_position(position),
@@ -51,14 +41,7 @@ Light::Light(
 {
 }
 
-Light::Light(
-    LightType type,
-    const Vec3f& position,
-    const Vec3f& normal,
-    const Vec2f& area_size,
-    const Color& color,
-    float intensity,
-    float radius)
+Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& area_size, const Color& color, float intensity, float radius)
     : HypObject(),
       m_type(type),
       m_position(position),

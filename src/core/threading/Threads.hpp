@@ -39,19 +39,19 @@ public:
     static bool IsOnThread(ThreadMask mask);
     static bool IsOnThread(const ThreadID& thread_id);
 
-    static IThread* GetThread(const ThreadID& thread_id);
+    static ThreadBase* GetThread(const ThreadID& thread_id);
 
-    static IThread* CurrentThreadObject();
+    static ThreadBase* CurrentThreadObject();
 
     static const ThreadID& CurrentThreadID();
 
-    static void RegisterThread(const ThreadID& id, IThread* thread);
+    static void RegisterThread(const ThreadID& id, ThreadBase* thread);
     static void UnregisterThread(const ThreadID& id);
     static bool IsThreadRegistered(const ThreadID& id);
 
     static void SetCurrentThreadID(const ThreadID& id);
 
-    static void SetCurrentThreadObject(IThread*);
+    static void SetCurrentThreadObject(ThreadBase*);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
 
     static uint32 NumCores();

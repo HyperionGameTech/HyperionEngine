@@ -39,26 +39,10 @@ public:
     static Pair<Array<Vertex>, Array<uint32>> CalculateIndices(const Array<Vertex>& vertices);
 
     Mesh();
-
-    Mesh(
-        RC<StreamedMeshData> streamed_mesh_data,
-        Topology topology,
-        const VertexAttributeSet& vertex_attributes);
-
-    Mesh(
-        RC<StreamedMeshData> streamed_mesh_data,
-        Topology topology = Topology::TRIANGLES);
-
-    Mesh(
-        Array<Vertex> vertices,
-        Array<uint32> indices,
-        Topology topology,
-        const VertexAttributeSet& vertex_attributes);
-
-    Mesh(
-        Array<Vertex> vertices,
-        Array<uint32> indices,
-        Topology topology = Topology::TRIANGLES);
+    Mesh(RC<StreamedMeshData> streamed_mesh_data, Topology topology, const VertexAttributeSet& vertex_attributes);
+    Mesh(RC<StreamedMeshData> streamed_mesh_data, Topology topology = Topology::TRIANGLES);
+    Mesh(Array<Vertex> vertices, Array<uint32> indices, Topology topology, const VertexAttributeSet& vertex_attributes);
+    Mesh(Array<Vertex> vertices, Array<uint32> indices, Topology topology = Topology::TRIANGLES);
 
     Mesh(const Mesh& other) = delete;
     Mesh& operator=(const Mesh& other) = delete;

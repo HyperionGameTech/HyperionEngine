@@ -66,9 +66,7 @@ Material::Material()
 Material::Material(Name name, Bucket bucket)
     : m_name(name),
       m_render_attributes {
-          .shader_definition = ShaderDefinition {
-              NAME("Forward"),
-              static_mesh_vertex_attributes },
+          .shader_definition = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
           .bucket = Bucket::BUCKET_OPAQUE
       },
       m_is_dynamic(false),
@@ -78,11 +76,7 @@ Material::Material(Name name, Bucket bucket)
     ResetParameters();
 }
 
-Material::Material(
-    Name name,
-    const MaterialAttributes& attributes,
-    const ParameterTable& parameters,
-    const TextureSet& textures)
+Material::Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures)
     : m_name(name),
       m_parameters(parameters),
       m_textures(textures),
@@ -203,9 +197,12 @@ void Material::EnqueueRenderUpdates()
 
 void Material::SetShader(const ShaderRef& shader)
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting shader on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     if (m_shader == shader)
@@ -237,9 +234,12 @@ void Material::SetShader(const ShaderRef& shader)
 
 void Material::SetParameter(MaterialKey key, const Parameter& value)
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting parameter on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     if (m_parameters[key] == value)
@@ -257,9 +257,12 @@ void Material::SetParameter(MaterialKey key, const Parameter& value)
 
 void Material::SetParameters(const ParameterTable& parameters)
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting parameters on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     m_parameters = parameters;
@@ -272,9 +275,12 @@ void Material::SetParameters(const ParameterTable& parameters)
 
 void Material::ResetParameters()
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Resetting parameters on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     m_parameters = DefaultParameters();
@@ -287,9 +293,12 @@ void Material::ResetParameters()
 
 void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture)
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting texture on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     if (m_textures[key] == texture)
@@ -316,9 +325,12 @@ void Material::SetTextureAtIndex(uint32 index, const Handle<Texture>& texture)
 
 void Material::SetTextures(const TextureSet& textures)
 {
-    if (IsStatic())
+    if (IsStatic() && IsReady())
     {
         HYP_LOG(Material, Warning, "Setting textures on static material with ID #{} (name: {})", GetID().Value(), GetName());
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif // HYP_DEBUG_MODE
     }
 
     if (m_textures == textures)

@@ -25,12 +25,9 @@
 #include <dotnetcore/coreclr_delegates.h>
 #endif
 
-namespace hyperion {
+#include <HyperionEngine.hpp>
 
-static FilePath GetBasePath()
-{
-    return FilePath::Join(HYP_ROOT_DIR, "res");
-}
+namespace hyperion {
 
 enum class LoadAssemblyResult : int32
 {
@@ -79,7 +76,7 @@ static Optional<FilePath> FindAssemblyFilePath(const FilePath& base_path, const 
     {
         HYP_LOG(DotNET, Warning, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
 
-        filepath = GetBasePath() / "scripts" / "bin" / path;
+        filepath = GetResourceDirectory() / "scripts" / "bin" / path;
     }
 
     if (!filepath.Exists())
@@ -117,7 +114,7 @@ public:
 
     FilePath GetDotNetPath() const
     {
-        return GetBasePath() / "data/dotnet";
+        return GetResourceDirectory() / "data/dotnet";
     }
 
     FilePath GetLibraryPath() const

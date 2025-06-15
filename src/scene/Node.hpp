@@ -181,8 +181,6 @@ class HYP_API Node : public HypObject<Node>
     HYP_OBJECT_BODY(Node);
 
 public:
-    static const String s_unnamed_node_name;
-
     struct Delegates
     {
         Delegate<void, Node*, bool /* direct */> OnChildAdded;
@@ -200,29 +198,18 @@ public:
     };
 
     /*! \brief Construct the node, optionally taking in a name string to improve identification.
-     * \param name A String representing the name of the Node.
+     * \param name The name of the Node.
      * \param local_transform An optional parameter representing the local-space transform of this Node.
      */
-    Node(
-        const String& name = String::empty,
-        const Transform& local_transform = Transform());
-
-    Node(
-        const String& name,
-        const Handle<Entity>& entity,
-        const Transform& local_transform = Transform());
-
-    Node(
-        const String& name,
-        const Handle<Entity>& entity,
-        const Transform& local_transform,
-        Scene* scene);
+    Node(Name name = Name::Invalid(), const Transform& local_transform = Transform());
+    Node(Name name, const Handle<Entity>& entity, const Transform& local_transform = Transform());
+    Node(Name name, const Handle<Entity>& entity, const Transform& local_transform, Scene* scene);
 
     Node(const Node& other) = delete;
     Node& operator=(const Node& other) = delete;
     Node(Node&& other) noexcept;
     Node& operator=(Node&& other) noexcept;
-    ~Node();
+    virtual ~Node() override;
 
     /*! \brief Get the UUID of the Node. */
     HYP_METHOD()
@@ -231,22 +218,15 @@ public:
         return m_uuid;
     }
 
-    /*! \brief Set the UUID of the Node. For deserialization purposes only. */
-    HYP_FORCE_INLINE void SetUUID(const UUID& uuid)
-    {
-        m_uuid = uuid;
-    }
-
     /*! \returns The name that was given to the Node on creation. */
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
-    HYP_FORCE_INLINE const String& GetName() const
+    HYP_METHOD()
+    HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
     }
 
-    /*! \brief Set the name of this Node. Used for nested lookups. */
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
-    void SetName(const String& name);
+    HYP_METHOD()
+    void SetName(Name name);
 
     HYP_METHOD()
     bool HasName() const;
@@ -639,7 +619,7 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
-    Handle<Node> FindChildByName(UTF8StringView name) const;
+    Handle<Node> FindChildByName(WeakName name) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given UUID is found. */
     HYP_METHOD()
@@ -700,12 +680,7 @@ public:
 protected:
     static Scene* GetDefaultScene();
 
-    Node(
-        Type type,
-        const String& name,
-        const Handle<Entity>& entity,
-        const Transform& local_transform = Transform(),
-        Scene* scene = nullptr);
+    Node(Type type, Name name, const Handle<Entity>& entity, const Transform& local_transform = Transform(), Scene* scene = nullptr);
 
     virtual void Init() override;
 
@@ -727,8 +702,12 @@ protected:
 #endif
 
     Type m_type = Type::NODE;
+    
     EnumFlags<NodeFlags> m_flags = NodeFlags::NONE;
-    String m_name;
+
+    HYP_FIELD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
+    Name m_name;
+
     Node* m_parent_node;
     NodeList m_child_nodes;
     Transform m_local_transform;

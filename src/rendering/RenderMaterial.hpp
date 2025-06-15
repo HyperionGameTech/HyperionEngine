@@ -44,9 +44,12 @@ struct MaterialShaderData
     uint32 _pad1;
     uint32 _pad2;
     uint32 _pad3;
+
+    Vec4f _pad4[4];
+    Vec4f _pad5[4];
 };
 
-static_assert(sizeof(MaterialShaderData) == 128);
+static_assert(sizeof(MaterialShaderData) == 256);
 
 class RenderMaterial final : public RenderResourceBase
 {

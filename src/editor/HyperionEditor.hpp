@@ -6,12 +6,16 @@
 #include <Game.hpp>
 
 namespace hyperion {
+class EditorSubsystem;
 namespace editor {
 
 class HyperionEditorImpl;
 
+HYP_CLASS(NoScriptBindings)
 class HYP_API HyperionEditor : public Game
 {
+    HYP_OBJECT_BODY(HyperionEditor);
+
 public:
     HyperionEditor();
     HyperionEditor(const HyperionEditor& other) = delete;
@@ -20,14 +24,14 @@ public:
     HyperionEditor& operator=(HyperionEditor&& other) noexcept = delete;
     virtual ~HyperionEditor() override;
 
-    virtual void Init() override;
-    virtual void Teardown() override;
-
     virtual void Logic(GameCounter::TickUnit delta) override;
     virtual void OnInputEvent(const SystemEvent& event) override;
 
 protected:
+    virtual void Init() override;
+
     HyperionEditorImpl* m_impl;
+    RC<EditorSubsystem> m_editor_subsystem;
 };
 } // namespace editor
 

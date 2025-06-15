@@ -66,7 +66,7 @@ public:
 
     virtual bool Dequeue(TaskID id) = 0;
 
-    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor* executor) = 0;
+    virtual bool TakeOwnershipOfTask(TaskID id, TaskExecutorBase* executor) = 0;
 
     /*! \brief Has \ref{thread_id} given us work to complete?
      *  Returns true if \ref{thread_id} might be waiting on us to complete some work for them. */
@@ -351,7 +351,7 @@ public:
         return false;
     }
 
-    virtual bool TakeOwnershipOfTask(TaskID id, ITaskExecutor* executor) override
+    virtual bool TakeOwnershipOfTask(TaskID id, TaskExecutorBase* executor) override
     {
         AssertThrow(!Threads::IsOnThread(m_owner_thread));
 

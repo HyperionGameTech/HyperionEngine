@@ -74,7 +74,7 @@ protected:
     virtual void Destroy() override final;
     virtual void Update() override final;
 
-    virtual IThread* GetOwnerThread() const override final;
+    virtual ThreadBase* GetOwnerThread() const override final;
 
     mutable Mutex m_mutex;
 

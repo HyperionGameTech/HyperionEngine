@@ -63,58 +63,29 @@ String NodeTag::ToString() const
 
 #pragma region Node
 
-const String Node::s_unnamed_node_name = "<unnamed>";
-
 // @NOTE: In some places we have a m_scene->GetEntityManager() != nullptr check,
 // this only happens in the case that the scene in question is destructing and
 // this Node is held on a component that the EntityManager has.
 // In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
 
-Node::Node(
-    const String& name,
-    const Transform& local_transform)
-    : Node(
-          name,
-          Handle<Entity>::empty,
-          local_transform)
+Node::Node(Name name, const Transform& local_transform)
+    : Node(name, Handle<Entity>::empty, local_transform)
 {
 }
 
-Node::Node(
-    const String& name,
-    const Handle<Entity>& entity,
-    const Transform& local_transform)
-    : Node(
-          Type::NODE,
-          name,
-          entity,
-          local_transform,
-          GetDefaultScene())
+Node::Node(Name name, const Handle<Entity>& entity, const Transform& local_transform)
+    : Node(Type::NODE, name, entity, local_transform, GetDefaultScene())
 {
 }
 
-Node::Node(
-    const String& name,
-    const Handle<Entity>& entity,
-    const Transform& local_transform,
-    Scene* scene)
-    : Node(
-          Type::NODE,
-          name,
-          entity,
-          local_transform,
-          scene)
+Node::Node(Name name, const Handle<Entity>& entity, const Transform& local_transform, Scene* scene)
+    : Node(Type::NODE, name, entity, local_transform, scene)
 {
 }
 
-Node::Node(
-    Type type,
-    const String& name,
-    const Handle<Entity>& entity,
-    const Transform& local_transform,
-    Scene* scene)
+Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& local_transform, Scene* scene)
     : m_type(type),
-      m_name(name.Empty() ? s_unnamed_node_name : name),
+      m_name(name.IsValid() ? NAME("<unnamed>") : name),
       m_parent_node(nullptr),
       m_local_transform(local_transform),
       m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -153,7 +124,7 @@ Node::Node(Node&& other) noexcept
 {
     other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
-    other.m_name = s_unnamed_node_name;
+    other.m_name = NAME("<unnamed>");
     other.m_parent_node = nullptr;
     other.m_local_transform = Transform::identity;
     other.m_world_transform = Transform::identity;
@@ -258,11 +229,11 @@ void Node::Init()
     SetReady(true);
 }
 
-void Node::SetName(const String& name)
+void Node::SetName(Name name)
 {
-    if (name.Empty())
+    if (!name.IsValid())
     {
-        m_name = s_unnamed_node_name;
+        m_name = NAME("<unnamed>");
     }
     else
     {
@@ -279,7 +250,9 @@ void Node::SetName(const String& name)
 
 bool Node::HasName() const
 {
-    return m_name.Any() && m_name != s_unnamed_node_name;
+    static constexpr WeakName unnamed("<unnamed>");
+
+    return m_name.IsValid() && m_name != unnamed;
 }
 
 void Node::SetFlags(EnumFlags<NodeFlags> flags)
@@ -356,7 +329,7 @@ void Node::SetScene(Scene* scene)
         AssertThrowMsg(
             previous_scene != nullptr,
             "Previous scene is null when setting new scene for Node %s - should be set to detached world scene by default",
-            m_name.Data());
+            m_name.LookupString());
 #endif
 
         m_scene = scene;
@@ -468,8 +441,8 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
     AssertThrowMsg(
         !IsOrHasParent(node.Get()),
         "Attaching node %s to %s would create a circular reference",
-        node->GetName().Data(),
-        GetName().Data());
+        node->GetName().LookupString(),
+        GetName().LookupString());
 
     m_child_nodes.PushBack(node);
 
@@ -743,27 +716,31 @@ Node::NodeList::ConstIterator Node::FindChild(const Node* node) const
 
 Node::NodeList::Iterator Node::FindChild(const char* name)
 {
-    return m_child_nodes.FindIf([name](const auto& it)
+    const WeakName weak_name { name };
+
+    return m_child_nodes.FindIf([weak_name](const auto& it)
         {
             if (!it.IsValid())
             {
                 return false;
             }
 
-            return it->GetName() == name;
+            return it->GetName() == weak_name;
         });
 }
 
 Node::NodeList::ConstIterator Node::FindChild(const char* name) const
 {
-    return m_child_nodes.FindIf([name](const auto& it)
+    const WeakName weak_name { name };
+
+    return m_child_nodes.FindIf([weak_name](const auto& it)
         {
             if (!it.IsValid())
             {
                 return false;
             }
 
-            return it->GetName() == name;
+            return it->GetName() == weak_name;
         });
 }
 
@@ -1328,7 +1305,7 @@ Handle<Node> Node::FindChildWithEntity(ID<Entity> entity_id) const
     return Handle<Node>::empty;
 }
 
-Handle<Node> Node::FindChildByName(UTF8StringView name) const
+Handle<Node> Node::FindChildByName(WeakName name) const
 {
     // breadth-first search
     Queue<const Node*> queue;
