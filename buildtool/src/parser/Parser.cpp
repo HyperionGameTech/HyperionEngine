@@ -93,6 +93,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             { "ID", { "IDBase", "ReadID" } },
             { "Name", { "Name", "ReadName" } },
             { "WeakName", { "Name", "ReadName" } },
+            { "HypObjectBase", { "HypObject" } }, // HypObjectBase (C++) is the untyped base class - C# uses HypObject.
             { "AnyHandle", { "object" } },
             { "AnyRef", { "object" } },
             { "ConstAnyRef", { "object" } }

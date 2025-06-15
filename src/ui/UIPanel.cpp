@@ -73,7 +73,7 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
         return;
     }
 
-    RC<UIObject>* scrollbar = nullptr;
+    Handle<UIObject>* scrollbar = nullptr;
     UIObjectSize scrollbar_size;
     UIObjectAlignment scrollbar_alignment = UIObjectAlignment::TOP_LEFT;
 
@@ -106,7 +106,7 @@ void UIPanel::SetScrollbarVisible(UIObjectScrollbarOrientation orientation, bool
         // If scrollbar UIObject already exists and we are enabling scroll then return early
         if (!*scrollbar)
         {
-            RC<UIPanel> new_scrollbar = CreateUIObject<UIPanel>(NAME("Scrollbar_Panel"), Vec2i { 0, 0 }, scrollbar_size);
+            Handle<UIPanel> new_scrollbar = CreateUIObject<UIPanel>(NAME("Scrollbar_Panel"), Vec2i { 0, 0 }, scrollbar_size);
             new_scrollbar->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
             new_scrollbar->SetAffectsParentSize(false);
             new_scrollbar->SetIsPositionAbsolute(true);
@@ -264,7 +264,7 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
     const Vec2i inner_content_size = GetActualInnerSize();
     const Vec2f ratios = Vec2f(visible_content_size) / Vec2f(inner_content_size);
 
-    RC<UIObject> scrollbar;
+    Handle<UIObject> scrollbar;
     UIObjectSize thumb_size;
 
     switch (orientation)
@@ -285,7 +285,7 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
 
     AssertThrow(scrollbar != nullptr);
 
-    RC<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
+    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
 
     if (thumb)
     {
@@ -300,7 +300,7 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
 
         thumb->OnMouseDown.Bind([this, orientation, thumb_weak = thumb.ToWeak()](const MouseEvent& event_data) -> UIEventHandlerResult
                               {
-                                  if (RC<UIObject> thumb = thumb_weak.Lock())
+                                  if (Handle<UIObject> thumb = thumb_weak.Lock())
                                   {
                                       const int orientation_index = UIObjectScrollbarOrientationToIndex(orientation);
                                       AssertThrow(orientation_index != -1);
@@ -327,8 +327,8 @@ void UIPanel::UpdateScrollbarSize(UIObjectScrollbarOrientation orientation)
                               {
                                   if (CanScroll(orientation))
                                   {
-                                      RC<UIObject> thumb = thumb_weak.Lock();
-                                      RC<UIObject> scrollbar = scrollbar_weak.Lock();
+                                      Handle<UIObject> thumb = thumb_weak.Lock();
+                                      Handle<UIObject> scrollbar = scrollbar_weak.Lock();
 
                                       if (thumb != nullptr && scrollbar != nullptr)
                                       {
@@ -357,7 +357,7 @@ void UIPanel::UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientat
 {
     HYP_SCOPE;
 
-    RC<UIObject> scrollbar;
+    Handle<UIObject> scrollbar;
 
     switch (orientation)
     {
@@ -378,7 +378,7 @@ void UIPanel::UpdateScrollbarThumbPosition(UIObjectScrollbarOrientation orientat
         return;
     }
 
-    RC<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
+    Handle<UIObject> thumb = scrollbar->FindChildUIObject("ScrollbarThumb", /* deep */ false);
 
     if (!thumb)
     {

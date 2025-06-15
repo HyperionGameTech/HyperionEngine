@@ -61,12 +61,12 @@ class HYP_API UIRenderSubsystem : public RenderSubsystem
     HYP_OBJECT_BODY(UIRenderSubsystem);
 
 public:
-    UIRenderSubsystem(Name name, const RC<UIStage>& ui_stage);
+    UIRenderSubsystem(Name name, const Handle<UIStage>& ui_stage);
     UIRenderSubsystem(const UIRenderSubsystem& other) = delete;
     UIRenderSubsystem& operator=(const UIRenderSubsystem& other) = delete;
     virtual ~UIRenderSubsystem();
 
-    HYP_FORCE_INLINE const RC<UIStage>& GetUIStage() const
+    HYP_FORCE_INLINE const Handle<UIStage>& GetUIStage() const
     {
         return m_ui_stage;
     }
@@ -105,7 +105,7 @@ private:
 
     void CreateFramebuffer();
 
-    RC<UIStage> m_ui_stage;
+    Handle<UIStage> m_ui_stage;
 
     FramebufferRef m_framebuffer;
     ShaderRef m_shader;

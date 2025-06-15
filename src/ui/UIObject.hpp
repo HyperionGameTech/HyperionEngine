@@ -481,7 +481,7 @@ struct UIObjectSpawnContext
         AssertThrow(spawn_parent != nullptr);
     }
 
-    UIObjectSpawnContext(const RC<UIObjectType>& spawn_parent)
+    UIObjectSpawnContext(const Handle<UIObjectType>& spawn_parent)
         : spawn_parent(spawn_parent.Get())
     {
         static_assert(std::is_base_of_v<UIObject, UIObjectType>, "UIObjectType must be a subclass of UIObject");
@@ -497,7 +497,7 @@ struct UIObjectSpawnContext
     ~UIObjectSpawnContext() = default;
 
     template <class T>
-    RC<T> CreateUIObject(Vec2i position, UIObjectSize size)
+    Handle<T> CreateUIObject(Vec2i position, UIObjectSize size)
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -505,7 +505,7 @@ struct UIObjectSpawnContext
     }
 
     template <class T>
-    RC<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
+    Handle<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -527,7 +527,7 @@ struct UIObjectID : UniqueID
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIObject : public EnableRefCountedPtrFromThis<UIObject>
+class HYP_API UIObject : public HypObject<UIObject>
 {
     HYP_OBJECT_BODY(UIObject);
 
@@ -554,9 +554,6 @@ public:
     UIObject& operator=(UIObject&& other) noexcept = delete;
     virtual ~UIObject();
 
-    HYP_METHOD()
-    virtual void Init();
-
     virtual void Update(GameCounter::TickUnit delta) final;
 
     HYP_FORCE_INLINE const UIObjectID& GetID() const
@@ -581,12 +578,6 @@ public:
 
     HYP_METHOD()
     void SetStage(UIStage* stage);
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE bool IsInit() const
-    {
-        return m_is_init;
-    }
 
     HYP_METHOD(Property = "Name")
     Name GetName() const;
@@ -934,7 +925,7 @@ public:
     UIObject* GetClosestParentUIObject(UIObjectType type) const;
 
     template <class T>
-    RC<T> GetClosestParentUIObject() const
+    Handle<T> GetClosestParentUIObject() const
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -942,11 +933,11 @@ public:
             {
                 return parent->IsInstanceOf<T>();
             })
-            .template CastUnsafe<T>();
+            .template Cast<T>();
     }
 
     template <class T>
-    RC<T> GetClosestSpawnParent() const
+    Handle<T> GetClosestSpawnParent() const
     {
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a subclass of UIObject");
 
@@ -954,18 +945,18 @@ public:
             {
                 return parent->IsInstanceOf<T>();
             })
-            .template CastUnsafe<T>();
+            .template Cast<T>();
     }
 
     /*! \brief The UIObject that this was spawned from. Not necessarily the parent UIObject that this is attached to in the graph.
      *  \returns A weak reference to the UIObject that this was spawned from. */
-    HYP_FORCE_INLINE const Weak<UIObject>& GetSpawnParent() const
+    HYP_FORCE_INLINE const WeakHandle<UIObject>& GetSpawnParent() const
     {
         return m_spawn_parent;
     }
 
     HYP_METHOD()
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object);
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object);
 
     HYP_METHOD()
     virtual bool RemoveChildUIObject(UIObject* ui_object);
@@ -1001,21 +992,21 @@ public:
      *  in the case that the parent UIObject holds the last reference to `this`.
      *  \returns A reference counted pointer to `this`. */
     HYP_METHOD()
-    virtual RC<UIObject> DetachFromParent();
+    virtual Handle<UIObject> DetachFromParent();
 
     /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
      *  If no child UIObject with the specified Name is found, nullptr is returned.
      *  \param name The Name of the child UIObject to find.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
-    RC<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
+    Handle<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
 
     /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
      *  \param predicate The predicate to match against the child UIObjects.
      *  \param deep If true, search all descendents. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
-    RC<UIObject> FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
+    Handle<UIObject> FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
 
     /*! \brief Check if the UI object has any child UIObjects.
      *  \return True if the object has child UIObjects, false otherwise. */
@@ -1026,7 +1017,7 @@ public:
      *  \param index The index of the child UIObject to get.
      *  \return The child UIObject at the specified index. */
     HYP_METHOD()
-    RC<UIObject> GetChildUIObject(int index) const;
+    Handle<UIObject> GetChildUIObject(int index) const;
 
     Array<UIObject*> GetChildUIObjects(bool deep) const;
 
@@ -1145,7 +1136,7 @@ public:
     /*! \brief Get the data source associated with this UIObject. The data source is used to populate the UIObject with data.
      *  \return The data source associated with this UIObject. */
     HYP_METHOD(Property = "DataSource")
-    HYP_FORCE_INLINE const RC<UIDataSourceBase>& GetDataSource() const
+    HYP_FORCE_INLINE const Handle<UIDataSourceBase>& GetDataSource() const
     {
         return m_data_source;
     }
@@ -1153,7 +1144,7 @@ public:
     /*! \brief Set the data source associated with this UIObject. The data source is used to populate the UIObject with data.
      *  \param data_source The data source to associate with this UIObject. */
     HYP_METHOD(Property = "DataSource")
-    void SetDataSource(const RC<UIDataSourceBase>& data_source);
+    void SetDataSource(const Handle<UIDataSourceBase>& data_source);
 
     /*! \brief Gets the UUID of the associated data source element (if applicable).
      *  Otherwise, returns an empty UUID.
@@ -1184,14 +1175,14 @@ public:
      *  \param position The position of the UI object.
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
-    HYP_NODISCARD RC<UIObject> CreateUIObject(const HypClass* hyp_class, Name name, Vec2i position, UIObjectSize size);
+    HYP_NODISCARD Handle<UIObject> CreateUIObject(const HypClass* hyp_class, Name name, Vec2i position, UIObjectSize size);
 
     /*! \brief Spawn a new UIObject of type T. The object will not be attached to the current UIStage.
      *
      *  \tparam T The type of UI object to create. Must be a derived class of UIObject.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD RC<T> CreateUIObject()
+    HYP_NODISCARD Handle<T> CreateUIObject()
     {
         return CreateUIObject<T>(Name::Invalid(), Vec2i::Zero(), UIObjectSize(UIObjectSize::AUTO));
     }
@@ -1203,7 +1194,7 @@ public:
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD RC<T> CreateUIObject(Vec2i position, UIObjectSize size)
+    HYP_NODISCARD Handle<T> CreateUIObject(Vec2i position, UIObjectSize size)
     {
         return CreateUIObject<T>(Name::Invalid(), position, size);
     }
@@ -1217,11 +1208,10 @@ public:
      *  \param size The size of the UI object.
      *  \return A handle to the created UI object. */
     template <class T>
-    HYP_NODISCARD RC<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
+    HYP_NODISCARD Handle<T> CreateUIObject(Name name, Vec2i position, UIObjectSize size)
     {
         AssertOnOwnerThread();
 
-        // AssertThrow(IsInit());
         AssertThrow(GetNode().IsValid());
 
         if (!name.IsValid())
@@ -1238,13 +1228,13 @@ public:
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
         node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
 
-        RC<UIObject> ui_object = CreateUIObjectInternal<T>(name, node, false /* init */);
+        Handle<UIObject> ui_object = CreateUIObjectInternal<T>(name, node, false /* init */);
 
         ui_object->SetPosition(position);
         ui_object->SetSize(size);
-        ui_object->Init();
+        InitObject(ui_object);
 
-        RC<T> result = ui_object.Cast<T>();
+        Handle<T> result = ui_object.Cast<T>();
         AssertThrow(result != nullptr);
 
         return result;
@@ -1318,6 +1308,9 @@ public:
     ScriptableDelegate<UIEventHandlerResult> OnDisabled;
 
 protected:
+    HYP_METHOD()
+    virtual void Init();
+
     HYP_FORCE_INLINE void AssertOnOwnerThread() const
     {
         if (Scene* scene = GetScene())
@@ -1326,8 +1319,8 @@ protected:
         }
     }
 
-    RC<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;
-    RC<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const;
+    Handle<UIObject> GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const;
+    Handle<UIObject> GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const;
 
     HYP_METHOD(Property = "ReceivesUpdate")
     HYP_FORCE_INLINE void SetReceivesUpdate(bool receives_update)
@@ -1424,7 +1417,7 @@ protected:
     virtual bool Repaint_Internal();
 
     UIStage* m_stage;
-    Weak<UIObject> m_spawn_parent;
+    WeakHandle<UIObject> m_spawn_parent;
 
     Name m_name;
 
@@ -1446,8 +1439,8 @@ protected:
 
     BlendVar<Vec2f> m_scroll_offset;
 
-    RC<UIObject> m_vertical_scrollbar;
-    RC<UIObject> m_horizontal_scrollbar;
+    Handle<UIObject> m_vertical_scrollbar;
+    Handle<UIObject> m_horizontal_scrollbar;
 
     Vec2i m_padding;
 
@@ -1466,7 +1459,7 @@ protected:
 
     String m_text;
 
-    RC<UIDataSourceBase> m_data_source;
+    Handle<UIDataSourceBase> m_data_source;
     DelegateHandler m_data_source_on_change_handler;
     DelegateHandler m_data_source_on_element_add_handler;
     DelegateHandler m_data_source_on_element_remove_handler;
@@ -1479,17 +1472,17 @@ protected:
 
 private:
     template <class T>
-    RC<UIObject> CreateUIObjectInternal(Name name, Handle<Node>& node, bool init = false)
+    Handle<UIObject> CreateUIObjectInternal(Name name, Handle<Node>& node, bool init = false)
     {
         AssertThrow(node.IsValid());
 
         static_assert(std::is_base_of_v<UIObject, T>, "T must be a derived class of UIObject");
 
-        RC<UIObject> ui_object = MakeRefCountedPtr<T>();
+        Handle<UIObject> ui_object = CreateObject<T>();
 
         UIStage* stage = GetStage();
 
-        ui_object->m_spawn_parent = WeakRefCountedPtrFromThis();
+        ui_object->m_spawn_parent = WeakHandleFromThis();
         ui_object->m_stage = stage;
 
         // Small optimization so UpdateComputedTextSize() doesn't need to be called when attached.
@@ -1502,7 +1495,8 @@ private:
 
         if (init)
         {
-            ui_object->Init();
+            InitObject(ui_object);
+
             ui_object->SetStage_Internal(stage);
         }
 
@@ -1533,8 +1527,6 @@ private:
 
     EnumFlags<UIObjectFocusState> m_focus_state;
 
-    bool m_is_init;
-
     bool m_is_visible : 1;
     bool m_computed_visibility : 1;
     bool m_is_enabled : 1;
@@ -1552,7 +1544,7 @@ private:
 
     Handle<Node> m_node;
 
-    Array<RC<UIObject>> m_child_ui_objects;
+    Array<Handle<UIObject>> m_child_ui_objects;
 
     Array<DelegateHandler> m_delegate_handlers;
 };

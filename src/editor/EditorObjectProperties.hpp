@@ -31,7 +31,7 @@ public:
 
     const HypClass* GetClass() const;
 
-    virtual RC<UIObject> CreateUIObject(UIObject* parent) const = 0;
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent) const = 0;
 
 private:
     TypeID m_type_id;
@@ -49,7 +49,7 @@ public:
     {
     }
 
-    RC<UIObject> CreateUIObject(UIObject* parent) const override;
+    Handle<UIObject> CreateUIObject(UIObject* parent) const override;
 };
 
 } // namespace hyperion

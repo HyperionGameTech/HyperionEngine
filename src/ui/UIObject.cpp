@@ -117,7 +117,6 @@ Handle<Mesh> UIObject::GetQuadMesh()
 UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
     : m_type(type),
       m_stage(nullptr),
-      m_is_init(false),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
@@ -252,7 +251,7 @@ void UIObject::Init()
     scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(mesh_component));
     scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent {});
 
-    m_is_init = true;
+    SetReady(true);
 
     OnInit();
 }
@@ -261,7 +260,7 @@ void UIObject::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    AssertThrow(m_is_init);
+    AssertReady();
 
     if (ReceivesUpdate())
     {
@@ -347,7 +346,7 @@ void UIObject::OnAttached_Internal(UIObject* parent)
 
     SetStage_Internal(parent->GetStage());
 
-    if (IsInit())
+    if (IsInitCalled())
     {
         UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_CLAMPED_SIZE);
 
@@ -391,7 +390,7 @@ void UIObject::OnRemoved_Internal()
         }
     }
 
-    if (IsInit())
+    if (IsInitCalled())
     {
         UpdateSize();
         UpdatePosition();
@@ -491,7 +490,7 @@ void UIObject::UpdatePosition(bool update_children)
 {
     HYP_SCOPE;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -541,7 +540,7 @@ void UIObject::SetSize(UIObjectSize size)
 
     m_size = size;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -560,7 +559,7 @@ void UIObject::SetInnerSize(UIObjectSize size)
 
     m_inner_size = size;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -579,7 +578,7 @@ void UIObject::SetMaxSize(UIObjectSize size)
 
     m_max_size = size;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -591,7 +590,7 @@ void UIObject::UpdateSize(bool update_children)
 {
     HYP_SCOPE;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -973,7 +972,7 @@ void UIObject::Focus()
     // Note: Calling `SetFocusedObject` between `SetFocusState` and `OnGainFocus` is intentional
     // as `SetFocusedObject` calls `Blur()` on any previously focused object (which may include a parent of this object)
     // Some UI object types may need to know if any child object is focused when handling `OnLoseFocus`
-    m_stage->SetFocusedObject(RefCountedPtrFromThis());
+    m_stage->SetFocusedObject(HandleFromThis());
 
     OnGainFocus(MouseEvent {});
 }
@@ -1063,7 +1062,7 @@ void UIObject::SetAspectRatio(UIObjectAspectRatio aspect_ratio)
 
     m_aspect_ratio = aspect_ratio;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -1078,7 +1077,7 @@ void UIObject::SetPadding(Vec2i padding)
 
     m_padding = padding;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -1125,7 +1124,7 @@ Color UIObject::GetTextColor() const
 
     if (uint32(m_text_color) == 0)
     {
-        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
+        Handle<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
             {
                 return uint32(parent->m_text_color) != 0;
             });
@@ -1188,7 +1187,7 @@ void UIObject::SetTextSize(float text_size)
 
     m_computed_text_size = -1.0f;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -1227,7 +1226,7 @@ void UIObject::SetIsVisible(bool is_visible)
         }
     }
 
-    if (IsInit())
+    if (IsInitCalled())
     {
         // Will add UPDATE_COMPUTED_VISIBILITY deferred update indirectly.
 
@@ -1374,7 +1373,7 @@ void UIObject::UpdateComputedTextSize()
 
     if (m_text_size <= 0.0f)
     {
-        RC<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
+        Handle<UIObject> spawn_parent = GetClosestSpawnParent_Proc([](UIObject* parent)
             {
                 return parent->m_text_size > 0.0f;
             });
@@ -1457,7 +1456,7 @@ bool UIObject::IsOrHasParent(const UIObject* other) const
     return this_node->IsOrHasParent(other_node.Get());
 }
 
-void UIObject::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIObject::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
@@ -1645,31 +1644,31 @@ bool UIObject::RemoveFromParent()
     return false;
 }
 
-RC<UIObject> UIObject::DetachFromParent()
+Handle<UIObject> UIObject::DetachFromParent()
 {
     HYP_SCOPE;
 
-    RC<UIObject> this_ref_counted = RefCountedPtrFromThis();
+    Handle<UIObject> strong_this = HandleFromThis();
 
     if (UIObject* parent = GetParentUIObject())
     {
         parent->RemoveChildUIObject(this);
     }
 
-    return this_ref_counted;
+    return strong_this;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
+Handle<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
 {
     HYP_SCOPE;
 
-    RC<UIObject> found_object;
+    Handle<UIObject> found_object;
 
     ForEachChildUIObject([name, &found_object](UIObject* child)
         {
             if (child->GetName() == name)
             {
-                found_object = child->RefCountedPtrFromThis();
+                found_object = child->HandleFromThis();
 
                 return IterationResult::STOP;
             }
@@ -1681,17 +1680,17 @@ RC<UIObject> UIObject::FindChildUIObject(WeakName name, bool deep) const
     return found_object;
 }
 
-RC<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
+Handle<UIObject> UIObject::FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep) const
 {
     HYP_SCOPE;
 
-    RC<UIObject> found_object;
+    Handle<UIObject> found_object;
 
     ForEachChildUIObject([&found_object, &predicate](UIObject* child)
         {
             if (predicate(child))
             {
-                found_object = child->RefCountedPtrFromThis();
+                found_object = child->HandleFromThis();
 
                 return IterationResult::STOP;
             }
@@ -2004,7 +2003,7 @@ UIObject* UIObject::GetClosestParentUIObject(UIObjectType type) const
     return nullptr;
 }
 
-RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const
+Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
 
@@ -2012,14 +2011,14 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject
 
     if (!scene)
     {
-        return nullptr;
+        return Handle<UIObject>::empty;
     }
 
     const Handle<Node>& node = GetNode();
 
     if (!node)
     {
-        return nullptr;
+        return Handle<UIObject>::empty;
     }
 
     Node* parent_node = node->GetParent();
@@ -2034,7 +2033,7 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject
                 {
                     if (proc(ui_component->ui_object))
                     {
-                        return ui_component->ui_object->RefCountedPtrFromThis();
+                        return ui_component->ui_object->HandleFromThis();
                     }
                 }
             }
@@ -2043,14 +2042,14 @@ RC<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIObject
         parent_node = parent_node->GetParent();
     }
 
-    return nullptr;
+    return Handle<UIObject>::empty;
 }
 
-RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const
+Handle<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>& proc) const
 {
     HYP_SCOPE;
 
-    RC<UIObject> parent_ui_object = m_spawn_parent.Lock();
+    Handle<UIObject> parent_ui_object = m_spawn_parent.Lock();
 
     while (parent_ui_object != nullptr)
     {
@@ -2062,7 +2061,7 @@ RC<UIObject> UIObject::GetClosestSpawnParent_Proc(const ProcRef<bool(UIObject*)>
         parent_ui_object = parent_ui_object->m_spawn_parent.Lock();
     }
 
-    return nullptr;
+    return Handle<UIObject>::empty;
 }
 
 Vec2i UIObject::GetParentScrollOffset() const
@@ -2576,7 +2575,7 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
     HYP_SCOPE;
 
     const UIObject* current_ui_object = this;
-    RC<UIObject> parent_ui_object;
+    Handle<UIObject> parent_ui_object;
 
     while (current_ui_object != nullptr)
     {
@@ -2660,11 +2659,11 @@ void UIObject::RemoveScriptComponent()
     scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
 }
 
-RC<UIObject> UIObject::GetChildUIObject(int index) const
+Handle<UIObject> UIObject::GetChildUIObject(int index) const
 {
     HYP_SCOPE;
 
-    RC<UIObject> found_object;
+    Handle<UIObject> found_object;
 
     int current_index = 0;
 
@@ -2672,7 +2671,7 @@ RC<UIObject> UIObject::GetChildUIObject(int index) const
         {
             if (current_index == index)
             {
-                found_object = child ? child->RefCountedPtrFromThis() : nullptr;
+                found_object = child ? child->HandleFromThis() : Handle<UIObject>::empty;
 
                 return IterationResult::STOP;
             }
@@ -2907,7 +2906,7 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
     if (!deep)
     {
         // If not deep, iterate using the child UI objects list - more efficient this way
-        for (const RC<UIObject>& child : m_child_ui_objects)
+        for (const Handle<UIObject>& child : m_child_ui_objects)
         {
             if (!child)
             {
@@ -2933,7 +2932,7 @@ void UIObject::ForEachChildUIObject(Lambda&& lambda, bool deep) const
     {
         const UIObject* parent = queue.Pop();
 
-        for (const RC<UIObject>& child : parent->m_child_ui_objects)
+        for (const Handle<UIObject>& child : parent->m_child_ui_objects)
         {
             const IterationResult iteration_result = lambda(child.Get());
 
@@ -3065,7 +3064,7 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
     OnScrollOffsetUpdate_Internal(delta);
 }
 
-void UIObject::SetDataSource(const RC<UIDataSourceBase>& data_source)
+void UIObject::SetDataSource(const Handle<UIDataSourceBase>& data_source)
 {
     HYP_SCOPE;
 
@@ -3114,13 +3113,13 @@ bool UIObject::Repaint_Internal()
     return true;
 }
 
-RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2i position, UIObjectSize size)
+Handle<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2i position, UIObjectSize size)
 {
     HYP_SCOPE;
 
     if (!hyp_class)
     {
-        return nullptr;
+        return Handle<UIObject>::empty;
     }
 
     AssertThrowMsg(hyp_class->HasParent(UIObject::Class()), "Cannot spawn instance of class that is not a subclass of UIObject");
@@ -3130,18 +3129,18 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2
     HypData ui_object_hyp_data;
     if (!hyp_class->CreateInstance(ui_object_hyp_data))
     {
-        return nullptr;
+        return Handle<UIObject>::empty;
     }
 
     if (!ui_object_hyp_data.IsValid())
     {
-        return nullptr;
+        return Handle<UIObject>::empty;
     }
 
-    RC<UIObject> ui_object = std::move(ui_object_hyp_data).Get<RC<UIObject>>();
+    Handle<UIObject> ui_object = std::move(ui_object_hyp_data).Get<Handle<UIObject>>();
     AssertThrow(ui_object != nullptr);
 
-    // AssertThrow(IsInit());
+    // AssertThrow(IsInitCalled());
     AssertThrow(GetNode().IsValid());
 
     if (!name.IsValid())
@@ -3155,7 +3154,7 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2
 
     UIStage* stage = GetStage();
 
-    ui_object->m_spawn_parent = WeakRefCountedPtrFromThis();
+    ui_object->m_spawn_parent = WeakHandleFromThis();
     ui_object->m_stage = stage;
 
     ui_object->SetNodeProxy(node);
@@ -3163,7 +3162,7 @@ RC<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, Vec2
     ui_object->SetPosition(position);
     ui_object->SetSize(size);
 
-    ui_object->Init();
+    InitObject(ui_object);
 
     return ui_object;
 }

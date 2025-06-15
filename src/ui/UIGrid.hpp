@@ -38,9 +38,9 @@ public:
         m_column_size = column_size;
     }
 
+private:
     virtual void Init() override;
 
-private:
     int m_column_size;
 };
 
@@ -77,7 +77,7 @@ public:
     /*! \brief Adds a new column to the row.
      *
      * \return A reference counted pointer to the newly created column. */
-    RC<UIGridColumn> AddColumn();
+    Handle<UIGridColumn> AddColumn();
 
     /*! \brief Gets the column at the specified index.
      *
@@ -98,12 +98,12 @@ public:
     void UpdateColumnSizes();
     void UpdateColumnOffsets();
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 private:
+    virtual void Init() override;
+
     virtual void UpdateSize_Internal(bool update_children) override;
 
     int m_num_columns;
@@ -158,14 +158,14 @@ public:
     HYP_METHOD(Property = "NumRows", XMLAttribute = "rows")
     void SetNumRows(uint32 num_rows);
 
-    RC<UIGridRow> AddRow();
+    Handle<UIGridRow> AddRow();
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void SetDataSource_Internal(UIDataSourceBase* data_source) override;

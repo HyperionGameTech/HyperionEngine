@@ -23,7 +23,7 @@ class HYP_API UISubsystem : public Subsystem
     HYP_OBJECT_BODY(UISubsystem);
 
 public:
-    UISubsystem(const RC<UIStage>& ui_stage);
+    UISubsystem(const Handle<UIStage>& ui_stage);
     virtual ~UISubsystem() override;
 
     virtual bool RequiresUpdateOnGameThread() const
@@ -40,13 +40,13 @@ public:
     virtual void OnSceneDetached(const Handle<Scene>& scene) override;
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const RC<UIStage>& GetUIStage() const
+    HYP_FORCE_INLINE const Handle<UIStage>& GetUIStage() const
     {
         return m_ui_stage;
     }
 
 private:
-    RC<UIStage> m_ui_stage;
+    Handle<UIStage> m_ui_stage;
     RC<UIRenderSubsystem> m_ui_render_subsystem;
 };
 

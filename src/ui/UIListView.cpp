@@ -47,7 +47,7 @@ void UIListViewItem::Init()
     m_initial_background_color = GetBackgroundColor();
 }
 
-void UIListViewItem::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIListViewItem::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
@@ -60,7 +60,7 @@ void UIListViewItem::AddChildUIObject(const RC<UIObject>& ui_object)
     {
         if (!m_expanded_element)
         {
-            RC<UIListView> expanded_element = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+            Handle<UIListView> expanded_element = CreateUIObject<UIListView>(Vec2i { 10, GetActualSize().y }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             expanded_element->SetIsVisible(m_is_expanded);
 
             UIObject::AddChildUIObject(expanded_element);
@@ -234,7 +234,7 @@ void UIListView::SetOrientation(UIListViewOrientation orientation)
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_SIZE, true);
 }
 
-void UIListView::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIListView::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
@@ -254,11 +254,11 @@ void UIListView::AddChildUIObject(const RC<UIObject>& ui_object)
         list_view_item_size = UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO });
     }
 
-    RC<UIListViewItem> list_view_item;
+    Handle<UIListViewItem> list_view_item;
 
     if (ui_object->IsInstanceOf<UIListViewItem>())
     {
-        list_view_item = ui_object.CastUnsafe<UIListViewItem>();
+        list_view_item = ui_object.Cast<UIListViewItem>();
         list_view_item->SetSize(list_view_item_size);
         m_list_view_items.PushBack(list_view_item);
 
@@ -377,7 +377,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* data_source)
             if (list_view_item)
             {
                 // If the item is selected, deselect it
-                if (RC<UIListViewItem> selected_item = m_selected_item.Lock(); list_view_item == selected_item.Get())
+                if (Handle<UIListViewItem> selected_item = m_selected_item.Lock(); list_view_item == selected_item.Get())
                 {
                     selected_item->SetIsSelectedItem(false);
                     m_selected_item.Reset();
@@ -402,7 +402,7 @@ void UIListView::SetDataSource_Internal(UIDataSourceBase* data_source)
 
             if (const UIListViewItem* list_view_item = FindListViewItem(element->GetUUID()))
             {
-                if (RC<UIObject> ui_object = list_view_item->GetChildUIObject(0))
+                if (Handle<UIObject> ui_object = list_view_item->GetChildUIObject(0))
                 {
                     data_source->UpdateUIObject(ui_object.Get(), element->GetValue(), {});
                 }
@@ -460,13 +460,13 @@ void UIListView::AddDataSourceElement(UIDataSourceBase* data_source, UIDataSourc
 {
     UILockedUpdatesScope scope(*this, UIObjectUpdateType::UPDATE_SIZE);
 
-    RC<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    Handle<UIListViewItem> list_view_item = CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view_item->SetNodeTag(NodeTag(NAME("DataSourceElementUUID"), element->GetUUID()));
     list_view_item->SetDataSourceElementUUID(element->GetUUID());
 
     list_view_item->OnClick.Bind([this, list_view_item_weak = list_view_item.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
                                {
-                                   RC<UIListViewItem> list_view_item = list_view_item_weak.Lock();
+                                   Handle<UIListViewItem> list_view_item = list_view_item_weak.Lock();
 
                                    if (!list_view_item)
                                    {
@@ -521,14 +521,14 @@ void UIListView::SetSelectedItemIndex(int index)
         return;
     }
 
-    if (RC<UIListViewItem> selected_item = m_selected_item.Lock())
+    if (Handle<UIListViewItem> selected_item = m_selected_item.Lock())
     {
         selected_item->SetIsSelectedItem(false);
     }
 
     list_view_item->SetIsSelectedItem(true);
 
-    m_selected_item = list_view_item->WeakRefCountedPtrFromThis().CastUnsafe<UIListViewItem>();
+    m_selected_item = WeakHandle<UIListViewItem>(list_view_item->WeakHandleFromThis());
 
     OnSelectedItemChange(list_view_item);
 }
@@ -550,7 +550,7 @@ void UIListView::SetSelectedItem(UIListViewItem* list_view_item)
         return;
     }
 
-    if (RC<UIListViewItem> selected_item = m_selected_item.Lock())
+    if (Handle<UIListViewItem> selected_item = m_selected_item.Lock())
     {
         selected_item->SetIsSelectedItem(false);
     }
@@ -595,7 +595,7 @@ void UIListView::SetSelectedItem(UIListViewItem* list_view_item)
 
     ScrollToChild(list_view_item);
 
-    m_selected_item = list_view_item->WeakRefCountedPtrFromThis().CastUnsafe<UIListViewItem>();
+    m_selected_item = WeakHandle<UIListViewItem>(list_view_item->WeakHandleFromThis());
 
     OnSelectedItemChange(list_view_item);
 }

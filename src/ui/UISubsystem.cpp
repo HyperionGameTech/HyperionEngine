@@ -20,7 +20,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-UISubsystem::UISubsystem(const RC<UIStage>& ui_stage)
+UISubsystem::UISubsystem(const Handle<UIStage>& ui_stage)
     : m_ui_stage(ui_stage)
 {
 }
@@ -35,7 +35,7 @@ void UISubsystem::Initialize()
 
     AssertThrow(m_ui_stage != nullptr);
 
-    m_ui_stage->Init();
+    InitObject(m_ui_stage);
 
     m_ui_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(Name::Unique("UIRenderSubsystem"), m_ui_stage);
 }

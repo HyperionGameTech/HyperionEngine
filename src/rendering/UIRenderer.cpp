@@ -429,7 +429,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 
 #pragma region UIRenderSubsystem
 
-UIRenderSubsystem::UIRenderSubsystem(Name name, const RC<UIStage>& ui_stage)
+UIRenderSubsystem::UIRenderSubsystem(Name name, const Handle<UIStage>& ui_stage)
     : RenderSubsystem(name),
       m_ui_stage(ui_stage)
 {

@@ -60,13 +60,13 @@ public:
     virtual ~UIElementFactoryBase() = default;
 
     HYP_METHOD(Scriptable)
-    RC<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const;
+    Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const;
 
     HYP_METHOD(Scriptable)
     void UpdateUIObject(UIObject* ui_object, const HypData& value, const HypData& context) const;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const
+    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const
     {
         HYP_PURE_VIRTUAL();
     }
@@ -84,14 +84,14 @@ public:
     virtual ~UIElementFactory() = default;
 
 protected:
-    virtual RC<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const override final
+    virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const override final
     {
         HYP_MT_CHECK_RW(m_context_data_race_detector);
 
         m_context = context.ToRef();
         HYP_DEFER({ m_context = AnyRef(); });
 
-        RC<UIObject> result;
+        Handle<UIObject> result;
 
         if constexpr (is_hypdata_v<T>)
         {
@@ -205,7 +205,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIDataSourceBase : public EnableRefCountedPtrFromThis<UIDataSourceBase>
+class HYP_API UIDataSourceBase : public HypObject<UIDataSourceBase>
 {
     HYP_OBJECT_BODY(UIDataSourceBase);
 
@@ -235,7 +235,7 @@ public:
     virtual bool Remove(const UUID& uuid) = 0;
     virtual void RemoveAllWithPredicate(ProcRef<bool(UIDataSourceElement*)> predicate) = 0;
 
-    virtual RC<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const = 0;
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const = 0;
     virtual void UpdateUIObject(UIObject* ui_object, const HypData& value, const HypData& context) const = 0;
 
     virtual UIDataSourceElement* FindWithPredicate(ProcRef<bool(const UIDataSourceElement*)> predicate) = 0;
@@ -475,7 +475,7 @@ public:
         return nullptr;
     }
 
-    virtual RC<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const override
+    virtual Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const override
     {
         if (m_create_ui_object_proc.IsValid())
         {
@@ -557,7 +557,7 @@ private:
     TypeID m_element_type_id;
     Forest<UIDataSourceElement> m_values;
 
-    Proc<RC<UIObject>(UIObject*, const HypData&, const HypData&)> m_create_ui_object_proc;
+    Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_create_ui_object_proc;
     Proc<void(UIObject*, const HypData&, const HypData&)> m_update_ui_object_proc;
 };
 

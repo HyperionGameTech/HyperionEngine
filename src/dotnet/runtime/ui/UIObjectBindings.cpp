@@ -48,7 +48,7 @@ extern "C"
         AssertThrow(size != nullptr);
         AssertThrow(out_hyp_data != nullptr);
 
-        RC<UIObject> ui_object = spawn_parent->CreateUIObject(hyp_class, *name, *position, *size);
+        Handle<UIObject> ui_object = spawn_parent->CreateUIObject(hyp_class, *name, *position, *size);
         *out_hyp_data = HypData(std::move(ui_object));
     }
 
@@ -64,7 +64,7 @@ extern "C"
             return false;
         }
 
-        RC<UIObject> ui_object = parent->FindChildUIObject([hyp_class, name](UIObject* ui_object)
+        Handle<UIObject> ui_object = parent->FindChildUIObject([hyp_class, name](UIObject* ui_object)
             {
                 return ui_object->IsInstanceOf(hyp_class) && ui_object->GetName() == *name;
             });

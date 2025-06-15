@@ -148,13 +148,13 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                                 {
                                     if (UIObject* ui_object = ui_component->ui_object)
                                     {
-                                        RC<UIObject> ui_object_ref = ui_object->RefCountedPtrFromThis();
+                                        Handle<UIObject> ui_object_ref = ui_object->HandleFromThis();
                                         AssertThrow(ui_object_ref.IsValid());
 
                                         component_json["ui_object"] = json::JSONObject({ { "name", json::JSONString(*ui_object->GetName()) },
                                             { "type", json::JSONString(*ui_object->InstanceClass()->GetName()) },
-                                            { "num_strong_refs", ui_object_ref.GetRefCountData_Internal()->UseCount_Strong() - 1 },
-                                            { "num_weak_refs", ui_object_ref.GetRefCountData_Internal()->UseCount_Weak() } });
+                                            { "num_strong_refs", ui_object_ref->GetObjectHeader_Internal()->GetRefCountStrong() - 1 },
+                                            { "num_weak_refs", ui_object_ref->GetObjectHeader_Internal()->GetRefCountWeak() } });
                                     }
                                 }
                             }

@@ -45,10 +45,10 @@ void UIMenuItem::Init()
 {
     UIObject::Init();
 
-    RC<UIMenuBar> menu_bar = GetClosestSpawnParent<UIMenuBar>();
+    Handle<UIMenuBar> menu_bar = GetClosestSpawnParent<UIMenuBar>();
     AssertThrow(menu_bar != nullptr);
 
-    RC<UIImage> icon_element = CreateUIObject<UIImage>(CreateNameFromDynamicString(HYP_FORMAT("{}_Icon", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
+    Handle<UIImage> icon_element = CreateUIObject<UIImage>(CreateNameFromDynamicString(HYP_FORMAT("{}_Icon", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 16, UIObjectSize::PIXEL }, { 16, UIObjectSize::PIXEL }));
     icon_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     icon_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     icon_element->SetIsVisible(false);
@@ -56,7 +56,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_icon_element);
 
-    RC<UIText> text_element = CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Text", GetName())), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> text_element = CreateUIObject<UIText>(CreateNameFromDynamicString(HYP_FORMAT("{}_Text", GetName())), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     text_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -65,7 +65,7 @@ void UIMenuItem::Init()
 
     UIObject::AddChildUIObject(m_text_element);
 
-    RC<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+    Handle<UIPanel> drop_down_menu = CreateUIObject<UIPanel>(CreateNameFromDynamicString(HYP_FORMAT("{}_DropDown", GetName())), Vec2i { 0, 0 }, UIObjectSize({ 150, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
     drop_down_menu->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     drop_down_menu->SetBorderFlags(UIObjectBorderFlags::BOTTOM | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
@@ -73,7 +73,7 @@ void UIMenuItem::Init()
     m_drop_down_menu = drop_down_menu;
 }
 
-void UIMenuItem::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIMenuItem::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     if (!ui_object)
     {
@@ -93,52 +93,35 @@ void UIMenuItem::AddChildUIObject(const RC<UIObject>& ui_object)
 
     UpdateDropDownMenu();
 
-    if (ui_object.Is<UIMenuItem>())
+    if (ui_object.IsValid() && ui_object->IsInstanceOf<UIMenuItem>())
     {
-        RC<UIMenuItem> menu_item = ui_object.CastUnsafe<UIMenuItem>();
+        Handle<UIMenuItem> menu_item = ui_object.Cast<UIMenuItem>();
 
-        menu_item->OnMouseHover.Bind([weak_this = WeakRefCountedPtrFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
-                                   {
-                                       RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
-                                       RC<UIMenuItem> sub_menu_item = sub_menu_item_weak.Lock();
+        menu_item->OnMouseHover
+            .Bind([weak_this = WeakHandleFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
+                {
+                    Handle<UIMenuItem> menu_item = weak_this.Lock().Cast<UIMenuItem>();
+                    Handle<UIMenuItem> sub_menu_item = sub_menu_item_weak.Lock();
 
-                                       if (!menu_item || !sub_menu_item)
-                                       {
-                                           menu_item->SetSelectedSubItem(nullptr);
+                    if (!menu_item || !sub_menu_item)
+                    {
+                        menu_item->SetSelectedSubItem(nullptr);
 
-                                           return UIEventHandlerResult::OK;
-                                       }
+                        return UIEventHandlerResult::OK;
+                    }
 
-                                       if (!sub_menu_item->GetDropDownMenuElement() || !sub_menu_item->GetDropDownMenuElement()->HasChildUIObjects())
-                                       {
-                                           menu_item->SetSelectedSubItem(nullptr);
+                    if (!sub_menu_item->GetDropDownMenuElement() || !sub_menu_item->GetDropDownMenuElement()->HasChildUIObjects())
+                    {
+                        menu_item->SetSelectedSubItem(nullptr);
 
-                                           return UIEventHandlerResult::OK;
-                                       }
+                        return UIEventHandlerResult::OK;
+                    }
 
-                                       menu_item->SetSelectedSubItem(sub_menu_item);
+                    menu_item->SetSelectedSubItem(sub_menu_item);
 
-                                       return UIEventHandlerResult::STOP_BUBBLING;
-                                   })
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                })
             .Detach();
-
-        // menu_item->OnMouseLeave.Bind([weak_this = WeakRefCountedPtrFromThis(), sub_menu_item_weak = menu_item.ToWeak()](const MouseEvent &event) -> UIEventHandlerResult
-        // {
-        //     RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
-        //     RC<UIMenuItem> sub_menu_item = sub_menu_item_weak.Lock();
-
-        //     if (!menu_item || !sub_menu_item) {
-        //         return UIEventHandlerResult::OK;
-        //     }
-
-        //     if (menu_item->GetSelectedSubItem() != sub_menu_item) {
-        //         return UIEventHandlerResult::OK;
-        //     }
-
-        //     menu_item->SetSelectedSubItem(nullptr);
-
-        //     return UIEventHandlerResult::STOP_BUBBLING;
-        // }).Detach();
     }
 
     HYP_LOG(UI, Info, "Add child UI object with name {} to menu item", ui_object->GetName());
@@ -167,7 +150,7 @@ bool UIMenuItem::RemoveChildUIObject(UIObject* ui_object)
 
     return m_drop_down_menu->RemoveChildUIObject(ui_object);
 
-    // auto it = m_menu_items.FindIf([ui_object](const RC<UIObject> &item)
+    // auto it = m_menu_items.FindIf([ui_object](const Handle<UIObject> &item)
     // {
     //     return item.Get() == ui_object;
     // });
@@ -226,7 +209,7 @@ void UIMenuItem::UpdateDropDownMenu()
 
     Vec2i offset = { 0, 0 };
 
-    for (const RC<UIObject>& menu_item : m_menu_items)
+    for (const Handle<UIObject>& menu_item : m_menu_items)
     {
         menu_item->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
         menu_item->SetPosition(offset);
@@ -241,7 +224,7 @@ void UIMenuItem::UpdateDropDownMenu()
 
 void UIMenuItem::UpdateSubItemsDropDownMenu()
 {
-    RC<UIMenuItem> selected_sub_item = m_selected_sub_item.Lock();
+    Handle<UIMenuItem> selected_sub_item = m_selected_sub_item.Lock();
 
     if (!selected_sub_item.IsValid())
     {
@@ -279,26 +262,27 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
     m_sub_items_drop_down_menu->Focus();
 
     m_sub_items_drop_down_menu->OnClick.RemoveAllDetached();
-    m_sub_items_drop_down_menu->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis()](const MouseEvent& data) -> UIEventHandlerResult
-                                           {
-                                               RC<UIMenuItem> menu_item = weak_this.Lock().CastUnsafe<UIMenuItem>();
+    m_sub_items_drop_down_menu->OnClick
+        .Bind([weak_this = WeakHandleFromThis()](const MouseEvent& data) -> UIEventHandlerResult
+            {
+                Handle<UIMenuItem> menu_item = weak_this.Lock().Cast<UIMenuItem>();
 
-                                               if (!menu_item)
-                                               {
-                                                   return UIEventHandlerResult::OK;
-                                               }
+                if (!menu_item)
+                {
+                    return UIEventHandlerResult::OK;
+                }
 
-                                               RC<UIMenuBar> menu_bar = menu_item->GetClosestSpawnParent<UIMenuBar>();
+                Handle<UIMenuBar> menu_bar = menu_item->GetClosestSpawnParent<UIMenuBar>();
 
-                                               if (!menu_bar)
-                                               {
-                                                   return UIEventHandlerResult::OK;
-                                               }
+                if (!menu_bar)
+                {
+                    return UIEventHandlerResult::OK;
+                }
 
-                                               menu_bar->SetSelectedMenuItemIndex(~0u);
+                menu_bar->SetSelectedMenuItemIndex(~0u);
 
-                                               return UIEventHandlerResult::STOP_BUBBLING;
-                                           })
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
         .Detach();
 
     if (m_stage != nullptr)
@@ -307,7 +291,7 @@ void UIMenuItem::UpdateSubItemsDropDownMenu()
     }
 }
 
-void UIMenuItem::SetSelectedSubItem(const RC<UIMenuItem>& selected_sub_item)
+void UIMenuItem::SetSelectedSubItem(const Handle<UIMenuItem>& selected_sub_item)
 {
     HYP_SCOPE;
 
@@ -546,7 +530,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
     m_container->Focus();
 }
 
-void UIMenuBar::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIMenuBar::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     if (!ui_object->IsInstanceOf<UIMenuItem>())
     {
@@ -566,14 +550,14 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject>& ui_object)
 
     UIPanel::AddChildUIObject(ui_object);
 
-    RC<UIObject> ui_object_rc = FindChildUIObject([ui_object](UIObject* child)
+    Handle<UIObject> ui_object_handle = FindChildUIObject([ui_object](UIObject* child)
         {
             return child == ui_object;
         });
 
-    AssertThrow(ui_object_rc != nullptr);
+    AssertThrow(ui_object_handle.IsValid());
 
-    RC<UIMenuItem> menu_item = ui_object_rc.Cast<UIMenuItem>();
+    Handle<UIMenuItem> menu_item = ui_object_handle.Cast<UIMenuItem>();
     AssertThrow(menu_item != nullptr);
 
     menu_item->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
@@ -598,33 +582,34 @@ void UIMenuBar::AddChildUIObject(const RC<UIObject>& ui_object)
     // Mouse click: toggle selected menu item index
     // menu_item->OnClick.RemoveAllDetached();
 
-    menu_item->OnClick.Bind([weak_this = WeakRefCountedPtrFromThis(), name](const MouseEvent& data) -> UIEventHandlerResult
-                          {
-                              RC<UIMenuBar> menu_bar = weak_this.Lock().CastUnsafe<UIMenuBar>();
+    menu_item->OnClick
+        .Bind([weak_this = WeakHandleFromThis(), name](const MouseEvent& data) -> UIEventHandlerResult
+            {
+                Handle<UIMenuBar> menu_bar = weak_this.Lock().Cast<UIMenuBar>();
 
-                              if (!menu_bar)
-                              {
-                                  return UIEventHandlerResult::OK;
-                              }
+                if (!menu_bar)
+                {
+                    return UIEventHandlerResult::OK;
+                }
 
-                              if (data.mouse_buttons == MouseButtonState::LEFT)
-                              {
-                                  const uint32 menu_item_index = menu_bar->GetMenuItemIndex(name);
+                if (data.mouse_buttons == MouseButtonState::LEFT)
+                {
+                    const uint32 menu_item_index = menu_bar->GetMenuItemIndex(name);
 
-                                  if (menu_bar->GetSelectedMenuItemIndex() == menu_item_index)
-                                  {
-                                      menu_bar->SetSelectedMenuItemIndex(~0u);
+                    if (menu_bar->GetSelectedMenuItemIndex() == menu_item_index)
+                    {
+                        menu_bar->SetSelectedMenuItemIndex(~0u);
 
-                                      menu_bar->m_container->Blur();
-                                  }
-                                  else
-                                  {
-                                      menu_bar->SetSelectedMenuItemIndex(menu_item_index);
-                                  }
-                              }
+                        menu_bar->m_container->Blur();
+                    }
+                    else
+                    {
+                        menu_bar->SetSelectedMenuItemIndex(menu_item_index);
+                    }
+                }
 
-                              return UIEventHandlerResult::STOP_BUBBLING;
-                          })
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
         .Detach();
 
     m_menu_items.PushBack(menu_item);
@@ -674,9 +659,9 @@ void UIMenuBar::UpdateSize_Internal(bool update_children)
     UpdateMenuItemSizes();
 }
 
-RC<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String& text)
+Handle<UIMenuItem> UIMenuBar::AddMenuItem(Name name, const String& text)
 {
-    RC<UIMenuItem> menu_item = CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    Handle<UIMenuItem> menu_item = CreateUIObject<UIMenuItem>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
     menu_item->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     menu_item->SetText(text);

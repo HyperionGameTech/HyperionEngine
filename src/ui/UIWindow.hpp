@@ -47,18 +47,18 @@ public:
 
     virtual void SetText(const String& text) override;
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void UpdateSize_Internal(bool update_children) override;
 
     EnumFlags<UIWindowFlags> m_window_flags;
 
-    RC<UIPanel> m_title_bar;
-    RC<UIPanel> m_content;
+    Handle<UIPanel> m_title_bar;
+    Handle<UIPanel> m_content;
 
 private:
     Optional<Vec2i> m_mouse_drag_start;

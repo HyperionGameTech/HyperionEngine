@@ -27,15 +27,14 @@ public:
     ConsoleUI& operator=(ConsoleUI&& other) noexcept = delete;
     virtual ~ConsoleUI() override;
 
-    virtual void Init() override;
-
 protected:
+    virtual void Init() override;
     virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
-    RC<UIListView> m_history_list_view;
-    RC<UITextbox> m_textbox;
+    Handle<UIListView> m_history_list_view;
+    Handle<UITextbox> m_textbox;
 
     Pimpl<ConsoleHistory> m_history;
 

@@ -258,7 +258,7 @@ void UIStage::Init()
     UIObject::Init();
 }
 
-void UIStage::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIStage::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -329,7 +329,7 @@ void UIStage::SetStage_Internal(UIStage* stage)
     // Do not update children
 }
 
-bool UIStage::TestRay(const Vec2f& position, Array<RC<UIObject>>& out_objects, EnumFlags<UIRayTestFlags> flags)
+bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& out_objects, EnumFlags<UIRayTestFlags> flags)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -377,7 +377,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<RC<UIObject>>& out_objects, E
 
     for (const RayHit& hit : ray_test_results)
     {
-        if (RC<UIObject> ui_object = static_cast<const UIObject*>(hit.user_data)->RefCountedPtrFromThis())
+        if (Handle<UIObject> ui_object = static_cast<const UIObject*>(hit.user_data)->HandleFromThis())
         {
             out_objects.PushBack(std::move(ui_object));
         }
@@ -386,7 +386,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<RC<UIObject>>& out_objects, E
     return out_objects.Any();
 }
 
-RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
+Handle<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -395,14 +395,14 @@ RC<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
     {
         if (ui_component->ui_object != nullptr)
         {
-            return ui_component->ui_object->RefCountedPtrFromThis();
+            return ui_component->ui_object->HandleFromThis();
         }
     }
 
-    return nullptr;
+    return Handle<UIObject>::empty;
 }
 
-void UIStage::SetFocusedObject(const RC<UIObject>& ui_object)
+void UIStage::SetFocusedObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -412,7 +412,7 @@ void UIStage::SetFocusedObject(const RC<UIObject>& ui_object)
         return;
     }
 
-    RC<UIObject> current_focused_ui_object = m_focused_object.Lock();
+    Handle<UIObject> current_focused_ui_object = m_focused_object.Lock();
 
     // Be sure to set the focused object to nullptr before calling Blur() to prevent infinite recursion
     // due to Blur() calling SetFocusedObject() again.
@@ -489,12 +489,12 @@ UIEventHandlerResult UIStage::OnInputEvent(
         { // mouse drag event
             UIEventHandlerResult mouse_drag_event_handler_result = UIEventHandlerResult::OK;
 
-            for (const Pair<Weak<UIObject>, UIObjectPressedState>& it : m_mouse_button_pressed_states)
+            for (const Pair<WeakHandle<UIObject>, UIObjectPressedState>& it : m_mouse_button_pressed_states)
             {
                 if (it.second.held_time >= 0.05f)
                 {
                     // signal mouse drag
-                    if (RC<UIObject> ui_object = it.first.Lock())
+                    if (Handle<UIObject> ui_object = it.first.Lock())
                     {
                         UIEventHandlerResult current_result = ui_object->OnMouseDrag(MouseEvent {
                             .input_manager = input_manager,
@@ -514,7 +514,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
             }
         }
 
-        Array<RC<UIObject>> ray_test_results;
+        Array<Handle<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results))
         {
@@ -525,7 +525,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
             {
-                if (const RC<UIObject>& ui_object = *it)
+                if (const Handle<UIObject>& ui_object = *it)
                 {
                     if (first_hit != nullptr)
                     {
@@ -565,7 +565,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
             {
-                if (const RC<UIObject>& ui_object = *it)
+                if (const Handle<UIObject>& ui_object = *it)
                 {
                     if (first_hit != nullptr)
                     {
@@ -605,7 +605,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     BoundingBoxComponent& bounding_box_component = ui_object->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(ui_object->GetEntity());
 
                     HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
-                        GetClass(ui_object.GetTypeID())->GetName(),
+                        ui_object->InstanceClass()->GetName(),
                         ui_object->GetName(),
                         ui_object->GetText(),
                         ui_object->GetActualSize(),
@@ -630,7 +630,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (ray_test_results_it == ray_test_results.End())
             {
-                if (RC<UIObject> ui_object = it->Lock())
+                if (Handle<UIObject> ui_object = it->Lock())
                 {
                     ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::HOVER);
 
@@ -661,7 +661,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         // project a ray into the scene and test if it hits any objects
         RayHit hit;
 
-        Array<RC<UIObject>> ray_test_results;
+        Array<Handle<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results))
         {
@@ -669,7 +669,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
             {
-                const RC<UIObject>& ui_object = *it;
+                const Handle<UIObject>& ui_object = *it;
 
                 if (!first_hit)
                 {
@@ -735,12 +735,12 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
     case SystemEventType::EVENT_MOUSEBUTTON_UP:
     {
-        Array<RC<UIObject>> ray_test_results;
+        Array<Handle<UIObject>> ray_test_results;
         TestRay(mouse_screen, ray_test_results);
 
         for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
         {
-            const RC<UIObject>& ui_object = *it;
+            const Handle<UIObject>& ui_object = *it;
 
             bool is_clicked = false;
 
@@ -752,7 +752,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
         {
-            const RC<UIObject>& ui_object = *it;
+            const Handle<UIObject>& ui_object = *it;
 
             if (m_mouse_button_pressed_states.Contains(ui_object))
             {
@@ -787,7 +787,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         for (auto& it : m_mouse_button_pressed_states)
         {
             // trigger mouse up
-            if (RC<UIObject> ui_object = it.first.Lock())
+            if (Handle<UIObject> ui_object = it.first.Lock())
             {
                 ui_object->SetFocusState(ui_object->GetFocusState() & ~UIObjectFocusState::PRESSED);
 
@@ -812,7 +812,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         int wheel_y;
         event.GetMouseWheel(&wheel_x, &wheel_y);
 
-        Array<RC<UIObject>> ray_test_results;
+        Array<Handle<UIObject>> ray_test_results;
 
         if (TestRay(mouse_screen, ray_test_results))
         {
@@ -820,7 +820,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (auto it = ray_test_results.Begin(); it != ray_test_results.End(); ++it)
             {
-                const RC<UIObject>& ui_object = *it;
+                const Handle<UIObject>& ui_object = *it;
 
                 // if (first_hit) {
                 //     // We don't want to check the current object if it's not a child of the first hit object,
@@ -855,7 +855,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     {
         const KeyCode key_code = event.GetNormalizedKeyCode();
 
-        RC<UIObject> ui_object = m_focused_object.Lock();
+        Handle<UIObject> ui_object = m_focused_object.Lock();
 
         while (ui_object != nullptr)
         {
@@ -875,7 +875,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             if (UIObject* parent = ui_object->GetParentUIObject())
             {
-                ui_object = parent->RefCountedPtrFromThis();
+                ui_object = parent->HandleFromThis();
             }
             else
             {
@@ -893,9 +893,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         if (keyed_down_objects_it != m_keyed_down_objects.End())
         {
-            for (const Weak<UIObject>& weak_ui_object : keyed_down_objects_it->second)
+            for (const WeakHandle<UIObject>& weak_ui_object : keyed_down_objects_it->second)
             {
-                if (RC<UIObject> ui_object = weak_ui_object.Lock())
+                if (Handle<UIObject> ui_object = weak_ui_object.Lock())
                 {
                     ui_object->OnKeyUp(KeyboardEvent {
                         .input_manager = input_manager,

@@ -53,9 +53,9 @@ public:
             && GetActualInnerSize()[orientation_index] > GetActualSize()[orientation_index];
     }
 
+protected:
     virtual void Init() override;
 
-protected:
     virtual void OnAttached_Internal(UIObject* parent) override;
 
     virtual void UpdateSize_Internal(bool update_children) override;

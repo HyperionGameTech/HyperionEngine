@@ -4,6 +4,8 @@
 
 #include <rendering/font/FontAtlas.hpp>
 
+#include <scene/Texture.hpp>
+
 #include <core/utilities/Format.hpp>
 
 #include <core/logging/Logger.hpp>

@@ -26,10 +26,9 @@ struct HandleBase
 {
 };
 
-/*! \brief Definition of a handle for a type.
- *  \details In Hyperion, a handle is a reference to an instance of a specific core engine object type.
- *  These objects are use memory pools for each type used, and are reference counted.
- *  \tparam T The type of object that the handle is referencing.
+/*! \brief A Handle is a strong reference to an object allocated in the Object Pool. All Handles are reference counted and will automatically
+ *  release the object when the last reference is destroyed.
+ *  \tparam T The type of object that the handle is referencing. Must be a subclass of HypObjectBase.
  */
 template <class T>
 struct Handle final : HandleBase
@@ -188,9 +187,25 @@ struct Handle final : HandleBase
         return IsValid();
     }
 
+    /*! \see GetID() */
     HYP_FORCE_INLINE operator IDType() const
     {
         return ptr != nullptr ? IDType(IDBase { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 }) : IDType();
+    }
+
+    /*! \brief Get a referenceable ID for the object that the handle is referencing.
+     *  \return The ID of the object. */
+    HYP_FORCE_INLINE IDType GetID() const
+    {
+        return IDType(*this);
+    }
+
+    /*! \brief Get the TypeID of the object that the handle is referencing. If the handle is null, it returns the TypeID of T.
+     *  otherwise, it returns the TypeID of the object that the handle is referencing, which can be different from T if the object is a derived type.
+     *  \return The TypeID of the object. */
+    HYP_FORCE_INLINE const TypeID& GetTypeID() const
+    {
+        return ptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -243,13 +258,6 @@ struct Handle final : HandleBase
         return ptr != nullptr;
     }
 
-    /*! \brief Get a referenceable ID for the object that the handle is referencing.
-     *  \return The ID of the object. */
-    HYP_FORCE_INLINE IDType GetID() const
-    {
-        return IDType(*this);
-    }
-
     /*! \brief Get a pointer to the object that the handle is referencing.
      *  \return A pointer to the object. */
     HYP_FORCE_INLINE T* Get() const
@@ -273,6 +281,42 @@ struct Handle final : HandleBase
         }
 
         ptr = nullptr;
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
+    HYP_FORCE_INLINE Handle<Ty> Cast() const&
+    {
+        return reinterpret_cast<const Handle<Ty>&>(*this);
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
+    HYP_FORCE_INLINE Handle<Ty> Cast() &&
+    {
+        return reinterpret_cast<Handle<Ty>&&>(*this);
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE Handle<Ty> Cast() const&
+    {
+        if (ptr)
+        {
+            const bool instance_of_check = IsInstanceOfHypClass(GetClass(TypeID::ForType<Ty>()), ptr, ptr->m_header->container->GetObjectTypeID());
+            AssertThrowMsg(instance_of_check, "Cannot cast Handle<T> to Handle<Ty> because T is not a base class of Ty!");
+        }
+
+        return reinterpret_cast<const Handle<Ty>&>(*this);
+    }
+
+    template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
+    HYP_FORCE_INLINE Handle<Ty> Cast() &&
+    {
+        if (ptr)
+        {
+            const bool instance_of_check = IsInstanceOfHypClass(GetClass(TypeID::ForType<Ty>()), ptr, ptr->m_header->container->GetObjectTypeID());
+            AssertThrowMsg(instance_of_check, "Cannot cast Handle<T> to Handle<Ty> because T is not a base class of Ty!");
+        }
+
+        return reinterpret_cast<Handle<Ty>&&>(*this);
     }
 
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
@@ -314,6 +358,11 @@ struct Handle final : HandleBase
     HYP_FORCE_INLINE WeakHandle<T> ToWeak() const
     {
         return WeakHandle<T>(*this);
+    }
+
+    HYP_FORCE_INLINE AnyRef ToRef() const
+    {
+        return AnyRef { GetTypeID(), ptr };
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -498,9 +547,25 @@ struct WeakHandle final
         return IsValid();
     }
 
+    /*! \see GetID() */
     HYP_FORCE_INLINE operator IDType() const
     {
         return ptr != nullptr ? IDType(IDBase { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 }) : IDType();
+    }
+
+    /*! \brief Get a referenceable ID for the object that the weak handle is referencing.
+     *  \return The ID of the object. */
+    HYP_FORCE_INLINE IDType GetID() const
+    {
+        return IDType(*this);
+    }
+
+    /*! \brief Get the TypeID of the object that the handle is referencing. If the handle is null, it returns the TypeID of T.
+     *  otherwise, it returns the TypeID of the object that the handle is referencing, which can be different from T if the object is a derived type.
+     *  \return The TypeID of the object. */
+    HYP_FORCE_INLINE const TypeID& GetTypeID() const
+    {
+        return ptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>();
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -563,11 +628,6 @@ struct WeakHandle final
         return ptr != nullptr;
     }
 
-    HYP_FORCE_INLINE IDType GetID() const
-    {
-        return IDType(*this);
-    }
-
     void Reset()
     {
         if (ptr)
@@ -621,7 +681,8 @@ struct WeakHandle final
 };
 
 /*! \brief A dynamic Handle type. Type is stored at runtime instead of compile time.
- *  An AnyHandle is able to be punned to a Handle<T> permitted that T is the actual type of the held object */
+ *  An AnyHandle is able to be punned to a Handle<T> permitted that T is the actual type of the held object
+ *  \todo Deprecate in favour of Handle<HypObjectBase>. */
 struct AnyHandle final
 {
     using IDType = IDBase;
@@ -644,7 +705,7 @@ public:
     template <class T, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, T> && !std::is_same_v<HypObjectBase, T>>>
     explicit AnyHandle(T* ptr)
         : ptr(static_cast<HypObjectBase*>(ptr)),
-          type_id(TypeID::ForType<T>())
+          type_id(this->ptr != nullptr ? this->ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>())
     {
         if (IsValid())
         {
@@ -655,7 +716,7 @@ public:
     template <class T>
     AnyHandle(const Handle<T>& handle)
         : ptr(handle.ptr),
-          type_id(TypeID::ForType<T>())
+          type_id(this->ptr != nullptr ? this->ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>())
     {
         if (handle.IsValid())
         {
@@ -666,7 +727,7 @@ public:
     template <class T>
     AnyHandle(Handle<T>&& handle)
         : ptr(handle.ptr),
-          type_id(TypeID::ForType<T>()) // type_id(ptr != nullptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>())
+          type_id(this->ptr != nullptr ? this->ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>())
     {
         handle.ptr = nullptr;
     }

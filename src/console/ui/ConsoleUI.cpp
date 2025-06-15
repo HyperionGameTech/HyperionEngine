@@ -36,7 +36,7 @@ struct ConsoleHistoryEntry
 class ConsoleHistory
 {
 public:
-    ConsoleHistory(const RC<UIDataSource>& data_source, int max_history_size = 100)
+    ConsoleHistory(const Handle<UIDataSource>& data_source, int max_history_size = 100)
         : m_data_source(data_source),
           m_max_history_size(max_history_size)
     {
@@ -47,7 +47,7 @@ public:
     {
     }
 
-    HYP_FORCE_INLINE const RC<UIDataSource>& GetDataSource() const
+    HYP_FORCE_INLINE const Handle<UIDataSource>& GetDataSource() const
     {
         return m_data_source;
     }
@@ -89,7 +89,7 @@ public:
     }
 
 private:
-    RC<UIDataSource> m_data_source;
+    Handle<UIDataSource> m_data_source;
     int m_max_history_size;
     Array<ConsoleHistoryEntry> m_entries;
 };
@@ -164,11 +164,11 @@ void ConsoleUI::Init()
                })
         .Detach();
 
-    RC<UIDataSource> data_source = MakeRefCountedPtr<UIDataSource>(
+    Handle<UIDataSource> data_source = CreateObject<UIDataSource>(
         TypeWrapper<ConsoleHistoryEntry> {},
-        [this](UIObject* parent, ConsoleHistoryEntry& value, const HypData& context) -> RC<UIObject>
+        [this](UIObject* parent, ConsoleHistoryEntry& value, const HypData& context) -> Handle<UIObject>
         {
-            RC<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
+            Handle<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
             text->SetText(value.text);
             text->SetTextSize(12.0f);
 
@@ -196,7 +196,7 @@ void ConsoleUI::Init()
 
     m_history = MakePimpl<ConsoleHistory>(data_source, 100);
 
-    RC<UIListView> history_list_view = CreateUIObject<UIListView>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { GetActualSize().y - 30, UIObjectSize::PIXEL }));
+    Handle<UIListView> history_list_view = CreateUIObject<UIListView>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { GetActualSize().y - 30, UIObjectSize::PIXEL }));
     history_list_view->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     history_list_view->SetOriginAlignment(UIObjectAlignment::TOP_LEFT);
     history_list_view->SetBackgroundColor(Vec4f { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -218,20 +218,21 @@ void ConsoleUI::Init()
 
     m_history_list_view = history_list_view;
 
-    m_history_list_view->OnSelectedItemChange.Bind([this](UIListViewItem* item) -> UIEventHandlerResult
-                                                 {
-                                                     if (item)
-                                                     {
-                                                         const ConsoleHistoryEntry& entry = m_history->GetDataSource()->Get(item->GetDataSourceElementUUID())->GetValue().Get<ConsoleHistoryEntry>();
+    m_history_list_view->OnSelectedItemChange
+        .Bind([this](UIListViewItem* item) -> UIEventHandlerResult
+            {
+                if (item)
+                {
+                    const ConsoleHistoryEntry& entry = m_history->GetDataSource()->Get(item->GetDataSourceElementUUID())->GetValue().Get<ConsoleHistoryEntry>();
 
-                                                         m_textbox->SetText(entry.text);
-                                                     }
+                    m_textbox->SetText(entry.text);
+                }
 
-                                                     return UIEventHandlerResult::STOP_BUBBLING;
-                                                 })
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
         .Detach();
 
-    RC<UITextbox> textbox = CreateUIObject<UITextbox>(Vec2i { 0, history_list_view->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 25, UIObjectSize::PIXEL }));
+    Handle<UITextbox> textbox = CreateUIObject<UITextbox>(Vec2i { 0, history_list_view->GetActualSize().y }, UIObjectSize({ 100, UIObjectSize::FILL }, { 25, UIObjectSize::PIXEL }));
     textbox->SetPlaceholder("Enter command");
     textbox->SetBackgroundColor(Vec4f { 0.0f, 0.0f, 0.0f, 0.5f });
     textbox->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -240,84 +241,85 @@ void ConsoleUI::Init()
 
     m_textbox = textbox;
 
-    m_textbox->OnKeyDown.Bind([this](const KeyboardEvent& event_data) -> UIEventHandlerResult
-                            {
-                                if (event_data.key_code == KeyCode::RETURN)
-                                {
-                                    const String& text = m_textbox->GetText();
+    m_textbox->OnKeyDown
+        .Bind([this](const KeyboardEvent& event_data) -> UIEventHandlerResult
+            {
+                if (event_data.key_code == KeyCode::RETURN)
+                {
+                    const String& text = m_textbox->GetText();
 
-                                    if (text.Any())
-                                    {
-                                        if (text.ToLower() == "clear")
-                                        {
-                                            m_history->ClearHistory();
-                                        }
-                                        else
-                                        {
-                                            m_history->AddEntry(text, ConsoleHistoryEntryType::COMMAND);
-                                        }
+                    if (text.Any())
+                    {
+                        if (text.ToLower() == "clear")
+                        {
+                            m_history->ClearHistory();
+                        }
+                        else
+                        {
+                            m_history->AddEntry(text, ConsoleHistoryEntryType::COMMAND);
+                        }
 
-                                        if (Result result = ConsoleCommandManager::GetInstance().ExecuteCommand(text); result.HasError())
-                                        {
-                                            HYP_LOG(Console, Error, "Error executing command: {}", result.GetError().GetMessage());
-                                        }
-                                        else
-                                        {
-                                            HYP_LOG(Console, Info, "Executed command: {}", text);
-                                        }
+                        if (Result result = ConsoleCommandManager::GetInstance().ExecuteCommand(text); result.HasError())
+                        {
+                            HYP_LOG(Console, Error, "Error executing command: {}", result.GetError().GetMessage());
+                        }
+                        else
+                        {
+                            HYP_LOG(Console, Info, "Executed command: {}", text);
+                        }
 
-                                        m_current_command_text.Clear();
-                                        m_textbox->SetText("");
-                                    }
-                                }
-                                else if (event_data.key_code == KeyCode::ARROW_UP)
-                                {
-                                    // @TODO Only cycle through COMMAND items..
-                                    if (m_history_list_view && m_history_list_view->GetListViewItems().Any())
-                                    {
-                                        const int selected_item_index = m_history_list_view->GetSelectedItemIndex() - 1;
+                        m_current_command_text.Clear();
+                        m_textbox->SetText("");
+                    }
+                }
+                else if (event_data.key_code == KeyCode::ARROW_UP)
+                {
+                    // @TODO Only cycle through COMMAND items..
+                    if (m_history_list_view && m_history_list_view->GetListViewItems().Any())
+                    {
+                        const int selected_item_index = m_history_list_view->GetSelectedItemIndex() - 1;
 
-                                        if (selected_item_index >= 0 && selected_item_index < int(m_history_list_view->GetListViewItems().Size()))
-                                        {
-                                            m_history_list_view->SetSelectedItemIndex(selected_item_index);
-                                        }
-                                    }
-                                }
-                                else if (event_data.key_code == KeyCode::ARROW_DOWN)
-                                {
-                                    if (m_history_list_view && m_history_list_view->GetListViewItems().Any())
-                                    {
-                                        const int selected_item_index = m_history_list_view->GetSelectedItemIndex() + 1;
+                        if (selected_item_index >= 0 && selected_item_index < int(m_history_list_view->GetListViewItems().Size()))
+                        {
+                            m_history_list_view->SetSelectedItemIndex(selected_item_index);
+                        }
+                    }
+                }
+                else if (event_data.key_code == KeyCode::ARROW_DOWN)
+                {
+                    if (m_history_list_view && m_history_list_view->GetListViewItems().Any())
+                    {
+                        const int selected_item_index = m_history_list_view->GetSelectedItemIndex() + 1;
 
-                                        if (selected_item_index < 0)
-                                        {
-                                            m_history_list_view->SetSelectedItemIndex(0);
-                                        }
-                                        else if (selected_item_index < int(m_history_list_view->GetListViewItems().Size()))
-                                        {
-                                            m_history_list_view->SetSelectedItemIndex(selected_item_index);
-                                        }
-                                        else
-                                        {
-                                            m_textbox->SetText(m_current_command_text);
-                                        }
-                                    }
-                                }
-                                else if (event_data.key_code == KeyCode::ESC)
-                                {
-                                    m_textbox->SetText("");
-                                    m_current_command_text.Clear();
+                        if (selected_item_index < 0)
+                        {
+                            m_history_list_view->SetSelectedItemIndex(0);
+                        }
+                        else if (selected_item_index < int(m_history_list_view->GetListViewItems().Size()))
+                        {
+                            m_history_list_view->SetSelectedItemIndex(selected_item_index);
+                        }
+                        else
+                        {
+                            m_textbox->SetText(m_current_command_text);
+                        }
+                    }
+                }
+                else if (event_data.key_code == KeyCode::ESC)
+                {
+                    m_textbox->SetText("");
+                    m_current_command_text.Clear();
 
-                                    // Lose focus of the console.
-                                    Blur();
-                                }
-                                else
-                                {
-                                    m_current_command_text = m_textbox->GetText();
-                                }
+                    // Lose focus of the console.
+                    Blur();
+                }
+                else
+                {
+                    m_current_command_text = m_textbox->GetText();
+                }
 
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            })
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
         .Detach();
 
     for (int i = 0; i < 10; i++)

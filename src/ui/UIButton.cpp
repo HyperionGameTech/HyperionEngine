@@ -25,7 +25,7 @@ void UIButton::Init()
 {
     UIObject::Init();
 
-    RC<UIText> text_element = CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> text_element = CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     text_element->SetParentAlignment(UIObjectAlignment::CENTER);
     text_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     text_element->SetText(m_text);

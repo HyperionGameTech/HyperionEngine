@@ -32,7 +32,7 @@ void EditorDebugOverlayBase::Initialize(UIObject* spawn_parent)
     m_ui_object = CreateUIObject(spawn_parent);
 }
 
-RC<UIObject> EditorDebugOverlayBase::CreateUIObject_Impl(UIObject* spawn_parent)
+Handle<UIObject> EditorDebugOverlayBase::CreateUIObject_Impl(UIObject* spawn_parent)
 {
     return spawn_parent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
 }
@@ -50,11 +50,11 @@ TextureEditorDebugOverlay::~TextureEditorDebugOverlay()
 {
 }
 
-RC<UIObject> TextureEditorDebugOverlay::CreateUIObject_Impl(UIObject* spawn_parent)
+Handle<UIObject> TextureEditorDebugOverlay::CreateUIObject_Impl(UIObject* spawn_parent)
 {
     InitObject(m_texture);
 
-    RC<UIImage> image = spawn_parent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
+    Handle<UIImage> image = spawn_parent->CreateUIObject<UIImage>(GetName(), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PIXEL }, { 75, UIObjectSize::PIXEL }));
     image->SetTexture(m_texture);
 
     return image;

@@ -124,7 +124,7 @@ public:
 
     /*! \brief Get the UI object that is currently focused. If no object is focused, returns nullptr.
      *  \return The focused UI object. */
-    HYP_FORCE_INLINE const Weak<UIObject>& GetFocusedObject() const
+    HYP_FORCE_INLINE const WeakHandle<UIObject>& GetFocusedObject() const
     {
         return m_focused_object;
     }
@@ -134,12 +134,13 @@ public:
         const SystemEvent& event);
 
     /*! \brief Ray test the UI scene using screen space mouse coordinates */
-    bool TestRay(const Vec2f& position, Array<RC<UIObject>>& out_objects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);
+    bool TestRay(const Vec2f& position, Array<Handle<UIObject>>& out_objects, EnumFlags<UIRayTestFlags> flags = UIRayTestFlags::DEFAULT);
 
-    virtual void Init() override;
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
 
 protected:
+    virtual void Init() override;
+    
     virtual void Update_Internal(GameCounter::TickUnit delta) override;
 
     virtual void OnAttached_Internal(UIObject* parent) override;
@@ -153,9 +154,9 @@ private:
     virtual void ComputeActualSize(const UIObjectSize& in_size, Vec2i& out_actual_size, UpdateSizePhase phase, bool is_inner) override;
 
     /*! \brief To be called internally from UIObject only */
-    void SetFocusedObject(const RC<UIObject>& ui_object);
+    void SetFocusedObject(const Handle<UIObject>& ui_object);
 
-    RC<UIObject> GetUIObjectForEntity(ID<Entity> entity) const;
+    Handle<UIObject> GetUIObjectForEntity(ID<Entity> entity) const;
 
     bool Remove(ID<Entity> entity);
 
@@ -166,11 +167,11 @@ private:
 
     RC<FontAtlas> m_default_font_atlas;
 
-    HashMap<Weak<UIObject>, UIObjectPressedState> m_mouse_button_pressed_states;
-    FlatSet<Weak<UIObject>> m_hovered_ui_objects;
-    HashMap<KeyCode, Array<Weak<UIObject>>> m_keyed_down_objects;
+    HashMap<WeakHandle<UIObject>, UIObjectPressedState> m_mouse_button_pressed_states;
+    FlatSet<WeakHandle<UIObject>> m_hovered_ui_objects;
+    HashMap<KeyCode, Array<WeakHandle<UIObject>>> m_keyed_down_objects;
 
-    Weak<UIObject> m_focused_object;
+    WeakHandle<UIObject> m_focused_object;
 
     DelegateHandler m_on_current_window_changed_handler;
 };

@@ -61,7 +61,7 @@ public:
     {
     }
 
-    RunningEditorTask(const Handle<EditorTaskBase>& task, const RC<UIObject>& ui_object)
+    RunningEditorTask(const Handle<EditorTaskBase>& task, const Handle<UIObject>& ui_object)
         : m_task(task),
           m_ui_object(ui_object)
     {
@@ -72,16 +72,16 @@ public:
         return m_task;
     }
 
-    HYP_FORCE_INLINE const RC<UIObject>& GetUIObject() const
+    HYP_FORCE_INLINE const Handle<UIObject>& GetUIObject() const
     {
         return m_ui_object;
     }
 
-    RC<UIObject> CreateUIObject(UIStage* ui_stage) const;
+    Handle<UIObject> CreateUIObject(UIStage* ui_stage) const;
 
 private:
     Handle<EditorTaskBase> m_task;
-    RC<UIObject> m_ui_object;
+    Handle<UIObject> m_ui_object;
 };
 
 HYP_CLASS()
@@ -380,7 +380,7 @@ public:
     void SetFocusedNode(const Handle<Node>& focused_node, bool should_select_in_outline = true);
 
     HYP_METHOD()
-    void AddDebugOverlay(const RC<EditorDebugOverlayBase>& debug_overlay);
+    void AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debug_overlay);
 
     HYP_METHOD()
     bool RemoveDebugOverlay(WeakName name);
@@ -451,7 +451,7 @@ private:
     WeakHandle<Node> m_hovered_manipulation_widget_node;
 
     Handle<Texture> m_scene_texture;
-    RC<UIObject> m_main_panel;
+    Handle<UIObject> m_main_panel;
 
     WeakHandle<Node> m_focused_node;
     // the actual node that displays the highlight for the focused item
@@ -462,16 +462,16 @@ private:
 
     EditorDelegates* m_editor_delegates;
 
-    Array<RC<EditorDebugOverlayBase>> m_debug_overlays;
-    RC<UIObject> m_debug_overlay_ui_object;
+    Array<Handle<EditorDebugOverlayBase>> m_debug_overlays;
+    Handle<UIObject> m_debug_overlay_ui_object;
 
-    RC<ConsoleUI> m_console_ui;
+    Handle<ConsoleUI> m_console_ui;
 
-    RC<UIListView> m_content_browser_directory_list;
+    Handle<UIListView> m_content_browser_directory_list;
     Handle<AssetPackage> m_selected_package;
 
-    RC<UIGrid> m_content_browser_contents;
-    RC<UIObject> m_content_browser_contents_empty;
+    Handle<UIGrid> m_content_browser_contents;
+    Handle<UIObject> m_content_browser_contents_empty;
 
     Array<Handle<View>> m_views;
     Array<RC<ScreenCaptureRenderSubsystem>> m_screen_capture_render_subsystems;

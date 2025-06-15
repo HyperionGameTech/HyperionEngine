@@ -33,7 +33,7 @@ public:
      *
      * \return The text element of the button.
      */
-    HYP_FORCE_INLINE const RC<UIText>& GetTextElement() const
+    HYP_FORCE_INLINE const Handle<UIText>& GetTextElement() const
     {
         return m_text_element;
     }
@@ -43,14 +43,14 @@ public:
         return UIEventHandlerResult(UIEventHandlerResult::STOP_BUBBLING);
     }
 
+protected:
     virtual void Init() override;
 
-protected:
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
-    RC<UIText> m_text_element;
+    Handle<UIText> m_text_element;
 };
 
 } // namespace hyperion

@@ -49,7 +49,7 @@ public:
      *
      *  \return The icon element of the menu item.
      */
-    HYP_FORCE_INLINE const RC<UIImage>& GetIconElement() const
+    HYP_FORCE_INLINE const Handle<UIImage>& GetIconElement() const
     {
         return m_icon_element;
     }
@@ -58,7 +58,7 @@ public:
      *
      *  \return The text element of the menu item.
      */
-    HYP_FORCE_INLINE const RC<UIText>& GetTextElement() const
+    HYP_FORCE_INLINE const Handle<UIText>& GetTextElement() const
     {
         return m_text_element;
     }
@@ -67,24 +67,24 @@ public:
      *
      * \return The drop down menu element.
      */
-    HYP_FORCE_INLINE const RC<UIPanel>& GetDropDownMenuElement() const
+    HYP_FORCE_INLINE const Handle<UIPanel>& GetDropDownMenuElement() const
     {
         return m_drop_down_menu;
     }
 
-    HYP_FORCE_INLINE const Weak<UIMenuItem>& GetSelectedSubItem() const
+    HYP_FORCE_INLINE const WeakHandle<UIMenuItem>& GetSelectedSubItem() const
     {
         return m_selected_sub_item;
     }
 
-    void SetSelectedSubItem(const RC<UIMenuItem>& selected_sub_item);
+    void SetSelectedSubItem(const Handle<UIMenuItem>& selected_sub_item);
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
     virtual void OnFontAtlasUpdate_Internal() override;
@@ -97,13 +97,13 @@ private:
     void UpdateDropDownMenu();
     void UpdateSubItemsDropDownMenu();
 
-    Array<RC<UIObject>> m_menu_items;
+    Array<Handle<UIObject>> m_menu_items;
 
-    RC<UIText> m_text_element;
-    RC<UIImage> m_icon_element;
-    RC<UIPanel> m_drop_down_menu;
-    RC<UIPanel> m_sub_items_drop_down_menu;
-    Weak<UIMenuItem> m_selected_sub_item;
+    Handle<UIText> m_text_element;
+    Handle<UIImage> m_icon_element;
+    Handle<UIPanel> m_drop_down_menu;
+    Handle<UIPanel> m_sub_items_drop_down_menu;
+    WeakHandle<UIMenuItem> m_selected_sub_item;
 };
 
 #pragma endregion UIMenuItem
@@ -122,8 +122,6 @@ public:
     UIMenuBar(UIMenuBar&& other) noexcept = delete;
     UIMenuBar& operator=(UIMenuBar&& other) noexcept = delete;
     virtual ~UIMenuBar() override = default;
-
-    virtual void Init() override;
 
     HYP_METHOD(Property = "DropDirection", XMLAttribute = "direction")
     HYP_FORCE_INLINE UIMenuBarDropDirection GetDropDirection() const
@@ -166,7 +164,7 @@ public:
      * \return The menu item that was added.
      */
     HYP_METHOD()
-    RC<UIMenuItem> AddMenuItem(Name name, const String& text);
+    Handle<UIMenuItem> AddMenuItem(Name name, const String& text);
 
     /*! \brief Gets a menu item by name. Returns nullptr if the menu item was not found.
      *
@@ -193,10 +191,12 @@ public:
     bool RemoveMenuItem(Name name);
 
     // overloads to allow adding a UIMenuItem
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void SetStage_Internal(UIStage* stage) override;
@@ -212,7 +212,7 @@ private:
 
     Array<UIMenuItem*> m_menu_items;
 
-    RC<UIPanel> m_container;
+    Handle<UIPanel> m_container;
 
     uint32 m_selected_menu_item_index;
 };

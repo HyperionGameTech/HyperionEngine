@@ -95,7 +95,7 @@ void Game::Init()
     AssertThrow(world.IsValid());
     InitObject(world);
 
-    RC<UIStage> ui_stage = MakeRefCountedPtr<UIStage>(g_game_thread);
+    Handle<UIStage> ui_stage = CreateObject<UIStage>(g_game_thread);
     m_ui_subsystem = world->AddSubsystem<UISubsystem>(ui_stage);
 
     if (m_managed_game_object && m_managed_game_object->IsValid())

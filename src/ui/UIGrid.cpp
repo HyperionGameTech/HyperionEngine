@@ -46,15 +46,15 @@ void UIGridRow::Init()
     UIPanel::Init();
 }
 
-void UIGridRow::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIGridRow::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
-    if (ui_object.Is<UIGridColumn>())
+    if (ui_object.IsValid() && ui_object->IsInstanceOf<UIGridColumn>())
     {
         UIObject::AddChildUIObject(ui_object);
 
-        m_columns.PushBack(ui_object.CastUnsafe<UIGridColumn>());
+        m_columns.PushBack(Handle<UIGridColumn>(ui_object));
 
         UpdateColumnSizes();
         UpdateColumnOffsets();
@@ -85,7 +85,7 @@ bool UIGridRow::RemoveChildUIObject(UIObject* ui_object)
     }
 
     // Keep a reference to the UIObject before removing it
-    RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
+    Handle<UIObject> ui_object_handle = ui_object->HandleFromThis();
 
     if (!UIObject::RemoveChildUIObject(ui_object))
     {
@@ -166,11 +166,11 @@ void UIGridRow::SetNumColumns(int num_columns)
     UpdateColumnOffsets();
 }
 
-RC<UIGridColumn> UIGridRow::AddColumn()
+Handle<UIGridColumn> UIGridRow::AddColumn()
 {
     HYP_SCOPE;
 
-    const RC<UIGridColumn> column = CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    const Handle<UIGridColumn> column = CreateUIObject<UIGridColumn>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     UIObject::AddChildUIObject(column);
 
     m_columns.PushBack(column);
@@ -289,7 +289,7 @@ void UIGrid::SetNumRows(uint32 num_rows)
 
         for (SizeType i = 0; i < num_rows_to_add; i++)
         {
-            RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            Handle<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             UIObject::AddChildUIObject(row);
 
             m_rows.PushBack(std::move(row));
@@ -299,9 +299,9 @@ void UIGrid::SetNumRows(uint32 num_rows)
     UpdateLayout();
 }
 
-RC<UIGridRow> UIGrid::AddRow()
+Handle<UIGridRow> UIGrid::AddRow()
 {
-    const RC<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+    const Handle<UIGridRow> row = CreateUIObject<UIGridRow>(Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     row->SetNumColumns(m_num_columns);
 
     if (m_num_columns >= 0)
@@ -328,11 +328,16 @@ void UIGrid::Init()
     UIPanel::Init();
 }
 
-void UIGrid::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIGrid::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
+    if (!ui_object.IsValid())
+    {
+        return;
+    }
+
     if (ui_object->IsInstanceOf<UIGridRow>())
     {
-        RC<UIGridRow> row = ui_object.CastUnsafe<UIGridRow>();
+        Handle<UIGridRow> row = Handle<UIGridRow>(ui_object);
         row->SetNumColumns(m_num_columns);
 
         UIObject::AddChildUIObject(row);
@@ -367,7 +372,7 @@ void UIGrid::AddChildUIObject(const RC<UIObject>& ui_object)
 
     if (!column)
     {
-        RC<UIGridRow> row = AddRow();
+        Handle<UIGridRow> row = AddRow();
 
         if (!(column = row->FindEmptyColumn()))
         {
@@ -390,7 +395,7 @@ bool UIGrid::RemoveChildUIObject(UIObject* ui_object)
     }
 
     // Keep a reference around
-    RC<UIObject> ui_object_rc = ui_object->RefCountedPtrFromThis();
+    Handle<UIObject> ui_object_handle = ui_object->HandleFromThis();
 
     if (!UIObject::RemoveChildUIObject(ui_object))
     {
@@ -465,7 +470,7 @@ void UIGrid::SetDataSource_Internal(UIDataSourceBase* data_source)
         {
             HYP_NAMED_SCOPE("Remove element from data source from grid view");
 
-            if (RC<UIObject> ui_object = FindChildUIObject([element](UIObject* ui_object)
+            if (Handle<UIObject> ui_object = FindChildUIObject([element](UIObject* ui_object)
                     {
                         return ui_object->GetDataSourceElementUUID() == element->GetUUID();
                     }))

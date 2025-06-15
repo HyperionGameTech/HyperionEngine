@@ -14,6 +14,7 @@
 #include <scene/World.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/View.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
@@ -90,14 +91,14 @@ HYP_DEFINE_LOG_CHANNEL(Editor);
 
 #pragma region RunningEditorTask
 
-RC<UIObject> RunningEditorTask::CreateUIObject(UIStage* ui_stage) const
+Handle<UIObject> RunningEditorTask::CreateUIObject(UIStage* ui_stage) const
 {
     AssertThrow(ui_stage != nullptr);
 
-    RC<UIPanel> panel = ui_stage->CreateUIObject<UIPanel>(NAME("EditorTaskPanel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::FILL }));
+    Handle<UIPanel> panel = ui_stage->CreateUIObject<UIPanel>(NAME("EditorTaskPanel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::FILL }));
     panel->SetBackgroundColor(Color(0xFF0000FF)); // testing
 
-    RC<UIText> task_title = ui_stage->CreateUIObject<UIText>(NAME("Task_Title"), Vec2i::Zero(), UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> task_title = ui_stage->CreateUIObject<UIText>(NAME("Task_Title"), Vec2i::Zero(), UIObjectSize(UIObjectSize::AUTO));
     task_title->SetTextSize(16.0f);
     task_title->SetText(m_task->InstanceClass()->GetName().LookupString());
     panel->AddChildUIObject(task_title);
@@ -1103,7 +1104,7 @@ void EditorSubsystem::LoadEditorUIDefinitions()
     auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/Editor.Main.ui.xml");
     AssertThrowMsg(loaded_ui_asset.HasValue(), "Failed to load editor UI definitions!");
 
-    RC<UIStage> loaded_ui = loaded_ui_asset->Result().Cast<UIStage>();
+    Handle<UIStage> loaded_ui = loaded_ui_asset->Result().Cast<UIStage>();
     AssertThrowMsg(loaded_ui != nullptr, "Failed to load editor UI");
 
     loaded_ui->SetDefaultFontAtlas(font_atlas);
@@ -1196,7 +1197,7 @@ void EditorSubsystem::InitViewport()
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    if (Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
         Vec2i viewport_size = MathUtil::Max(g_engine->GetAppContext()->GetMainWindow()->GetDimensions(), Vec2i::One());
         // Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
@@ -1218,7 +1219,7 @@ void EditorSubsystem::InitViewport()
         m_delegate_handlers.Remove(&scene_image_object->OnSizeChange);
         m_delegate_handlers.Add(scene_image_object->OnSizeChange.Bind([this, scene_image_object_weak = scene_image_object.ToWeak(), view_weak = view.ToWeak()]()
             {
-                if (RC<UIObject> scene_image_object = scene_image_object_weak.Lock())
+                if (Handle<UIObject> scene_image_object = scene_image_object_weak.Lock())
                 {
                     if (Handle<View> view = view_weak.Lock())
                     {
@@ -1233,7 +1234,7 @@ void EditorSubsystem::InitViewport()
                 return UIEventHandlerResult::OK;
             }));
 
-        RC<UIImage> ui_image = scene_image_object.Cast<UIImage>();
+        Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>();
         AssertThrow(ui_image != nullptr);
 
         m_scene_texture.Reset();
@@ -1597,16 +1598,16 @@ void EditorSubsystem::InitSceneOutline()
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
+    Handle<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
     AssertThrow(list_view != nullptr);
 
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
-    list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
+    list_view->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
 
     m_delegate_handlers.Remove(&list_view->OnSelectedItemChange);
     m_delegate_handlers.Add(list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem* list_view_item)
         {
-            RC<UIListView> list_view = list_view_weak.Lock();
+            Handle<UIListView> list_view = list_view_weak.Lock();
 
             if (!list_view)
             {
@@ -1662,7 +1663,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
+    Handle<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
     AssertThrow(list_view != nullptr);
 
     HYP_LOG(Editor, Debug, "Start watching node: {}", *node->GetName());
@@ -1677,7 +1678,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 return;
             }
 
-            RC<UIListView> list_view = list_view_weak.Lock();
+            Handle<UIListView> list_view = list_view_weak.Lock();
 
             if (!list_view)
             {
@@ -1693,7 +1694,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
             }
         });
 
-    static const auto add_node_to_scene_outline = [](const RC<UIListView>& list_view, Node* node)
+    static const auto add_node_to_scene_outline = [](const Handle<UIListView>& list_view, Node* node)
     {
         AssertThrow(node != nullptr);
 
@@ -1745,7 +1746,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 return;
             }
 
-            RC<UIListView> list_view = list_view_weak.Lock();
+            Handle<UIListView> list_view = list_view_weak.Lock();
 
             add_node_to_scene_outline(list_view, node);
 
@@ -1770,7 +1771,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 return;
             }
 
-            RC<UIListView> list_view = list_view_weak.Lock();
+            Handle<UIListView> list_view = list_view_weak.Lock();
 
             if (!list_view)
             {
@@ -1823,10 +1824,10 @@ void EditorSubsystem::InitDetailView()
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIListView> details_list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")).Cast<UIListView>();
+    Handle<UIListView> details_list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Detail_View_ListView")).Cast<UIListView>();
     AssertThrow(details_list_view != nullptr);
 
-    RC<UIListView> outline_list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
+    Handle<UIListView> outline_list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
     AssertThrow(outline_list_view != nullptr);
 
     details_list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
@@ -1840,7 +1841,7 @@ void EditorSubsystem::InitDetailView()
 
             if (should_select_in_outline)
             {
-                if (RC<UIListView> outline_list_view = outline_list_view_weak.Lock())
+                if (Handle<UIListView> outline_list_view = outline_list_view_weak.Lock())
                 {
                     if (node.IsValid())
                     {
@@ -1856,7 +1857,7 @@ void EditorSubsystem::InitDetailView()
                 }
             }
 
-            RC<UIListView> details_list_view = details_list_view_weak.Lock();
+            Handle<UIListView> details_list_view = details_list_view_weak.Lock();
 
             if (!details_list_view)
             {
@@ -1870,7 +1871,7 @@ void EditorSubsystem::InitDetailView()
                 return;
             }
 
-            details_list_view->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<EditorNodePropertyRef> {}));
+            details_list_view->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<EditorNodePropertyRef> {}));
 
             UIDataSourceBase* data_source = details_list_view->GetDataSource();
 
@@ -1927,7 +1928,7 @@ void EditorSubsystem::InitDetailView()
 
                                                                                      // Update name in list view
 
-                                                                                     RC<UIListView> details_list_view = details_list_view_weak.Lock();
+                                                                                     Handle<UIListView> details_list_view = details_list_view_weak.Lock();
 
                                                                                      if (!details_list_view)
                                                                                      {
@@ -1967,14 +1968,14 @@ void EditorSubsystem::InitConsoleUI()
     }
 
     m_console_ui = ui_subsystem->GetUIStage()->CreateUIObject<ConsoleUI>(NAME("Console"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
-    AssertThrow(m_console_ui != nullptr);
+    AssertThrow(m_console_ui.IsValid());
 
     m_console_ui->SetDepth(150);
     m_console_ui->SetIsVisible(false);
 
-    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    if (Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
-        RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
+        Handle<UIImage> scene_image = scene_image_object.Cast<UIImage>();
         AssertThrow(scene_image != nullptr);
 
         scene_image->AddChildUIObject(m_console_ui);
@@ -2001,17 +2002,17 @@ void EditorSubsystem::InitDebugOverlays()
     m_debug_overlay_ui_object->OnClick.RemoveAllDetached();
     m_debug_overlay_ui_object->OnKeyDown.RemoveAllDetached();
 
-    for (const RC<EditorDebugOverlayBase>& debug_overlay : m_debug_overlays)
+    for (const Handle<EditorDebugOverlayBase>& debug_overlay : m_debug_overlays)
     {
         debug_overlay->Initialize(m_debug_overlay_ui_object.Get());
 
-        if (const RC<UIObject>& ui_object = debug_overlay->GetUIObject())
+        if (const Handle<UIObject>& ui_object = debug_overlay->GetUIObject())
         {
             m_debug_overlay_ui_object->AddChildUIObject(ui_object);
         }
     }
 
-    if (RC<UIImage> scene_image = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>())
+    if (Handle<UIImage> scene_image = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")).Cast<UIImage>())
     {
         scene_image->AddChildUIObject(m_debug_overlay_ui_object);
     }
@@ -2024,7 +2025,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    RC<UIObject> manipulation_widget_selection = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
+    Handle<UIObject> manipulation_widget_selection = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("ManipulationWidgetSelection"));
     if (manipulation_widget_selection != nullptr)
     {
         manipulation_widget_selection->RemoveFromParent();
@@ -2041,7 +2042,7 @@ void EditorSubsystem::InitManipulationWidgetSelection()
     manipulation_widget_selection->SetBorderRadius(5.0f);
     manipulation_widget_selection->SetPosition(Vec2i { 5, 5 });
 
-    Array<Pair<int, RC<UIObject>>> manipulation_widget_menu_items;
+    Array<Pair<int, Handle<UIObject>>> manipulation_widget_menu_items;
     manipulation_widget_menu_items.Reserve(m_manipulation_widget_holder.GetManipulationWidgets().Size());
 
     // add each manipulation widget to the selection menu
@@ -2052,28 +2053,28 @@ void EditorSubsystem::InitManipulationWidgetSelection()
             continue;
         }
 
-        RC<UIObject> manipulation_widget_menu_item = manipulation_widget_selection->CreateUIObject<UIMenuItem>(manipulation_widget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+        Handle<UIObject> manipulation_widget_menu_item = manipulation_widget_selection->CreateUIObject<UIMenuItem>(manipulation_widget->InstanceClass()->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
         AssertThrow(manipulation_widget_menu_item != nullptr);
 
         // @TODO Add icon
         manipulation_widget_menu_item->SetText("<widget>");
 
-        auto it = std::lower_bound(manipulation_widget_menu_items.Begin(), manipulation_widget_menu_items.End(), manipulation_widget->GetPriority(), [](const Pair<int, RC<UIObject>>& a, int b)
+        auto it = std::lower_bound(manipulation_widget_menu_items.Begin(), manipulation_widget_menu_items.End(), manipulation_widget->GetPriority(), [](const Pair<int, Handle<UIObject>>& a, int b)
             {
                 return a.first < b;
             });
 
-        manipulation_widget_menu_items.Insert(it, Pair<int, RC<UIObject>> { manipulation_widget->GetPriority(), std::move(manipulation_widget_menu_item) });
+        manipulation_widget_menu_items.Insert(it, Pair<int, Handle<UIObject>> { manipulation_widget->GetPriority(), std::move(manipulation_widget_menu_item) });
     }
 
-    for (Pair<int, RC<UIObject>>& manipulation_widget_menu_item : manipulation_widget_menu_items)
+    for (Pair<int, Handle<UIObject>>& manipulation_widget_menu_item : manipulation_widget_menu_items)
     {
         manipulation_widget_selection->AddChildUIObject(std::move(manipulation_widget_menu_item.second));
     }
 
-    if (RC<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    if (Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
-        RC<UIImage> scene_image = scene_image_object.Cast<UIImage>();
+        Handle<UIImage> scene_image = scene_image_object.Cast<UIImage>();
         AssertThrow(scene_image != nullptr);
 
         scene_image->AddChildUIObject(manipulation_widget_selection);
@@ -2094,67 +2095,73 @@ void EditorSubsystem::InitContentBrowser()
     m_content_browser_directory_list = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Directory_List").Cast<UIListView>();
     AssertThrow(m_content_browser_directory_list != nullptr);
 
-    m_content_browser_directory_list->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<AssetPackage> {}));
+    m_content_browser_directory_list->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetPackage> {}));
 
     m_delegate_handlers.Remove(NAME("SelectContentDirectory"));
-    m_delegate_handlers.Add(NAME("SelectContentDirectory"), m_content_browser_directory_list->OnSelectedItemChange.Bind([this](UIListViewItem* list_view_item)
-                                                                {
-                                                                    if (list_view_item != nullptr)
-                                                                    {
-                                                                        if (const NodeTag& asset_package_tag = list_view_item->GetNodeTag("AssetPackage"); asset_package_tag.IsValid())
-                                                                        {
-                                                                            if (Handle<AssetPackage> asset_package = GetCurrentProject()->GetAssetRegistry()->GetPackageFromPath(asset_package_tag.ToString(), /* create_if_not_exist */ false))
-                                                                            {
-                                                                                SetSelectedPackage(asset_package);
+    m_delegate_handlers.Add(
+        NAME("SelectContentDirectory"),
+        m_content_browser_directory_list->OnSelectedItemChange
+            .Bind([this](UIListViewItem* list_view_item)
+                {
+                    if (list_view_item != nullptr)
+                    {
+                        if (const NodeTag& asset_package_tag = list_view_item->GetNodeTag("AssetPackage"); asset_package_tag.IsValid())
+                        {
+                            if (Handle<AssetPackage> asset_package = GetCurrentProject()->GetAssetRegistry()->GetPackageFromPath(asset_package_tag.ToString(), /* create_if_not_exist */ false))
+                            {
+                                SetSelectedPackage(asset_package);
 
-                                                                                return;
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                HYP_LOG(Editor, Error, "Failed to get asset package from path: {}", asset_package_tag.ToString());
-                                                                            }
-                                                                        }
-                                                                    }
+                                return;
+                            }
+                            else
+                            {
+                                HYP_LOG(Editor, Error, "Failed to get asset package from path: {}", asset_package_tag.ToString());
+                            }
+                        }
+                    }
 
-                                                                    SetSelectedPackage(Handle<AssetPackage>::empty);
-                                                                }));
+                    SetSelectedPackage(Handle<AssetPackage>::empty);
+                }));
 
     m_content_browser_contents = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents").Cast<UIGrid>();
     AssertThrow(m_content_browser_contents != nullptr);
-    m_content_browser_contents->SetDataSource(MakeRefCountedPtr<UIDataSource>(TypeWrapper<AssetObject> {}));
+    m_content_browser_contents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}));
     m_content_browser_contents->SetIsVisible(false);
 
     m_content_browser_contents_empty = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
     AssertThrow(m_content_browser_contents_empty != nullptr);
     m_content_browser_contents_empty->SetIsVisible(true);
 
-    RC<UIObject> import_button = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
+    Handle<UIObject> import_button = ui_subsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
     AssertThrow(import_button != nullptr);
 
     m_delegate_handlers.Remove(NAME("ImportClicked"));
-    m_delegate_handlers.Add(NAME("ImportClicked"), import_button->OnClick.Bind([this, stage_weak = ui_subsystem->GetUIStage().ToWeak()](...)
-                                                       {
-                                                           if (RC<UIStage> stage = stage_weak.Lock().Cast<UIStage>())
-                                                           {
-                                                               auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
+    m_delegate_handlers.Add(
+        NAME("ImportClicked"),
+        import_button->OnClick
+            .Bind([this, stage_weak = ui_subsystem->GetUIStage().ToWeak()](...)
+                {
+                    if (Handle<UIStage> stage = stage_weak.Lock())
+                    {
+                        auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
 
-                                                               if (loaded_ui_asset.HasValue())
-                                                               {
-                                                                   RC<UIObject> loaded_ui = loaded_ui_asset->Result();
+                        if (loaded_ui_asset.HasValue())
+                        {
+                            Handle<UIObject> loaded_ui = loaded_ui_asset->Result();
 
-                                                                   if (RC<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog"))
-                                                                   {
-                                                                       stage->AddChildUIObject(file_browser_dialog);
+                            if (Handle<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog"))
+                            {
+                                stage->AddChildUIObject(file_browser_dialog);
 
-                                                                       return UIEventHandlerResult::STOP_BUBBLING;
-                                                                   }
-                                                               }
+                                return UIEventHandlerResult::STOP_BUBBLING;
+                            }
+                        }
 
-                                                               HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
-                                                           }
+                        HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
+                    }
 
-                                                           return UIEventHandlerResult::ERR;
-                                                       }));
+                    return UIEventHandlerResult::ERR;
+                }));
 }
 
 void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested)
@@ -2332,26 +2339,26 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
     RunningEditorTask& running_task = m_tasks_by_thread_type[thread_type].EmplaceBack(task);
 
-    RC<UIMenuItem> tasks_menu_item = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
+    Handle<UIMenuItem> tasks_menu_item = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Tasks_MenuItem")).Cast<UIMenuItem>();
 
     if (tasks_menu_item != nullptr)
     {
         if (UIObjectSpawnContext context { tasks_menu_item })
         {
-            RC<UIGrid> task_grid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
+            Handle<UIGrid> task_grid = context.CreateUIObject<UIGrid>(NAME("Task_Grid"), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
             task_grid->SetNumColumns(12);
 
-            RC<UIGridRow> task_grid_row = task_grid->AddRow();
+            Handle<UIGridRow> task_grid_row = task_grid->AddRow();
             task_grid_row->SetSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 100, UIObjectSize::PERCENT }));
 
-            RC<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
+            Handle<UIGridColumn> task_grid_column_left = task_grid_row->AddColumn();
             task_grid_column_left->SetColumnSize(8);
             task_grid_column_left->AddChildUIObject(running_task.CreateUIObject(ui_subsystem->GetUIStage()));
 
-            RC<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
+            Handle<UIGridColumn> task_grid_column_right = task_grid_row->AddColumn();
             task_grid_column_right->SetColumnSize(4);
 
-            RC<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
+            Handle<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             cancel_button->SetText("Cancel");
             cancel_button->OnClick.Bind(
                                       [task_weak = task.ToWeak()](...)
@@ -2385,7 +2392,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
     // For long running tasks, enqueues the task in the scheduler
     task->Commit();
 
-    // auto CreateTaskUIObject = [](const RC<UIObject> &parent, const HypClass *task_hyp_class) -> RC<UIObject>
+    // auto CreateTaskUIObject = [](const Handle<UIObject> &parent, const HypClass *task_hyp_class) -> Handle<UIObject>
     // {
     //     AssertThrow(parent != nullptr);
     //     AssertThrow(task_hyp_class != nullptr);
@@ -2393,7 +2400,7 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
     //     return parent->CreateUIObject<UIPanel>(Vec2i::Zero(), UIObjectSize({ 400, UIObjectSize::PIXEL }, { 300, UIObjectSize::PIXEL }));
     // };
 
-    // const RC<UIObject> &ui_object = task->GetUIObject();
+    // const Handle<UIObject> &ui_object = task->GetUIObject();
 
     // if (!ui_object) {
     //     if (Threads::IsOnThread(ThreadName::THREAD_GAME)) {
@@ -2462,7 +2469,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focused_node, bool shou
     OnFocusedNodeChanged(focused_node, previous_focused_node, should_select_in_outline);
 }
 
-void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase>& debug_overlay)
+void EditorSubsystem::AddDebugOverlay(const Handle<EditorDebugOverlayBase>& debug_overlay)
 {
     HYP_SCOPE;
 
@@ -2492,9 +2499,9 @@ void EditorSubsystem::AddDebugOverlay(const RC<EditorDebugOverlayBase>& debug_ov
     {
         debug_overlay->Initialize(ui_subsystem->GetUIStage());
 
-        if (const RC<UIObject>& object = debug_overlay->GetUIObject())
+        if (const Handle<UIObject>& object = debug_overlay->GetUIObject())
         {
-            RC<UIListViewItem> list_view_item = ui_subsystem->GetUIStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+            Handle<UIListViewItem> list_view_item = ui_subsystem->GetUIStage()->CreateUIObject<UIListViewItem>(Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
             list_view_item->SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
             list_view_item->AddChildUIObject(object);
 
@@ -2521,9 +2528,9 @@ bool EditorSubsystem::RemoveDebugOverlay(WeakName name)
 
     if (m_debug_overlay_ui_object != nullptr)
     {
-        if (const RC<UIObject>& object = (*it)->GetUIObject())
+        if (const Handle<UIObject>& object = (*it)->GetUIObject())
         {
-            RC<UIListViewItem> list_view_item = object->GetClosestParentUIObject<UIListViewItem>();
+            Handle<UIListViewItem> list_view_item = object->GetClosestParentUIObject<UIListViewItem>();
 
             if (list_view_item)
             {
@@ -2576,7 +2583,7 @@ void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
                     task->OnComplete();
 
                     // Remove the UIObject for the task from this stage
-                    if (const RC<UIObject>& task_ui_object = it->GetUIObject())
+                    if (const Handle<UIObject>& task_ui_object = it->GetUIObject())
                     {
                         task_ui_object->RemoveFromParent();
                     }
@@ -2596,7 +2603,7 @@ void EditorSubsystem::UpdateDebugOverlays(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
 
-    for (const RC<EditorDebugOverlayBase>& debug_overlay : m_debug_overlays)
+    for (const Handle<EditorDebugOverlayBase>& debug_overlay : m_debug_overlays)
     {
         if (!debug_overlay->IsEnabled())
         {

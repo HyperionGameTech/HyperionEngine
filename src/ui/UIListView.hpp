@@ -37,9 +37,7 @@ public:
     UIListViewItem& operator=(UIListViewItem&& other) noexcept = delete;
     virtual ~UIListViewItem() override = default;
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
     bool HasSubItems() const;
@@ -52,6 +50,8 @@ public:
     void SetIsExpanded(bool is_expanded);
 
 protected:
+    virtual void Init() override;
+
     virtual void SetIsSelectedItem(bool is_selected_item);
 
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
@@ -84,7 +84,7 @@ public:
     UIListView& operator=(UIListView&& other) noexcept = delete;
     virtual ~UIListView() override;
 
-    HYP_FORCE_INLINE const Weak<UIListViewItem>& GetSelectedItem() const
+    HYP_FORCE_INLINE const WeakHandle<UIListViewItem>& GetSelectedItem() const
     {
         return m_selected_item;
     }
@@ -127,9 +127,7 @@ public:
     HYP_METHOD(Property = "Orientation")
     void SetOrientation(UIListViewOrientation orientation);
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
     UIListViewItem* FindListViewItem(const UUID& data_source_element_uuid) const;
@@ -137,6 +135,8 @@ public:
     Delegate<void, UIListViewItem*> OnSelectedItemChange;
 
 protected:
+    virtual void Init() override;
+
     virtual void UpdateSize_Internal(bool update_children) override;
 
     virtual void SetDataSource_Internal(UIDataSourceBase* data_source) override;
@@ -149,7 +149,7 @@ private:
     void AddDataSourceElement(UIDataSourceBase* data_source, UIDataSourceElement* element, UIDataSourceElement* parent);
 
     Array<UIListViewItem*> m_list_view_items;
-    Weak<UIListViewItem> m_selected_item;
+    WeakHandle<UIListViewItem> m_selected_item;
 
     UIListViewOrientation m_orientation;
 };

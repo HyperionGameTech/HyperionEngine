@@ -44,7 +44,7 @@ void UIWindow::Init()
         m_title_bar->SetPadding(Vec2i { 5, 5 });
         m_title_bar->SetBackgroundColor(Vec4f { 0.4f, 0.4f, 0.4f, 1.0f });
 
-        RC<UIText> title_bar_text = CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+        Handle<UIText> title_bar_text = CreateUIObject<UIText>(NAME("TitleBarText"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
         title_bar_text->SetParentAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetOriginAlignment(UIObjectAlignment::CENTER);
         title_bar_text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -165,7 +165,7 @@ void UIWindow::SetText(const String& text)
 
     if (m_title_bar != nullptr)
     {
-        if (RC<UIObject> title_bar_text = m_title_bar->FindChildUIObject(NAME("TitleBarText")))
+        if (Handle<UIObject> title_bar_text = m_title_bar->FindChildUIObject(NAME("TitleBarText")))
         {
             title_bar_text->SetText(text);
         }
@@ -174,7 +174,7 @@ void UIWindow::SetText(const String& text)
     UIObject::SetText(text);
 }
 
-void UIWindow::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIWindow::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 

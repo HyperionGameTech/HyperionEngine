@@ -256,7 +256,7 @@ void UIText::SetText(const String& text)
 
     UIObject::SetText(text);
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }
@@ -294,7 +294,7 @@ void UIText::SetFontAtlas(const RC<FontAtlas>& font_atlas)
 
     m_font_atlas = font_atlas;
 
-    if (!IsInit())
+    if (!IsInitCalled())
     {
         return;
     }

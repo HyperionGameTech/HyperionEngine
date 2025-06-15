@@ -28,24 +28,24 @@ public:
 
     virtual void SetText(const String& text) override;
 
-    HYP_FORCE_INLINE const RC<UIPanel>& GetContents() const
+    HYP_FORCE_INLINE const Handle<UIPanel>& GetContents() const
     {
         return m_contents;
     }
 
-    virtual void Init() override;
-
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
 private:
-    RC<UIText> m_title_element;
-    RC<UIPanel> m_contents;
+    Handle<UIText> m_title_element;
+    Handle<UIPanel> m_contents;
 };
 
 #pragma endregion UITab
@@ -64,8 +64,6 @@ public:
     UITabView(UITabView&& other) noexcept = delete;
     UITabView& operator=(UITabView&& other) noexcept = delete;
     virtual ~UITabView() override = default;
-
-    virtual void Init() override;
 
     /*! \brief Gets the index of the selected tab.
      *
@@ -93,7 +91,7 @@ public:
      * \param title The title of the tab.
      * \return A reference counted pointer to the tab.
      */
-    RC<UITab> AddTab(Name name, const String& title);
+    Handle<UITab> AddTab(Name name, const String& title);
 
     /*! \brief Get a tab by name. Returns nullptr if the tab does not exist.
      *
@@ -116,15 +114,18 @@ public:
      */
     bool RemoveTab(Name name);
 
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
+
+protected:
+    virtual void Init() override;
 
 private:
     virtual void UpdateSize_Internal(bool update_children) override;
 
     void UpdateTabSizes();
 
-    RC<UIPanel> m_container;
+    Handle<UIPanel> m_container;
 
     Array<UITab*> m_tabs;
 

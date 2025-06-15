@@ -13,14 +13,14 @@ namespace hyperion {
 
 #if !defined(HYP_VERSION_MAJOR) || !defined(HYP_VERSION_MINOR) || !defined(HYP_VERSION_PATCH)
 
-    #ifndef HYP_BUILDTOOL
-        #error "HYP_VERSION_MAJOR, HYP_VERSION_MINOR, and HYP_VERSION_PATCH must be defined"
-    #endif
+#ifndef HYP_BUILDTOOL
+#error "HYP_VERSION_MAJOR, HYP_VERSION_MINOR, and HYP_VERSION_PATCH must be defined"
+#endif
 
-    // Define to let build continue
-    #define HYP_VERSION_MAJOR 0
-    #define HYP_VERSION_MINOR 0
-    #define HYP_VERSION_PATCH 0
+// Define to let build continue
+#define HYP_VERSION_MAJOR 0
+#define HYP_VERSION_MINOR 0
+#define HYP_VERSION_PATCH 0
 
 #endif
 
@@ -68,8 +68,6 @@ constexpr bool implementation_exists = decltype(implementation_exists_impl(std::
 
 template <class T>
 struct HandleDefinition;
-template <class T>
-constexpr bool has_handle_definition = implementation_exists<HandleDefinition<T>>;
 
 template <class T>
 constexpr bool is_const_pointer = std::is_pointer_v<T> && std::is_const_v<std::remove_pointer_t<T>>;

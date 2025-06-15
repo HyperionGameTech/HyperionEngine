@@ -63,8 +63,6 @@ public:
     UIText& operator=(UIText&& other) noexcept = delete;
     virtual ~UIText() override;
 
-    virtual void Init() override;
-
     /*! \brief Sets the text to render.
      *
      * \param text The text to set. */
@@ -113,6 +111,8 @@ public:
     }
 
 protected:
+    virtual void Init() override;
+
     virtual BoundingBox CalculateInnerAABB_Internal() const override;
 
     virtual MaterialAttributes GetMaterialAttributes() const override;

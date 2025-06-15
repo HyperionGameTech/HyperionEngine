@@ -60,19 +60,19 @@ public:
     UIDockableContainer& operator=(UIDockableContainer&& other) noexcept = delete;
     virtual ~UIDockableContainer() override = default;
 
-    void AddChildUIObject(const RC<UIObject>& ui_object, UIDockableItemPosition position);
+    void AddChildUIObject(const Handle<UIObject>& ui_object, UIDockableItemPosition position);
 
-    virtual void AddChildUIObject(const RC<UIObject>& ui_object) override;
+    virtual void AddChildUIObject(const Handle<UIObject>& ui_object) override;
     virtual bool RemoveChildUIObject(UIObject* ui_object) override;
 
+private:
     virtual void Init() override;
 
-private:
     virtual void UpdateSize_Internal(bool update_children) override;
 
     void UpdateLayout();
 
-    FixedArray<RC<UIDockableItem>, uint32(UIDockableItemPosition::MAX)> m_dockable_items;
+    FixedArray<Handle<UIDockableItem>, uint32(UIDockableItemPosition::MAX)> m_dockable_items;
 };
 
 #pragma endregion UIDockableContainer

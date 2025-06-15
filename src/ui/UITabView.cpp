@@ -23,7 +23,7 @@ void UITab::Init()
 {
     UIObject::Init();
 
-    RC<UIText> title_element = CreateUIObject<UIText>(NAME("TabTitle"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
+    Handle<UIText> title_element = CreateUIObject<UIText>(NAME("TabTitle"), Vec2i { 0, 0 }, UIObjectSize(UIObjectSize::AUTO));
     title_element->SetParentAlignment(UIObjectAlignment::CENTER);
     title_element->SetOriginAlignment(UIObjectAlignment::CENTER);
     title_element->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -49,7 +49,7 @@ void UITab::SetText(const String& text)
     }
 }
 
-void UITab::AddChildUIObject(const RC<UIObject>& ui_object)
+void UITab::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     if (m_contents != nullptr)
     {
@@ -128,9 +128,14 @@ void UITabView::Init()
     SetSelectedTabIndex(0);
 }
 
-void UITabView::AddChildUIObject(const RC<UIObject>& ui_object)
+void UITabView::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
-    if (ui_object->GetType() != UIObjectType::TAB)
+    if (!ui_object.IsValid())
+    {
+        return;
+    }
+
+    if (!ui_object->IsInstanceOf<UITab>())
     {
         HYP_LOG(UI, Warning, "UITabView::AddChildUIObject() called with a UIObject that is not a UITab");
 
@@ -146,7 +151,7 @@ void UITabView::AddChildUIObject(const RC<UIObject>& ui_object)
         return;
     }
 
-    RC<UIObject> tab = ui_object.Cast<UITab>();
+    Handle<UIObject> tab = ui_object.Cast<UITab>();
     AssertThrow(tab != nullptr);
 
     tab->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 30, UIObjectSize::PIXEL }));
@@ -257,11 +262,11 @@ void UITabView::SetSelectedTabIndex(uint32 index)
     m_container->AddChildUIObject(tab->GetContents());
 }
 
-RC<UITab> UITabView::AddTab(Name name, const String& title)
+Handle<UITab> UITabView::AddTab(Name name, const String& title)
 {
     Threads::AssertOnThread(g_game_thread);
 
-    RC<UITab> tab = CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
+    Handle<UITab> tab = CreateUIObject<UITab>(name, Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::PIXEL }, { 30, UIObjectSize::PIXEL }));
     tab->SetParentAlignment(UIObjectAlignment::TOP_LEFT);
     tab->SetOriginAlignment(UIObjectAlignment::BOTTOM_LEFT);
     tab->SetText(title);

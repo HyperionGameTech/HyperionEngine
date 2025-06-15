@@ -2660,7 +2660,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
     {
-        if constexpr (has_handle_definition<T>)
+        if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
             return value.Is<T>();
         }
@@ -2692,7 +2692,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
 
     HYP_FORCE_INLINE T& Get(const AnyHandle& value) const
     {
-        if constexpr (has_handle_definition<T>)
+        if constexpr (std::is_base_of_v<HypObjectBase, T>)
         {
             return *value.Cast<T>().Get();
         }

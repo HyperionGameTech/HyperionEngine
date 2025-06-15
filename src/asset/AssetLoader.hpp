@@ -127,13 +127,13 @@ struct Asset final : LoadedAsset
 
     auto&& Result()
     {
-        if constexpr (has_handle_definition<T>)
-        {
-            return value.Get<Handle<T>>();
-        }
-        else if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
         {
             return value.Get<RC<T>>();
+        }
+        else if constexpr (IsHypObject<T>::value)
+        {
+            return value.Get<Handle<T>>();
         }
         else
         {
@@ -172,7 +172,7 @@ struct AssetLoaderWrapper
 {
 private:
 public:
-    static constexpr bool is_handle = has_handle_definition<T>;
+    static constexpr bool is_handle = std::is_base_of_v<HypObjectBase, T>;
 
     using CastedType = std::conditional_t<is_handle, Handle<T>, Optional<T&>>;
 

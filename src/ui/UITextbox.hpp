@@ -50,13 +50,8 @@ public:
     HYP_METHOD()
     Color GetPlaceholderTextColor() const;
 
-    virtual void Init() override;
-
 protected:
-    bool ShouldDisplayPlaceholder() const
-    {
-        return GetText().Length() == 0 && m_placeholder.Length() != 0;
-    }
+    virtual void Init() override;
 
     virtual void Update_Internal(GameCounter::TickUnit delta) override;
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state) override;
@@ -64,8 +59,13 @@ protected:
     void UpdateCursor();
     void UpdateTextColor();
 
+    bool ShouldDisplayPlaceholder() const
+    {
+        return GetText().Length() == 0 && m_placeholder.Length() != 0;
+    }
+
     UIText* m_text_element;
-    RC<UIObject> m_cursor_element;
+    Handle<UIObject> m_cursor_element;
 
     uint32 m_character_index;
 

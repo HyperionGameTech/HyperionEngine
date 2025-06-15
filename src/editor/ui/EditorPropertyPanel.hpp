@@ -25,9 +25,9 @@ public:
     HYP_METHOD(Scriptable)
     void Build(const HypData& hyp_data);
 
+protected:
     virtual void Init() override;
 
-protected:
     virtual void Build_Impl(const HypData& hyp_data)
     {
         HYP_PURE_VIRTUAL();
@@ -37,7 +37,7 @@ protected:
 
     virtual Material::ParameterTable GetMaterialParameters() const override;
 
-    RC<UIPanel> m_panel;
+    Handle<UIPanel> m_panel;
 };
 
 } // namespace hyperion

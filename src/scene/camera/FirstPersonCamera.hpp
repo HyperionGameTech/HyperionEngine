@@ -64,11 +64,11 @@ public:
         return true;
     }
 
-    virtual void Init() override;
-
     virtual void UpdateLogic(double dt) override;
 
 protected:
+    virtual void Init() override;
+
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 

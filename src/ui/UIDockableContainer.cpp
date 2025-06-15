@@ -47,7 +47,7 @@ void UIDockableContainer::Init()
     }
 }
 
-void UIDockableContainer::AddChildUIObject(const RC<UIObject>& ui_object)
+void UIDockableContainer::AddChildUIObject(const Handle<UIObject>& ui_object)
 {
     HYP_SCOPE;
 
@@ -106,7 +106,7 @@ bool UIDockableContainer::RemoveChildUIObject(UIObject* ui_object)
     return UIPanel::RemoveChildUIObject(ui_object);
 }
 
-void UIDockableContainer::AddChildUIObject(const RC<UIObject>& ui_object, UIDockableItemPosition position)
+void UIDockableContainer::AddChildUIObject(const Handle<UIObject>& ui_object, UIDockableItemPosition position)
 {
     HYP_SCOPE;
 

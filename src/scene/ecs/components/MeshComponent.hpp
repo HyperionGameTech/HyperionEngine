@@ -26,7 +26,6 @@ enum MeshComponentFlagBits : MeshComponentFlags
 using MeshComponentUserData = UserData<32, 16>;
 
 HYP_STRUCT(Component, Size = 288, Label = "Mesh Component", Description = "Controls the rendering of an entity, including the mesh, material, and skeleton.", Editor = true)
-
 struct MeshComponent
 {
     HYP_FIELD(Property = "Mesh", Serialize = true, Editor = true)

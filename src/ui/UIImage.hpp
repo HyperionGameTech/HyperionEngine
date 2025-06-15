@@ -25,8 +25,6 @@ public:
     UIImage& operator=(UIImage&& other) noexcept = delete;
     virtual ~UIImage() override = default;
 
-    virtual void Init() override;
-
     /*! \brief Gets the texture of the image.
      *
      * \return A handle to the texture of the image. */
@@ -41,6 +39,8 @@ public:
     void SetTexture(const Handle<Texture>& texture);
 
 protected:
+    virtual void Init() override;
+
     virtual MaterialAttributes GetMaterialAttributes() const override;
     virtual Material::TextureSet GetMaterialTextures() const override;
 
