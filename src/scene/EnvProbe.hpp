@@ -60,6 +60,10 @@ enum EnvProbeType : uint32
 class EnvProbe;
 class RenderEnvProbe;
 
+/*! \brief An EnvProbe handles rendering of reflection probes, sky probes, shadow probes, and ambient probes.
+ *  \details It is used to capture the environment around a point in space and store it in a cubemap texture.
+ *  It can also be used to capture shadows from a light source.
+ *  An EnvProbe may be controlled by an EnvGrid in the case of ambient probes, in order to reduce per-probe allocation overhead by batching them together. */
 HYP_CLASS()
 class HYP_API EnvProbe final : public HypObject<EnvProbe>
 {

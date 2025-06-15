@@ -26,6 +26,9 @@
 
 namespace hyperion {
 
+/*! \brief Represents a vertex attribute used in mesh input.
+ *  \details This struct defines the properties of a vertex attribute, including its name, location, binding, and size.
+ *  It is used to describe the layout of vertex data in a mesh and is essential for rendering operations. */
 struct VertexAttribute
 {
     enum Type : uint64
@@ -65,8 +68,10 @@ struct VertexAttribute
     }
 };
 
+/*! \brief Represents a set of vertex attributes used in mesh input.
+ *  \details This struct is a bitmask representation of vertex attributes, allowing for efficient storage and manipulation of vertex attribute flags.
+ *  It provides methods for checking, setting, and merging vertex attributes, as well as calculating the size of the vertex data based on the attributes. */
 HYP_STRUCT()
-
 struct VertexAttributeSet
 {
     HYP_FIELD(Property = "FlagMask", Serialize = true)
@@ -236,8 +241,12 @@ constexpr VertexAttributeSet skeleton_vertex_attributes(
     VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_WEIGHTS
     | VertexAttribute::MESH_INPUT_ATTRIBUTE_BONE_INDICES);
 
+/*! \brief Represents a vertex in a mesh.
+ *  \details This struct defines the properties of a vertex, including its position, normal, texture coordinates, tangent, bitangent,
+ *  bone indices, and bone weights. It is used to represent the data for each vertex in a mesh and is essential for rendering operations.
+ *  The struct is designed to be compatible with serialization and deserialization processes.
+ */
 HYP_STRUCT(Size = 128, Serialize = "bitwise")
-
 struct alignas(16) Vertex
 {
     Vertex()

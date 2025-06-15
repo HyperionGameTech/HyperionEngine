@@ -394,6 +394,7 @@ private:
     mutable Mutex m_mutex;
 };
 
+/*! \brief The EntityManager is responsible for managing Entities, their components, and Systems within a Scene. */
 HYP_CLASS()
 class HYP_API EntityManager final : public HypObject<EntityManager>
 {

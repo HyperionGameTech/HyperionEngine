@@ -49,6 +49,10 @@ struct alignas(16) EntityInstanceBatch
 
 static_assert(sizeof(EntityInstanceBatch) == 4096);
 
+/*! \brief Unique identifier for a draw call based on Mesh ID and Material ID.
+ *  \details This struct is used to uniquely identify a draw call in the rendering system.
+ *  It combines the mesh ID and material ID into a single 64-bit value, where the lower 32 bits
+ *  represent the mesh ID and the upper 32 bits represent the material ID. */
 struct DrawCallID
 {
     static constexpr uint64 mesh_mask = uint64(0xFFFFFFFF);

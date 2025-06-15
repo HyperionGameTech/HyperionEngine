@@ -312,7 +312,6 @@ protected:
 
 /*! \brief A Delegate object that can be used to bind handler functions to be called when a broadcast is sent.
  *  Handlers can be bound as strong or weak references, and adding them is thread safe.
- *
  *  \tparam ReturnType The return type of the handler functions.
  *  \tparam Args The argument types of the handler functions. */
 template <class ReturnType, class... Args>

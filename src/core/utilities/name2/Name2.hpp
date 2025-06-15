@@ -4,11 +4,10 @@
 #include <core/Defines.hpp>
 #include <Types.hpp>
 
-/// WIP Implementation of a new string interning system.
-
 namespace hyperion {
 namespace utilities {
 
+/// WIP Implementation of a new string interning system.
 struct SName
 {
 };

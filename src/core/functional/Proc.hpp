@@ -206,23 +206,18 @@ class ProcRefBase
 {
 };
 
+/*! \brief A callable object that can store a function pointer or functor object.
+ *  This class is a non-copyable alternative to std::function, with inline storage for small functors to avoid heap allocation.
+ *  It supports move-only types and can be used to store lambdas, function pointers, or any callable object. */
 template <class FunctionSignature>
 class Proc;
 
+/*! \brief A reference to any callable object that can be invoked. The reference is non-owning, so is dependent on the lifetime of the original callable object
+ *  remaining valid throughout the lifetime of the ProcRef object.
+ *  This class is used to reference a Proc<>, functor, or function pointer without taking ownership of the callable object.
+ *  It is useful for passing around callable objects without copying them, while still allowing invocation of any generic callable type. */
 template <class FunctionSignature>
 class ProcRef;
-
-template <class T>
-struct IsProc
-{
-    static constexpr bool value = false;
-};
-
-template <class ReturnType, class... Args>
-struct IsProc<Proc<ReturnType(Args...)>>
-{
-    static constexpr bool value = true;
-};
 
 // non-copyable std::function alternative,
 // with inline storage so no heap allocation occurs.
@@ -318,7 +313,7 @@ public:
 
     /*! \brief Constructs a Proc object from a function pointer or a pointer to a callable object.
      *  \detail If a pointer to a callable object is passed, its lifetime must outlive that of this Proc object, as the object will not be copied. */
-    template <class Func, typename = std::enable_if_t<!IsProc<Func>::value>>
+    template <class Func, typename = std::enable_if_t<!std::is_base_of_v<ProcBase, Func>>>
     Proc(Func* fn)
         : Proc()
     {

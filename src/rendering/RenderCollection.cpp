@@ -401,10 +401,6 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
-
-    /// @TODO: Do auto instancing here so we can enable INSTANCING shader flag to create render groups
-    /// Create RenderGroups here rather than in RenderView ??
-
     Array<IteratorType> iterators;
 
     for (Bitset::BitIndex bit_index : bucket_bits)

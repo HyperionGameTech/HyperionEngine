@@ -138,9 +138,18 @@ struct OctantID
     }
 };
 
+/*! \brief Base class for an octree
+ *  \tparam Derived The derived class type (used for CRTP)
+ *  \tparam TEntry The type of entry stored in the octree
+ *  This class provides the basic functionality for an octree, including insertion, removal, and querying of entries.
+ */
 template <class Derived, class TEntry>
 class OctreeBase;
 
+/*! \brief State of the octree, used to track which octants need to be rebuilt and maps entries to their respective octants.
+ *  \tparam Derived The derived class type (used for CRTP)
+ *  \tparam TEntry The type of entry stored in the octree
+ *  \internal Used by OctreeBase to manage the state of the octree. */
 template <class Derived, class TEntry>
 struct OctreeState
 {

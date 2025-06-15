@@ -413,8 +413,8 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 
         AssertThrow(render_group.IsValid());
 
-        // Don't count draw calls for UI
-        SuppressEngineRenderStatsScope suppress_render_stats_scope;
+        // // Don't count draw calls for UI
+        // SuppressEngineRenderStatsScope suppress_render_stats_scope;
 
         render_group->PerformRendering(frame, render_setup, nullptr);
     }

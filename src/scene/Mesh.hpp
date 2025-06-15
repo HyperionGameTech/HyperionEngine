@@ -28,6 +28,8 @@ namespace hyperion {
 class BVHNode;
 class RenderMesh;
 
+/*! \brief Represents a 3D mesh in the engine from the Game thread, containing vertex data, indices, and rendering attributes.
+ *  \details This class is used to manage mesh data, including streamed meshes, and provides methods for manipulating mesh data at runtime. */
 HYP_CLASS()
 class HYP_API Mesh final : public HypObject<Mesh>
 {
