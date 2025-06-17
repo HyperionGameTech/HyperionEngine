@@ -261,30 +261,52 @@ void RenderWorld::Render(FrameBase* frame)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const RenderSetup render_setup { this, nullptr };
+    RenderSetup render_setup { this, nullptr };
 
     m_render_environment->RenderSubsystems(frame, render_setup);
 
     // Collect view-independent renderable types from all views
-    HashSet<RenderEnvProbe*> env_probes;
-    HashSet<RenderEnvGrid*> env_grids;
+    FixedArray<Array<RenderEnvProbe*>, uint32(EnvProbeType::REFLECTION) + 1> env_probes;
+    Array<RenderEnvGrid*> env_grids;
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {
+        HYP_LOG(Rendering, Debug, "Rendering view with {} env grids and {} env probes",
+            current_view->GetEnvGrids().Size(),
+            current_view->NumEnvProbes());
+
         for (RenderEnvGrid* env_grid : current_view->GetEnvGrids())
         {
-            env_grids.Insert(env_grid);
+            if (env_grids.Contains(env_grid))
+            {
+                continue;
+            }
+
+            env_grids.PushBack(env_grid);
         }
 
         for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
         {
-            const Array<RenderEnvProbe*>& probes = current_view->GetEnvProbes(EnvProbeType(env_probe_type));
-
-            for (RenderEnvProbe* probe : probes)
+            for (RenderEnvProbe* env_probe : current_view->GetEnvProbes(EnvProbeType(env_probe_type)))
             {
-                env_probes.Insert(probe);
+                if (env_probes[env_probe_type].Contains(env_probe))
+                {
+                    continue;
+                }
+
+                env_probes[env_probe_type].PushBack(env_probe);
             }
         }
+    }
+
+    // Set sky as fallback probe
+    if (env_probes[uint32(EnvProbeType::SKY)].Any())
+    {
+        render_setup.env_probe = env_probes[uint32(EnvProbeType::SKY)][0];
+    }
+    else
+    {
+        HYP_LOG(Rendering, Warning, "No sky probe found in the world! EnvGrid and EnvProbe will have no fallback probe set.");
     }
 
     if (env_grids.Any())
@@ -297,11 +319,16 @@ void RenderWorld::Render(FrameBase* frame)
 
     if (env_probes.Any())
     {
-        for (RenderEnvProbe* env_probe : env_probes)
+        for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
         {
-            env_probe->Render(frame, render_setup);
+            for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
+            {
+                env_probe->Render(frame, render_setup);
+            }
         }
     }
+
+    render_setup.env_probe = nullptr;
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {

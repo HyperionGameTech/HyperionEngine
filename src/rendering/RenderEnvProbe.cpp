@@ -451,7 +451,8 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    RenderSetup new_render_setup { render_setup.world, m_render_view.Get() };
+    RenderSetup new_render_setup = render_setup;
+    new_render_setup.view = m_render_view.Get();
 
     RenderLight* render_light = nullptr;
 
@@ -480,15 +481,8 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
             g_engine->GetRenderState()->SetActiveLight(TResourceHandle<RenderLight>(*render_light));
         }
 
-        m_render_view->GetRenderCollector().CollectDrawCalls(
-            frame,
-            new_render_setup,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
-
-        m_render_view->GetRenderCollector().ExecuteDrawCalls(
-            frame,
-            new_render_setup,
-            Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
+        m_render_view->GetRenderCollector().CollectDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
+        m_render_view->GetRenderCollector().ExecuteDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
 
         if (render_light != nullptr)
         {
@@ -667,16 +661,6 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
-    RenderEnvProbe* fallback_env_probe = nullptr;
-
-    if (render_setup.HasView())
-    {
-        if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
-        {
-            fallback_env_probe = sky_env_probes.Front();
-        }
-    }
-
     frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(convolve_probe_compute_pipeline);
@@ -685,7 +669,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
         descriptor_table,
         convolve_probe_compute_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(fallback_env_probe, 0) } } } },
+            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(

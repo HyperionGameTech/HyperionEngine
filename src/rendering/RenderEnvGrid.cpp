@@ -880,7 +880,8 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
     // render enqueued probes
     while (m_next_render_indices.Any())
     {
-        const RenderSetup new_render_setup { render_setup.world, m_render_view.Get() };
+        RenderSetup new_render_setup = render_setup;
+        new_render_setup.view = m_render_view.Get();
 
         RenderProbe(frame, new_render_setup, m_next_render_indices.Pop());
     }
@@ -992,41 +993,22 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = &probe->GetRenderResource();
 
-    m_render_view->GetRenderCollector().CollectDrawCalls(
-        frame,
-        new_render_setup,
-        Bitset((1 << BUCKET_OPAQUE)));
-
-    m_render_view->GetRenderCollector().ExecuteDrawCalls(
-        frame,
-        new_render_setup,
-        Bitset((1 << BUCKET_OPAQUE)));
+    m_render_view->GetRenderCollector().CollectDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE)));
+    m_render_view->GetRenderCollector().ExecuteDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE)));
 
     if (render_light != nullptr)
     {
         g_engine->GetRenderState()->UnsetActiveLight();
     }
 
-    // use sky as backdrop
-    if (const Array<RenderEnvProbe*>& sky_env_probes = m_render_view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
-    {
-        new_render_setup.env_probe = sky_env_probes.Front();
-    }
-    else
-    {
-        new_render_setup.env_probe = nullptr;
-
-        HYP_LOG(EnvGrid, Warning, "No sky EnvProbe found!");
-    }
-
     switch (m_env_grid->GetEnvGridType())
     {
     case ENV_GRID_TYPE_SH:
-        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, new_render_setup, probe);
+        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, render_setup, probe);
 
         break;
     case ENV_GRID_TYPE_LIGHT_FIELD:
-        ComputeEnvProbeIrradiance_LightField(frame, new_render_setup, probe);
+        ComputeEnvProbeIrradiance_LightField(frame, render_setup, probe);
 
         break;
     default:

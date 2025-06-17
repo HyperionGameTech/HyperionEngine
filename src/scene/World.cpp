@@ -169,7 +169,6 @@ void World::Init()
             }
 
             world->GetRenderResource().SetRenderStats(render_stats);
-            HYP_LOG(Rendering, Debug, "Updated RenderStats for World with ID: {}, fps: {}", world->GetID().Value(), render_stats.frames_per_second);
         },
         g_game_thread));
 

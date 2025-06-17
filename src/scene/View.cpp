@@ -255,7 +255,10 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
     {
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
 
-        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return diff;
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -319,7 +322,10 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 #endif
     }
 
-    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+    return diff;
 }
 
 typename RenderProxyTracker::Diff View::CollectDynamicEntities()
@@ -333,7 +339,10 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
     {
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect dynamic entities!", GetID().Value());
         // if camera is invalid, update without adding any entities
-        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return diff;
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -386,7 +395,10 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
         }
     }
 
-    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+    return diff;
 }
 
 typename RenderProxyTracker::Diff View::CollectStaticEntities()
@@ -400,7 +412,10 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
     {
         // if camera is invalid, update without adding any entities
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect static entities!", GetID().Value());
-        return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return diff;
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -453,7 +468,10 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
         }
     }
 
-    return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
+    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+    return diff;
 }
 
 void View::CollectLights()
@@ -513,6 +531,7 @@ void View::CollectLights()
     }
 
     m_render_resource->UpdateTrackedLights(m_tracked_lights);
+    m_tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void View::CollectLightmapVolumes()
@@ -565,6 +584,7 @@ void View::CollectLightmapVolumes()
     }
 
     m_render_resource->UpdateTrackedLightmapVolumes(m_tracked_lightmap_volumes);
+    m_tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void View::CollectEnvGrids()
@@ -607,6 +627,7 @@ void View::CollectEnvGrids()
     }
 
     m_render_resource->UpdateTrackedEnvGrids(m_tracked_env_grids);
+    m_tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void View::CollectEnvProbes()
@@ -656,6 +677,7 @@ void View::CollectEnvProbes()
     /// TODO: Sky
 
     m_render_resource->UpdateTrackedEnvProbes(m_tracked_env_probes);
+    m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 #pragma endregion View

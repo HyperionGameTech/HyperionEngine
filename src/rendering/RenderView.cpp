@@ -563,7 +563,6 @@ void RenderView::CreateDescriptorSets()
 void RenderView::CreateCombinePass()
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
     // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
@@ -773,7 +772,7 @@ void RenderView::RemoveScene(RenderScene* render_scene)
         });
 }
 
-typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker)
+typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const RenderProxyTracker& render_proxy_tracker)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
@@ -856,17 +855,13 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(RenderP
         }
     }
 
-    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
-
     return diff;
 }
 
-void RenderView::UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights)
+void RenderView::UpdateTrackedLights(const ResourceTracker<ID<Light>, RenderLight*>& tracked_lights)
 {
     if (!tracked_lights.GetDiff().NeedsUpdate())
     {
-        tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
-
         return;
     }
 
@@ -919,16 +914,12 @@ void RenderView::UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& t
 
             m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
         });
-
-    tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
-void RenderView::UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes)
+void RenderView::UpdateTrackedLightmapVolumes(const ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes)
 {
     if (!tracked_lightmap_volumes.GetDiff().NeedsUpdate())
     {
-        tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
-
         return;
     }
 
@@ -978,16 +969,12 @@ void RenderView::UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>
 
             m_tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::PERSIST);
         });
-
-    tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
-void RenderView::UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids)
+void RenderView::UpdateTrackedEnvGrids(const ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids)
 {
     if (!tracked_env_grids.GetDiff().NeedsUpdate())
     {
-        tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
-
         return;
     }
 
@@ -1037,16 +1024,12 @@ void RenderView::UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGri
 
             m_tracked_env_grids.Advance(RenderProxyListAdvanceAction::PERSIST);
         });
-
-    tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
-void RenderView::UpdateTrackedEnvProbes(ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes)
+void RenderView::UpdateTrackedEnvProbes(const ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes)
 {
     if (!tracked_env_probes.GetDiff().NeedsUpdate())
     {
-        tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
-
         return;
     }
 
@@ -1099,8 +1082,6 @@ void RenderView::UpdateTrackedEnvProbes(ResourceTracker<ID<EnvProbe>, RenderEnvP
 
             m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::PERSIST);
         });
-
-    tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
 void RenderView::PreRender(FrameBase* frame)
@@ -1131,19 +1112,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     }
 
     const uint32 frame_index = frame->GetFrameIndex();
-
-    // for (RenderEnvGrid* env_grid : m_env_grids)
-    // {
-    //     env_grid->Render(frame, render_setup);
-    // }
-
-    // for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
-    // {
-    //     for (RenderEnvProbe* env_probe : m_env_probes[env_probe_type])
-    //     {
-    //         env_probe->Render(frame, render_setup);
-    //     }
-    // }
 
     g_engine->GetRenderState()->BindCamera(m_render_camera);
 

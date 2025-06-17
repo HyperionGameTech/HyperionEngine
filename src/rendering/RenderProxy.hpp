@@ -395,7 +395,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetRemoved(Array<IDType, AllocatorType>& out_ids, bool include_changed)
+    void GetRemoved(Array<IDType, AllocatorType>& out_ids, bool include_changed) const
     {
         HYP_SCOPE;
 
@@ -419,7 +419,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetAdded(Array<ElementType, AllocatorType>& out, bool include_changed)
+    void GetAdded(Array<ElementType, AllocatorType>& out, bool include_changed) const
     {
         HYP_SCOPE;
 
@@ -448,7 +448,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetAdded(Array<ElementType*, AllocatorType>& out, bool include_changed)
+    void GetAdded(Array<ElementType*, AllocatorType>& out, bool include_changed) const
     {
         HYP_SCOPE;
 
@@ -470,14 +470,14 @@ public:
             auto it = m_element_map.Find(id);
             AssertThrow(it != m_element_map.End());
 
-            out.PushBack(&it->second);
+            out.PushBack(const_cast<ElementType*>(&it->second));
 
             newly_added_bits.Set(first_set_bit_index, false);
         }
     }
 
     template <class AllocatorType>
-    void GetCurrent(Array<ElementType, AllocatorType>& out)
+    void GetCurrent(Array<ElementType, AllocatorType>& out) const
     {
         HYP_SCOPE;
 
@@ -501,7 +501,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetCurrent(Array<ElementType*, AllocatorType>& out)
+    void GetCurrent(Array<ElementType*, AllocatorType>& out) const
     {
         HYP_SCOPE;
 
@@ -518,7 +518,7 @@ public:
             auto it = m_element_map.Find(id);
             AssertThrow(it != m_element_map.End());
 
-            out.PushBack(&it->second);
+            out.PushBack(const_cast<ElementType*>(&it->second));
 
             current_bits.Set(first_set_bit_index, false);
         }

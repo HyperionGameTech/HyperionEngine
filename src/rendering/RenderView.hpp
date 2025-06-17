@@ -44,6 +44,7 @@ class HBAO;
 class SSGI;
 class DOFBlur;
 class Texture;
+class RTRadianceRenderer;
 struct RenderSetup;
 enum class LightType : uint32;
 enum class EnvProbeType : uint32;
@@ -112,6 +113,18 @@ public:
         AssertDebug(uint32(type) < m_env_probes.Size());
 
         return m_env_probes[uint32(type)];
+    }
+
+    HYP_FORCE_INLINE SizeType NumEnvProbes() const
+    {
+        SizeType num_env_probes = 0;
+
+        for (const auto& env_probes : m_env_probes)
+        {
+            num_env_probes += env_probes.Size();
+        }
+
+        return num_env_probes;
     }
 
     HYP_FORCE_INLINE const Array<TResourceHandle<RenderScene>>& GetScenes() const
@@ -204,11 +217,11 @@ public:
     }
 
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
-    typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker);
-    void UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
-    void UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes);
-    void UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids);
-    void UpdateTrackedEnvProbes(ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes);
+    typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(const RenderProxyTracker& render_proxy_tracker);
+    void UpdateTrackedLights(const ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
+    void UpdateTrackedLightmapVolumes(const ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes);
+    void UpdateTrackedEnvGrids(const ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids);
+    void UpdateTrackedEnvProbes(const ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes);
 
     virtual void PreRender(FrameBase* frame);
     virtual void Render(FrameBase* frame, RenderWorld* render_world);

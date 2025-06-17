@@ -363,6 +363,8 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
         GetID(), m_aabb, Threads::CurrentThreadID().GetName());
 
     m_camera->Update(delta);
+
+    m_view->UpdateVisibility();
     m_view->Update(delta);
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)
