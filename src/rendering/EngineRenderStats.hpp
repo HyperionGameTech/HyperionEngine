@@ -23,6 +23,7 @@ enum EngineRenderStatsCountType : uint32
     ERS_LIGHTS,
     ERS_LIGHTMAP_VOLUMES,
     ERS_ENV_PROBES,
+    ERS_ENV_GRIDS,
 
     ERS_MAX
 };

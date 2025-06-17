@@ -28,6 +28,10 @@ class Light;
 class RenderLight;
 class LightmapVolume;
 class RenderLightmapVolume;
+class EnvGrid;
+class RenderEnvGrid;
+class EnvProbe;
+class RenderEnvProbe;
 
 enum class ViewFlags : uint32
 {
@@ -142,6 +146,8 @@ protected:
     
     void CollectLights();
     void CollectLightmapVolumes();
+    void CollectEnvGrids();
+    void CollectEnvProbes();
 
     typename RenderProxyTracker::Diff CollectEntities();
 
@@ -169,6 +175,8 @@ protected:
 
     ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> m_tracked_lightmap_volumes;
+    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> m_tracked_env_grids;
+    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
 };

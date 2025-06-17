@@ -142,15 +142,16 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (rays.Any())
         {
-            // Bind sky if it exists
-            bool is_sky_set = false;
+            /// FIXME: sky
+            // // Bind sky if it exists
+            // bool is_sky_set = false;
 
-            if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-            {
-                g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+            // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+            // {
+            //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
 
-                is_sky_set = true;
-            }
+            //     is_sky_set = true;
+            // }
 
             g_engine->GetRenderState()->SetActiveScene(job->GetScene());
 
@@ -163,10 +164,10 @@ struct RENDER_COMMAND(LightmapRender)
 
             g_engine->GetRenderState()->UnsetActiveScene();
 
-            if (is_sky_set)
-            {
-                g_engine->GetRenderState()->UnsetActiveEnvProbe();
-            }
+            // if (is_sky_set)
+            // {
+            //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
+            // }
         }
 
         HYPERION_RETURN_OK;
@@ -701,8 +702,6 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
 
     const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
     const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
 
     UpdateUniforms(frame, ray_offset);
 
@@ -751,8 +750,8 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) } } } },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
@@ -851,14 +850,13 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
     AssertThrowMsg(m_num_tracing_tasks.Get(MemoryOrder::ACQUIRE) == 0,
         "Trace is already in progress");
 
-    const TResourceHandle<RenderEnvProbe>& env_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
     Handle<Texture> env_probe_texture;
 
-    if (env_probe)
+    if (render_setup.env_probe)
     {
         // prepare env probe texture to be sampled on the CPU in the tasks
-        env_probe->GetPrefilteredEnvMap()->Readback();
-        env_probe_texture = env_probe->GetPrefilteredEnvMap();
+        render_setup.env_probe->GetPrefilteredEnvMap()->Readback();
+        env_probe_texture = render_setup.env_probe->GetPrefilteredEnvMap();
     }
 
     m_hits_buffer.Resize(rays.Size());

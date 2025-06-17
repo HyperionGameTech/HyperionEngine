@@ -65,21 +65,6 @@ public:
     RenderState& operator=(RenderState&&) noexcept = delete;
     HYP_API ~RenderState();
 
-    HYP_FORCE_INLINE void SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>&& resource_handle)
-    {
-        env_probe_bindings.Push(std::move(resource_handle));
-    }
-
-    HYP_FORCE_INLINE void UnsetActiveEnvProbe()
-    {
-        if (env_probe_bindings.Any())
-        {
-            env_probe_bindings.Pop();
-        }
-    }
-
-    const TResourceHandle<RenderEnvProbe>& GetActiveEnvProbe() const;
-
     HYP_FORCE_INLINE void BindEnvGrid(TResourceHandle<RenderEnvGrid>&& resource_handle)
     {
         env_grid_bindings.Push(std::move(resource_handle));
@@ -90,8 +75,6 @@ public:
         AssertThrow(env_grid_bindings.Any());
         env_grid_bindings.Pop();
     }
-
-    const TResourceHandle<RenderEnvGrid>& GetActiveEnvGrid() const;
 
     void SetActiveLight(const TResourceHandle<RenderLight>& light_resource_handle);
 

@@ -26,8 +26,12 @@ class RenderScene;
 class RenderCamera;
 class RenderLight;
 class RenderLightmapVolume;
+class RenderEnvGrid;
+class RenderEnvProbe;
 class GBuffer;
+class EnvGrid;
 class EnvGridPass;
+class EnvProbe;
 class ReflectionsPass;
 class TonemapPass;
 class LightmapPass;
@@ -42,6 +46,7 @@ class DOFBlur;
 class Texture;
 struct RenderSetup;
 enum class LightType : uint32;
+enum class EnvProbeType : uint32;
 
 class RenderView : public RenderResourceBase
 {
@@ -95,6 +100,18 @@ public:
         }
 
         return num_lights;
+    }
+
+    HYP_FORCE_INLINE const Array<RenderEnvGrid*>& GetEnvGrids() const
+    {
+        return m_env_grids;
+    }
+
+    HYP_FORCE_INLINE const Array<EnvProbe*>& EnvProbes(EnvProbeType type) const
+    {
+        AssertDebug(uint32(type) < m_env_probes.Size());
+
+        return m_env_probes[uint32(type)];
     }
 
     HYP_FORCE_INLINE const Array<TResourceHandle<RenderScene>>& GetScenes() const
@@ -190,6 +207,8 @@ public:
     typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(RenderProxyTracker& render_proxy_tracker);
     void UpdateTrackedLights(ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
     void UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>& tracked_lightmap_volumes);
+    void UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids);
+    void UpdateTrackedEnvProbes(ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes);
 
     virtual void PreRender(FrameBase* frame);
     virtual void Render(FrameBase* frame, RenderWorld* render_world);
@@ -232,6 +251,12 @@ protected:
 
     Array<RenderLightmapVolume*> m_lightmap_volumes;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> m_tracked_lightmap_volumes;
+
+    Array<RenderEnvGrid*> m_env_grids;
+    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> m_tracked_env_grids;
+
+    Array<Array<RenderEnvProbe*>> m_env_probes;
+    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
 
     UniquePtr<GBuffer> m_gbuffer;
 

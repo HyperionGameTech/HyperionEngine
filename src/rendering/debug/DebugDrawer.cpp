@@ -303,10 +303,6 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
-    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
     GPUBufferRef& instance_buffer = m_instance_buffers[frame_index];
     bool was_instance_buffer_rebuilt = false;
 
@@ -399,8 +395,8 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
                     { NAME("Global"),
                         { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) } } },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) } } },
                     { NAME("Object"),
                         {} },
                     { NAME("Instancing"),

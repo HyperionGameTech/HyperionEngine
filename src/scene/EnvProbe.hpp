@@ -43,18 +43,18 @@ enum EnvProbeBindingSlot : uint32
 };
 
 HYP_ENUM()
-enum EnvProbeType : uint32
+enum class EnvProbeType : uint32
 {
-    ENV_PROBE_TYPE_INVALID = uint32(-1),
+    INVALID = uint32(-1),
 
-    ENV_PROBE_TYPE_REFLECTION = 0,
-    ENV_PROBE_TYPE_SKY,
-    ENV_PROBE_TYPE_SHADOW,
+    REFLECTION = 0,
+    SKY,
+    SHADOW,
 
     // These below types are controlled by EnvGrid
-    ENV_PROBE_TYPE_AMBIENT,
+    AMBIENT,
 
-    ENV_PROBE_TYPE_MAX
+    MAX
 };
 
 class EnvProbe;

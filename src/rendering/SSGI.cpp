@@ -217,8 +217,9 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
 
-    // Used for sky
-    const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    /// FIXME: sky
+    // // Used for sky
+    // const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -242,7 +243,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame_index);
 
     const uint32 view_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));

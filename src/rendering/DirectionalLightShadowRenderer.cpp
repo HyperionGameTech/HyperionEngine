@@ -474,6 +474,9 @@ void DirectionalLightShadowRenderer::OnRemoved()
 void DirectionalLightShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(g_game_thread);
+
+    g_engine->GetWorld()->AddView(m_view_statics);
+    g_engine->GetWorld()->AddView(m_view_dynamics);
 }
 
 void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -485,7 +488,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     m_camera->Update(delta);
 
     Octree& octree = m_parent_scene->GetOctree();
-    octree.CalculateVisibility(m_camera);
 
 #ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
     Task<typename RenderProxyTracker::Diff> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]

@@ -74,28 +74,6 @@ const TResourceHandle<RenderCamera>& RenderState::GetActiveCamera() const
         : empty;
 }
 
-const TResourceHandle<RenderEnvProbe>& RenderState::GetActiveEnvProbe() const
-{
-    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    static const TResourceHandle<RenderEnvProbe> empty;
-
-    return env_probe_bindings.Any()
-        ? env_probe_bindings.Top()
-        : empty;
-}
-
-const TResourceHandle<RenderEnvGrid>& RenderState::GetActiveEnvGrid() const
-{
-    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-
-    static const TResourceHandle<RenderEnvGrid> empty;
-
-    return env_grid_bindings.Any()
-        ? env_grid_bindings.Top()
-        : empty;
-}
-
 const TResourceHandle<RenderLight>& RenderState::GetActiveLight() const
 {
     Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);

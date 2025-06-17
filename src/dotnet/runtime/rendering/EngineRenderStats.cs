@@ -14,6 +14,7 @@ namespace Hyperion
         Lights,
         LightmapVolumes,
         EnvProbes,
+        EnvGrids,
         Count
     }
 

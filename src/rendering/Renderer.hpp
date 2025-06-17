@@ -7,12 +7,16 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/utilities/Span.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
 
 class RenderView;
 class RenderWorld;
+class RenderEnvProbe;
+class RenderEnvGrid;
 struct CullData;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering")
@@ -56,26 +60,34 @@ struct RenderSetup
 
     RenderWorld* world;
     RenderView* view;
+    RenderEnvProbe* env_probe;
+    RenderEnvGrid* env_grid;
 
 private:
     // Private constructor for null RenderSetup
     RenderSetup()
         : world(nullptr),
-          view(nullptr)
+          view(nullptr),
+          env_probe(nullptr),
+          env_grid(nullptr)
     {
     }
 
 public:
     RenderSetup(RenderWorld* world)
         : world(world),
-          view(nullptr)
+          view(nullptr),
+          env_probe(nullptr),
+          env_grid(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
 
     RenderSetup(RenderWorld* world, RenderView* view)
         : world(world),
-          view(view)
+          view(view),
+          env_probe(nullptr),
+          env_grid(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }

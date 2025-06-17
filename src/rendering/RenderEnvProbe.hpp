@@ -154,10 +154,10 @@ private:
     void SetEnvProbeTexture();
 
     bool ShouldComputePrefilteredEnvMap() const;
-    void ComputePrefilteredEnvMap(FrameBase* frame);
+    void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup);
 
     bool ShouldComputeSphericalHarmonics() const;
-    void ComputeSH(FrameBase* frame);
+    void ComputeSH(FrameBase* frame, const RenderSetup& render_setup);
 
     EnvProbe* m_env_probe;
 

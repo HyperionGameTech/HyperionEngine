@@ -158,15 +158,15 @@ void PointLightShadowRenderer::OnRender(FrameBase* frame, const RenderSetup& ren
         return;
     }
 
-    // @FIXME: Should be per-view
+    // // @FIXME: Should be per-view
 
-    // if (m_render_light->GetVisibilityBits().Test(camera_id.ToIndex())) {
-    if (!m_last_visibility_state)
-    {
-        g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<RenderEnvProbe>(m_env_probe->GetRenderResource()));
+    // // if (m_render_light->GetVisibilityBits().Test(camera_id.ToIndex())) {
+    // if (!m_last_visibility_state)
+    // {
+    //     g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<RenderEnvProbe>(m_env_probe->GetRenderResource()));
 
-        m_last_visibility_state = true;
-    }
+    //     m_last_visibility_state = true;
+    // }
 
     AssertThrow(m_env_probe->IsReady());
 

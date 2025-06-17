@@ -27,6 +27,8 @@
 #include <scene/Texture.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/EnvGrid.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 
@@ -242,6 +244,7 @@ RenderView::RenderView(View* view)
       m_priority(view ? view->GetPriority() : 0)
 {
     m_lights.Resize(uint32(LightType::MAX));
+    m_env_probes.Resize(uint32(EnvProbeType::MAX));
 }
 
 RenderView::~RenderView()
@@ -320,6 +323,37 @@ void RenderView::Destroy_Internal()
         m_tracked_lightmap_volumes.Reset();
 
         m_lightmap_volumes.Clear();
+    }
+
+    { // env grids
+        Array<RenderEnvGrid*> env_grids;
+        m_tracked_env_grids.GetCurrent(env_grids);
+
+        for (RenderEnvGrid* env_grid : env_grids)
+        {
+            env_grid->DecRef();
+        }
+
+        m_tracked_env_grids.Reset();
+
+        m_env_grids.Clear();
+    }
+
+    { // env probes
+        Array<RenderEnvProbe*> env_probes;
+        m_tracked_env_probes.GetCurrent(env_probes);
+
+        for (RenderEnvProbe* env_probe : env_probes)
+        {
+            env_probe->DecRef();
+        }
+
+        m_tracked_env_probes.Reset();
+
+        for (uint32 i = 0; i < uint32(EnvProbeType::MAX); i++)
+        {
+            m_env_probes[i].Clear();
+        }
     }
 
     if (m_gbuffer)
@@ -948,6 +982,118 @@ void RenderView::UpdateTrackedLightmapVolumes(ResourceTracker<ID<LightmapVolume>
     tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
 }
 
+void RenderView::UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGrid*>& tracked_env_grids)
+{
+    if (!tracked_env_grids.GetDiff().NeedsUpdate())
+    {
+        tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return;
+    }
+
+    Array<ID<EnvGrid>, DynamicAllocator> removed;
+    tracked_env_grids.GetRemoved(removed, true /* include_changed */);
+
+    Array<RenderEnvGrid*, DynamicAllocator> added;
+    tracked_env_grids.GetAdded(added, true /* include_changed */);
+
+    for (RenderEnvGrid* render_env_grid : added)
+    {
+        // Ensure it doesn't get deleted while we queue the update txn
+        render_env_grid->IncRef();
+    }
+
+    Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
+        {
+            if (!m_tracked_env_grids.WasReset())
+            {
+                for (ID<EnvGrid> id : removed)
+                {
+                    RenderEnvGrid** element_ptr = m_tracked_env_grids.GetElement(id);
+                    AssertDebug(element_ptr != nullptr);
+
+                    RenderEnvGrid* render_env_grid = *element_ptr;
+                    AssertDebug(render_env_grid);
+
+                    m_tracked_env_grids.MarkToRemove(id);
+
+                    render_env_grid->DecRef();
+                }
+            }
+
+            for (RenderEnvGrid* render_env_grid : added)
+            {
+                m_tracked_env_grids.Track(render_env_grid->GetEnvGrid()->GetID(), render_env_grid);
+            }
+
+            m_tracked_env_grids.Advance(RenderProxyListAdvanceAction::PERSIST);
+        });
+
+    tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
+}
+
+void RenderView::UpdateTrackedEnvProbes(ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes)
+{
+    if (!tracked_env_probes.GetDiff().NeedsUpdate())
+    {
+        tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
+
+        return;
+    }
+
+    Array<ID<EnvProbe>, DynamicAllocator> removed;
+    tracked_env_probes.GetRemoved(removed, true /* include_changed */);
+
+    Array<RenderEnvProbe*, DynamicAllocator> added;
+    tracked_env_probes.GetAdded(added, true /* include_changed */);
+
+    for (RenderEnvProbe* render_env_probe : added)
+    {
+        // Ensure it doesn't get deleted while we queue the update txn
+        render_env_probe->IncRef();
+    }
+
+    Execute([this, added = std::move(added), removed = std::move(removed)]() mutable
+        {
+            if (!m_tracked_lights.WasReset())
+            {
+                for (ID<EnvProbe> id : removed)
+                {
+                    RenderEnvProbe** element_ptr = m_tracked_env_probes.GetElement(id);
+                    AssertDebug(element_ptr != nullptr);
+
+                    RenderEnvProbe* render_env_probe = *element_ptr;
+                    AssertDebug(render_env_probe);
+
+                    const EnvProbeType env_probe_type = render_env_probe->GetEnvProbe()->GetEnvProbeType();
+
+                    auto it = m_env_probes[uint32(env_probe_type)].Find(render_env_probe);
+                    AssertDebug(it != m_env_probes[uint32(env_probe_type)].End());
+
+                    m_env_probes[uint32(env_probe_type)].Erase(it);
+
+                    render_env_probe->DecRef();
+
+                    m_tracked_env_probes.MarkToRemove(id);
+                }
+            }
+
+            for (RenderEnvProbe* render_env_probe : added)
+            {
+                const EnvProbeType env_probe_type = render_env_probe->GetEnvProbe()->GetEnvProbeType();
+                AssertDebug(!m_env_probes[uint32(env_probe_type)].Contains(render_env_probe));
+
+                m_env_probes[uint32(env_probe_type)].PushBack(render_env_probe);
+
+                m_tracked_env_probes.Track(render_env_probe->GetEnvProbe()->GetID(), render_env_probe);
+            }
+
+            m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::PERSIST);
+        });
+
+    tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
+}
+
 void RenderView::PreRender(FrameBase* frame)
 {
     HYP_SCOPE;
@@ -990,9 +1136,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
     const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
 
-    const TResourceHandle<RenderEnvProbe>& env_render_probe = g_engine->GetRenderState()->GetActiveEnvProbe();
-    const TResourceHandle<RenderEnvGrid>& env_render_grid = g_engine->GetRenderState()->GetActiveEnvGrid();
-
     const bool do_particles = true;
     const bool do_gaussian_splatting = false; // environment && environment->IsReady();
 
@@ -1002,8 +1145,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     const bool use_hbil = m_renderer_config.hbil_enabled;
     const bool use_ssgi = m_renderer_config.ssgi_enabled;
 
-    const bool use_env_grid_irradiance = env_render_grid && m_renderer_config.env_grid_gi_enabled;
-    const bool use_env_grid_radiance = env_render_grid && m_renderer_config.env_grid_radiance_enabled;
+    const bool use_env_grid_irradiance = m_env_grids.Any() && m_renderer_config.env_grid_gi_enabled;
+    const bool use_env_grid_radiance = m_env_grids.Any() && m_renderer_config.env_grid_radiance_enabled;
 
     const bool use_temporal_aa = m_temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
@@ -1055,16 +1198,19 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
     }
 
-    if (use_env_grid_irradiance)
-    { // submit env grid command buffer
-        m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_irradiance_pass->Render(frame, render_setup);
-    }
+    if (use_env_grid_irradiance || use_env_grid_radiance)
+    {
+        if (use_env_grid_irradiance)
+        {
+            m_env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+            m_env_grid_irradiance_pass->Render(frame, render_setup);
+        }
 
-    if (use_env_grid_radiance)
-    { // submit env grid command buffer
-        m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
-        m_env_grid_radiance_pass->Render(frame, render_setup);
+        if (use_env_grid_radiance)
+        {
+            m_env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+            m_env_grid_radiance_pass->Render(frame, render_setup);
+        }
     }
 
     if (use_reflection_probes)
@@ -1094,22 +1240,24 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     if (use_ssgi)
     {
-        bool is_sky_set = false;
+        /// FIXME sky
 
-        // Bind sky env probe for SSGI.
-        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-        {
-            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+        // bool is_sky_set = false;
 
-            is_sky_set = true;
-        }
+        // // Bind sky env probe for SSGI.
+        // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+        // {
+        //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+
+        //     is_sky_set = true;
+        // }
 
         m_ssgi->Render(frame, render_setup);
 
-        if (is_sky_set)
-        {
-            g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        }
+        // if (is_sky_set)
+        // {
+        //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
+        // }
     }
 
     m_post_processing->RenderPre(frame, render_setup);
@@ -1160,15 +1308,17 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         // Apply lightmaps over the now shaded opaque objects.
         m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
 
-        bool is_sky_set = false;
+        /// FIXME sky
 
-        // Bind sky env probe
-        if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-        {
-            g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+        // bool is_sky_set = false;
 
-            is_sky_set = true;
-        }
+        // // Bind sky env probe
+        // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+        // {
+        //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
+
+        //     is_sky_set = true;
+        // }
 
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
@@ -1184,10 +1334,10 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             environment->GetGaussianSplatting()->Render(frame, render_setup);
         }
 
-        if (is_sky_set)
-        {
-            g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        }
+        // if (is_sky_set)
+        // {
+        //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
+        // }
 
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
 
@@ -1196,53 +1346,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
         frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
     }
-
-#if 0
-    {
-        struct
-        {
-            Vec2u   image_dimensions;
-            uint32  _pad0, _pad1;
-            uint32  deferred_flags;
-        } deferred_combine_constants;
-
-        deferred_combine_constants.image_dimensions = m_combine_pass->GetFramebuffer()->GetExtent();
-        deferred_combine_constants.deferred_flags = deferred_data.flags;
-
-        m_combine_pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&deferred_combine_constants, sizeof(deferred_combine_constants));
-        m_combine_pass->Begin(frame, this);
-
-        frame->GetCommandList().Add<BindDescriptorTable>(
-            m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-            m_combine_pass->GetRenderGroup()->GetPipeline(),
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                {
-                    NAME("Global"),
-                    { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*m_render_camera) },
-                        { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
-                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
-                    }
-                }
-            },
-            frame_index
-        );
-
-        const uint32 view_descriptor_set_index = m_combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
-
-        if (view_descriptor_set_index != ~0u) {
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                m_descriptor_sets[frame_index],
-                m_combine_pass->GetRenderGroup()->GetPipeline(),
-                ArrayMap<Name, uint32> { },
-                view_descriptor_set_index
-            );
-        }
-
-        m_combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
-        m_combine_pass->End(frame, this);
-    }
-#endif
 
     { // render depth pyramid
         m_depth_pyramid_renderer->Render(frame);
@@ -1271,6 +1374,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     counts[ERS_SCENES] = m_render_scenes.Size();
     counts[ERS_LIGHTS] = m_tracked_lights.GetCurrentBits().Count();
     counts[ERS_LIGHTMAP_VOLUMES] = m_tracked_lightmap_volumes.GetCurrentBits().Count();
+    counts[ERS_ENV_GRIDS] = m_tracked_env_grids.GetCurrentBits().Count();
+    counts[ERS_ENV_PROBES] = m_tracked_env_probes.GetCurrentBits().Count();
     // counts.num_env_probes
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }

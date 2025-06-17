@@ -3,6 +3,8 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/Light.hpp>
+#include <scene/EnvGrid.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/camera/Camera.hpp>
 
@@ -14,6 +16,9 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
+#include <scene/ecs/components/EnvGridComponent.hpp>
+#include <scene/ecs/components/ShadowMapComponent.hpp>
+#include <scene/ecs/components/ReflectionProbeComponent.hpp>
 
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderScene.hpp>
@@ -139,6 +144,7 @@ void View::Update(GameCounter::TickUnit delta)
 
     CollectLights();
     CollectLightmapVolumes();
+    CollectEnvGrids();
     m_last_collection_result = CollectEntities();
 }
 
@@ -535,6 +541,86 @@ void View::CollectLightmapVolumes()
     }
 
     m_render_resource->UpdateTrackedLightmapVolumes(m_tracked_lightmap_volumes);
+}
+
+void View::CollectEnvGrids()
+{
+    HYP_SCOPE;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        AssertThrow(scene.IsValid());
+        AssertThrow(scene->IsReady());
+
+        for (auto [entity_id, env_grid_component] : scene->GetEntityManager()->GetEntitySet<EnvGridComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!env_grid_component.env_grid.IsValid())
+            {
+                continue;
+            }
+
+            const BoundingBox& grid_aabb = env_grid_component.env_grid->GetAABB();
+
+            if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
+            {
+                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid_component.env_grid->GetID().Value(), GetID().Value());
+
+                continue;
+            }
+
+            if (!m_camera->GetFrustum().ContainsAABB(grid_aabb))
+            {
+                continue;
+            }
+
+            m_tracked_env_grids.Track(env_grid_component.env_grid->GetID(), &env_grid_component.env_grid->GetRenderResource());
+        }
+    }
+
+    m_render_resource->UpdateTrackedEnvGrids(m_tracked_env_grids);
+}
+
+void View::CollectEnvProbes()
+{
+    HYP_SCOPE;
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        AssertThrow(scene.IsValid());
+        AssertThrow(scene->IsReady());
+
+        for (auto [entity_id, reflection_probe_component] : scene->GetEntityManager()->GetEntitySet<ReflectionProbeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!reflection_probe_component.env_probe.IsValid())
+            {
+                continue;
+            }
+
+            const BoundingBox& probe_aabb = reflection_probe_component.env_probe->GetAABB();
+
+            if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
+            {
+                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", reflection_probe_component.env_probe->GetID().Value(), GetID().Value());
+
+                continue;
+            }
+
+            if (!m_camera->GetFrustum().ContainsAABB(probe_aabb))
+            {
+                continue;
+            }
+
+            ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
+            m_tracked_env_probes.Track(
+                reflection_probe_component.env_probe->GetID(),
+                &reflection_probe_component.env_probe->GetRenderResource(),
+                &track_state);
+        }
+    }
+
+    /// TODO: point light Shadow maps
+
+    m_render_resource->UpdateTrackedEnvProbes(m_tracked_env_probes);
 }
 
 #pragma endregion View
