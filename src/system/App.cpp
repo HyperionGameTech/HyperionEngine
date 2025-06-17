@@ -6,6 +6,7 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/backend/RenderingAPI.hpp>
 
 #include <Game.hpp>
@@ -84,6 +85,11 @@ void App::LaunchGame(const Handle<Game>& game)
 
     AssertThrow(g_rendering_api != nullptr);
     HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*app_context));
+
+    RenderObjectDeleter<renderer::Platform::current>::Initialize();
+
+    g_render_global_state = new RenderGlobalState();
+
     g_engine->SetAppContext(app_context);
     InitObject(g_engine);
 
@@ -91,7 +97,15 @@ void App::LaunchGame(const Handle<Game>& game)
     m_game_thread->SetGame(game);
     m_game_thread->Start();
 
+    // Loop blocks the main thread until the game is done.
     AssertThrow(g_engine->StartRenderLoop());
+
+    delete g_render_global_state;
+    g_render_global_state = nullptr;
+
+    RenderObjectDeleter<renderer::Platform::current>::RemoveAllNow(/* force */ true);
+
+    HYPERION_ASSERT_RESULT(g_rendering_api->Destroy());
 }
 
 } // namespace sys

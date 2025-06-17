@@ -169,6 +169,7 @@ void World::Init()
             }
 
             world->GetRenderResource().SetRenderStats(render_stats);
+            HYP_LOG(Rendering, Debug, "Updated RenderStats for World with ID: {}, fps: {}", world->GetID().Value(), render_stats.frames_per_second);
         },
         g_game_thread));
 
@@ -306,6 +307,7 @@ void World::Update(GameCounter::TickUnit delta)
     Array<EntityManager*> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
 
+    // @TODO Collect all scenes, envgrids, envprobes for Views into a single list to call Update() on them all.
     for (uint32 index = 0; index < m_scenes.Size(); index++)
     {
         const Handle<Scene>& scene = m_scenes[index];
@@ -351,10 +353,8 @@ void World::Update(GameCounter::TickUnit delta)
         const Handle<View>& view = m_views[index];
         AssertThrow(view.IsValid());
 
-        // if (!view->GetScene()->IsForegroundScene() || (view->GetScene()->GetFlags() & SceneFlags::UI))
-        // {
-        //     continue;
-        // }
+        // View must be updated on the game thread as it mutates the scene's octree state
+        view->UpdateVisibility();
 
 #ifdef HYP_WORLD_ASYNC_VIEW_UPDATES
         update_views_tasks.PushBack(TaskSystem::GetInstance().Enqueue([view = m_views[index].Get(), delta]
@@ -362,7 +362,7 @@ void World::Update(GameCounter::TickUnit delta)
                 view->Update(delta);
             }));
 #else
-        view->Update();
+        view->Update(delta);
 #endif
     }
 

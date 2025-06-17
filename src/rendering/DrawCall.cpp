@@ -2,7 +2,7 @@
 
 #include <rendering/DrawCall.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <scene/Mesh.hpp>
@@ -12,15 +12,15 @@
 
 #include <core/logging/Logger.hpp>
 
-#include <Engine.hpp>
-
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
+extern RenderGlobalState* g_render_global_state;
+
 HYP_API GPUBufferHolderMap* GetGPUBufferHolderMap()
 {
-    return g_engine->GetGPUBufferHolderMap();
+    return g_render_global_state->GPUBufferHolderMap.Get();
 }
 
 #pragma region DrawCallCollection

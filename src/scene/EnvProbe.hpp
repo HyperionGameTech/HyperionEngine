@@ -47,8 +47,9 @@ enum class EnvProbeType : uint32
 {
     INVALID = uint32(-1),
 
-    REFLECTION = 0,
-    SKY,
+    SKY = 0,
+    REFLECTION,
+
     SHADOW,
 
     // These below types are controlled by EnvGrid
@@ -96,31 +97,31 @@ public:
     HYP_METHOD()
     bool IsReflectionProbe() const
     {
-        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_REFLECTION;
+        return m_env_probe_type == EnvProbeType::REFLECTION;
     }
 
     HYP_METHOD()
     bool IsSkyProbe() const
     {
-        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SKY;
+        return m_env_probe_type == EnvProbeType::SKY;
     }
 
     HYP_METHOD()
     bool IsShadowProbe() const
     {
-        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_SHADOW;
+        return m_env_probe_type == EnvProbeType::SHADOW;
     }
 
     HYP_METHOD()
     bool IsAmbientProbe() const
     {
-        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
+        return m_env_probe_type == EnvProbeType::AMBIENT;
     }
 
     HYP_METHOD()
     bool IsControlledByEnvGrid() const
     {
-        return m_env_probe_type == EnvProbeType::ENV_PROBE_TYPE_AMBIENT;
+        return m_env_probe_type == EnvProbeType::AMBIENT;
     }
 
     HYP_METHOD()

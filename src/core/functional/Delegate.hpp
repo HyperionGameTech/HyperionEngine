@@ -575,11 +575,7 @@ public:
                 {
                     current->GetCallingThread()->GetScheduler().Enqueue([current, args_tuple = Tuple<ArgTypes...>(args...)]()
                         {
-                            Apply([&proc = current->proc]<class... OtherArgs>(OtherArgs&&... args)
-                                {
-                                    proc(std::forward<OtherArgs>(args)...);
-                                },
-                                std::move(args_tuple));
+                            Apply(current->proc, args_tuple);
 
                             if (current->IsMarkedForRemoval())
                             {

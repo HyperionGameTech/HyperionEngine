@@ -2,6 +2,7 @@
 
 #include <rendering/Bindless.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <Engine.hpp>
 
@@ -21,9 +22,12 @@ void BindlessStorage::Destroy()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
+        const DescriptorSetRef& descriptor_set = g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Material"), frame_index);
+        AssertDebug(descriptor_set.IsValid());
+
         for (const auto& it : m_resources)
         {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)->SetElement(NAME("Textures"), it.first.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("Textures"), it.first.ToIndex(), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
     }
 
@@ -50,7 +54,10 @@ void BindlessStorage::AddResource(ID<Texture> id, const ImageViewRef& image_view
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)->SetElement(NAME("Textures"), id.ToIndex(), image_view);
+        const DescriptorSetRef& descriptor_set = g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Material"), frame_index);
+        AssertDebug(descriptor_set.IsValid());
+
+        descriptor_set->SetElement(NAME("Textures"), id.ToIndex(), image_view);
     }
 }
 
@@ -74,7 +81,10 @@ void BindlessStorage::RemoveResource(ID<Texture> id)
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Material"), frame_index)->SetElement(NAME("Textures"), id.ToIndex(), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        const DescriptorSetRef& descriptor_set = g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Material"), frame_index);
+        AssertDebug(descriptor_set.IsValid());
+
+        descriptor_set->SetElement(NAME("Textures"), id.ToIndex(), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
     }
 }
 

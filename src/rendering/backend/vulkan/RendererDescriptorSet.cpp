@@ -13,6 +13,8 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
+#include <rendering/RenderGlobalState.hpp>
+
 #include <core/math/MathUtil.hpp>
 
 #include <core/containers/HashSet.hpp>
@@ -659,7 +661,7 @@ VulkanDescriptorTable::VulkanDescriptorTable(const DescriptorTableDeclaration* d
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
-                DescriptorSetRef descriptor_set = g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(referenced_descriptor_set_declaration->name, frame_index);
+                DescriptorSetRef descriptor_set = g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(referenced_descriptor_set_declaration->name, frame_index);
                 AssertThrowMsg(descriptor_set.IsValid(), "Invalid global descriptor set reference: %s", referenced_descriptor_set_declaration->name.LookupString());
 
                 m_sets[frame_index].PushBack(std::move(descriptor_set));

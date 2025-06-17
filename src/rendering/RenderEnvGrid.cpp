@@ -10,7 +10,7 @@
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -206,11 +206,11 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet)
         {
             if (value.Is<GPUBufferRef>())
             {
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<GPUBufferRef>());
+                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<GPUBufferRef>());
             }
             else if (value.Is<ImageViewRef>())
             {
-                g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<ImageViewRef>());
+                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<ImageViewRef>());
             }
             else
             {
@@ -431,7 +431,7 @@ void RenderEnvGrid::Destroy_Internal()
             SetElementInGlobalDescriptorSet,
             NAME("Global"),
             NAME("VoxelGridTexture"),
-            g_engine->GetPlaceholderData()->GetImageView3D1x1x1R8());
+            g_render_global_state->PlaceholderData->GetImageView3D1x1x1R8());
 
         m_voxel_grid_texture.Reset();
     }
@@ -527,15 +527,15 @@ void RenderEnvGrid::CreateVoxelGridData()
         DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("VoxelizeProbeDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        descriptor_set->SetElement(NAME("InColorImage"), color_attachment ? color_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-        descriptor_set->SetElement(NAME("InNormalsImage"), normals_attachment ? normals_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-        descriptor_set->SetElement(NAME("InDepthImage"), depth_attachment ? depth_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("InColorImage"), color_attachment ? color_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("InNormalsImage"), normals_attachment ? normals_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("InDepthImage"), depth_attachment ? depth_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
 
-        descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
-        descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+        descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
+        descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
 
-        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_engine->GetRenderData()->env_grids->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_engine->GetRenderData()->env_probes->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_render_global_state->EnvGrids->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_render_global_state->EnvProbes->GetBuffer(frame_index));
 
         descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetRenderResource().GetImageView());
 
@@ -659,9 +659,9 @@ void RenderEnvGrid::CreateSphericalHarmonicsData()
             const DescriptorSetRef& compute_sh_descriptor_set = m_compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
             AssertThrow(compute_sh_descriptor_set != nullptr);
 
-            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
             compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), m_sh_tiles_buffers[i]);
 
             if (i != sh_num_levels - 1)
@@ -798,8 +798,8 @@ void RenderEnvGrid::CreateLightFieldData()
             descriptor_set->SetElement(NAME("InColorImage"), m_framebuffer->GetAttachment(0)->GetImageView());
             descriptor_set->SetElement(NAME("InNormalsImage"), m_framebuffer->GetAttachment(1)->GetImageView());
             descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
-            descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
-            descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+            descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
+            descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
             descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetRenderResource().GetImageView());
             descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetRenderResource().GetImageView());
         }
@@ -813,7 +813,7 @@ void RenderEnvGrid::CreateLightFieldData()
 
 GPUBufferHolderBase* RenderEnvGrid::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->env_grids;
+    return g_render_global_state->EnvGrids;
 }
 
 void RenderEnvGrid::UpdateBufferData()
@@ -850,6 +850,8 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
     {
+        HYP_LOG(EnvGrid, Warning, "EnvGrid AABB is invalid or not finite - skipping rendering");
+
         return;
     }
 
@@ -1006,13 +1008,15 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     }
 
     // use sky as backdrop
-    if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+    if (const Array<RenderEnvProbe*>& sky_env_probes = m_render_view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
     {
         new_render_setup.env_probe = sky_env_probes.Front();
     }
     else
     {
         new_render_setup.env_probe = nullptr;
+
+        HYP_LOG(EnvGrid, Warning, "No sky EnvProbe found!");
     }
 
     switch (m_env_grid->GetEnvGridType())
@@ -1115,7 +1119,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         renderer::ShaderModuleType::COMPUTE);
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -1207,7 +1211,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         renderer::ShaderModuleType::COMPUTE);
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -1227,7 +1231,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     async_compute_command_list.Add<DispatchCompute>(m_finalize_sh, Vec3u { 1, 1, 1 });
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -1239,7 +1243,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 
             EnvProbeShaderData readback_buffer;
 
-            g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
+            g_render_global_state->EnvProbes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
 
             resource_handle->SetSphericalHarmonics(readback_buffer.sh);
 
@@ -1303,9 +1307,6 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
 
         m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
     }
-
-    // // Used for sky
-    // const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_irradiance_texture->GetRenderResource().GetImage(),

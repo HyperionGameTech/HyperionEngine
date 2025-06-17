@@ -3,7 +3,7 @@
 #include <rendering/IndirectDraw.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderMesh.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>

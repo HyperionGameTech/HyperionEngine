@@ -13,6 +13,7 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/EngineRenderStats.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/Renderer.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
@@ -477,7 +478,7 @@ void UIRenderSubsystem::Init()
                 return;
             }
 
-            g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_engine->GetFinalPass()->SetUILayerImageView(g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
 
             SafeRelease(std::move(subsystem->m_framebuffer));
 
@@ -512,7 +513,7 @@ void UIRenderSubsystem::OnRemoved()
     m_render_view.Reset();
     m_view.Reset();
 
-    g_engine->GetFinalPass()->SetUILayerImageView(g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+    g_engine->GetFinalPass()->SetUILayerImageView(g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
 
     SafeRelease(std::move(m_framebuffer));
 

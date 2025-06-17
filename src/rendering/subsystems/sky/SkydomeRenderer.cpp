@@ -64,7 +64,7 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
         m_virtual_scene,
         BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)),
         m_dimensions,
-        ENV_PROBE_TYPE_SKY);
+        EnvProbeType::SKY);
 }
 
 void SkydomeRenderer::Init()
@@ -78,7 +78,7 @@ void SkydomeRenderer::InitGame()
     g_engine->GetWorld()->AddScene(m_virtual_scene);
 
     InitObject(m_env_probe);
-    m_env_probe->EnqueueBind();
+    m_env_probe->GetRenderResource().IncRef(); // temp testing
 
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
@@ -96,7 +96,7 @@ void SkydomeRenderer::OnRemoved()
 {
     if (m_env_probe)
     {
-        m_env_probe->EnqueueUnbind();
+        m_env_probe->GetRenderResource().DecRef(); // temp testing
         m_env_probe.Reset();
     }
 
@@ -131,6 +131,12 @@ void SkydomeRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup
     }
 
     if (!m_env_probe->NeedsRender())
+    {
+        return;
+    }
+
+    // temp testing
+    if (!m_env_probe->GetRenderResource().IsInitialized())
     {
         return;
     }

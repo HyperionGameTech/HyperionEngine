@@ -40,24 +40,21 @@ enum class ViewFlags : uint32
 
     ALL_WORLD_SCENES = 0x2, //!< If set, all scenes added to the world will be added view, and removed when removed from the world. Otherwise, the View itself manages the scenes it contains.
 
-    DEFAULT = ALL_WORLD_SCENES
+    COLLECT_STATIC_ENTITIES = 0x4,  //!< If set, the view will collect static entities (those that are not dynamic). Dynamic entities are those that move or are animated.
+    COLLECT_DYNAMIC_ENTITIES = 0x8, //!< If set, the view will collect dynamic entities (those that are not static). Static entities are those that do not move and are not animated.
+    COLLECT_ALL_ENTITIES = COLLECT_STATIC_ENTITIES | COLLECT_DYNAMIC_ENTITIES,
+
+    SKIP_FRUSTUM_CULLING = 0x10, //!< If set, the view will not perform frustum culling. This is useful for debugging or when you want to render everything regardless of visibility.
+
+    SKIP_ENV_PROBES = 0x20,        //!< If set, the view will not collect EnvProbes. Use for RenderEnvProbe, so that it does not collect itself!
+    SKIP_ENV_GRIDS = 0x40,         //!< If set, the view will not collect EnvGrids.
+    SKIP_LIGHTS = 0x80,            //!< If set, the view will not collect Lights.
+    SKIP_LIGHTMAP_VOLUMES = 0x100, //!< If set, the view will not collect LightmapVolumes.
+
+    DEFAULT = ALL_WORLD_SCENES | COLLECT_ALL_ENTITIES
 };
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
-
-enum class ViewEntityCollectionFlags : uint32
-{
-    NONE = 0x0,
-    COLLECT_STATIC = 0x1,
-    COLLECT_DYNAMIC = 0x2,
-    COLLECT_ALL = COLLECT_STATIC | COLLECT_DYNAMIC,
-
-    SKIP_FRUSTUM_CULLING = 0x4,
-
-    DEFAULT = COLLECT_ALL
-};
-
-HYP_MAKE_ENUM_FLAGS(ViewEntityCollectionFlags)
 
 struct ViewDesc
 {
@@ -66,7 +63,6 @@ struct ViewDesc
     Array<Handle<Scene>> scenes;
     Handle<Camera> camera;
     int priority = 0;
-    EnumFlags<ViewEntityCollectionFlags> entity_collection_flags = ViewEntityCollectionFlags::DEFAULT;
     Optional<RenderableAttributeSet> override_attributes;
 };
 
@@ -139,6 +135,7 @@ public:
 
     bool TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh = true) const;
 
+    void UpdateVisibility();
     void Update(GameCounter::TickUnit delta);
 
 protected:
@@ -165,8 +162,6 @@ protected:
     Handle<Camera> m_camera;
 
     int m_priority;
-
-    EnumFlags<ViewEntityCollectionFlags> m_entity_collection_flags;
 
     Optional<RenderableAttributeSet> m_override_attributes;
 

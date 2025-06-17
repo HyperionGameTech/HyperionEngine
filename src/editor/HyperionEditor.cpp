@@ -238,6 +238,8 @@ void HyperionEditor::Init()
     Handle<Entity> root_entity = scene->GetEntityManager()->AddEntity();
     scene->GetRoot()->SetEntity(root_entity);
 
+    constexpr auto x = TypeID::ForType<Entity*>();
+
     batch->OnComplete
         .Bind([this, scene](AssetMap& results)
             {

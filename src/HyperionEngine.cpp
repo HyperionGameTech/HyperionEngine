@@ -25,6 +25,7 @@
 #include <streaming/StreamingManager.hpp>
 
 #include <rendering/SafeDeleter.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #ifdef HYP_VULKAN
 #include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
@@ -40,6 +41,14 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
+
+Handle<Engine> g_engine = {};
+Handle<AssetManager> g_asset_manager {};
+ShaderManager* g_shader_manager = nullptr;
+MaterialCache* g_material_system = nullptr;
+SafeDeleter* g_safe_deleter = nullptr;
+IRenderingAPI* g_rendering_api = nullptr;
+RenderGlobalState* g_render_global_state = nullptr;
 
 static CommandLineArguments g_command_line_arguments;
 
@@ -134,6 +143,12 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     ConsoleCommandManager::GetInstance().Initialize();
     AudioManager::GetInstance().Initialize();
 
+#ifdef HYP_VULKAN
+    g_rendering_api = new renderer::VulkanRenderingAPI();
+#else
+#error Unsupported rendering backend
+#endif
+
     g_engine = CreateObject<Engine>();
 
     g_asset_manager = CreateObject<AssetManager>();
@@ -142,12 +157,6 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     g_shader_manager = new ShaderManager;
     g_material_system = new MaterialCache;
     g_safe_deleter = new SafeDeleter;
-
-#ifdef HYP_VULKAN
-    g_rendering_api = new renderer::VulkanRenderingAPI();
-#else
-#error Unsupported rendering backend
-#endif
 
     ComponentInterfaceRegistry::GetInstance().Initialize();
 

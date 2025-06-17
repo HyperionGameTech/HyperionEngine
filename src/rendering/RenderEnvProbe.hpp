@@ -149,8 +149,6 @@ private:
 
     void UpdateBufferData();
 
-    void SetEnvProbeTexture(uint32 texture_slot);
-
     bool ShouldComputePrefilteredEnvMap() const;
     void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup);
 

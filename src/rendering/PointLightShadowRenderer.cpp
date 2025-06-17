@@ -9,6 +9,7 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderShadowMap.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
@@ -49,7 +50,7 @@ void PointLightShadowRenderer::Init()
 
     AssertThrow(m_render_light);
 
-    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->AllocateShadowMap(
+    RenderShadowMap* shadow_render_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(
         ShadowMapType::POINT_SHADOW_MAP,
         ShadowMapFilterMode::VSM,
         m_extent);
@@ -108,7 +109,7 @@ void PointLightShadowRenderer::OnRemoved()
 
         if (m_parent_scene)
         {
-            if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->FreeShadowMap(shadow_render_map))
+            if (!g_render_global_state->ShadowMapAllocator->FreeShadowMap(shadow_render_map))
             {
                 HYP_LOG(Shadows, Error, "Failed to free shadow map!");
             }

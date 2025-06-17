@@ -299,6 +299,18 @@ private:
 class BindDescriptorSet final : public RHICommandBase
 {
 public:
+    BindDescriptorSet(const DescriptorSetRef& descriptor_set, const GraphicsPipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets = {})
+        : m_descriptor_set(descriptor_set),
+          m_pipeline(pipeline),
+          m_offsets(offsets)
+    {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
+
+        m_bind_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptor_set->GetLayout().GetName());
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index for descriptor set %s", descriptor_set->GetLayout().GetName().LookupString());
+    }
+
     BindDescriptorSet(const DescriptorSetRef& descriptor_set, const GraphicsPipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index)
         : m_descriptor_set(descriptor_set),
           m_pipeline(pipeline),
@@ -310,6 +322,18 @@ public:
         AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
     }
 
+    BindDescriptorSet(const DescriptorSetRef& descriptor_set, const ComputePipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets = {})
+        : m_descriptor_set(descriptor_set),
+          m_pipeline(pipeline),
+          m_offsets(offsets)
+    {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
+
+        m_bind_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptor_set->GetLayout().GetName());
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index for descriptor set %s", descriptor_set->GetLayout().GetName().LookupString());
+    }
+
     BindDescriptorSet(const DescriptorSetRef& descriptor_set, const ComputePipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index)
         : m_descriptor_set(descriptor_set),
           m_pipeline(pipeline),
@@ -319,6 +343,18 @@ public:
         AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
         AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
         AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index");
+    }
+
+    BindDescriptorSet(const DescriptorSetRef& descriptor_set, const RaytracingPipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets = {})
+        : m_descriptor_set(descriptor_set),
+          m_pipeline(pipeline),
+          m_offsets(offsets)
+    {
+        AssertThrowMsg(descriptor_set != nullptr, "Descriptor set must not be null");
+        AssertThrowMsg(descriptor_set->IsCreated(), "Descriptor set is not created yet");
+
+        m_bind_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(descriptor_set->GetLayout().GetName());
+        AssertThrowMsg(m_bind_index != ~0u, "Invalid bind index for descriptor set %s", descriptor_set->GetLayout().GetName().LookupString());
     }
 
     BindDescriptorSet(const DescriptorSetRef& descriptor_set, const RaytracingPipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bind_index)

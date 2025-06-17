@@ -24,6 +24,11 @@ public:
     EnvGridUpdaterSystem(EntityManager& entity_manager);
     virtual ~EnvGridUpdaterSystem() override = default;
 
+    virtual bool RequiresGameThread() const override
+    {
+        return true;
+    }
+
     virtual void OnEntityAdded(const Handle<Entity>& entity) override;
     virtual void OnEntityRemoved(ID<Entity> entity) override;
 

@@ -10,7 +10,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderShadowMap.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -140,11 +140,13 @@ void EnvProbe::CreateView()
     }
 
     m_view = CreateObject<View>(ViewDesc {
-        .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
+        .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
+            | ViewFlags::SKIP_FRUSTUM_CULLING
+            | ViewFlags::SKIP_ENV_PROBES
+            | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
         .camera = m_camera,
-        .entity_collection_flags = (OnlyCollectStaticEntities() ? ViewEntityCollectionFlags::COLLECT_STATIC : ViewEntityCollectionFlags::COLLECT_ALL) | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
         .override_attributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
@@ -230,7 +232,7 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
 
 void EnvProbe::Update(GameCounter::TickUnit delta)
 {
-    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+    Threads::AssertOnThread(g_game_thread);
     AssertReady();
 
     // Ambient probes do not use their own render list,
@@ -272,6 +274,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         m_camera->Update(delta);
 
         AssertThrow(m_view.IsValid());
+        m_view->UpdateVisibility();
         m_view->Update(delta);
 
         typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();

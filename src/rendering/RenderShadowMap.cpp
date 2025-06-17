@@ -3,7 +3,7 @@
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -91,12 +91,6 @@ void ShadowMapAllocator::Initialize()
 
     m_point_light_shadow_map_image_view = g_rendering_api->MakeImageView(m_point_light_shadow_map_image);
     HYPERION_ASSERT_RESULT(m_point_light_shadow_map_image_view->Create());
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), m_atlas_image_view);
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), m_point_light_shadow_map_image_view);
-    }
 }
 
 void ShadowMapAllocator::Destroy()
@@ -108,13 +102,6 @@ void ShadowMapAllocator::Destroy()
     for (ShadowMapAtlas& atlas : m_atlases)
     {
         atlas.Clear();
-    }
-
-    // unset the shadow map texture array in the global descriptor set
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8Array());
-        g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8Array());
     }
 
     SafeRelease(std::move(m_atlas_image));
@@ -269,7 +256,7 @@ void RenderShadowMap::Update_Internal()
 
 GPUBufferHolderBase* RenderShadowMap::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->shadow_map_data;
+    return g_render_global_state->ShadowMaps;
 }
 
 void RenderShadowMap::SetBufferData(const ShadowMapShaderData& buffer_data)

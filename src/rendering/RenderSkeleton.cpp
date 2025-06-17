@@ -2,7 +2,7 @@
 
 #include <rendering/RenderSkeleton.hpp>
 #include <rendering/Buffers.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -51,7 +51,7 @@ void RenderSkeleton::Update_Internal()
 
 GPUBufferHolderBase* RenderSkeleton::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->skeletons;
+    return g_render_global_state->Skeletons;
 }
 
 void RenderSkeleton::UpdateBufferData()

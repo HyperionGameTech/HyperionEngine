@@ -9,7 +9,7 @@
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -54,7 +54,8 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, con
 
 RenderEnvProbe::RenderEnvProbe(EnvProbe* env_probe)
     : m_env_probe(env_probe),
-      m_buffer_data {}
+      m_buffer_data {},
+      m_texture_slot(~0u)
 {
     if (!m_env_probe->IsControlledByEnvGrid())
     {
@@ -290,31 +291,6 @@ void RenderEnvProbe::CreateFramebuffer()
     DeferCreate(m_framebuffer);
 }
 
-void RenderEnvProbe::SetEnvProbeTexture(uint32 texture_slot)
-{
-    Threads::AssertOnThread(g_render_thread);
-
-    // update cubemap texture in array of bound env probes
-    AssertThrow(texture_slot != ~0u);
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        if (ShouldComputePrefilteredEnvMap())
-        {
-            AssertThrow(m_prefiltered_env_map.IsValid());
-
-            HYP_LOG(EnvProbe, Debug, "Setting prefiltered env map for EnvProbe {} (slot: {})",
-                m_env_probe->GetID(), texture_slot);
-
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), texture_slot, m_prefiltered_env_map->GetRenderResource().GetImageView());
-        }
-        else
-        {
-            HYP_UNREACHABLE();
-        }
-    }
-}
-
 void RenderEnvProbe::Initialize_Internal()
 {
     HYP_SCOPE;
@@ -337,6 +313,17 @@ void RenderEnvProbe::Initialize_Internal()
 
             m_prefiltered_env_map->SetPersistentRenderResourceEnabled(true);
         }
+
+        AssertDebugMsg(m_texture_slot == ~0u, "Texture slot not released for EnvProbe with ID: #%u", m_env_probe->GetID().Value());
+        m_texture_slot = g_render_global_state->AllocateIndex(RenderGlobalState::ENV_PROBE);
+
+        if (m_texture_slot != ~0u)
+        {
+            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+            {
+                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, m_prefiltered_env_map->GetRenderResource().GetImageView());
+            }
+        }
     }
 }
 
@@ -344,7 +331,17 @@ void RenderEnvProbe::Destroy_Internal()
 {
     HYP_SCOPE;
 
-    // @TODO Clear render collector in a thread-safe way
+    if (m_texture_slot != ~0u)
+    {
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, g_render_global_state->PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView());
+        }
+
+        g_render_global_state->FreeIndex(RenderGlobalState::ENV_PROBE, m_texture_slot);
+
+        m_texture_slot = ~0u;
+    }
 
     m_prefiltered_env_map.Reset();
 }
@@ -360,7 +357,7 @@ void RenderEnvProbe::Update_Internal()
 
 GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->env_probes;
+    return g_render_global_state->EnvProbes;
 }
 
 bool RenderEnvProbe::ShouldComputePrefilteredEnvMap() const
@@ -435,6 +432,8 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         return;
     }
+
+    AssertDebug(m_buffer_index != ~0u);
 
     if (!m_env_probe->NeedsRender())
     {
@@ -572,6 +571,8 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertThrow(render_setup.IsValid());
+
     struct ConvolveProbeUniforms
     {
         Vec2u out_image_dimensions;
@@ -587,9 +588,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
         shader_properties.Set("LIGHTING");
     }
 
-    ShaderRef convolve_probe_shader = g_shader_manager->GetOrCreate(
-        NAME("ConvolveProbe"),
-        shader_properties);
+    ShaderRef convolve_probe_shader = g_shader_manager->GetOrCreate(NAME("ConvolveProbe"), shader_properties);
 
     if (!convolve_probe_shader)
     {
@@ -656,10 +655,10 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
 
         descriptor_set->SetElement(NAME("UniformBuffer"), uniform_buffer);
         descriptor_set->SetElement(NAME("ColorTexture"), color_attachment->GetImageView());
-        descriptor_set->SetElement(NAME("NormalsTexture"), normals_attachment ? normals_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-        descriptor_set->SetElement(NAME("MomentsTexture"), moments_attachment ? moments_attachment->GetImageView() : g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-        descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
-        descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+        descriptor_set->SetElement(NAME("NormalsTexture"), normals_attachment ? normals_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("MomentsTexture"), moments_attachment ? moments_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
+        descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
         descriptor_set->SetElement(NAME("OutImage"), m_prefiltered_env_map->GetRenderResource().GetImageView());
     }
 
@@ -670,9 +669,12 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
 
     RenderEnvProbe* fallback_env_probe = nullptr;
 
-    if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+    if (render_setup.HasView())
     {
-        fallback_env_probe = sky_env_probes.Front();
+        if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+        {
+            fallback_env_probe = sky_env_probes.Front();
+        }
     }
 
     frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -777,9 +779,9 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
             const DescriptorSetRef& compute_sh_descriptor_set = compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
             AssertThrow(compute_sh_descriptor_set != nullptr);
 
-            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
-            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_engine->GetPlaceholderData()->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+            compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
             compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), sh_tiles_buffers[i]);
 
             if (i != sh_num_levels - 1)
@@ -812,19 +814,18 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
     AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
 
-    /// FIXME: sky
-    // const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-
-    // Bind a directional light
+    // Bind a directional light and sky envprobe if available
+    RenderEnvProbe* sky_env_probe = nullptr;
     RenderLight* render_light = nullptr;
 
+    if (const Array<RenderLight*>& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL); directional_lights.Any())
     {
-        auto& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL);
+        render_light = directional_lights.Front();
+    }
 
-        if (directional_lights.Any())
-        {
-            render_light = directional_lights.Front();
-        }
+    if (const Array<RenderEnvProbe*>& sky_env_probes = m_render_view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+    {
+        sky_env_probe = sky_env_probes.Front();
     }
 
     const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
@@ -874,7 +875,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         renderer::ShaderModuleType::COMPUTE);
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -884,7 +885,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Clear")].second);
@@ -901,7 +902,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("BuildCoeffs")].second);
@@ -946,7 +947,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
                         { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetBufferIndex() : 0) } } } },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
                 frame->GetFrameIndex());
 
             async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Reduce")].second);
@@ -963,7 +964,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         renderer::ShaderModuleType::COMPUTE);
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -975,14 +976,14 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);
     async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Finalize")].second, Vec3u { 1, 1, 1 });
 
     async_compute_command_list.Add<InsertBarrier>(
-        g_engine->GetRenderData()->env_probes->GetBuffer(frame->GetFrameIndex()),
+        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
         renderer::ResourceState::UNORDERED_ACCESS,
         renderer::ShaderModuleType::COMPUTE);
 
@@ -993,7 +994,7 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
 
             EnvProbeShaderData readback_buffer;
 
-            g_engine->GetRenderData()->env_probes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
+            g_render_global_state->EnvProbes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
 
             Memory::MemCpy(resource_handle->m_spherical_harmonics.values, readback_buffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
 

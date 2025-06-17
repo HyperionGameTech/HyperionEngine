@@ -13,7 +13,7 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderTexture.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
@@ -218,7 +218,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
             const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
             AssertThrow(descriptor_set.IsValid());
 
-            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
+            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
 
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
             descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetRenderResource().GetImageView());

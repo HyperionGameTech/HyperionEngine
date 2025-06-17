@@ -35,19 +35,6 @@ void HandleSignal(int signum)
 
     DebugLog(LogType::Debug, "%s\n", StackDump().ToString().Data());
 
-    if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED))
-    {
-        DebugLog(
-            LogType::Warn,
-            "Forcing stop\n");
-
-        fflush(stdout);
-
-        exit(signum);
-
-        return;
-    }
-
     g_engine->RequestStop();
 
     // Wait for the render loop to stop

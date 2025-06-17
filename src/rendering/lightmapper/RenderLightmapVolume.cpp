@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -57,7 +57,7 @@ void RenderLightmapVolume::Update_Internal()
 
 GPUBufferHolderBase* RenderLightmapVolume::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->lightmap_volumes;
+    return g_render_global_state->LightmapVolumes;
 }
 
 void RenderLightmapVolume::SetBufferData(const LightmapVolumeShaderData& buffer_data)

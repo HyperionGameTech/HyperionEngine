@@ -2,7 +2,7 @@
 
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/Renderer.hpp>
 
@@ -57,7 +57,7 @@ void RenderCamera::Update_Internal()
 
 GPUBufferHolderBase* RenderCamera::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->cameras;
+    return g_render_global_state->Cameras;
 }
 
 void RenderCamera::UpdateBufferData()
@@ -144,7 +144,7 @@ void RenderCamera::ApplyJitter(const RenderSetup& render_setup)
 
         buffer_data.jitter = jitter * jitter_scale;
 
-        g_engine->GetRenderData()->cameras->MarkDirty(m_buffer_index);
+        g_render_global_state->Cameras->MarkDirty(m_buffer_index);
     }
 }
 

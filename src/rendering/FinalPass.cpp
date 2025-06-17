@@ -10,6 +10,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>
@@ -79,7 +80,7 @@ struct RENDER_COMMAND(SetUILayerImageView)
                 }
                 else
                 {
-                    descriptor_set->SetElement(NAME("InTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+                    descriptor_set->SetElement(NAME("InTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
                 }
             }
         }
@@ -153,7 +154,7 @@ void FinalPass::Create()
         }
         else
         {
-            descriptor_set->SetElement(NAME("InTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("InTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
     }
 

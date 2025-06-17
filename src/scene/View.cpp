@@ -52,7 +52,6 @@ View::View(const ViewDesc& view_desc)
       m_scenes(view_desc.scenes),
       m_camera(view_desc.camera),
       m_priority(view_desc.priority),
-      m_entity_collection_flags(view_desc.entity_collection_flags),
       m_override_attributes(view_desc.override_attributes)
 {
 }
@@ -122,30 +121,45 @@ bool View::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
     return has_hits;
 }
 
+void View::UpdateVisibility()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+    AssertReady();
+
+    if (!m_camera.IsValid())
+    {
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot update visibility!", GetID().Value());
+        return;
+    }
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        scene->GetOctree().CalculateVisibility(m_camera);
+    }
+}
+
 void View::Update(GameCounter::TickUnit delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}",
+    CollectLights();
+    CollectLightmapVolumes();
+    CollectEnvGrids();
+    CollectEnvProbes();
+    m_last_collection_result = CollectEntities();
+
+    // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}, EnvGrids: {}, EnvProbes: {}, Lights: {}, Lightmap Volumes: {}",
     //     GetID().Value(),
     //     m_scenes.Size(),
     //     String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
     //                      {
     //                          return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
     //                      }),
-    //         ", "));
-
-    for (const Handle<Scene>& scene : m_scenes)
-    {
-        scene->GetOctree().CalculateVisibility(m_camera);
-    }
-
-    CollectLights();
-    CollectLightmapVolumes();
-    CollectEnvGrids();
-    m_last_collection_result = CollectEntities();
+    //         ", "),
+    //     m_tracked_env_grids.GetCurrentBits().Count(), m_tracked_env_probes.GetCurrentBits().Count(), m_tracked_lights.GetCurrentBits().Count(), m_tracked_lightmap_volumes.GetCurrentBits().Count());
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -218,13 +232,13 @@ typename RenderProxyTracker::Diff View::CollectEntities()
 {
     AssertReady();
 
-    switch (uint32(m_entity_collection_flags & ViewEntityCollectionFlags::COLLECT_ALL))
+    switch (uint32(m_flags & ViewFlags::COLLECT_ALL_ENTITIES))
     {
-    case uint32(ViewEntityCollectionFlags::COLLECT_ALL):
+    case uint32(ViewFlags::COLLECT_ALL_ENTITIES):
         return CollectAllEntities();
-    case uint32(ViewEntityCollectionFlags::COLLECT_DYNAMIC):
+    case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
         return CollectDynamicEntities();
-    case uint32(ViewEntityCollectionFlags::COLLECT_STATIC):
+    case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
         return CollectStaticEntities();
     default:
         HYP_UNREACHABLE();
@@ -244,6 +258,10 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
+    const ID<Camera> camera_id = m_camera->GetID();
+
+    const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -255,10 +273,6 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 
             continue;
         }
-
-        const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
-
-        const ID<Camera> camera_id = m_camera->GetID();
 
         const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
@@ -322,6 +336,10 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
+    const ID<Camera> camera_id = m_camera->GetID();
+
+    const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -333,10 +351,6 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 
             continue;
         }
-
-        const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
-
-        const ID<Camera> camera_id = m_camera->GetID();
 
         const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
@@ -389,6 +403,10 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
         return m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     }
 
+    const ID<Camera> camera_id = m_camera->GetID();
+
+    const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -400,10 +418,6 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
 
             return {};
         }
-
-        const bool skip_frustum_culling = (m_entity_collection_flags & ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING);
-
-        const ID<Camera> camera_id = m_camera->GetID();
 
         const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
@@ -445,6 +459,11 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
 void View::CollectLights()
 {
     HYP_SCOPE;
+
+    if (m_flags & ViewFlags::SKIP_LIGHTS)
+    {
+        return;
+    }
 
     for (const Handle<Scene>& scene : m_scenes)
     {
@@ -500,6 +519,11 @@ void View::CollectLightmapVolumes()
 {
     HYP_SCOPE;
 
+    if (m_flags & ViewFlags::SKIP_LIGHTMAP_VOLUMES)
+    {
+        return;
+    }
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -547,6 +571,11 @@ void View::CollectEnvGrids()
 {
     HYP_SCOPE;
 
+    if (m_flags & ViewFlags::SKIP_ENV_GRIDS)
+    {
+        return;
+    }
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -584,6 +613,11 @@ void View::CollectEnvProbes()
 {
     HYP_SCOPE;
 
+    if (m_flags & ViewFlags::SKIP_ENV_PROBES)
+    {
+        return;
+    }
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
@@ -619,6 +653,7 @@ void View::CollectEnvProbes()
     }
 
     /// TODO: point light Shadow maps
+    /// TODO: Sky
 
     m_render_resource->UpdateTrackedEnvProbes(m_tracked_env_probes);
 }

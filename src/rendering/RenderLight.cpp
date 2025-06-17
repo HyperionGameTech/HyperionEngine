@@ -4,7 +4,7 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderState.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -67,7 +67,7 @@ void RenderLight::Update_Internal()
 
 GPUBufferHolderBase* RenderLight::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->lights;
+    return g_render_global_state->Lights;
 }
 
 void RenderLight::UpdateBufferData()

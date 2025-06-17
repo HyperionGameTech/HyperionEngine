@@ -8,7 +8,7 @@
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -143,11 +143,13 @@ void EnvGrid::Init()
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     m_view = CreateObject<View>(ViewDesc {
-        .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
+        .flags = ViewFlags::COLLECT_STATIC_ENTITIES
+            | ViewFlags::SKIP_FRUSTUM_CULLING
+            | ViewFlags::SKIP_ENV_PROBES
+            | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
         .camera = m_camera,
-        .entity_collection_flags = ViewEntityCollectionFlags::COLLECT_STATIC | ViewEntityCollectionFlags::SKIP_FRUSTUM_CULLING,
         .override_attributes = RenderableAttributeSet(
             MeshAttributes {},
             MaterialAttributes {
@@ -193,7 +195,7 @@ void EnvGrid::CreateEnvProbes()
                         m_parent_scene,
                         env_probe_aabb,
                         probe_dimensions,
-                        EnvProbeType::ENV_PROBE_TYPE_AMBIENT);
+                        EnvProbeType::AMBIENT);
 
                     env_probe->m_grid_slot = index;
 

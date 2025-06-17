@@ -812,7 +812,14 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
                     preserve_case = false;
                 }
 
-                definition.friendly_name = StringUtil::ToPascalCase(definition.name, preserve_case);
+                String name_without_prefix = definition.name;
+
+                if (name_without_prefix.StartsWith("m_") || name_without_prefix.StartsWith("s_") || name_without_prefix.StartsWith("g_"))
+                {
+                    name_without_prefix = name_without_prefix.Substr(2);
+                }
+
+                definition.friendly_name = StringUtil::ToPascalCase(name_without_prefix, preserve_case);
 
                 break;
             }

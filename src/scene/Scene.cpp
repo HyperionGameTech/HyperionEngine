@@ -30,7 +30,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ReflectionProbeRenderer.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>

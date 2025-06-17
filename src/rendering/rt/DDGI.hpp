@@ -146,8 +146,7 @@ public:
     HYP_API void Init();
     HYP_API void Destroy();
 
-    HYP_API void RenderProbes(FrameBase* frame, const RenderSetup& render_setup);
-    HYP_API void ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup);
+    HYP_API void Render(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void CreatePipelines();

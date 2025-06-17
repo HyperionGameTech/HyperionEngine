@@ -411,6 +411,12 @@ constexpr Tuple<Types&&...> ForwardAsTuple(Types&&... values)
 #pragma region Apply
 
 template <class FunctionType, class... Types, SizeType... Indices>
+constexpr auto Apply_Impl(FunctionType&& function, Tuple<Types...>& args, hyperion::utilities::TupleIndices<Indices...>)
+{
+    return function(args.template GetElement<Indices>()...);
+}
+
+template <class FunctionType, class... Types, SizeType... Indices>
 constexpr auto Apply_Impl(FunctionType&& function, const Tuple<Types...>& args, hyperion::utilities::TupleIndices<Indices...>)
 {
     return function(args.template GetElement<Indices>()...);
@@ -428,7 +434,7 @@ constexpr auto Apply(FunctionType&& function, TupleType&& args_tuple)
     return Apply_Impl(
         std::forward<FunctionType>(function),
         std::forward<TupleType>(args_tuple),
-        typename TupleType::Indices {});
+        typename NormalizedType<TupleType>::Indices {});
 }
 
 #pragma endregion Apply

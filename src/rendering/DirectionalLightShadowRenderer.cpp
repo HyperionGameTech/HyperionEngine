@@ -2,7 +2,7 @@
 
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -11,6 +11,7 @@
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderShadowMap.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -34,8 +35,6 @@
 #include <Engine.hpp>
 
 namespace hyperion {
-
-// #define HYP_SHADOW_RENDER_COLLECTION_ASYNC
 
 using renderer::LoadOperation;
 using renderer::StoreOperation;
@@ -294,16 +293,12 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         frame->GetCommandList().Add<Blit>(
             attachment->GetImage(),
             shadow_map_image,
+            Rect<uint32> { 0, 0, GetExtent().x, GetExtent().y },
             Rect<uint32> {
-                .x0 = 0,
-                .y0 = 0,
-                .x1 = GetExtent().x,
-                .y1 = GetExtent().y },
-            Rect<uint32> {
-                .x0 = atlas_element.offset_coords.x,
-                .y0 = atlas_element.offset_coords.y,
-                .x1 = atlas_element.offset_coords.x + atlas_element.dimensions.x,
-                .y1 = atlas_element.offset_coords.y + atlas_element.dimensions.y },
+                atlas_element.offset_coords.x,
+                atlas_element.offset_coords.y,
+                atlas_element.offset_coords.x + atlas_element.dimensions.x,
+                atlas_element.offset_coords.y + atlas_element.dimensions.y },
             0,                        /* src_mip */
             0,                        /* dst_mip */
             0,                        /* src_face */
@@ -387,18 +382,18 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
     InitObject(m_camera);
 
     m_view_statics = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::COLLECT_STATIC_ENTITIES,
         .viewport = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
-        .camera = m_camera,
-        .entity_collection_flags = ViewEntityCollectionFlags::COLLECT_STATIC });
+        .camera = m_camera });
 
     InitObject(m_view_statics);
 
     m_view_dynamics = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::COLLECT_DYNAMIC_ENTITIES,
         .viewport = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
-        .camera = m_camera,
-        .entity_collection_flags = ViewEntityCollectionFlags::COLLECT_DYNAMIC });
+        .camera = m_camera });
 
     InitObject(m_view_dynamics);
 
@@ -413,7 +408,7 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    RenderShadowMap* shadow_render_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_render_map != nullptr, "Failed to allocate shadow map");
 
     m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_render_map);
@@ -460,7 +455,7 @@ void DirectionalLightShadowRenderer::OnRemoved()
 
         m_shadow_map_resource_handle.Reset();
 
-        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->FreeShadowMap(shadow_render_map))
+        if (!g_render_global_state->ShadowMapAllocator->FreeShadowMap(shadow_render_map))
         {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
         }
@@ -488,24 +483,7 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     Octree& octree = m_parent_scene->GetOctree();
 
-#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    Task<typename RenderProxyTracker::Diff> statics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
-        {
-            m_view_statics->Update(delta);
-
-            return m_view_statics->GetLastCollectionResult();
-        });
-
-    Task<void> dynamics_collection_task = TaskSystem::GetInstance().Enqueue([this, delta]
-        {
-            m_view_dynamics->Update(delta);
-        });
-#else
-    m_view_statics->Update(delta);
-    m_view_dynamics->Update(delta);
-
     typename RenderProxyTracker::Diff statics_collection_result = m_view_statics->GetLastCollectionResult();
-#endif
 
     Octree const* fitting_octant = nullptr;
     octree.GetFittingOctant(m_aabb, fitting_octant);
@@ -516,10 +494,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
     }
 
     const HashCode octant_hash_statics = fitting_octant->GetOctantID().GetHashCode().Add(fitting_octant->GetEntryListHash<EntityTag::STATIC>()).Add(fitting_octant->GetEntryListHash<EntityTag::LIGHT>());
-
-#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    typename RenderProxyTracker::Diff statics_collection_result = statics_collection_task.Await();
-#endif
 
     // Need to re-render static objects if:
     // * octant's statics hash code has changed
@@ -540,10 +514,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         m_cached_view_matrix = m_camera->GetViewMatrix();
         m_cached_octant_hash_code_statics = octant_hash_statics;
     }
-
-#ifdef HYP_SHADOW_RENDER_COLLECTION_ASYNC
-    dynamics_collection_task.Await();
-#endif
 
     m_shadow_map_resource_handle->SetBufferData(ShadowMapShaderData {
         .projection = m_camera->GetProjectionMatrix(),

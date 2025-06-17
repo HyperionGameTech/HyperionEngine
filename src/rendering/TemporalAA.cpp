@@ -10,6 +10,7 @@
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -124,8 +125,8 @@ void TemporalAA::CreateComputePipelines()
 
         descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
-        descriptor_set->SetElement(NAME("SamplerLinear"), g_engine->GetPlaceholderData()->GetSamplerLinear());
-        descriptor_set->SetElement(NAME("SamplerNearest"), g_engine->GetPlaceholderData()->GetSamplerNearest());
+        descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
+        descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
 
         descriptor_set->SetElement(NAME("OutColorImage"), (*textures[frame_index % 2])->GetRenderResource().GetImageView());
     }

@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderGroup.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderScene.hpp>

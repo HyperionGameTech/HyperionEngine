@@ -53,61 +53,12 @@ struct WorldShaderData
 class RenderWorld final : public RenderResourceBase
 {
 public:
-    enum IndexAllocatorType
-    {
-        ENV_PROBE = 0,
-
-        MAX
-    };
-
-private:
-    static constexpr uint32 index_allocator_maximums[IndexAllocatorType::MAX] = {
-        16 // ENV_PROBE
-    };
-
-    struct IndexAllocator
-    {
-        uint32 current_index = ~0u;
-        Array<uint32> free_indices;
-
-        uint32 AllocateIndex(uint32 max)
-        {
-            if (free_indices.Empty())
-            {
-                if (current_index >= max)
-                {
-                    return ~0u;
-                }
-
-                current_index++;
-
-                return current_index;
-            }
-            else
-            {
-                const uint32 index = free_indices.PopBack();
-                return index;
-            }
-        }
-
-        void FreeIndex(uint32 index)
-        {
-            free_indices.PushBack(index);
-        }
-    };
-
-public:
     RenderWorld(World* world);
     virtual ~RenderWorld() override;
 
     HYP_FORCE_INLINE World* GetWorld() const
     {
         return m_world;
-    }
-
-    HYP_FORCE_INLINE ShadowMapAllocator* GetShadowMapAllocator() const
-    {
-        return m_shadow_map_manager.Get();
     }
 
     HYP_FORCE_INLINE const Array<TResourceHandle<RenderView>>& GetViews() const
@@ -137,9 +88,6 @@ public:
         return m_buffer_data;
     }
 
-    uint32 AllocateIndex(IndexAllocatorType type);
-    void FreeIndex(IndexAllocatorType type, uint32 index);
-
     void PreRender(FrameBase* frame);
     void Render(FrameBase* frame);
     void PostRender(FrameBase* frame);
@@ -160,15 +108,11 @@ private:
     Array<TResourceHandle<RenderView>> m_render_views;
     Array<TResourceHandle<RenderScene>> m_render_scenes;
 
-    UniquePtr<ShadowMapAllocator> m_shadow_map_manager;
-
     UniquePtr<RenderEnvironment> m_render_environment;
 
     FixedArray<EngineRenderStats, ThreadType::THREAD_TYPE_MAX> m_render_stats;
 
     WorldShaderData m_buffer_data;
-
-    IndexAllocator m_index_allocators[IndexAllocatorType::MAX];
 };
 
 template <>

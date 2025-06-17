@@ -4,6 +4,13 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/logging/LogChannels.hpp>
+#include <core/logging/Logger.hpp>
+
+#include <core/profiling/ProfileScope.hpp>
+
+#include <core/threading/Threads.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion {
@@ -92,7 +99,7 @@ void EngineRenderStatsCalculator::Advance(EngineRenderStats& render_stats)
         m_delta_accum = 0.0;
     }
 
-    Memory::MemSet(m_counts.counts, 0, sizeof(&m_counts.counts[0]) * ERS_MAX);
+    Memory::MemSet(m_counts.counts, 0, sizeof(m_counts.counts[0]) * ERS_MAX);
 }
 
 double EngineRenderStatsCalculator::CalculateFramesPerSecond() const

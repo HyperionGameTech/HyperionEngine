@@ -3,7 +3,7 @@
 #include <ui/UIText.hpp>
 #include <ui/UIStage.hpp>
 
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderConfig.hpp>

@@ -44,7 +44,7 @@ using net::NetRequestThread;
 
 class Game;
 class GameThread;
-class ShaderGlobals;
+class RenderGlobalState;
 class ScriptingService;
 class DebugDrawer;
 class DeferredRenderer;
@@ -56,8 +56,6 @@ class SafeDeleter;
 class RenderState;
 class MaterialDescriptorSetManager;
 class GraphicsPipelineCache;
-
-class GPUBufferHolderMap;
 
 struct EngineDelegates
 {
@@ -99,16 +97,6 @@ public:
     HYP_FORCE_INLINE const Handle<RenderState>& GetRenderState() const
     {
         return m_render_state;
-    }
-
-    HYP_FORCE_INLINE ShaderGlobals* GetRenderData() const
-    {
-        return m_render_data.Get();
-    }
-
-    HYP_FORCE_INLINE PlaceholderData* GetPlaceholderData() const
-    {
-        return m_placeholder_data.Get();
     }
 
     HYP_METHOD()
@@ -158,19 +146,9 @@ public:
         return m_scripting_service.Get();
     }
 
-    HYP_FORCE_INLINE const DescriptorTableRef& GetGlobalDescriptorTable() const
-    {
-        return m_global_descriptor_table;
-    }
-
     HYP_FORCE_INLINE MaterialDescriptorSetManager* GetMaterialDescriptorSetManager()
     {
         return m_material_descriptor_set_manager.Get();
-    }
-
-    HYP_FORCE_INLINE GPUBufferHolderMap* GetGPUBufferHolderMap() const
-    {
-        return m_gpu_buffer_holder_map.Get();
     }
 
     HYP_FORCE_INLINE GraphicsPipelineCache* GetGraphicsPipelineCache() const
@@ -204,8 +182,6 @@ public:
     HYP_API void RenderNextFrame();
     HYP_API void RequestStop();
     
-    AtomicVar<bool> m_stop_requested;
-    
     void FinalizeStop();
     
     Delegate<void, EngineRenderStats> OnRenderStatsUpdated;
@@ -215,9 +191,6 @@ private:
 
     void PreFrameUpdate(FrameBase* frame);
 
-    void CreateBlueNoiseBuffer();
-    void CreateSphereSamplesBuffer();
-
     void FindTextureFormatDefaults();
 
     Handle<AppContextBase> m_app_context;
@@ -226,15 +199,9 @@ private:
 
     ShaderCompiler m_shader_compiler;
 
-    UniquePtr<PlaceholderData> m_placeholder_data;
-
-    DescriptorTableRef m_global_descriptor_table;
-
     UniquePtr<MaterialDescriptorSetManager> m_material_descriptor_set_manager;
 
     RenderView* m_view; // temporary; to be removed after refactoring
-
-    UniquePtr<ShaderGlobals> m_render_data;
 
     Handle<World> m_world;
 
@@ -245,8 +212,6 @@ private:
     UniquePtr<FinalPass> m_final_pass;
 
     UniquePtr<ScriptingService> m_scripting_service;
-
-    UniquePtr<GPUBufferHolderMap> m_gpu_buffer_holder_map;
 
     UniquePtr<GraphicsPipelineCache> m_graphics_pipeline_cache;
 

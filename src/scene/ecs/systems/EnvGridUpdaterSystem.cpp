@@ -40,41 +40,6 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(EnvGrid);
 
-#pragma region EnvGridRenderSubsystem
-
-class EnvGridRenderSubsystem : public RenderSubsystem
-{
-public:
-    EnvGridRenderSubsystem(Name name, const TResourceHandle<RenderEnvGrid>& env_render_grid)
-        : RenderSubsystem(name),
-          m_env_render_grid(env_render_grid)
-    {
-    }
-
-    virtual ~EnvGridRenderSubsystem() override = default;
-
-    virtual void Init() override
-    {
-        // @TODO refactor
-        g_engine->GetRenderState()->BindEnvGrid(TResourceHandle<RenderEnvGrid>(m_env_render_grid));
-    }
-
-    virtual void OnRemoved() override
-    {
-        g_engine->GetRenderState()->UnbindEnvGrid();
-    }
-
-    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override
-    {
-        m_env_render_grid->Render(frame, render_setup);
-    }
-
-private:
-    TResourceHandle<RenderEnvGrid> m_env_render_grid;
-};
-
-#pragma endregion EnvGridRenderSubsystem
-
 #pragma region EnvGridUpdaterSystem
 
 EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager& entity_manager)
@@ -118,9 +83,9 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     InitObject(env_grid_component.env_grid);
 
     env_grid_component.env_render_grid = TResourceHandle<RenderEnvGrid>(env_grid_component.env_grid->GetRenderResource());
-    env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
-        Name::Unique("EnvGridRenderSubsystem"),
-        env_grid_component.env_render_grid);
+    // env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
+    //     Name::Unique("EnvGridRenderSubsystem"),
+    //     env_grid_component.env_render_grid);
 }
 
 void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -131,11 +96,11 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     env_grid_component.env_render_grid.Reset();
 
-    if (env_grid_component.env_grid_render_subsystem)
-    {
-        env_grid_component.env_grid_render_subsystem->RemoveFromEnvironment();
-        env_grid_component.env_grid_render_subsystem.Reset();
-    }
+    // if (env_grid_component.env_grid_render_subsystem)
+    // {
+    //     env_grid_component.env_grid_render_subsystem->RemoveFromEnvironment();
+    //     env_grid_component.env_grid_render_subsystem.Reset();
+    // }
 }
 
 void EnvGridUpdaterSystem::Process(float delta)

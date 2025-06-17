@@ -219,8 +219,7 @@ void RenderEnvironment::RenderDDGIProbes(FrameBase* frame, const RenderSetup& re
 
     if (m_has_ddgi_probes)
     {
-        m_ddgi.RenderProbes(frame, render_setup);
-        m_ddgi.ComputeIrradiance(frame, render_setup);
+        m_ddgi.Render(frame, render_setup);
     }
 }
 

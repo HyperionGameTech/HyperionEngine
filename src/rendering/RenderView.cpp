@@ -19,7 +19,7 @@
 #include <rendering/SSGI.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -451,7 +451,7 @@ void RenderView::CreateDescriptorSets()
 
     Threads::AssertOnThread(g_render_thread);
 
-    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
+    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
     AssertThrow(decl != nullptr);
 
     const renderer::DescriptorSetLayout layout { decl };
@@ -522,7 +522,7 @@ void RenderView::CreateDescriptorSets()
         }
         else
         {
-            descriptor_set->SetElement(NAME("SSRResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("SSRResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
 
         if (m_ssgi)
@@ -531,7 +531,7 @@ void RenderView::CreateDescriptorSets()
         }
         else
         {
-            descriptor_set->SetElement(NAME("SSGIResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("SSGIResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
 
         if (m_hbao)
@@ -540,7 +540,7 @@ void RenderView::CreateDescriptorSets()
         }
         else
         {
-            descriptor_set->SetElement(NAME("SSAOResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            descriptor_set->SetElement(NAME("SSAOResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
 
         descriptor_set->SetElement(NAME("DeferredResult"), m_combine_pass->GetFinalImageView());
@@ -551,11 +551,6 @@ void RenderView::CreateDescriptorSets()
 
         descriptor_set->SetElement(NAME("EnvGridRadianceResultTexture"), m_env_grid_radiance_pass->GetFinalImageView());
         descriptor_set->SetElement(NAME("EnvGridIrradianceResultTexture"), m_env_grid_irradiance_pass->GetFinalImageView());
-
-        for (uint32 i = 0; i < max_bound_reflection_probes; i++)
-        {
-            descriptor_set->SetElement(NAME("EnvProbeTextures"), i, g_engine->GetPlaceholderData()->DefaultTexture2D->GetRenderResource().GetImageView());
-        }
 
         HYPERION_ASSERT_RESULT(descriptor_set->Create());
 
@@ -1020,6 +1015,11 @@ void RenderView::UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGri
                     RenderEnvGrid* render_env_grid = *element_ptr;
                     AssertDebug(render_env_grid);
 
+                    auto it = m_env_grids.Find(render_env_grid);
+                    AssertDebug(it != m_env_grids.End());
+
+                    m_env_grids.Erase(it);
+
                     m_tracked_env_grids.MarkToRemove(id);
 
                     render_env_grid->DecRef();
@@ -1028,6 +1028,10 @@ void RenderView::UpdateTrackedEnvGrids(ResourceTracker<ID<EnvGrid>, RenderEnvGri
 
             for (RenderEnvGrid* render_env_grid : added)
             {
+                AssertDebug(!m_env_grids.Contains(render_env_grid));
+
+                m_env_grids.PushBack(render_env_grid);
+
                 m_tracked_env_grids.Track(render_env_grid->GetEnvGrid()->GetID(), render_env_grid);
             }
 
@@ -1127,6 +1131,19 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     }
 
     const uint32 frame_index = frame->GetFrameIndex();
+
+    // for (RenderEnvGrid* env_grid : m_env_grids)
+    // {
+    //     env_grid->Render(frame, render_setup);
+    // }
+
+    // for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
+    // {
+    //     for (RenderEnvProbe* env_probe : m_env_probes[env_probe_type])
+    //     {
+    //         env_probe->Render(frame, render_setup);
+    //     }
+    // }
 
     g_engine->GetRenderState()->BindCamera(m_render_camera);
 

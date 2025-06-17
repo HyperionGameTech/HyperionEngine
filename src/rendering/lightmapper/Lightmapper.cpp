@@ -3,7 +3,7 @@
 #include <rendering/lightmapper/Lightmapper.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderState.hpp>
@@ -597,8 +597,8 @@ void LightmapGPUPathTracer::Create()
         descriptor_set->SetElement(NAME("HitsBuffer"), m_hits_buffer_gpu);
         descriptor_set->SetElement(NAME("RaysBuffer"), m_rays_buffers[frame_index]);
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
 
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }

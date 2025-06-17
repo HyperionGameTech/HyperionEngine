@@ -5,7 +5,7 @@
 
 #include <core/math/Halton.hpp>
 
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 

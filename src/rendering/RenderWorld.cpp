@@ -4,13 +4,14 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderEnvProbe.hpp>
+#include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderShadowMap.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/Renderer.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -22,6 +23,7 @@
 
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <Engine.hpp>
 
@@ -31,7 +33,6 @@ namespace hyperion {
 
 RenderWorld::RenderWorld(World* world)
     : m_world(world),
-      m_shadow_map_manager(MakeUnique<ShadowMapAllocator>()),
       m_render_environment(MakeUnique<RenderEnvironment>()),
       m_buffer_data {}
 {
@@ -194,7 +195,6 @@ void RenderWorld::Initialize_Internal()
 
     HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with ID: {}", m_world->GetID());
 
-    m_shadow_map_manager->Initialize();
     m_render_environment->Initialize();
 
     UpdateBufferData();
@@ -205,8 +205,6 @@ void RenderWorld::Destroy_Internal()
     HYP_SCOPE;
 
     m_render_views.Clear();
-
-    m_shadow_map_manager->Destroy();
 }
 
 void RenderWorld::Update_Internal()
@@ -244,40 +242,7 @@ void RenderWorld::UpdateBufferData()
 
 GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
 {
-    return g_engine->GetRenderData()->worlds;
-}
-
-uint32 RenderWorld::AllocateIndex(IndexAllocatorType type)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertDebug(type < IndexAllocatorType::MAX);
-
-    uint32 index = m_index_allocators[type].AllocateIndex(index_allocator_maximums[type]);
-
-    if (index == ~0u)
-    {
-        HYP_LOG(Rendering, Error, "Failed to allocate index for type {}. Maximum index limit reached: {}", type, index_allocator_maximums[type]);
-    }
-
-    return index;
-}
-
-void RenderWorld::FreeIndex(IndexAllocatorType type, uint32 index)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertDebug(type < IndexAllocatorType::MAX);
-
-    if (index >= index_allocator_maximums[type])
-    {
-        HYP_LOG(Rendering, Error, "Attempted to free index {} for type {}, but it exceeds the maximum index limit: {}", index, type, index_allocator_maximums[type]);
-        return;
-    }
-
-    m_index_allocators[type].FreeIndex(index);
+    return g_render_global_state->Worlds;
 }
 
 void RenderWorld::PreRender(FrameBase* frame)
@@ -299,6 +264,44 @@ void RenderWorld::Render(FrameBase* frame)
     const RenderSetup render_setup { this, nullptr };
 
     m_render_environment->RenderSubsystems(frame, render_setup);
+
+    // Collect view-independent renderable types from all views
+    HashSet<RenderEnvProbe*> env_probes;
+    HashSet<RenderEnvGrid*> env_grids;
+
+    for (const TResourceHandle<RenderView>& current_view : m_render_views)
+    {
+        for (RenderEnvGrid* env_grid : current_view->GetEnvGrids())
+        {
+            env_grids.Insert(env_grid);
+        }
+
+        for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
+        {
+            const Array<RenderEnvProbe*>& probes = current_view->GetEnvProbes(EnvProbeType(env_probe_type));
+
+            for (RenderEnvProbe* probe : probes)
+            {
+                env_probes.Insert(probe);
+            }
+        }
+    }
+
+    if (env_grids.Any())
+    {
+        for (RenderEnvGrid* env_grid : env_grids)
+        {
+            env_grid->Render(frame, render_setup);
+        }
+    }
+
+    if (env_probes.Any())
+    {
+        for (RenderEnvProbe* env_probe : env_probes)
+        {
+            env_probe->Render(frame, render_setup);
+        }
+    }
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {

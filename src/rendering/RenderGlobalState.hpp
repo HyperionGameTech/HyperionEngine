@@ -1,0 +1,111 @@
+/* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
+
+#ifndef HYPERION_RENDER_GLOBAL_STATE_HPP
+#define HYPERION_RENDER_GLOBAL_STATE_HPP
+
+#include <core/memory/UniquePtr.hpp>
+
+#include <rendering/Buffers.hpp>
+#include <rendering/Bindless.hpp>
+
+#include <rendering/backend/RenderObject.hpp>
+#include <rendering/backend/RendererShader.hpp>
+#include <rendering/backend/RendererBuffer.hpp>
+
+namespace hyperion {
+
+class Engine;
+class Entity;
+class ShadowMapAllocator;
+class GPUBufferHolderMap;
+class PlaceholderData;
+
+class RenderGlobalState
+{
+public:
+    enum IndexAllocatorType
+    {
+        ENV_PROBE = 0,
+        MAX
+    };
+
+private:
+    static constexpr uint32 index_allocator_maximums[IndexAllocatorType::MAX] = {
+        16 // ENV_PROBE
+    };
+
+    struct IndexAllocator
+    {
+        uint32 current_index = ~0u;
+        Array<uint32> free_indices;
+
+        uint32 AllocateIndex(uint32 max)
+        {
+            if (free_indices.Empty())
+            {
+                if (current_index >= max)
+                {
+                    return ~0u;
+                }
+
+                current_index++;
+
+                return current_index;
+            }
+            else
+            {
+                const uint32 index = free_indices.PopBack();
+                return index;
+            }
+        }
+
+        void FreeIndex(uint32 index)
+        {
+            free_indices.PushBack(index);
+        }
+    };
+
+public:
+    RenderGlobalState();
+    RenderGlobalState(const RenderGlobalState& other) = delete;
+    RenderGlobalState& operator=(const RenderGlobalState& other) = delete;
+    ~RenderGlobalState();
+
+    void Create();
+    void Destroy();
+    void UpdateBuffers(FrameBase* frame);
+
+    uint32 AllocateIndex(IndexAllocatorType type);
+    void FreeIndex(IndexAllocatorType type, uint32 index);
+
+    GPUBufferHolderBase* Worlds;
+    GPUBufferHolderBase* Cameras;
+    GPUBufferHolderBase* Lights;
+    GPUBufferHolderBase* Entities;
+    GPUBufferHolderBase* Materials;
+    GPUBufferHolderBase* Skeletons;
+    GPUBufferHolderBase* ShadowMaps;
+    GPUBufferHolderBase* EnvProbes;
+    GPUBufferHolderBase* EnvGrids;
+    GPUBufferHolderBase* LightmapVolumes;
+
+    BindlessStorage BindlessTextures;
+
+    UniquePtr<class ShadowMapAllocator> ShadowMapAllocator;
+    UniquePtr<class GPUBufferHolderMap> GPUBufferHolderMap;
+    UniquePtr<PlaceholderData> PlaceholderData;
+
+    DescriptorTableRef GlobalDescriptorTable;
+
+private:
+    void CreateBlueNoiseBuffer();
+    void CreateSphereSamplesBuffer();
+
+    void SetDefaultDescriptorSetElements(uint32 frame_index);
+
+    IndexAllocator m_index_allocators[IndexAllocatorType::MAX];
+};
+
+} // namespace hyperion
+
+#endif

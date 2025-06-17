@@ -140,6 +140,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
             material_attributes.flags = MaterialAttributeFlags::DEPTH_TEST;
 
             material = CreateObject<Material>(NAME("SkyboxMaterial"), material_attributes);
+            /// FIXME: Change to EnvProbe's PrefilteredEnvMap
             material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.render_subsystem->GetCubemap());
 
             InitObject(material);

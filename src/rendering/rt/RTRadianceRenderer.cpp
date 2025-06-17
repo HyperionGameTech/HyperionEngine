@@ -2,7 +2,7 @@
 
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/rt/DDGI.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
@@ -54,7 +54,7 @@ struct RENDER_COMMAND(SetRTRadianceImageInGlobalDescriptorSet)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("RTRadianceResultTexture"), image_views[frame_index]);
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("RTRadianceResultTexture"), image_views[frame_index]);
         }
 
         HYPERION_RETURN_OK;
@@ -73,7 +73,7 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)
         // remove result image from global descriptor set
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("RTRadianceResultTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("RTRadianceResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
 
         return result;
@@ -304,8 +304,8 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
         descriptor_set->SetElement(NAME("OutputImage"), m_texture->GetRenderResource().GetImageView());
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }
 

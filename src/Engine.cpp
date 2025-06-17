@@ -5,12 +5,10 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/GPUBufferHolderMap.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderView.hpp>
-#include <rendering/PlaceholderData.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
@@ -67,8 +65,6 @@
 
 #include <scripting/ScriptingService.hpp>
 
-#include <util/BlueNoise.hpp>
-
 #include <HyperionEngine.hpp>
 
 #define HYP_LOG_FRAMES_PER_SECOND
@@ -78,14 +74,6 @@ namespace hyperion {
 
 using renderer::FillMode;
 using renderer::GPUBufferType;
-
-Handle<Engine> g_engine = {};
-Handle<AssetManager> g_asset_manager {};
-// Handle<StreamingManager> g_streaming_manager {};
-ShaderManager* g_shader_manager = nullptr;
-MaterialCache* g_material_system = nullptr;
-SafeDeleter* g_safe_deleter = nullptr;
-IRenderingAPI* g_rendering_api = nullptr;
 
 namespace renderer {
 static struct GlobalDescriptorSetsDeclarations
@@ -240,8 +228,6 @@ HYP_API void Engine::Init()
     //                                                        })
     //     .Detach();
 
-    RenderObjectDeleter<renderer::Platform::current>::Initialize();
-
     TaskSystem::GetInstance().Start();
 
     AssertThrow(g_rendering_api != nullptr);
@@ -254,8 +240,6 @@ HYP_API void Engine::Init()
             })
         .Detach();
 
-    m_global_descriptor_table = g_rendering_api->MakeDescriptorTable(&renderer::GetStaticDescriptorTableDeclaration());
-
     // Update app configuration to reflect device, after instance is created (e.g RT is not supported)
     m_app_context->UpdateConfigurationOverrides();
 
@@ -266,14 +250,6 @@ HYP_API void Engine::Init()
     {
         HYP_FAIL("Failed to load shaders from definitions file!");
     }
-
-    m_gpu_buffer_holder_map = MakeUnique<GPUBufferHolderMap>();
-
-    m_render_data = MakeUnique<ShaderGlobals>();
-    m_render_data->Create();
-
-    m_placeholder_data = MakeUnique<PlaceholderData>();
-    m_placeholder_data->Create();
 
     m_render_state = CreateObject<RenderState>();
     InitObject(m_render_state);
@@ -306,68 +282,6 @@ HYP_API void Engine::Init()
             /* enabled */ true });
     }
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        // Global
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("WorldsBuffer"), GetRenderData()->worlds->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightsBuffer"), GetRenderData()->lights->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CurrentLight"), GetRenderData()->lights->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ObjectsBuffer"), GetRenderData()->objects->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CamerasBuffer"), GetRenderData()->cameras->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvGridsBuffer"), GetRenderData()->env_grids->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbesBuffer"), GetRenderData()->env_probes->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CurrentEnvProbe"), GetRenderData()->env_probes->GetBuffer(frame_index));
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("VoxelGridTexture"), GetPlaceholderData()->GetImageView3D1x1x1R8());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldColorTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("BlueNoiseBuffer"), GPUBufferRef::Null());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SphereSamplesBuffer"), GPUBufferRef::Null());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsTextureArray"), GetPlaceholderData()->GetImageView2D1x1R8Array());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("PointLightShadowMapsTextureArray"), GetPlaceholderData()->GetImageViewCube1x1R8Array());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("ShadowMapsBuffer"), GetRenderData()->shadow_map_data->GetBuffer(frame_index));
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightmapVolumesBuffer"), GetRenderData()->lightmap_volumes->GetBuffer(frame_index));
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), GetPlaceholderData()->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms), true /* exact size */));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("RTRadianceResultTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SamplerNearest"), GetPlaceholderData()->GetSamplerNearest());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("SamplerLinear"), GetPlaceholderData()->GetSamplerLinearMipmap());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("UITexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("FinalOutputTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        // Object
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("CurrentObject"), GetRenderData()->objects->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("MaterialsBuffer"), GetRenderData()->materials->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("SkeletonsBuffer"), GetRenderData()->skeletons->GetBuffer(frame_index));
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeIrradianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-        m_global_descriptor_table->GetDescriptorSet(NAME("Object"), frame_index)->SetElement(NAME("LightmapVolumeRadianceTexture"), GetPlaceholderData()->GetImageView2D1x1R8());
-
-        // Material
-        if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
-        {
-            for (uint32 texture_index = 0; texture_index < max_bindless_resources; texture_index++)
-            {
-                m_global_descriptor_table->GetDescriptorSet(NAME("Material"), frame_index)
-                    ->SetElement(NAME("Textures"), texture_index, GetPlaceholderData()->GetImageView2D1x1R8());
-            }
-        }
-    }
-
-    CreateBlueNoiseBuffer();
-    CreateSphereSamplesBuffer();
-
-    HYPERION_ASSERT_RESULT(m_global_descriptor_table->Create());
-
     m_material_descriptor_set_manager = MakeUnique<MaterialDescriptorSetManager>();
     m_material_descriptor_set_manager->Initialize();
 
@@ -388,73 +302,6 @@ HYP_API void Engine::Init()
     m_world = CreateObject<World>();
 
     SetReady(true);
-}
-
-void Engine::CreateBlueNoiseBuffer()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    static_assert(sizeof(BlueNoiseBuffer::sobol_256spp_256d) == sizeof(BlueNoise::sobol_256spp_256d));
-    static_assert(sizeof(BlueNoiseBuffer::scrambling_tile) == sizeof(BlueNoise::scrambling_tile));
-    static_assert(sizeof(BlueNoiseBuffer::ranking_tile) == sizeof(BlueNoise::ranking_tile));
-
-    constexpr SizeType blue_noise_buffer_size = sizeof(BlueNoiseBuffer);
-
-    constexpr SizeType sobol_256spp_256d_offset = offsetof(BlueNoiseBuffer, sobol_256spp_256d);
-    constexpr SizeType sobol_256spp_256d_size = sizeof(BlueNoise::sobol_256spp_256d);
-    constexpr SizeType scrambling_tile_offset = offsetof(BlueNoiseBuffer, scrambling_tile);
-    constexpr SizeType scrambling_tile_size = sizeof(BlueNoise::scrambling_tile);
-    constexpr SizeType ranking_tile_offset = offsetof(BlueNoiseBuffer, ranking_tile);
-    constexpr SizeType ranking_tile_size = sizeof(BlueNoise::ranking_tile);
-
-    static_assert(blue_noise_buffer_size == (sobol_256spp_256d_offset + sobol_256spp_256d_size) + ((scrambling_tile_offset - (sobol_256spp_256d_offset + sobol_256spp_256d_size)) + scrambling_tile_size) + ((ranking_tile_offset - (scrambling_tile_offset + scrambling_tile_size)) + ranking_tile_size));
-
-    GPUBufferRef blue_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
-    HYPERION_ASSERT_RESULT(blue_noise_buffer->Create());
-    blue_noise_buffer->Copy(sobol_256spp_256d_offset, sobol_256spp_256d_size, &BlueNoise::sobol_256spp_256d[0]);
-    blue_noise_buffer->Copy(scrambling_tile_offset, scrambling_tile_size, &BlueNoise::scrambling_tile[0]);
-    blue_noise_buffer->Copy(ranking_tile_offset, ranking_tile_size, &BlueNoise::ranking_tile[0]);
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("BlueNoiseBuffer"), blue_noise_buffer);
-    }
-}
-
-void Engine::CreateSphereSamplesBuffer()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
-    HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create());
-
-    Vec4f* sphere_samples = new Vec4f[4096];
-
-    uint32 seed = 0;
-
-    for (uint32 i = 0; i < 4096; i++)
-    {
-        Vec3f sample = MathUtil::RandomInSphere(Vec3f {
-            MathUtil::RandomFloat(seed),
-            MathUtil::RandomFloat(seed),
-            MathUtil::RandomFloat(seed) });
-
-        sphere_samples[i] = Vec4f(sample, 0.0f);
-    }
-
-    sphere_samples_buffer->Copy(sizeof(Vec4f) * 4096, sphere_samples);
-
-    delete[] sphere_samples;
-
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)
-            ->SetElement(NAME("SphereSamplesBuffer"), sphere_samples_buffer);
-    }
 }
 
 bool Engine::IsRenderLoopActive() const
@@ -570,20 +417,11 @@ void Engine::FinalizeStop()
 
     m_debug_drawer.Reset();
 
-    m_gpu_buffer_holder_map.Reset();
-
     m_render_state.Reset();
-
-    m_render_data->Destroy();
 
     m_final_pass.Reset();
 
-    HYPERION_ASSERT_RESULT(m_global_descriptor_table->Destroy());
-
-    m_placeholder_data->Destroy();
-
     g_safe_deleter->ForceDeleteAll();
-    RenderObjectDeleter<renderer::Platform::current>::RemoveAllNow(/* force */ true);
 
     m_render_thread->Join();
     m_render_thread.Reset();
@@ -610,11 +448,7 @@ HYP_API void Engine::RenderNextFrame()
 
         m_final_pass->Render(frame, &m_world->GetRenderResource());
 
-        for (auto& it : m_gpu_buffer_holder_map->GetItems())
-        {
-            it.second->UpdateBufferSize(frame->GetFrameIndex());
-            it.second->UpdateBufferData(frame->GetFrameIndex());
-        }
+        g_render_global_state->UpdateBuffers(frame);
 
         m_world->GetRenderResource().PostRender(frame);
     }
@@ -642,7 +476,7 @@ void Engine::PreFrameUpdate(FrameBase* frame)
 
     g_safe_deleter->PerformEnqueuedDeletions();
 
-    m_render_state->ResetStates(RENDER_STATE_ACTIVE_ENV_PROBE | RENDER_STATE_ACTIVE_LIGHT);
+    m_render_state->ResetStates(RENDER_STATE_ACTIVE_LIGHT);
 }
 
 #pragma endregion Engine

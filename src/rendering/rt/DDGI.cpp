@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/rt/DDGI.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
@@ -62,11 +62,11 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), uniform_buffer);
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), uniform_buffer);
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), irradiance_image_view);
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), irradiance_image_view);
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), depth_image_view);
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), depth_image_view);
         }
 
         HYPERION_RETURN_OK;
@@ -87,9 +87,9 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors)
         // remove result image from global descriptor set
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
         }
 
         HYPERION_RETURN_OK;
@@ -225,8 +225,8 @@ void DDGI::CreatePipelines()
 
         descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_engine->GetRenderData()->lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_engine->GetRenderData()->materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(NAME("DDGIUniforms"), m_uniform_buffer);
@@ -424,13 +424,14 @@ void DDGI::UpdateUniforms(FrameBase* frame)
     m_uniforms.params[2] &= ~PROBE_SYSTEM_FLAGS_FIRST_RUN;
 }
 
-void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
+void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     Threads::AssertOnThread(g_render_thread);
 
-    UpdateUniforms(frame);
+    AssertThrow(render_setup.IsValid());
+    AssertThrow(render_setup.HasView());
 
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
+    UpdateUniforms(frame);
 
     frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
 
@@ -460,6 +461,11 @@ void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
+    // bind per-view descriptor sets
+    frame->GetCommandList().Add<BindDescriptorSet>(
+        render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+        m_pipeline);
+
     frame->GetCommandList().Add<TraceRays>(
         m_pipeline,
         Vec3u {
@@ -470,14 +476,8 @@ void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
     frame->GetCommandList().Add<InsertBarrier>(
         m_radiance_buffer,
         ResourceState::UNORDERED_ACCESS);
-}
 
-void DDGI::ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup)
-{
-    Threads::AssertOnThread(g_render_thread);
-
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    // Compute irradiance for ray traced probes
 
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
@@ -512,7 +512,7 @@ void DDGI::ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup)
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
@@ -546,7 +546,7 @@ void DDGI::ComputeIrradiance(FrameBase* frame, const RenderSetup& render_setup)
                 NAME("Global"),
                 {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_render_grid.Get(), 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe.Get(), 0) }
                 }

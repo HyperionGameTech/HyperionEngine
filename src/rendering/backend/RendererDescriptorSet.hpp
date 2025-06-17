@@ -69,7 +69,7 @@ struct ShaderDataOffset
 
     HYP_FORCE_INLINE operator uint32() const
     {
-        AssertDebugMsg(index != invalid_index, "Index was ~0u when converting to uint32");
+        AssertDebugMsg(index != invalid_index, "Index was ~0u when converting to uint32 for ShaderDataOffset<%s>", TypeName<T>().Data());
 
         return uint32(sizeof(T) * index);
     }

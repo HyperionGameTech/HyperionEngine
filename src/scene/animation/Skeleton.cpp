@@ -5,7 +5,7 @@
 #include <scene/animation/Animation.hpp>
 
 #include <rendering/RenderSkeleton.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
 #include <core/object/HypClassUtils.hpp>

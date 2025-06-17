@@ -3,7 +3,7 @@
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderProxy.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderCamera.hpp>

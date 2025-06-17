@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/RenderTexture.hpp>
-#include <rendering/ShaderGlobals.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/FullScreenPass.hpp>
 #include <rendering/RenderGroup.hpp>
 #include <rendering/RenderMesh.hpp>
@@ -145,7 +145,7 @@ struct RENDER_COMMAND(CreateTexture)
 
             if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
             {
-                g_engine->GetRenderData()->textures.AddResource(texture.GetID(), image_view);
+                g_render_global_state->BindlessTextures.AddResource(texture.GetID(), image_view);
             }
         }
 
@@ -178,7 +178,7 @@ struct RENDER_COMMAND(DestroyTexture)
 
         if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
         {
-            g_engine->GetRenderData()->textures.RemoveResource(texture.GetID());
+            g_render_global_state->BindlessTextures.RemoveResource(texture.GetID());
         }
 
         HYPERION_RETURN_OK;

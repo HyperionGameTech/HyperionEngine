@@ -84,7 +84,7 @@ void PostFXPass::CreateDescriptors()
     //     : NAME("PostFXPostStack");
 
     // for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++) {
-    //     g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)
+    //     g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
     //         ->SetElement(descriptor_name, m_effect_index, m_framebuffer->GetAttachment(0)->GetImageView());
     // }
 }

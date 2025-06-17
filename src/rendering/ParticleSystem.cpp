@@ -18,6 +18,7 @@
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -238,7 +239,7 @@ void ParticleSpawner::CreateRenderGroup()
         AssertThrow(descriptor_set != nullptr);
 
         descriptor_set->SetElement(NAME("ParticlesBuffer"), m_particle_buffer);
-        descriptor_set->SetElement(NAME("ParticleTexture"), m_params.texture ? m_params.texture->GetRenderResource().GetImageView() : g_engine->GetPlaceholderData()->GetImageView2D1x1R8());
+        descriptor_set->SetElement(NAME("ParticleTexture"), m_params.texture ? m_params.texture->GetRenderResource().GetImageView() : g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(descriptor_table);
