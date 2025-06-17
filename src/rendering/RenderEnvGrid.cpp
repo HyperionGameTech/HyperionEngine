@@ -11,7 +11,6 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Shadows.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
@@ -988,53 +987,47 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
         }
     }
 
-    g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(probe->GetRenderResource()));
+    RenderSetup new_render_setup = render_setup;
+    new_render_setup.env_probe = &probe->GetRenderResource();
 
     m_render_view->GetRenderCollector().CollectDrawCalls(
         frame,
-        render_setup,
+        new_render_setup,
         Bitset((1 << BUCKET_OPAQUE)));
 
     m_render_view->GetRenderCollector().ExecuteDrawCalls(
         frame,
-        render_setup,
+        new_render_setup,
         Bitset((1 << BUCKET_OPAQUE)));
-
-    g_engine->GetRenderState()->UnsetActiveEnvProbe();
 
     if (render_light != nullptr)
     {
         g_engine->GetRenderState()->UnsetActiveLight();
     }
 
-    // Bind sky if it exists
-    bool is_sky_set = false;
-
-    if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+    // use sky as backdrop
+    if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
     {
-        g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-        is_sky_set = true;
+        new_render_setup.env_probe = sky_env_probes.Front();
+    }
+    else
+    {
+        new_render_setup.env_probe = nullptr;
     }
 
     switch (m_env_grid->GetEnvGridType())
     {
     case ENV_GRID_TYPE_SH:
-        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, probe);
+        ComputeEnvProbeIrradiance_SphericalHarmonics(frame, new_render_setup, probe);
 
         break;
     case ENV_GRID_TYPE_LIGHT_FIELD:
-        ComputeEnvProbeIrradiance_LightField(frame, probe);
+        ComputeEnvProbeIrradiance_LightField(frame, new_render_setup, probe);
 
         break;
     default:
         HYP_UNREACHABLE();
         break;
-    }
-
-    if (is_sky_set)
-    {
-        g_engine->GetRenderState()->UnsetActiveEnvProbe();
     }
 
     if (options.flags & EnvGridFlags::USE_VOXEL_GRID)
@@ -1045,7 +1038,7 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     probe->SetNeedsRender(false);
 }
 
-void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const Handle<EnvProbe>& probe)
+void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
 {
     HYP_SCOPE;
 
@@ -1060,8 +1053,6 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     AttachmentBase* color_attachment = m_framebuffer->GetAttachment(0);
     AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
-
-    const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     // Bind a directional light
     RenderLight* render_light = nullptr;
@@ -1135,7 +1126,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(m_clear_sh);
@@ -1153,7 +1144,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(m_compute_sh);
@@ -1199,7 +1190,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
                     { NAME("Global"),
                         { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
                             { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
                 frame->GetFrameIndex());
 
             async_compute_command_list.Add<BindComputePipeline>(m_reduce_sh);
@@ -1229,7 +1220,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(m_finalize_sh);
@@ -1256,7 +1247,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         });
 }
 
-void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const Handle<EnvProbe>& probe)
+void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
 {
     HYP_SCOPE;
 
@@ -1313,8 +1304,8 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
     }
 
-    // Used for sky
-    const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
+    // // Used for sky
+    // const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_irradiance_texture->GetRenderResource().GetImage(),
@@ -1328,7 +1319,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
@@ -1346,7 +1337,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
@@ -1367,7 +1358,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_resource_handle ? env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(

@@ -10,7 +10,6 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
-#include <rendering/Shadows.hpp>
 #include <rendering/ShaderGlobals.hpp>
 #include <rendering/Renderer.hpp>
 
@@ -32,7 +31,7 @@ namespace hyperion {
 
 RenderWorld::RenderWorld(World* world)
     : m_world(world),
-      m_shadow_map_manager(MakeUnique<ShadowMapManager>()),
+      m_shadow_map_manager(MakeUnique<ShadowMapAllocator>()),
       m_render_environment(MakeUnique<RenderEnvironment>()),
       m_buffer_data {}
 {
@@ -246,6 +245,39 @@ void RenderWorld::UpdateBufferData()
 GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
 {
     return g_engine->GetRenderData()->worlds;
+}
+
+uint32 RenderWorld::AllocateIndex(IndexAllocatorType type)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(type < IndexAllocatorType::MAX);
+
+    uint32 index = m_index_allocators[type].AllocateIndex(index_allocator_maximums[type]);
+
+    if (index == ~0u)
+    {
+        HYP_LOG(Rendering, Error, "Failed to allocate index for type {}. Maximum index limit reached: {}", type, index_allocator_maximums[type]);
+    }
+
+    return index;
+}
+
+void RenderWorld::FreeIndex(IndexAllocatorType type, uint32 index)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(type < IndexAllocatorType::MAX);
+
+    if (index >= index_allocator_maximums[type])
+    {
+        HYP_LOG(Rendering, Error, "Attempted to free index {} for type {}, but it exceeds the maximum index limit: {}", index, type, index_allocator_maximums[type]);
+        return;
+    }
+
+    m_index_allocators[type].FreeIndex(index);
 }
 
 void RenderWorld::PreRender(FrameBase* frame)

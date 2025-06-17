@@ -451,7 +451,7 @@ void RenderView::CreateDescriptorSets()
 
     Threads::AssertOnThread(g_render_thread);
 
-    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Scene"));
+    const renderer::DescriptorSetDeclaration* decl = g_engine->GetGlobalDescriptorTable()->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
     AssertThrow(decl != nullptr);
 
     const renderer::DescriptorSetLayout layout { decl };
@@ -551,6 +551,11 @@ void RenderView::CreateDescriptorSets()
 
         descriptor_set->SetElement(NAME("EnvGridRadianceResultTexture"), m_env_grid_radiance_pass->GetFinalImageView());
         descriptor_set->SetElement(NAME("EnvGridIrradianceResultTexture"), m_env_grid_irradiance_pass->GetFinalImageView());
+
+        for (uint32 i = 0; i < max_bound_reflection_probes; i++)
+        {
+            descriptor_set->SetElement(NAME("EnvProbeTextures"), i, g_engine->GetPlaceholderData()->DefaultTexture2D->GetRenderResource().GetImageView());
+        }
 
         HYPERION_ASSERT_RESULT(descriptor_set->Create());
 
@@ -1150,8 +1155,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     const bool use_temporal_aa = m_temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
-    const bool use_reflection_probes = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any()
-        || g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_REFLECTION].Any();
+    const bool use_reflection_probes = m_env_probes[uint32(EnvProbeType::SKY)].Any() || m_env_probes[uint32(EnvProbeType::REFLECTION)].Any();
 
     if (use_temporal_aa)
     {

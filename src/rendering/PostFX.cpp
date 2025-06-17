@@ -307,7 +307,7 @@ void PostProcessing::RenderPost(FrameBase* frame, const RenderSetup& render_setu
 
 namespace renderer {
 
-HYP_DESCRIPTOR_CBUFF(Scene, PostProcessingUniforms, 1, sizeof(PostProcessingUniforms), false);
+HYP_DESCRIPTOR_CBUFF(View, PostProcessingUniforms, 1, sizeof(PostProcessingUniforms), false);
 
 } // namespace renderer
 

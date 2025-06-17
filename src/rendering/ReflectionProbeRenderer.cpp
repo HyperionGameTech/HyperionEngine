@@ -35,7 +35,6 @@ ReflectionProbeRenderer::~ReflectionProbeRenderer()
 
 void ReflectionProbeRenderer::Init()
 {
-    m_env_render_probe->EnqueueBind();
 }
 
 // called from game thread
@@ -46,7 +45,6 @@ void ReflectionProbeRenderer::InitGame()
 
 void ReflectionProbeRenderer::OnRemoved()
 {
-    m_env_render_probe->EnqueueUnbind();
 }
 
 void ReflectionProbeRenderer::OnUpdate(GameCounter::TickUnit delta)

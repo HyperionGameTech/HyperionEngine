@@ -318,11 +318,6 @@ HYP_API void Engine::Init()
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbesBuffer"), GetRenderData()->env_probes->GetBuffer(frame_index));
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("CurrentEnvProbe"), GetRenderData()->env_probes->GetBuffer(frame_index));
 
-        for (uint32 i = 0; i < max_bound_reflection_probes; i++)
-        {
-            m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), i, GetPlaceholderData()->DefaultTexture2D->GetRenderResource().GetImageView());
-        }
-
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("VoxelGridTexture"), GetPlaceholderData()->GetImageView3D1x1x1R8());
 
         m_global_descriptor_table->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("LightFieldColorTexture"), GetPlaceholderData()->GetImageView2D1x1R8());

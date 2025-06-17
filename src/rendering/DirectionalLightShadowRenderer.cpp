@@ -3,7 +3,6 @@
 #include <rendering/DirectionalLightShadowRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Shadows.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -414,7 +413,7 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_render_map != nullptr, "Failed to allocate shadow map");
 
     m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_render_map);
@@ -461,7 +460,7 @@ void DirectionalLightShadowRenderer::OnRemoved()
 
         m_shadow_map_resource_handle.Reset();
 
-        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_render_map))
+        if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->FreeShadowMap(shadow_render_map))
         {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
         }

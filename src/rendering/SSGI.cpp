@@ -246,7 +246,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame_index);
 
-    const uint32 view_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
     if (view_descriptor_set_index != ~0u)
     {

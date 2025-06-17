@@ -202,8 +202,6 @@ public:
     HYP_DEPRECATED bool IsVisible(ID<Camera> camera_id) const;
     HYP_DEPRECATED void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
-    void EnqueueBind() const;
-    void EnqueueUnbind() const;
     void Update(GameCounter::TickUnit delta);
 
     uint32 m_grid_slot = ~0u; // temp

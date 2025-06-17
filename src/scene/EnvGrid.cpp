@@ -9,7 +9,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Shadows.hpp>
+#include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 

@@ -13,7 +13,7 @@
 #include <core/math/Matrix4.hpp>
 #include <core/math/BoundingBox.hpp>
 
-#include <rendering/Shadows.hpp>
+#include <rendering/RenderShadowMap.hpp>
 
 #include <HashCode.hpp>
 

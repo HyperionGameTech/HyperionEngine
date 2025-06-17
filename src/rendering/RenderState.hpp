@@ -38,8 +38,6 @@ enum RenderStateMaskBits : RenderStateMask
     RENDER_STATE_SCENE = 0x1,
     RENDER_STATE_LIGHTS = 0x2,
     RENDER_STATE_ACTIVE_LIGHT = 0x4,
-    RENDER_STATE_ENV_PROBES = 0x8,
-    RENDER_STATE_ACTIVE_ENV_PROBE = 0x10,
     RENDER_STATE_CAMERA = 0x20,
 
     RENDER_STATE_ALL = 0xFFFFFFFFu
@@ -54,9 +52,6 @@ public:
     Stack<TResourceHandle<RenderScene>> scene_bindings;
     Array<TResourceHandle<RenderCamera>> camera_bindings;
     Stack<TResourceHandle<RenderLight>> light_bindings;
-    Stack<TResourceHandle<RenderEnvGrid>> env_grid_bindings;
-    Stack<TResourceHandle<RenderEnvProbe>> env_probe_bindings;
-    FixedArray<Array<TResourceHandle<RenderEnvProbe>>, ENV_PROBE_TYPE_MAX> bound_env_probes;
 
     HYP_API RenderState();
     RenderState(const RenderState&) = delete;
@@ -64,17 +59,6 @@ public:
     RenderState(RenderState&&) noexcept = delete;
     RenderState& operator=(RenderState&&) noexcept = delete;
     HYP_API ~RenderState();
-
-    HYP_FORCE_INLINE void BindEnvGrid(TResourceHandle<RenderEnvGrid>&& resource_handle)
-    {
-        env_grid_bindings.Push(std::move(resource_handle));
-    }
-
-    HYP_FORCE_INLINE void UnbindEnvGrid()
-    {
-        AssertThrow(env_grid_bindings.Any());
-        env_grid_bindings.Pop();
-    }
 
     void SetActiveLight(const TResourceHandle<RenderLight>& light_resource_handle);
 
@@ -125,16 +109,6 @@ public:
 
     void ResetStates(RenderStateMask mask)
     {
-        if (mask & RENDER_STATE_ENV_PROBES)
-        {
-            for (auto& probes : bound_env_probes)
-            {
-                probes.Clear();
-            }
-
-            m_env_probe_texture_slot_counters = {};
-        }
-
         if (mask & RENDER_STATE_SCENE)
         {
             scene_bindings = {};
@@ -148,11 +122,6 @@ public:
         if (mask & RENDER_STATE_ACTIVE_LIGHT)
         {
             light_bindings = {};
-        }
-
-        if (mask & RENDER_STATE_ACTIVE_ENV_PROBE)
-        {
-            env_probe_bindings = {};
         }
     }
 

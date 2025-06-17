@@ -431,7 +431,6 @@ void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
     UpdateUniforms(frame);
 
     const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
 
     frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
 
@@ -456,7 +455,7 @@ void DDGI::RenderProbes(FrameBase* frame, const RenderSetup& render_setup)
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());

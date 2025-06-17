@@ -509,7 +509,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
-    const uint32 view_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+    const uint32 view_descriptor_set_index = m_object_visibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
     if (view_descriptor_set_index != ~0u)
     {

@@ -281,7 +281,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         const Handle<RenderGroup>& render_group = m_direct_light_render_groups[light_type_index];
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
         const uint32 material_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
         const uint32 deferred_direct_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
 
@@ -601,7 +601,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         AssertThrow(render_group.IsValid());
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
@@ -814,8 +814,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     // Sky renders first
     static const FixedArray<EnvProbeType, ApplyReflectionProbeMode::MAX> reflection_probe_types {
-        ENV_PROBE_TYPE_SKY,
-        ENV_PROBE_TYPE_REFLECTION
+        EnvProbeType::SKY,
+        EnvProbeType::REFLECTION
     };
 
     static const FixedArray<ApplyReflectionProbeMode, ApplyReflectionProbeMode::MAX> reflection_probe_modes {
@@ -834,9 +834,9 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
-        for (const TResourceHandle<RenderEnvProbe>& resource_handle : g_engine->GetRenderState()->bound_env_probes[env_probe_type])
+        for (RenderEnvProbe* render_env_probe : render_setup.view->GetEnvProbes(env_probe_type))
         {
-            pass_ptrs[mode_index].second.PushBack(resource_handle.Get());
+            pass_ptrs[mode_index].second.PushBack(render_env_probe);
         }
     }
 
@@ -880,7 +880,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         }
 
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         for (RenderEnvProbe* env_render_probe : env_render_probes)
         {

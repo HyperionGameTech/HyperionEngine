@@ -80,7 +80,7 @@ DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
         DescriptorTableDeclaration decl;
 
         DescriptorTableDeclaration::DeclareSet global_set { &decl, 0, NAME("Global") };
-        DescriptorTableDeclaration::DeclareSet scene_set { &decl, 1, NAME("Scene"), /* is_template */ true };
+        DescriptorTableDeclaration::DeclareSet view_set { &decl, 1, NAME("SceneView"), /* is_template */ true };
         DescriptorTableDeclaration::DeclareSet object_set { &decl, 2, NAME("Object") };
         DescriptorTableDeclaration::DeclareSet material_set { &decl, 3, NAME("Material"), /* is_template */ true };
     } initializer;

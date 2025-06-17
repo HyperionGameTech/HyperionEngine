@@ -13,7 +13,7 @@
 #include <rendering/RenderSubsystem.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/RenderResource.hpp>
-#include <rendering/Shadows.hpp>
+#include <rendering/RenderShadowMap.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 
@@ -31,7 +31,6 @@ namespace hyperion {
 using RerenderShadowsSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_POSITIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_POSITIVE>>;
 
 class RenderCamera;
-class RenderShadowMap;
 class RenderScene;
 class RenderWorld;
 class RenderLight;

@@ -311,7 +311,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
-        const uint32 view_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = m_write_uvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {
@@ -343,7 +343,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
-        const uint32 view_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = m_sample_gbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {

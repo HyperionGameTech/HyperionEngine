@@ -49,7 +49,7 @@ void PointLightShadowRenderer::Init()
 
     AssertThrow(m_render_light);
 
-    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->AllocateShadowMap(
+    RenderShadowMap* shadow_render_map = m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->AllocateShadowMap(
         ShadowMapType::POINT_SHADOW_MAP,
         ShadowMapFilterMode::VSM,
         m_extent);
@@ -65,12 +65,11 @@ void PointLightShadowRenderer::Init()
         m_parent_scene,
         m_aabb,
         m_extent,
-        ENV_PROBE_TYPE_SHADOW);
+        EnvProbeType::SHADOW);
 
     InitObject(m_env_probe);
 
     m_env_probe->GetRenderResource().SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>(m_shadow_render_map));
-    m_env_probe->EnqueueBind();
 
     m_render_light->SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>(m_shadow_render_map));
 
@@ -97,7 +96,6 @@ void PointLightShadowRenderer::OnRemoved()
     if (m_env_probe.IsValid())
     {
         m_env_probe->GetRenderResource().SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>());
-        m_env_probe->EnqueueUnbind();
     }
 
     m_env_probe.Reset();
@@ -110,7 +108,7 @@ void PointLightShadowRenderer::OnRemoved()
 
         if (m_parent_scene)
         {
-            if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapManager()->FreeShadowMap(shadow_render_map))
+            if (!m_parent_scene->GetWorld()->GetRenderResource().GetShadowMapAllocator()->FreeShadowMap(shadow_render_map))
             {
                 HYP_LOG(Shadows, Error, "Failed to free shadow map!");
             }

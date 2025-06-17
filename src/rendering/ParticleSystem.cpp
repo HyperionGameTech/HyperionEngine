@@ -423,7 +423,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) } } } },
             frame->GetFrameIndex());
 
-        const uint32 view_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {
@@ -483,7 +483,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) } } } },
             frame_index);
 
-        const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Scene"));
+        const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {

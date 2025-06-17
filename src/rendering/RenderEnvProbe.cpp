@@ -10,7 +10,6 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/ShaderGlobals.hpp>
-#include <rendering/Shadows.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -55,8 +54,7 @@ static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, con
 
 RenderEnvProbe::RenderEnvProbe(EnvProbe* env_probe)
     : m_env_probe(env_probe),
-      m_buffer_data {},
-      m_texture_slot(~0u)
+      m_buffer_data {}
 {
     if (!m_env_probe->IsControlledByEnvGrid())
     {
@@ -79,18 +77,6 @@ RenderEnvProbe::~RenderEnvProbe()
 
     SafeRelease(std::move(m_shader));
     SafeRelease(std::move(m_framebuffer));
-}
-
-void RenderEnvProbe::SetTextureSlot(uint32_t texture_slot)
-{
-    HYP_SCOPE;
-
-    Execute([this, texture_slot]()
-        {
-            m_texture_slot = texture_slot;
-
-            SetNeedsUpdate();
-        });
 }
 
 void RenderEnvProbe::SetPositionInGrid(const Vec4i& position_in_grid)
@@ -304,12 +290,12 @@ void RenderEnvProbe::CreateFramebuffer()
     DeferCreate(m_framebuffer);
 }
 
-void RenderEnvProbe::SetEnvProbeTexture()
+void RenderEnvProbe::SetEnvProbeTexture(uint32 texture_slot)
 {
     Threads::AssertOnThread(g_render_thread);
 
     // update cubemap texture in array of bound env probes
-    AssertThrow(m_texture_slot != ~0u);
+    AssertThrow(texture_slot != ~0u);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -318,9 +304,9 @@ void RenderEnvProbe::SetEnvProbeTexture()
             AssertThrow(m_prefiltered_env_map.IsValid());
 
             HYP_LOG(EnvProbe, Debug, "Setting prefiltered env map for EnvProbe {} (slot: {})",
-                m_env_probe->GetID(), m_texture_slot);
+                m_env_probe->GetID(), texture_slot);
 
-            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, m_prefiltered_env_map->GetRenderResource().GetImageView());
+            g_engine->GetGlobalDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), texture_slot, m_prefiltered_env_map->GetRenderResource().GetImageView());
         }
         else
         {
@@ -370,28 +356,6 @@ void RenderEnvProbe::Update_Internal()
     HYP_LOG(EnvProbe, Debug, "Updating EnvProbe {}", m_env_probe->GetID());
 
     UpdateBufferData();
-}
-
-void RenderEnvProbe::EnqueueBind()
-{
-    HYP_SCOPE;
-
-    Execute([this]()
-        {
-            g_engine->GetRenderState()->BindEnvProbe(m_env_probe->GetEnvProbeType(), TResourceHandle<RenderEnvProbe>(*this));
-        },
-        /* force_render_thread */ true);
-}
-
-void RenderEnvProbe::EnqueueUnbind()
-{
-    HYP_SCOPE;
-
-    Execute([this]()
-        {
-            g_engine->GetRenderState()->UnbindEnvProbe(m_env_probe->GetEnvProbeType(), this);
-        },
-        /* force_render_thread */ true);
 }
 
 GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
@@ -494,24 +458,6 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
-        if (m_texture_slot == ~0u)
-        {
-            HYP_LOG(EnvProbe, Warning, "EnvProbe {} (type: {}) has no value set for texture slot!",
-                m_env_probe->GetID(), m_env_probe->GetEnvProbeType());
-
-            return;
-        }
-
-        if (m_texture_slot >= max_bound_reflection_probes)
-        {
-            HYP_LOG(EnvProbe, Warning, "EnvProbe {} (type: {}) has texture slot {} >= max_bound_reflection_probes {}!",
-                m_env_probe->GetID(), m_env_probe->GetEnvProbeType(), m_texture_slot, max_bound_reflection_probes);
-
-            return;
-        }
-
-        SetEnvProbeTexture();
-
         // @TODO Support selecting a specific light for the EnvProbe in the case of a sky probe.
         // For reflection probes, it would be ideal to bind a number of lights that can be used in forward rendering.
         auto& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL);
@@ -596,16 +542,12 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
             frame->GetCommandList().Add<Blit>(
                 framebuffer_image,
                 shadow_map_image,
+                Rect<uint32> { 0, 0, framebuffer_image->GetExtent().x, framebuffer_image->GetExtent().y },
                 Rect<uint32> {
-                    .x0 = 0,
-                    .y0 = 0,
-                    .x1 = framebuffer_image->GetExtent().x,
-                    .y1 = framebuffer_image->GetExtent().y },
-                Rect<uint32> {
-                    .x0 = atlas_element.offset_coords.x,
-                    .y0 = atlas_element.offset_coords.y,
-                    .x1 = atlas_element.offset_coords.x + atlas_element.dimensions.x,
-                    .y1 = atlas_element.offset_coords.y + atlas_element.dimensions.y },
+                    atlas_element.offset_coords.x,
+                    atlas_element.offset_coords.y,
+                    atlas_element.offset_coords.x + atlas_element.dimensions.x,
+                    atlas_element.offset_coords.y + atlas_element.dimensions.y },
                 0,                                      /* src_mip */
                 0,                                      /* dst_mip */
                 i,                                      /* src_face */
@@ -726,12 +668,11 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
-    // Use sky as fallback
-    TResourceHandle<RenderEnvProbe> sky_env_probe_resource_handle;
+    RenderEnvProbe* fallback_env_probe = nullptr;
 
-    if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
+    if (const Array<RenderEnvProbe*>& sky_env_probes = render_setup.view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
     {
-        sky_env_probe_resource_handle = g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front();
+        fallback_env_probe = sky_env_probes.Front();
     }
 
     frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
@@ -742,7 +683,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
         descriptor_table,
         convolve_probe_compute_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe_resource_handle ? sky_env_probe_resource_handle->GetBufferIndex() : 0) } } } },
+            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(fallback_env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(

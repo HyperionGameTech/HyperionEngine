@@ -164,25 +164,25 @@ void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionPro
         return;
     }
 
-    if (reflection_probe_component.reflection_probe_renderer)
-    {
-        GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
-    }
-    else
-    {
-        if (!reflection_probe_component.env_probe.IsValid())
-        {
-            HYP_LOG(EnvProbe, Warning, "ReflectionProbeComponent has invalid EnvProbe");
+    // if (reflection_probe_component.reflection_probe_renderer)
+    // {
+    //     GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem(reflection_probe_component.reflection_probe_renderer);
+    // }
+    // else
+    // {
+    //     if (!reflection_probe_component.env_probe.IsValid())
+    //     {
+    //         HYP_LOG(EnvProbe, Warning, "ReflectionProbeComponent has invalid EnvProbe");
 
-            return;
-        }
+    //         return;
+    //     }
 
-        InitObject(reflection_probe_component.env_probe);
+    //     InitObject(reflection_probe_component.env_probe);
 
-        reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
-            Name::Unique("ReflectionProbeRenderer"),
-            TResourceHandle<RenderEnvProbe>(reflection_probe_component.env_probe->GetRenderResource()));
-    }
+    //     reflection_probe_component.reflection_probe_renderer = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ReflectionProbeRenderer>(
+    //         Name::Unique("ReflectionProbeRenderer"),
+    //         TResourceHandle<RenderEnvProbe>(reflection_probe_component.env_probe->GetRenderResource()));
+    // }
 }
 
 } // namespace hyperion

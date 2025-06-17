@@ -107,7 +107,7 @@ public:
         return m_env_grids;
     }
 
-    HYP_FORCE_INLINE const Array<EnvProbe*>& EnvProbes(EnvProbeType type) const
+    HYP_FORCE_INLINE const Array<RenderEnvProbe*>& GetEnvProbes(EnvProbeType type) const
     {
         AssertDebug(uint32(type) < m_env_probes.Size());
 
