@@ -52,7 +52,7 @@ UIStage::UIStage()
 }
 
 UIStage::UIStage(ThreadID owner_thread_id)
-    : UIObject(UIObjectType::STAGE, owner_thread_id),
+    : UIObject(owner_thread_id),
       m_surface_size { 1000, 1000 }
 {
     SetName(NAME("Stage"));
@@ -428,9 +428,9 @@ void UIStage::SetFocusedObject(const Handle<UIObject>& ui_object)
 
     m_focused_object = ui_object;
 
-    if (UIObject* parent_stage = GetClosestParentUIObject(UIObjectType::STAGE))
+    if (Handle<UIStage> parent_stage = GetClosestParentUIObject<UIStage>())
     {
-        static_cast<UIStage*>(parent_stage)->SetFocusedObject(ui_object);
+        parent_stage->SetFocusedObject(ui_object);
     }
 }
 

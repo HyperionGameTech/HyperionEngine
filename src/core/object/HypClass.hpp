@@ -3,7 +3,6 @@
 #ifndef HYPERION_CORE_HYP_CLASS_HPP
 #define HYPERION_CORE_HYP_CLASS_HPP
 
-#include <core/object/HypClassRegistry.hpp>
 #include <core/object/HypObjectFwd.hpp>
 #include <core/object/HypObjectEnums.hpp>
 #include <core/object/HypData.hpp>
@@ -34,8 +33,33 @@ class HypProperty;
 class HypMethod;
 class HypField;
 class HypConstant;
+class HypClass;
+class HypEnum;
+class HypStruct;
+
+template <class T>
+class HypClassInstance;
+
+template <class T>
+class HypStructInstance;
+
+template <class T>
+class HypEnumInstance;
 
 class IHypObjectInitializer;
+
+enum class HypClassFlags : uint32
+{
+    NONE = 0x0,
+    CLASS_TYPE = 0x1,
+    STRUCT_TYPE = 0x2,
+    ENUM_TYPE = 0x4,
+    ABSTRACT = 0x8,
+    POD_TYPE = 0x10,
+    DYNAMIC = 0x20 // Dynamic classes are not registered in the class registry
+};
+
+HYP_MAKE_ENUM_FLAGS(HypClassFlags)
 
 enum class HypClassSerializationMode : uint8
 {
@@ -50,6 +74,30 @@ enum class HypClassSerializationMode : uint8
 };
 
 HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
+
+#pragma region Helpers
+
+HYP_API const HypClass* GetClass(TypeID type_id);
+HYP_API const HypClass* GetClass(WeakName type_name);
+HYP_API const HypEnum* GetEnum(TypeID type_id);
+HYP_API const HypEnum* GetEnum(WeakName type_name);
+
+template <class T>
+HYP_FORCE_INLINE const HypClass* GetClass()
+{
+    return GetClass(TypeID::ForType<T>());
+}
+
+template <class T>
+HYP_FORCE_INLINE const HypEnumInstance<T>* GetEnum()
+{
+    return static_cast<const HypEnumInstance<T>*>(GetEnum(TypeID::ForType<T>()));
+}
+
+HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hyp_class);
+
+#pragma endregion Helpers
 
 class HypClassMemberIterator
 {
@@ -483,7 +531,19 @@ public:
 
     Array<HypConstant*> GetConstantsInherited() const;
 
-    virtual RC<dotnet::Class> GetManagedClass() const;
+    HYP_FORCE_INLINE RC<dotnet::Class> GetManagedClass() const
+    {
+        Mutex::Guard guard(m_managed_class_mutex);
+
+        return m_managed_class.Lock();
+    }
+
+    HYP_FORCE_INLINE void SetManagedClass(const RC<dotnet::Class>& managed_class) const
+    {
+        Mutex::Guard guard(m_managed_class_mutex);
+
+        m_managed_class = managed_class;
+    }
 
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const = 0;
 
@@ -577,6 +637,10 @@ protected:
     Array<HypConstant*> m_constants;
     HashMap<Name, HypConstant*> m_constants_by_name;
     EnumFlags<HypClassSerializationMode> m_serialization_mode;
+
+private:
+    mutable Weak<dotnet::Class> m_managed_class;
+    mutable Mutex m_managed_class_mutex;
 };
 
 template <class T>
@@ -873,9 +937,6 @@ public:
     virtual SizeType GetSize() const override;
     virtual SizeType GetAlignment() const override;
 
-    virtual RC<dotnet::Class> GetManagedClass() const override;
-    void SetManagedClass(const RC<dotnet::Class>& class_ptr);
-
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override;
 
     virtual bool CanCreateInstance() const override;
@@ -889,8 +950,6 @@ protected:
     virtual bool CreateInstance_Internal(HypData& out) const override;
     virtual bool CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const override;
     virtual HashCode GetInstanceHashCode_Internal(ConstAnyRef ref) const override;
-
-    RC<dotnet::Class> m_class_ptr;
 };
 
 } // namespace hyperion

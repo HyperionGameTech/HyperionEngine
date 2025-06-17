@@ -4,6 +4,8 @@
 #define HYPERION_ENGINE_HPP
 
 #include <Config.hpp>
+#include <Types.hpp>
+#include <EngineGlobals.hpp>
 
 #include <rendering/EngineRenderStats.hpp>
 
@@ -21,10 +23,6 @@
 #include <core/functional/Delegate.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
-
-#include <GameCounter.hpp>
-
-#include <Types.hpp>
 
 namespace hyperion {
 
@@ -44,12 +42,10 @@ class NetRequestThread;
 
 using net::NetRequestThread;
 
-class Engine;
 class Game;
 class GameThread;
 class ShaderGlobals;
 class ScriptingService;
-class AssetManager;
 class DebugDrawer;
 class DeferredRenderer;
 class RenderView;
@@ -57,20 +53,9 @@ class FinalPass;
 class PlaceholderData;
 class RenderThread;
 class SafeDeleter;
-class ShaderManager;
 class RenderState;
-class MaterialCache;
 class MaterialDescriptorSetManager;
 class GraphicsPipelineCache;
-class StreamingManager;
-
-extern Handle<Engine> g_engine;
-extern Handle<AssetManager> g_asset_manager;
-// extern Handle<StreamingManager> g_streaming_manager;
-extern ShaderManager* g_shader_manager;
-extern MaterialCache* g_material_system;
-extern SafeDeleter* g_safe_deleter;
-extern IRenderingAPI* g_rendering_api;
 
 class GPUBufferHolderMap;
 

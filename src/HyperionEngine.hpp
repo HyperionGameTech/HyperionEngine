@@ -2,12 +2,8 @@
 
 #pragma once
 
-#include <system/AppContext.hpp>
-
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>
-
-#include <Engine.hpp>
 
 namespace hyperion {
 

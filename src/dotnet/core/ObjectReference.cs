@@ -36,41 +36,5 @@ namespace Hyperion
         {
             return weakHandle == IntPtr.Zero ? null : GCHandle.FromIntPtr(weakHandle).Target;
         }
-
-        public bool MakeStrong()
-        {
-            if (strongHandle != IntPtr.Zero)
-                // Already allocated
-                return true;
-
-            if (weakHandle == IntPtr.Zero)
-                return false;
-
-            object? obj = LoadObject();
-
-            if (obj == null)
-                return false;
-
-            strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal));
-
-            return true;
-        }
-
-        public bool MakeWeak()
-        {
-            if (weakHandle == IntPtr.Zero)
-                return false;
-
-            if (strongHandle == IntPtr.Zero)
-                return true;
-
-            if (strongHandle != IntPtr.Zero)
-            {
-                GCHandle.FromIntPtr(strongHandle).Free();
-                strongHandle = IntPtr.Zero;
-            }
-
-            return true;
-        }
     }
 }

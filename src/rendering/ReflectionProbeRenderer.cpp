@@ -72,8 +72,8 @@ void ReflectionProbeRenderer::OnRender(FrameBase* frame, const RenderSetup& rend
 
     m_env_render_probe->Render(frame, render_setup);
 
-    HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe #{} (type: {})",
-        m_env_render_probe->GetEnvProbe()->GetID().Value(),
+    HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe {} (type: {})",
+        m_env_render_probe->GetEnvProbe()->GetID(),
         (uint32)m_env_render_probe->GetEnvProbe()->GetEnvProbeType());
 }
 

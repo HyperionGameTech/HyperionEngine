@@ -57,11 +57,31 @@ namespace Hyperion
         }
 
         [UnmanagedCallersOnly]
+        public static unsafe int InitializeRuntime()
+        {
+            try
+            {
+                AppDomain currentDomain = AppDomain.CurrentDomain;
+                currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
+
+                NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
+                NativeInterop_SetSetKeepAliveFunction((delegate* unmanaged<IntPtr, int*, void>)&SetKeepAlive);
+                NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
+                NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Error, "Error loading assembly: {0}", ex);
+
+                return (int)LoadAssemblyResult.UnknownError;
+            }
+
+            return (int)LoadAssemblyResult.Ok;
+        }
+
+        [UnmanagedCallersOnly]
         public static unsafe int InitializeAssembly(IntPtr outAssemblyGuid, IntPtr assemblyPtr, IntPtr assemblyPathStringPtr, int isCoreAssembly)
         {
-            // AppDomain currentDomain = AppDomain.CurrentDomain;
-            // currentDomain.UnhandledException += new UnhandledExceptionEventHandler(HandleUnhandledException);
-
             try
             {
                 // Create a managed string from the pointer
@@ -107,14 +127,9 @@ namespace Hyperion
                         return (int)LoadAssemblyResult.VersionMismatch;
                     }
                 }
-
+                
                 NativeInterop_SetInvokeGetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeGetterDelegate>(InvokeGetter));
                 NativeInterop_SetInvokeSetterFunction(ref assemblyGuid, assemblyPtr, Marshal.GetFunctionPointerForDelegate<InvokeSetterDelegate>(InvokeSetter));
-
-                NativeInterop_SetAddObjectToCacheFunction(Marshal.GetFunctionPointerForDelegate<AddObjectToCacheDelegate>(AddObjectToCache));
-                NativeInterop_SetSetKeepAliveFunction((delegate* unmanaged<IntPtr, int*, void>)&SetKeepAlive);
-                NativeInterop_SetTriggerGCFunction((delegate* unmanaged<void>)&TriggerGC);
-                NativeInterop_SetGetAssemblyPointerFunction((delegate* unmanaged<IntPtr, IntPtr, void>)&GetAssemblyPointer);
 
                 InitializeAssemblyTypes(assembly, isCoreAssembly != 0);
             }
@@ -443,6 +458,10 @@ namespace Hyperion
                 {
                     try
                     {
+#if DEBUG
+                        Assert.Throw(methodInfo != null, "MethodInfo is null for method: " + item.Key + " in type: " + type.Name);
+#endif
+
                         object[] parameters;
                         HandleParameters(argsPtr, methodInfo, out parameters);
 
@@ -450,6 +469,10 @@ namespace Hyperion
 
                         if (!methodInfo.IsStatic)
                         {
+#if DEBUG
+                            Assert.Throw(thisObjectReferencePtr != IntPtr.Zero, "This object reference pointer is null for method: " + methodInfo.Name + " in type: " + type.Name);
+#endif
+
                             ref ObjectReference objectReferenceRef = ref Unsafe.AsRef<ObjectReference>((void*)thisObjectReferencePtr);
 
                             thisObject = objectReferenceRef.LoadObject();
@@ -465,7 +488,11 @@ namespace Hyperion
                         }
 
                         object? returnValue = methodInfo.Invoke(thisObject, parameters);
-                        ((HypDataBuffer*)retPtr)->SetValue(returnValue);
+
+                        if (retPtr != IntPtr.Zero)
+                        {
+                            ((HypDataBuffer*)retPtr)->SetValue(returnValue);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -758,11 +785,51 @@ namespace Hyperion
 
             if (*inOutKeepAlive != 0)
             {
-                *inOutKeepAlive = objectReference.MakeStrong() ? 1 : 0;
+                if (objectReference.strongHandle != IntPtr.Zero)
+                {
+                    // Already allocated
+                    *inOutKeepAlive = 1;
+                    return;
+                }
+
+                if (objectReference.weakHandle == IntPtr.Zero)
+                {
+                    *inOutKeepAlive = 0;
+                    return;
+                }
+
+                object? obj = objectReference.LoadObject();
+
+                if (obj == null)
+                {
+                    *inOutKeepAlive = 0;
+                    return;
+                }
+
+                objectReference.strongHandle = GCHandle.ToIntPtr(GCHandle.Alloc(obj, GCHandleType.Normal));
+
+                *inOutKeepAlive = 1;
+                
                 return;
             }
 
-            *inOutKeepAlive = objectReference.MakeWeak() ? 1 : 0;
+            // No weak reference
+            if (objectReference.weakHandle == IntPtr.Zero)
+            {
+                *inOutKeepAlive = 0;
+                return;
+            }
+
+            // Free the strong handle
+            if (objectReference.strongHandle != IntPtr.Zero)
+            {
+                GCHandle.FromIntPtr(objectReference.strongHandle).Free();
+                objectReference.strongHandle = IntPtr.Zero;
+            }
+
+            *inOutKeepAlive = 1;
+
+            return;
         }
 
         [UnmanagedCallersOnly]
@@ -793,7 +860,15 @@ namespace Hyperion
 
         public static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            Logger.Log(LogType.Error, "Unhandled exception: {0}", ((Exception)e.ExceptionObject).Message);
+            Logger.Log(LogType.Error, "Unhandled exception: {0}\n\n{1}", ((Exception)e.ExceptionObject).Message, ((Exception)e.ExceptionObject).StackTrace);
+
+            MessageBox.Critical()
+                .Title("Uncaught Exception")
+                .Text("An unhandled exception occurred in managed code!\n"
+                    + ((Exception)e.ExceptionObject).Message + "\n\n"
+                    + "Check the logs for more details.")
+                .Button("OK", () => {  })
+                .Show();
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]

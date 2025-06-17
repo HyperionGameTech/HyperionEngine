@@ -1,13 +1,19 @@
 #include <system/App.hpp>
 #include <system/AppContext.hpp>
-#include <core/cli/CommandLine.hpp>
 #include <system/SystemEvent.hpp>
 
+#include <core/cli/CommandLine.hpp>
+
 #include <core/logging/Logger.hpp>
+
+#include <rendering/backend/RenderingAPI.hpp>
 
 #include <Game.hpp>
 #include <GameThread.hpp>
 
+#include <Engine.hpp>
+
+#include <EngineGlobals.hpp>
 #include <HyperionEngine.hpp>
 
 namespace hyperion {

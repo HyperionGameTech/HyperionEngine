@@ -32,11 +32,11 @@ class HypClass;
 class HypConstant : public IHypMember
 {
 public:
-    template <class ConstantType>
+    template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_type_id(TypeID::ForType<ConstantType>()),
-          m_size(sizeof(ConstantType)),
+          m_type_id(TypeID::ForType<NormalizedType<ConstantType>>()),
+          m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
         m_get_proc = [value]() -> HypData
@@ -51,6 +51,36 @@ public:
                 FBOMData out;
 
                 if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(value, out))
+                {
+                    HYP_FAIL("Failed to serialize data: %s", err.message.Data());
+                }
+
+                return out;
+            };
+        }
+    }
+
+    template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
+    HypConstant(Name name, const ConstantType* value_ptr, Span<const HypClassAttribute> attributes = {})
+        : m_name(name),
+          m_type_id(TypeID::ForType<NormalizedType<ConstantType>>()),
+          m_size(sizeof(NormalizedType<ConstantType>)),
+          m_attributes(attributes)
+    {
+        m_get_proc = [value_ptr]() -> HypData
+        {
+            return HypData(AnyRef(const_cast<NormalizedType<ConstantType>*>(value_ptr)));
+        };
+
+        if (m_attributes["serialize"] || m_attributes["xmlattribute"])
+        {
+            m_serialize_proc = [value_ptr]() -> FBOMData
+            {
+                AssertThrow(value_ptr != nullptr);
+
+                FBOMData out;
+
+                if (FBOMResult err = HypDataHelper<NormalizedType<ConstantType>>::Serialize(*value_ptr, out))
                 {
                     HYP_FAIL("Failed to serialize data: %s", err.message.Data());
                 }

@@ -3,31 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    [HypClassBinding(Name="UIObjectType")]
-    public enum UIObjectType : uint
-    {
-        Unknown = ~0u,
-        Object = 0,
-        Stage = 1,
-        Button = 2,
-        Text = 3,
-        Panel = 4,
-        Image = 5,
-        TabView = 6,
-        Tab = 7,
-        Grid = 8,
-        GridRow = 9,
-        GridColumn = 10,
-        MenuBar = 11,
-        MenuItem = 12,
-        DockableContainer = 13,
-        DockableItem = 14,
-        ListView = 15,
-        ListViewItem = 16,
-        Textbox = 17,
-        Window = 18
-    }
-
     [HypClassBinding(Name="UIObjectScrollbarOrientation")]
     [Flags]
     public enum UIObjectScrollbarOrientation : byte

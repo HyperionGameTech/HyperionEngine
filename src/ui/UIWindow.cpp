@@ -16,8 +16,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UIWindow
 
 UIWindow::UIWindow()
-    : UIPanel(UIObjectType::WINDOW),
-      m_window_flags(UIWindowFlags::DEFAULT)
+    : m_window_flags(UIWindowFlags::DEFAULT)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);

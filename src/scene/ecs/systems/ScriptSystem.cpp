@@ -74,13 +74,11 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
     {
         m_delegate_handlers.Add(
             NAME("OnGameStateChange"),
-            world->OnGameStateChange.Bind([this](World* world, GameStateMode game_state_mode)
+            world->OnGameStateChange.Bind([this](World* world, GameStateMode previous_game_state_mode, GameStateMode current_game_state_mode)
                 {
                     Threads::AssertOnThread(g_game_thread);
 
-                    const GameStateMode previous_game_state_mode = world->GetGameState().mode;
-
-                    HandleGameStateChanged(game_state_mode, previous_game_state_mode);
+                    HandleGameStateChanged(current_game_state_mode, previous_game_state_mode);
                 }));
     }
 
@@ -193,7 +191,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
             dotnet::Object* object = class_ptr->NewObject();
             AssertThrow(object != nullptr);
 
-            script_component.resource = AllocateResource<ManagedObjectResource>(object);
+            script_component.resource = AllocateResource<ManagedObjectResource>(object, class_ptr);
             script_component.resource->IncRef();
 
             if (!(script_component.flags & ScriptComponentFlags::BEFORE_INIT_CALLED))

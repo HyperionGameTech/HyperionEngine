@@ -16,7 +16,7 @@
 
 #include <rendering/backend/RendererShader.hpp>
 
-#include <HyperionEngine.hpp>
+#include <EngineGlobals.hpp>
 
 namespace hyperion::serialization {
 

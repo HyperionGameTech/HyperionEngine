@@ -23,6 +23,21 @@ public:
         CompilationUnit* compilation_unit);
     Lexer(const Lexer& other);
 
+    HYP_FORCE_INLINE SourceStream& GetSourceStream()
+    {
+        return m_source_stream;
+    }
+
+    HYP_FORCE_INLINE const SourceStream& GetSourceStream() const
+    {
+        return m_source_stream;
+    }
+
+    HYP_FORCE_INLINE TokenStream* GetTokenStream() const
+    {
+        return m_token_stream;
+    }
+
     /** Forms the given TokenStream from the given SourceStream */
     void Analyze();
     /** Reads the next token and returns it */

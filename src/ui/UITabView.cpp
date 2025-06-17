@@ -12,7 +12,6 @@ namespace hyperion {
 #pragma region UITab
 
 UITab::UITab()
-    : UIObject(UIObjectType::TAB)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::TOP | UIObjectBorderFlags::LEFT | UIObjectBorderFlags::RIGHT);
@@ -106,8 +105,7 @@ Material::ParameterTable UITab::GetMaterialParameters() const
 #pragma region UITabView
 
 UITabView::UITabView()
-    : UIPanel(UIObjectType::TAB_VIEW),
-      m_selected_tab_index(~0u)
+    : m_selected_tab_index(~0u)
 {
 }
 

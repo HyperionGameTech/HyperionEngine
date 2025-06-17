@@ -69,7 +69,7 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                 continue;
             }
 
-            String managed_name = member.name;
+            String managed_name = member.friendly_name;
 
             if (const HypClassAttributeValue& attr = member.GetAttribute("ManagedName"); attr.IsValid() && attr.IsString())
             {
@@ -201,7 +201,7 @@ Result CSharpModuleGenerator::Generate_Internal(const Analyzer& analyzer, const 
                 writer.WriteString(HYP_FORMAT("        public static ScriptableDelegate Get{}Delegate(this {} obj)\n", managed_name, hyp_class.name));
                 writer.WriteString("        {\n");
 
-                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.HypClass.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.name.Data()))));
+                writer.WriteString(HYP_FORMAT("            HypField field = (HypField)obj.HypClass.GetField(new Name({}));\n", uint64(CreateWeakNameFromDynamicString(member.friendly_name.Data()))));
                 writer.WriteString("            IntPtr fieldAddress = obj.NativeAddress + ((IntPtr)((HypField)field).Offset);\n\n");
                 writer.WriteString("            return new ScriptableDelegate(obj, fieldAddress);\n");
 

@@ -263,7 +263,7 @@ public:
         return filename.Substr(last_index + 1);
     }
 
-    static inline String ToPascalCase(const String& str)
+    static inline String ToPascalCase(const String& str, bool preserve_case = false)
     {
         Array<String> parts = str.Split('_', ' ', '-');
 
@@ -276,7 +276,14 @@ public:
                 continue;
             }
 
-            part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1)).ToLower();
+            if (!preserve_case)
+            {
+                part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1)).ToLower();
+            }
+            else
+            {
+                part = String(part.Substr(0, 1)).ToUpper() + String(part.Substr(1));
+            }
         }
 
         return String::Join(parts, "");

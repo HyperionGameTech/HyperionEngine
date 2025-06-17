@@ -56,6 +56,7 @@ public:
         const TChar* delegate_type_name) const = 0;
 };
 
+using InitializeRuntimeDelegate = int (*)();
 using InitializeAssemblyDelegate = int (*)(ManagedGuid*, Assembly*, const char*, int32);
 using UnloadAssemblyDelegate = void (*)(ManagedGuid*, int32*);
 
@@ -163,6 +164,16 @@ public:
         interop_assembly_path_platform = *interop_assembly_path;
 #endif
 
+        m_initialize_runtime_fptr = (InitializeRuntimeDelegate)GetDelegate(
+            interop_assembly_path_platform.Data(),
+            HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
+            HYP_TEXT("InitializeRuntime"),
+            UNMANAGEDCALLERSONLY_METHOD);
+
+        AssertThrowMsg(
+            m_initialize_runtime_fptr != nullptr,
+            "InitializeRuntime could not be found in HyperionInterop.dll! Ensure .NET libraries are properly compiled.");
+
         m_initialize_assembly_fptr = (InitializeAssemblyDelegate)GetDelegate(
             interop_assembly_path_platform.Data(),
             HYP_TEXT("Hyperion.NativeInterop, HyperionInterop"),
@@ -197,6 +208,13 @@ public:
                                                     }) }
         };
 
+        int result = m_initialize_runtime_fptr();
+
+        if (result != int(LoadAssemblyResult::OK))
+        {
+            HYP_FAIL("Failed to initialize Hyperion .NET interop: Got error code %d", result);
+        }
+
         for (const Pair<String, FilePath>& entry : core_assemblies)
         {
             RC<Assembly> assembly = MakeRefCountedPtr<Assembly>(AssemblyFlags::CORE_ASSEMBLY);
@@ -204,7 +222,7 @@ public:
             auto it = m_core_assemblies.Insert(entry.first, assembly).first;
 
             // Initialize all core assemblies
-            int result = m_initialize_assembly_fptr(
+            result = m_initialize_assembly_fptr(
                 &assembly->GetGuid(),
                 assembly.Get(),
                 entry.second.Data(),
@@ -422,6 +440,7 @@ private:
 
     HashMap<String, RC<Assembly>> m_core_assemblies;
 
+    InitializeRuntimeDelegate m_initialize_runtime_fptr;
     InitializeAssemblyDelegate m_initialize_assembly_fptr;
     UnloadAssemblyDelegate m_unload_assembly_fptr;
 

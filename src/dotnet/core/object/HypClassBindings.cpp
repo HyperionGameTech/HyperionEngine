@@ -26,9 +26,13 @@ namespace hyperion {
 #pragma region DynamicHypClassInstance
 
 DynamicHypClassInstance::DynamicHypClassInstance(TypeID type_id, Name name, const HypClass* parent_class, dotnet::Class* class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-    : HypClass(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members),
-      m_class_ptr(class_ptr ? class_ptr->RefCountedPtrFromThis() : RC<dotnet::Class>())
+    : HypClass(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members)
 {
+    if (class_ptr != nullptr)
+    {
+        SetManagedClass(class_ptr->RefCountedPtrFromThis());
+    }
+
     AssertThrowMsg(parent_class != nullptr, "Parent class cannot be null for DynamicHypClassInstance");
 
     m_parent = parent_class;
@@ -48,7 +52,7 @@ bool DynamicHypClassInstance::IsValid() const
 {
     AssertThrow(m_parent != nullptr);
 
-    return m_parent->IsValid() && m_class_ptr != nullptr;
+    return m_parent->IsValid();
 }
 
 HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
@@ -70,16 +74,6 @@ SizeType DynamicHypClassInstance::GetAlignment() const
     AssertThrow(m_parent != nullptr);
 
     return m_parent->GetAlignment();
-}
-
-RC<dotnet::Class> DynamicHypClassInstance::GetManagedClass() const
-{
-    return m_class_ptr;
-}
-
-void DynamicHypClassInstance::SetManagedClass(const RC<dotnet::Class>& class_ptr)
-{
-    m_class_ptr = class_ptr;
 }
 
 bool DynamicHypClassInstance::GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const
@@ -108,9 +102,11 @@ bool DynamicHypClassInstance::GetManagedObject(const void* object_ptr, dotnet::O
 
 bool DynamicHypClassInstance::CanCreateInstance() const
 {
+    RC<dotnet::Class> managed_class = GetManagedClass();
+
     return m_parent->CanCreateInstance()
-        && m_class_ptr != nullptr
-        && !(m_class_ptr->GetFlags() & ManagedClassFlags::ABSTRACT);
+        && managed_class != nullptr
+        && !(managed_class->GetFlags() & ManagedClassFlags::ABSTRACT);
 }
 
 bool DynamicHypClassInstance::ToHypData(ByteView memory, HypData& out_hyp_data) const
@@ -139,7 +135,9 @@ IHypObjectInitializer* DynamicHypClassInstance::GetObjectInitializer_Internal(vo
 bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 {
     AssertThrow(m_parent != nullptr);
-    AssertThrow(m_class_ptr != nullptr);
+
+    RC<dotnet::Class> managed_class = GetManagedClass();
+    AssertThrow(managed_class != nullptr);
 
     { // suppress default managed object creation - we will create it ourselves
         GlobalContextScope scope(HypObjectInitializerContext { this, HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION });
@@ -177,7 +175,7 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
     DynamicHypObjectInitializer* new_initializer = new DynamicHypObjectInitializer(this, parent_initializer);
     FixupObjectInitializerPointer(target_address, new_initializer);
 
-    ManagedObjectResource* managed_object_resource = AllocateResource<ManagedObjectResource>(HypObjectPtr(this, target_address));
+    ManagedObjectResource* managed_object_resource = AllocateResource<ManagedObjectResource>(HypObjectPtr(this, target_address), managed_class);
     new_initializer->SetManagedObjectResource(managed_object_resource);
 
     // Create the managed object
@@ -189,7 +187,6 @@ bool DynamicHypClassInstance::CreateInstance_Internal(HypData& out) const
 bool DynamicHypClassInstance::CreateInstanceArray_Internal(Span<HypData> elements, HypData& out) const
 {
     AssertThrow(m_parent != nullptr);
-    AssertThrow(m_class_ptr != nullptr);
 
     /// \todo: Find some way to support this.
 

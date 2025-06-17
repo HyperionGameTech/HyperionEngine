@@ -8,6 +8,7 @@
 #include <core/object/HypObjectFwd.hpp>
 
 #include <core/memory/resource/Resource.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 
@@ -27,10 +28,10 @@ enum class ObjectFlags : uint32;
 class HYP_API ManagedObjectResource final : public ResourceBase
 {
 public:
-    ManagedObjectResource(dotnet::Object* object_ptr);
-    ManagedObjectResource(HypObjectPtr ptr);
-    ManagedObjectResource(HypObjectPtr ptr, dotnet::Object* object_ptr);
-    ManagedObjectResource(HypObjectPtr ptr, const dotnet::ObjectReference& object_reference, EnumFlags<ObjectFlags> object_flags);
+    ManagedObjectResource(dotnet::Object* object_ptr, const RC<dotnet::Class>& managed_class);
+    ManagedObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managed_class);
+    ManagedObjectResource(HypObjectPtr ptr, dotnet::Object* object_ptr, const RC<dotnet::Class>& managed_class);
+    ManagedObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managed_class, const dotnet::ObjectReference& object_reference, EnumFlags<ObjectFlags> object_flags);
 
     ManagedObjectResource(const ManagedObjectResource& other) = delete;
     ManagedObjectResource& operator=(const ManagedObjectResource& other) = delete;
@@ -45,7 +46,10 @@ public:
         return m_object_ptr;
     }
 
-    dotnet::Class* GetManagedClass() const;
+    const RC<dotnet::Class> GetManagedClass() const
+    {
+        return m_managed_class;
+    }
 
 protected:
     virtual void Initialize() override final;
@@ -54,6 +58,7 @@ protected:
 
     HypObjectPtr m_ptr;
     dotnet::Object* m_object_ptr;
+    RC<dotnet::Class> m_managed_class;
 };
 
 } // namespace hyperion

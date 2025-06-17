@@ -192,73 +192,7 @@ void HypClassRegistry::ForEachClass(const ProcRef<IterationResult(const HypClass
     }
 }
 
-void HypClassRegistry::RegisterManagedClass(const RC<dotnet::Class>& managed_class, const HypClass* hyp_class)
-{
-    AssertThrow(managed_class != nullptr);
-    AssertThrow(hyp_class != nullptr);
-
-    const bool is_core_assembly = managed_class->GetAssembly()->GetFlags()[AssemblyFlags::CORE_ASSEMBLY];
-
-    AssertThrowMsg(is_core_assembly,
-        "Cannot register managed class %s for HypClass %s - only classes from the core assembly can be registered (as they will not be unloaded at runtime)",
-        managed_class->GetName().Data(),
-        hyp_class->GetName().LookupString());
-
-    HYP_LOG(Object, Info, "Register managed class for {} (TypeID: {}) on thread {}", hyp_class->GetName(), hyp_class->GetTypeID().Value(), ThreadID::Current().GetName());
-
-    Mutex::Guard guard(m_managed_classes_mutex);
-
-    auto it = m_managed_classes.FindAs(hyp_class);
-    AssertThrowMsg(it == m_managed_classes.End(), "Class %s already has a managed class registered for it", *hyp_class->GetName());
-
-    if (managed_class->GetFlags() & ManagedClassFlags::STRUCT_TYPE)
-    {
-        if (const HypClassAttributeValue& size_attribute_value = hyp_class->GetAttribute("size"); size_attribute_value.IsValid())
-        {
-            AssertThrowMsg(managed_class->GetSize() == size_attribute_value.GetInt(),
-                "Expected value type managed class %s to have a size equal to %d but got %u",
-                managed_class->GetName().Data(),
-                size_attribute_value.GetInt(),
-                managed_class->GetSize());
-        }
-        else
-        {
-            HYP_LOG(Object, Warning, "HypClass {} is missing \"Size\" attribute, cannot validate size of managed object matches", hyp_class->GetName());
-        }
-
-        // @TODO Validate fields all match
-    }
-
-    m_managed_classes.Insert(const_cast<HypClass*>(hyp_class), managed_class);
-    m_managed_classes_reverse_mapping.Set(managed_class, const_cast<HypClass*>(hyp_class));
-}
-
-void HypClassRegistry::UnregisterManagedClass(dotnet::Class* managed_class)
-{
-    AssertThrow(managed_class != nullptr);
-
-    HYP_LOG(Object, Info, "Unregister managed class {} on thread {}", managed_class->GetName(), ThreadID::Current().GetName());
-
-    Mutex::Guard guard(m_managed_classes_mutex);
-
-    for (auto it = m_managed_classes.Begin(); it != m_managed_classes.End();)
-    {
-        if (it->second == managed_class)
-        {
-            it = m_managed_classes.Erase(it);
-        }
-        else
-        {
-            ++it;
-        }
-    }
-
-    auto it = m_managed_classes_reverse_mapping.Find(managed_class);
-    if (it != m_managed_classes_reverse_mapping.End())
-    {
-        m_managed_classes_reverse_mapping.Erase(it);
-    }
-}
+#if defined(HYP_DOTNET) && HYP_DOTNET
 
 RC<dotnet::Class> HypClassRegistry::GetManagedClass(const HypClass* hyp_class) const
 {
@@ -279,6 +213,8 @@ RC<dotnet::Class> HypClassRegistry::GetManagedClass(const HypClass* hyp_class) c
     return it->second;
 }
 
+#endif
+
 void HypClassRegistry::Initialize()
 {
     Threads::AssertOnThread(g_main_thread);
@@ -295,14 +231,5 @@ void HypClassRegistry::Initialize()
 }
 
 #pragma endregion HypClassRegistry
-
-#pragma region HypClassRegistrationBase
-
-HypClassRegistrationBase::HypClassRegistrationBase(TypeID type_id, HypClass* hyp_class)
-{
-    HypClassRegistry::GetInstance().RegisterClass(type_id, hyp_class);
-}
-
-#pragma endregion HypClassRegistrationBase
 
 } // namespace hyperion

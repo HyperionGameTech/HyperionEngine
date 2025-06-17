@@ -12,10 +12,10 @@ namespace Hyperion
         CanRedo = 0x2
     }
 
-    [HypClassBinding(Name="IEditorAction")]
-    public abstract class IEditorAction : HypObject
+    [HypClassBinding(Name="EditorActionBase")]
+    public abstract class EditorActionBase : HypObject
     {
-        public IEditorAction()
+        public EditorActionBase()
         {
         }
 
@@ -28,7 +28,7 @@ namespace Hyperion
     /// C++ only - Use EditorAction instead
     /// </summary>
     [HypClassBinding(Name="FunctionalEditorAction")]
-    public class FunctionalEditorAction : IEditorAction
+    public class FunctionalEditorAction : EditorActionBase
     {
         public override Name GetName()
         {
@@ -46,7 +46,7 @@ namespace Hyperion
         }
     }
 
-    public class EditorAction : IEditorAction
+    public class EditorAction : EditorActionBase
     {
         private Name name;
         private Action execute;

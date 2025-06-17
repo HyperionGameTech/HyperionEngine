@@ -403,6 +403,9 @@ public:
     HYP_FIELD()
     ScriptableDelegate<void, const Handle<EditorProject>&> OnProjectOpened;
 
+    HYP_FIELD()
+    ScriptableDelegate<void, const Handle<Scene>&> OnActiveSceneChanged;
+
 private:
     void LoadEditorUIDefinitions();
 
@@ -415,6 +418,7 @@ private:
     void InitConsoleUI();
     void InitDebugOverlays();
     void InitManipulationWidgetSelection();
+    void InitActiveSceneSelection();
 
     RC<FontAtlas> CreateFontAtlas();
 
@@ -424,6 +428,8 @@ private:
 
     void StartWatchingNode(const Handle<Node>& node);
     void StopWatchingNode(const Handle<Node>& node);
+    void ClearWatchedNodes();
+    void UpdateWatchedNodes();
 
     void AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested);
     void SetSelectedPackage(const Handle<AssetPackage>& package);
@@ -438,11 +444,14 @@ private:
         return m_hovered_manipulation_widget.IsValid() && m_hovered_manipulation_widget_node.IsValid();
     }
 
+    void SetActiveScene(const WeakHandle<Scene>& scene);
+
     Handle<AppContextBase> m_app_context;
     Handle<Scene> m_editor_scene;
     Handle<Camera> m_camera;
 
     Handle<EditorProject> m_current_project;
+    WeakHandle<Scene> m_active_scene;
 
     FixedArray<Array<RunningEditorTask>, ThreadType::THREAD_TYPE_MAX> m_tasks_by_thread_type;
 

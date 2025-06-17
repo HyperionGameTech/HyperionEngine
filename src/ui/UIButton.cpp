@@ -11,7 +11,6 @@
 namespace hyperion {
 
 UIButton::UIButton()
-    : UIObject(UIObjectType::BUTTON)
 {
     SetBorderRadius(5);
     SetBorderFlags(UIObjectBorderFlags::ALL);

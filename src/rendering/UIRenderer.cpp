@@ -196,8 +196,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
                 render_group->AddFramebuffer(framebuffer);
 
-                HYP_LOG(UI, Debug, "Create render group {} (#{})", attributes.GetHashCode().Value(), render_group.GetID().Value());
-
 #ifdef HYP_DEBUG_MODE
                 if (!render_group.IsValid())
                 {

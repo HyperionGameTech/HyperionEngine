@@ -67,7 +67,6 @@ public:
                 AssertThrowMsg(managed_object_resource != nullptr, "Managed object resource is null!");
 
                 managed_object_resource->IncRef();
-                HYP_DEFER({ managed_object_resource->DecRef(); });
 
                 dotnet::Object* object = managed_object_resource->GetManagedObject();
                 AssertThrowMsg(object != nullptr, "Managed object is null!");
@@ -78,7 +77,20 @@ public:
                     HYP_FAIL("Failed to find method %s!", method_name.Data());
                 }
 
-                return object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+                if constexpr (std::is_void_v<ReturnType>)
+                {
+                    object->InvokeMethodByName<void>(method_name, std::forward<ArgTypes>(args)...);
+
+                    managed_object_resource->DecRef();
+                }
+                else
+                {
+                    ReturnType result = object->InvokeMethodByName<ReturnType>(method_name, std::forward<ArgTypes>(args)...);
+
+                    managed_object_resource->DecRef();
+
+                    return result;
+                }
             });
     }
 

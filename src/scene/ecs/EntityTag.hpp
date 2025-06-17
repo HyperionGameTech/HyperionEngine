@@ -41,7 +41,6 @@ enum class EntityTag : uint32
     UPDATE_ENV_GRID_TRANSFORM,
     UPDATE_ENV_GRID,
     UPDATE_ENV_PROBE_TRANSFORM,
-    // UPDATE_NODE_TRANSFORM,  /* Node transform needs sync after updating TransformComponent */
 
     MAX
 };

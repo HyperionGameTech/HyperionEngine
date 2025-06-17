@@ -34,6 +34,7 @@
 
 #include <core/Handle.hpp>
 
+#include <Engine.hpp>
 #include <Game.hpp>
 
 namespace hyperion {

@@ -32,6 +32,7 @@ struct HypMemberDefinition
 {
     HypMemberType type;
     String name;
+    String friendly_name;
     Array<Pair<String, HypClassAttributeValue>> attributes;
     RC<ASTType> cxx_type;
     String source;

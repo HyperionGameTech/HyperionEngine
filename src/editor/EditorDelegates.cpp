@@ -9,9 +9,13 @@
 
 #include <core/object/HypClass.hpp>
 
+#include <core/logging/Logger.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 namespace hyperion {
+
+HYP_DECLARE_LOG_CHANNEL(Editor);
 
 EditorDelegates::EditorDelegates()
     : m_scheduler(g_game_thread)
@@ -93,6 +97,8 @@ void EditorDelegates::OnNodeUpdate(Node* node, const HypProperty* property)
 
         if (!node)
         {
+            HYP_LOG(Editor, Error, "Node is no longer valid");
+
             return;
         }
 

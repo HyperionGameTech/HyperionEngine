@@ -40,7 +40,7 @@ const HashMap<ErrorMessage, String> CompilerError::error_message_strings {
     { Msg_redeclared_identifier, "Identifier '%' has already been declared in this scope" },
     { Msg_redeclared_identifier_type, "'%' is the name of a type and cannot be used as an identifier" },
     { Msg_undeclared_identifier, "'%' is not declared in module %" },
-    { Msg_expected_identifier, "Expected an identifier" },
+    { Msg_expected_identifier, "Expected an identifier but got %" },
     { Msg_keyword_cannot_be_used_as_identifier, "Keyword '%' cannot be used as a name in this case" },
     { Msg_ambiguous_identifier, "Identifier '%' is ambiguous" },
     { Msg_invalid_constructor, "Invalid constructor" },

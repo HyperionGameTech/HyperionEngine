@@ -50,9 +50,9 @@ bool EditorActionStack::CanRedo() const
     return m_current_action_index + 1 < m_actions.Size();
 }
 
-void EditorActionStack::Push(const Handle<IEditorAction>& action)
+void EditorActionStack::Push(const Handle<EditorActionBase>& action)
 {
-    AssertThrow(action != nullptr);
+    AssertThrow(action.IsValid());
 
     const EnumFlags<EditorActionStackState> previous_state = m_current_state;
 
@@ -60,10 +60,14 @@ void EditorActionStack::Push(const Handle<IEditorAction>& action)
 
     action->Execute();
 
-    // Chop off any actions that were undone
-    if (m_current_action_index + 1 < m_actions.Size())
+    // Chop off any actions stack that are after the current action index,
+    // since we are pushing a new action.
+    if (m_current_action_index > 0)
     {
-        m_actions.Resize(m_current_action_index + 1);
+        while (int(m_actions.Size()) > m_current_action_index)
+        {
+            m_actions.PopBack();
+        }
     }
 
     m_actions.PushBack(action);
@@ -81,7 +85,7 @@ void EditorActionStack::Undo()
         return;
     }
 
-    IEditorAction* action = m_actions[m_current_action_index].Get();
+    EditorActionBase* action = m_actions[m_current_action_index].Get();
 
     OnBeforeActionPop(action);
 
@@ -101,7 +105,7 @@ void EditorActionStack::Redo()
         return;
     }
 
-    IEditorAction* action = m_actions[m_current_action_index + 1].Get();
+    EditorActionBase* action = m_actions[m_current_action_index + 1].Get();
 
     OnBeforeActionPush(action);
 
@@ -114,24 +118,34 @@ void EditorActionStack::Redo()
     OnAfterActionPush(action);
 }
 
-IEditorAction* EditorActionStack::GetUndoAction() const
+const Handle<EditorActionBase>& EditorActionStack::GetUndoAction() const
 {
     if (!CanUndo())
     {
-        return nullptr;
+        return Handle<EditorActionBase>::empty;
     }
 
-    return m_actions[m_current_action_index].Get();
+    AssertDebug(m_current_action_index < m_actions.Size());
+
+    const Handle<EditorActionBase>& action = m_actions[m_current_action_index];
+    AssertDebug(action.IsValid());
+
+    return action;
 }
 
-IEditorAction* EditorActionStack::GetRedoAction() const
+const Handle<EditorActionBase>& EditorActionStack::GetRedoAction() const
 {
     if (!CanRedo())
     {
-        return nullptr;
+        return Handle<EditorActionBase>::empty;
     }
 
-    return m_actions[m_current_action_index + 1].Get();
+    AssertDebug(m_current_action_index + 1 < m_actions.Size());
+
+    const Handle<EditorActionBase>& action = m_actions[m_current_action_index + 1];
+    AssertDebug(action.IsValid());
+
+    return action;
 }
 
 void EditorActionStack::UpdateState()

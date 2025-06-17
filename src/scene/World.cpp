@@ -385,8 +385,7 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
         return nullptr;
     }
 
-    // temp; removed for debugging
-    // Threads::AssertOnThread(g_game_thread);
+    Threads::AssertOnThread(g_game_thread);
 
     subsystem->SetWorld(this);
 
@@ -421,7 +420,6 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
 Subsystem* World::GetSubsystem(TypeID type_id) const
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     const auto it = m_subsystems.Find(type_id);
@@ -437,7 +435,6 @@ Subsystem* World::GetSubsystem(TypeID type_id) const
 Subsystem* World::GetSubsystemByName(WeakName name) const
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     const auto it = m_subsystems.FindIf([name](const Pair<TypeID, Handle<Subsystem>>& item)
@@ -447,12 +444,7 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
                 return false;
             }
 
-            const HypClass* hyp_class = HypClassRegistry::GetInstance().GetClass(item.second.GetTypeID());
-
-            if (!hyp_class)
-            {
-                return false;
-            }
+            const HypClass* hyp_class = item.second->InstanceClass();
 
             return hyp_class->GetName() == name;
         });
@@ -469,34 +461,40 @@ void World::StartSimulating()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+    AssertReady();
 
     if (m_game_state.mode == GameStateMode::SIMULATING)
     {
         return;
     }
 
-    OnGameStateChange(this, GameStateMode::SIMULATING);
+    const GameStateMode previous_game_state_mode = m_game_state.mode;
 
     m_game_state.game_time = 0.0f;
     m_game_state.delta_time = 0.0f;
     m_game_state.mode = GameStateMode::SIMULATING;
+
+    OnGameStateChange(this, previous_game_state_mode, GameStateMode::SIMULATING);
 }
 
 void World::StopSimulating()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+    AssertReady();
 
     if (m_game_state.mode != GameStateMode::SIMULATING)
     {
         return;
     }
 
-    OnGameStateChange(this, GameStateMode::EDITOR);
+    const GameStateMode previous_game_state_mode = m_game_state.mode;
 
     m_game_state.game_time = 0.0f;
     m_game_state.delta_time = 0.0f;
     m_game_state.mode = GameStateMode::EDITOR;
+
+    OnGameStateChange(this, previous_game_state_mode, GameStateMode::EDITOR);
 }
 
 void World::AddScene(const Handle<Scene>& scene)

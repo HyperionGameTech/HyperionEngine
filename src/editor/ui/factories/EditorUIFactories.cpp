@@ -396,6 +396,22 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIElementFactory);
 
 class EditorWeakNodeFactory : public UIElementFactory<WeakHandle<Node>, EditorWeakNodeFactory>
 {
+    static String GetNodeName(Node* node)
+    {
+        String node_name = "Invalid";
+
+        if (node->IsRoot() && node->GetScene() != nullptr)
+        {
+            node_name = HYP_FORMAT("{} Scene Root", node->GetScene()->GetName());
+        }
+        else
+        {
+            node_name = node->GetName().LookupString();
+        }
+
+        return node_name;
+    }
+
 public:
     Handle<UIObject> Create(UIObject* parent, const WeakHandle<Node>& value) const
     {
@@ -404,7 +420,7 @@ public:
 
         if (Handle<Node> node = value.Lock())
         {
-            node_name = node->GetName().LookupString();
+            node_name = GetNodeName(node.Get());
             node_uuid = node->GetUUID();
         }
         else
@@ -426,7 +442,7 @@ public:
         {
             if (Handle<Node> node = value.Lock())
             {
-                text->SetText(node->GetName().LookupString());
+                text->SetText(GetNodeName(node.Get()));
             }
             else
             {
@@ -555,7 +571,7 @@ public:
 
         if (!entity_manager.IsValid())
         {
-            HYP_LOG(Editor, Error, "No EntityManager found for Entity #{}", entity->GetID().Value());
+            HYP_LOG(Editor, Error, "No EntityManager found for Entity {}", entity->GetID());
 
             return nullptr;
         }
@@ -566,7 +582,7 @@ public:
 
             if (!all_components.HasValue())
             {
-                HYP_LOG(Editor, Error, "No component map found for Entity #{}", entity->GetID().Value());
+                HYP_LOG(Editor, Error, "No component map found for Entity {}", entity->GetID());
 
                 return nullptr;
             }
@@ -593,7 +609,7 @@ public:
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data))
                 {
-                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with ID {} for Entity #{}", component_interface->GetTypeName(), it.second, entity->GetID().Value());
+                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with ID {} for Entity {}", component_interface->GetTypeName(), it.second, entity->GetID());
 
                     continue;
                 }
@@ -804,7 +820,7 @@ public:
                     ScriptComponent *script_component = entity_manager->TryGetComponent<ScriptComponent>(entity);
 
                     if (!script_component) {
-                        HYP_LOG(Editor, Error, "Failed to get ScriptComponent for Entity #{}", entity->GetID().Value());
+                        HYP_LOG(Editor, Error, "Failed to get ScriptComponent for Entity {}", entity->GetID());
 
                         return UIEventHandlerResult::ERR;
                     }
@@ -992,12 +1008,12 @@ public:
 
     void Update(UIObject* ui_object, const EditorNodePropertyRef& value) const
     {
-        // @TODO Implement without recreating the UI element
+        // // @TODO Implement without recreating the UI element
 
         // Handle<Node> node_rc = value.node.Lock();
         // AssertThrow(node_rc != nullptr);
 
-        // UIElementFactoryBase *factory = GetEditorUIElementFactory(value.property->GetTypeID());
+        // UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeID());
         // AssertThrow(factory != nullptr);
 
         // Handle<UIPanel> content = ui_object->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();
@@ -1005,7 +1021,7 @@ public:
 
         // content->RemoveAllChildUIObjects();
 
-        // Handle<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef &>(value)));
+        // Handle<UIObject> element = factory->CreateUIObject(ui_object, value.property->Get(HypData(node_rc)), AnyRef(const_cast<EditorNodePropertyRef&>(value)));
         // AssertThrow(element != nullptr);
 
         // content->AddChildUIObject(element);

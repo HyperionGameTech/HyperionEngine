@@ -6,29 +6,32 @@
 #include <core/math/Matrix4.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <cmath>
 
 namespace hyperion {
 
+// clang-format off
 HYP_BEGIN_STRUCT(Vec3f, -1, 0, {})
-
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
-        HYP_END_STRUCT
+HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec3i, -1, 0, {})
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
-        HYP_END_STRUCT
+    HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec3u, -1, 0, {})
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y)),
     HypField(NAME(HYP_STR(z)), &Type::z, offsetof(Type, z))
-        HYP_END_STRUCT
+HYP_END_STRUCT
+
+// clang-format on
 
 Vec3<float> math::Vec3<float>::operator*(const Matrix3& mat) const
 {

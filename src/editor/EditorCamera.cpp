@@ -88,7 +88,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         return false;
     }
 
-    const Vec2f delta = (evt.position - evt.previous_position) * 150.0f;
+    const Vec2f delta = (evt.position - evt.previous_position) * 50.0f;
 
     const Vec3f dir_cross_y = camera->GetDirection().Cross(camera->GetUpVector());
 
@@ -98,13 +98,18 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
         if (evt.mouse_buttons & MouseButtonState::RIGHT)
         {
-            camera->SetNextTranslation(camera->GetTranslation() + dir_cross_y * 0.1f * float(-delta_sign.y));
+            camera->SetTranslation(camera->GetTranslation() + dir_cross_y * float(-delta_sign.y));
         }
         else
         {
+            // Get the forward vector on the horizontal plane
+            Vec3f forward = camera->GetDirection();
+            forward.y = 0.0f; // Ignore vertical component
+            forward.Normalize();
+
             camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x));
 
-            camera->SetNextTranslation(camera->GetTranslation() + camera->GetDirection() * 0.1f * float(-delta_sign.y));
+            camera->SetTranslation(camera->GetTranslation() + forward * float(-delta_sign.y));
         }
     }
     else if (evt.mouse_buttons & MouseButtonState::RIGHT)

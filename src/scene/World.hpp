@@ -184,7 +184,7 @@ public:
      * and within each Scene, each Entity, etc. */
     void Update(GameCounter::TickUnit delta);
 
-    Delegate<void, World*, GameStateMode> OnGameStateChange;
+    Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
 
     Delegate<void, World*, const Handle<Scene>& /* scene */> OnSceneAdded;
     Delegate<void, World*, const Handle<Scene>& /* scene */> OnSceneRemoved;

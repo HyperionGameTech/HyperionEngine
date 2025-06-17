@@ -1538,7 +1538,7 @@ void Lightmapper::PerformLightmapping()
         {
             if (!mesh_component.raytracing_data)
             {
-                HYP_LOG(Lightmap, Info, "Skipping entity #{} because it has no raytracing data set", entity_id.Value());
+                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity_id.Value());
 
                 continue;
             }

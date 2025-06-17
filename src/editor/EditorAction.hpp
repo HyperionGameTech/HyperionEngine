@@ -25,12 +25,12 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
-class IEditorAction : public HypObject<IEditorAction>
+class EditorActionBase : public HypObject<EditorActionBase>
 {
-    HYP_OBJECT_BODY(IEditorAction);
+    HYP_OBJECT_BODY(EditorActionBase);
 
 public:
-    virtual ~IEditorAction() = default;
+    virtual ~EditorActionBase() = default;
 
     HYP_METHOD(Scriptable)
     virtual Name GetName() const;
@@ -65,7 +65,7 @@ struct EditorActionFunctions
 };
 
 HYP_CLASS()
-class HYP_API FunctionalEditorAction : public IEditorAction
+class HYP_API FunctionalEditorAction : public EditorActionBase
 {
     HYP_OBJECT_BODY(FunctionalEditorAction);
 
@@ -122,7 +122,7 @@ class IEditorActionFactory
 public:
     virtual ~IEditorActionFactory() = default;
 
-    virtual UniquePtr<IEditorAction> CreateEditorActionInstance() const = 0;
+    virtual UniquePtr<EditorActionBase> CreateEditorActionInstance() const = 0;
 };
 
 template <class T>
@@ -131,7 +131,7 @@ class HYP_API EditorActionFactory final : public IEditorActionFactory
 public:
     virtual ~EditorActionFactory() override = default;
 
-    virtual UniquePtr<IEditorAction> CreateEditorActionInstance() const override
+    virtual UniquePtr<EditorActionBase> CreateEditorActionInstance() const override
     {
         return MakeUnique<T>();
     }

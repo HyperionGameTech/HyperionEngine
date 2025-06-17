@@ -848,9 +848,7 @@ void ASTFunctionType::ToJSON(json::JSONValue& out) const
 
 #pragma endregion JSON conversion
 
-Parser::Parser(
-    TokenStream* token_stream,
-    CompilationUnit* compilation_unit)
+Parser::Parser(TokenStream* token_stream, CompilationUnit* compilation_unit)
     : m_token_stream(token_stream),
       m_compilation_unit(compilation_unit),
       m_template_argument_depth(0)
@@ -978,6 +976,7 @@ Token Parser::Expect(TokenClass token_class, bool read)
         {
         case TK_IDENT:
             error_msg = Msg_expected_identifier;
+            error_str = Token::TokenTypeToString(m_token_stream->Peek().GetTokenClass());
             break;
         default:
             error_msg = Msg_expected_token;
@@ -1421,6 +1420,8 @@ RC<ASTExpr> Parser::ParseLiteralString()
     {
         RC<ASTLiteralString> value = MakeRefCountedPtr<ASTLiteralString>();
         value->value = token.GetValue();
+
+        return value;
     }
 
     return nullptr;
@@ -1432,6 +1433,8 @@ RC<ASTExpr> Parser::ParseLiteralInt()
     {
         RC<ASTLiteralInt> value = MakeRefCountedPtr<ASTLiteralInt>();
         value->value = StringUtil::Parse<int>(token.GetValue());
+
+        return value;
     }
 
     return nullptr;
@@ -1443,6 +1446,8 @@ RC<ASTExpr> Parser::ParseLiteralFloat()
     {
         RC<ASTLiteralFloat> value = MakeRefCountedPtr<ASTLiteralFloat>();
         value->value = StringUtil::Parse<double>(token.GetValue());
+
+        return value;
     }
 
     return nullptr;
@@ -1584,6 +1589,30 @@ RC<ASTMemberDecl> Parser::ParseMemberDecl()
     member_decl->type->is_static = is_static;
     member_decl->type->is_thread_local = is_thread_local;
     member_decl->type->is_constexpr = is_constexpr;
+
+    return member_decl;
+}
+
+RC<ASTMemberDecl> Parser::ParseEnumMemberDecl(const RC<ASTType>& underlying_type)
+{
+    RC<ASTMemberDecl> member_decl = MakeRefCountedPtr<ASTMemberDecl>();
+    member_decl->type = underlying_type;
+
+    if (!member_decl->type)
+    {
+        member_decl->type = MakeRefCountedPtr<ASTType>();
+        member_decl->type->type_name = QualifiedName { { "int" } };
+    }
+
+    if (Token name_token = Expect(TK_IDENT, true))
+    {
+        member_decl->name = name_token.GetValue();
+    }
+
+    if (MatchOperator("=", true))
+    {
+        member_decl->value = ParseExpr();
+    }
 
     return member_decl;
 }

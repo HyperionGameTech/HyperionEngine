@@ -70,14 +70,10 @@ namespace Hyperion
             else
             {
                 if (_hypClassPtr == IntPtr.Zero)
-                {
                     throw new Exception("HypClass pointer is null - object is not correctly initialized");
-                }
 
                 if (_nativeAddress == IntPtr.Zero)
-                {
                     throw new Exception("Native address is null - object is not correctly initialized");
-                }
             }
             
             // Logger.Log(LogType.Debug, "Created HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
@@ -87,20 +83,8 @@ namespace Hyperion
         {
             // Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress);
 
-            if (IsValid)
-            {
-                if (HypClass.IsReferenceCounted)
-                {
-#if DEBUG
-                    uint refCount = HypObject_GetRefCount_Strong(_hypClassPtr, _nativeAddress);
-                    Logger.Log(LogType.Debug, "Destroying HypObject of type " + GetType().Name + ", _hypClassPtr: " + _hypClassPtr + ", _nativeAddress: " + _nativeAddress + ", refCount: " + refCount);
-                    
-                    Assert.Throw(refCount >= 1, "Strong reference must >= 1 before destruction");
-#endif
-
-                    HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
-                }
-            }
+            if (IsValid && HypClass.IsReferenceCounted)
+                HypObject_DecRef(_hypClassPtr, _nativeAddress, false);
         }
 
         public void Dispose()

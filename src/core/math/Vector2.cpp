@@ -5,24 +5,26 @@
 #include <core/math/MathUtil.hpp>
 
 #include <core/object/HypClassUtils.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 namespace hyperion {
 
+// clang-format off
 HYP_BEGIN_STRUCT(Vec2f, -1, 0, {})
-
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
-        HYP_END_STRUCT
+HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2i, -1, 0, {})
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
-        HYP_END_STRUCT
+HYP_END_STRUCT
 
 HYP_BEGIN_STRUCT(Vec2u, -1, 0, {})
-HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
+    HypField(NAME(HYP_STR(x)), &Type::x, offsetof(Type, x)),
     HypField(NAME(HYP_STR(y)), &Type::y, offsetof(Type, y))
-        HYP_END_STRUCT
+HYP_END_STRUCT
+// clang-format on
 
 namespace math {
 float Vec2<float>::Distance(const Vec2<float>& other) const

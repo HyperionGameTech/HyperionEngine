@@ -20,8 +20,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UIListViewItem
 
 UIListViewItem::UIListViewItem()
-    : UIObject(UIObjectType::LIST_VIEW_ITEM),
-      m_expanded_element(nullptr),
+    : m_expanded_element(nullptr),
       m_is_selected_item(false),
       m_is_expanded(false)
 {
@@ -182,8 +181,7 @@ Material::ParameterTable UIListViewItem::GetMaterialParameters() const
 #pragma region UIListView
 
 UIListView::UIListView()
-    : UIPanel(UIObjectType::LIST_VIEW),
-      m_orientation(UIListViewOrientation::VERTICAL)
+    : m_orientation(UIListViewOrientation::VERTICAL)
 {
     OnClick.Bind([this](...)
                {

@@ -8,8 +8,6 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <core/utilities/DeferredScope.hpp>
-
 #include <core/Util.hpp>
 
 namespace hyperion {
@@ -205,7 +203,9 @@ struct Handle final : HandleBase
      *  \return The TypeID of the object. */
     HYP_FORCE_INLINE const TypeID& GetTypeID() const
     {
-        return ptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>();
+        static const TypeID type_id = TypeID::ForType<T>();
+
+        return ptr ? ptr->m_header->container->GetObjectTypeID() : type_id;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const
@@ -565,7 +565,9 @@ struct WeakHandle final
      *  \return The TypeID of the object. */
     HYP_FORCE_INLINE const TypeID& GetTypeID() const
     {
-        return ptr ? ptr->m_header->container->GetObjectTypeID() : TypeID::ForType<T>();
+        static const TypeID type_id = TypeID::ForType<T>();
+
+        return ptr ? ptr->m_header->container->GetObjectTypeID() : type_id;
     }
 
     HYP_FORCE_INLINE bool operator==(std::nullptr_t) const

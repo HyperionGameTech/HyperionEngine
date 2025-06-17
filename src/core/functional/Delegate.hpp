@@ -336,6 +336,11 @@ public:
           m_id_counter(other.m_id_counter)
     {
         other.m_id_counter = 0;
+
+        for (auto it = m_detached_handlers.Begin(); it != m_detached_handlers.End(); ++it)
+        {
+            it->delegate = this; // Reassign the delegate pointer to the new instance
+        }
     }
 
     Delegate& operator=(Delegate&& other) noexcept = delete;

@@ -52,33 +52,6 @@ struct UIObjectInstanceData
     Vec4f texcoords;
 };
 
-HYP_ENUM()
-enum class UIObjectType : uint32
-{
-    UNKNOWN = ~0u,
-    OBJECT = 0,
-    STAGE = 1,
-    BUTTON = 2,
-    TEXT = 3,
-    PANEL = 4,
-    IMAGE = 5,
-    TAB_VIEW = 6,
-    TAB = 7,
-    GRID = 8,
-    GRID_ROW = 9,
-    GRID_COLUMN = 10,
-    MENU_BAR = 11,
-    MENU_ITEM = 12,
-    DOCKABLE_CONTAINER = 13,
-    DOCKABLE_ITEM = 14,
-    LIST_VIEW = 15,
-    LIST_VIEW_ITEM = 16,
-    TEXTBOX = 17,
-    WINDOW = 18,
-};
-
-HYP_MAKE_ENUM_FLAGS(UIObjectType)
-
 HYP_STRUCT(Size = 24)
 struct alignas(8) UIEventHandlerResult
 {
@@ -522,10 +495,6 @@ struct UIObjectSpawnContext
 
 #pragma region UIObject
 
-struct UIObjectID : UniqueID
-{
-};
-
 HYP_CLASS(Abstract)
 class HYP_API UIObject : public HypObject<UIObject>
 {
@@ -538,7 +507,7 @@ protected:
         AFTER_CHILDREN
     };
 
-    UIObject(UIObjectType type, const ThreadID& owner_thread_id = ThreadID::invalid);
+    UIObject(const ThreadID& owner_thread_id);
 
 public:
     friend class UIRenderSubsystem;
@@ -546,6 +515,9 @@ public:
     friend struct UILockedUpdatesScope;
 
     static constexpr int scrollbar_size = 15;
+
+    HYP_FIELD()
+    static constexpr int tmp_field = 4;
 
     UIObject();
     UIObject(const UIObject& other) = delete;
@@ -555,17 +527,6 @@ public:
     virtual ~UIObject();
 
     virtual void Update(GameCounter::TickUnit delta) final;
-
-    HYP_FORCE_INLINE const UIObjectID& GetID() const
-    {
-        return m_id;
-    }
-
-    HYP_METHOD()
-    HYP_FORCE_INLINE UIObjectType GetType() const
-    {
-        return m_type;
-    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
@@ -919,10 +880,6 @@ public:
      *  \returns A pointer to the parent UIObject or nullptr if none exists. */
     HYP_METHOD()
     UIObject* GetParentUIObject() const;
-
-    /*! \brief Get the closest parent UIObject with UIObjectType \ref{type} if one exists.
-     *  \returns A pointer to the closest parent UIObject with UIObjectType \ref{type} or nullptr if none exists. */
-    UIObject* GetClosestParentUIObject(UIObjectType type) const;
 
     template <class T>
     Handle<T> GetClosestParentUIObject() const
@@ -1521,9 +1478,6 @@ private:
     void UpdateNodeTransform();
 
     Handle<Material> CreateMaterial() const;
-
-    const UIObjectID m_id;
-    const UIObjectType m_type;
 
     EnumFlags<UIObjectFocusState> m_focus_state;
 

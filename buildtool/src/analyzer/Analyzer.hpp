@@ -28,6 +28,9 @@ struct AnalyzerState
     }
 };
 
+const String& HypClassDefinitionTypeToString(HypClassDefinitionType type);
+const String& HypMemberTypeToString(HypMemberType type);
+
 class Analyzer
 {
 public:

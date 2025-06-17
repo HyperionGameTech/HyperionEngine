@@ -398,22 +398,24 @@ void Scene::SetRoot(const Handle<Node>& root)
         m_root->SetScene(this);
 
 #ifdef HYP_DEBUG_MODE
-        AddDelegateHandler(NAME("ValidateScene"), m_root->GetDelegates()->OnChildAdded.Bind([weak_this = WeakHandleFromThis()](Node*, bool)
-                                                      {
-                                                          Handle<Scene> scene = weak_this.Lock();
+        AddDelegateHandler(
+            NAME("ValidateScene"),
+            m_root->GetDelegates()->OnChildAdded.Bind([weak_this = WeakHandleFromThis()](Node*, bool)
+                {
+                    Handle<Scene> scene = weak_this.Lock();
 
-                                                          if (!scene.IsValid())
-                                                          {
-                                                              return;
-                                                          }
+                    if (!scene.IsValid())
+                    {
+                        return;
+                    }
 
-                                                          SceneValidationResult validation_result = SceneValidation::ValidateScene(scene.Get());
+                    SceneValidationResult validation_result = SceneValidation::ValidateScene(scene.Get());
 
-                                                          if (validation_result.HasError())
-                                                          {
-                                                              HYP_LOG(Scene, Error, "Scene validation failed: {}", validation_result.GetError().GetMessage());
-                                                          }
-                                                      }));
+                    if (validation_result.HasError())
+                    {
+                        HYP_LOG(Scene, Error, "Scene validation failed: {}", validation_result.GetError().GetMessage());
+                    }
+                }));
 #endif
     }
 

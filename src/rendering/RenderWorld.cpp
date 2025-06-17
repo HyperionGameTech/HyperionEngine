@@ -193,7 +193,7 @@ void RenderWorld::Initialize_Internal()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with ID: #{}", m_world->GetID().Value());
+    HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with ID: {}", m_world->GetID());
 
     m_shadow_map_manager->Initialize();
     m_render_environment->Initialize();

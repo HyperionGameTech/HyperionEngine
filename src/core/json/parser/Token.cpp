@@ -42,6 +42,8 @@ String Token::TokenTypeToString(TokenClass token_class)
         return "{";
     case TK_CLOSE_BRACE:
         return "}";
+    case TK_EMPTY:
+        return "<empty>";
     default:
         return "??";
     }

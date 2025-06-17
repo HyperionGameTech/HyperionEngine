@@ -6,6 +6,8 @@
 #include <core/utilities/TypeID.hpp>
 #include <core/utilities/UniqueID.hpp>
 
+#include <core/utilities/FormatFwd.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Types.hpp>
@@ -13,6 +15,8 @@
 #include <HashCode.hpp>
 
 namespace hyperion {
+
+HYP_API extern ANSIStringView GetClassName(const TypeID& type_id);
 
 struct IDBase
 {
@@ -161,6 +165,20 @@ struct ID : IDBase
 
 template <class T>
 const ID<T> ID<T>::invalid = ID<T>();
+
+// string format specialization for ID<T>
+namespace utilities {
+
+template <class StringType, class T>
+struct Formatter<StringType, ID<T>>
+{
+    auto operator()(const ID<T>& value) const
+    {
+        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeID())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+    }
+};
+
+} // namespace utilities
 
 } // namespace hyperion
 

@@ -263,14 +263,9 @@ public:
     RC<ASTIdentifier> ParseIdentifier();
     RC<ASTInitializerExpr> ParseInitializerExpr();
     RC<ASTMemberDecl> ParseMemberDecl();
+    RC<ASTMemberDecl> ParseEnumMemberDecl(const RC<ASTType>& underlying_type);
     RC<ASTType> ParseType();
     RC<ASTFunctionType> ParseFunctionType(const RC<ASTType>& return_type);
-
-private:
-    int m_template_argument_depth;
-
-    TokenStream* m_token_stream;
-    CompilationUnit* m_compilation_unit;
 
     Token Match(TokenClass token_class, bool read = false);
     Token MatchAhead(TokenClass token_class, int n);
@@ -284,6 +279,12 @@ private:
     SourceLocation CurrentLocation() const;
     void SkipStatementTerminators();
     int OperatorPrecedence(const Operator*& out);
+
+private:
+    int m_template_argument_depth;
+
+    TokenStream* m_token_stream;
+    CompilationUnit* m_compilation_unit;
 };
 
 } // namespace hyperion::buildtool

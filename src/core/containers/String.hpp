@@ -88,32 +88,49 @@ public:
 
     String();
     String(const String& other);
-    String(const CharType* str);
-    String(const CharType* _begin, const CharType* _end);
 
-    explicit String(ConstByteView byte_view);
-
-    template <int TOtherStringType>
-    String(const utilities::StringView<TOtherStringType>& string_view)
-    {
-        *this = string_view;
-    }
-
-    template <int TOtherStringType, std::enable_if_t<TOtherStringType != TStringType, int> = 0>
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
     String(const String<TOtherStringType>& other)
         : String()
     {
         *this = other;
     }
 
+    String(const utilities::StringView<TStringType>& string_view)
+        : Base(),
+          m_length(string_view.Length())
+    {
+        if (m_length == 0)
+        {
+            Base::ResizeZeroed(1);
+
+            return;
+        }
+
+        Base::ResizeUninitialized(string_view.Size() + 1);
+        Memory::MemCpy(Base::Data(), string_view.Data(), string_view.Size() * sizeof(CharType));
+        Base::Data()[Base::m_size - 1] = CharType('\0'); // Null-terminate the string
+    }
+
+    String(const CharType* str);
+    String(const CharType* _begin, const CharType* _end);
+
+    explicit String(ConstByteView byte_view);
+
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
+    String(const utilities::StringView<TOtherStringType>& string_view)
+        : String()
+    {
+        *this = string_view;
+    }
+
     String(String&& other) noexcept;
     ~String();
 
-    String& operator=(const CharType* str);
     String& operator=(const String& other);
     String& operator=(String&& other) noexcept;
 
-    template <int TOtherStringType>
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
     HYP_FORCE_INLINE String& operator=(const utilities::StringView<TOtherStringType>& string_view)
     {
         Clear();
@@ -122,7 +139,7 @@ public:
         return *this;
     }
 
-    template <int TOtherStringType, std::enable_if_t<TOtherStringType != TStringType, int> = 0>
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
     HYP_FORCE_INLINE String& operator=(const String<TOtherStringType>& other)
     {
         Clear();
@@ -130,6 +147,8 @@ public:
 
         return *this;
     }
+
+    String& operator=(const CharType* str);
 
     HYP_FORCE_INLINE String operator+(const CharType* str) const
     {
@@ -142,7 +161,7 @@ public:
         return *this;
     }
 
-    template <int TOtherStringType, std::enable_if_t<TOtherStringType != TStringType, int> = 0>
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
     HYP_FORCE_INLINE String operator+(const String<TOtherStringType>& other) const
     {
         String result(*this);
@@ -151,7 +170,7 @@ public:
         return result;
     }
 
-    template <int TOtherStringType, std::enable_if_t<TOtherStringType != TStringType, int> = 0>
+    template <int TOtherStringType, typename = std::enable_if_t<TOtherStringType != TStringType>>
     HYP_FORCE_INLINE String& operator+=(const String<TOtherStringType>& other)
     {
         Append(other.Data(), other.Data() + other.Size());
@@ -165,13 +184,13 @@ public:
     String operator+(CharType ch) const;
     String& operator+=(CharType ch);
 
-    template <class TWidestCharType, typename = std::enable_if_t<is_utf8 && std::is_same_v<TWidestCharType, WidestCharType>, int>>
+    template <class TWidestCharType, typename = std::enable_if_t<is_utf8 && std::is_same_v<TWidestCharType, WidestCharType>>>
     HYP_FORCE_INLINE String operator+(TWidestCharType ch) const
     {
         return String(*this) += ch;
     }
 
-    template <class TWidestCharType, typename = std::enable_if_t<is_utf8 && std::is_same_v<TWidestCharType, WidestCharType>, int>>
+    template <class TWidestCharType, typename = std::enable_if_t<is_utf8 && std::is_same_v<TWidestCharType, WidestCharType>>>
     HYP_FORCE_INLINE String& operator+=(TWidestCharType ch)
     {
         Append(ch);
@@ -342,7 +361,7 @@ public:
     void Append(const CharType* str);
     void Append(const CharType* _begin, const CharType* _end);
 
-    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>)>>
     void Append(const OtherCharType* str)
     {
         const SizeType size = utf::utf_strlen<OtherCharType, false>(str);
@@ -350,7 +369,7 @@ public:
         Append(str, str + size);
     }
 
-    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>)>>
     void Append(const OtherCharType* _begin, const OtherCharType* _end)
     {
         // const int size = utf::utf_strlen<OtherCharType, false>(str);
@@ -417,7 +436,7 @@ public:
         }
     }
 
-    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>), int>>
+    template <class OtherCharType, typename = std::enable_if_t<is_utf8 && !std::is_same_v<OtherCharType, CharType> && (std::is_same_v<OtherCharType, u32char> || std::is_same_v<OtherCharType, u16char> || std::is_same_v<OtherCharType, wchar_t>)>>
     HYP_FORCE_INLINE void Append(OtherCharType ch)
     {
         SizeType codepoints = 0;
@@ -1826,7 +1845,7 @@ inline containers::String<TStringType> operator+(const typename containers::Stri
     return containers::String<TStringType>(lhs) + rhs;
 }
 
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, char>, int>>
+template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, char>>>
 std::ostream& operator<<(std::ostream& os, const containers::String<TStringType>& str)
 {
     os << str.Data();
@@ -1834,7 +1853,7 @@ std::ostream& operator<<(std::ostream& os, const containers::String<TStringType>
     return os;
 }
 
-template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, wchar_t>, int>>
+template <int TStringType, typename = std::enable_if_t<std::is_same_v<typename containers::String<TStringType>::CharType, wchar_t>>>
 std::wostream& operator<<(std::wostream& os, const containers::String<TStringType>& str)
 {
     os << str.Data();

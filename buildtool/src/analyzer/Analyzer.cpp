@@ -9,6 +9,9 @@
 #include <core/utilities/Format.hpp>
 #include <core/utilities/StringView.hpp>
 
+#include <core/algorithm/Map.hpp>
+#include <core/algorithm/Filter.hpp>
+
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
 #include <core/containers/Forest.hpp>
@@ -38,7 +41,13 @@ static const HashMap<String, HypClassDefinitionType> g_hyp_class_definition_type
     { "HYP_ENUM", HypClassDefinitionType::ENUM }
 };
 
-static const String& HypClassDefinitionTypeToString(HypClassDefinitionType type)
+static const HashMap<String, HypMemberType> g_hyp_member_definition_types = {
+    { "HYP_FIELD", HypMemberType::TYPE_FIELD },
+    { "HYP_METHOD", HypMemberType::TYPE_METHOD },
+    { "HYP_PROPERTY", HypMemberType::TYPE_PROPERTY }
+};
+
+const String& HypClassDefinitionTypeToString(HypClassDefinitionType type)
 {
     auto it = g_hyp_class_definition_types.FindIf([type](const Pair<String, HypClassDefinitionType>& pair)
         {
@@ -53,14 +62,100 @@ static const String& HypClassDefinitionTypeToString(HypClassDefinitionType type)
     return String::empty;
 }
 
-static const HashMap<String, HypMemberType> g_hyp_member_definition_types = {
-    { "HYP_FIELD", HypMemberType::TYPE_FIELD },
-    { "HYP_METHOD", HypMemberType::TYPE_METHOD },
-    { "HYP_PROPERTY", HypMemberType::TYPE_PROPERTY },
-    { "HYP_CONSTANT", HypMemberType::TYPE_CONSTANT }
-};
+static void ParseInnerContent(const String& content, String& out_result)
+{
+    int is_in_comment = 0; // 0 = no comment, 1 = line comment, 2 = block comment
+    bool is_in_string = false;
+    bool is_escaped = false;
+    int brace_depth = 0;
+    int parenthesis_depth = 0;
 
-static const String& HypMemberTypeToString(HypMemberType type)
+    for (SizeType char_index = 0; char_index < content.Length(); char_index++)
+    {
+        const utf::u32char ch = content.GetChar(char_index);
+
+        if (ch == 0)
+        {
+            break;
+        }
+
+        out_result.Append(ch);
+
+        if (is_escaped)
+        {
+            is_escaped = false;
+
+            continue;
+        }
+
+        if (ch == '\\')
+        {
+            is_escaped = true;
+        }
+        else if (ch == '\n' && is_in_comment == 1)
+        {
+            is_in_comment = 0;
+        }
+        else if (ch == '"' && !is_in_comment)
+        {
+            is_in_string = !is_in_string;
+        }
+        else if (ch == '/' && !is_in_string && !is_in_comment && char_index + 1 < content.Length())
+        {
+            if (content.GetChar(char_index + 1) == '/')
+            {
+                is_in_comment = 1;
+                out_result.Append(content.GetChar(++char_index)); // Append the '/' to the result
+                continue;
+            }
+            else if (content.GetChar(char_index + 1) == '*')
+            {
+                is_in_comment = 2;
+                out_result.Append(content.GetChar(++char_index)); // Append the '/' to the result
+                continue;
+            }
+        }
+        else if (ch == '*' && !is_in_string && is_in_comment == 2 && char_index + 1 < content.Length())
+        {
+            if (content.GetChar(char_index + 1) == '/')
+            {
+                is_in_comment = 0;
+                out_result.Append(content.GetChar(++char_index)); // Append the '/' to the result
+                continue;
+            }
+        }
+        else if (!is_in_string && !is_in_comment)
+        {
+            if (ch == '{')
+            {
+                brace_depth++;
+            }
+            else if (ch == '}')
+            {
+                brace_depth--;
+
+                if (brace_depth <= 0 && parenthesis_depth <= 0)
+                {
+                    break;
+                }
+            }
+            else if (ch == '(')
+            {
+                parenthesis_depth++;
+            }
+            else if (ch == ')')
+            {
+                parenthesis_depth--;
+            }
+            else if (ch == ';' && brace_depth <= 0)
+            {
+                break;
+            }
+        }
+    }
+}
+
+const String& HypMemberTypeToString(HypMemberType type)
 {
     auto it = g_hyp_member_definition_types.FindIf([type](const Pair<String, HypMemberType>& pair)
         {
@@ -266,13 +361,13 @@ static TResult<Array<Pair<String, HypClassAttributeValue>>> BuildHypClassAttribu
     return results;
 }
 
-template <class MacroEnumType>
-static TResult<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, MacroEnumType>& usable_macros, const String& line, SizeType& out_start_index, SizeType& out_end_index, bool require_parentheses = true)
+template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
+static TResult<Pair<E, Array<Pair<String, HypClassAttributeValue>>>> ParseHypMacro(const HashMap<String, E>& usable_macros, const String& line, SizeType& out_start_index, SizeType& out_end_index, bool require_parentheses = true)
 {
     out_start_index = String::not_found;
     out_end_index = String::not_found;
 
-    for (const Pair<String, MacroEnumType>& it : usable_macros)
+    for (const Pair<String, E>& it : usable_macros)
     {
         SizeType macro_start_index = line.FindFirstIndex(it.first);
 
@@ -334,11 +429,11 @@ static TResult<Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>>>
                 attributes = build_attributes_result.GetValue();
             }
 
-            return Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>> { it.second, attributes };
+            return Pair<E, Array<Pair<String, HypClassAttributeValue>>> { it.second, attributes };
         }
     }
 
-    return Pair<MacroEnumType, Array<Pair<String, HypClassAttributeValue>>> { MacroEnumType::NONE, {} };
+    return Pair<E, Array<Pair<String, HypClassAttributeValue>>> { E::NONE, {} };
 }
 
 static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const Analyzer& analyzer, Module& mod)
@@ -380,6 +475,7 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
 
         if (parse_macro_result.GetValue().first == HypClassDefinitionType::NONE)
         {
+            // no match; continue
             continue;
         }
 
@@ -411,120 +507,13 @@ static TResult<Array<HypClassDefinition>, AnalyzerError> BuildHypClasses(const A
 
         if (brace_index != String::not_found)
         {
-            const String remaining_content = content_to_end.Substr(brace_index + 1, content_to_end.Size());
+            const String remaining_content = content_to_end.Substr(brace_index, content_to_end.Size());
 
-            int is_in_comment = 0; // 0 = no comment, 1 = line comment, 2 = block comment
-            bool is_in_string = false;
-            bool is_escaped = false;
-            int brace_depth = 1;
-
-            for (SizeType j = 0; j < remaining_content.Size(); j++)
-            {
-                const char ch = remaining_content[j];
-
-                hyp_class_definition.source.Append(ch);
-
-                if (is_escaped)
-                {
-                    is_escaped = false;
-
-                    continue;
-                }
-
-                if (ch == '\\')
-                {
-                    is_escaped = true;
-                }
-                else if (ch == '\n' && is_in_comment == 1)
-                {
-                    is_in_comment = 0;
-                }
-                else if (ch == '"' && !is_in_comment)
-                {
-                    is_in_string = !is_in_string;
-                }
-                else if (ch == '/' && !is_in_string && !is_in_comment && j + 1 < remaining_content.Size())
-                {
-                    if (remaining_content[j + 1] == '/')
-                    {
-                        is_in_comment = 1;
-                    }
-                    else if (remaining_content[j + 1] == '*')
-                    {
-                        is_in_comment = 2;
-                        j++;
-                    }
-                }
-                else if (ch == '*' && !is_in_string && is_in_comment == 2 && j + 1 < remaining_content.Size())
-                {
-                    if (remaining_content[j + 1] == '/')
-                    {
-                        is_in_comment = 0;
-                        j++;
-                    }
-                }
-                else if (!is_in_string && !is_in_comment)
-                {
-                    if (ch == '{')
-                    {
-                        brace_depth++;
-                    }
-                    else if (ch == '}')
-                    {
-                        brace_depth--;
-
-                        if (brace_depth <= 0)
-                        {
-                            hyp_class_definition.source.Append(';');
-
-                            break;
-                        }
-                    }
-                }
-            }
+            ParseInnerContent(remaining_content, hyp_class_definition.source);
         }
 
         hyp_class_definitions.PushBack(std::move(hyp_class_definition));
     }
-
-    // // debuggin'
-    // Array<Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>>> hyp_class_descendants;
-    // hyp_class_descendants.Reserve(hyp_class_definitions.Size());
-
-    // for (HypClassDefinition &hyp_class_definition : hyp_class_definitions) {
-    //     hyp_class_descendants.EmplaceBack(&hyp_class_definition, HashSet<const HypClassDefinition *>());
-    // }
-
-    // Proc<void(const HypClassDefinition &hyp_class_definition)> AddToDescendantsMap;
-
-    // AddToDescendantsMap = [&analyzer, &hyp_class_descendants, &AddToDescendantsMap](const HypClassDefinition &hyp_class_definition)
-    // {
-    //     for (const String &base_class_name : hyp_class_definition.base_class_names) {
-    //         const HypClassDefinition *base_class_definition = analyzer.FindHypClassDefinition(base_class_name);
-
-    //         if (base_class_definition) {
-    //             auto it = hyp_class_descendants.FindIf([base_class_definition](const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &pair)
-    //             {
-    //                 return pair.first == base_class_definition;
-    //             });
-    //             AssertThrow(it != hyp_class_descendants.End());
-
-    //             it->second.Insert(&hyp_class_definition);
-
-    //             AddToDescendantsMap(*base_class_definition);
-    //         }
-    //     }
-    // };
-
-    // for (HypClassDefinition &hyp_class_definition : hyp_class_definitions) {
-    //     AddToDescendantsMap(hyp_class_definition);
-    // }
-
-    // std::sort(hyp_class_descendants.begin(), hyp_class_descendants.end(), [](const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &lhs,
-    //     const Pair<HypClassDefinition *, HashSet<const HypClassDefinition *>> &rhs)
-    // {
-    //     return lhs.second.Size() > rhs.second.Size();
-    // });
 
     return hyp_class_definitions;
 }
@@ -541,6 +530,66 @@ static void AddMetadata(ASTMemberDecl* decl, HypMemberDefinition& result)
     {
         result.AddAttribute("ScriptableDelegate", HypClassAttributeValue(true));
     }
+}
+
+template <class Function>
+static TResult<void, AnalyzerError> CreateParser(const Analyzer& analyzer, const Module& mod, const String& source, Function&& function)
+{
+    if (source.Empty())
+    {
+        return HYP_MAKE_ERROR(AnalyzerError, "Source code is empty", mod.GetPath());
+    }
+
+    SourceFile source_file(mod.GetPath().Basename(), source.Size());
+
+    ByteBuffer temp(source.Size(), source.Data());
+    source_file.ReadIntoBuffer(temp);
+
+    TokenStream token_stream(TokenStreamInfo { mod.GetPath().Basename() });
+
+    CompilationUnit unit;
+    unit.SetPreprocessorDefinitions(analyzer.GetGlobalDefines());
+
+    const auto check_errors = [&]() -> TResult<void, AnalyzerError>
+    {
+        String error_message;
+
+        for (SizeType index = 0; index < unit.GetErrorList().Size(); index++)
+        {
+            error_message += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
+                + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)
+                + ": " + unit.GetErrorList()[index].GetText() + "\n";
+        }
+
+        if (unit.GetErrorList().HasFatalErrors())
+        {
+            return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse member: {}", mod.GetPath(), 0, error_message);
+        }
+
+        return {};
+    };
+
+    Lexer lexer(SourceStream(&source_file), &token_stream, &unit);
+    lexer.Analyze();
+
+    if (auto res = check_errors(); res.HasError())
+    {
+        return res.GetError();
+    }
+
+    if (token_stream.Eof())
+    {
+        return HYP_MAKE_ERROR(AnalyzerError, "Token stream is empty", mod.GetPath());
+    }
+
+    Parser parser(&token_stream, &unit);
+
+    if (auto res = function(parser); res.HasError())
+    {
+        return res.GetError();
+    }
+
+    return check_errors();
 }
 
 static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(const Analyzer& analyzer, const Module& mod, const HypClassDefinition& hyp_class_definition)
@@ -585,134 +634,98 @@ static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypClassMembers(c
         }
 
         const String content_to_end = String(line.Substr(macro_end_index)) + "\n" + String::Join(lines.Slice(i + 1, lines.Size()), '\n');
+        ParseInnerContent(content_to_end, result.source);
 
-        int is_in_comment = 0; // 0 = no comment, 1 = line comment, 2 = block comment
-        bool is_in_string = false;
-        bool is_escaped = false;
-        int brace_depth = 0;
-        int parenthesis_depth = 0;
+        RC<ASTMemberDecl> decl;
 
-        for (SizeType j = 0; j < content_to_end.Size(); j++)
-        {
-            const char ch = content_to_end[j];
-
-            result.source.Append(ch);
-
-            if (is_escaped)
+        auto res = CreateParser(analyzer, mod, result.source, [&](Parser& parser) -> TResult<void, AnalyzerError>
             {
-                is_escaped = false;
+                decl = parser.ParseMemberDecl();
 
-                continue;
-            }
+                return {};
+            });
 
-            if (ch == '\\')
-            {
-                is_escaped = true;
-            }
-            else if (ch == '\n' && is_in_comment == 1)
-            {
-                is_in_comment = 0;
-            }
-            else if (ch == '"' && !is_in_comment)
-            {
-                is_in_string = !is_in_string;
-            }
-            else if (ch == '/' && !is_in_string && !is_in_comment && j + 1 < content_to_end.Size())
-            {
-                if (content_to_end[j + 1] == '/')
-                {
-                    is_in_comment = 1;
-                }
-                else if (content_to_end[j + 1] == '*')
-                {
-                    is_in_comment = 2;
-                    j++;
-                }
-            }
-            else if (ch == '*' && !is_in_string && is_in_comment == 2 && j + 1 < content_to_end.Size())
-            {
-                if (content_to_end[j + 1] == '/')
-                {
-                    is_in_comment = 0;
-                    j++;
-                }
-            }
-            else if (!is_in_string && !is_in_comment)
-            {
-                if (ch == '{')
-                {
-                    brace_depth++;
-                }
-                else if (ch == '}')
-                {
-                    brace_depth--;
-
-                    if (brace_depth <= 0 && parenthesis_depth <= 0)
-                    {
-                        break;
-                    }
-                }
-                else if (ch == '(')
-                {
-                    parenthesis_depth++;
-                }
-                else if (ch == ')')
-                {
-                    parenthesis_depth--;
-                }
-                else if (ch == ';' && brace_depth <= 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        SourceFile source_file(mod.GetPath().Basename(), result.source.Size());
-
-        ByteBuffer temp(result.source.Size(), result.source.Data());
-        source_file.ReadIntoBuffer(temp);
-
-        TokenStream token_stream(TokenStreamInfo { mod.GetPath().Basename() });
-
-        CompilationUnit unit;
-        unit.SetPreprocessorDefinitions(analyzer.GetGlobalDefines());
-
-        const auto CheckParseErrors = [&]() -> TResult<void, AnalyzerError>
-        {
-            String error_message;
-
-            for (SizeType index = 0; index < unit.GetErrorList().Size(); index++)
-            {
-                error_message += String::ToString(unit.GetErrorList()[index].GetLocation().GetLine() + 1)
-                    + "," + String::ToString(unit.GetErrorList()[index].GetLocation().GetColumn() + 1)
-                    + ": " + unit.GetErrorList()[index].GetText() + "\n";
-            }
-
-            if (unit.GetErrorList().HasFatalErrors())
-            {
-                return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse member: {}", mod.GetPath(), 0, error_message);
-            }
-
-            return {};
-        };
-
-        Lexer lexer(SourceStream(&source_file), &token_stream, &unit);
-        lexer.Analyze();
-
-        Parser parser(&token_stream, &unit);
-        RC<ASTMemberDecl> decl = parser.ParseMemberDecl();
-
-        if (auto res = CheckParseErrors(); res.HasError())
+        if (res.HasError())
         {
             return res.GetError();
         }
 
         AssertThrow(decl != nullptr);
-
         AddMetadata(decl, result);
 
         result.name = decl->name;
         result.cxx_type = decl->type;
+    }
+
+    return results;
+}
+
+static TResult<Array<HypMemberDefinition>, AnalyzerError> BuildHypEnumMembers(const Analyzer& analyzer, const Module& mod, const HypClassDefinition& hyp_class_definition)
+{
+    Array<HypMemberDefinition> results;
+
+    String inner_content;
+    ParseInnerContent(hyp_class_definition.source, inner_content);
+
+    SizeType opening_brace_index = inner_content.FindFirstIndex('{');
+
+    if (opening_brace_index == String::not_found)
+    {
+        return HYP_MAKE_ERROR(AnalyzerError, "Failed to find opening brace for enum", mod.GetPath());
+    }
+
+    // Extract the content inside the braces
+    inner_content = inner_content.Substr(opening_brace_index + 1);
+
+    // Find the closing brace
+    SizeType closing_brace_index = inner_content.FindLastIndex('}');
+
+    if (closing_brace_index == String::not_found)
+    {
+        return HYP_MAKE_ERROR(AnalyzerError, "Failed to find closing brace for enum", mod.GetPath());
+    }
+    // Extract the content inside the braces
+    inner_content = inner_content.Substr(0, closing_brace_index);
+
+    auto res = CreateParser(analyzer, mod, inner_content, [&](Parser& parser) -> TResult<void, AnalyzerError>
+        {
+            RC<ASTMemberDecl> member_decl;
+
+            uint32 member_index = 0;
+
+            do
+            {
+                HypMemberDefinition hyp_member_definition;
+                hyp_member_definition.type = HypMemberType::TYPE_CONSTANT;
+
+                member_decl = parser.ParseEnumMemberDecl(nullptr);
+
+                if (!member_decl)
+                {
+                    return HYP_MAKE_ERROR(AnalyzerError, "Failed to parse enum member declaration", mod.GetPath());
+                }
+
+                hyp_member_definition.name = member_decl->name;
+                hyp_member_definition.cxx_type = member_decl->type;
+
+                if (hyp_member_definition.name.Empty())
+                {
+                    return HYP_MAKE_ERROR(AnalyzerError, "Enum member must have a name for element at index {}", mod.GetPath(), 0, member_index);
+                }
+
+                // Add the member to the results
+                results.PushBack(std::move(hyp_member_definition));
+
+                ++member_index;
+            }
+            while (parser.Match(TK_COMMA, true));
+
+            return {};
+        });
+
+    if (res.HasError())
+    {
+        return res.GetError();
     }
 
     return results;
@@ -748,23 +761,68 @@ TResult<void, AnalyzerError> Analyzer::ProcessModule(Module& mod)
 
     if (res.HasError())
     {
-        HYP_LOG(BuildTool, Error, "Failed to build class contents: {}\tError code: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode());
-
         return res.GetError();
     }
 
     for (HypClassDefinition& hyp_class_definition : res.GetValue())
     {
-        if (auto res = BuildHypClassMembers(*this, mod, hyp_class_definition); res.HasError())
+        TResult<Array<HypMemberDefinition>, AnalyzerError> res = Array<HypMemberDefinition> {};
+
+        HYP_LOG(BuildTool, Info, "Building class definition: {} ({})", hyp_class_definition.name, HypClassDefinitionTypeToString(hyp_class_definition.type));
+
+        switch (hyp_class_definition.type)
+        {
+        case HypClassDefinitionType::CLASS:
+        case HypClassDefinitionType::STRUCT: // fallthrough
+            res = BuildHypClassMembers(*this, mod, hyp_class_definition);
+
+            break;
+        case HypClassDefinitionType::ENUM:
+            res = BuildHypEnumMembers(*this, mod, hyp_class_definition);
+
+            break;
+        }
+
+        if (res.HasError())
         {
             HYP_LOG(BuildTool, Error, "Failed to build class definition: {}\tError code: {}", res.GetError().GetMessage(), res.GetError().GetErrorCode());
 
             return res.GetError();
         }
-        else
+
+        Array<HypMemberDefinition> members = std::move(res.GetValue());
+
+        for (HypMemberDefinition& definition : members)
         {
-            hyp_class_definition.members = std::move(res.GetValue());
+            switch (definition.type)
+            {
+            case HypMemberType::TYPE_CONSTANT:
+            case HypMemberType::TYPE_FIELD: // fallthrough
+            {
+                bool preserve_case = true;
+
+                if (hyp_class_definition.type == HypClassDefinitionType::ENUM)
+                {
+                    // ensure ALL_CAPS enum members get converted to PascalCase. don't preserve their casing.
+                    preserve_case = false;
+                }
+                else if (definition.cxx_type->is_static && (definition.cxx_type->is_const || definition.cxx_type->is_constexpr))
+                {
+                    // static const / constexpr members could be in ALL_CAPS case, although we generally don't use that style
+                    preserve_case = false;
+                }
+
+                definition.friendly_name = StringUtil::ToPascalCase(definition.name, preserve_case);
+
+                break;
+            }
+            default:
+                definition.friendly_name = definition.name;
+                break;
+            }
         }
+
+        hyp_class_definition.members = std::move(members);
 
         mod.AddHypClassDefinition(std::move(hyp_class_definition));
     }

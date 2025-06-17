@@ -15,8 +15,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UITextbox
 
 UITextbox::UITextbox()
-    : UIPanel(UIObjectType::TEXTBOX),
-      m_text_element(nullptr),
+    : m_text_element(nullptr),
       m_character_index(0)
 {
     SetBorderRadius(2);

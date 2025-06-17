@@ -99,8 +99,7 @@ private:
 #pragma region ConsoleUI
 
 ConsoleUI::ConsoleUI()
-    : UIObject(UIObjectType::OBJECT),
-      m_logger_redirect_id(-1)
+    : m_logger_redirect_id(-1)
 {
     SetBorderRadius(0);
     SetBorderFlags(UIObjectBorderFlags::ALL);

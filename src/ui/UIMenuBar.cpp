@@ -18,7 +18,6 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UIMenuItem
 
 UIMenuItem::UIMenuItem()
-    : UIObject(UIObjectType::MENU_ITEM)
 {
     SetBorderRadius(0);
     SetPadding({ 5, 2 });
@@ -370,8 +369,7 @@ Material::ParameterTable UIMenuItem::GetMaterialParameters() const
 #pragma region UIMenuBar
 
 UIMenuBar::UIMenuBar()
-    : UIPanel(UIObjectType::MENU_BAR),
-      m_drop_direction(UIMenuBarDropDirection::DOWN),
+    : m_drop_direction(UIMenuBarDropDirection::DOWN),
       m_selected_menu_item_index(~0u)
 {
     SetBorderRadius(0);

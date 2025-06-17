@@ -86,7 +86,7 @@ void RenderMesh::UploadMeshData()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Rendering, Debug, "Uploading mesh data for Mesh #{}", m_mesh->GetID().Value());
+    HYP_LOG(Rendering, Debug, "Uploading mesh data: {}", m_mesh->GetID());
 
     // upload mesh data
     Array<float> vertex_buffer;

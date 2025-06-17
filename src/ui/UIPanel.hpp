@@ -18,9 +18,6 @@ class HYP_API UIPanel : public UIObject
 {
     HYP_OBJECT_BODY(UIPanel);
 
-protected:
-    UIPanel(UIObjectType type);
-
 public:
     UIPanel();
     UIPanel(const UIPanel& other) = delete;

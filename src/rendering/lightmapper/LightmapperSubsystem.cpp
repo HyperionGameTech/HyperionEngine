@@ -88,7 +88,7 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
 
     if (!aabb.IsValid() || !aabb.IsFinite())
     {
-        HYP_LOG(Rendering, Error, "Invalid AABB provided for lightmapper in Scene {}", scene->GetID().Value());
+        HYP_LOG(Rendering, Error, "Invalid AABB provided for lightmapper in Scene {}", scene->GetID());
 
         return nullptr;
     }

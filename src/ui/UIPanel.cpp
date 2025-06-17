@@ -14,9 +14,8 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(UI);
 
-UIPanel::UIPanel(UIObjectType type)
-    : UIObject(type),
-      m_is_scroll_enabled(UIObjectScrollbarOrientation::ALL)
+UIPanel::UIPanel()
+    : m_is_scroll_enabled(UIObjectScrollbarOrientation::ALL)
 {
     SetBorderRadius(0);
     SetBackgroundColor(Color(0.025f, 0.025f, 0.025f, 1.0f));
@@ -26,11 +25,6 @@ UIPanel::UIPanel(UIObjectType type)
         {
             return HandleScroll(event_data);
         });
-}
-
-UIPanel::UIPanel()
-    : UIPanel(UIObjectType::PANEL)
-{
 }
 
 void UIPanel::OnAttached_Internal(UIObject* parent)

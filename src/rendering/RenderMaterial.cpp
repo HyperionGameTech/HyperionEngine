@@ -125,7 +125,7 @@ void RenderMaterial::Update_Internal()
     {
         Handle<Material> material_locked = m_material->HandleFromThis();
 
-        HYP_LOG(Material, Debug, "Updating material with ID #{} (name: {})", material_locked->GetID().Value(), *material_locked->GetName());
+        HYP_LOG(Material, Debug, "Updating Material {} (name: {})", material_locked->GetID(), *material_locked->GetName());
 
         for (const auto& it : m_textures)
         {

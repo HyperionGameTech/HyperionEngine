@@ -504,7 +504,6 @@
 #define HYP_METHOD(...)
 #define HYP_PROPERTY(name, ...)
 #define HYP_FIELD(...)
-#define HYP_CONSTANT(...)
 
 #pragma endregion
 

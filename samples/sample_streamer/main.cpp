@@ -14,6 +14,7 @@
 #include <core/utilities/Format.hpp>
 
 #include <HyperionEngine.hpp>
+#include <Engine.hpp>
 
 // temp
 #include <SDL2/SDL.h>
@@ -34,7 +35,7 @@ void HandleSignal(int signum)
 
     DebugLog(LogType::Debug, "%s\n", StackDump().ToString().Data());
 
-    if (Engine::GetInstance()->m_stop_requested.Get(MemoryOrder::RELAXED))
+    if (g_engine->m_stop_requested.Get(MemoryOrder::RELAXED))
     {
         DebugLog(
             LogType::Warn,
@@ -47,10 +48,10 @@ void HandleSignal(int signum)
         return;
     }
 
-    Engine::GetInstance()->RequestStop();
+    g_engine->RequestStop();
 
     // Wait for the render loop to stop
-    while (Engine::GetInstance()->IsRenderLoopActive())
+    while (g_engine->IsRenderLoopActive())
         ;
 
     exit(signum);

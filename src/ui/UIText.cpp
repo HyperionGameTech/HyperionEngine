@@ -207,7 +207,6 @@ static BoundingBox CalculateTextAABB(const FontAtlas& font_atlas, const String& 
 #pragma region UIText
 
 UIText::UIText()
-    : UIObject(UIObjectType::TEXT)
 {
     m_text_color = Color(Vec4f::One());
 

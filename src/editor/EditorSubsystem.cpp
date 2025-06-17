@@ -83,6 +83,7 @@
 #include <core/profiling/ProfileScope.hpp>
 #include <util/MeshBuilder.hpp>
 
+#include <Engine.hpp>
 #include <HyperionEngine.hpp>
 
 namespace hyperion {
@@ -727,6 +728,8 @@ void EditorManipulationWidgetHolder::Shutdown()
 
 #pragma region EditorSubsystem
 
+static constexpr bool g_show_only_active_scene = true; // @TODO: Make this configurable
+
 #ifdef HYP_EDITOR
 
 EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
@@ -744,9 +747,16 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
 
                 InitObject(project);
 
+                WeakHandle<Scene> active_scene;
+
                 for (const Handle<Scene>& scene : project->GetScenes())
                 {
                     AssertThrow(scene.IsValid());
+
+                    if (!active_scene.IsValid())
+                    {
+                        active_scene = scene;
+                    }
 
                     GetWorld()->AddScene(scene);
 
@@ -754,12 +764,11 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                         scene->OnRootNodeChanged
                             .Bind([this](const Handle<Node>& new_root, const Handle<Node>& prev_root)
                                 {
-                                    StopWatchingNode(prev_root);
-                                    StartWatchingNode(new_root);
+                                    UpdateWatchedNodes();
                                 }));
-
-                    StartWatchingNode(scene->GetRoot());
                 }
+
+                UpdateWatchedNodes();
 
                 m_delegate_handlers.Add(
                     project->OnSceneAdded.Bind([this, project_weak = project.ToWeak()](const Handle<Scene>& scene)
@@ -777,11 +786,16 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                                 scene->OnRootNodeChanged
                                     .Bind([this](const Handle<Node>& new_root, const Handle<Node>& prev_root)
                                         {
-                                            StopWatchingNode(prev_root);
-                                            StartWatchingNode(new_root);
+                                            UpdateWatchedNodes();
                                         }));
 
-                            StartWatchingNode(scene->GetRoot());
+                            if (!m_active_scene.IsValid())
+                            {
+                                SetActiveScene(scene);
+                            }
+
+                            // reinitialize scene selector on scene add
+                            InitActiveSceneSelection();
                         }));
 
                 m_delegate_handlers.Add(
@@ -799,6 +813,9 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                             StopWatchingNode(scene->GetRoot());
 
                             GetWorld()->RemoveScene(scene);
+
+                            // reinitialize scene selector on scene remove
+                            InitActiveSceneSelection();
                         }));
 
                 m_delegate_handlers.Remove("OnPackageAdded");
@@ -825,14 +842,57 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
 
                 m_delegate_handlers.Add(
                     NAME("OnGameStateChange"),
-                    GetWorld()->OnGameStateChange.Bind([this](World* world, GameStateMode game_state_mode)
+                    GetWorld()->OnGameStateChange.Bind([this](World* world, GameStateMode previous_game_state_mode, GameStateMode current_game_state_mode)
                         {
-                            if (game_state_mode != GameStateMode::EDITOR)
+                            UpdateWatchedNodes();
+
+                            switch (current_game_state_mode)
+                            {
+                            case GameStateMode::EDITOR:
+                            {
+                                m_delegate_handlers.Remove("World_SceneAddedDuringSimulation");
+                                m_delegate_handlers.Remove("World_SceneRemovedDuringSimulation");
+
+                                break;
+                            }
+                            case GameStateMode::SIMULATING:
                             {
                                 // unset manipulation widgets
                                 m_manipulation_widget_holder.SetSelectedManipulationMode(EditorManipulationMode::NONE);
+
+                                m_delegate_handlers.Add(
+                                    NAME("World_SceneAddedDuringSimulation"),
+                                    world->OnSceneAdded.Bind([this](World*, const Handle<Scene>& scene)
+                                        {
+                                            if (!scene.IsValid())
+                                            {
+                                                return;
+                                            }
+
+                                            StartWatchingNode(scene->GetRoot());
+                                        }));
+
+                                m_delegate_handlers.Add(
+                                    NAME("World_SceneRemovedDuringSimulation"),
+                                    world->OnSceneRemoved.Bind([this](World*, const Handle<Scene>& scene)
+                                        {
+                                            if (!scene.IsValid())
+                                            {
+                                                return;
+                                            }
+
+                                            StopWatchingNode(scene->GetRoot());
+                                        }));
+
+                                break;
+                            }
+                            default:
+                                HYP_UNREACHABLE();
+                                break;
                             }
                         }));
+
+                SetActiveScene(active_scene);
             })
         .Detach();
 
@@ -848,6 +908,8 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                 {
                     m_highlight_node->Remove();
                 }
+
+                SetActiveScene(WeakHandle<Scene>::empty);
 
                 for (const Handle<Scene>& scene : project->GetScenes())
                 {
@@ -878,6 +940,9 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                 {
                     m_content_browser_directory_list->GetDataSource()->Clear();
                 }
+
+                // reinitialize scene selector
+                InitActiveSceneSelection();
             })
         .Detach();
 
@@ -960,41 +1025,11 @@ void EditorSubsystem::OnAddedToWorld()
     InitContentBrowser();
     InitViewport();
     InitSceneOutline();
+    InitActiveSceneSelection();
 
     InitDetailView();
 
     CreateHighlightNode();
-
-    for (const Handle<Scene>& scene : g_engine->GetWorld()->GetScenes())
-    {
-        if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) != SceneFlags::FOREGROUND)
-        {
-            continue;
-        }
-
-        StartWatchingNode(scene->GetRoot());
-    }
-
-    m_delegate_handlers.Add(
-        g_engine->GetWorld()->OnSceneAdded.Bind([this](World* world, const Handle<Scene>& scene)
-            {
-                HYP_LOG(Editor, Info, "Scene added to world: {}", *scene->GetName());
-
-                if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) != SceneFlags::FOREGROUND)
-                {
-                    return;
-                }
-
-                StartWatchingNode(scene->GetRoot());
-            }));
-
-    m_delegate_handlers.Add(
-        g_engine->GetWorld()->OnSceneRemoved.Bind([this](World* world, const Handle<Scene>& scene)
-            {
-                HYP_LOG(Editor, Info, "Scene removed from world: {}", *scene->GetName());
-
-                StopWatchingNode(scene->GetRoot());
-            }));
 
     g_engine->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript& script)
                                                              {
@@ -1608,6 +1643,16 @@ void EditorSubsystem::InitSceneOutline()
     list_view->SetInnerSize(UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
     list_view->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<WeakHandle<Node>> {}));
 
+    if (g_show_only_active_scene)
+    {
+        OnActiveSceneChanged
+            .Bind([this](const Handle<Scene>& active_scene)
+                {
+                    UpdateWatchedNodes();
+                })
+            .Detach();
+    }
+
     m_delegate_handlers.Remove(&list_view->OnSelectedItemChange);
     m_delegate_handlers.Add(list_view->OnSelectedItemChange.Bind([this, list_view_weak = list_view.ToWeak()](UIListViewItem* list_view_item)
         {
@@ -1655,11 +1700,60 @@ void EditorSubsystem::InitSceneOutline()
         }));
 }
 
+static void AddNodeToSceneOutline(const Handle<UIListView>& list_view, Node* node)
+{
+    AssertThrow(node != nullptr);
+
+    // if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+    // {
+    //     return;
+    // }
+
+    if (!list_view)
+    {
+        return;
+    }
+
+    if (UIDataSourceBase* data_source = list_view->GetDataSource())
+    {
+        WeakHandle<Node> editor_node_weak = node->WeakHandleFromThis();
+
+        UUID parent_node_uuid = UUID::Invalid();
+
+        if (Node* parent_node = node->GetParent())
+        {
+            parent_node_uuid = parent_node->GetUUID();
+
+            AssertDebug(data_source->Get(parent_node_uuid) != nullptr);
+        }
+
+        data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
+    }
+
+    for (Node* child : node->GetChildren())
+    {
+        // if (child->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+        // {
+        //     continue;
+        // }
+
+        AddNodeToSceneOutline(list_view, child);
+    }
+};
+
 void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 {
     if (!node.IsValid())
     {
         return;
+    }
+
+    if (GetWorld()->GetGameState().IsEditor())
+    {
+        if (g_show_only_active_scene && node->GetScene() != m_active_scene.GetUnsafe())
+        {
+            return;
+        }
     }
 
     AssertThrow(node->GetScene() != nullptr);
@@ -1672,15 +1766,21 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 
     HYP_LOG(Editor, Debug, "Start watching node: {}", *node->GetName());
 
-    m_editor_delegates->AddNodeWatcher(NAME("SceneView"), node.Get(), { Node::Class()->GetProperty(NAME("Name")), 1 }, [this, hyp_class = GetClass<Node>(), list_view_weak = list_view.ToWeak()](Node* node, const HypProperty* property)
+    m_editor_delegates->AddNodeWatcher(
+        NAME("SceneView"),
+        node.Get(),
+        { Node::Class()->GetProperty(NAME("Name")), 1 },
+        [this, list_view_weak = list_view.ToWeak()](Node* node, const HypProperty* property)
         {
             // Update name in list view
             // @TODO: Ensure game thread
 
-            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-            {
-                return;
-            }
+            // if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+            // {
+            //     return;
+            // }
+
+            HYP_LOG(Editor, Debug, "Node {} property changed : {}", *node->GetName(), *property->GetName());
 
             Handle<UIListView> list_view = list_view_weak.Lock();
 
@@ -1694,70 +1794,31 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 const UIDataSourceElement* data_source_element = data_source->Get(node->GetUUID());
                 AssertThrow(data_source_element != nullptr);
 
-                data_source->Set(node->GetUUID(), HypData(node->WeakHandleFromThis()));
+                data_source->ForceUpdate(node->GetUUID());
             }
         });
 
-    static const auto add_node_to_scene_outline = [](const Handle<UIListView>& list_view, Node* node)
-    {
-        AssertThrow(node != nullptr);
-
-        // if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-        // {
-        //     return;
-        // }
-
-        if (!list_view)
-        {
-            return;
-        }
-
-        if (UIDataSourceBase* data_source = list_view->GetDataSource())
-        {
-            WeakHandle<Node> editor_node_weak = node->WeakHandleFromThis();
-
-            UUID parent_node_uuid = UUID::Invalid();
-
-            if (Node* parent_node = node->GetParent(); parent_node && !parent_node->IsRoot())
-            {
-                parent_node_uuid = parent_node->GetUUID();
-            }
-
-            data_source->Push(node->GetUUID(), HypData(std::move(editor_node_weak)), parent_node_uuid);
-        }
-    };
-
-    for (Node* child : node->GetDescendants())
-    {
-        if (child->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
-        {
-            continue;
-        }
-
-        add_node_to_scene_outline(list_view, child);
-    }
-
-    // add_node_to_scene_outline(list_view, node);
+    AddNodeToSceneOutline(list_view, node.Get());
 
     m_delegate_handlers.Remove(&node->GetDelegates()->OnChildAdded);
 
-    m_delegate_handlers.Add(node->GetDelegates()->OnChildAdded.Bind([this, list_view_weak = list_view.ToWeak()](Node* node, bool)
+    m_delegate_handlers.Add(node->GetDelegates()->OnChildAdded.Bind([this, list_view_weak = list_view.ToWeak()](Node* node, bool is_direct)
         {
-            AssertThrow(node != nullptr);
-
-            if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+            if (!is_direct)
             {
                 return;
             }
 
+            AssertThrow(node != nullptr);
+
+            // if (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE)
+            // {
+            //     return;
+            // }
+
             Handle<UIListView> list_view = list_view_weak.Lock();
 
-            add_node_to_scene_outline(list_view, node);
-
-            for (Node* child : node->GetDescendants())
-            {
-                add_node_to_scene_outline(list_view, child);
-            }
+            AddNodeToSceneOutline(list_view, node);
         }));
 
     m_delegate_handlers.Remove(&node->GetDelegates()->OnChildRemoved);
@@ -1770,7 +1831,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 SetFocusedNode(Handle<Node>::empty, true);
             }
 
-            if (!node || (node->GetFlags() & NodeFlags::HIDE_IN_SCENE_OUTLINE))
+            if (!node)
             {
                 return;
             }
@@ -1784,12 +1845,7 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
 
             if (UIDataSourceBase* data_source = list_view->GetDataSource())
             {
-                for (Node* child : node->GetDescendants())
-                {
-                    data_source->Remove(child->GetUUID());
-                }
-
-                AssertThrow(data_source->Remove(node->GetUUID()));
+                data_source->Remove(node->GetUUID());
             }
         }));
 
@@ -1817,10 +1873,83 @@ void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)
         return;
     }
 
+    UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    Handle<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
+    AssertThrow(list_view != nullptr);
+
+    if (const Handle<UIDataSourceBase>& data_source = list_view->GetDataSource())
+    {
+        data_source->Remove(node->GetUUID());
+    }
+
+    // Keep ref alive to node to prevent it from being destroyed while we're removing the watchers
+    Handle<Node> node_copy = node;
+
     m_delegate_handlers.Remove(&node->GetDelegates()->OnChildAdded);
     m_delegate_handlers.Remove(&node->GetDelegates()->OnChildRemoved);
 
     m_editor_delegates->RemoveNodeWatcher(NAME("SceneView"), node.Get());
+}
+
+void EditorSubsystem::ClearWatchedNodes()
+{
+    HYP_SCOPE;
+
+    UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    Handle<UIListView> list_view = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Outline_ListView")).Cast<UIListView>();
+    AssertThrow(list_view != nullptr);
+
+    if (const Handle<UIDataSourceBase>& data_source = list_view->GetDataSource())
+    {
+        data_source->Clear();
+    }
+
+    m_editor_delegates->RemoveNodeWatchers("SceneView");
+}
+
+void EditorSubsystem::UpdateWatchedNodes()
+{
+    ClearWatchedNodes();
+
+    if (GetWorld()->GetGameState().IsSimulating())
+    {
+        for (const Handle<Scene>& scene : GetWorld()->GetScenes())
+        {
+            if ((scene->GetFlags() & (SceneFlags::FOREGROUND | SceneFlags::DETACHED | SceneFlags::EDITOR | SceneFlags::UI)) == SceneFlags::FOREGROUND)
+            {
+                StartWatchingNode(scene->GetRoot());
+            }
+        }
+
+        return;
+    }
+
+    if (GetWorld()->GetGameState().IsEditor())
+    {
+        if (g_show_only_active_scene)
+        {
+            if (Handle<Scene> active_scene = m_active_scene.Lock())
+            {
+                StartWatchingNode(active_scene->GetRoot());
+            }
+
+            return;
+        }
+
+        if (m_current_project.IsValid())
+        {
+            for (const Handle<Scene>& scene : m_current_project->GetScenes())
+            {
+                StartWatchingNode(scene->GetRoot());
+            }
+
+            return;
+        }
+    }
 }
 
 void EditorSubsystem::InitDetailView()
@@ -1926,36 +2055,41 @@ void EditorSubsystem::InitDetailView()
                 data_source->Push(UUID(), HypData(std::move(node_property_ref)));
             }
 
-            m_editor_delegates->AddNodeWatcher(NAME("DetailView"), node, {}, Proc<void(Node*, const HypProperty*)> { [this, hyp_class = Node::Class(), details_list_view_weak](Node* node, const HypProperty* property)
-                                                                                 {
-                                                                                     HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
+            m_editor_delegates->AddNodeWatcher(
+                NAME("DetailView"),
+                node,
+                {},
+                Proc<void(Node*, const HypProperty*)> {
+                    [this, hyp_class = Node::Class(), details_list_view_weak](Node* node, const HypProperty* property)
+                    {
+                        HYP_LOG(Editor, Debug, "(detail) Node property changed: {}", property->GetName());
 
-                                                                                     // Update name in list view
+                        // Update name in list view
 
-                                                                                     Handle<UIListView> details_list_view = details_list_view_weak.Lock();
+                        Handle<UIListView> details_list_view = details_list_view_weak.Lock();
 
-                                                                                     if (!details_list_view)
-                                                                                     {
-                                                                                         HYP_LOG(Editor, Error, "Failed to get strong reference to list view!");
+                        if (!details_list_view)
+                        {
+                            HYP_LOG(Editor, Error, "Failed to get strong reference to list view!");
 
-                                                                                         return;
-                                                                                     }
+                            return;
+                        }
 
-                                                                                     if (UIDataSourceBase* data_source = details_list_view->GetDataSource())
-                                                                                     {
-                                                                                         UIDataSourceElement* data_source_element = data_source->FindWithPredicate([node, property](const UIDataSourceElement* item)
-                                                                                             {
-                                                                                                 return item->GetValue().Get<EditorNodePropertyRef>().property == property;
-                                                                                             });
+                        if (UIDataSourceBase* data_source = details_list_view->GetDataSource())
+                        {
+                            UIDataSourceElement* data_source_element = data_source->FindWithPredicate([node, property](const UIDataSourceElement* item)
+                                {
+                                    return item->GetValue().Get<EditorNodePropertyRef>().property == property;
+                                });
 
-                                                                                         if (!data_source_element)
-                                                                                         {
-                                                                                             return;
-                                                                                         }
+                            if (!data_source_element)
+                            {
+                                return;
+                            }
 
-                                                                                         data_source->ForceUpdate(data_source_element->GetUUID());
-                                                                                     }
-                                                                                 } });
+                            data_source->ForceUpdate(data_source_element->GetUUID());
+                        }
+                    } });
         }));
 }
 
@@ -2089,6 +2223,141 @@ void EditorSubsystem::InitManipulationWidgetSelection()
     }
 }
 
+void EditorSubsystem::InitActiveSceneSelection()
+{
+    HYP_SCOPE;
+
+    UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
+    AssertThrow(ui_subsystem != nullptr);
+
+    Handle<UIObject> active_scene_selection = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("SetActiveScene_MenuItem"));
+    if (!active_scene_selection.IsValid())
+    {
+        HYP_LOG(Editor, Warning, "Failed to find SetActiveScene_MenuItem element; creating a new one");
+        return;
+    }
+
+    Handle<UIMenuItem> active_scene_menu_item = active_scene_selection.Cast<UIMenuItem>();
+
+    if (!active_scene_menu_item.IsValid())
+    {
+        HYP_LOG(Editor, Error, "Failed to cast SetActiveScene_MenuItem to UIMenuItem");
+        return;
+    }
+
+    // active_scene_menu_item->RemoveAllChildUIObjects();
+
+    if (Handle<Scene> active_scene = m_active_scene.Lock())
+    {
+        active_scene_menu_item->SetText(HYP_FORMAT("Active Scene: {}", active_scene->GetName()));
+    }
+    else
+    {
+        active_scene_menu_item->SetText("Active Scene: None");
+    }
+
+    // OnActiveSceneChanged
+    //     .Bind([this, active_scene_menu_item_weak = active_scene_menu_item.ToWeak()](const Handle<Scene>& scene)
+    //         {
+    //             Handle<UIMenuItem> active_scene_menu_item = active_scene_menu_item_weak.Lock();
+    //             if (!active_scene_menu_item)
+    //             {
+    //                 HYP_LOG(Editor, Error, "Failed to lock active scene menu item from weak reference in OnActiveSceneChanged");
+    //                 return UIEventHandlerResult::ERR;
+    //             }
+
+    //             if (scene.IsValid())
+    //             {
+    //                 Handle<UIObject> selected_sub_item = active_scene_menu_item->FindChildUIObject([&scene](UIObject* ui_object)
+    //                     {
+    //                         if (ui_object->IsInstanceOf<UIMenuItem>())
+    //                         {
+    //                             const NodeTag& tag = ui_object->GetNodeTag("Scene");
+    //                             HYP_LOG(Editor, Debug, "Checking scene menu item with tag: {}", tag.ToString());
+
+    //                             if (tag.IsValid())
+    //                             {
+    //                                 const UUID* uuid = tag.data.TryGet<UUID>();
+
+    //                                 if (uuid && *uuid == scene->GetUUID())
+    //                                 {
+    //                                     return true;
+    //                                 }
+    //                             }
+    //                         }
+
+    //                         return false;
+    //                     });
+
+    //                 if (selected_sub_item.IsValid())
+    //                 {
+    //                     active_scene_menu_item->SetSelectedSubItem(selected_sub_item.Cast<UIMenuItem>());
+    //                     active_scene_menu_item->SetText(HYP_FORMAT("Active Scene: {}", scene->GetName()));
+
+    //                     return UIEventHandlerResult::OK;
+    //                 }
+    //                 else
+    //                 {
+    //                     HYP_LOG(Editor, Warning, "Failed to find active scene menu item for scene: {}", scene->GetName());
+    //                 }
+    //             }
+
+    //             active_scene_menu_item->SetSelectedSubItem(Handle<UIMenuItem>::empty);
+    //             active_scene_menu_item->SetText("Active Scene: None");
+
+    //             return UIEventHandlerResult::OK;
+    //         })
+    //     .Detach();
+
+    if (!m_current_project.IsValid())
+    {
+        return;
+    }
+
+    // Build each scene menu item
+    for (const Handle<Scene>& scene : m_current_project->GetScenes())
+    {
+        if (!scene.IsValid())
+        {
+            continue;
+        }
+
+        Handle<UIMenuItem> scene_menu_item = active_scene_menu_item->CreateUIObject<UIMenuItem>(scene->GetName(), Vec2i { 0, 0 }, UIObjectSize({ 100, UIObjectSize::FILL }, { 100, UIObjectSize::PIXEL }));
+        AssertThrow(scene_menu_item != nullptr);
+
+        scene_menu_item->SetNodeTag(NodeTag(NAME("Scene"), scene->GetUUID()));
+
+        scene_menu_item->SetText(scene->GetName().LookupString());
+
+        scene_menu_item->OnClick
+            .Bind([this, active_scene_menu_item_weak = active_scene_menu_item.ToWeak(), scene_menu_item_weak = scene_menu_item.ToWeak(), scene_weak = scene.ToWeak()](const MouseEvent&)
+                {
+                    Handle<Scene> scene = scene_weak.Lock();
+                    if (!scene.IsValid())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to lock scene from weak reference in SetActiveScene");
+                        return UIEventHandlerResult::ERR;
+                    }
+
+                    SetActiveScene(scene);
+
+                    if (Handle<UIMenuItem> active_scene_menu_item = active_scene_menu_item_weak.Lock())
+                    {
+                        if (Handle<UIMenuItem> scene_menu_item = scene_menu_item_weak.Lock())
+                        {
+                            active_scene_menu_item->SetSelectedSubItem(scene_menu_item);
+                            active_scene_menu_item->SetText(HYP_FORMAT("Active Scene: {}", scene->GetName()));
+                        }
+                    }
+
+                    return UIEventHandlerResult::OK;
+                })
+            .Detach();
+
+        active_scene_menu_item->AddChildUIObject(std::move(scene_menu_item));
+    }
+}
+
 void EditorSubsystem::InitContentBrowser()
 {
     HYP_SCOPE;
@@ -2208,15 +2477,19 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
 
     if (package.IsValid())
     {
-        m_delegate_handlers.Add(NAME("OnAssetObjectAdded"), package->OnAssetObjectAdded.Bind([this](AssetObject* asset_object)
-                                                                {
-                                                                    m_content_browser_contents->GetDataSource()->Push(asset_object->GetUUID(), HypData(asset_object->HandleFromThis()));
-                                                                }));
+        m_delegate_handlers.Add(
+            NAME("OnAssetObjectAdded"),
+            package->OnAssetObjectAdded.Bind([this](AssetObject* asset_object)
+                {
+                    m_content_browser_contents->GetDataSource()->Push(asset_object->GetUUID(), HypData(asset_object->HandleFromThis()));
+                }));
 
-        m_delegate_handlers.Add(NAME("OnAssetObjectRemoved"), package->OnAssetObjectRemoved.Bind([this](AssetObject* asset_object)
-                                                                  {
-                                                                      m_content_browser_contents->GetDataSource()->Remove(asset_object->GetUUID());
-                                                                  }));
+        m_delegate_handlers.Add(
+            NAME("OnAssetObjectRemoved"),
+            package->OnAssetObjectRemoved.Bind([this](AssetObject* asset_object)
+                {
+                    m_content_browser_contents->GetDataSource()->Remove(asset_object->GetUUID());
+                }));
 
         package->ForEachAssetObject([&](const Handle<AssetObject>& asset_object)
             {
@@ -2648,6 +2921,21 @@ void EditorSubsystem::SetHoveredManipulationWidget(
     }
 
     m_hovered_manipulation_widget_node = manipulation_widget_node;
+}
+
+void EditorSubsystem::SetActiveScene(const WeakHandle<Scene>& scene)
+{
+    HYP_SCOPE;
+
+    if (scene == m_active_scene)
+    {
+        return;
+    }
+
+    m_active_scene = scene;
+    HYP_LOG(Editor, Debug, "Set active scene: {}", m_active_scene.IsValid() ? m_active_scene.Lock()->GetName() : Name::Invalid());
+
+    OnActiveSceneChanged(m_active_scene.Lock());
 }
 
 #endif

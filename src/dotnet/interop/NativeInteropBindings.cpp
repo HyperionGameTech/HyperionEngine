@@ -15,6 +15,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/object/HypClass.hpp>
+#include <core/object/HypClassRegistry.hpp>
 
 #include <dotnet/Class.hpp>
 #include <dotnet/Object.hpp>

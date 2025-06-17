@@ -334,7 +334,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
                 if (!octree)
                 {
-                    HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe #{} with AABB: {}", GetID().Value(), m_aabb);
+                    HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe {} with AABB: {}", GetID(), m_aabb);
                 }
             }
 
@@ -363,7 +363,7 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         if (diff.NeedsUpdate() || m_octant_hash_code != octant_hash_code)
         {
-            HYP_LOG(EnvProbe, Debug, "EnvProbe #{} with AABB: {} has {} added, {} removed and {} changed entities", GetID().Value(), m_aabb,
+            HYP_LOG(EnvProbe, Debug, "EnvProbe {} with AABB: {} has {} added, {} removed and {} changed entities", GetID(), m_aabb,
                 diff.num_added, diff.num_removed, diff.num_changed);
 
             SetNeedsRender(true);

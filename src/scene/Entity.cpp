@@ -30,13 +30,13 @@ Entity::~Entity()
         {
             HYP_NAMED_SCOPE("Remove Entity from EntityManager (task)");
 
-            HYP_LOG(ECS, Debug, "Removing entity #{} from entity manager", id.Value());
+            HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", id.Value());
 
             AssertThrow(entity_manager->HasEntity(id));
 
             if (!entity_manager->RemoveEntity(id))
             {
-                HYP_LOG(ECS, Error, "Failed to remove Entity #{} from EntityManager", id.Value());
+                HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", id.Value());
             }
         });
 }

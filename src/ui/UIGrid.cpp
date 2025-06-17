@@ -19,8 +19,7 @@ HYP_DECLARE_LOG_CHANNEL(UI);
 #pragma region UIGridColumn
 
 UIGridColumn::UIGridColumn()
-    : UIPanel(UIObjectType::GRID_COLUMN),
-      m_column_size(1)
+    : m_column_size(1)
 {
     SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -35,8 +34,7 @@ void UIGridColumn::Init()
 #pragma region UIGridRow
 
 UIGridRow::UIGridRow()
-    : UIPanel(UIObjectType::GRID_ROW),
-      m_num_columns(0)
+    : m_num_columns(0)
 {
     SetBackgroundColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
 }
@@ -242,8 +240,7 @@ void UIGridRow::UpdateSize_Internal(bool update_children)
 #pragma region UIGrid
 
 UIGrid::UIGrid()
-    : UIPanel(UIObjectType::GRID),
-      m_num_columns(-1)
+    : m_num_columns(-1)
 {
 }
 

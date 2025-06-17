@@ -38,6 +38,7 @@
 #include <core/filesystem/FsUtil.hpp>
 #include <core/profiling/ProfileScope.hpp>
 
+#include <Engine.hpp>
 #include <HyperionEngine.hpp>
 
 namespace hyperion {

@@ -951,8 +951,8 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
                 }
                 else
                 {
-                    HYP_LOG(EnvGrid, Warning, "EnvProbe #{} out of range of max bound env probes (position: {}, world position: {}",
-                        probe->GetID().Value(), binding_index.position, world_position);
+                    HYP_LOG(EnvGrid, Warning, "EnvProbe {} out of range of max bound env probes (position: {}, world position: {}",
+                        probe->GetID(), binding_index.position, world_position);
                 }
 
                 probe->SetNeedsRender(false);

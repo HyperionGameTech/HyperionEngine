@@ -114,9 +114,8 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return UIObjectQuadMeshHelper::GetQuadMesh();
 }
 
-UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
-    : m_type(type),
-      m_stage(nullptr),
+UIObject::UIObject(const ThreadID& owner_thread_id)
+    : m_stage(nullptr),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
       m_position(0, 0),
@@ -164,7 +163,7 @@ UIObject::UIObject(UIObjectType type, const ThreadID& owner_thread_id)
 }
 
 UIObject::UIObject()
-    : UIObject(UIObjectType::OBJECT)
+    : UIObject(ThreadID::invalid)
 {
 }
 
@@ -1951,48 +1950,6 @@ UIObject* UIObject::GetParentUIObject() const
                 if (ui_component->ui_object != nullptr)
                 {
                     return ui_component->ui_object;
-                }
-            }
-        }
-
-        parent_node = parent_node->GetParent();
-    }
-
-    return nullptr;
-}
-
-UIObject* UIObject::GetClosestParentUIObject(UIObjectType type) const
-{
-    HYP_SCOPE;
-
-    const Scene* scene = GetScene();
-
-    if (!scene)
-    {
-        return nullptr;
-    }
-
-    const Handle<Node>& node = GetNode();
-
-    if (!node)
-    {
-        return nullptr;
-    }
-
-    Node* parent_node = node->GetParent();
-
-    while (parent_node)
-    {
-        if (parent_node->GetEntity().IsValid())
-        {
-            if (UIComponent* ui_component = scene->GetEntityManager()->TryGetComponent<UIComponent>(parent_node->GetEntity()))
-            {
-                if (ui_component->ui_object != nullptr)
-                {
-                    if (ui_component->ui_object->GetType() == type)
-                    {
-                        return ui_component->ui_object;
-                    }
                 }
             }
         }

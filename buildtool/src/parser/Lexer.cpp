@@ -38,8 +38,18 @@ void Lexer::Analyze()
     // skip initial whitespace
     SkipWhitespace();
 
-    while (m_source_stream.HasNext() && m_source_stream.Peek() != '\0')
+    while (m_source_stream.HasNext())
     {
+        if (!m_source_stream.Peek())
+        {
+            m_compilation_unit->GetErrorList().AddError(CompilerError(
+                LEVEL_ERROR,
+                Msg_unexpected_eof,
+                m_source_location));
+
+            return;
+        }
+
         Token token = NextToken();
         if (!token.Empty())
         {
@@ -109,11 +119,6 @@ Token Lexer::NextToken()
     else if (ch[0] == '/' && ch[1] == '*')
     {
         return ReadBlockComment();
-        /*if (ch[2] == '*') {
-            return ReadDocumentation();
-        } else {
-            return ReadBlockComment();
-        }*/
     }
     else if (utf32_isalpha(ch[0]) || ch[0] == '_' || ch[0] == '$')
     {

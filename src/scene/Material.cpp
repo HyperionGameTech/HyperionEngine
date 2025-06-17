@@ -142,7 +142,7 @@ void Material::EnqueueRenderUpdates()
 
     if (!m_mutation_state.IsDirty())
     {
-        HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with ID #{} (name: {}) that is not dirty", GetID().Value(), GetName());
+        HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with ID {} (name: {}) that is not dirty", GetID(), GetName());
 
         return;
     }
@@ -189,7 +189,7 @@ void Material::SetParameter(MaterialKey key, const Parameter& value)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting parameter on static material with ID #{} (name: {})", GetID().Value(), GetName());
+        HYP_LOG(Material, Warning, "Setting parameter on static material with ID {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -212,7 +212,7 @@ void Material::SetParameters(const ParameterTable& parameters)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting parameters on static material with ID #{} (name: {})", GetID().Value(), GetName());
+        HYP_LOG(Material, Warning, "Setting parameters on static material with ID {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -230,7 +230,7 @@ void Material::ResetParameters()
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Resetting parameters on static material with ID #{} (name: {})", GetID().Value(), GetName());
+        HYP_LOG(Material, Warning, "Resetting parameters on static material with ID {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -248,7 +248,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting texture on static material with ID #{} (name: {})", GetID().Value(), GetName());
+        HYP_LOG(Material, Warning, "Setting texture on static material with ID {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -280,7 +280,7 @@ void Material::SetTextures(const TextureSet& textures)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting textures on static material with ID #{} (name: {})", GetID().Value(), GetName());
+        HYP_LOG(Material, Warning, "Setting textures on static material with ID {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE

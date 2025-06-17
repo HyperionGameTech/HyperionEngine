@@ -357,8 +357,8 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid #{} with AABB: {} on thread {}",
-        GetID().Value(), m_aabb, Threads::CurrentThreadID().GetName());
+    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with AABB: {} on thread {}",
+        GetID(), m_aabb, Threads::CurrentThreadID().GetName());
 
     m_camera->Update(delta);
     m_view->Update(delta);

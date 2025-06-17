@@ -11,7 +11,6 @@
 namespace hyperion {
 
 UIImage::UIImage()
-    : UIObject(UIObjectType::IMAGE)
 {
     SetBackgroundColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
 }

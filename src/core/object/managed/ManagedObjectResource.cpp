@@ -12,59 +12,58 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Resource);
 HYP_DECLARE_LOG_CHANNEL(Object);
 
-ManagedObjectResource::ManagedObjectResource(dotnet::Object* object_ptr)
-    : m_object_ptr(object_ptr)
+ManagedObjectResource::ManagedObjectResource(dotnet::Object* object_ptr, const RC<dotnet::Class>& managed_class)
+    : m_object_ptr(object_ptr),
+      m_managed_class(managed_class)
 {
 }
 
-ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr)
-    : ManagedObjectResource(ptr, {}, ObjectFlags::NONE)
+ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managed_class)
+    : ManagedObjectResource(ptr, managed_class, {}, ObjectFlags::NONE)
 {
 }
 
-ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, dotnet::Object* object_ptr)
+ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, dotnet::Object* object_ptr, const RC<dotnet::Class>& managed_class)
     : m_ptr(ptr),
-      m_object_ptr(object_ptr)
+      m_object_ptr(object_ptr),
+      m_managed_class(managed_class)
 {
 }
 
-ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const dotnet::ObjectReference& object_reference, EnumFlags<ObjectFlags> object_flags)
+ManagedObjectResource::ManagedObjectResource(HypObjectPtr ptr, const RC<dotnet::Class>& managed_class, const dotnet::ObjectReference& object_reference, EnumFlags<ObjectFlags> object_flags)
     : m_ptr(ptr),
-      m_object_ptr(nullptr)
+      m_object_ptr(nullptr),
+      m_managed_class(managed_class)
 {
-    if (m_ptr)
+    if (m_ptr && m_managed_class)
     {
-        const HypClass* hyp_class = m_ptr.GetClass();
+        void* address = m_ptr.GetPointer();
 
-        if (RC<dotnet::Class> managed_class = hyp_class->GetManagedClass())
+        if (object_flags & ObjectFlags::CREATED_FROM_MANAGED)
         {
-            void* address = m_ptr.GetPointer();
-
-            if (object_flags & ObjectFlags::CREATED_FROM_MANAGED)
-            {
-                m_object_ptr = new dotnet::Object(managed_class->RefCountedPtrFromThis(), object_reference, ObjectFlags::CREATED_FROM_MANAGED);
-            }
-            else
-            {
-                if (hyp_class->IsReferenceCounted())
-                {
-                    // Increment reference count for the managed object (creating from managed does this already via HypObject_Initialize())
-                    // The managed object is responsible for decrementing the ref count using HypObject_DecRef() in finalizer and Dispose().
-                    m_ptr.IncRef();
-                }
-
-                m_object_ptr = managed_class->NewObject(hyp_class, address);
-            }
-
-            AssertDebug(m_object_ptr != nullptr);
+            m_object_ptr = new dotnet::Object(m_managed_class->RefCountedPtrFromThis(), object_reference, ObjectFlags::CREATED_FROM_MANAGED);
         }
+        else
+        {
+            if (m_ptr.GetClass()->IsReferenceCounted())
+            {
+                // Increment reference count for the managed object (creating from managed does this already via HypObject_Initialize())
+                // The managed object is responsible for decrementing the ref count using HypObject_DecRef() in finalizer and Dispose().
+                m_ptr.IncRef();
+            }
+
+            m_object_ptr = m_managed_class->NewObject(m_ptr.GetClass(), address);
+        }
+
+        AssertDebug(m_object_ptr != nullptr);
     }
 }
 
 ManagedObjectResource::ManagedObjectResource(ManagedObjectResource&& other) noexcept
     : ResourceBase(static_cast<ResourceBase&&>(other)),
       m_ptr(other.m_ptr),
-      m_object_ptr(other.m_object_ptr)
+      m_object_ptr(other.m_object_ptr),
+      m_managed_class(std::move(other.m_managed_class))
 {
     other.m_ptr = nullptr;
     other.m_object_ptr = nullptr;
@@ -77,16 +76,6 @@ ManagedObjectResource::~ManagedObjectResource()
         delete m_object_ptr;
         m_object_ptr = nullptr;
     }
-}
-
-dotnet::Class* ManagedObjectResource::GetManagedClass() const
-{
-    if (m_object_ptr)
-    {
-        return m_object_ptr->GetClass();
-    }
-
-    return nullptr;
 }
 
 void ManagedObjectResource::Initialize()
@@ -103,8 +92,9 @@ void ManagedObjectResource::Initialize()
 
     if (!m_ptr.IsValid())
     {
-        HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected",
-            Threads::CurrentThreadID().GetName());
+        HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected\n\tObject address: {}",
+            Threads::CurrentThreadID().GetName(),
+            (void*)m_object_ptr);
 
         return;
     }
@@ -113,18 +103,19 @@ void ManagedObjectResource::Initialize()
     // In this case, the ref count will be decremented once the queued object is finalized
     const HypClass* hyp_class = m_ptr.GetClass();
 
-    HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.",
-        Threads::CurrentThreadID().GetName(),
-        hyp_class->GetName(), m_ptr.GetPointer());
+    // HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
+    //     Threads::CurrentThreadID().GetName(),
+    //     hyp_class->GetName(), m_ptr.GetPointer(),
+    //     (void*)m_object_ptr);
 
-    if (RC<dotnet::Class> managed_class = hyp_class->GetManagedClass())
+    if (m_managed_class)
     {
         if (hyp_class->IsReferenceCounted())
         {
             m_ptr.IncRef(false);
         }
 
-        dotnet::Object* new_managed_object = managed_class->NewObject(hyp_class, m_ptr.GetPointer());
+        dotnet::Object* new_managed_object = m_managed_class->NewObject(hyp_class, m_ptr.GetPointer());
 
         if (!new_managed_object)
         {

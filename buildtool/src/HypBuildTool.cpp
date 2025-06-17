@@ -117,7 +117,6 @@ private:
             { "HYP_FIELD(...)", "" },
             { "HYP_METHOD(...)", "" },
             { "HYP_PROPERTY(...)", "" },
-            { "HYP_CONSTANT(...)", "" },
             { "HYP_OBJECT_BODY(...)", "" },
             { "HYP_API", "" },
             { "HYP_EXPORT", "" },
@@ -334,8 +333,9 @@ private:
                 // Log out the class hierarchy with static indices
                 for (const HypClassDefinition* hyp_class_definition : hyp_class_definitions)
                 {
-                    HYP_LOG(BuildTool, Info, "Class: {}, Static Index: {}, Num Descendants: {}, Parent: {}",
+                    HYP_LOG(BuildTool, Info, "Class: {}, Type: {}, Static Index: {}, Num Descendants: {}, Parent: {}",
                         hyp_class_definition->name,
+                        HypClassDefinitionTypeToString(hyp_class_definition->type),
                         hyp_class_definition->static_index,
                         hyp_class_definition->num_descendants,
                         String::Join(hyp_class_definition->base_class_names, ", "));

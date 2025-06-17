@@ -6,6 +6,7 @@
 #include <editor/EditorAction.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/containers/LinkedList.hpp>
 
 #include <core/functional/ScriptableDelegate.hpp>
 
@@ -45,7 +46,7 @@ public:
     virtual ~EditorActionStack() override;
 
     HYP_METHOD()
-    void Push(const Handle<IEditorAction>& action);
+    void Push(const Handle<EditorActionBase>& action);
 
     HYP_METHOD()
     bool CanUndo() const;
@@ -60,22 +61,22 @@ public:
     void Redo();
 
     HYP_METHOD()
-    IEditorAction* GetUndoAction() const;
+    const Handle<EditorActionBase>& GetUndoAction() const;
 
     HYP_METHOD()
-    IEditorAction* GetRedoAction() const;
+    const Handle<EditorActionBase>& GetRedoAction() const;
 
     HYP_FIELD()
-    ScriptableDelegate<void, IEditorAction*> OnBeforeActionPush;
+    ScriptableDelegate<void, EditorActionBase*> OnBeforeActionPush;
 
     HYP_FIELD()
-    ScriptableDelegate<void, IEditorAction*> OnBeforeActionPop;
+    ScriptableDelegate<void, EditorActionBase*> OnBeforeActionPop;
 
     HYP_FIELD()
-    ScriptableDelegate<void, IEditorAction*> OnAfterActionPush;
+    ScriptableDelegate<void, EditorActionBase*> OnAfterActionPush;
 
     HYP_FIELD()
-    ScriptableDelegate<void, IEditorAction*> OnAfterActionPop;
+    ScriptableDelegate<void, EditorActionBase*> OnAfterActionPop;
 
     HYP_FIELD()
     ScriptableDelegate<void, EnumFlags<EditorActionStackState>> OnStateChange;
@@ -83,7 +84,7 @@ public:
 private:
     void UpdateState();
 
-    Array<Handle<IEditorAction>> m_actions;
+    LinkedList<Handle<EditorActionBase>> m_actions;
     int m_current_action_index;
 
     EnumFlags<EditorActionStackState> m_current_state;

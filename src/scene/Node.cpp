@@ -85,7 +85,7 @@ Node::Node(Name name, const Handle<Entity>& entity, const Transform& local_trans
 
 Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& local_transform, Scene* scene)
     : m_type(type),
-      m_name(name.IsValid() ? NAME("<unnamed>") : name),
+      m_name(name.IsValid() ? name : NAME("<unnamed>")),
       m_parent_node(nullptr),
       m_local_transform(local_transform),
       m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -112,7 +112,7 @@ Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& 
 Node::Node(Node&& other) noexcept
     : m_type(other.m_type),
       m_flags(other.m_flags),
-      m_name(std::move(other.m_name)),
+      m_name(other.m_name),
       m_parent_node(other.m_parent_node),
       m_local_transform(other.m_local_transform),
       m_world_transform(other.m_world_transform),
@@ -233,12 +233,15 @@ void Node::SetName(Name name)
 {
     if (!name.IsValid())
     {
-        m_name = NAME("<unnamed>");
+        name = NAME("<unnamed>");
     }
-    else
+
+    if (m_name == name)
     {
-        m_name = name;
+        return;
     }
+
+    m_name = name;
 
 #ifdef HYP_EDITOR
     GetEditorDelegates([this](EditorDelegates* editor_delegates)
@@ -1444,13 +1447,17 @@ void Node::GetEditorDelegates(Function&& func)
     {
         Threads::GetThread(g_game_thread)->GetScheduler().Enqueue([weak_this = WeakHandleFromThis(), func = std::forward<Function>(func)]()
             {
-                if (weak_this.Lock())
+                if (Handle<Node> strong_this = weak_this.Lock())
                 {
                     if (EditorSubsystem* editor_subsystem = g_engine->GetDefaultWorld()->GetSubsystem<EditorSubsystem>())
                     {
                         func(editor_subsystem->GetEditorDelegates());
                     }
+
+                    return;
                 }
+
+                HYP_LOG(Node, Warning, "Node is no longer valid when trying to get editor delegates");
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }

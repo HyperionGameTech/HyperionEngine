@@ -29,6 +29,8 @@ namespace Hyperion
         {
             get
             {
+                Assert.Throw(uiObject != null, "UIObject is null");
+
                 return uiObject!;
             }
         }

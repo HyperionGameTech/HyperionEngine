@@ -8,6 +8,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/ForEach.hpp>
 
+#include <core/memory/RefCountedPtr.hpp>
+
 #include <core/containers/TypeMap.hpp>
 
 #include <core/threading/Mutex.hpp>
@@ -45,19 +47,6 @@ class HypEnumInstance;
 
 template <class T>
 struct Handle;
-
-enum class HypClassFlags : uint32
-{
-    NONE = 0x0,
-    CLASS_TYPE = 0x1,
-    STRUCT_TYPE = 0x2,
-    ENUM_TYPE = 0x4,
-    ABSTRACT = 0x8,
-    POD_TYPE = 0x10,
-    DYNAMIC = 0x20 // Dynamic classes are not registered in the class registry
-};
-
-HYP_MAKE_ENUM_FLAGS(HypClassFlags)
 
 class HYP_API HypClassRegistry
 {
@@ -136,11 +125,6 @@ public:
 
     void ForEachClass(const ProcRef<IterationResult(const HypClass*)>& callback, bool include_dynamic_classes = true) const;
 
-    void RegisterManagedClass(const RC<dotnet::Class>& managed_class, const HypClass* hyp_class);
-    void UnregisterManagedClass(dotnet::Class* managed_class);
-
-    RC<dotnet::Class> GetManagedClass(const HypClass* hyp_class) const;
-
     void Initialize();
 
 private:
@@ -155,86 +139,6 @@ private:
     HashMap<dotnet::Class*, HypClass*> m_managed_classes_reverse_mapping;
     mutable Mutex m_managed_classes_mutex;
 };
-
-struct HYP_API HypClassRegistrationBase
-{
-protected:
-    HypClassRegistrationBase(TypeID type_id, HypClass* hyp_class);
-};
-
-template <class T>
-struct HypClassRegistration : public HypClassRegistrationBase
-{
-    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::CLASS_TYPE
-        | (is_pod_type<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
-        | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
-
-    HypClassRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
-    {
-    }
-};
-
-template <class T>
-struct HypStructRegistration : public HypClassRegistrationBase
-{
-    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::STRUCT_TYPE
-        | (is_pod_type<T> ? HypClassFlags::POD_TYPE : HypClassFlags::NONE)
-        | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
-
-    HypStructRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
-    {
-    }
-};
-
-template <class T>
-struct HypEnumRegistration : public HypClassRegistrationBase
-{
-    static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::ENUM_TYPE;
-
-    HypEnumRegistration(Name name, int static_index, uint32 num_descendants, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, static_index, num_descendants, Name::Invalid(), attributes, flags, Span<HypMember>(members.Begin(), members.End())))
-    {
-    }
-};
-
-#pragma region Global Helper Functions
-
-template <class T>
-HYP_FORCE_INLINE const HypClass* GetClass()
-{
-    return HypClassRegistry::GetInstance().template GetClass<T>();
-}
-
-template <class T>
-HYP_FORCE_INLINE const HypClass* GetClass(const T* ptr)
-{
-    return HypClassRegistry::GetInstance().template GetClass<T>();
-}
-
-template <class T>
-HYP_FORCE_INLINE const HypClass* GetClass(const Handle<T>& handle)
-{
-    return HypClassRegistry::GetInstance().template GetClass<T>();
-}
-
-HYP_API const HypClass* GetClass(TypeID type_id);
-HYP_API const HypClass* GetClass(WeakName type_name);
-
-template <class T>
-HYP_FORCE_INLINE const HypEnumInstance<T>* GetEnum()
-{
-    return HypClassRegistry::GetInstance().template GetEnum<T>();
-}
-
-HYP_API const HypEnum* GetEnum(TypeID type_id);
-HYP_API const HypEnum* GetEnum(WeakName type_name);
-
-HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
-HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hyp_class);
-
-#pragma endregion Global Helper Functions
 
 } // namespace hyperion
 

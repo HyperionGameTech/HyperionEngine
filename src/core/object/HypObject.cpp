@@ -50,9 +50,9 @@ HypObjectInitializerGuardBase::~HypObjectInitializerGuardBase()
 
     if ((!context || !(context->flags & HypObjectInitializerFlags::SUPPRESS_MANAGED_OBJECT_CREATION)) && !ptr.GetClass()->IsAbstract())
     {
-        if (ptr.GetClass()->GetManagedClass() != nullptr)
+        if (RC<dotnet::Class> managed_class = ptr.GetClass()->GetManagedClass())
         {
-            ptr.GetObjectInitializer()->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr));
+            ptr.GetObjectInitializer()->SetManagedObjectResource(AllocateResource<ManagedObjectResource>(ptr, managed_class));
         }
         else
         {

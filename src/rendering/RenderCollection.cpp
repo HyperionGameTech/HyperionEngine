@@ -233,7 +233,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
                 RenderCollection,
                 Debug,
                 "Added proxy for entity {} (mesh={}, count: {}, material={}, count: {})",
-                added.entity->GetID().Value(),
+                added.entity->GetID(),
                 added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumRefs() : 0,
                 added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumRefs() : 0
             );
@@ -244,7 +244,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
                 RenderCollection,
                 Debug,
                 "Removed proxy for entity {}",
-                removed.Value()
+                removed
             );
         }
 #endif

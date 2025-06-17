@@ -19,7 +19,6 @@ static const HashMap<String, UIDockableItemPosition> g_dockable_item_position_ma
 #pragma region UIDockableItem
 
 UIDockableItem::UIDockableItem()
-    : UIPanel(UIObjectType::DOCKABLE_ITEM)
 {
 }
 
@@ -28,7 +27,6 @@ UIDockableItem::UIDockableItem()
 #pragma region UIDockableContainer
 
 UIDockableContainer::UIDockableContainer()
-    : UIPanel(UIObjectType::DOCKABLE_CONTAINER)
 {
 }
 

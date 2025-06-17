@@ -8,8 +8,10 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <core/object/HypClassRegistry.hpp>
+#include <core/object/HypClass.hpp>
 
 namespace hyperion {
+
 namespace dotnet {
 
 Assembly::Assembly()
@@ -40,14 +42,21 @@ bool Assembly::Unload()
         return true;
     }
 
-    for (auto& it : m_class_objects)
+    for (const auto& it : m_class_objects)
     {
-        if (!it.second)
+        const RC<Class>& class_object = it.second;
+
+        if (!class_object)
         {
             continue;
         }
 
-        HypClassRegistry::GetInstance().UnregisterManagedClass(it.second.Get());
+        if (const HypClass* hyp_class = class_object->GetHypClass())
+        {
+            AssertThrowMsg(hyp_class->GetManagedClass() == class_object, "HypClass '%s' does not match the expected managed class '%s'", *hyp_class->GetName(), *class_object->GetName());
+
+            hyp_class->SetManagedClass(nullptr);
+        }
     }
 
     return DotNetSystem::GetInstance().UnloadAssembly(m_guid);
@@ -68,7 +77,7 @@ RC<Class> Assembly::NewClass(const HypClass* hyp_class, int32 type_hash, const c
 
     if (hyp_class != nullptr)
     {
-        HypClassRegistry::GetInstance().RegisterManagedClass(it->second, hyp_class);
+        hyp_class->SetManagedClass(it->second);
     }
 
     return it->second;

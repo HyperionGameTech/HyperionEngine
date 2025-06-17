@@ -64,6 +64,7 @@ extern "C"
 
         ManagedObjectResource* managed_object_resource = AllocateResource<ManagedObjectResource>(
             ptr,
+            class_object_ptr->RefCountedPtrFromThis(),
             *object_reference,
             ObjectFlags::CREATED_FROM_MANAGED);
 

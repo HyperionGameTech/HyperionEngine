@@ -330,7 +330,17 @@ public:
                 m_element_type_id.Value());
         }
 
-        // AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data());
+        // AssertThrowMsg(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data())
+        
+        auto it = m_values.FindIf([&uuid](const auto& item)
+            {
+                return item.GetUUID() == uuid;
+            });
+
+        if (it != m_values.End())
+        {
+            HYP_FAIL("Element with UUID %s already exists in the data source", uuid.ToString().Data());
+        }
 
         typename Forest<UIDataSourceElement>::ConstIterator parent_it = m_values.End();
 
@@ -342,7 +352,7 @@ public:
                 });
         }
 
-        auto it = m_values.Add(UIDataSourceElement(uuid, std::move(value)), parent_it);
+        it = m_values.Add(UIDataSourceElement(uuid, std::move(value)), parent_it);
 
         OnElementAdd(this, &*it, GetParentElementFromIterator(it));
         OnChange(this);

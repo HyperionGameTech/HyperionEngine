@@ -32,7 +32,7 @@
 #include <string>
 
 #ifdef HYP_ZLIB
-    #include <zlib.h>
+#include <zlib.h>
 #endif
 
 namespace hyperion {
@@ -834,9 +834,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Handle<Skeleton> skeleton_from_limb = get_skeleton_from_limb_node(*limb_node);
 
                 if (skeleton && skeleton_from_limb && skeleton != skeleton_from_limb) {
-                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with ID #{}, but multiple skeletons are attached to the mesh!",
+                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with ID {}, but multiple skeletons are attached to the mesh!",
                         cluster->limb_id,
-                        skeleton_from_limb->GetID().Value());
+                        skeleton_from_limb->GetID());
                 }
 
                 skeleton = skeleton_from_limb;

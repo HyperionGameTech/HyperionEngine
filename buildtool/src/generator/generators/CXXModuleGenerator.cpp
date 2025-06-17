@@ -160,7 +160,19 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
 
             if (member.type == HypMemberType::TYPE_FIELD)
             {
-                writer.WriteString(HYP_FORMAT("    HypField(NAME(HYP_STR({})), &Type::{}, offsetof(Type, {})", member.name, member.name, member.name));
+                if (member.cxx_type->is_static)
+                {
+                    if (!member.cxx_type->is_const && !member.cxx_type->is_constexpr)
+                    {
+                        return HYP_MAKE_ERROR(Error, "Static fields must be const or constexpr");
+                    }
+
+                    writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), &{}::{}", member.friendly_name, hyp_class.name, member.name));
+                }
+                else
+                {
+                    writer.WriteString(HYP_FORMAT("    HypField(NAME(HYP_STR({})), &{}::{}, offsetof({}, {})", member.friendly_name, hyp_class.name, member.name, hyp_class.name, member.name));
+                }
 
                 if (attributes_string.Any())
                 {
@@ -171,7 +183,7 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
             }
             else if (member.type == HypMemberType::TYPE_METHOD)
             {
-                writer.WriteString(HYP_FORMAT("    HypMethod(NAME(HYP_STR({})), &Type::{}", member.name, member.name));
+                writer.WriteString(HYP_FORMAT("    HypMethod(NAME(HYP_STR({})), &{}::{}", member.name, hyp_class.name, member.name));
 
                 if (attributes_string.Any())
                 {
@@ -201,7 +213,7 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
             }
             else if (member.type == HypMemberType::TYPE_CONSTANT)
             {
-                writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), Type::{})", StringUtil::ToPascalCase(member.name), member.name));
+                writer.WriteString(HYP_FORMAT("    HypConstant(NAME(HYP_STR({})), {}::{})", member.friendly_name, hyp_class.name, member.name));
             }
 
             if (i != hyp_class.members.Size() - 1)
