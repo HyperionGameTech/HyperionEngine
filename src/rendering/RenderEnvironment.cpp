@@ -117,7 +117,7 @@ void RenderEnvironment::Initialize()
     m_gaussian_splatting = CreateObject<GaussianSplatting>();
     InitObject(m_gaussian_splatting);
 
-    // @TODO Move to DeferredRenderer
+    // @TODO Move to RenderView
     m_rt_radiance = MakeUnique<RTRadianceRenderer>(
         RTRadianceConfig::FromConfig(),
         g_engine->GetCurrentView()->GetGBuffer());

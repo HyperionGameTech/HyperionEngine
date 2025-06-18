@@ -48,7 +48,7 @@ struct RenderSetup;
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.debug.debug_drawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
-    HYP_FIELD(Description = "Enable or disable the debug drawer.")
+    HYP_FIELD(Description = "Enable or disable the debug drawer.", JSONPath = "enabled")
     bool enabled = true;
 
     virtual ~DebugDrawerConfig() override = default;

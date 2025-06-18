@@ -1,13 +1,16 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
 #include <scene/EnvGrid.hpp>
+#include <scene/EnvProbe.hpp>
 #include <scene/View.hpp>
+#include <scene/Scene.hpp>
+#include <scene/camera/Camera.hpp>
 
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvProbe.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderShadowMap.hpp>
 
@@ -143,7 +146,8 @@ void EnvGrid::Init()
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     m_view = CreateObject<View>(ViewDesc {
-        .flags = ViewFlags::COLLECT_STATIC_ENTITIES
+        .flags = ViewFlags::ALL_WORLD_SCENES
+            | ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,

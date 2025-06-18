@@ -226,7 +226,6 @@ Camera::~Camera()
 
     if (m_render_resource != nullptr)
     {
-        m_render_resource->EnqueueUnbind();
         m_render_resource->DecRef();
         FreeResource(m_render_resource);
     }

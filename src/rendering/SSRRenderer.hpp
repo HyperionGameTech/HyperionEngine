@@ -23,25 +23,25 @@ class RenderView;
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.ssr")
 struct SSRRendererConfig : public ConfigBase<SSRRendererConfig>
 {
-    HYP_FIELD(Description = "The quality level of the SSR effect. (0 = low, 1 = medium, 2 = high)")
+    HYP_FIELD(Description = "The quality level of the SSR effect. (0 = low, 1 = medium, 2 = high)", JSONPath = "quality")
     int quality = 2;
 
-    HYP_FIELD(Description = "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.")
+    HYP_FIELD(Description = "Enables scattering of rays based on the roughness of the surface. May cause artifacts due to temporal instability.", JSONPath = "roughness_scattering")
     bool roughness_scattering = true;
 
-    HYP_FIELD(Description = "Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.")
+    HYP_FIELD(Description = "Enables cone tracing for the SSR effect. Causes the result to become blurrier based on distance of the reflection.", JSONPath = "cone_tracing")
     bool cone_tracing = false;
 
-    HYP_FIELD(Description = "The distance between rays when tracing the SSR effect.")
+    HYP_FIELD(Description = "The distance between rays when tracing the SSR effect.", JSONPath = "ray_step")
     float ray_step = 3.2f;
 
-    HYP_FIELD(Description = "The maximum number of iterations to perform for the SSR effect before stopping.")
+    HYP_FIELD(Description = "The maximum number of iterations to perform for the SSR effect before stopping.", JSONPath = "num_iterations")
     uint32 num_iterations = 64;
 
-    HYP_FIELD(Description = "Where to start and end fading the SSR effect based on the eye vector.")
+    HYP_FIELD(Description = "Where to start and end fading the SSR effect based on the eye vector.", JSONPath = "eye_fade")
     Vec2f eye_fade = { 0.98f, 0.99f };
 
-    HYP_FIELD(Description = "Where to start and end fading the SSR effect based on the screen edges.")
+    HYP_FIELD(Description = "Where to start and end fading the SSR effect based on the screen edges.", JSONPath = "screen_edge_fade")
     Vec2f screen_edge_fade = { 0.96f, 0.99f };
 
     HYP_FIELD(JSONIgnore)

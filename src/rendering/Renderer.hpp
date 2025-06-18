@@ -17,6 +17,7 @@ class RenderView;
 class RenderWorld;
 class RenderEnvProbe;
 class RenderEnvGrid;
+class RenderLight;
 struct CullData;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering")
@@ -62,6 +63,7 @@ struct RenderSetup
     RenderView* view;
     RenderEnvProbe* env_probe;
     RenderEnvGrid* env_grid;
+    RenderLight* light;
 
 private:
     // Private constructor for null RenderSetup
@@ -69,7 +71,8 @@ private:
         : world(nullptr),
           view(nullptr),
           env_probe(nullptr),
-          env_grid(nullptr)
+          env_grid(nullptr),
+          light(nullptr)
     {
     }
 
@@ -78,7 +81,8 @@ public:
         : world(world),
           view(nullptr),
           env_probe(nullptr),
-          env_grid(nullptr)
+          env_grid(nullptr),
+          light(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
@@ -87,7 +91,8 @@ public:
         : world(world),
           view(view),
           env_probe(nullptr),
-          env_grid(nullptr)
+          env_grid(nullptr),
+          light(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }

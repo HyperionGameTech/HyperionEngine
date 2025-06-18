@@ -42,7 +42,7 @@ EditorProject::EditorProject(Name name)
       m_last_saved_time(~0ull)
 {
     m_asset_registry = CreateObject<AssetRegistry>();
-    m_action_stack = CreateObject<EditorActionStack>();
+    m_action_stack = CreateObject<EditorActionStack>(WeakHandleFromThis());
 }
 
 EditorProject::~EditorProject()

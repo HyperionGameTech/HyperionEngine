@@ -39,6 +39,7 @@ class HYP_API EditorActionStack : public HypObject<EditorActionStack>
 
 public:
     EditorActionStack();
+    EditorActionStack(const WeakHandle<EditorProject>& editor_project);
     EditorActionStack(const EditorActionStack& other) = delete;
     EditorActionStack& operator=(const EditorActionStack& other) = delete;
     EditorActionStack(EditorActionStack&& other) noexcept;
@@ -83,6 +84,8 @@ public:
 
 private:
     void UpdateState();
+
+    WeakHandle<EditorProject> m_editor_project;
 
     LinkedList<Handle<EditorActionBase>> m_actions;
     int m_current_action_index;

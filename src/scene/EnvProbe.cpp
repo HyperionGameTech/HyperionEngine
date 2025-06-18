@@ -6,9 +6,9 @@
 #include <scene/Scene.hpp>
 
 #include <rendering/RenderEnvProbe.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderScene.hpp>
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
@@ -74,6 +74,12 @@ EnvProbe::~EnvProbe()
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
+    }
+
+    if (m_parent_scene.IsValid() && m_view.IsValid())
+    {
+        m_view->RemoveScene(m_parent_scene);
+        m_parent_scene->GetWorld()->RemoveView(m_view);
     }
 }
 
@@ -156,10 +162,10 @@ void EnvProbe::CreateView()
 
     InitObject(m_view);
 
-    // if (m_parent_scene.IsValid())
-    // {
-    //     m_parent_scene->GetWorld()->AddView(m_view);
-    // }
+    if (m_parent_scene.IsValid())
+    {
+        m_parent_scene->GetWorld()->AddView(m_view);
+    }
 }
 
 void EnvProbe::SetAABB(const BoundingBox& aabb)
@@ -209,13 +215,13 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
         if (m_parent_scene.IsValid())
         {
             m_view->RemoveScene(m_parent_scene);
-            // m_parent_scene->GetWorld()->RemoveView(m_view);
+            m_parent_scene->GetWorld()->RemoveView(m_view);
         }
 
         if (parent_scene.IsValid())
         {
             m_view->AddScene(parent_scene);
-            // parent_scene->GetWorld()->AddView(m_view);
+            parent_scene->GetWorld()->AddView(m_view);
 
             m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
         }
@@ -232,7 +238,7 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
 
 void EnvProbe::Update(GameCounter::TickUnit delta)
 {
-    Threads::AssertOnThread(g_game_thread);
+    Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     // Ambient probes do not use their own render list,
@@ -272,10 +278,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
-
-        AssertThrow(m_view.IsValid());
-        m_view->UpdateVisibility();
-        m_view->Update(delta);
 
         typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
 

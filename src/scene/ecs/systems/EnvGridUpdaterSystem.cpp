@@ -17,7 +17,6 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderEnvGrid.hpp>
-#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererShader.hpp>
 
@@ -81,11 +80,6 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
             .flags = flags });
 
     InitObject(env_grid_component.env_grid);
-
-    env_grid_component.env_render_grid = TResourceHandle<RenderEnvGrid>(env_grid_component.env_grid->GetRenderResource());
-    // env_grid_component.env_grid_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<EnvGridRenderSubsystem>(
-    //     Name::Unique("EnvGridRenderSubsystem"),
-    //     env_grid_component.env_render_grid);
 }
 
 void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
@@ -94,7 +88,7 @@ void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
     EnvGridComponent& env_grid_component = GetEntityManager().GetComponent<EnvGridComponent>(entity);
 
-    env_grid_component.env_render_grid.Reset();
+    env_grid_component.env_grid.Reset();
 
     // if (env_grid_component.env_grid_render_subsystem)
     // {

@@ -30,13 +30,6 @@ public:
         return m_scene;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
-    {
-        return m_render_camera;
-    }
-
-    void SetCameraRenderResourceHandle(const TResourceHandle<RenderCamera>& render_camera);
-
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;
@@ -46,8 +39,6 @@ protected:
 
 private:
     Scene* m_scene;
-
-    TResourceHandle<RenderCamera> m_render_camera;
 
     ImageRef m_shadows_texture_array_image;
     ImageViewRef m_shadows_texture_array_image_view;

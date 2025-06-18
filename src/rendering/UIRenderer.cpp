@@ -8,7 +8,6 @@
 #include <rendering/Buffers.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/EngineRenderStats.hpp>

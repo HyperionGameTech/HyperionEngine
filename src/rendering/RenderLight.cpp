@@ -3,7 +3,6 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderShadowMap.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/SafeDeleter.hpp>
 
@@ -38,7 +37,7 @@ RenderLight::RenderLight(RenderLight&& other) noexcept
       m_light(other.m_light),
       m_material(std::move(other.m_material)),
       m_render_material(std::move(other.m_render_material)),
-      m_shadow_render_map(std::move(other.m_shadow_render_map)),
+      m_shadow_map(std::move(other.m_shadow_map)),
       m_buffer_data(std::move(other.m_buffer_data))
 {
     other.m_light = nullptr;
@@ -83,9 +82,9 @@ void RenderLight::UpdateBufferData()
         ? m_render_material->GetBufferIndex()
         : ~0u;
 
-    if (m_shadow_render_map)
+    if (m_shadow_map)
     {
-        buffer_data->shadow_map_index = m_shadow_render_map->GetBufferIndex();
+        buffer_data->shadow_map_index = m_shadow_map->GetBufferIndex();
     }
     else
     {
@@ -127,9 +126,9 @@ void RenderLight::SetBufferData(const LightShaderData& buffer_data)
         {
             m_buffer_data = buffer_data;
 
-            if (m_shadow_render_map)
+            if (m_shadow_map)
             {
-                m_buffer_data.shadow_map_index = m_shadow_render_map->GetBufferIndex();
+                m_buffer_data.shadow_map_index = m_shadow_map->GetBufferIndex();
             }
             else
             {
@@ -143,17 +142,17 @@ void RenderLight::SetBufferData(const LightShaderData& buffer_data)
         });
 }
 
-void RenderLight::SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map)
+void RenderLight::SetShadowMap(TResourceHandle<RenderShadowMap>&& shadow_map)
 {
     HYP_SCOPE;
 
-    Execute([this, shadow_render_map = std::move(shadow_render_map)]()
+    Execute([this, shadow_map = std::move(shadow_map)]()
         {
-            m_shadow_render_map = std::move(shadow_render_map);
+            m_shadow_map = std::move(shadow_map);
 
-            if (m_shadow_render_map)
+            if (m_shadow_map)
             {
-                m_buffer_data.shadow_map_index = m_shadow_render_map->GetBufferIndex();
+                m_buffer_data.shadow_map_index = m_shadow_map->GetBufferIndex();
             }
             else
             {

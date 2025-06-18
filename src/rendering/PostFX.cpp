@@ -17,39 +17,17 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 PostFXPass::PostFXPass(InternalFormat image_format, GBuffer* gbuffer)
-    : PostFXPass(
-          nullptr,
-          POST_PROCESSING_STAGE_PRE_SHADING,
-          ~0u,
-          image_format,
-          gbuffer)
+    : PostFXPass(nullptr, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, image_format, gbuffer)
 {
 }
 
-PostFXPass::PostFXPass(
-    const ShaderRef& shader,
-    InternalFormat image_format,
-    GBuffer* gbuffer)
-    : PostFXPass(
-          shader,
-          POST_PROCESSING_STAGE_PRE_SHADING,
-          ~0u,
-          image_format,
-          gbuffer)
+PostFXPass::PostFXPass(const ShaderRef& shader, InternalFormat image_format, GBuffer* gbuffer)
+    : PostFXPass(shader, POST_PROCESSING_STAGE_PRE_SHADING, ~0u, image_format, gbuffer)
 {
 }
 
-PostFXPass::PostFXPass(
-    const ShaderRef& shader,
-    PostProcessingStage stage,
-    uint32 effect_index,
-    InternalFormat image_format,
-    GBuffer* gbuffer)
-    : FullScreenPass(
-          shader,
-          image_format,
-          Vec2u::Zero(),
-          gbuffer),
+PostFXPass::PostFXPass(const ShaderRef& shader, PostProcessingStage stage, uint32 effect_index, InternalFormat image_format, GBuffer* gbuffer)
+    : FullScreenPass(shader, image_format, Vec2u::Zero(), gbuffer),
       m_stage(stage),
       m_effect_index(effect_index)
 {
@@ -89,17 +67,8 @@ void PostFXPass::CreateDescriptors()
     // }
 }
 
-PostProcessingEffect::PostProcessingEffect(
-    PostProcessingStage stage,
-    uint32 effect_index,
-    InternalFormat image_format,
-    GBuffer* gbuffer)
-    : m_pass(
-          nullptr,
-          stage,
-          effect_index,
-          image_format,
-          gbuffer),
+PostProcessingEffect::PostProcessingEffect(PostProcessingStage stage, uint32 effect_index, InternalFormat image_format, GBuffer* gbuffer)
+    : m_pass(nullptr, stage, effect_index, image_format, gbuffer),
       m_is_enabled(true)
 {
 }

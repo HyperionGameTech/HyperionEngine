@@ -7,7 +7,6 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
 

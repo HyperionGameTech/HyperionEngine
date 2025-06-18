@@ -123,7 +123,8 @@ class StreamingManagerThread final : public Thread<Scheduler, StreamingManager*>
 
         void Unlock()
         {
-            lock_count.Decrement(1, MemoryOrder::RELEASE);
+            uint32 value = lock_count.Decrement(1, MemoryOrder::RELEASE);
+            AssertDebugMsg(value > 0, "Lock count cannot be negative!");
         }
 
         bool IsLocked() const

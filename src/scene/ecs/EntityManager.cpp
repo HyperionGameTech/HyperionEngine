@@ -399,6 +399,24 @@ void EntityManager::Init()
         }
     }
 
+    // Notify all entities that they've been added to the world
+    for (auto& entities_it : m_entities)
+    {
+        const Handle<Entity> entity = entities_it.first.Lock();
+
+        if (!entity.IsValid())
+        {
+            continue;
+        }
+
+        entity->OnAddedToScene(m_scene);
+
+        if (m_world && m_scene->IsForegroundScene())
+        {
+            entity->OnAddedToWorld(m_world);
+        }
+    }
+
     SetReady(true);
 }
 
@@ -406,27 +424,48 @@ void EntityManager::Shutdown()
 {
     HYP_SCOPE;
 
-    if (IsReady() && m_world != nullptr)
+    if (IsReady())
     {
         MoveEntityGuard move_entity_guard(*this);
 
-        Array<Handle<SystemBase>> systems;
-
-        for (SystemExecutionGroup& group : m_system_execution_groups)
+        // Notify all entities that they're being removed from the world
+        for (auto& entities_it : m_entities)
         {
-            for (auto& system_it : group.GetSystems())
-            {
-                const Handle<SystemBase>& system = system_it.second;
-                AssertThrow(system.IsValid());
+            const Handle<Entity> entity = entities_it.first.Lock();
 
-                systems.PushBack(system);
+            if (!entity.IsValid())
+            {
+                continue;
             }
+
+            if (m_world && m_scene->IsForegroundScene())
+            {
+                entity->OnRemovedFromWorld(m_world);
+            }
+
+            entity->OnRemovedFromScene(m_scene);
         }
 
-        for (const Handle<SystemBase>& system : systems)
+        if (m_world != nullptr)
         {
-            // Shutdown the system
-            ShutdownSystem(system);
+            Array<Handle<SystemBase>> systems;
+
+            for (SystemExecutionGroup& group : m_system_execution_groups)
+            {
+                for (auto& system_it : group.GetSystems())
+                {
+                    const Handle<SystemBase>& system = system_it.second;
+                    AssertThrow(system.IsValid());
+
+                    systems.PushBack(system);
+                }
+            }
+
+            for (const Handle<SystemBase>& system : systems)
+            {
+                // Shutdown the system
+                ShutdownSystem(system);
+            }
         }
     }
 
@@ -445,7 +484,7 @@ void EntityManager::SetWorld(World* world)
     }
 
     // If EntityManager is initialized we need to notify all of our systems that the world has changed.
-    if (IsInitCalled())
+    if (IsReady())
     {
         Array<Handle<SystemBase>> systems;
 
@@ -462,6 +501,22 @@ void EntityManager::SetWorld(World* world)
 
         MoveEntityGuard move_entity_guard(*this);
 
+        // Call OnRemovedFromWorld() now for all entities in the EntityManager if previous world is not null
+        if (m_world && m_scene->IsForegroundScene())
+        {
+            for (auto& entities_it : m_entities)
+            {
+                const Handle<Entity> entity = entities_it.first.Lock();
+
+                if (!entity.IsValid())
+                {
+                    continue;
+                }
+
+                entity->OnRemovedFromWorld(m_world);
+            }
+        }
+
         if (m_world != nullptr)
         {
             for (const Handle<SystemBase>& system : systems)
@@ -474,10 +529,24 @@ void EntityManager::SetWorld(World* world)
 
         if (m_world != nullptr)
         { // notify systems of entity added for the new world
-
             for (const Handle<SystemBase>& system : systems)
             {
                 InitializeSystem(system);
+            }
+
+            if (m_scene->IsForegroundScene())
+            {
+                for (auto& entities_it : m_entities)
+                {
+                    const Handle<Entity> entity = entities_it.first.Lock();
+
+                    if (!entity.IsValid())
+                    {
+                        continue;
+                    }
+
+                    entity->OnAddedToWorld(m_world);
+                }
             }
         }
 
@@ -500,6 +569,16 @@ Handle<Entity> EntityManager::AddEntity()
     m_entities.AddEntity(entity);
 
     GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
+
+    if (IsReady())
+    {
+        entity->OnAddedToScene(m_scene);
+
+        if (m_world && m_scene->IsForegroundScene())
+        {
+            entity->OnAddedToWorld(m_world);
+        }
+    }
 
     return entity;
 }
@@ -539,6 +618,16 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
     m_entities.AddEntity(entity);
 
     GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
+
+    if (IsReady())
+    {
+        entity->OnAddedToScene(m_scene);
+
+        if (m_world && m_scene->IsForegroundScene())
+        {
+            entity->OnAddedToWorld(m_world);
+        }
+    }
 }
 
 bool EntityManager::RemoveEntity(ID<Entity> entity_id)
@@ -554,9 +643,21 @@ bool EntityManager::RemoveEntity(ID<Entity> entity_id)
 
     // to keep ID valid while removing the entity
     WeakHandle<Entity> entity_weak { entity_id };
+    AssertThrowMsg(entity_weak.IsValid(), "Entity is not valid");
 
     MoveEntityGuard move_entity_guard(*this);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+    // @NOTE: Don't call these virtuals here, as RemoveEnity() is called from the Entity's destructor
+    /*if (IsReady())
+    {
+        entity->OnRemovedFromScene(m_scene);
+
+        if (m_world != nullptr)
+        {
+            entity->OnRemovedFromWorld(m_world);
+        }
+    }*/
 
     auto entities_it = m_entities.Find(entity_id);
 
@@ -627,6 +728,16 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
         const auto entities_it = m_entities.Find(entity);
         AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
+
+        if (IsReady())
+        {
+            if (m_world && m_scene->IsForegroundScene())
+            {
+                entity->OnRemovedFromWorld(m_world);
+            }
+
+            entity->OnRemovedFromScene(m_scene);
+        }
 
         EntityData& entity_data = entities_it->second;
         NotifySystemsOfEntityRemoved(entity, entity_data.components);
@@ -728,21 +839,30 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
     m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
 
-    if (Threads::IsOnThread(other->GetOwnerThreadID()))
+    auto fn = [other = other, entity = entity, new_component_ids = std::move(new_component_ids)]()
     {
         other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
         other->NotifySystemsOfEntityAdded(entity, new_component_ids);
         other->m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
+
+        if (other->IsReady())
+        {
+            entity->OnAddedToScene(other->m_scene);
+
+            if (other->m_world && other->m_scene->IsForegroundScene())
+            {
+                entity->OnAddedToWorld(other->m_world);
+            }
+        }
+    };
+
+    if (Threads::IsOnThread(other->GetOwnerThreadID()))
+    {
+        fn();
     }
     else
     {
-        Threads::GetThread(other->GetOwnerThreadID())->GetScheduler().Enqueue([other = other, entity = entity, new_component_ids = std::move(new_component_ids)]()
-            {
-                other->m_move_entity_rw_mask.BitAnd(~g_move_entity_write_flag, MemoryOrder::RELEASE);
-                other->NotifySystemsOfEntityAdded(entity, new_component_ids);
-                other->m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
-            },
-            TaskEnqueueFlags::FIRE_AND_FORGET);
+        Threads::GetThread(other->GetOwnerThreadID())->GetScheduler().Enqueue(std::move(fn), TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 

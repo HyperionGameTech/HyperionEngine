@@ -6,7 +6,6 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderMesh.hpp>
@@ -111,7 +110,10 @@ struct RENDER_COMMAND(LightmapRender)
     {
         FrameBase* frame = g_rendering_api->GetCurrentFrame();
 
-        const RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), nullptr };
+        const RenderSetup render_setup {
+            &g_engine->GetWorld()->GetRenderResource(),
+            nullptr
+        };
 
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
@@ -153,16 +155,12 @@ struct RENDER_COMMAND(LightmapRender)
             //     is_sky_set = true;
             // }
 
-            g_engine->GetRenderState()->SetActiveScene(job->GetScene());
-
             for (ILightmapRenderer* lightmap_renderer : job->GetParams().renderers)
             {
                 AssertThrow(lightmap_renderer != nullptr);
 
                 lightmap_renderer->Render(frame, render_setup, job, rays, ray_offset);
             }
-
-            g_engine->GetRenderState()->UnsetActiveScene();
 
             // if (is_sky_set)
             // {
@@ -697,11 +695,10 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+
     const uint32 frame_index = frame->GetFrameIndex();
     const uint32 previous_frame_index = (frame->GetFrameIndex() + max_frames_in_flight - 1) % max_frames_in_flight;
-
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
 
     UpdateUniforms(frame, ray_offset);
 
@@ -749,7 +746,6 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
@@ -846,6 +842,8 @@ void LightmapCPUPathTracer::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> o
 void LightmapCPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_setup, LightmapJob* job, Span<const LightmapRay> rays, uint32 ray_offset)
 {
     Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
 
     AssertThrowMsg(m_num_tracing_tasks.Get(MemoryOrder::ACQUIRE) == 0,
         "Trace is already in progress");

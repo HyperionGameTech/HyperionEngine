@@ -7,7 +7,6 @@
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderView.hpp>
@@ -41,7 +40,7 @@
 
 namespace hyperion {
 
-static constexpr bool do_parallel_collection = true;
+static constexpr bool do_parallel_collection = false; // true;
 
 #pragma region Render commands
 
@@ -405,6 +404,8 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
 
     for (Bitset::BitIndex bit_index : bucket_bits)
     {
+        AssertDebug(bit_index < m_draw_collection->GetProxyGroups().Size());
+
         auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[bit_index];
 
         if (render_groups_by_attributes.Empty())

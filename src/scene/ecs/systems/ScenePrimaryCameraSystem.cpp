@@ -42,8 +42,6 @@ void ScenePrimaryCameraSystem::OnEntityAdded(const Handle<Entity>& entity)
         HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but there is already a primary camera", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
         return;
     }
-
-    GetScene()->GetRenderResource().SetCameraRenderResourceHandle(TResourceHandle<RenderCamera>(camera_component.camera->GetRenderResource()));
 }
 
 void ScenePrimaryCameraSystem::OnEntityRemoved(ID<Entity> entity)

@@ -10,7 +10,6 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderView.hpp>
@@ -348,9 +347,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
     AssertReady();
 
     AssertDebug(render_setup.IsValid());
-
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
+    AssertDebug(render_setup.HasView());
 
     if (m_particle_spawners.GetItems().Empty())
     {
@@ -421,15 +418,13 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
                     { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) } } } },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         const uint32 view_descriptor_set_index = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {
-            AssertThrow(render_setup.HasView());
-
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
                 spawner->GetComputePipeline(),
@@ -463,11 +458,9 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
     AssertReady();
 
     AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 frame_index = frame->GetFrameIndex();
-
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& render_camera = g_engine->GetRenderState()->GetActiveCamera();
 
     for (const Handle<ParticleSpawner>& particle_spawner : m_particle_spawners.GetItems())
     {
@@ -481,15 +474,13 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
                     { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_camera) } } } },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
         const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {
-            AssertThrow(render_setup.HasView());
-
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.view->GetDescriptorSets()[frame_index],
                 pipeline,

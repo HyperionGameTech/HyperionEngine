@@ -138,19 +138,19 @@ void RenderWorld::RemoveScene(RenderScene* render_scene)
 //     }, /* force_owner_thread */ true);
 // }
 
-// void RenderWorld::RenderRemoveShadowMap(const RenderShadowMap *shadow_render_map)
+// void RenderWorld::RenderRemoveShadowMap(const RenderShadowMap *shadow_map)
 // {
 //     HYP_SCOPE;
 
-//     if (!shadow_render_map) {
+//     if (!shadow_map) {
 //         return;
 //     }
 
-//     Execute([this, shadow_render_map]()
+//     Execute([this, shadow_map]()
 //     {
-//         auto it = m_shadow_map_resource_handles.FindIf([shadow_render_map](const TResourceHandle<RenderShadowMap> &item)
+//         auto it = m_shadow_map_resource_handles.FindIf([shadow_map](const TResourceHandle<RenderShadowMap> &item)
 //         {
-//             return item.Get() == shadow_render_map;
+//             return item.Get() == shadow_map;
 //         });
 
 //         if (it != m_shadow_map_resource_handles.End()) {
@@ -266,14 +266,24 @@ void RenderWorld::Render(FrameBase* frame)
     m_render_environment->RenderSubsystems(frame, render_setup);
 
     // Collect view-independent renderable types from all views
+    FixedArray<Array<RenderLight*>, uint32(LightType::MAX)> lights;
     FixedArray<Array<RenderEnvProbe*>, uint32(EnvProbeType::REFLECTION) + 1> env_probes;
     Array<RenderEnvGrid*> env_grids;
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {
-        HYP_LOG(Rendering, Debug, "Rendering view with {} env grids and {} env probes",
-            current_view->GetEnvGrids().Size(),
-            current_view->NumEnvProbes());
+        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+        {
+            for (RenderLight* light : current_view->GetLights(LightType(light_type)))
+            {
+                if (lights[light_type].Contains(light))
+                {
+                    continue;
+                }
+
+                lights[light_type].PushBack(light);
+            }
+        }
 
         for (RenderEnvGrid* env_grid : current_view->GetEnvGrids())
         {
@@ -299,6 +309,17 @@ void RenderWorld::Render(FrameBase* frame)
         }
     }
 
+    // Set global directional light as fallback
+    if (lights[uint32(LightType::DIRECTIONAL)].Any())
+    {
+        render_setup.light = lights[uint32(LightType::DIRECTIONAL)][0];
+    }
+    else
+    {
+        HYP_LOG(Rendering, Warning, "No directional light found in the world! EnvGrid and EnvProbe will have no fallback light set.");
+        render_setup.light = nullptr;
+    }
+
     // Set sky as fallback probe
     if (env_probes[uint32(EnvProbeType::SKY)].Any())
     {
@@ -307,14 +328,6 @@ void RenderWorld::Render(FrameBase* frame)
     else
     {
         HYP_LOG(Rendering, Warning, "No sky probe found in the world! EnvGrid and EnvProbe will have no fallback probe set.");
-    }
-
-    if (env_grids.Any())
-    {
-        for (RenderEnvGrid* env_grid : env_grids)
-        {
-            env_grid->Render(frame, render_setup);
-        }
     }
 
     if (env_probes.Any())
@@ -328,7 +341,16 @@ void RenderWorld::Render(FrameBase* frame)
         }
     }
 
+    if (env_grids.Any())
+    {
+        for (RenderEnvGrid* env_grid : env_grids)
+        {
+            env_grid->Render(frame, render_setup);
+        }
+    }
+
     render_setup.env_probe = nullptr;
+    render_setup.light = nullptr;
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {

@@ -85,12 +85,12 @@ public:
         return m_buffer_data;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMap() const
     {
-        return m_shadow_render_map;
+        return m_shadow_map;
     }
 
-    void SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map);
+    void SetShadowMap(TResourceHandle<RenderShadowMap>&& shadow_map);
 
 protected:
     virtual void Initialize_Internal() override;
@@ -105,7 +105,7 @@ private:
     Light* m_light;
     Handle<Material> m_material;
     TResourceHandle<RenderMaterial> m_render_material;
-    TResourceHandle<RenderShadowMap> m_shadow_render_map;
+    TResourceHandle<RenderShadowMap> m_shadow_map;
     LightShaderData m_buffer_data;
 };
 

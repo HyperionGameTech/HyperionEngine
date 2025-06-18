@@ -9,8 +9,8 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/Renderer.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
@@ -221,8 +221,8 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
     AssertThrow(IsReady());
 
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
     const uint32 num_points = static_cast<uint32>(m_model->points.Size());
 
@@ -249,7 +249,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
                     { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         frame->GetCommandList().Add<DispatchCompute>(
@@ -326,7 +326,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
         AssertThrow(h < num_sortable_elements);
         AssertThrow(h % 2 == 0);
 
-        auto do_pass = [this, frame, render_scene, &render_setup, &camera_resource_handle, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
+        auto do_pass = [this, frame, &render_setup, pc = sort_splats_push_constants, workgroup_count](BitonicSortStage stage, uint32 h) mutable
         {
             pc.stage = uint32(stage);
             pc.h = h;
@@ -341,7 +341,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
                         { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
+                            { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
                 frame->GetFrameIndex());
 
             frame->GetCommandList().Add<DispatchCompute>(
@@ -398,7 +398,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
                     { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
+                        { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         frame->GetCommandList().Add<DispatchCompute>(
@@ -667,13 +667,13 @@ void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& render_setup
     AssertReady();
     Threads::AssertOnThread(g_render_thread);
 
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
     if (!m_gaussian_splatting_instance)
     {
         return;
     }
-
-    const RenderScene* render_scene = g_engine->GetRenderState()->GetActiveScene();
-    const TResourceHandle<RenderCamera>& camera_resource_handle = g_engine->GetRenderState()->GetActiveCamera();
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -687,7 +687,7 @@ void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& render_setup
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*camera_resource_handle) } } } },
+                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
     m_quad_mesh->GetRenderResource().RenderIndirect(

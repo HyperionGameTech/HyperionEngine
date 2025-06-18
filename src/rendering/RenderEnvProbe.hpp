@@ -107,10 +107,10 @@ public:
 
     HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapRenderResourceHandle() const
     {
-        return m_shadow_render_map;
+        return m_shadow_map;
     }
 
-    void SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>&& shadow_render_map);
+    void SetShadowMap(TResourceHandle<RenderShadowMap>&& shadow_map);
 
     HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
     {
@@ -173,7 +173,7 @@ private:
     TResourceHandle<RenderCamera> m_render_camera;
     TResourceHandle<RenderScene> m_render_scene;
     TResourceHandle<RenderView> m_render_view;
-    TResourceHandle<RenderShadowMap> m_shadow_render_map;
+    TResourceHandle<RenderShadowMap> m_shadow_map;
 };
 
 } // namespace hyperion

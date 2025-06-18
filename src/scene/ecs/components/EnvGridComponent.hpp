@@ -56,12 +56,6 @@ struct EnvGridComponent
     Handle<EnvGrid> env_grid;
 
     HYP_FIELD(Transient)
-    TResourceHandle<RenderEnvGrid> env_render_grid;
-
-    HYP_FIELD(Transient)
-    RC<EnvGridRenderSubsystem> env_grid_render_subsystem;
-
-    HYP_FIELD(Transient)
     HashCode octant_hash_code;
 };
 

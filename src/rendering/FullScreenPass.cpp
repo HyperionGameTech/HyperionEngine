@@ -12,7 +12,6 @@
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/TemporalBlending.hpp>
 
 #include <rendering/backend/RendererSwapchain.hpp> // temp

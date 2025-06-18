@@ -291,22 +291,7 @@ public:
 
     static inline bool Parse(const String& str, int* out_value)
     {
-        int c = 0, sign = 0, x = 0;
-        const char* p = str.Data();
-
-        for (c = *(p++); (c < 48 || c > 57); c = *(p++))
-        {
-            if (c == 45)
-            {
-                sign = 1;
-                c = *(p++);
-                break;
-            }
-        }; // eat whitespaces and check sign
-        for (; c > 47 && c < 58; c = *(p++))
-            x = (x << 1) + (x << 3) + c - 48;
-
-        *out_value = sign ? -x : x;
+        *out_value = std::strtol(str.Data(), nullptr, 0);
 
         return true;
     }

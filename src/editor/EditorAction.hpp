@@ -36,10 +36,10 @@ public:
     virtual Name GetName() const;
 
     HYP_METHOD(Scriptable)
-    virtual void Execute();
+    virtual void Execute(EditorSubsystem* editor_subsystem, EditorProject* project);
 
     HYP_METHOD(Scriptable)
-    virtual void Revert();
+    virtual void Revert(EditorSubsystem* editor_subsystem, EditorProject* project);
 
 protected:
     virtual Name GetName_Impl() const
@@ -47,12 +47,12 @@ protected:
         HYP_PURE_VIRTUAL();
     }
 
-    virtual void Execute_Impl()
+    virtual void Execute_Impl(EditorSubsystem* editor_subsystem, EditorProject* project)
     {
         HYP_PURE_VIRTUAL();
     };
 
-    virtual void Revert_Impl()
+    virtual void Revert_Impl(EditorSubsystem* editor_subsystem, EditorProject* project)
     {
         HYP_PURE_VIRTUAL();
     }
@@ -60,8 +60,8 @@ protected:
 
 struct EditorActionFunctions
 {
-    Proc<void()> execute;
-    Proc<void()> revert;
+    Proc<void(EditorSubsystem* editor_subsystem, EditorProject* project)> execute;
+    Proc<void(EditorSubsystem* editor_subsystem, EditorProject* project)> revert;
 };
 
 HYP_CLASS()
@@ -86,15 +86,15 @@ public:
     }
 
     HYP_METHOD()
-    virtual void Execute() override final
+    virtual void Execute(EditorSubsystem* editor_subsystem, EditorProject* project) override final
     {
-        m_get_state_proc_result.execute();
+        m_get_state_proc_result.execute(editor_subsystem, project);
     }
 
     HYP_METHOD()
-    virtual void Revert() override final
+    virtual void Revert(EditorSubsystem* editor_subsystem, EditorProject* project) override final
     {
-        m_get_state_proc_result.revert();
+        m_get_state_proc_result.revert(editor_subsystem, project);
     }
 
 private:

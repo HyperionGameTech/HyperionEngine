@@ -72,9 +72,6 @@ public:
 
     void ApplyJitter(const RenderSetup& render_setup);
 
-    void EnqueueBind();
-    void EnqueueUnbind();
-
 protected:
     virtual void Initialize_Internal() override;
     virtual void Destroy_Internal() override;

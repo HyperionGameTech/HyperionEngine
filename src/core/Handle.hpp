@@ -528,7 +528,7 @@ struct WeakHandle final
         /// \todo: Fix this potential race condition. What if the object is destroyed while we are locking it?
         /// we should instead increment the strong reference count and then check if it is still alive. (we'll need to update the semantics around HypObject_OnIncRefCount_Strong first)
         return ptr->m_header->ref_count_strong.Get(MemoryOrder::ACQUIRE) != 0
-            ? Handle<T>(static_cast<T*>(ptr))
+            ? Handle<T>(ptr)
             : Handle<T>();
     }
 

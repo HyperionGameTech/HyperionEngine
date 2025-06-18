@@ -43,6 +43,19 @@ class TaskBase;
 class TaskCompleteNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>
 {
 public:
+    TaskCompleteNotifier()
+        : Semaphore(0)
+    {
+    }
+
+    TaskCompleteNotifier(const TaskCompleteNotifier& other) = delete;
+    TaskCompleteNotifier& operator=(const TaskCompleteNotifier& other) = delete;
+
+    TaskCompleteNotifier(TaskCompleteNotifier&& other) noexcept = delete;
+    TaskCompleteNotifier& operator=(TaskCompleteNotifier&& other) noexcept = delete;
+
+    ~TaskCompleteNotifier() = default;
+
     /*! \brief Sets the number of tasks that need to be completed before the notifier is signalled.
      *  This is typically called when the task batch is created, and the number of tasks is known.
      */
@@ -181,18 +194,7 @@ public:
     TaskExecutorBase(const TaskExecutorBase& other) = delete;
     TaskExecutorBase& operator=(const TaskExecutorBase& other) = delete;
 
-    TaskExecutorBase(TaskExecutorBase&& other) noexcept
-        : m_id(other.m_id),
-          m_initiator_thread_id(other.m_initiator_thread_id),
-          m_assigned_scheduler(other.m_assigned_scheduler),
-          m_notifier(std::move(other.m_notifier)),
-          m_callback_chain(std::move(other.m_callback_chain))
-    {
-        other.m_id = {};
-        other.m_initiator_thread_id = {};
-        other.m_assigned_scheduler = nullptr;
-    }
-
+    TaskExecutorBase(TaskExecutorBase&& other) noexcept = delete;
     TaskExecutorBase& operator=(TaskExecutorBase&& other) noexcept = delete;
 
     virtual ~TaskExecutorBase() override = default;
@@ -277,27 +279,8 @@ public:
     TaskExecutorInstance(const TaskExecutorInstance& other) = delete;
     TaskExecutorInstance& operator=(const TaskExecutorInstance& other) = delete;
 
-    TaskExecutorInstance(TaskExecutorInstance&& other) noexcept
-        : Base(static_cast<Base&&>(other)),
-          m_fn(std::move(other.m_fn)),
-          m_result_value(std::move(other.m_result_value))
-    {
-    }
-
-    TaskExecutorInstance& operator=(TaskExecutorInstance&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
-
-        Base::operator=(static_cast<Base&&>(other));
-
-        m_fn = std::move(other.m_fn);
-        m_result_value = std::move(other.m_result_value);
-
-        return *this;
-    }
+    TaskExecutorInstance(TaskExecutorInstance&& other) noexcept = delete;
+    TaskExecutorInstance& operator=(TaskExecutorInstance&& other) noexcept = delete;
 
     virtual ~TaskExecutorInstance() override = default;
 
@@ -351,12 +334,7 @@ public:
     TaskExecutorInstance(const TaskExecutorInstance& other) = delete;
     TaskExecutorInstance& operator=(const TaskExecutorInstance& other) = delete;
 
-    TaskExecutorInstance(TaskExecutorInstance&& other) noexcept
-        : Base(static_cast<Base&&>(other)),
-          m_fn(std::move(other.m_fn))
-    {
-    }
-
+    TaskExecutorInstance(TaskExecutorInstance&& other) noexcept = delete;
     TaskExecutorInstance& operator=(TaskExecutorInstance&& other) noexcept = delete;
 
     // TaskExecutorInstance &operator=(TaskExecutorInstance &&other) noexcept
@@ -399,13 +377,7 @@ public:
     TaskPromise(const TaskPromise& other) = delete;
     TaskPromise& operator=(const TaskPromise& other) = delete;
 
-    TaskPromise(TaskPromise&& other) noexcept
-        : Base(static_cast<Base&&>(other)),
-          m_task(other.m_task)
-    {
-        other.m_task = nullptr;
-    }
-
+    TaskPromise(TaskPromise&& other) noexcept = delete;
     TaskPromise& operator=(TaskPromise&& other) noexcept = delete;
 
     virtual ~TaskPromise() override = default;
@@ -470,13 +442,7 @@ public:
     TaskPromise(const TaskPromise& other) = delete;
     TaskPromise& operator=(const TaskPromise& other) = delete;
 
-    TaskPromise(TaskPromise&& other) noexcept
-        : Base(static_cast<Base&&>(other)),
-          m_task(other.m_task)
-    {
-        other.m_task = nullptr;
-    }
-
+    TaskPromise(TaskPromise&& other) noexcept = delete;
     TaskPromise& operator=(TaskPromise&& other) noexcept = delete;
 
     virtual ~TaskPromise() override = default;
@@ -544,6 +510,11 @@ struct TaskRef
 
     TaskRef& operator=(TaskRef&& other) noexcept
     {
+        if (this == &other)
+        {
+            return *this;
+        }
+
         id = other.id;
         assigned_scheduler = other.assigned_scheduler;
 

@@ -358,6 +358,12 @@ public:
         return m_current_project;
     }
 
+    HYP_METHOD()
+    HYP_FORCE_INLINE Handle<Scene> GetActiveScene() const
+    {
+        return m_active_scene.Lock();
+    }
+
     HYP_FORCE_INLINE EditorManipulationWidgetHolder& GetManipulationWidgetHolder()
     {
         return m_manipulation_widget_holder;

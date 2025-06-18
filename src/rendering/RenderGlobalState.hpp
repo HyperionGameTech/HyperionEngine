@@ -29,23 +29,24 @@ public:
         MAX
     };
 
-private:
     static constexpr uint32 index_allocator_maximums[IndexAllocatorType::MAX] = {
         16 // ENV_PROBE
     };
 
     struct IndexAllocator
     {
-        uint32 current_index = ~0u;
+        static constexpr uint32 invalid_index = ~0u;
+
+        uint32 current_index = invalid_index;
         Array<uint32> free_indices;
 
         uint32 AllocateIndex(uint32 max)
         {
             if (free_indices.Empty())
             {
-                if (current_index >= max)
+                if (current_index + 1 > max)
                 {
-                    return ~0u;
+                    return invalid_index;
                 }
 
                 current_index++;
@@ -65,7 +66,6 @@ private:
         }
     };
 
-public:
     RenderGlobalState();
     RenderGlobalState(const RenderGlobalState& other) = delete;
     RenderGlobalState& operator=(const RenderGlobalState& other) = delete;

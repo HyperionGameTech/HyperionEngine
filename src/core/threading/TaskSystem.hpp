@@ -64,7 +64,7 @@ struct TaskBatch
     TaskThreadPool* pool = nullptr;
 
     /* Tasks must remain constant from creation of the TaskBatch to completion. */
-    Array<TaskExecutorInstance<void>> executors;
+    LinkedList<TaskExecutorInstance<void>> executors;
 
     /* TaskRefs to be set by the TaskSystem, holding task ids and pointers to the threads
      * each task has been scheduled to. */
@@ -82,6 +82,14 @@ struct TaskBatch
     /*! \brief Delegate that is called when the TaskBatch is complete (before next_batch has completed) */
     Delegate<void> OnComplete;
 
+    TaskBatch() = default;
+
+    TaskBatch(const TaskBatch&) = delete;
+    TaskBatch& operator=(const TaskBatch&) = delete;
+
+    TaskBatch(TaskBatch&& other) noexcept = delete;
+    TaskBatch& operator=(TaskBatch&& other) noexcept = delete;
+
     virtual ~TaskBatch()
     {
         AssertThrowMsg(IsCompleted(), "TaskBatch must be in completed state by the time the destructor is called!");
@@ -89,13 +97,14 @@ struct TaskBatch
 
     /*! \brief Add a task to be ran with this batch
      *  \note Do not call this function after the TaskBatch has been enqueued (before it has been completed). */
-    HYP_FORCE_INLINE void AddTask(TaskExecutorInstance<void>&& executor)
+    template <class Function>
+    HYP_FORCE_INLINE void AddTask(Function&& fn)
     {
 #ifdef HYP_TASK_BATCH_DATA_RACE_DETECTION
         HYP_MT_CHECK_RW(data_race_detector);
 #endif
 
-        executors.PushBack(std::move(executor));
+        executors.EmplaceBack(std::forward<Function>(fn));
     }
 
     /*! \brief Check if all tasks in the batch have been completed. */

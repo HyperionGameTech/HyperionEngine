@@ -2,7 +2,6 @@
 
 #include <rendering/ReflectionProbeRenderer.hpp>
 #include <rendering/RenderEnvironment.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
@@ -10,6 +9,8 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 #include <system/AppContext.hpp>
+
+#include <scene/EnvProbe.hpp>
 
 #include <scene/camera/PerspectiveCamera.hpp>
 
@@ -22,9 +23,9 @@ namespace hyperion {
 
 ReflectionProbeRenderer::ReflectionProbeRenderer(
     Name name,
-    const TResourceHandle<RenderEnvProbe>& env_render_probe)
+    const TResourceHandle<RenderEnvProbe>& env_probe)
     : RenderSubsystem(name),
-      m_env_render_probe(env_render_probe),
+      m_env_render_probe(env_probe),
       m_last_visibility_state(false)
 {
 }
@@ -68,7 +69,7 @@ void ReflectionProbeRenderer::OnRender(FrameBase* frame, const RenderSetup& rend
         return;
     }
 
-    m_env_render_probe->Render(frame, render_setup);
+    // m_env_render_probe->Render(frame, render_setup);
 
     HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe {} (type: {})",
         m_env_render_probe->GetEnvProbe()->GetID(),

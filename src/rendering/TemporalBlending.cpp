@@ -9,7 +9,6 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderGlobalState.hpp>
 

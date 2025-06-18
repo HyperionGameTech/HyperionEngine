@@ -56,7 +56,7 @@ private:
 
     TResourceHandle<RenderScene> m_render_scene;
 
-    TResourceHandle<RenderShadowMap> m_shadow_render_map;
+    TResourceHandle<RenderShadowMap> m_shadow_map;
 
     bool m_last_visibility_state = false;
 };

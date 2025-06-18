@@ -138,7 +138,7 @@ public:
         m_aabb = aabb;
     }
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMapResourceHandle() const
+    HYP_FORCE_INLINE const TResourceHandle<RenderShadowMap>& GetShadowMap() const
     {
         return m_shadow_map_resource_handle;
     }

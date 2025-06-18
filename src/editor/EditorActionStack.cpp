@@ -1,6 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <editor/EditorActionStack.hpp>
+#include <editor/EditorSubsystem.hpp>
+#include <editor/EditorProject.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -17,8 +19,16 @@ EditorActionStack::EditorActionStack()
 {
 }
 
+EditorActionStack::EditorActionStack(const WeakHandle<EditorProject>& editor_project)
+    : m_editor_project(editor_project),
+      m_current_action_index(-1),
+      m_current_state(EditorActionStackState::NONE)
+{
+}
+
 EditorActionStack::EditorActionStack(EditorActionStack&& other) noexcept
-    : m_actions(Move(other.m_actions)),
+    : m_editor_project(std::move(other.m_editor_project)),
+      m_actions(Move(other.m_actions)),
       m_current_action_index(other.m_current_action_index),
       m_current_state(other.m_current_state)
 {
@@ -28,6 +38,13 @@ EditorActionStack::EditorActionStack(EditorActionStack&& other) noexcept
 
 EditorActionStack& EditorActionStack::operator=(EditorActionStack&& other) noexcept
 {
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    m_editor_project = std::move(other.m_editor_project);
+
     m_actions = Move(other.m_actions);
     m_current_action_index = other.m_current_action_index;
     m_current_state = other.m_current_state;
@@ -54,11 +71,17 @@ void EditorActionStack::Push(const Handle<EditorActionBase>& action)
 {
     AssertThrow(action.IsValid());
 
+    Handle<EditorProject> editor_project = m_editor_project.Lock();
+    AssertThrow(editor_project.IsValid());
+
+    Handle<EditorSubsystem> editor_subsystem = editor_project->GetEditorSubsystem().Lock();
+    AssertThrow(editor_subsystem.IsValid());
+
     const EnumFlags<EditorActionStackState> previous_state = m_current_state;
 
     OnBeforeActionPush(action.Get());
 
-    action->Execute();
+    action->Execute(editor_subsystem.Get(), editor_project.Get());
 
     // Chop off any actions stack that are after the current action index,
     // since we are pushing a new action.
@@ -85,11 +108,17 @@ void EditorActionStack::Undo()
         return;
     }
 
+    Handle<EditorProject> editor_project = m_editor_project.Lock();
+    AssertThrow(editor_project.IsValid());
+
+    Handle<EditorSubsystem> editor_subsystem = editor_project->GetEditorSubsystem().Lock();
+    AssertThrow(editor_subsystem.IsValid());
+
     EditorActionBase* action = m_actions[m_current_action_index].Get();
 
     OnBeforeActionPop(action);
 
-    action->Revert();
+    action->Revert(editor_subsystem.Get(), editor_project.Get());
 
     --m_current_action_index;
 
@@ -105,11 +134,17 @@ void EditorActionStack::Redo()
         return;
     }
 
+    Handle<EditorProject> editor_project = m_editor_project.Lock();
+    AssertThrow(editor_project.IsValid());
+
+    Handle<EditorSubsystem> editor_subsystem = editor_project->GetEditorSubsystem().Lock();
+    AssertThrow(editor_subsystem.IsValid());
+
     EditorActionBase* action = m_actions[m_current_action_index + 1].Get();
 
     OnBeforeActionPush(action);
 
-    action->Execute();
+    action->Execute(editor_subsystem.Get(), editor_project.Get());
 
     ++m_current_action_index;
 

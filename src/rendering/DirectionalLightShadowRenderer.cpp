@@ -4,7 +4,6 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderTexture.hpp>
@@ -408,13 +407,13 @@ DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 // called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
-    RenderShadowMap* shadow_render_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
-    AssertThrowMsg(shadow_render_map != nullptr, "Failed to allocate shadow map");
+    RenderShadowMap* shadow_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    AssertThrowMsg(shadow_map != nullptr, "Failed to allocate shadow map");
 
-    m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_render_map);
+    m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_map);
 
     AssertThrow(m_render_light);
-    m_render_light->SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>(m_shadow_map_resource_handle));
+    m_render_light->SetShadowMap(TResourceHandle<RenderShadowMap>(m_shadow_map_resource_handle));
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
@@ -443,7 +442,7 @@ void DirectionalLightShadowRenderer::OnRemoved()
 {
     if (m_render_light)
     {
-        m_render_light->SetShadowMapResourceHandle(TResourceHandle<RenderShadowMap>());
+        m_render_light->SetShadowMap(TResourceHandle<RenderShadowMap>());
     }
 
     m_shadow_pass.Reset();
@@ -451,11 +450,11 @@ void DirectionalLightShadowRenderer::OnRemoved()
 
     if (m_shadow_map_resource_handle)
     {
-        RenderShadowMap* shadow_render_map = m_shadow_map_resource_handle.Get();
+        RenderShadowMap* shadow_map = m_shadow_map_resource_handle.Get();
 
         m_shadow_map_resource_handle.Reset();
 
-        if (!g_render_global_state->ShadowMapAllocator->FreeShadowMap(shadow_render_map))
+        if (!g_render_global_state->ShadowMapAllocator->FreeShadowMap(shadow_map))
         {
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
         }

@@ -1165,8 +1165,6 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties& properties)
     default:
         break;
     }
-#elif defined(HYP_DX12) && HYP_DX12
-    properties.Set(ShaderProperty("DX12", false));
 #endif
 
 #if defined(HYP_WINDOWS)
@@ -1198,9 +1196,7 @@ void ShaderCompiler::GetPlatformSpecificProperties(ShaderProperties& properties)
     // props.Set(ShaderProperty("HYP_MAX_BONES", false));
 }
 
-void ShaderCompiler::ParseDefinitionSection(
-    const INIFile::Section& section,
-    ShaderCompiler::Bundle& bundle)
+void ShaderCompiler::ParseDefinitionSection(const INIFile::Section& section, ShaderCompiler::Bundle& bundle)
 {
     for (const auto& section_it : section)
     {

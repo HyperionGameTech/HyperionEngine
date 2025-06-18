@@ -11,7 +11,6 @@
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderGroup.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/DepthPyramidRenderer.hpp>
 #include <rendering/PostFX.hpp>
@@ -1113,12 +1112,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    g_engine->GetRenderState()->BindCamera(m_render_camera);
-
-    // @FIXME: support for multiple render scenes for environment
-    /// \todo: Remove SetActiveScene and GetActiveScene
-    g_engine->GetRenderState()->SetActiveScene(m_render_scenes[0]->GetScene());
-
     // @TODO: Refactor to put this in the RenderWorld
     RenderEnvironment* environment = render_world->GetEnvironment();
 
@@ -1354,9 +1347,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     // depth of field
     // m_dof_blur->Render(frame);
-
-    g_engine->GetRenderState()->UnsetActiveScene();
-    g_engine->GetRenderState()->UnbindCamera(m_render_camera.Get());
 
     EngineRenderStatsCounts counts {};
     counts[ERS_VIEWS] = 1;

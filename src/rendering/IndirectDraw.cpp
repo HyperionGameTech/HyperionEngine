@@ -12,7 +12,6 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/RenderState.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>

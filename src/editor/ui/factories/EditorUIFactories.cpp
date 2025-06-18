@@ -528,7 +528,7 @@ public:
                                 [node, entity = Handle<Entity>::empty]() mutable -> EditorActionFunctions
                                 {
                                     return {
-                                        [&]()
+                                        [&](EditorSubsystem* editor_subsystem, EditorProject* editor_project)
                                         {
                                             Scene* scene = node->GetScene();
 
@@ -546,7 +546,7 @@ public:
 
                                             node->SetEntity(entity);
                                         },
-                                        [&]()
+                                        [&](EditorSubsystem* editor_subsystem, EditorProject* editor_project)
                                         {
                                             node->SetEntity(Handle<Entity>::empty);
                                         }

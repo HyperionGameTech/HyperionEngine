@@ -134,13 +134,13 @@ RenderShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadow_map_
             .scale = Vec2f::One()
         };
 
-        RenderShadowMap* shadow_render_map = AllocateResource<RenderShadowMap>(
+        RenderShadowMap* shadow_map = AllocateResource<RenderShadowMap>(
             shadow_map_type,
             filter_mode,
             atlas_element,
             m_point_light_shadow_map_image_view);
 
-        return shadow_render_map;
+        return shadow_map;
     }
 
     for (ShadowMapAtlas& atlas : m_atlases)
@@ -152,27 +152,27 @@ RenderShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadow_map_
             ImageViewRef atlas_image_view = m_atlas_image->MakeLayerImageView(atlas_element.atlas_index);
             DeferCreate(atlas_image_view);
 
-            RenderShadowMap* shadow_render_map = AllocateResource<RenderShadowMap>(
+            RenderShadowMap* shadow_map = AllocateResource<RenderShadowMap>(
                 shadow_map_type,
                 filter_mode,
                 atlas_element,
                 atlas_image_view);
 
-            return shadow_render_map;
+            return shadow_map;
         }
     }
 
     return nullptr;
 }
 
-bool ShadowMapAllocator::FreeShadowMap(RenderShadowMap* shadow_render_map)
+bool ShadowMapAllocator::FreeShadowMap(RenderShadowMap* shadow_map)
 {
-    if (!shadow_render_map)
+    if (!shadow_map)
     {
         return false;
     }
 
-    const ShadowMapAtlasElement& atlas_element = shadow_render_map->GetAtlasElement();
+    const ShadowMapAtlasElement& atlas_element = shadow_map->GetAtlasElement();
 
     bool result = false;
 
@@ -199,7 +199,7 @@ bool ShadowMapAllocator::FreeShadowMap(RenderShadowMap* shadow_render_map)
         HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid atlas index and point light index");
     }
 
-    FreeResource(shadow_render_map);
+    FreeResource(shadow_map);
 
     return result;
 }

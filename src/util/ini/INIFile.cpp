@@ -127,12 +127,12 @@ void INIFile::Parse()
 
             for (SizeType index = 0; index < item_trimmed.Size(); index++)
             {
-                if (std::isspace(item_trimmed[index]))
+                if (std::isspace(item_trimmed[index]) || item_trimmed[index] == ',')
                 {
                     if (sub_element_name.Any())
                     {
                         element.sub_elements.PushBack(std::move(sub_element_name));
-                        sub_element_name.Clear();
+                        sub_element_name.Clear(); // NOLINT
                     }
 
                     continue;
@@ -149,7 +149,7 @@ void INIFile::Parse()
                     if (parentheses_depth == 0 && sub_element_name.Any())
                     {
                         element.sub_elements.PushBack(std::move(sub_element_name));
-                        sub_element_name.Clear();
+                        sub_element_name.Clear(); // NOLINT
                     }
                 }
                 else if (parentheses_depth > 0)

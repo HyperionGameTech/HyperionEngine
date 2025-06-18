@@ -16,7 +16,6 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/ShaderManager.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
@@ -251,9 +250,6 @@ HYP_API void Engine::Init()
         HYP_FAIL("Failed to load shaders from definitions file!");
     }
 
-    m_render_state = CreateObject<RenderState>();
-    InitObject(m_render_state);
-
 #ifdef HYP_EDITOR
     // Create script compilation service
     m_scripting_service = MakeUnique<ScriptingService>(
@@ -417,8 +413,6 @@ void Engine::FinalizeStop()
 
     m_debug_drawer.Reset();
 
-    m_render_state.Reset();
-
     m_final_pass.Reset();
 
     g_safe_deleter->ForceDeleteAll();
@@ -475,8 +469,6 @@ void Engine::PreFrameUpdate(FrameBase* frame)
     RenderObjectDeleter<renderer::Platform::current>::Iterate();
 
     g_safe_deleter->PerformEnqueuedDeletions();
-
-    m_render_state->ResetStates(RENDER_STATE_ACTIVE_LIGHT);
 }
 
 #pragma endregion Engine

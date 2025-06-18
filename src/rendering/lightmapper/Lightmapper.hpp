@@ -58,22 +58,22 @@ enum class LightmapShadingType
 HYP_STRUCT(ConfigName = "app", JSONPath = "lightmapper")
 struct LightmapperConfig : public ConfigBase<LightmapperConfig>
 {
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "trace_mode")
     LightmapTraceMode trace_mode = LightmapTraceMode::GPU_PATH_TRACING;
 
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "radiance")
     bool radiance = true;
 
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "irradiance")
     bool irradiance = true;
 
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "num_samples")
     uint32 num_samples = 16;
 
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "max_rays_per_frame")
     uint32 max_rays_per_frame = 512 * 512;
 
-    HYP_FIELD()
+    HYP_FIELD(JSONPath = "ideal_triangles_per_job")
     uint32 ideal_triangles_per_job = 8192;
 
     virtual ~LightmapperConfig() override = default;

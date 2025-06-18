@@ -3,7 +3,6 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderWorld.hpp>
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/Renderer.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -99,28 +98,6 @@ void RenderCamera::SetFramebuffer(const FramebufferRef& framebuffer)
                 DeferCreate(m_framebuffer);
             }
         });
-}
-
-void RenderCamera::EnqueueBind()
-{
-    HYP_SCOPE;
-
-    Execute([this]()
-        {
-            g_engine->GetRenderState()->BindCamera(TResourceHandle<RenderCamera>(*this));
-        },
-        /* force_render_thread */ true);
-}
-
-void RenderCamera::EnqueueUnbind()
-{
-    HYP_SCOPE;
-
-    Execute([this]()
-        {
-            g_engine->GetRenderState()->UnbindCamera(this);
-        },
-        /* force_render_thread */ true);
 }
 
 void RenderCamera::ApplyJitter(const RenderSetup& render_setup)

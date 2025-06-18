@@ -19,7 +19,6 @@
 #include <ui/UIStage.hpp>
 
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderScene.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>

@@ -94,11 +94,6 @@ public:
         return m_view;
     }
 
-    HYP_FORCE_INLINE const Handle<RenderState>& GetRenderState() const
-    {
-        return m_render_state;
-    }
-
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
     {
@@ -214,8 +209,6 @@ private:
     UniquePtr<ScriptingService> m_scripting_service;
 
     UniquePtr<GraphicsPipelineCache> m_graphics_pipeline_cache;
-
-    Handle<RenderState> m_render_state;
 
     EngineDelegates m_delegates;
 

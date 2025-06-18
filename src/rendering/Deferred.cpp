@@ -15,7 +15,6 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/SafeDeleter.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/SSGI.hpp>
@@ -36,6 +35,7 @@
 #include <scene/Texture.hpp>
 #include <scene/View.hpp>
 #include <scene/EnvGrid.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -882,7 +882,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
-        for (RenderEnvProbe* env_render_probe : env_render_probes)
+        for (RenderEnvProbe* env_probe : env_render_probes)
         {
             if (num_rendered_env_probes >= max_bound_reflection_probes)
             {
@@ -897,7 +897,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_render_probe->GetBufferIndex()) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe->GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(

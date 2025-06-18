@@ -9,7 +9,6 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/Deferred.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderView.hpp>
@@ -24,6 +23,7 @@
 
 #include <scene/Mesh.hpp>
 #include <scene/Scene.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <util/MeshBuilder.hpp>
 

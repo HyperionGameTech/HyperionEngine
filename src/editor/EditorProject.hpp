@@ -28,6 +28,7 @@ class Scene;
 class AssetCollector;
 class AssetRegistry;
 class EditorActionStack;
+class EditorSubsystem;
 
 HYP_CLASS()
 class HYP_API EditorProject final : public HypObject<EditorProject>
@@ -35,11 +36,18 @@ class HYP_API EditorProject final : public HypObject<EditorProject>
     HYP_OBJECT_BODY(EditorProject);
 
 public:
+    friend class EditorSubsystem;
+
     EditorProject();
     EditorProject(Name name);
     EditorProject(const EditorProject& other) = delete;
     EditorProject& operator=(const EditorProject& other) = delete;
     virtual ~EditorProject() override;
+
+    HYP_FORCE_INLINE const WeakHandle<EditorSubsystem>& GetEditorSubsystem() const
+    {
+        return m_editor_subsystem;
+    }
 
     HYP_METHOD(Property = "UUID", Serialize = true)
     HYP_FORCE_INLINE const UUID& GetUUID() const
@@ -147,6 +155,11 @@ public:
 private:
     void Init() override;
 
+    HYP_FORCE_INLINE void SetEditorSubsystem(const WeakHandle<EditorSubsystem>& editor_subsystem)
+    {
+        m_editor_subsystem = editor_subsystem;
+    }
+
     Name GetNextDefaultProjectName_Impl(const String& default_project_name) const;
 
     UUID m_uuid;
@@ -163,6 +176,8 @@ private:
     Handle<AssetRegistry> m_asset_registry;
 
     Handle<EditorActionStack> m_action_stack;
+
+    WeakHandle<EditorSubsystem> m_editor_subsystem;
 };
 
 } // namespace hyperion

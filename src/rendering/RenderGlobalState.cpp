@@ -98,7 +98,7 @@ uint32 RenderGlobalState::AllocateIndex(IndexAllocatorType type)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    AssertDebug(type < IndexAllocatorType::MAX);
+    AssertDebug(type + 1 <= IndexAllocatorType::MAX);
 
     uint32 index = m_index_allocators[type].AllocateIndex(index_allocator_maximums[type]);
 

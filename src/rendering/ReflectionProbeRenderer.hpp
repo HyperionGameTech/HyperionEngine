@@ -26,7 +26,7 @@ class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 public:
     ReflectionProbeRenderer(
         Name name,
-        const TResourceHandle<RenderEnvProbe>& env_render_probe);
+        const TResourceHandle<RenderEnvProbe>& env_probe);
 
     ReflectionProbeRenderer(const ReflectionProbeRenderer& other) = delete;
     ReflectionProbeRenderer& operator=(const ReflectionProbeRenderer& other) = delete;

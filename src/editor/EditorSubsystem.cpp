@@ -358,10 +358,10 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
         {
             project->GetActionStack()->Push(CreateObject<FunctionalEditorAction>(
                 NAME("Translate"),
-                [editor_subsystem_weak = GetEditorSubsystem()->WeakHandleFromThis(), manipulation_mode = GetManipulationMode(), focused_node, node = m_node, final_position = focused_node->GetWorldTranslation(), origin = m_drag_data->node_origin]() -> EditorActionFunctions
+                [manipulation_mode = GetManipulationMode(), focused_node, node = m_node, final_position = focused_node->GetWorldTranslation(), origin = m_drag_data->node_origin]() -> EditorActionFunctions
                 {
                     return {
-                        [&]()
+                        [&](EditorSubsystem* editor_subsystem, EditorProject* editor_project)
                         {
                             NodeUnlockTransformScope unlock_transform_scope(*focused_node);
                             focused_node->SetWorldTranslation(final_position);
@@ -371,14 +371,11 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(final_position);
                             }
 
-                            if (Handle<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().Cast<EditorSubsystem>())
-                            {
-                                editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
+                            editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
 
-                                editor_subsystem->SetFocusedNode(focused_node, true);
-                            }
+                            editor_subsystem->SetFocusedNode(focused_node, true);
                         },
-                        [&]()
+                        [&](EditorSubsystem* editor_subsystem, EditorProject* editor_project)
                         {
                             NodeUnlockTransformScope unlock_transform_scope(*focused_node);
                             focused_node->SetWorldTranslation(origin);
@@ -388,12 +385,9 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
                                 parent->SetWorldTranslation(origin);
                             }
 
-                            if (Handle<EditorSubsystem> editor_subsystem = editor_subsystem_weak.Lock().Cast<EditorSubsystem>())
-                            {
-                                editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
+                            editor_subsystem->GetManipulationWidgetHolder().SetSelectedManipulationMode(manipulation_mode);
 
-                                editor_subsystem->SetFocusedNode(focused_node, true);
-                            }
+                            editor_subsystem->SetFocusedNode(focused_node, true);
                         }
                     };
                 }));
@@ -982,6 +976,7 @@ EditorSubsystem::~EditorSubsystem()
 {
     if (m_current_project)
     {
+        m_current_project->SetEditorSubsystem(WeakHandle<EditorSubsystem>::empty);
         m_current_project->Close();
 
         m_current_project.Reset();
@@ -2585,12 +2580,19 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
     {
         OnProjectClosing(m_current_project);
 
+        m_current_project->SetEditorSubsystem(WeakHandle<EditorSubsystem>::empty);
+
         m_current_project->Close();
     }
 
     if (project)
     {
         m_current_project = project;
+
+        if (project.IsValid())
+        {
+            project->SetEditorSubsystem(WeakHandle<EditorSubsystem>(WeakHandleFromThis()));
+        }
 
         OnProjectOpened(m_current_project);
     }

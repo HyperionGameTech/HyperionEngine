@@ -16,7 +16,6 @@
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
@@ -321,6 +320,13 @@ void RenderGroup::CollectDrawCalls()
     for (const auto& it : m_render_proxies)
     {
         const RenderProxy* render_proxy = it.second;
+        AssertDebug(render_proxy != nullptr);
+
+        AssertDebug(render_proxy->mesh.IsValid());
+        AssertDebug(render_proxy->mesh->IsReady());
+
+        AssertDebug(render_proxy->material.IsValid());
+        AssertDebug(render_proxy->material->IsReady());
 
         if (render_proxy->instance_data.num_instances == 0)
         {
@@ -441,8 +447,6 @@ static void RenderAll(
         return;
     }
 
-    const TResourceHandle<RenderLight>& render_light = g_engine->GetRenderState()->GetActiveLight();
-
     const uint32 frame_index = frame->GetFrameIndex();
 
     const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
@@ -474,7 +478,7 @@ static void RenderAll(
                 { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light.Get(), 0) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } },
             global_descriptor_set_index);
     }
@@ -641,8 +645,6 @@ static void RenderAll_Parallel(
         return;
     }
 
-    const TResourceHandle<RenderLight>& render_light = g_engine->GetRenderState()->GetActiveLight();
-
     const uint32 frame_index = frame->GetFrameIndex();
 
     const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
@@ -664,7 +666,7 @@ static void RenderAll_Parallel(
                 { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light.Get(), 0) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
                 { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } },
             global_descriptor_set_index);
     }

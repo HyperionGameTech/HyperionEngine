@@ -6,7 +6,6 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/RenderCamera.hpp>
-#include <rendering/RenderState.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>

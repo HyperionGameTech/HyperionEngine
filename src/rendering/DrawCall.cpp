@@ -57,6 +57,9 @@ DrawCallCollection::~DrawCallCollection()
 
 void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxy& render_proxy)
 {
+    AssertDebug(render_proxy.mesh.IsValid());
+    AssertDebug(render_proxy.material.IsValid());
+
     DrawCall& draw_call = m_draw_calls.EmplaceBack();
     draw_call.id = id;
     draw_call.render_mesh = &render_proxy.mesh->GetRenderResource();

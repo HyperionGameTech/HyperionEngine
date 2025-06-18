@@ -19,11 +19,13 @@
 #include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
+#include <scene/ecs/components/SkyComponent.hpp>
 
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
@@ -671,10 +673,30 @@ void View::CollectEnvProbes()
                 &reflection_probe_component.env_probe->GetRenderResource(),
                 &track_state);
         }
+
+        for (auto [entity_id, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!sky_component.render_subsystem)
+            {
+                continue;
+            }
+
+            if (!sky_component.render_subsystem->GetEnvProbe().IsValid() || !sky_component.render_subsystem->GetEnvProbe()->IsReady())
+            {
+                HYP_LOG(Scene, Warning, "Sky component in scene {} does not have a valid EnvProbe in view {}", scene->GetID().Value(), GetID().Value());
+
+                continue;
+            }
+
+            ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
+            m_tracked_env_probes.Track(
+                sky_component.render_subsystem->GetEnvProbe()->GetID(),
+                &sky_component.render_subsystem->GetEnvProbe()->GetRenderResource(),
+                &track_state);
+        }
     }
 
     /// TODO: point light Shadow maps
-    /// TODO: Sky
 
     m_render_resource->UpdateTrackedEnvProbes(m_tracked_env_probes);
     m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);

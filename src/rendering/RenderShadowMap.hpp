@@ -216,7 +216,7 @@ public:
     void Destroy();
 
     RenderShadowMap* AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions);
-    bool FreeShadowMap(RenderShadowMap* shadow_render_map);
+    bool FreeShadowMap(RenderShadowMap* shadow_map);
 
 private:
     Vec2u m_atlas_dimensions;
