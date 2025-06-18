@@ -168,7 +168,7 @@ private:
     }
 };
 
-class AssetBatch : private TaskBatch, public EnableRefCountedPtrFromThis<AssetBatch>
+class AssetBatch : public EnableRefCountedPtrFromThis<AssetBatch>, private TaskBatch
 {
 private:
     // make it be a ptr so this can be moved
@@ -184,7 +184,7 @@ public:
     AssetBatch(AssetBatch&& other) noexcept = delete;
     AssetBatch& operator=(AssetBatch&& other) noexcept = delete;
 
-    ~AssetBatch()
+    virtual ~AssetBatch() override
     {
         if (m_asset_map != nullptr)
         {

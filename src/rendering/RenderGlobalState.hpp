@@ -44,7 +44,7 @@ public:
         {
             if (free_indices.Empty())
             {
-                if (current_index + 1 > max)
+                if (current_index + 1 >= max)
                 {
                     return invalid_index;
                 }

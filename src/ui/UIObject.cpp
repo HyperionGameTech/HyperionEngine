@@ -731,7 +731,14 @@ void UIObject::UpdateClampedSize(bool update_children)
 
     UpdateNodeTransform();
 
-    m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());
+    if (m_aabb_clamped.IsValid() && m_aabb_clamped.IsFinite())
+    {
+        m_actual_size_clamped = Vec2i(m_aabb_clamped.GetExtent().GetXY());
+    }
+    else
+    {
+        m_actual_size_clamped = Vec2i::Zero();
+    }
 
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_COMPUTED_VISIBILITY, true);
     SetDeferredUpdate(UIObjectUpdateType::UPDATE_MESH_DATA, false);
@@ -2120,7 +2127,20 @@ void UIObject::ComputeActualSize(const UIObjectSize& in_size, Vec2i& actual_size
         return;
     }
 
-    const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
+    const BoundingBox inner_aabb = CalculateInnerAABB_Internal();
+
+    if (!inner_aabb.IsValid() || !inner_aabb.IsFinite())
+    {
+        // If the inner AABB is not valid, we can't calculate the size
+        actual_size = Vec2i { 0, 0 };
+
+        HYP_LOG(UI, Warning, "UIObject '{}' has an invalid inner AABB. Cannot compute size.", GetName());
+
+        return;
+    }
+
+    const Vec3f inner_extent = inner_aabb.GetExtent();
+    AssertDebug(MathUtil::IsFinite(inner_extent) && !MathUtil::IsNaN(inner_extent));
 
     const auto update_size_component = [&](uint32 flags, int component_index)
     {
@@ -2186,87 +2206,6 @@ void UIObject::ComputeActualSize(const UIObjectSize& in_size, Vec2i& actual_size
                 false);
         }
     }
-
-    // actual_size = Vec2i { 0, 0 };
-
-    // // percentage based size of parent ui object / surface
-    // if (in_size.GetFlagsX() & UIObjectSize::PIXEL) {
-    //     actual_size.x = in_size.GetValue().x;
-    // }
-
-    // if (in_size.GetFlagsY() & UIObjectSize::PIXEL) {
-    //     actual_size.y = in_size.GetValue().y;
-    // }
-
-    // // percentage based size of parent ui object / surface
-    // if (in_size.GetFlagsX() & UIObjectSize::PERCENT) {
-    //     actual_size.x = MathUtil::Floor(float(in_size.GetValue().x) * 0.01f * float(parent_size.x));
-
-    //     // Reduce size due to parent object's padding
-    //     actual_size.x -= parent_padding.x * 2;
-    // }
-
-    // if (in_size.GetFlagsY() & UIObjectSize::PERCENT) {
-    //     actual_size.y = MathUtil::Floor(float(in_size.GetValue().y) * 0.01f * float(parent_size.y));
-
-    //     // Reduce size due to parent object's padding
-    //     actual_size.y -= parent_padding.y * 2;
-    // }
-
-    // if (in_size.GetFlagsX() & UIObjectSize::FILL) {
-    //     if (!is_inner) {
-    //         actual_size.x = MathUtil::Max(parent_size.x - m_position.x - parent_padding.x * 2, 0);
-    //     }
-    // }
-
-    // if (in_size.GetFlagsY() & UIObjectSize::FILL) {
-    //     if (!is_inner) {
-    //         actual_size.y = MathUtil::Max(parent_size.y - m_position.y - parent_padding.y * 2, 0);
-    //     }
-    // }
-
-    // if (in_size.GetAllFlags() & UIObjectSize::AUTO) {
-    //     // Calculate "auto" sizing based on children. Must be executed after children have their sizes calculated.
-    //     if (phase == UpdateSizePhase::AFTER_CHILDREN) {
-    //         Vec2f dynamic_size;
-
-    //         const Vec3f inner_extent = CalculateInnerAABB_Internal().GetExtent();
-
-    //         if ((in_size.GetFlagsX() & UIObjectSize::AUTO) && (in_size.GetFlagsY() & UIObjectSize::AUTO)) {
-    //             // If both X and Y are set to auto, use the AABB size (we can't calculate a ratio if both are auto)
-    //             dynamic_size = Vec2f { inner_extent.x, inner_extent.y };
-    //         } else {
-    //             const float inner_width = (in_size.GetFlagsX() & UIObjectSize::AUTO) ? inner_extent.x : float(actual_size.x);
-    //             const float inner_height = (in_size.GetFlagsY() & UIObjectSize::AUTO) ? inner_extent.y : float(actual_size.y);
-
-    //             dynamic_size = Vec2f {
-    //                 inner_width,
-    //                 inner_height
-    //             };
-    //         }
-
-    //         if (in_size.GetFlagsX() & UIObjectSize::AUTO) {
-    //             actual_size.x = MathUtil::Floor(dynamic_size.x);
-    //             actual_size.x += self_padding.x * 2;
-    //         }
-
-    //         if (in_size.GetFlagsY() & UIObjectSize::AUTO) {
-    //             actual_size.y = MathUtil::Floor(dynamic_size.y);
-    //             actual_size.y += self_padding.y * 2;
-    //         }
-    //     } else {
-    //         // fix child object's offsets:
-    //         // - when resizing, the node just sees objects offset by X where X is some number based on the previous size
-    //         //   which is then included in the GetLocalAABB() calculation.
-    //         // - now, the parent actual size has its AUTO components set to 0 (or min size), so we update based on that
-    //         ForEachChildUIObject([this](UIObject *object)
-    //         {
-    //             object->UpdatePosition(/* update_children */ false);
-
-    //             return IterationResult::CONTINUE;
-    //         }, false);
-    //     }
-    // }
 
     // make sure the actual size is at least 0
     actual_size = MathUtil::Max(actual_size, Vec2i { 0, 0 });

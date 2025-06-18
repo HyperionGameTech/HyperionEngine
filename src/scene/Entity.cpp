@@ -14,7 +14,11 @@
 
 namespace hyperion {
 
-Entity::Entity() = default;
+Entity::Entity()
+    : m_world(nullptr),
+      m_scene(nullptr)
+{
+}
 
 Entity::~Entity()
 {

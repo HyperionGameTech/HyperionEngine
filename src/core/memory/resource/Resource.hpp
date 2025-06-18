@@ -10,7 +10,6 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
 #include <core/memory/MemoryPool.hpp>

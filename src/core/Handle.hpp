@@ -953,32 +953,20 @@ inline bool InitObject(const Handle<T>& handle)
     return true;
 }
 
-#define DEF_HANDLE(T)                                                      \
-    class T;                                                               \
-                                                                           \
-    extern ObjectContainerBase* g_container_ptr_##T;                       \
-                                                                           \
-    template <>                                                            \
-    struct HandleDefinition<T>                                             \
-    {                                                                      \
-        static constexpr const char* class_name = HYP_STR(T);              \
-                                                                           \
-        HYP_API static ObjectContainerBase* GetAllottedContainerPointer(); \
+#define DEF_HANDLE(T)          \
+    class T;                   \
+    template <>                \
+    struct HandleDefinition<T> \
+    {                          \
     };
 
-#define DEF_HANDLE_NS(ns, T)                                                   \
-    namespace ns {                                                             \
-    class T;                                                                   \
-    }                                                                          \
-                                                                               \
-    extern ObjectContainerBase* g_container_ptr_##T;                           \
-                                                                               \
-    template <>                                                                \
-    struct HandleDefinition<ns::T>                                             \
-    {                                                                          \
-        static constexpr const char* class_name = HYP_STR(ns) "::" HYP_STR(T); \
-                                                                               \
-        HYP_API static ObjectContainerBase* GetAllottedContainerPointer();     \
+#define DEF_HANDLE_NS(ns, T)       \
+    namespace ns {                 \
+    class T;                       \
+    }                              \
+    template <>                    \
+    struct HandleDefinition<ns::T> \
+    {                              \
     };
 
 #include <core/inl/HandleDefinitions.inl>

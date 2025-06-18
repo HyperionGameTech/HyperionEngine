@@ -11,27 +11,6 @@ ObjectPool::ObjectContainerMap& ObjectPool::GetObjectContainerHolder()
     return holder;
 }
 
-ObjectContainerBase& ObjectPool::ObjectContainerMap::Add(TypeID type_id)
-{
-    Mutex::Guard guard(m_mutex);
-
-    auto it = m_map.FindIf([type_id](const auto& element)
-        {
-            return element.first == type_id;
-        });
-
-    // Already allocated
-    if (it != m_map.End())
-    {
-        return *it->second;
-    }
-
-    m_map.PushBack({ type_id,
-        nullptr });
-
-    return *m_map.Back().second;
-}
-
 ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
 {
     Mutex::Guard guard(m_mutex);

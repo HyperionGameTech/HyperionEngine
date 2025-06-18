@@ -525,6 +525,13 @@ void UIText::UpdateSize_Internal(bool update_children)
     const Vec3f extent_with_bearing = m_text_aabb_with_bearing.GetExtent();
     const Vec3f extent_without_bearing = m_text_aabb_without_bearing.GetExtent();
 
+    if (extent_with_bearing.y <= MathUtil::epsilon_f || extent_without_bearing.y <= MathUtil::epsilon_f)
+    {
+        HYP_LOG(UI, Warning, "Text AABB has zero height, cannot update size for UIText {}", GetName());
+
+        return;
+    }
+
     m_actual_size.y *= extent_with_bearing.y / extent_without_bearing.y;
 }
 

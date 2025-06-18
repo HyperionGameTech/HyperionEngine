@@ -372,8 +372,6 @@ public:
             return container;
         }
 
-        HYP_API ObjectContainerBase& Add(TypeID type_id);
-
         HYP_API ObjectContainerBase& Get(TypeID type_id);
         HYP_API ObjectContainerBase* TryGet(TypeID type_id);
 

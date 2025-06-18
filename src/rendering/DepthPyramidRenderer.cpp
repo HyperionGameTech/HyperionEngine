@@ -77,8 +77,8 @@ void DepthPyramidRenderer::Create()
             ImageType::TEXTURE_TYPE_2D,
             InternalFormat::R32F,
             Vec3u {
-                uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().x)),
-                uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().y)),
+                depth_image->GetExtent().x > 1 ? uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().x)) : 1,
+                depth_image->GetExtent().y > 1 ? uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().y)) : 1,
                 1 },
             FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
             FilterMode::TEXTURE_FILTER_NEAREST,

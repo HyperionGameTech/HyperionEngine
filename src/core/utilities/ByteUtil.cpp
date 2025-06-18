@@ -8,7 +8,7 @@ namespace utilities {
 uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_CLANG_OR_GCC
-    const int bit_index = __builtin_ffsll(bits) - 1;
+    const int bit_index = bits != 0 ? (__builtin_ffsll(bits) - 1) : uint32(-1);
 #elif defined(HYP_MSVC)
     unsigned long bit_index = 0;
     if (!_BitScanForward64(&bit_index, bits))
@@ -16,7 +16,7 @@ uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
         return uint32(-1);
     }
 #else
-    #error "ByteUtil::LowestSetBitIndex() not implemented for this platform"
+#error "ByteUtil::LowestSetBitIndex() not implemented for this platform"
 #endif
 
     return uint32(bit_index);
@@ -25,7 +25,7 @@ uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
 uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
 {
 #ifdef HYP_CLANG_OR_GCC
-    const int bit_index = 63 - __builtin_clzll(bits);
+    const int bit_index = bits != 0 ? (63 - __builtin_clzll(bits)) : uint32(-1);
 #elif defined(HYP_MSVC)
     unsigned long bit_index = 0;
     if (!_BitScanReverse64(&bit_index, bits))
@@ -33,7 +33,7 @@ uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
         return uint32(-1);
     }
 #else
-    #error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
+#error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
 #endif
     return uint32(bit_index);
 }

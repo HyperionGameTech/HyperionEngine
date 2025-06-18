@@ -139,7 +139,6 @@ struct RefCountData
 {
     using Count = CountType;
 
-    void* value;
     TypeID type_id;
     Count strong_count;
     Count weak_count;
@@ -152,7 +151,6 @@ struct RefCountData
         : strong_count(0),
           weak_count(0)
     {
-        value = nullptr;
         type_id = TypeID::Void();
         dtor = nullptr;
         inc_ref_count = nullptr;
@@ -176,7 +174,7 @@ struct RefCountData
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return value != nullptr;
+        return type_id != TypeID::Void();
     }
 
     HYP_FORCE_INLINE uint32 UseCount_Strong() const
@@ -204,66 +202,20 @@ struct RefCountData
     }
 
     template <class T>
-    void Init(T* ptr)
+    void Init()
     {
         using Normalized = NormalizedType<T>;
 
         static_assert(!std::is_void_v<T>, "Cannot initialize RefCountedPtr data with void pointer");
 
-        // Setup weak ptr for EnableRefCountedPtrFromThis
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<Count>, Normalized>)
-        {
-#ifdef HYP_DEBUG_MODE
-            // Should already be set up from InitWeak() call.
-            AssertThrow(value == ptr);
-#endif
-        }
-        else
-        {
-#ifdef HYP_DEBUG_MODE
-            AssertThrow(value == nullptr);
-#endif
-
-            value = ptr;
-        }
-
-        // #ifdef HYP_DEBUG_MODE
-        //         AssertThrowMsg(UseCount_Strong() == 0, "Initializing RefCountedPtr but ptr is already owned by another RefCountedPtr object!");
-        // #endif
-
-        // Override type_id, dtor for derived types
         type_id = TypeID::ForType<Normalized>();
         dtor = &Memory::DestructAndFree<Normalized>;
         inc_ref_count = &IncRefCount_Impl<T, RefCountData>;
         dec_ref_count = &DecRefCount_Impl<T, RefCountData>;
     }
 
-    template <class T>
-    void InitWeak(T* ptr)
+    void Destruct(void* ptr)
     {
-        using Normalized = NormalizedType<T>;
-
-        static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<Count>, Normalized>, "T must derive EnableRefCountedPtrFromThis<T, CountType> to use this method");
-
-        value = ptr;
-
-        // Override type_id, dtor for derived types
-        type_id = TypeID::ForType<Normalized>();
-        dtor = &Memory::DestructAndFree<Normalized>;
-        inc_ref_count = &IncRefCount_Impl<T, RefCountData>;
-        dec_ref_count = &DecRefCount_Impl<T, RefCountData>;
-    }
-
-    void Destruct()
-    {
-#ifdef HYP_DEBUG_MODE
-        AssertThrow(value != nullptr);
-        AssertThrow(UseCount_Strong() == 0);
-#endif
-
-        void* current_value = value;
-        value = nullptr;
-
         void (*current_dtor)(void*) = dtor;
         dtor = nullptr;
 
@@ -272,7 +224,7 @@ struct RefCountData
 
         type_id = TypeID::Void();
 
-        current_dtor(current_value);
+        current_dtor(ptr);
     }
 
     uint32 IncRefCount_Strong(void* ptr)
@@ -286,7 +238,7 @@ struct RefCountData
 
         if ((value = dec_ref_count(ptr, *this, false)) == 0u)
         {
-            Destruct();
+            Destruct(ptr);
 
             if (UseCount_Weak() == 0u)
             {
@@ -476,7 +428,7 @@ public:
 
             if (IncRefCount_Impl<NormalizedType<T>, RefCountDataType>(ptr, *m_ref, /* weak */ false) == 1)
             {
-                m_ref->template Init<NormalizedType<T>>(ptr);
+                m_ref->template Init<NormalizedType<T>>();
             }
         }
     }
@@ -1980,9 +1932,9 @@ public:
     EnableRefCountedPtrFromThis()
     {
         RefCountData<CountType>* ref_count_data = new RefCountData<CountType>;
-        ref_count_data->template InitWeak<T>(static_cast<T*>(this));
+        ref_count_data->template Init<T>();
 
-        EnableRefCountedPtrFromThisBase<CountType>::weak_this.SetRefCountData_Internal(static_cast<T*>(this), ref_count_data, true);
+        EnableRefCountedPtrFromThisBase<CountType>::weak_this.SetRefCountData_Internal(this, ref_count_data, true);
     }
 
     virtual ~EnableRefCountedPtrFromThis() override = default;

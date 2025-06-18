@@ -81,7 +81,8 @@ struct LoadedAsset
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE auto& ExtractAs()
     {
-        return static_cast<Asset<T>*>(this)->Result();
+        // Type punning. asan may throw a dynamic type mismatch here
+        return reinterpret_cast<Asset<T>*>(static_cast<void*>(this))->Result();
     }
 
     HYP_API void OnPostLoad();

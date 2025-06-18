@@ -5,25 +5,6 @@
 
 namespace hyperion {
 
-#define DEF_HANDLE(T)                                                                                             \
-    ObjectContainerBase* g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType<T>()); \
-    ObjectContainerBase* HandleDefinition<T>::GetAllottedContainerPointer()                                       \
-    {                                                                                                             \
-        return g_container_ptr_##T;                                                                               \
-    }
-
-#define DEF_HANDLE_NS(ns, T)                                                                                          \
-    ObjectContainerBase* g_container_ptr_##T = &ObjectPool::GetObjectContainerHolder().Add(TypeID::ForType<ns::T>()); \
-    ObjectContainerBase* HandleDefinition<ns::T>::GetAllottedContainerPointer()                                       \
-    {                                                                                                                 \
-        return g_container_ptr_##T;                                                                                   \
-    }
-
-#include <core/inl/HandleDefinitions.inl>
-
-#undef DEF_HANDLE
-#undef DEF_HANDLE_NS
-
 #pragma region AnyHandle
 
 const AnyHandle AnyHandle::empty = {};

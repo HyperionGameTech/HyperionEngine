@@ -22,6 +22,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+// #define HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
+
 namespace hyperion {
 
 // if the number of systems in a group is less than this value, they will be executed sequentially
@@ -399,6 +401,7 @@ void EntityManager::Init()
         }
     }
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     // Notify all entities that they've been added to the world
     for (auto& entities_it : m_entities)
     {
@@ -416,6 +419,7 @@ void EntityManager::Init()
             entity->OnAddedToWorld(m_world);
         }
     }
+#endif
 
     SetReady(true);
 }
@@ -428,6 +432,7 @@ void EntityManager::Shutdown()
     {
         MoveEntityGuard move_entity_guard(*this);
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
         // Notify all entities that they're being removed from the world
         for (auto& entities_it : m_entities)
         {
@@ -445,6 +450,7 @@ void EntityManager::Shutdown()
 
             entity->OnRemovedFromScene(m_scene);
         }
+#endif
 
         if (m_world != nullptr)
         {
@@ -501,6 +507,7 @@ void EntityManager::SetWorld(World* world)
 
         MoveEntityGuard move_entity_guard(*this);
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
         // Call OnRemovedFromWorld() now for all entities in the EntityManager if previous world is not null
         if (m_world && m_scene->IsForegroundScene())
         {
@@ -516,6 +523,7 @@ void EntityManager::SetWorld(World* world)
                 entity->OnRemovedFromWorld(m_world);
             }
         }
+#endif
 
         if (m_world != nullptr)
         {
@@ -534,6 +542,7 @@ void EntityManager::SetWorld(World* world)
                 InitializeSystem(system);
             }
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
             if (m_scene->IsForegroundScene())
             {
                 for (auto& entities_it : m_entities)
@@ -548,6 +557,7 @@ void EntityManager::SetWorld(World* world)
                     entity->OnAddedToWorld(m_world);
                 }
             }
+#endif
         }
 
         return;
@@ -570,6 +580,7 @@ Handle<Entity> EntityManager::AddEntity()
 
     GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     if (IsReady())
     {
         entity->OnAddedToScene(m_scene);
@@ -579,6 +590,7 @@ Handle<Entity> EntityManager::AddEntity()
             entity->OnAddedToWorld(m_world);
         }
     }
+#endif
 
     return entity;
 }
@@ -619,6 +631,7 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
 
     GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     if (IsReady())
     {
         entity->OnAddedToScene(m_scene);
@@ -628,6 +641,7 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
             entity->OnAddedToWorld(m_world);
         }
     }
+#endif
 }
 
 bool EntityManager::RemoveEntity(ID<Entity> entity_id)
@@ -729,6 +743,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         const auto entities_it = m_entities.Find(entity);
         AssertThrowMsg(entities_it != m_entities.End(), "Entity does not exist");
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
         if (IsReady())
         {
             if (m_world && m_scene->IsForegroundScene())
@@ -738,6 +753,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
 
             entity->OnRemovedFromScene(m_scene);
         }
+#endif
 
         EntityData& entity_data = entities_it->second;
         NotifySystemsOfEntityRemoved(entity, entity_data.components);
@@ -845,6 +861,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         other->NotifySystemsOfEntityAdded(entity, new_component_ids);
         other->m_move_entity_rw_mask.Decrement(2, MemoryOrder::RELEASE);
 
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
         if (other->IsReady())
         {
             entity->OnAddedToScene(other->m_scene);
@@ -854,6 +871,7 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 entity->OnAddedToWorld(other->m_world);
             }
         }
+#endif
     };
 
     if (Threads::IsOnThread(other->GetOwnerThreadID()))

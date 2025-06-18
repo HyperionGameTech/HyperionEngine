@@ -755,7 +755,6 @@ public:
 
                 auto* ref_count_data = ptr_casted->weak_this.GetRefCountData_Internal();
                 AssertDebug(ref_count_data != nullptr);
-                AssertDebug(ref_count_data->value != nullptr);
 
                 RC<void> rc;
                 rc.SetRefCountData_Internal(ptr_casted->weak_this.GetUnsafe(), ref_count_data, /* inc_ref */ true);

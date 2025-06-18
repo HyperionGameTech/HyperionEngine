@@ -23,7 +23,6 @@ extern "C"
 
         auto* ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         RC<void> rc;
         rc.SetRefCountData_Internal(reinterpret_cast<void*>(address), ref_count_data, /* inc_ref */ true);
@@ -35,7 +34,6 @@ extern "C"
     {
         auto* ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         ref_count_data->IncRefCount_Strong(reinterpret_cast<void*>(address));
     }
@@ -44,7 +42,6 @@ extern "C"
     {
         auto* ref_count_data = reinterpret_cast<typename memory::RefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         ref_count_data->DecRefCount_Strong(reinterpret_cast<void*>(address));
     }
@@ -53,7 +50,6 @@ extern "C"
     {
         auto* ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         ref_count_data->IncRefCount_Weak(reinterpret_cast<void*>(address));
     }
@@ -62,7 +58,6 @@ extern "C"
     {
         auto* ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         ref_count_data->IncRefCount_Weak(reinterpret_cast<void*>(address));
     }
@@ -71,7 +66,6 @@ extern "C"
     {
         auto* ref_count_data = reinterpret_cast<typename memory::WeakRefCountedPtrBase<AtomicVar<uint32>>::RefCountDataType*>(ctrl_block);
         AssertDebug(ref_count_data != nullptr);
-        AssertDebug(ref_count_data->value != nullptr);
 
         return ref_count_data->IncRefCount_Strong(reinterpret_cast<void*>(address));
     }
