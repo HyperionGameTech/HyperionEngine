@@ -101,7 +101,7 @@ private:
     ComputePipelineRef m_blur_shadow_map_pipeline;
 };
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class DirectionalLightShadowRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);

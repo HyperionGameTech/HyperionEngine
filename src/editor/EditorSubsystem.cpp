@@ -1316,11 +1316,13 @@ void EditorSubsystem::InitViewport()
                     {
                         for (const RayHit& hit : results)
                         {
+                            /// \FIXME: Can't do TypeID::ForType<Entity>, there may be derived types of Entity
                             if (ID<Entity> entity_id = ID<Entity>(IDBase { TypeID::ForType<Entity>(), hit.id }))
                             {
-                                Handle<EntityManager> entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity_id);
+                                Handle<Entity> entity { entity_id };
+                                EntityManager* entity_manager = entity->GetEntityManager();
 
-                                if (!entity_manager.IsValid())
+                                if (!entity_manager)
                                 {
                                     continue;
                                 }

@@ -56,24 +56,24 @@ void ReflectionProbeRenderer::OnRender(FrameBase* frame, const RenderSetup& rend
 {
     Threads::AssertOnThread(g_render_thread);
 
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool())
-    {
-        g_engine->GetDebugDrawer()->ReflectionProbe(
-            m_env_render_probe->GetBufferData().world_position.GetXYZ(),
-            0.5f,
-            *m_env_render_probe->GetEnvProbe());
-    }
+    // if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.debug.reflection_probes").ToBool())
+    // {
+    //     g_engine->GetDebugDrawer()->ReflectionProbe(
+    //         m_env_render_probe->GetBufferData().world_position.GetXYZ(),
+    //         0.5f,
+    //         *m_env_render_probe->GetEnvProbe());
+    // }
 
-    if (!m_env_render_probe->GetEnvProbe()->NeedsRender())
-    {
-        return;
-    }
+    // if (!m_env_render_probe->GetEnvProbe()->NeedsRender())
+    // {
+    //     return;
+    // }
 
-    // m_env_render_probe->Render(frame, render_setup);
+    // // m_env_render_probe->Render(frame, render_setup);
 
-    HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe {} (type: {})",
-        m_env_render_probe->GetEnvProbe()->GetID(),
-        (uint32)m_env_render_probe->GetEnvProbe()->GetEnvProbeType());
+    // HYP_LOG(Rendering, Debug, "Rendering ReflectionProbe {} (type: {})",
+    //     m_env_render_probe->GetEnvProbe()->GetID(),
+    //     (uint32)m_env_render_probe->GetEnvProbe()->GetEnvProbeType());
 }
 
 } // namespace hyperion

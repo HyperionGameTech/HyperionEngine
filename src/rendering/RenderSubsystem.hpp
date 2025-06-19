@@ -28,8 +28,8 @@ namespace hyperion {
 class RenderEnvironment;
 struct RenderSetup;
 
-HYP_CLASS(Abstract)
-class HYP_API RenderSubsystem : public EnableRefCountedPtrFromThis<RenderSubsystem>
+HYP_CLASS(NoScriptBindings)
+class HYP_API RenderSubsystem : public HypObject<RenderSubsystem>
 {
     HYP_OBJECT_BODY(RenderSubsystem);
 
@@ -60,8 +60,6 @@ public:
         return m_is_initialized.Get(MemoryOrder::ACQUIRE) & thread_id;
     }
 
-    /*! \brief Init the component. Called on the RENDER thread when the RenderSubsystem is added to the RenderEnvironment */
-    void ComponentInit();
     /*! \brief Update data for the component. Called from GAME thread. */
     void ComponentUpdate(GameCounter::TickUnit delta);
     /*! \brief Perform rendering. Called from RENDER thread. */
@@ -78,7 +76,7 @@ public:
     void RemoveFromEnvironment();
 
 protected:
-    virtual void Init() { };
+    virtual void Init() override;
     virtual void InitGame() { };
     virtual void OnUpdate(GameCounter::TickUnit delta) { };
     virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) = 0;

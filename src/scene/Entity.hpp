@@ -14,6 +14,7 @@ namespace hyperion {
 
 class World;
 class Scene;
+class Node;
 class EntityManager;
 
 HYP_CLASS()
@@ -44,20 +45,16 @@ protected:
 
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
-    
+
     virtual void OnAddedToScene(Scene* scene);
     virtual void OnRemovedFromScene(Scene* scene);
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
 
-    bool HasParent(const Entity* parent) const;
-
 private:
     World* m_world;
     Scene* m_scene;
-    Entity* m_parent;
-    Array<Handle<Entity>> m_children;
 };
 
 } // namespace hyperion

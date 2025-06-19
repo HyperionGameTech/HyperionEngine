@@ -1,7 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <scene/world_grid/WorldGrid.hpp>
-#include <scene/world_grid/WorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <scene/Scene.hpp>
@@ -142,47 +141,6 @@ void WorldGrid::Update(GameCounter::TickUnit delta)
     AssertReady();
 
     m_streaming_manager->Update(delta);
-}
-
-void WorldGrid::AddPlugin(int priority, const RC<WorldGridPlugin>& plugin)
-{
-    Threads::AssertOnThread(g_game_thread);
-
-    AssertThrow(plugin != nullptr);
-
-    if (IsReady())
-    {
-        // Initialize plugin if grid is already initialized
-
-        plugin->Initialize(this);
-    }
-
-    m_plugins.Insert(KeyValuePair<int, RC<WorldGridPlugin>>(priority, plugin));
-}
-
-RC<WorldGridPlugin> WorldGrid::GetPlugin(int priority) const
-{
-    const auto it = m_plugins.FindIf([priority](const KeyValuePair<int, RC<WorldGridPlugin>>& kv)
-        {
-            return kv.first == priority;
-        });
-
-    if (it == m_plugins.End())
-    {
-        return nullptr;
-    }
-
-    return it->second;
-}
-
-RC<WorldGridPlugin> WorldGrid::GetMainPlugin() const
-{
-    if (m_plugins.Empty())
-    {
-        return nullptr;
-    }
-
-    return m_plugins.Front().second;
 }
 
 void WorldGrid::AddLayer(const Handle<WorldGridLayer>& layer)

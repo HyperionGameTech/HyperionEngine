@@ -37,9 +37,9 @@ namespace hyperion {
 struct RENDER_COMMAND(RemoveAllRenderSubsystems)
     : renderer::RenderCommand
 {
-    TypeMap<FlatMap<Name, RC<RenderSubsystem>>> render_subsystems;
+    TypeMap<FlatMap<Name, Handle<RenderSubsystem>>> render_subsystems;
 
-    RENDER_COMMAND(RemoveAllRenderSubsystems)(TypeMap<FlatMap<Name, RC<RenderSubsystem>>>&& render_subsystems)
+    RENDER_COMMAND(RemoveAllRenderSubsystems)(TypeMap<FlatMap<Name, Handle<RenderSubsystem>>>&& render_subsystems)
         : render_subsystems(std::move(render_subsystems))
     {
     }
@@ -157,7 +157,7 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
                 const auto& pair = render_subsystems_it.second.AtIndex(index);
 
                 const Name name = pair.first;
-                const RC<RenderSubsystem>& render_subsystem = pair.second;
+                const Handle<RenderSubsystem>& render_subsystem = pair.second;
 
                 if (!render_subsystem->IsInitialized())
                 {
@@ -177,7 +177,7 @@ void RenderEnvironment::Update(GameCounter::TickUnit delta)
     }
 
     // @TODO: Use double buffering, or have another atomic flag for game thread and update an internal array to match m_render_subsystems
-    for (const RC<RenderSubsystem>& render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_GAME])
+    for (const Handle<RenderSubsystem>& render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_GAME])
     {
         render_subsystem->ComponentUpdate(delta);
     }
@@ -240,7 +240,7 @@ void RenderEnvironment::RenderSubsystems(FrameBase* frame, const RenderSetup& re
                 const auto& pair = render_subsystems_it.second.AtIndex(index);
 
                 const Name name = pair.first;
-                const RC<RenderSubsystem>& render_subsystem = pair.second;
+                const Handle<RenderSubsystem>& render_subsystem = pair.second;
 
                 AssertThrow(render_subsystem != nullptr);
 
@@ -253,7 +253,7 @@ void RenderEnvironment::RenderSubsystems(FrameBase* frame, const RenderSetup& re
 
     m_current_enabled_render_subsystems_mask = m_next_enabled_render_subsystems_mask;
 
-    for (const RC<RenderSubsystem>& render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER])
+    for (const Handle<RenderSubsystem>& render_subsystem : m_enabled_render_subsystems[ThreadType::THREAD_TYPE_RENDER])
     {
         render_subsystem->ComponentRender(frame, render_setup);
     }
@@ -291,16 +291,16 @@ TypeID RenderEnvironment::GetRenderSubsystemTypeID(const HypClass* hyp_class)
     return hyp_class->GetTypeID();
 }
 
-void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem>& render_subsystem)
+void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const Handle<RenderSubsystem>& render_subsystem)
 {
     struct RENDER_COMMAND(AddRenderSubsystem)
         : renderer::RenderCommand
     {
         RenderEnvironment* render_environment;
         TypeID type_id;
-        RC<RenderSubsystem> render_subsystem;
+        Handle<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(AddRenderSubsystem)(RenderEnvironment* render_environment, TypeID type_id, const RC<RenderSubsystem>& render_subsystem)
+        RENDER_COMMAND(AddRenderSubsystem)(RenderEnvironment* render_environment, TypeID type_id, const Handle<RenderSubsystem>& render_subsystem)
             : render_environment(render_environment),
               type_id(type_id),
               render_subsystem(render_subsystem)
@@ -343,10 +343,7 @@ void RenderEnvironment::AddRenderSubsystem(TypeID type_id, const RC<RenderSubsys
 
             render_subsystem->SetParent(render_environment);
 
-            if (!render_subsystem->IsInitialized())
-            {
-                render_subsystem->ComponentInit();
-            }
+            InitObject(render_subsystem);
 
             render_environment->AddUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_RENDER);
             render_environment->AddUpdateMarker(RENDER_ENVIRONMENT_UPDATES_RENDER_SUBSYSTEMS, ThreadType::THREAD_TYPE_GAME);
@@ -371,9 +368,9 @@ void RenderEnvironment::RemoveRenderSubsystem(const RenderSubsystem* render_subs
         : renderer::RenderCommand
     {
         RenderEnvironment* render_environment;
-        RC<RenderSubsystem> render_subsystem;
+        Handle<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(RemoveRenderSubsystem)(RenderEnvironment* render_environment, RC<RenderSubsystem>&& render_subsystem)
+        RENDER_COMMAND(RemoveRenderSubsystem)(RenderEnvironment* render_environment, Handle<RenderSubsystem>&& render_subsystem)
             : render_environment(render_environment),
               render_subsystem(std::move(render_subsystem))
         {
@@ -465,7 +462,7 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hy
 
                     if (name_it != components_it->second.End())
                     {
-                        const RC<RenderSubsystem>& render_subsystem = name_it->second;
+                        const Handle<RenderSubsystem>& render_subsystem = name_it->second;
 
                         if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class))
                         {
@@ -487,7 +484,7 @@ void RenderEnvironment::RemoveRenderSubsystem(TypeID type_id, const HypClass* hy
                 {
                     for (auto it = components_it->second.Begin(); it != components_it->second.End();)
                     {
-                        const RC<RenderSubsystem>& render_subsystem = it->second;
+                        const Handle<RenderSubsystem>& render_subsystem = it->second;
 
                         if (skip_instance_class_check || render_subsystem->IsInstanceOf(hyp_class))
                         {

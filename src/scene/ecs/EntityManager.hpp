@@ -442,8 +442,6 @@ public:
     EntityManager& operator=(EntityManager&&) noexcept = delete;
     ~EntityManager();
 
-    static EntityToEntityManagerMap& GetEntityToEntityManagerMap();
-
     template <class Component>
     static bool IsValidComponentType()
     {

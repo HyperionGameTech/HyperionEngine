@@ -253,21 +253,22 @@ void HyperionEditor::Init()
                 scene->GetRoot()->AddChild(node);
 
 #if 1
-                Handle<Entity> env_grid_entity = scene->GetEntityManager()->AddEntity<EnvGrid>();
+                Handle<Node> env_grid_node = scene->GetRoot()->AddChild();
+                env_grid_node->SetName(NAME("EnvGrid2"));
+
+                Handle<Entity> env_grid_entity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 8, 4, 8 } });
 
                 scene->GetEntityManager()->AddComponent<TransformComponent>(env_grid_entity, TransformComponent {});
-
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
 
-                // // Add env grid component
-                // scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-                //                                                                                EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 8, 4, 8 },
-                //                                                                                EnvGridMobility::STATIONARY // EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
-                //                                                                            });
-
-                Handle<Node> env_grid_node = scene->GetRoot()->AddChild();
                 env_grid_node->SetEntity(env_grid_entity);
-                env_grid_node->SetName(NAME("EnvGrid2"));
+
+        // // Add env grid component
+        // scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
+        //                                                                                EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 8, 4, 8 },
+        //                                                                                EnvGridMobility::STATIONARY // EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
+        //                                                                            });
+
 #endif
 
                 if (auto& zombie_asset = results["zombie"]; zombie_asset.IsValid())

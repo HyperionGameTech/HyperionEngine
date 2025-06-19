@@ -347,6 +347,11 @@ public:                                                                         
         static constexpr bool is_hyp_object = true;                                  \
     };                                                                               \
                                                                                      \
+    ID<T> GetID() const                                                              \
+    {                                                                                \
+        IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };      \
+    }                                                                                \
+                                                                                     \
     HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer() const             \
     {                                                                                \
         return m_hyp_object_initializer_ptr;                                         \
@@ -477,8 +482,6 @@ protected:
         // Do nothing by default.
     }
 
-    IDBase GetID_Internal() const;
-
     void SetReady(bool is_ready)
     {
         if (is_ready)
@@ -539,11 +542,6 @@ class HypObject : public HypObjectBase
 {
 public:
     virtual ~HypObject() = default;
-
-    HYP_FORCE_INLINE ID<T> GetID() const
-    {
-        return ID<T>(HypObjectBase::GetID_Internal());
-    }
 
     HYP_FORCE_INLINE Handle<T> HandleFromThis() const
     {

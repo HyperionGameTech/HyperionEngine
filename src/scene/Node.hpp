@@ -315,10 +315,10 @@ public:
     HYP_METHOD()
     Handle<Node> AddChild(const Handle<Node>& node = {});
 
-    /*! \brief Remove a child using the given iterator (i.e from FindChild())
-     *  \param iter The iterator from this Node's child list
+    /*! \brief Remove a child from this Node's child list.
+     *  \param node The child Node to remove from this Node's child list.
      *  \returns Whether then removal was successful */
-    bool RemoveChild(NodeList::Iterator iter);
+    bool RemoveChild(const Node* node);
 
     /*! \brief Remove a child at the given index
      *  \param index The index of the child element to remove

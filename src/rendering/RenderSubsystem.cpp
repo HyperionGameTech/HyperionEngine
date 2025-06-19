@@ -78,9 +78,9 @@ void RenderSubsystem::RemoveFromEnvironment()
     struct RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)
         : public renderer::RenderCommand
     {
-        RC<RenderSubsystem> render_subsystem;
+        Handle<RenderSubsystem> render_subsystem;
 
-        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(RC<RenderSubsystem>&& render_subsystem)
+        RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)(Handle<RenderSubsystem>&& render_subsystem)
             : render_subsystem(render_subsystem)
         {
         }

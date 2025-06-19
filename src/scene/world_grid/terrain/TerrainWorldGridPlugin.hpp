@@ -3,7 +3,6 @@
 #ifndef HYPERION_TERRAIN_WORLD_GRID_PLUGIN_HPP
 #define HYPERION_TERRAIN_WORLD_GRID_PLUGIN_HPP
 
-#include <scene/world_grid/WorldGridPlugin.hpp>
 #include <scene/world_grid/WorldGridLayer.hpp>
 
 #include <core/Handle.hpp>

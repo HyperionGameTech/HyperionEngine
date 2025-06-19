@@ -94,11 +94,6 @@ HypObjectBase::~HypObjectBase()
     m_header->DecRefWeak();
 }
 
-IDBase HypObjectBase::GetID_Internal() const
-{
-    return IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };
-}
-
 #pragma endregion HypObjectBase
 
 #pragma region HypObjectPtr

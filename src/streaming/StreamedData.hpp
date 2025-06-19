@@ -43,11 +43,8 @@ enum class StreamedDataState : uint32
     UNPAGED
 };
 
-HYP_CLASS(Abstract)
 class HYP_API StreamedDataBase : public EnableRefCountedPtrFromThis<StreamedDataBase>, public ResourceBase
 {
-    HYP_OBJECT_BODY(StreamedDataBase);
-
     using UnpagingSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 protected:
@@ -85,11 +82,8 @@ private:
     virtual void Unpage_Internal() = 0;
 };
 
-HYP_CLASS()
 class HYP_API NullStreamedData final : public StreamedDataBase
 {
-    HYP_OBJECT_BODY(NullStreamedData);
-
 public:
     NullStreamedData() = default;
     virtual ~NullStreamedData() override = default;
@@ -107,11 +101,8 @@ private:
     virtual void Unpage_Internal() override;
 };
 
-HYP_CLASS()
 class HYP_API MemoryStreamedData final : public StreamedDataBase
 {
-    HYP_OBJECT_BODY(MemoryStreamedData);
-
 public:
     MemoryStreamedData(HashCode hash_code, Proc<bool(HashCode, ByteBuffer&)>&& load_from_memory_proc = {});
     MemoryStreamedData(HashCode hash_code, const ByteBuffer& byte_buffer, StreamedDataState initial_state, ResourceHandle& out_resource_handle);

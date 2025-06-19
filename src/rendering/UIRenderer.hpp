@@ -55,7 +55,7 @@ private:
     Array<Pair<ID<Entity>, int>> m_proxy_depths;
 };
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class HYP_API UIRenderSubsystem : public RenderSubsystem
 {
     HYP_OBJECT_BODY(UIRenderSubsystem);

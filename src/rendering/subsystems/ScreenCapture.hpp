@@ -29,7 +29,7 @@ enum class ScreenCaptureMode
     TO_BUFFER
 };
 
-HYP_CLASS()
+HYP_CLASS(NoScriptBindings)
 class HYP_API ScreenCaptureRenderSubsystem : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ScreenCaptureRenderSubsystem);

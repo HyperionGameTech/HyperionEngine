@@ -3,9 +3,11 @@
 #include <scene/Entity.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/Node.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
+#include <scene/ecs/components/NodeLinkComponent.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -20,21 +22,12 @@ namespace hyperion {
 
 Entity::Entity()
     : m_world(nullptr),
-      m_scene(nullptr),
-      m_parent(nullptr)
+      m_scene(nullptr)
 {
 }
 
 Entity::~Entity()
 {
-    for (const Handle<Entity>& child : m_children)
-    {
-        // Detach all children from this entity
-        child->m_parent = nullptr;
-    }
-
-    m_children.Clear();
-
     // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
     EntityManager* entity_manager = GetEntityManager();
     if (entity_manager == nullptr)
@@ -44,7 +37,6 @@ Entity::~Entity()
 
     m_scene = nullptr;
     m_world = nullptr;
-    m_parent = nullptr;
 
     const ID<Entity> id = GetID();
 
@@ -111,6 +103,7 @@ EntityManager* Entity::GetEntityManager() const
 void Entity::OnAddedToWorld(World* world)
 {
     AssertDebug(world != nullptr);
+
     m_world = world;
 }
 
@@ -147,28 +140,45 @@ void Entity::AttachChild(const Handle<Entity>& child)
     }
 
     EntityManager* entity_manager = GetEntityManager();
-    AssertThrowMsg(entity_manager != nullptr, "EntityManager is null! Entity must be added to a Scene before attaching children.");
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching child #%u", GetID().Value(), child.GetID().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (child->m_parent == this)
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
     {
-        HYP_LOG(ECS, Warning, "Entity {} is already attached to this parent, skipping attaching child to parent.", child->GetID());
+        if (Handle<Node> node = node_link_component->node.Lock())
+        {
+            if (NodeLinkComponent* child_node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(child))
+            {
+                if (Handle<Node> child_node = child_node_link_component->node.Lock())
+                {
+                    node->AddChild(child_node);
 
-        return;
+                    return;
+                }
+                else
+                {
+                    child_node = node->AddChild();
+                    child_node->SetEntity(child);
+
+                    child_node_link_component->node = child_node;
+
+                    return;
+                }
+            }
+
+            Handle<Node> child_node = node->AddChild();
+            child_node->SetEntity(child);
+
+            entity_manager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { child_node });
+
+            return;
+        }
+
+        HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", GetID(), child.GetID());
     }
 
-    if (child->m_parent != nullptr)
-    {
-        HYP_LOG(ECS, Warning, "Entity {} is already attached to another parent, detaching it first.", child->GetID());
-
-        // Detach the child from its current parent
-        child->m_parent->DetachChild(child);
-    }
-
-    m_children.PushBack(child->HandleFromThis());
-
-    entity_manager->AddExistingEntity(child);
+    HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", GetID(), child.GetID());
 }
 
 void Entity::DetachChild(const Handle<Entity>& child)
@@ -178,54 +188,35 @@ void Entity::DetachChild(const Handle<Entity>& child)
         return;
     }
 
-    EntityManager* entity_manager = child->GetEntityManager();
-    AssertThrowMsg(entity_manager != nullptr, "EntityManager is null! Entity must be added to a Scene before detaching children.");
+    EntityManager* entity_manager = GetEntityManager();
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching child #%u", GetID().Value(), child.GetID().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (!child->HasParent(this))
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
     {
-        HYP_LOG(ECS, Warning, "Entity {} is not a child of this parent, skipping detaching child from parent.", child->GetID());
-
-        return;
-    }
-
-    // To prevent erasing causing the Handle to become invalid, store a copy (increments the reference count)
-    Handle<Entity> child_copy = child;
-
-    Entity* parent = child->m_parent;
-    if (parent)
-    {
-        auto it = parent->m_children.Find(child);
-        AssertThrowMsg(it != parent->m_children.End(), "Child entity not found in parent's children list");
-
-        parent->m_children.Erase(it);
-    }
-
-    child->m_parent = nullptr;
-    entity_manager->MoveEntity(child, g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID())->GetEntityManager());
-}
-
-bool Entity::HasParent(const Entity* parent) const
-{
-    if (!parent || !m_parent)
-    {
-        return false;
-    }
-
-    const Entity* current_parent = m_parent;
-
-    while (current_parent)
-    {
-        if (current_parent == parent)
+        if (Handle<Node> node = node_link_component->node.Lock())
         {
-            return true;
+            if (NodeLinkComponent* child_node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(child))
+            {
+                if (Handle<Node> child_node = child_node_link_component->node.Lock())
+                {
+                    if (node->RemoveChild(child_node))
+                    {
+                        return;
+                    }
+
+                    HYP_LOG(ECS, Warning, "Failed to detach child {} node ({}) from parent's node ({})", child.GetID(), child_node->GetName(), node->GetName());
+                }
+            }
+
+            HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent for child {}", GetID(), child.GetID());
         }
-
-        current_parent = current_parent->m_parent;
+        else
+        {
+            HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", GetID(), child.GetID());
+        }
     }
-
-    return false;
 }
 
 } // namespace hyperion

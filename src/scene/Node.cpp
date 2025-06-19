@@ -486,54 +486,62 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
     return node;
 }
 
-bool Node::RemoveChild(NodeList::Iterator iter)
+bool Node::RemoveChild(const Node* node)
 {
-    if (iter == m_child_nodes.end())
+    if (!node)
     {
         return false;
     }
 
-    if (const Handle<Node>& node = *iter)
+    auto it = m_child_nodes.FindIf([node](const Handle<Node>& it)
+        {
+            return it.Get() == node;
+        });
+
+    if (it == m_child_nodes.End())
     {
-        AssertThrow(node.IsValid());
-        AssertThrow(node->GetParent() == this);
-
-        bool was_transform_locked = false;
-
-        if (node->m_transform_locked)
-        {
-            was_transform_locked = true;
-
-            node->UnlockTransform();
-        }
-
-        node->m_parent_node = nullptr;
-        node->SetScene(nullptr);
-        node->UpdateWorldTransform();
-
-        if (was_transform_locked)
-        {
-            node->LockTransform();
-        }
-
-        Node* current_parent = this;
-
-        while (current_parent != nullptr && current_parent->m_delegates != nullptr)
-        {
-            current_parent->m_delegates->OnChildRemoved(node, /* direct */ current_parent == this);
-
-            current_parent = current_parent->m_parent_node;
-        }
-
-        for (Node* nested : node->GetDescendants())
-        {
-            OnNestedNodeRemoved(nested, false);
-        }
-
-        OnNestedNodeRemoved(node, true);
+        return false;
     }
 
-    m_child_nodes.Erase(iter);
+    Handle<Node> child_node = std::move(*it);
+    m_child_nodes.Erase(it);
+
+    AssertThrow(child_node.IsValid());
+    AssertThrow(child_node->GetParent() == this);
+
+    bool was_transform_locked = false;
+
+    if (node->m_transform_locked)
+    {
+        was_transform_locked = true;
+
+        child_node->UnlockTransform();
+    }
+
+    child_node->m_parent_node = nullptr;
+    child_node->SetScene(nullptr);
+    child_node->UpdateWorldTransform();
+
+    if (was_transform_locked)
+    {
+        child_node->LockTransform();
+    }
+
+    Node* current_parent = this;
+
+    while (current_parent != nullptr && current_parent->m_delegates != nullptr)
+    {
+        current_parent->m_delegates->OnChildRemoved(node, /* direct */ current_parent == this);
+
+        current_parent = current_parent->m_parent_node;
+    }
+
+    for (Node* nested : node->GetDescendants())
+    {
+        OnNestedNodeRemoved(nested, false);
+    }
+
+    OnNestedNodeRemoved(child_node, true);
 
     UpdateWorldTransform();
 
@@ -552,7 +560,9 @@ bool Node::RemoveAt(int index)
         return false;
     }
 
-    return RemoveChild(m_child_nodes.Begin() + index);
+    const Handle<Node>& child_node = m_child_nodes[index];
+
+    return RemoveChild(child_node.Get());
 }
 
 bool Node::Remove()
@@ -564,10 +574,7 @@ bool Node::Remove()
         return true;
     }
 
-    auto it = m_parent_node->FindChild(this);
-    AssertDebug(it != m_parent_node->GetChildren().End());
-
-    return m_parent_node->RemoveChild(it);
+    return m_parent_node->RemoveChild(this);
 }
 
 void Node::RemoveAllChildren()
@@ -843,19 +850,14 @@ void Node::SetEntity(const Handle<Entity>& entity)
             });
 #endif
 
-        Handle<EntityManager> previous_entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity);
+        EntityManager* previous_entity_manager = m_entity->GetEntityManager();
 
         // need to move the entity between EntityManagers
-        if (previous_entity_manager.IsValid())
+        if (previous_entity_manager)
         {
             if (previous_entity_manager != m_scene->GetEntityManager().Get())
             {
                 previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
-
-#ifdef HYP_DEBUG_MODE
-                // Sanity check
-                AssertThrow(EntityManager::GetEntityToEntityManagerMap().GetEntityManager(m_entity) == m_scene->GetEntityManager().Get());
-#endif
             }
         }
         else
@@ -863,6 +865,9 @@ void Node::SetEntity(const Handle<Entity>& entity)
             // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
             m_scene->GetEntityManager()->AddExistingEntity(m_entity);
         }
+
+        // sanity check
+        AssertDebug(m_entity->GetScene() == m_scene);
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked

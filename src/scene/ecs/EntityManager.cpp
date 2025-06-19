@@ -215,13 +215,6 @@ void EntityToEntityManagerMap::PerformActionWithEntity_FireAndForget(ID<Entity> 
 
 #pragma region EntityManager
 
-EntityToEntityManagerMap EntityManager::s_entity_to_entity_manager_map {};
-
-EntityToEntityManagerMap& EntityManager::GetEntityToEntityManagerMap()
-{
-    return s_entity_to_entity_manager_map;
-}
-
 bool EntityManager::IsValidComponentType(TypeID component_type_id)
 {
     return ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id) != nullptr;
@@ -267,7 +260,6 @@ EntityManager::EntityManager(const ThreadID& owner_thread_id, Scene* scene, Enum
 
 EntityManager::~EntityManager()
 {
-    GetEntityToEntityManagerMap().RemoveEntityManager(this);
 }
 
 void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
@@ -579,8 +571,6 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
     m_entities.AddEntity(entity);
 
-    GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
-
 #ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     if (IsReady())
     {
@@ -628,8 +618,6 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
 
     m_entities.AddEntity(entity);
 
-    GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
-
 #ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     if (IsReady())
     {
@@ -657,11 +645,11 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
     Threads::AssertOnThread(m_owner_thread_id);
 
     // Get the current EntityManager for the entity, if it exists
-    Handle<EntityManager> other_entity_manager = GetEntityToEntityManagerMap().GetEntityManager(entity.GetID());
+    EntityManager* other_entity_manager = entity->GetEntityManager();
 
-    if (other_entity_manager.IsValid())
+    if (other_entity_manager)
     {
-        if (other_entity_manager.Get() == this)
+        if (other_entity_manager == this)
         {
             // Entity is already in this EntityManager, no need to add it again
             return;
@@ -680,8 +668,6 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
     m_entities.AddEntity(entity);
-
-    GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
 
 #ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
     if (IsReady())
@@ -767,8 +753,6 @@ bool EntityManager::RemoveEntity(ID<Entity> entity_id)
             }
         }
     }
-
-    GetEntityToEntityManagerMap().Remove(entity_id);
 
     m_entities.Erase(entities_it);
 
@@ -899,8 +883,6 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         }
 
         m_entities.Erase(entities_it);
-
-        GetEntityToEntityManagerMap().Remap(entity, other);
     }
 
     other->m_move_entity_rw_mask.Increment(2, MemoryOrder::RELEASE);

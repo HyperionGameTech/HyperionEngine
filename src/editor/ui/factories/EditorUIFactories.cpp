@@ -567,9 +567,9 @@ public:
             return grid;
         }
 
-        Handle<EntityManager> entity_manager = EntityManager::GetEntityToEntityManagerMap().GetEntityManager(entity);
+        EntityManager* entity_manager = entity->GetEntityManager();
 
-        if (!entity_manager.IsValid())
+        if (!entity_manager)
         {
             HYP_LOG(Editor, Error, "No EntityManager found for Entity {}", entity->GetID());
 

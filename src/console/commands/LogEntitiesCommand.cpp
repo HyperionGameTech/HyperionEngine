@@ -52,6 +52,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
     json::JSONArray entity_managers_json;
 
+#if 0 // fixme: No more entity to entitymanager map
     EntityManager::GetEntityToEntityManagerMap().ForEachEntityManager([&](EntityManager* entity_manager)
         {
             json::JSONObject entity_manager_json;
@@ -183,6 +184,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
             entity_managers_json.PushBack(std::move(entity_manager_json));
         });
+#endif
 
     json["entity_managers"] = std::move(entity_managers_json);
 

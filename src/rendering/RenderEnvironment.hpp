@@ -66,7 +66,7 @@ public:
         return m_gaussian_splatting;
     }
 
-    RC<RenderSubsystem> AddRenderSubsystem(const RC<RenderSubsystem>& render_subsystem)
+    Handle<RenderSubsystem> AddRenderSubsystem(const Handle<RenderSubsystem>& render_subsystem)
     {
         if (!render_subsystem)
         {
@@ -79,7 +79,7 @@ public:
     }
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<T, RenderSubsystem>>>
-    RC<T> AddRenderSubsystem(const RC<T>& render_subsystem)
+    Handle<T> AddRenderSubsystem(const Handle<T>& render_subsystem)
     {
         static_assert(std::is_base_of_v<RenderSubsystem, T>,
             "T should be a derived class of RenderSubsystem");
@@ -95,9 +95,9 @@ public:
     }
 
     template <class T, class... Args>
-    RC<T> AddRenderSubsystem(Name name, Args&&... args)
+    Handle<T> AddRenderSubsystem(Name name, Args&&... args)
     {
-        return AddRenderSubsystem(MakeRefCountedPtr<T>(name, std::forward<Args>(args)...));
+        return AddRenderSubsystem(CreateObject<T>(name, std::forward<Args>(args)...));
     }
 
     template <class T>
@@ -163,7 +163,7 @@ public:
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
+        const FlatMap<Name, Handle<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
 
         if (type_id == TypeID::ForType<T>())
         {
@@ -196,7 +196,7 @@ public:
             return false;
         }
 
-        const FlatMap<Name, RC<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
+        const FlatMap<Name, Handle<RenderSubsystem>>& items = m_render_subsystems.At(type_id);
 
         if (type_id == TypeID::ForType<T>())
         {
@@ -273,7 +273,7 @@ private:
 
     static TypeID GetRenderSubsystemTypeID(const HypClass* hyp_class);
 
-    void AddRenderSubsystem(TypeID type_id, const RC<RenderSubsystem>& render_subsystem);
+    void AddRenderSubsystem(TypeID type_id, const Handle<RenderSubsystem>& render_subsystem);
     void RemoveRenderSubsystem(TypeID type_id, const HypClass* hyp_class, Name name);
 
     void ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags flags);
@@ -284,8 +284,8 @@ private:
     AtomicVar<RenderEnvironmentUpdates> m_update_marker { RENDER_ENVIRONMENT_UPDATES_NONE };
 
     mutable Mutex m_render_subsystems_mutex;
-    TypeMap<FlatMap<Name, RC<RenderSubsystem>>> m_render_subsystems;
-    FixedArray<Array<RC<RenderSubsystem>>, ThreadType::THREAD_TYPE_MAX> m_enabled_render_subsystems;
+    TypeMap<FlatMap<Name, Handle<RenderSubsystem>>> m_render_subsystems;
+    FixedArray<Array<Handle<RenderSubsystem>>, ThreadType::THREAD_TYPE_MAX> m_enabled_render_subsystems;
     uint32 m_current_enabled_render_subsystems_mask;
     uint32 m_next_enabled_render_subsystems_mask;
 
