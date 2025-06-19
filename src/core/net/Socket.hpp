@@ -4,17 +4,24 @@
 #define HYPERION_CORE_NET_SOCKET_HPP
 
 #include <core/Name.hpp>
+
 #include <core/threading/Thread.hpp>
 #include <core/threading/Scheduler.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
+
 #include <core/containers/Array.hpp>
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
+
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/ByteBuffer.hpp>
+
 #include <core/functional/Proc.hpp>
+
 #include <core/utilities/Variant.hpp>
+
 #include <core/Defines.hpp>
 
 #include <Types.hpp>

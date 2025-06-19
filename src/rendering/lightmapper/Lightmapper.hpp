@@ -38,6 +38,7 @@ class ILightmapAccelerationStructure;
 class LightmapJob;
 class LightmapVolume;
 
+class View;
 struct RenderSetup;
 
 enum class LightmapTraceMode : int
@@ -196,6 +197,11 @@ public:
         return m_uuid;
     }
 
+    HYP_FORCE_INLINE const Handle<View>& GetView() const
+    {
+        return m_view;
+    }
+
     HYP_FORCE_INLINE LightmapUVBuilder& GetUVBuilder()
     {
         return m_uv_builder;
@@ -303,6 +309,8 @@ private:
     LightmapJobParams m_params;
 
     UUID m_uuid;
+
+    Handle<View> m_view;
 
     Array<uint32> m_texel_indices; // flattened texel indices, flattened so that meshes are grouped together
 

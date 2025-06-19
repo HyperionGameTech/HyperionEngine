@@ -1838,91 +1838,6 @@ private:
     bool m_is_initialized;
 };
 
-/*! \brief Helper struct to convert raw pointers to RefCountedPtrs.
- *  For internal use only. */
-
-template <class T, class CountType = AtomicVar<uint32>>
-HYP_FORCE_INLINE RefCountedPtr<T, CountType> ToRefCountedPtr(T* ptr)
-{
-    static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThisBase<CountType>");
-
-    if (!ptr)
-    {
-        return RefCountedPtr<T, CountType>();
-    }
-
-    if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThis<T, CountType>, T>)
-    {
-        return ptr->RefCountedPtrFromThis();
-    }
-    else
-    {
-        return ptr->RefCountedPtrFromThis().template CastUnsafe<T>();
-    }
-}
-
-template <class T, class CountType = AtomicVar<uint32>>
-HYP_FORCE_INLINE RefCountedPtr<const T, CountType> ToRefCountedPtr(const T* ptr)
-{
-    static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThisBase<CountType>");
-
-    if (!ptr)
-    {
-        return RefCountedPtr<const T, CountType>();
-    }
-
-    if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThis<T, CountType>, T>)
-    {
-        return ptr->RefCountedPtrFromThis();
-    }
-    else
-    {
-        return ptr->RefCountedPtrFromThis().template CastUnsafe<T>();
-    }
-}
-
-/*! \brief Helper struct to convert raw pointers to WeakRefCountedPtrs.
- *  For internal use only. */
-template <class T, class CountType = AtomicVar<uint32>>
-HYP_FORCE_INLINE WeakRefCountedPtr<T, CountType> ToWeakRefCountedPtr(T* ptr)
-{
-    static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThisBase<CountType>");
-
-    if (!ptr)
-    {
-        return WeakRefCountedPtr<T, CountType>();
-    }
-
-    if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThis<T, CountType>, T>)
-    {
-        return ptr->WeakRefCountedPtrFromThis();
-    }
-    else
-    {
-        return ptr->WeakRefCountedPtrFromThis().template CastUnsafe<T>();
-    }
-}
-
-template <class T, class CountType = AtomicVar<uint32>>
-HYP_FORCE_INLINE WeakRefCountedPtr<const T, CountType> ToWeakRefCountedPtr(const T* ptr)
-{
-    static_assert(std::is_base_of_v<EnableRefCountedPtrFromThisBase<CountType>, T>, "T must derive EnableRefCountedPtrFromThisBase<CountType>");
-
-    if (!ptr)
-    {
-        return WeakRefCountedPtr<const T, CountType>();
-    }
-
-    if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThis<T, CountType>, T>)
-    {
-        return ptr->WeakRefCountedPtrFromThis();
-    }
-    else
-    {
-        return ptr->WeakRefCountedPtrFromThis().template CastUnsafe<T>();
-    }
-}
-
 template <class T, class CountType>
 class EnableRefCountedPtrFromThis : public EnableRefCountedPtrFromThisBase<CountType>
 {
@@ -1995,9 +1910,6 @@ using EnableRefCountedPtrFromThisBase = memory::EnableRefCountedPtrFromThisBase<
 
 template <class T, class CountType = AtomicVar<uint32>>
 using EnableRefCountedPtrFromThis = memory::EnableRefCountedPtrFromThis<T, CountType>;
-
-using memory::ToRefCountedPtr;
-using memory::ToWeakRefCountedPtr;
 
 } // namespace hyperion
 

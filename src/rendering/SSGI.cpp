@@ -216,10 +216,6 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
 
-    /// FIXME: sky
-    // // Used for sky
-    // const TResourceHandle<RenderEnvProbe>& env_probe_resource_handle = g_engine->GetRenderState()->GetActiveEnvProbe();
-
     const uint32 frame_index = frame->GetFrameIndex();
 
     // Update uniform buffer data

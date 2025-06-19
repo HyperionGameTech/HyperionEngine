@@ -1222,24 +1222,14 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     if (use_ssgi)
     {
-        /// FIXME sky
+        RenderSetup new_render_setup = render_setup;
 
-        // bool is_sky_set = false;
+        if (const Array<RenderEnvProbe*>& sky_env_probes = m_env_probes[uint32(EnvProbeType::SKY)]; sky_env_probes.Any())
+        {
+            new_render_setup.env_probe = sky_env_probes.Front();
+        }
 
-        // // Bind sky env probe for SSGI.
-        // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-        // {
-        //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-        //     is_sky_set = true;
-        // }
-
-        m_ssgi->Render(frame, render_setup);
-
-        // if (is_sky_set)
-        // {
-        //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        // }
+        m_ssgi->Render(frame, new_render_setup);
     }
 
     m_post_processing->RenderPre(frame, render_setup);
@@ -1290,18 +1280,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         // Apply lightmaps over the now shaded opaque objects.
         m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
 
-        /// FIXME sky
-
-        // bool is_sky_set = false;
-
-        // // Bind sky env probe
-        // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-        // {
-        //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-        //     is_sky_set = true;
-        // }
-
         // begin translucent with forward rendering
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
@@ -1315,11 +1293,6 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         {
             environment->GetGaussianSplatting()->Render(frame, render_setup);
         }
-
-        // if (is_sky_set)
-        // {
-        //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
-        // }
 
         ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
 

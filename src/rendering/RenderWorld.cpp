@@ -330,16 +330,16 @@ void RenderWorld::Render(FrameBase* frame)
         HYP_LOG(Rendering, Warning, "No sky probe found in the world! EnvGrid and EnvProbe will have no fallback probe set.");
     }
 
-    if (env_probes.Any())
-    {
-        for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
-        {
-            for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
-            {
-                env_probe->Render(frame, render_setup);
-            }
-        }
-    }
+    // if (env_probes.Any())
+    // {
+    //     for (uint32 env_probe_type = 0; env_probe_type <= uint32(EnvProbeType::REFLECTION); env_probe_type++)
+    //     {
+    //         for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
+    //         {
+    //             env_probe->Render(frame, render_setup);
+    //         }
+    //     }
+    // }
 
     if (env_grids.Any())
     {

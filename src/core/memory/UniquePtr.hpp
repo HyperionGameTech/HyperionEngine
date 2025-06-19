@@ -8,7 +8,6 @@
 #include <core/utilities/TypeID.hpp>
 
 #include <core/memory/Memory.hpp>
-#include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/Any.hpp>
 
 #include <core/object/HypObjectFwd.hpp>
@@ -440,18 +439,6 @@ public:
         return static_cast<T*>(Base::Release());
     }
 
-    /*! \brief Constructs a new RefCountedPtr from this object.
-        The value held within this UniquePtr will be unset,
-        the RefCountedPtr taking over management of the pointer. */
-    template <class CountType = AtomicVar<uint32>>
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<T, CountType> ToRefCountedPtr()
-    {
-        RefCountedPtr<T, CountType> rc;
-        rc.Reset(Release());
-
-        return rc;
-    }
-
     /*! \brief Constructs a new UniquePtr<T> from the given arguments. */
     template <class... Args>
     HYP_NODISCARD HYP_FORCE_INLINE static UniquePtr Construct(Args&&... args)
@@ -643,31 +630,6 @@ public:
         }
 
         return UniquePtr<Ty>();
-    }
-
-    /*! \brief Constructs a new RefCountedPtr from this object.
-        The value held within this UniquePtr will be unset,
-        the RefCountedPtr taking over management of the pointer.
-
-        \returns A reference counted pointer to the value held in this UniquePtr.
-    */
-    template <class CountType = AtomicVar<uint32>>
-    HYP_NODISCARD HYP_FORCE_INLINE RefCountedPtr<void, CountType> ToRefCountedPtr()
-    {
-        RefCountedPtr<void, CountType> rc;
-
-        auto* ref_count_data = new typename RefCountedPtr<void, CountType>::RefCountedPtrBase::RefCountDataType;
-        ref_count_data->InitFromParams(
-            Base::m_holder.value,
-            Base::m_holder.type_id,
-            Base::m_holder.dtor);
-
-        (void)Base::Release();
-
-        // FIXME: For polymorphic types, will value point to the correct place?
-        rc.SetRefCountData_Internal(Base::m_holder.value, ref_count_data, /* inc_ref */ true);
-
-        return rc;
     }
 };
 

@@ -960,6 +960,8 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     const Handle<EnvProbe>& probe = env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
 
+    HYP_LOG(EnvGrid, Debug, "Rendering EnvProbe {} at index {}", probe->GetID(), probe_index);
+
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = &probe->GetRenderResource();
 

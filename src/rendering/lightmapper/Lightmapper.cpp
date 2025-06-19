@@ -12,6 +12,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderEnvGrid.hpp>
+#include <rendering/RenderView.hpp>
 #include <rendering/RenderCollection.hpp>
 #include <rendering/Renderer.hpp>
 
@@ -27,10 +28,12 @@
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Texture.hpp>
+#include <scene/View.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 
 #include <scene/camera/Camera.hpp>
+#include <scene/camera/OrthoCamera.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
@@ -87,22 +90,31 @@ struct RENDER_COMMAND(LightmapRender)
     : renderer::RenderCommand
 {
     LightmapJob* job;
+    RenderView* view;
     Array<LightmapRay> rays;
     uint32 ray_offset;
 
-    RENDER_COMMAND(LightmapRender)(
-        LightmapJob* job,
-        Array<LightmapRay>&& rays,
-        uint32 ray_offset)
+    RENDER_COMMAND(LightmapRender)(LightmapJob* job, RenderView* view, Array<LightmapRay>&& rays, uint32 ray_offset)
         : job(job),
+          view(view),
           rays(std::move(rays)),
           ray_offset(ray_offset)
     {
+        if (view)
+        {
+            view->IncRef();
+        }
+
         job->m_num_concurrent_rendering_tasks.Increment(1, MemoryOrder::RELEASE);
     }
 
     virtual ~RENDER_COMMAND(LightmapRender)() override
     {
+        if (view)
+        {
+            view->DecRef();
+        }
+
         job->m_num_concurrent_rendering_tasks.Decrement(1, MemoryOrder::RELEASE);
     }
 
@@ -110,10 +122,15 @@ struct RENDER_COMMAND(LightmapRender)
     {
         FrameBase* frame = g_rendering_api->GetCurrentFrame();
 
-        const RenderSetup render_setup {
-            &g_engine->GetWorld()->GetRenderResource(),
-            nullptr
-        };
+        RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), view };
+
+        if (view)
+        {
+            if (const Array<RenderEnvProbe*>& sky_env_probes = view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+            {
+                render_setup.env_probe = sky_env_probes[0];
+            }
+        }
 
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
@@ -144,28 +161,12 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (rays.Any())
         {
-            /// FIXME: sky
-            // // Bind sky if it exists
-            // bool is_sky_set = false;
-
-            // if (g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Any())
-            // {
-            //     g_engine->GetRenderState()->SetActiveEnvProbe(TResourceHandle<RenderEnvProbe>(g_engine->GetRenderState()->bound_env_probes[ENV_PROBE_TYPE_SKY].Front()));
-
-            //     is_sky_set = true;
-            // }
-
             for (ILightmapRenderer* lightmap_renderer : job->GetParams().renderers)
             {
                 AssertThrow(lightmap_renderer != nullptr);
 
                 lightmap_renderer->Render(frame, render_setup, job, rays, ray_offset);
             }
-
-            // if (is_sky_set)
-            // {
-            //     g_engine->GetRenderState()->UnsetActiveEnvProbe();
-            // }
         }
 
         HYPERION_RETURN_OK;
@@ -1109,6 +1110,22 @@ LightmapJob::LightmapJob(LightmapJobParams&& params)
       m_last_logged_percentage(0),
       m_num_concurrent_rendering_tasks(0)
 {
+
+    Handle<Camera> camera = CreateObject<Camera>();
+    camera->SetName(NAME_FMT("LightmapJob_{}_Camera", m_uuid));
+    camera->AddCameraController(CreateObject<OrthoCameraController>());
+    InitObject(camera);
+
+    m_view = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::COLLECT_STATIC_ENTITIES
+            | ViewFlags::SKIP_FRUSTUM_CULLING
+            | ViewFlags::SKIP_ENV_GRIDS
+            | ViewFlags::SKIP_LIGHTMAP_VOLUMES,
+        .viewport = Viewport { .extent = Vec2i::One(), .position = Vec2i::Zero() },
+        .scenes = { m_params.scene },
+        .camera = camera });
+
+    InitObject(m_view);
 }
 
 LightmapJob::~LightmapJob()
@@ -1324,6 +1341,9 @@ void LightmapJob::Process()
     Array<LightmapRay> rays;
     rays.Reserve(max_rays);
 
+    m_view->UpdateVisibility();
+    m_view->Update(0.0f);
+
     GatherRays(max_rays, rays);
 
     const uint32 ray_offset = uint32(m_texel_index % (m_texel_indices.Size() * m_params.config->num_samples));
@@ -1345,7 +1365,7 @@ void LightmapJob::Process()
         m_last_logged_percentage = percentage;
     }
 
-    PUSH_RENDER_COMMAND(LightmapRender, this, std::move(rays), ray_offset);
+    PUSH_RENDER_COMMAND(LightmapRender, this, &m_view->GetRenderResource(), std::move(rays), ray_offset);
 }
 
 void LightmapJob::GatherRays(uint32 max_ray_hits, Array<LightmapRay>& out_rays)

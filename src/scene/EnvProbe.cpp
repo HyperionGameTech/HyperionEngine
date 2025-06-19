@@ -79,7 +79,6 @@ EnvProbe::~EnvProbe()
     if (m_parent_scene.IsValid() && m_view.IsValid())
     {
         m_view->RemoveScene(m_parent_scene);
-        m_parent_scene->GetWorld()->RemoveView(m_view);
     }
 }
 
@@ -161,11 +160,6 @@ void EnvProbe::CreateView()
                 .cull_faces = FaceCullMode::NONE }) });
 
     InitObject(m_view);
-
-    if (m_parent_scene.IsValid())
-    {
-        m_parent_scene->GetWorld()->AddView(m_view);
-    }
 }
 
 void EnvProbe::SetAABB(const BoundingBox& aabb)
@@ -215,13 +209,11 @@ void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
         if (m_parent_scene.IsValid())
         {
             m_view->RemoveScene(m_parent_scene);
-            m_parent_scene->GetWorld()->RemoveView(m_view);
         }
 
         if (parent_scene.IsValid())
         {
             m_view->AddScene(parent_scene);
-            parent_scene->GetWorld()->AddView(m_view);
 
             m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
         }
@@ -278,6 +270,9 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
+
+        m_view->UpdateVisibility();
+        m_view->Update(delta);
 
         typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
 

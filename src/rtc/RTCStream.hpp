@@ -1,10 +1,13 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+
 #ifndef HYPERION_RTC_STREAM_HPP
 #define HYPERION_RTC_STREAM_HPP
 
 #include <core/containers/String.hpp>
+
 #include <core/memory/ByteBuffer.hpp>
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 namespace hyperion {
 namespace threading {
