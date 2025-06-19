@@ -467,6 +467,9 @@ void DirectionalLightShadowRenderer::OnRemoved()
 void DirectionalLightShadowRenderer::InitGame()
 {
     Threads::AssertOnThread(g_game_thread);
+
+    g_engine->GetWorld()->AddView(m_view_statics);
+    g_engine->GetWorld()->AddView(m_view_dynamics);
 }
 
 void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
@@ -476,12 +479,6 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
 
     AssertThrow(m_camera != nullptr);
     m_camera->Update(delta);
-
-    m_view_statics->UpdateVisibility();
-    m_view_statics->Update(delta);
-
-    m_view_dynamics->UpdateVisibility();
-    m_view_dynamics->Update(delta);
 
     Octree& octree = m_parent_scene->GetOctree();
 

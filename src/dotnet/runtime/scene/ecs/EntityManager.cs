@@ -13,6 +13,18 @@ namespace Hyperion
         {
         }
 
+        public Entity AddEntity()
+        {
+            return InvokeNativeMethod<Entity>(new Name("AddBasicEntity", weak: true));
+        }
+
+        public T AddEntity<T>() where T : Entity
+        {
+            HypClass hypClass = HypClass.GetClass<T>();
+
+            return InvokeNativeMethod<T>(new Name("AddTypedEntity", weak: true), new object[] { hypClass.Address });
+        }
+
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));

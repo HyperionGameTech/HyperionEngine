@@ -22,7 +22,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-// #define HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
+#define HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
 
 namespace hyperion {
 
@@ -566,12 +566,62 @@ void EntityManager::SetWorld(World* world)
     m_world = world;
 }
 
-Handle<Entity> EntityManager::AddEntity()
+Handle<Entity> EntityManager::AddBasicEntity()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
 
     Handle<Entity> entity = CreateObject<Entity>();
+    InitObject(entity);
+
+    MoveEntityGuard move_entity_guard(*this);
+    HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+    m_entities.AddEntity(entity);
+
+    GetEntityToEntityManagerMap().Add(entity.GetID(), WeakHandleFromThis());
+
+#ifdef HYP_CALL_ENTITY_ATTACHED_FUNCTIONS
+    if (IsReady())
+    {
+        entity->OnAddedToScene(m_scene);
+
+        if (m_world && m_scene->IsForegroundScene())
+        {
+            entity->OnAddedToWorld(m_world);
+        }
+    }
+#endif
+
+    return entity;
+}
+
+Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_owner_thread_id);
+
+    AssertThrowMsg(hyp_class != nullptr, "HypClass must not be null");
+    AssertThrowMsg(hyp_class->HasParent(Entity::Class()), "HypClass must be a subclass of Entity");
+
+    HypData data;
+    if (!hyp_class->CreateInstance(data))
+    {
+        HYP_LOG(ECS, Error, "Failed to create instance of class {}", hyp_class->GetName());
+
+        return Handle<Entity>::empty;
+    }
+
+    Handle<Entity> entity = std::move(data).Get<Handle<Entity>>();
+
+    if (!entity.IsValid())
+    {
+        HYP_LOG(ECS, Error, "Failed to create instance of class {}: data does not contain a valid Entity handle", hyp_class->GetName());
+
+        return Handle<Entity>::empty;
+    }
+
+    InitObject(entity);
 
     MoveEntityGuard move_entity_guard(*this);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
@@ -623,6 +673,8 @@ void EntityManager::AddExistingEntity(const Handle<Entity>& entity)
 
         return;
     }
+
+    InitObject(entity);
 
     MoveEntityGuard move_entity_guard(*this);
     HYP_MT_CHECK_RW(m_entities_data_race_detector);

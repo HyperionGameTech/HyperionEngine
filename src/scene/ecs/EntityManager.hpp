@@ -530,8 +530,29 @@ public:
      *  \note Must be called from the owner thread.
      *
      *  \return The Entity that was added. */
-    HYP_METHOD()
-    HYP_NODISCARD Handle<Entity> AddEntity();
+    HYP_NODISCARD HYP_FORCE_INLINE Handle<Entity> AddEntity()
+    {
+        return AddBasicEntity();
+    }
+
+    /*! \brief Adds a new entity to the EntityManager.
+     *  \note Must be called from the owner thread.
+     *  \tparam T The type of the Entity to add. Must be a subclass of Entity.
+     *  \param [in] args The arguments to pass to the Entity constructor.
+     *
+     *  \return The Entity that was added. */
+    template <class T, class... Args>
+    HYP_NODISCARD HYP_FORCE_INLINE Handle<T> AddEntity(Args&&... args)
+    {
+        static_assert(std::is_base_of_v<Entity, T>, "T must be a subclass of Entity");
+
+        Handle<T> entity = CreateObject<T>(std::forward<Args>(args)...);
+        AssertThrowMsg(entity.IsValid(), "Failed to create instance of Entity subclass %s", TypeNameWithoutNamespace<T>().Data());
+
+        AddExistingEntity(entity);
+
+        return entity;
+    }
 
     /*! \brief Adds an existing entity to the EntityManager. */
     HYP_METHOD()
@@ -1122,6 +1143,12 @@ public:
 
 private:
     void Init() override;
+
+    HYP_METHOD()
+    Handle<Entity> AddBasicEntity();
+
+    HYP_METHOD()
+    Handle<Entity> AddTypedEntity(const HypClass* hyp_class);
 
     template <class Component>
     static void EnsureValidComponentType()

@@ -24,22 +24,12 @@
 namespace hyperion {
 
 EnvProbe::EnvProbe()
-    : EnvProbe(
-          Handle<Scene> {},
-          BoundingBox::Empty(),
-          Vec2u { 1, 1 },
-          EnvProbeType::INVALID)
+    : EnvProbe(BoundingBox::Empty(), Vec2u { 1, 1 }, EnvProbeType::INVALID)
 {
 }
 
-EnvProbe::EnvProbe(
-    const Handle<Scene>& parent_scene,
-    const BoundingBox& aabb,
-    const Vec2u& dimensions,
-    EnvProbeType env_probe_type)
-    : HypObject(),
-      m_parent_scene(parent_scene),
-      m_aabb(aabb),
+EnvProbe::EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeType env_probe_type)
+    : m_aabb(aabb),
       m_dimensions(dimensions),
       m_env_probe_type(env_probe_type),
       m_camera_near(0.05f),
@@ -75,11 +65,6 @@ EnvProbe::~EnvProbe()
 
         m_render_resource = nullptr;
     }
-
-    if (m_parent_scene.IsValid() && m_view.IsValid())
-    {
-        m_view->RemoveScene(m_parent_scene);
-    }
 }
 
 void EnvProbe::Init()
@@ -96,10 +81,7 @@ void EnvProbe::Init()
             }
         }));
 
-    AssertThrow(m_parent_scene.IsValid());
-
     m_render_resource = AllocateResource<RenderEnvProbe>(this);
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(m_parent_scene->GetRenderResource()));
 
     if (!IsControlledByEnvGrid())
     {
@@ -137,6 +119,46 @@ void EnvProbe::Init()
     SetReady(true);
 }
 
+void EnvProbe::OnAddedToWorld(World* world)
+{
+    if (m_view.IsValid())
+    {
+        world->AddView(m_view);
+    }
+}
+
+void EnvProbe::OnRemovedFromWorld(World* world)
+{
+    if (m_view.IsValid())
+    {
+        world->RemoveView(m_view);
+    }
+}
+
+void EnvProbe::OnAddedToScene(Scene* scene)
+{
+    if (m_view.IsValid())
+    {
+        m_view->AddScene(scene->HandleFromThis());
+    }
+
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(scene->GetRenderResource()));
+
+    Invalidate();
+}
+
+void EnvProbe::OnRemovedFromScene(Scene* scene)
+{
+    if (m_view.IsValid())
+    {
+        m_view->RemoveScene(scene->HandleFromThis());
+    }
+
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
+
+    Invalidate();
+}
+
 void EnvProbe::CreateView()
 {
     if (IsControlledByEnvGrid())
@@ -150,7 +172,7 @@ void EnvProbe::CreateView()
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
-        .scenes = { m_parent_scene },
+        .scenes = {},
         .camera = m_camera,
         .override_attributes = RenderableAttributeSet(
             MeshAttributes {},
@@ -195,43 +217,14 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
     Invalidate();
 }
 
-void EnvProbe::SetParentScene(const Handle<Scene>& parent_scene)
-{
-    HYP_SCOPE;
-
-    if (m_parent_scene == parent_scene)
-    {
-        return;
-    }
-
-    if (IsInitCalled())
-    {
-        if (m_parent_scene.IsValid())
-        {
-            m_view->RemoveScene(m_parent_scene);
-        }
-
-        if (parent_scene.IsValid())
-        {
-            m_view->AddScene(parent_scene);
-
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
-        }
-        else
-        {
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
-        }
-    }
-
-    m_parent_scene = parent_scene;
-
-    Invalidate();
-}
-
 void EnvProbe::Update(GameCounter::TickUnit delta)
 {
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
+
+    AssertThrow(GetScene() != nullptr);
+
+    const Octree& octree = GetScene()->GetOctree();
 
     // Ambient probes do not use their own render list,
     // instead they are attached to a grid which shares one
@@ -241,26 +234,26 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         if (OnlyCollectStaticEntities())
         {
-            Octree const* octree = &m_parent_scene->GetOctree();
+            Octree const* octant = &GetScene()->GetOctree();
 
             if (!IsSkyProbe())
             {
-                octree->GetFittingOctant(m_aabb, octree);
+                octree.GetFittingOctant(m_aabb, octant);
 
-                if (!octree)
+                if (!octant)
                 {
                     HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe {} with AABB: {}", GetID(), m_aabb);
                 }
             }
 
-            if (octree)
+            if (octant)
             {
-                octant_hash_code = octree->GetOctantID().GetHashCode().Add(octree->GetEntryListHash<EntityTag::STATIC>()).Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+                octant_hash_code = octant->GetOctantID().GetHashCode().Add(octant->GetEntryListHash<EntityTag::STATIC>()).Add(octant->GetEntryListHash<EntityTag::LIGHT>());
             }
         }
         else
         {
-            octant_hash_code = m_parent_scene->GetOctree().GetOctantID().GetHashCode().Add(m_parent_scene->GetOctree().GetEntryListHash<EntityTag::NONE>());
+            octant_hash_code = octree.GetOctantID().GetHashCode().Add(octree.GetEntryListHash<EntityTag::NONE>());
         }
 
         if (m_octant_hash_code == octant_hash_code && octant_hash_code.Value() != 0)
@@ -270,9 +263,6 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
 
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
-
-        m_view->UpdateVisibility();
-        m_view->Update(delta);
 
         typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
 

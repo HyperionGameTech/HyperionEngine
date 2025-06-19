@@ -114,7 +114,7 @@ public:
     friend struct EntitySetIterator<Components...>;
     friend struct EntitySetView<Components...>;
 
-    using Element = Pair<ID<Entity>, FixedArray<ComponentID, sizeof...(Components)>>;
+    using Element = Tuple<ID<Entity>, TypeID, FixedArray<ComponentID, sizeof...(Components)>>;
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
@@ -169,7 +169,7 @@ public:
 
         const auto entity_element_it = m_elements.FindIf([&entity](const Element& element)
             {
-                return element.first == entity;
+                return element.template GetElement<0>() == entity;
             });
 
         if (entity_element_it != m_elements.End())
@@ -180,24 +180,25 @@ public:
 
     /*! \brief To be used by the EntityManager
         \note Do not call this function directly. */
-    virtual void OnEntityUpdated(ID<Entity> entity) override
+    virtual void OnEntityUpdated(ID<Entity> id) override
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        const auto entity_element_it = m_elements.FindIf([&entity](const Element& element)
+        const auto entity_element_it = m_elements.FindIf([id](const Element& element)
             {
-                return element.first == entity;
+                return element.template GetElement<0>() == id;
             });
 
-        if (ValidForEntity(entity))
+        if (ValidForEntity(id))
         {
             if (entity_element_it != m_elements.End())
             {
                 return;
             }
 
-            m_elements.PushBack({ entity,
-                { m_entities.GetEntityData(entity).template GetComponentID<Components>()... } });
+            EntityData& entity_data = m_entities.GetEntityData(id);
+
+            m_elements.PushBack({ id, entity_data.type_id, { entity_data.template GetComponentID<Components>()... } });
         }
         else
         {

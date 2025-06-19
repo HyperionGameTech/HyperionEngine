@@ -21,6 +21,7 @@ class Entity;
 
 struct EntityData
 {
+    TypeID type_id;
     TypeMap<ComponentID> components;
 
     template <class Component>
@@ -109,7 +110,7 @@ public:
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        auto it = m_entities.Insert(handle.ToWeak(), {});
+        auto it = m_entities.Insert(handle.ToWeak(), { handle.GetTypeID() });
         AssertThrow(it.second);
     }
 

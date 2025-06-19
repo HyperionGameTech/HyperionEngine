@@ -1341,9 +1341,6 @@ void LightmapJob::Process()
     Array<LightmapRay> rays;
     rays.Reserve(max_rays);
 
-    m_view->UpdateVisibility();
-    m_view->Update(0.0f);
-
     GatherRays(max_rays, rays);
 
     const uint32 ray_offset = uint32(m_texel_index % (m_texel_indices.Size() * m_params.config->num_samples));
@@ -1639,6 +1636,8 @@ void Lightmapper::Update(GameCounter::TickUnit delta)
     if (!job->IsRunning())
     {
         job->Start();
+
+        m_scene->GetWorld()->AddView(job->GetView());
     }
 
     job->Process();
@@ -1653,6 +1652,8 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
+
+    m_scene->GetWorld()->RemoveView(job->GetView());
 
     if (job->GetResult().HasError())
     {

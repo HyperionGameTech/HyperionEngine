@@ -15,6 +15,8 @@
 
 #include <core/math/BoundingBox.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -113,16 +115,16 @@ struct EnvGridOptions
 };
 
 HYP_CLASS()
-class HYP_API EnvGrid final : public HypObject<EnvGrid>
+class HYP_API EnvGrid : public Entity
 {
     HYP_OBJECT_BODY(EnvGrid);
 
 public:
     EnvGrid();
-    EnvGrid(const Handle<Scene>& parent_scene, const BoundingBox& aabb, const EnvGridOptions& options);
+    EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options);
     EnvGrid(const EnvGrid& other) = delete;
     EnvGrid& operator=(const EnvGrid& other) = delete;
-    ~EnvGrid();
+    ~EnvGrid() override;
 
     HYP_FORCE_INLINE EnvGridType GetEnvGridType() const
     {
@@ -159,15 +161,6 @@ public:
     void SetAABB(const BoundingBox& aabb);
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Scene>& GetParentScene() const
-    {
-        return m_parent_scene;
-    }
-
-    HYP_METHOD()
-    void SetParentScene(const Handle<Scene>& parent_scene);
-
-    HYP_METHOD()
     HYP_FORCE_INLINE const Handle<View>& GetView() const
     {
         return m_view;
@@ -185,6 +178,11 @@ public:
     void Update(GameCounter::TickUnit delta);
     
 private:
+    virtual void OnAddedToWorld(World* world) override;
+    virtual void OnRemovedFromWorld(World* world) override;
+    virtual void OnAddedToScene(Scene* scene) override;
+    virtual void OnRemovedFromScene(Scene* scene) override;
+
     HYP_FORCE_INLINE Vec3f SizeOfProbe() const
     {
         return m_aabb.GetExtent() / Vec3f(m_options.density);
@@ -194,7 +192,6 @@ private:
 
     void CreateEnvProbes();
 
-    Handle<Scene> m_parent_scene;
     Handle<View> m_view;
     Handle<Camera> m_camera;
 

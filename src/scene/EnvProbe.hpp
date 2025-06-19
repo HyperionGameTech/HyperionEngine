@@ -10,6 +10,8 @@
 
 #include <core/math/BoundingBox.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
@@ -66,18 +68,13 @@ class RenderEnvProbe;
  *  It can also be used to capture shadows from a light source.
  *  An EnvProbe may be controlled by an EnvGrid in the case of ambient probes, in order to reduce per-probe allocation overhead by batching them together. */
 HYP_CLASS()
-class HYP_API EnvProbe final : public HypObject<EnvProbe>
+class HYP_API EnvProbe : public Entity
 {
     HYP_OBJECT_BODY(EnvProbe);
 
 public:
     EnvProbe();
-
-    EnvProbe(
-        const Handle<Scene>& parent_scene,
-        const BoundingBox& aabb,
-        const Vec2u& dimensions,
-        EnvProbeType env_probe_type);
+    EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeType env_probe_type);
 
     EnvProbe(const EnvProbe& other) = delete;
     EnvProbe& operator=(const EnvProbe& other) = delete;
@@ -157,15 +154,6 @@ public:
         return m_camera;
     }
 
-    HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<Scene>& GetParentScene() const
-    {
-        return m_parent_scene;
-    }
-
-    HYP_METHOD()
-    void SetParentScene(const Handle<Scene>& parent_scene);
-
     HYP_FORCE_INLINE Vec2u GetDimensions() const
     {
         return m_dimensions;
@@ -208,6 +196,11 @@ public:
     uint32 m_grid_slot = ~0u; // temp
 
 private:
+    virtual void OnAddedToWorld(World* world) override;
+    virtual void OnRemovedFromWorld(World* world) override;
+    virtual void OnAddedToScene(Scene* scene) override;
+    virtual void OnRemovedFromScene(Scene* scene) override;
+
     HYP_FORCE_INLINE bool OnlyCollectStaticEntities() const
     {
         return IsReflectionProbe() || IsSkyProbe() || IsAmbientProbe();
@@ -222,7 +215,6 @@ private:
 
     void CreateView();
 
-    Handle<Scene> m_parent_scene;
     Handle<View> m_view;
 
     HYP_FIELD(Property = "AABB", Serialize = true)

@@ -4,6 +4,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
+#include <scene/World.hpp>
 #include <scene/camera/Camera.hpp>
 
 #include <rendering/RenderEnvGrid.hpp>
@@ -81,19 +82,12 @@ void EnvProbeCollection::AddProbe(uint32 index, const Handle<EnvProbe>& env_prob
 #pragma region EnvGrid
 
 EnvGrid::EnvGrid()
-    : EnvGrid(
-          Handle<Scene> {},
-          BoundingBox::Empty(),
-          EnvGridOptions {})
+    : EnvGrid(BoundingBox::Empty(), EnvGridOptions {})
 {
 }
 
-EnvGrid::EnvGrid(
-    const Handle<Scene>& parent_scene,
-    const BoundingBox& aabb,
-    const EnvGridOptions& options)
+EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
     : HypObject(),
-      m_parent_scene(parent_scene),
       m_aabb(aabb),
       m_offset(aabb.GetCenter()),
       m_voxel_grid_aabb(aabb),
@@ -127,8 +121,6 @@ void EnvGrid::Init()
             m_camera.Reset();
         }));
 
-    AssertThrow(m_parent_scene.IsValid());
-
     const Vec2u probe_dimensions = GetProbeDimensions(m_options.type);
     AssertThrow(probe_dimensions.Volume() != 0);
 
@@ -146,13 +138,12 @@ void EnvGrid::Init()
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     m_view = CreateObject<View>(ViewDesc {
-        .flags = ViewFlags::ALL_WORLD_SCENES
-            | ViewFlags::COLLECT_STATIC_ENTITIES
+        .flags = ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
-        .scenes = { m_parent_scene },
+        .scenes = {},
         .camera = m_camera,
         .override_attributes = RenderableAttributeSet(
             MeshAttributes {},
@@ -163,10 +154,31 @@ void EnvGrid::Init()
     InitObject(m_view);
 
     m_render_resource->SetCameraResourceHandle(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(m_parent_scene->GetRenderResource()));
     m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
 
     SetReady(true);
+}
+
+void EnvGrid::OnAddedToWorld(World* world)
+{
+    world->AddView(m_view);
+}
+
+void EnvGrid::OnRemovedFromWorld(World* world)
+{
+    world->RemoveView(m_view);
+}
+
+void EnvGrid::OnAddedToScene(Scene* scene)
+{
+    m_view->AddScene(scene->HandleFromThis());
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(scene->GetRenderResource()));
+}
+
+void EnvGrid::OnRemovedFromScene(Scene* scene)
+{
+    m_view->RemoveScene(scene->HandleFromThis());
+    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
 }
 
 void EnvGrid::CreateEnvProbes()
@@ -195,15 +207,10 @@ void EnvGrid::CreateEnvProbes()
                         m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
                         m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe()));
 
-                    Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(
-                        m_parent_scene,
-                        env_probe_aabb,
-                        probe_dimensions,
-                        EnvProbeType::AMBIENT);
-
+                    Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(env_probe_aabb, probe_dimensions, EnvProbeType::AMBIENT);
                     env_probe->m_grid_slot = index;
 
-                    InitObject(env_probe);
+                    AttachChild(env_probe);
 
                     m_env_probe_collection.AddProbe(index, env_probe);
                 }
@@ -223,32 +230,6 @@ void EnvGrid::SetAABB(const BoundingBox& aabb)
         if (IsInitCalled())
         {
             m_render_resource->SetAABB(aabb);
-        }
-    }
-}
-
-void EnvGrid::SetParentScene(const Handle<Scene>& parent_scene)
-{
-    HYP_SCOPE;
-
-    if (m_parent_scene == parent_scene)
-    {
-        return;
-    }
-
-    m_parent_scene = parent_scene;
-
-    if (IsInitCalled())
-    {
-        if (parent_scene.IsValid())
-        {
-            AssertThrow(parent_scene->IsReady());
-
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(parent_scene->GetRenderResource()));
-        }
-        else
-        {
-            m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
         }
     }
 }

@@ -4,6 +4,9 @@
 #define HYPERION_ENTITY_HPP
 
 #include <core/Base.hpp>
+#include <core/Handle.hpp>
+
+#include <core/containers/Array.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -11,9 +14,10 @@ namespace hyperion {
 
 class World;
 class Scene;
+class EntityManager;
 
 HYP_CLASS()
-class Entity : public HypObject<Entity>
+class HYP_API Entity : public HypObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);
 
@@ -23,37 +27,37 @@ public:
     HYP_API Entity();
     HYP_API virtual ~Entity() override;
 
-protected:
     HYP_FORCE_INLINE World* GetWorld() const
     {
         return m_world;
     }
 
-    virtual void OnAddedToWorld(World* world)
+    HYP_FORCE_INLINE Scene* GetScene() const
     {
-        m_world = world;
+        return m_scene;
     }
 
-    virtual void OnRemovedFromWorld(World* world)
-    {
-        m_world = nullptr;
-    }
+    EntityManager* GetEntityManager() const;
 
-    virtual void OnAddedToScene(Scene* scene)
-    {
-        m_scene = scene;
-    }
+protected:
+    virtual void Init() override;
 
-    virtual void OnRemovedFromScene(Scene* scene)
-    {
-        m_scene = nullptr;
-    }
+    virtual void OnAddedToWorld(World* world);
+    virtual void OnRemovedFromWorld(World* world);
+    
+    virtual void OnAddedToScene(Scene* scene);
+    virtual void OnRemovedFromScene(Scene* scene);
+
+    void AttachChild(const Handle<Entity>& child);
+    void DetachChild(const Handle<Entity>& child);
+
+    bool HasParent(const Entity* parent) const;
 
 private:
-    void Init() override;
-
     World* m_world;
     Scene* m_scene;
+    Entity* m_parent;
+    Array<Handle<Entity>> m_children;
 };
 
 } // namespace hyperion
