@@ -35,7 +35,7 @@ class Camera;
 
 class Octree;
 
-class HYP_API Octree final : public OctreeBase<Octree, WeakHandle<Entity>>
+class HYP_API Octree final : public OctreeBase<Octree, Entity*>
 {
 public:
     Octree(const Handle<EntityManager>& entity_manager);

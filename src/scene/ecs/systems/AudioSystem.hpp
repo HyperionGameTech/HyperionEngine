@@ -22,7 +22,7 @@ public:
 
     virtual ~AudioSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
+    virtual void OnEntityAdded(Entity* entity) override;
 
     virtual void Process(float delta) override;
 

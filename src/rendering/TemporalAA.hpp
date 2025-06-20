@@ -44,8 +44,6 @@ public:
         return m_result_texture;
     }
 
-    void Resize(Vec2u resolution);
-
     void Create();
     void Render(FrameBase* frame, const RenderSetup& render_setup);
 

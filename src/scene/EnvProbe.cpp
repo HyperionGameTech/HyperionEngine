@@ -73,6 +73,7 @@ EnvProbe::EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeTyp
       m_needs_render_counter(0),
       m_render_resource(nullptr)
 {
+    m_entity_init_info.receives_update = true;
 }
 
 bool EnvProbe::IsVisible(ID<Camera> camera_id) const
@@ -156,18 +157,18 @@ void EnvProbe::Init()
 
 void EnvProbe::OnAddedToWorld(World* world)
 {
-    if (m_view.IsValid())
-    {
-        world->AddView(m_view);
-    }
+    // if (m_view.IsValid())
+    // {
+    //     world->AddView(m_view);
+    // }
 }
 
 void EnvProbe::OnRemovedFromWorld(World* world)
 {
-    if (m_view.IsValid())
-    {
-        world->RemoveView(m_view);
-    }
+    // if (m_view.IsValid())
+    // {
+    //     world->RemoveView(m_view);
+    // }
 }
 
 void EnvProbe::OnAddedToScene(Scene* scene)
@@ -298,6 +299,9 @@ void EnvProbe::Update(float delta)
 
         AssertThrow(m_camera.IsValid());
         m_camera->Update(delta);
+
+        m_view->UpdateVisibility();
+        m_view->Update(delta);
 
         typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
 

@@ -195,7 +195,7 @@ void DrawCallCollection::ResetDrawCalls()
     m_index_map.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
+uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity_id, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
     AssertThrow(num_instances <= mesh_instance_data.num_instances);
@@ -216,7 +216,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<En
         {
             const uint32 entity_index = draw_call.batch->num_entities++;
 
-            draw_call.batch->indices[entity_index] = uint32(entity.ToIndex());
+            draw_call.batch->indices[entity_index] = uint32(entity_id.ToIndex());
 
             // Starts at the offset of `transforms` in EntityInstanceBatch - data in buffers is expected to be
             // after the `indices` element
@@ -251,7 +251,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<En
 
             instance_offset++;
 
-            draw_call.entity_ids[draw_call.count++] = entity;
+            draw_call.entity_ids[draw_call.count++] = entity_id;
 
             --num_instances;
 
@@ -264,10 +264,10 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<En
         {
             const uint32 entity_index = draw_call.batch->num_entities++;
 
-            draw_call.batch->indices[entity_index] = uint32(entity.ToIndex());
+            draw_call.batch->indices[entity_index] = uint32(entity_id.ToIndex());
             draw_call.batch->transforms[entity_index] = Matrix4::identity;
 
-            draw_call.entity_ids[draw_call.count++] = entity;
+            draw_call.entity_ids[draw_call.count++] = entity_id;
 
             --num_instances;
 

@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -55,23 +55,23 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
     else
     {
-        HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity.GetID().Value(), insert_result.first.message);
+        HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity->GetID(), insert_result.first.message);
     }
 }
 
-void VisibilityStateUpdaterSystem::OnEntityRemoved(ID<Entity> entity_id)
+void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
-    SystemBase::OnEntityRemoved(entity_id);
+    SystemBase::OnEntityRemoved(entity);
 
-    VisibilityStateComponent& visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity_id);
+    VisibilityStateComponent& visibility_state_component = GetEntityManager().GetComponent<VisibilityStateComponent>(entity);
 
     Octree& octree = GetEntityManager().GetScene()->GetOctree();
 
-    const Octree::Result remove_result = octree.Remove(WeakHandle<Entity> { entity_id });
+    const Octree::Result remove_result = octree.Remove(entity);
 
     if (!remove_result)
     {
-        HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity_id.Value(), remove_result.message);
+        HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity->GetID(), remove_result.message);
     }
 
     visibility_state_component.octant_id = OctantID::Invalid();
@@ -82,9 +82,9 @@ void VisibilityStateUpdaterSystem::Process(float delta)
 {
     Octree& octree = GetEntityManager().GetScene()->GetOctree();
 
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
 
-    const auto update_visbility_state = [&octree, &updated_entity_ids](ID<Entity> entity_id, VisibilityStateComponent& visibility_state_component, BoundingBoxComponent& bounding_box_component)
+    const auto update_visbility_state = [&octree, &updated_entities](Entity* entity, VisibilityStateComponent& visibility_state_component, BoundingBoxComponent& bounding_box_component)
     {
         bool needs_octree_update = false;
 
@@ -103,9 +103,6 @@ void VisibilityStateUpdaterSystem::Process(float delta)
             {
                 return;
             }
-
-            Handle<Entity> entity { entity_id };
-            AssertThrow(entity.IsValid());
 
             const Octree::InsertResult insert_result = octree.Insert(entity, bounding_box_component.world_aabb);
 
@@ -132,13 +129,13 @@ void VisibilityStateUpdaterSystem::Process(float delta)
             // so directional lights changing cause the entire octree to be updated.
             const bool force_entry_invalidation = visibility_state_invalidated;
 
-            const Octree::InsertResult update_result = octree.Update(WeakHandle<Entity> { entity_id }, bounding_box_component.world_aabb, force_entry_invalidation);
+            const Octree::InsertResult update_result = octree.Update(entity, bounding_box_component.world_aabb, force_entry_invalidation);
 
             visibility_state_component.octant_id = update_result.second;
 
             if (!update_result.first)
             {
-                HYP_LOG(Octree, Warning, "Failed to update entity {} in octree: {}", entity_id.Value(), update_result.first.message);
+                HYP_LOG(Octree, Warning, "Failed to update entity {} in octree: {}", entity->GetID(), update_result.first.message);
 
                 return;
             }
@@ -156,21 +153,21 @@ void VisibilityStateUpdaterSystem::Process(float delta)
             }
         }
 
-        updated_entity_ids.Insert(entity_id);
+        updated_entities.Insert(entity->WeakHandleFromThis());
     };
 
-    for (auto [entity_id, visibility_state_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<VisibilityStateComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, visibility_state_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<VisibilityStateComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_VISIBILITY_STATE>>().GetScopedView(GetComponentInfos()))
     {
-        update_visbility_state(entity_id, visibility_state_component, bounding_box_component);
+        update_visbility_state(entity, visibility_state_component, bounding_box_component);
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity_weak.GetUnsafe());
                 }
             });
     }

@@ -150,7 +150,7 @@ bool BLASUpdaterSystem::ShouldCreateForScene(Scene* scene) const
     return true;
 }
 
-void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void BLASUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -212,7 +212,7 @@ void BLASUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity);
 }
 
-void BLASUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void BLASUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -246,9 +246,9 @@ void BLASUpdaterSystem::Process(float delta)
         return;
     }
 
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
 
-    for (auto [entity_id, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BLAS>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BLAS>>().GetScopedView(GetComponentInfos()))
     {
         if (!mesh_component.raytracing_data)
         {
@@ -266,16 +266,16 @@ void BLASUpdaterSystem::Process(float delta)
 
         PUSH_RENDER_COMMAND(UpdateBLASTransform, mesh_component.raytracing_data->bottom_level_acceleration_structures, transform_component.transform.GetMatrix());
 
-        updated_entity_ids.Insert(entity_id);
+        updated_entities.Insert(entity->WeakHandleFromThis());
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_BLAS>(entity_weak.GetUnsafe());
                 }
             });
     }

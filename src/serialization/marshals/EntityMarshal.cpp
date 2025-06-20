@@ -53,7 +53,7 @@ public:
 
         auto serialize_entity_and_components = [&]()
         {
-            Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(entity.GetID());
+            Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(&entity);
 
             if (!all_components.HasValue())
             {
@@ -113,7 +113,7 @@ public:
                     continue;
                 }
 
-                ConstAnyRef component = entity_manager->TryGetComponent(component_type_id, entity.GetID());
+                ConstAnyRef component = entity_manager->TryGetComponent(component_type_id, &entity);
                 AssertThrow(component.HasValue());
 
                 FBOMObject component_serialized;

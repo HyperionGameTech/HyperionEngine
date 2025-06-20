@@ -1523,7 +1523,7 @@ void Lightmapper::PerformLightmapping()
     m_sub_elements.Clear();
     m_sub_elements_by_entity.Clear();
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (auto [entity, mesh_component, transform_component, bounding_box_component] : mgr.GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         if (!mesh_component.mesh.IsValid())
         {
@@ -1551,17 +1551,14 @@ void Lightmapper::PerformLightmapping()
         {
             if (!mesh_component.raytracing_data)
             {
-                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity_id.Value());
+                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity->GetID());
 
                 continue;
             }
         }
 
-        Handle<Entity> entity { entity_id };
-        AssertThrow(entity.IsValid());
-
         m_sub_elements.PushBack(LightmapSubElement {
-            entity,
+            entity->HandleFromThis(),
             mesh_component.mesh,
             mesh_component.material,
             transform_component.transform,

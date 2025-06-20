@@ -547,7 +547,7 @@ void DirectionalLightShadowRenderer::Update(float delta)
         .aabb_max = Vec4f(m_aabb.max, 1.0f),
         .aabb_min = Vec4f(m_aabb.min, 1.0f) });
 
-    // PUSH_RENDER_COMMAND(RenderShadowPass, &g_engine->GetWorld()->GetRenderResource(), m_shadow_pass.Get());
+    PUSH_RENDER_COMMAND(RenderShadowPass, &g_engine->GetWorld()->GetRenderResource(), m_shadow_pass.Get());
 }
 
 void DirectionalLightShadowRenderer::CreateShader()

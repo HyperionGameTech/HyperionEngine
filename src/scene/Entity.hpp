@@ -17,6 +17,12 @@ class Scene;
 class Node;
 class EntityManager;
 
+struct EntityInitInfo
+{
+    bool receives_update : 1 = false;
+    bool can_ever_update : 1 = true;
+};
+
 HYP_CLASS()
 class HYP_API Entity : public HypObject<Entity>
 {
@@ -41,6 +47,7 @@ public:
 
     EntityManager* GetEntityManager() const;
 
+    bool ReceivesUpdate() const;
     void SetReceivesUpdate(bool receives_update);
 
     /*! \brief Attaches this Entity to a Node. If the Entity is already attached to a Node, it will be detached first.
@@ -58,11 +65,6 @@ public:
 protected:
     virtual void Init() override;
 
-    virtual bool ReceivesUpdate() const
-    {
-        return false;
-    }
-
     virtual void Update(float delta)
     {
     }
@@ -78,6 +80,8 @@ protected:
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
+
+    EntityInitInfo m_entity_init_info;
 
 private:
     World* m_world;

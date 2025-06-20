@@ -615,7 +615,7 @@ public:
 
     /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
     HYP_METHOD()
-    Handle<Node> FindChildWithEntity(ID<Entity> entity_id) const;
+    Handle<Node> FindChildWithEntity(const Entity* entity) const;
 
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()

@@ -71,13 +71,13 @@ void Octree::Clear()
 
         for (Entry& entry : entries)
         {
-            if (VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entry.value.GetID()))
+            if (VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entry.value))
             {
                 visibility_state_component->octant_id = OctantID::Invalid();
                 visibility_state_component->visibility_state = nullptr;
             }
 
-            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entry.value.GetID());
+            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entry.value);
         }
     }
 
@@ -93,6 +93,9 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox& new_aabb, bool allow_gro
 
     for (auto& it : new_entries)
     {
+        Entity* entity = it.value;
+        AssertThrow(entity != nullptr);
+
         if (it.aabb.IsValid() && it.aabb.IsFinite())
         {
             if (IsRoot())
@@ -108,29 +111,26 @@ Octree::InsertResult Octree::Rebuild(const BoundingBox& new_aabb, bool allow_gro
             }
         }
 
-        auto insert_result = Insert(it.value, it.aabb, true /* allow rebuild */);
+        auto insert_result = Insert(entity, it.aabb, true /* allow rebuild */);
 
         if (!insert_result.first)
         {
             return insert_result;
         }
 
-        if (Handle<Entity> entity = it.value.Lock())
+        VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entity);
+
+        if (visibility_state_component)
         {
-            VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entity);
-
-            if (visibility_state_component)
-            {
-                visibility_state_component->octant_id = insert_result.second;
-                visibility_state_component->visibility_state = nullptr;
-            }
-            else
-            {
-                m_entity_manager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { .octant_id = insert_result.second, .visibility_state = nullptr });
-            }
-
-            m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+            visibility_state_component->octant_id = insert_result.second;
+            visibility_state_component->visibility_state = nullptr;
         }
+        else
+        {
+            m_entity_manager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { .octant_id = insert_result.second, .visibility_state = nullptr });
+        }
+
+        m_entity_manager->AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     }
 
     return {
@@ -255,7 +255,7 @@ void Octree::RebuildEntriesHash(uint32 level)
         {
             // @FIXME: Having issue here where entity is no longer part of this entitymanager.
             // Must be getting moved to a different one.
-            tags = m_entity_manager->GetTags(entry.value.GetID());
+            tags = m_entity_manager->GetTags(entry.value);
         }
 
         for (uint32 i = 0; i < uint32(tags.Size()); i++)
@@ -317,22 +317,22 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
 
             if (use_bvh)
             {
-                if (m_entity_manager && entry.value.IsValid())
+                if (m_entity_manager && entry.value != nullptr)
                 {
-                    if (!m_entity_manager->HasEntity(entry.value.GetID()))
+                    if (!m_entity_manager->HasEntity(entry.value))
                     {
                         continue;
                     }
 
                     // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
-                    if (BVHComponent* bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.value.GetID()))
+                    if (BVHComponent* bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.value))
                     {
                         Matrix4 model_matrix = Matrix4::Identity();
                         Matrix4 normal_matrix = Matrix4::Identity();
 
                         Ray local_space_ray = ray;
 
-                        if (TransformComponent* transform_component = m_entity_manager->TryGetComponent<TransformComponent>(entry.value.GetID()))
+                        if (TransformComponent* transform_component = m_entity_manager->TryGetComponent<TransformComponent>(entry.value))
                         {
                             model_matrix = transform_component->transform.GetMatrix();
                             normal_matrix = model_matrix.Transposed().Inverted();
@@ -348,7 +348,7 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
 
                             for (RayHit hit : local_bvh_results)
                             {
-                                hit.id = entry.value.GetID().Value();
+                                hit.id = entry.value->GetID().Value();
                                 hit.user_data = nullptr;
 
                                 Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
@@ -373,15 +373,15 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
                     }
                     else
                     {
-                        NodeLinkComponent* node_link_component = m_entity_manager->TryGetComponent<NodeLinkComponent>(entry.value.GetID());
+                        NodeLinkComponent* node_link_component = m_entity_manager->TryGetComponent<NodeLinkComponent>(entry.value);
                         Handle<Node> node = node_link_component ? node_link_component->node.Lock() : nullptr;
 
-                        HYP_LOG(Octree, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value.GetID().Value(), node ? node->GetName() : NAME("<null>"));
+                        HYP_LOG(Octree, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value->GetID(), node ? node->GetName() : NAME("<null>"));
                     }
                 }
             }
 
-            if (ray.TestAABB(entry.aabb, entry.value.GetID().Value(), nullptr, aabb_result))
+            if (ray.TestAABB(entry.aabb, entry.value->GetID().Value(), nullptr, aabb_result))
             {
                 out_results.Merge(std::move(aabb_result));
 

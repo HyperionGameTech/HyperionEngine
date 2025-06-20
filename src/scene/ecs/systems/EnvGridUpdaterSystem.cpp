@@ -46,7 +46,7 @@ EnvGridUpdaterSystem::EnvGridUpdaterSystem(EntityManager& entity_manager)
 {
 }
 
-void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void EnvGridUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -82,7 +82,7 @@ void EnvGridUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     // InitObject(env_grid_component.env_grid);
 }
 
-void EnvGridUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void EnvGridUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -102,7 +102,7 @@ void EnvGridUpdaterSystem::Process(float delta)
     // { // Determine which EnvGrids needs to be updated on the game thread
     //     AfterProcess([this]()
     //         {
-    //             for (auto [entity_id, _, bounding_box_component] : GetEntityManager().GetEntitySet<EntityType<EnvGrid>, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
+    //             for (auto [entity, _, bounding_box_component] : GetEntityManager().GetEntitySet<EntityType<EnvGrid>, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
     //             {
     //                 // @TODO Store pointer to Entity rather than ID so we don't need to lock the handle
     //                 Handle<Entity> entity { entity_id };
@@ -118,7 +118,7 @@ void EnvGridUpdaterSystem::Process(float delta)
     // { // Update camera data
     //     HashSet<ID<Entity>> updated_entity_ids;
 
-    //     for (auto [entity_id, _t, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<EntityType<EnvGrid>, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+    //     for (auto [entity, _t, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<EntityType<EnvGrid>, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>>().GetScopedView(GetComponentInfos()))
     //     {
     //         if (!env_grid_component.env_grid)
     //         {
@@ -145,7 +145,7 @@ void EnvGridUpdaterSystem::Process(float delta)
     // { // Update EnvGrid transforms to map to the camera
     //     HashSet<ID<Entity>> updated_entity_ids;
 
-    //     for (auto [entity_id, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
+    //     for (auto [entity, env_grid_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<EnvGridComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
     //     {
     //         if (!env_grid_component.env_grid)
     //         {

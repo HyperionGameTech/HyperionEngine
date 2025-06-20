@@ -86,7 +86,7 @@ static SceneValidationResult ValidateSceneLights(const Scene* scene)
     {
         int num_directional_lights = 0;
 
-        for (auto [entity_id, light_component] : scene->GetEntityManager()->GetEntitySet<LightComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, light_component] : scene->GetEntityManager()->GetEntitySet<LightComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!light_component.light.IsValid())
             {
@@ -271,7 +271,7 @@ const Handle<Camera>& Scene::GetPrimaryCamera() const
         return Handle<Camera>::empty;
     }
 
-    for (auto [entity_id, camera_component, _] : m_entity_manager->GetEntitySet<CameraComponent, EntityTagComponent<EntityTag::CAMERA_PRIMARY>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+    for (auto [entity, camera_component, _] : m_entity_manager->GetEntitySet<CameraComponent, EntityTagComponent<EntityTag::CAMERA_PRIMARY>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         if (camera_component.camera.IsValid())
         {
@@ -303,7 +303,7 @@ void Scene::SetWorld(World* world)
     m_world = world;
 }
 
-Handle<Node> Scene::FindNodeWithEntity(ID<Entity> entity) const
+Handle<Node> Scene::FindNodeWithEntity(const Entity* entity) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);

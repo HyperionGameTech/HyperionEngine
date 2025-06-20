@@ -156,9 +156,9 @@ private:
     /*! \brief To be called internally from UIObject only */
     void SetFocusedObject(const Handle<UIObject>& ui_object);
 
-    Handle<UIObject> GetUIObjectForEntity(ID<Entity> entity) const;
+    Handle<UIObject> GetUIObjectForEntity(const Entity* entity) const;
 
-    bool Remove(ID<Entity> entity);
+    bool Remove(const Entity* entity);
 
     Vec2i m_surface_size;
 

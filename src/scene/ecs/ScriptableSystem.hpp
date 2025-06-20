@@ -33,10 +33,10 @@ public:
     bool AllowUpdate() const override;
 
     HYP_METHOD(Scriptable)
-    void OnEntityAdded(const Handle<Entity>& entity) override;
+    void OnEntityAdded(Entity* entity) override;
 
     HYP_METHOD(Scriptable)
-    void OnEntityRemoved(ID<Entity> entity) override;
+    void OnEntityRemoved(Entity* entity) override;
 
     HYP_METHOD(Scriptable)
     void Init() override;
@@ -82,13 +82,13 @@ private:
     }
 
     HYP_METHOD()
-    void OnEntityAdded_Impl(const Handle<Entity>& entity)
+    void OnEntityAdded_Impl(Entity* entity)
     {
         SystemBase::OnEntityAdded(entity);
     }
 
     HYP_METHOD()
-    void OnEntityRemoved_Impl(ID<Entity> entity)
+    void OnEntityRemoved_Impl(Entity* entity)
     {
         SystemBase::OnEntityRemoved(entity);
     }

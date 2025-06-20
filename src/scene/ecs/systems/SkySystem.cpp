@@ -28,7 +28,7 @@ SkySystem::SkySystem(EntityManager& entity_manager)
 {
 }
 
-void SkySystem::OnEntityAdded(const Handle<Entity>& entity)
+void SkySystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -49,13 +49,13 @@ void SkySystem::OnEntityAdded(const Handle<Entity>& entity)
     GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
-void SkySystem::OnEntityRemoved(ID<Entity> entity)
+void SkySystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
     AssertThrow(GetWorld() != nullptr);
 
-    HYP_LOG(ECS, Debug, "Removing sky system for entity: #{}, Scene: {}", entity.Value(), GetScene()->GetName());
+    HYP_LOG(ECS, Debug, "Removing sky system for entity: #{}, Scene: {}", entity->GetID(), GetScene()->GetName());
 
     SkyComponent& sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
     MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
@@ -69,7 +69,7 @@ void SkySystem::OnEntityRemoved(ID<Entity> entity)
 void SkySystem::Process(float delta)
 {
     // /// @TODO: Remove this
-    // for (auto [entity_id, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos()))
+    // for (auto [entity, sky_component] : GetEntityManager().GetEntitySet<SkyComponent>().GetScopedView(GetComponentInfos()))
     // {
     //     if (!sky_component.render_subsystem)
     //     {
@@ -87,7 +87,7 @@ void SkySystem::Process(float delta)
     // }
 }
 
-void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, const Handle<Entity>& entity, SkyComponent& sky_component, MeshComponent* mesh_component)
+void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, Entity* entity, SkyComponent& sky_component, MeshComponent* mesh_component)
 {
     if (!world)
     {
@@ -124,7 +124,6 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
             material_attributes.flags = MaterialAttributeFlags::DEPTH_TEST;
 
             material = CreateObject<Material>(NAME("SkyboxMaterial"), material_attributes);
-            /// FIXME: Change to EnvProbe's PrefilteredEnvMap
             material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.subsystem->GetCubemap());
 
             InitObject(material);

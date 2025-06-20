@@ -366,7 +366,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& out_object
             RayHit hit {};
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = -float(ui_object->GetComputedDepth());
-            hit.id = entity.Value();
+            hit.id = entity->GetID().Value();
             hit.user_data = ui_object;
 
             ray_test_results.AddHit(hit);
@@ -386,7 +386,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& out_object
     return out_objects.Any();
 }
 
-Handle<UIObject> UIStage::GetUIObjectForEntity(ID<Entity> entity) const
+Handle<UIObject> UIStage::GetUIObjectForEntity(const Entity* entity) const
 {
     HYP_SCOPE;
     AssertOnOwnerThread();
@@ -915,7 +915,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     return event_handler_result;
 }
 
-bool UIStage::Remove(ID<Entity> entity)
+bool UIStage::Remove(const Entity* entity)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();

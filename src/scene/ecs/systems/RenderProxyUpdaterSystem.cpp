@@ -94,7 +94,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
 #pragma endregion Render commands
 
-void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void RenderProxyUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -109,7 +109,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     if (mesh_component.mesh.IsValid() && mesh_component.material.IsValid())
     {
         mesh_component.proxy = new RenderProxy {
-            entity,
+            entity->WeakHandleFromThis(),
             mesh_component.mesh,
             mesh_component.material,
             mesh_component.skeleton,
@@ -127,12 +127,12 @@ void RenderProxyUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
     else
     {
-        HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity.GetID().Value());
+        HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity->GetID());
         HYP_BREAKPOINT;
     }
 }
 
-void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void RenderProxyUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -147,16 +147,16 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void RenderProxyUpdaterSystem::Process(float delta)
 {
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
     Array<RenderProxy*> render_proxy_ptrs;
 
-    for (auto [entity_id, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
     {
-        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity_id.Value());
+        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity->GetID());
 
         if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid())
         {
-            HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity_id.Value());
+            HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity->GetID());
 
             delete mesh_component.proxy;
             mesh_component.proxy = nullptr;
@@ -174,7 +174,7 @@ void RenderProxyUpdaterSystem::Process(float delta)
             // @TODO: Include RT info on RenderProxy, add a system that will update BLAS on the render thread.
             // @TODO Add Lightmap volume info
             *mesh_component.proxy = RenderProxy {
-                WeakHandle<Entity>(entity_id),
+                entity->WeakHandleFromThis(),
                 mesh_component.mesh,
                 mesh_component.material,
                 mesh_component.skeleton,
@@ -191,7 +191,7 @@ void RenderProxyUpdaterSystem::Process(float delta)
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix())
         {
-            updated_entity_ids.Insert(entity_id);
+            updated_entities.Insert(entity->WeakHandleFromThis());
         }
         else
         {
@@ -199,13 +199,13 @@ void RenderProxyUpdaterSystem::Process(float delta)
         }
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_RENDER_PROXY>(entity_weak.GetUnsafe());
                 }
             });
     }

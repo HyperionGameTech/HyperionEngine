@@ -1240,12 +1240,12 @@ bool Node::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
 
             if (use_bvh && m_scene && m_scene->GetEntityManager())
             {
-                if (BVHComponent* bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity.GetID()))
+                if (BVHComponent* bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity))
                 {
                     bvh = &bvh_component->bvh;
                 }
 
-                if (TransformComponent* transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity.GetID()))
+                if (TransformComponent* transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity))
                 {
                     model_matrix = transform_component->transform.GetMatrix();
                 }
@@ -1309,8 +1309,13 @@ bool Node::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
     return has_entity_hit;
 }
 
-Handle<Node> Node::FindChildWithEntity(ID<Entity> entity_id) const
+Handle<Node> Node::FindChildWithEntity(const Entity* entity) const
 {
+    if (!entity)
+    {
+        return Handle<Node>::empty;
+    }
+
     // breadth-first search
     Queue<const Node*> queue;
     queue.Push(this);
@@ -1326,7 +1331,7 @@ Handle<Node> Node::FindChildWithEntity(ID<Entity> entity_id) const
                 continue;
             }
 
-            if (child->GetEntity().GetID() == entity_id)
+            if (child->GetEntity() == entity)
             {
                 return child;
             }

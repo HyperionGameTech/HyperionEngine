@@ -29,6 +29,9 @@ Entity::Entity()
 
 Entity::~Entity()
 {
+    m_scene = nullptr;
+    m_world = nullptr;
+
     // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
     EntityManager* entity_manager = GetEntityManager();
     if (entity_manager == nullptr)
@@ -36,28 +39,17 @@ Entity::~Entity()
         return;
     }
 
-    m_scene = nullptr;
-    m_world = nullptr;
-
-    const ID<Entity> id = GetID();
-
-    if (!id.IsValid())
-    {
-        HYP_LOG(ECS, Error, "Entity has invalid ID while being destroyed!");
-        return;
-    }
-
     if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
 
-        HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", id.Value());
+        HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", GetID());
 
-        AssertThrow(entity_manager->HasEntity(id));
+        AssertDebug(entity_manager->HasEntity(this));
 
-        if (!entity_manager->RemoveEntity(id))
+        if (!entity_manager->RemoveEntity(this))
         {
-            HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", id.Value());
+            HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", GetID());
         }
     }
     else
@@ -74,13 +66,13 @@ Entity::~Entity()
 
                 HYP_NAMED_SCOPE("Remove Entity from EntityManager (async)");
 
-                HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", weak_this.GetID().Value());
+                HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", weak_this.GetID());
 
-                AssertThrow(entity_manager->HasEntity(weak_this.GetID()));
+                AssertDebug(entity_manager->HasEntity(weak_this.GetUnsafe()));
 
-                if (!entity_manager->RemoveEntity(weak_this.GetID()))
+                if (!entity_manager->RemoveEntity(weak_this.GetUnsafe()))
                 {
-                    HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", weak_this.GetID().Value());
+                    HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", weak_this.GetID());
                 }
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -102,8 +94,30 @@ EntityManager* Entity::GetEntityManager() const
     return m_scene->GetEntityManager();
 }
 
+bool Entity::ReceivesUpdate() const
+{
+    if (!m_entity_init_info.can_ever_update)
+    {
+        return false;
+    }
+
+    EntityManager* entity_manager = GetEntityManager();
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while checking receives update", GetID().Value());
+
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+
+    return entity_manager->HasTag<EntityTag::RECEIVES_UPDATE>(this);
+}
+
 void Entity::SetReceivesUpdate(bool receives_update)
 {
+    if (!m_entity_init_info.can_ever_update)
+    {
+        AssertDebugMsg(!receives_update, "Entity #%u cannot receive updates, but SetReceivesUpdate() was called with true", GetID().Value());
+
+        return;
+    }
+
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while setting receives update", GetID().Value());
 
@@ -111,11 +125,11 @@ void Entity::SetReceivesUpdate(bool receives_update)
 
     if (receives_update)
     {
-        entity_manager->AddTag<EntityTag::RECEIVES_UPDATE>(GetID());
+        entity_manager->AddTag<EntityTag::RECEIVES_UPDATE>(this);
     }
     else
     {
-        entity_manager->RemoveTag<EntityTag::RECEIVES_UPDATE>(GetID());
+        entity_manager->RemoveTag<EntityTag::RECEIVES_UPDATE>(this);
     }
 }
 
@@ -126,7 +140,7 @@ void Entity::Attach(const Handle<Node>& attach_node)
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
         if (Handle<Node> node = node_link_component->node.Lock())
         {
@@ -170,7 +184,7 @@ void Entity::Detach()
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
         if (Handle<Node> node = node_link_component->node.Lock())
         {
@@ -239,7 +253,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
         if (Handle<Node> node = node_link_component->node.Lock())
         {
@@ -295,7 +309,7 @@ void Entity::DetachChild(const Handle<Entity>& child)
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
         if (Handle<Node> node = node_link_component->node.Lock())
         {

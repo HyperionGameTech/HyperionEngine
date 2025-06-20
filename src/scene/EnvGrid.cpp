@@ -173,7 +173,7 @@ void EnvGrid::OnAttachedToNode(Node* node)
     }
 
     // debugging
-    AssertThrow(node->FindChildWithEntity(m_env_probe_collection.env_probes[0].GetID()) != nullptr);
+    AssertThrow(node->FindChildWithEntity(m_env_probe_collection.env_probes[0]) != nullptr);
 }
 
 void EnvGrid::OnDetachedFromNode(Node* node)
@@ -377,7 +377,7 @@ void EnvGrid::Update(float delta)
         should_recollect_entites = true;
     }
 
-    BoundingBoxComponent* bounding_box_component = GetEntityManager()->TryGetComponent<BoundingBoxComponent>(GetID());
+    BoundingBoxComponent* bounding_box_component = GetEntityManager()->TryGetComponent<BoundingBoxComponent>(this);
     if (!bounding_box_component)
     {
         HYP_LOG(EnvGrid, Error, "EnvGrid {} does not have a BoundingBoxComponent, cannot update", GetID());

@@ -186,11 +186,6 @@ public:
     uint32 m_grid_slot = ~0u; // temp
 
 protected:
-    virtual bool ReceivesUpdate() const
-    {
-        return true;
-    }
-
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
     virtual void OnAddedToScene(Scene* scene) override;

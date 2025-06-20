@@ -13,7 +13,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Lightmap);
 
-void LightmapSystem::OnEntityAdded(const Handle<Entity>& entity)
+void LightmapSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -42,7 +42,7 @@ void LightmapSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void LightmapSystem::OnEntityRemoved(ID<Entity> entity)
+void LightmapSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -54,7 +54,7 @@ void LightmapSystem::OnEntityRemoved(ID<Entity> entity)
 
 void LightmapSystem::Process(float delta)
 {
-    for (auto [entity_id, mesh_component, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, mesh_component, _] : GetEntityManager().GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::LIGHTMAP_ELEMENT>>().GetScopedView(GetComponentInfos()))
     {
         if (mesh_component.lightmap_volume_uuid == UUID::Invalid())
         {
@@ -74,7 +74,7 @@ void LightmapSystem::Process(float delta)
 
 bool LightmapSystem::AssignLightmapVolume(MeshComponent& mesh_component)
 {
-    for (auto [entity_id, lightmap_volume_component] : GetEntityManager().GetEntitySet<LightmapVolumeComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, lightmap_volume_component] : GetEntityManager().GetEntitySet<LightmapVolumeComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!lightmap_volume_component.volume.IsValid())
         {

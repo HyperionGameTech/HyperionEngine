@@ -13,7 +13,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(ECS);
 
-void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void BVHUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -44,16 +44,16 @@ void BVHUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void BVHUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void BVHUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 }
 
 void BVHUpdaterSystem::Process(float delta)
 {
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
 
-    for (auto [entity_id, bvh_component, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<BVHComponent, MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BVH>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, bvh_component, mesh_component, transform_component, _] : GetEntityManager().GetEntitySet<BVHComponent, MeshComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_BVH>>().GetScopedView(GetComponentInfos()))
     {
         if (!mesh_component.mesh.IsValid())
         {
@@ -63,26 +63,26 @@ void BVHUpdaterSystem::Process(float delta)
         if (mesh_component.mesh->BuildBVH(bvh_component.bvh, /* max_depth */ 3))
         {
             HYP_LOG(ECS, Info, "Built BVH for Mesh #{} (name: \"{}\")",
-                mesh_component.mesh->GetID().Value(),
+                mesh_component.mesh->GetID(),
                 mesh_component.mesh->GetName());
 
-            updated_entity_ids.Insert(entity_id);
+            updated_entities.Insert(entity->WeakHandleFromThis());
         }
         else
         {
             HYP_LOG(ECS, Warning, "Failed to calculate BVH for Mesh #{} (name: \"{}\")",
-                mesh_component.mesh->GetID().Value(),
+                mesh_component.mesh->GetID(),
                 mesh_component.mesh->GetName());
         }
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_BVH>(entity_weak.GetUnsafe());
                 }
             });
     }

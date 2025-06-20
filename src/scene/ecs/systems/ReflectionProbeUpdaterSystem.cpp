@@ -32,7 +32,7 @@ ReflectionProbeUpdaterSystem::ReflectionProbeUpdaterSystem(EntityManager& entity
 {
 }
 
-void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void ReflectionProbeUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -81,7 +81,7 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     // AddRenderSubsystemToEnvironment(reflection_probe_component);
 }
 
-void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void ReflectionProbeUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -101,7 +101,7 @@ void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 
 void ReflectionProbeUpdaterSystem::Process(float delta)
 {
-    // for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
+    // for (auto [entity, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
     // {
     //     const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 
@@ -127,7 +127,7 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
     // { // Update transforms and bounding boxes of EnvProbes to match the components
     //     HashSet<ID<Entity>> updated_entity_ids;
 
-    //     for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+    //     for (auto [entity, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
     //     {
     //         const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 

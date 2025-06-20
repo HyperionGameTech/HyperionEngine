@@ -283,7 +283,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
         uint32 num_collected_entities = 0;
         uint32 num_skipped_entities = 0;
 
-        for (auto [entity_id, mesh_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, mesh_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
             {
@@ -315,7 +315,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
+            m_render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
@@ -364,7 +364,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
 
         const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-        for (auto [entity_id, mesh_component, visibility_state_component, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, mesh_component, visibility_state_component, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
             {
@@ -378,7 +378,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
                 {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                     HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                        entity_id.Value(), camera_id.Value());
+                        entity->GetID(), camera_id);
 #endif
 
                     continue;
@@ -392,7 +392,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
+            m_render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
         }
     }
 
@@ -437,7 +437,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
 
         const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
 
-        for (auto [entity_id, mesh_component, visibility_state_component, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, mesh_component, visibility_state_component, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::STATIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
             {
@@ -451,7 +451,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
                 {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                     HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                        entity_id.Value(), camera_id.Value());
+                        entity->GetID(), camera_id);
 #endif
 
                     continue;
@@ -465,7 +465,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            m_render_proxy_tracker.Track(entity_id, *mesh_component.proxy);
+            m_render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
         }
     }
 
@@ -489,7 +489,7 @@ void View::CollectLights()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity_id, light_component, transform_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, light_component, transform_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!light_component.light.IsValid())
             {
@@ -549,7 +549,7 @@ void View::CollectLightmapVolumes()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity_id, lightmap_volume_component] : scene->GetEntityManager()->GetEntitySet<LightmapVolumeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, lightmap_volume_component] : scene->GetEntityManager()->GetEntitySet<LightmapVolumeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!lightmap_volume_component.volume.IsValid())
             {
@@ -560,7 +560,7 @@ void View::CollectLightmapVolumes()
 
             if (!volume_aabb.IsValid() || !volume_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmap_volume_component.volume->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmap_volume_component.volume->GetID(), GetID());
 
                 continue;
             }
@@ -579,7 +579,7 @@ void View::CollectLightmapVolumes()
 
             if (track_state & ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>::CHANGED)
             {
-                HYP_LOG(Scene, Debug, "Lightmap volume {} changed in view {}", lightmap_volume_component.volume->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Debug, "Lightmap volume {} changed in view {}", lightmap_volume_component.volume->GetID(), GetID());
             }
         }
     }
@@ -602,19 +602,17 @@ void View::CollectEnvGrids()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity_id, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            // @TODO Store pointer to Entity rather than ID so we don't need to lock the handle
-            Handle<Entity> entity { entity_id };
             AssertDebug(entity->IsInstanceOf<EnvGrid>());
 
-            Handle<EnvGrid> env_grid = entity.Cast<EnvGrid>();
+            EnvGrid* env_grid = static_cast<EnvGrid*>(entity);
 
             const BoundingBox& grid_aabb = env_grid->GetAABB();
 
             if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid->GetID(), GetID());
 
                 continue;
             }
@@ -646,7 +644,7 @@ void View::CollectEnvProbes()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity_id, reflection_probe_component] : scene->GetEntityManager()->GetEntitySet<ReflectionProbeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, reflection_probe_component] : scene->GetEntityManager()->GetEntitySet<ReflectionProbeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!reflection_probe_component.env_probe.IsValid())
             {
@@ -657,7 +655,7 @@ void View::CollectEnvProbes()
 
             if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", reflection_probe_component.env_probe->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", reflection_probe_component.env_probe->GetID(), GetID());
 
                 continue;
             }
@@ -674,7 +672,7 @@ void View::CollectEnvProbes()
                 &track_state);
         }
 
-        for (auto [entity_id, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
             if (!sky_component.subsystem.IsValid())
             {
@@ -683,7 +681,7 @@ void View::CollectEnvProbes()
 
             if (!sky_component.subsystem->GetEnvProbe().IsValid() || !sky_component.subsystem->GetEnvProbe()->IsReady())
             {
-                HYP_LOG(Scene, Warning, "Sky component in scene {} does not have a valid EnvProbe in view {}", scene->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Warning, "Sky component in scene {} does not have a valid EnvProbe in view {}", scene->GetID(), GetID());
 
                 continue;
             }

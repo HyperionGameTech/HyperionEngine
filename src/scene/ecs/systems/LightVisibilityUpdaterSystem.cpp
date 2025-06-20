@@ -13,7 +13,7 @@
 
 namespace hyperion {
 
-void LightVisibilityUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void LightVisibilityUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -89,7 +89,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     GetEntityManager().RemoveTag<EntityTag::UPDATE_LIGHT_TRANSFORM>(entity);
 }
 
-void LightVisibilityUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void LightVisibilityUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -99,7 +99,7 @@ void LightVisibilityUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 void LightVisibilityUpdaterSystem::Process(float delta)
 {
     { // Invalidate visibility state of directional lights that have had their transforms update to refresh the octree
-        for (auto [entity_id, light_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+        for (auto [entity, light_component, visibility_state_component, _] : GetEntityManager().GetEntitySet<LightComponent, VisibilityStateComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos()))
         {
             if (!light_component.light.IsValid() || !light_component.light->IsReady())
             {
@@ -114,9 +114,9 @@ void LightVisibilityUpdaterSystem::Process(float delta)
     }
 
     { // Update light transforms if they have the UPDATE_LIGHT_TRANSFORM tag
-        HashSet<ID<Entity>> updated_entity_ids;
+        HashSet<WeakHandle<Entity>> updated_entities;
 
-        for (auto [entity_id, light_component, transform_component, _] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+        for (auto [entity, light_component, transform_component, _] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_LIGHT_TRANSFORM>>().GetScopedView(GetComponentInfos()))
         {
             if (!light_component.light.IsValid() || !light_component.light->IsReady())
             {
@@ -133,23 +133,23 @@ void LightVisibilityUpdaterSystem::Process(float delta)
                 light_component.light->SetPosition(transform_component.transform.GetTranslation());
             }
 
-            updated_entity_ids.Insert(entity_id);
+            updated_entities.Insert(entity->WeakHandleFromThis());
         }
 
-        if (updated_entity_ids.Any())
+        if (updated_entities.Any())
         {
-            AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+            AfterProcess([this, updated_entities = std::move(updated_entities)]()
                 {
-                    for (const ID<Entity>& entity_id : entity_ids)
+                    for (const WeakHandle<Entity>& entity_weak : updated_entities)
                     {
-                        GetEntityManager().RemoveTag<EntityTag::UPDATE_LIGHT_TRANSFORM>(entity_id);
+                        GetEntityManager().RemoveTag<EntityTag::UPDATE_LIGHT_TRANSFORM>(entity_weak.GetUnsafe());
                     }
                 });
         }
     }
 
     // Recalculate light visibility for the scene's camera
-    for (auto [entity_id, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, light_component, transform_component, bounding_box_component] : GetEntityManager().GetEntitySet<LightComponent, TransformComponent, BoundingBoxComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!light_component.light.IsValid() || !light_component.light->IsReady())
         {

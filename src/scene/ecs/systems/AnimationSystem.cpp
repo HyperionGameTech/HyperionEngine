@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-void AnimationSystem::OnEntityAdded(const Handle<Entity>& entity)
+void AnimationSystem::OnEntityAdded(Entity* entity)
 {
     const MeshComponent& mesh_component = GetEntityManager().GetComponent<MeshComponent>(entity);
     InitObject(mesh_component.skeleton);
@@ -18,7 +18,7 @@ void AnimationSystem::OnEntityAdded(const Handle<Entity>& entity)
 
 void AnimationSystem::Process(float delta)
 {
-    for (auto [entity_id, animation_component, mesh_component] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, animation_component, mesh_component] : GetEntityManager().GetEntitySet<AnimationComponent, MeshComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!mesh_component.skeleton)
         {

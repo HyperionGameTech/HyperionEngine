@@ -10,7 +10,7 @@
 
 namespace hyperion {
 
-void PhysicsSystem::OnEntityAdded(const Handle<Entity>& entity)
+void PhysicsSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -35,7 +35,7 @@ void PhysicsSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void PhysicsSystem::OnEntityRemoved(ID<Entity> entity)
+void PhysicsSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -54,7 +54,7 @@ void PhysicsSystem::OnEntityRemoved(ID<Entity> entity)
 
 void PhysicsSystem::Process(float delta)
 {
-    for (auto [entity_id, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, rigid_body_component, transform_component] : GetEntityManager().GetEntitySet<RigidBodyComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
     {
         Handle<physics::RigidBody>& rigid_body = rigid_body_component.rigid_body;
         Transform& transform = transform_component.transform;

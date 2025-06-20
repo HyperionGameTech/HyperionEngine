@@ -438,7 +438,7 @@ void RenderView::CreateRenderer()
     m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
     m_lightmap_pass->Create();
 
-    m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_combine_pass->GetFinalImageView(), m_gbuffer.Get());
+    m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_tonemap_pass->GetFinalImageView(), m_gbuffer.Get());
     m_temporal_aa->Create();
 
     CreateDescriptorSets();
@@ -703,6 +703,9 @@ void RenderView::SetViewport(const Viewport& viewport)
 
                 m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
                 m_lightmap_pass->Create();
+
+                m_temporal_aa = MakeUnique<TemporalAA>(new_size, m_tonemap_pass->GetFinalImageView(), m_gbuffer.Get());
+                m_temporal_aa->Create();
 
                 AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
                 AssertThrow(depth_attachment != nullptr);

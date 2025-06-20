@@ -113,102 +113,69 @@ struct EntityData
     }
 };
 
-HYP_DISABLE_OPTIMIZATION;
 class EntityContainer
 {
 public:
-    using Iterator = HashMap<WeakHandle<Entity>, EntityData>::Iterator;
-    using ConstIterator = HashMap<WeakHandle<Entity>, EntityData>::ConstIterator;
+    using Iterator = HashMap<Entity*, EntityData>::Iterator;
+    using ConstIterator = HashMap<Entity*, EntityData>::ConstIterator;
 
-    void Add(const Handle<Entity>& handle)
+    HYP_FORCE_INLINE void Add(TypeID type_id, Entity* entity)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        auto it = m_entities.Insert(handle.ToWeak(), { handle.GetTypeID() });
+        auto it = m_entities.Insert(entity, { type_id });
         AssertThrow(it.second);
     }
 
-    EntityData* TryGetEntityData(ID<Entity> id)
+    HYP_FORCE_INLINE EntityData* TryGetEntityData(const Entity* entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        auto it = m_entities.FindAs(id);
+        auto it = m_entities.FindAs(entity);
 
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    const EntityData* TryGetEntityData(ID<Entity> id) const
+    HYP_FORCE_INLINE const EntityData* TryGetEntityData(const Entity* entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
-        auto it = m_entities.FindAs(id);
+        auto it = m_entities.FindAs(entity);
 
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    EntityData& GetEntityData(ID<Entity> id)
+    HYP_FORCE_INLINE EntityData& GetEntityData(const Entity* entity)
     {
-        HYP_MT_CHECK_READ(m_data_race_detector);
+        EntityData* data = TryGetEntityData(entity);
+        AssertThrow(data != nullptr);
 
-        auto it = m_entities.FindAs(id);
-        AssertThrow(it != m_entities.End());
-
-        return it->second;
+        return *data;
     }
 
-    const EntityData& GetEntityData(ID<Entity> id) const
+    HYP_FORCE_INLINE const EntityData& GetEntityData(const Entity* entity) const
     {
-        HYP_MT_CHECK_READ(m_data_race_detector);
+        const EntityData* data = TryGetEntityData(entity);
+        AssertThrow(data != nullptr);
 
-        auto it = m_entities.FindAs(id);
-        AssertThrow(it != m_entities.End());
-
-        return it->second;
+        return *data;
     }
 
-    Iterator Find(const Handle<Entity>& entity)
+    HYP_FORCE_INLINE Iterator Find(const Entity* entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    ConstIterator Find(const Handle<Entity>& entity) const
+    HYP_FORCE_INLINE ConstIterator Find(const Entity* entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    Iterator Find(const WeakHandle<Entity>& entity)
-    {
-        HYP_MT_CHECK_READ(m_data_race_detector);
-
-        return m_entities.Find(entity);
-    }
-
-    ConstIterator Find(const WeakHandle<Entity>& entity) const
-    {
-        HYP_MT_CHECK_READ(m_data_race_detector);
-
-        return m_entities.Find(entity);
-    }
-
-    Iterator Find(ID<Entity> id)
-    {
-        HYP_MT_CHECK_READ(m_data_race_detector);
-
-        return m_entities.FindAs(id);
-    }
-
-    ConstIterator Find(ID<Entity> id) const
-    {
-        HYP_MT_CHECK_READ(m_data_race_detector);
-
-        return m_entities.FindAs(id);
-    }
-
-    void Erase(ConstIterator it)
+    HYP_FORCE_INLINE void Erase(ConstIterator it)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -218,11 +185,10 @@ public:
     HYP_DEF_STL_BEGIN_END(m_entities.Begin(), m_entities.End())
 
 private:
-    HashMap<WeakHandle<Entity>, EntityData> m_entities;
+    HashMap<Entity*, EntityData> m_entities;
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
-HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion
 

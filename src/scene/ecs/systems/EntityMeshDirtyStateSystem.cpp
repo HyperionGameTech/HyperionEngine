@@ -14,7 +14,7 @@
 
 namespace hyperion {
 
-void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity>& entity)
+void EntityMeshDirtyStateSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -26,16 +26,16 @@ void EntityMeshDirtyStateSystem::OnEntityAdded(const Handle<Entity>& entity)
     GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 }
 
-void EntityMeshDirtyStateSystem::OnEntityRemoved(ID<Entity> entity)
+void EntityMeshDirtyStateSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 }
 
 void EntityMeshDirtyStateSystem::Process(float delta)
 {
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
 
-    for (auto [entity_id, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, mesh_component, transform_component] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
     {
         // Update the material
         if (mesh_component.material.IsValid() && mesh_component.material->GetMutationState().IsDirty())
@@ -46,17 +46,17 @@ void EntityMeshDirtyStateSystem::Process(float delta)
         // If transform has changed, mark the MeshComponent as dirty
         if (mesh_component.previous_model_matrix != transform_component.transform.GetMatrix())
         {
-            updated_entity_ids.Insert(entity_id);
+            updated_entities.Insert(entity->WeakHandleFromThis());
         }
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_id);
+                    GetEntityManager().AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity_weak.GetUnsafe());
                 }
             });
     }

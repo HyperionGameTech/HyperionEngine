@@ -16,7 +16,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Camera);
 
-void ScenePrimaryCameraSystem::OnEntityAdded(const Handle<Entity>& entity)
+void ScenePrimaryCameraSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -44,7 +44,7 @@ void ScenePrimaryCameraSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void ScenePrimaryCameraSystem::OnEntityRemoved(ID<Entity> entity)
+void ScenePrimaryCameraSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 }

@@ -25,8 +25,8 @@ public:
 
     virtual ~BVHUpdaterSystem() override = default;
 
-    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
-    virtual void OnEntityRemoved(ID<Entity> entity) override;
+    virtual void OnEntityAdded(Entity* entity) override;
+    virtual void OnEntityRemoved(Entity* entity) override;
 
     virtual void Process(float delta) override;
 

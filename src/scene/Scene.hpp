@@ -147,7 +147,7 @@ public:
     }
 
     HYP_METHOD()
-    HYP_NODISCARD Handle<Node> FindNodeWithEntity(ID<Entity> entity) const;
+    HYP_NODISCARD Handle<Node> FindNodeWithEntity(const Entity* entity) const;
 
     HYP_METHOD()
     HYP_NODISCARD Handle<Node> FindNodeByName(WeakName name) const;

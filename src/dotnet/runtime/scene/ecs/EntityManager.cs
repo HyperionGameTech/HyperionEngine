@@ -28,10 +28,8 @@ namespace Hyperion
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
-
-            IDBase entityId = entity.ID;
             
-            return EntityManager_HasComponent(NativeAddress, componentHypClass.TypeID, ref entityId);
+            return EntityManager_HasComponent(NativeAddress, componentHypClass.TypeID, entity.NativeAddress);
         }
 
         public void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
@@ -58,9 +56,7 @@ namespace Hyperion
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
 
-            IDBase entityId = entity.ID;
-
-            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentHypClass.TypeID, ref entityId);
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentHypClass.TypeID, entity.NativeAddress);
 
             if (componentPtr == IntPtr.Zero)
             {
@@ -75,10 +71,10 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "EntityManager_HasComponent")]
-        private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID componentTypeId, ref IDBase entityId);
+        private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IntPtr entityAddress);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
-        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, ref IDBase entityId);
+        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IntPtr entityAddress);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
         private static extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, IntPtr componentPtr);

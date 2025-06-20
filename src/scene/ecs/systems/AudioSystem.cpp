@@ -12,7 +12,7 @@
 
 namespace hyperion {
 
-void AudioSystem::OnEntityAdded(const Handle<Entity>& entity)
+void AudioSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -44,7 +44,7 @@ void AudioSystem::Process(float delta)
         }
     }
 
-    for (auto [entity_id, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, audio_component, transform_component] : GetEntityManager().GetEntitySet<AudioComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!audio_component.audio_source.IsValid())
         {

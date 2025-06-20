@@ -364,7 +364,7 @@ public:                                                                         
                                                                                               \
     HYP_FORCE_INLINE const HypClass* InstanceClass() const                                    \
     {                                                                                         \
-        return m_hyp_object_initializer_ptr->GetClass();                                      \
+        return m_header->container->GetHypClass();                                            \
     }                                                                                         \
                                                                                               \
     HYP_FORCE_INLINE static const HypClass* Class()                                           \

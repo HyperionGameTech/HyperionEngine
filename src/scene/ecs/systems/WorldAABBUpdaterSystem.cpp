@@ -13,7 +13,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(ECS);
 
-void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void WorldAABBUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -25,38 +25,38 @@ void WorldAABBUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void WorldAABBUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void WorldAABBUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 }
 
 void WorldAABBUpdaterSystem::Process(float delta)
 {
-    HashSet<ID<Entity>> updated_entity_ids;
+    HashSet<WeakHandle<Entity>> updated_entities;
 
-    for (auto [entity_id, bounding_box_component, transform_component, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, bounding_box_component, transform_component, _] : GetEntityManager().GetEntitySet<BoundingBoxComponent, TransformComponent, EntityTagComponent<EntityTag::UPDATE_AABB>>().GetScopedView(GetComponentInfos()))
     {
-        if (ProcessEntity(entity_id, bounding_box_component, transform_component))
+        if (ProcessEntity(entity, bounding_box_component, transform_component))
         {
-            updated_entity_ids.Insert(entity_id);
+            updated_entities.Insert(entity->WeakHandleFromThis());
         }
     }
 
-    if (updated_entity_ids.Any())
+    if (updated_entities.Any())
     {
-        AfterProcess([this, entity_ids = std::move(updated_entity_ids)]()
+        AfterProcess([this, updated_entities = std::move(updated_entities)]()
             {
-                for (const ID<Entity>& entity_id : entity_ids)
+                for (const WeakHandle<Entity>& entity_weak : updated_entities)
                 {
-                    GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM, EntityTag::UPDATE_BLAS>(entity_id);
+                    GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM, EntityTag::UPDATE_BLAS>(entity_weak.GetUnsafe());
 
-                    GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_id);
+                    GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity_weak.GetUnsafe());
                 }
             });
     }
 }
 
-bool WorldAABBUpdaterSystem::ProcessEntity(ID<Entity>, BoundingBoxComponent& bounding_box_component, TransformComponent& transform_component)
+bool WorldAABBUpdaterSystem::ProcessEntity(Entity* entity, BoundingBoxComponent& bounding_box_component, TransformComponent& transform_component)
 {
     const BoundingBox local_aabb = bounding_box_component.local_aabb;
     BoundingBox world_aabb = bounding_box_component.world_aabb;

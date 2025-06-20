@@ -1340,7 +1340,7 @@ void EditorSubsystem::InitViewport()
                                     continue;
                                 }
 
-                                if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity_id))
+                                if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity))
                                 {
                                     if (Handle<Node> node = node_link_component->node.Lock())
                                     {
@@ -1444,7 +1444,10 @@ void EditorSubsystem::InitViewport()
                                 continue;
                             }
 
-                            NodeLinkComponent* node_link_component = m_editor_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity_id);
+                            Handle<Entity> entity { entity_id };
+                            AssertThrow(entity.IsValid());
+
+                            NodeLinkComponent* node_link_component = m_editor_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity);
 
                             if (!node_link_component)
                             {

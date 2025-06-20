@@ -193,11 +193,11 @@ public:
         return m_component_infos[index];
     }
 
-    virtual void OnEntityAdded(const Handle<Entity>& entity)
+    virtual void OnEntityAdded(Entity* entity)
     {
     }
 
-    virtual void OnEntityRemoved(ID<Entity> entity)
+    virtual void OnEntityRemoved(Entity* entity)
     {
     }
 

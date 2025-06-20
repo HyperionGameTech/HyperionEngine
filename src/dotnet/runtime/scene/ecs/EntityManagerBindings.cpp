@@ -24,20 +24,20 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT bool EntityManager_HasComponent(EntityManager* manager, uint32 component_type_id, IDBase* entity_id)
+    HYP_EXPORT bool EntityManager_HasComponent(EntityManager* manager, uint32 component_type_id, Entity* entity)
     {
         AssertThrow(manager != nullptr);
-        AssertThrow(entity_id != nullptr);
+        AssertThrow(entity != nullptr);
 
-        return manager->HasComponent(TypeID { component_type_id }, ID<Entity> { *entity_id });
+        return manager->HasComponent(TypeID { component_type_id }, entity);
     }
 
-    HYP_EXPORT void* EntityManager_GetComponent(EntityManager* manager, uint32 component_type_id, IDBase* entity_id)
+    HYP_EXPORT void* EntityManager_GetComponent(EntityManager* manager, uint32 component_type_id, Entity* entity)
     {
         AssertThrow(manager != nullptr);
-        AssertThrow(entity_id != nullptr);
+        AssertThrow(entity != nullptr);
 
-        return manager->TryGetComponent(TypeID { component_type_id }, ID<Entity> { *entity_id }).GetPointer();
+        return manager->TryGetComponent(TypeID { component_type_id }, entity).GetPointer();
     }
 
     HYP_EXPORT void EntityManager_AddComponent(EntityManager* manager, Entity* entity, uint32 component_type_id, void* component_ptr)

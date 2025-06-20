@@ -66,7 +66,7 @@ struct EntitySetIterator
         return !(*this == other);
     }
 
-    Tuple<ID<Entity>, Components&...> operator*()
+    Tuple<Entity*, Components&...> operator*()
     {
         const typename EntitySet<Components...>::Element& element = set.m_elements[index];
 
@@ -75,17 +75,17 @@ struct EntitySetIterator
             GetComponents(element.template GetElement<2>(), std::make_index_sequence<sizeof...(Components)>()));
     }
 
-    Tuple<ID<Entity>, const Components&...> operator*() const
+    Tuple<Entity*, const Components&...> operator*() const
     {
         return const_cast<EntitySetIterator*>(this)->operator*();
     }
 
-    Tuple<ID<Entity>, Components&...> operator->()
+    Tuple<Entity*, Components&...> operator->()
     {
         return **this;
     }
 
-    Tuple<ID<Entity>, const Components&...> operator->() const
+    Tuple<Entity*, const Components&...> operator->() const
     {
         return **this;
     }
@@ -120,17 +120,17 @@ public:
      *
      *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
      */
-    virtual bool ValidForEntity(ID<Entity> entity) const = 0;
+    virtual bool ValidForEntity(Entity* entity) const = 0;
 
     /*! \brief Removes the given Entity from this EntitySet.
      *
      *  \param entity The Entity to remove.
      */
-    virtual void RemoveEntity(ID<Entity> entity) = 0;
+    virtual void RemoveEntity(Entity* entity) = 0;
 
     /*! \brief To be used by the EntityManager
         \note Do not call this function directly. */
-    virtual void OnEntityUpdated(ID<Entity> id) = 0;
+    virtual void OnEntityUpdated(Entity* entity) = 0;
 };
 
 /*! \brief A set of entities with a specific set of components.
@@ -144,7 +144,7 @@ public:
     friend struct EntitySetIterator<Components...>;
     friend struct EntitySetView<Components...>;
 
-    using Element = Tuple<ID<Entity>, TypeID, FixedArray<ComponentID, sizeof...(Components)>>;
+    using Element = Tuple<Entity*, TypeID, FixedArray<ComponentID, sizeof...(Components)>>;
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
@@ -193,11 +193,11 @@ public:
      *
      *  \param entity The Entity to remove.
      */
-    virtual void RemoveEntity(ID<Entity> entity) override
+    virtual void RemoveEntity(Entity* entity) override
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        const auto entity_element_it = m_elements.FindIf([&entity](const Element& element)
+        const auto entity_element_it = m_elements.FindIf([entity](const Element& element)
             {
                 return element.template GetElement<0>() == entity;
             });
@@ -210,25 +210,25 @@ public:
 
     /*! \brief To be used by the EntityManager
         \note Do not call this function directly. */
-    virtual void OnEntityUpdated(ID<Entity> id) override
+    virtual void OnEntityUpdated(Entity* entity) override
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
-        const auto entity_element_it = m_elements.FindIf([id](const Element& element)
+        const auto entity_element_it = m_elements.FindIf([entity](const Element& element)
             {
-                return element.template GetElement<0>() == id;
+                return element.template GetElement<0>() == entity;
             });
 
-        if (ValidForEntity(id))
+        if (ValidForEntity(entity))
         {
             if (entity_element_it != m_elements.End())
             {
                 return;
             }
 
-            EntityData& entity_data = m_entities.GetEntityData(id);
+            EntityData& entity_data = m_entities.GetEntityData(entity);
 
-            m_elements.EmplaceBack(id, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentID<Components>()... });
+            m_elements.EmplaceBack(entity, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentID<Components>()... });
         }
         else
         {
@@ -247,7 +247,7 @@ public:
      *
      *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
      */
-    virtual bool ValidForEntity(ID<Entity> entity) const override
+    virtual bool ValidForEntity(Entity* entity) const override
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 

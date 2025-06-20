@@ -46,7 +46,7 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
                     {
                         if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path))
                         {
-                            HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity.Value());
+                            HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->GetID());
 
                             // Reload the script
                             script_component.flags |= ScriptComponentFlags::RELOADING;
@@ -64,7 +64,7 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
 
                             script_component.flags &= ~ScriptComponentFlags::RELOADING;
 
-                            HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity.Value());
+                            HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->GetID());
                         }
                     }
                 }));
@@ -120,7 +120,7 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
     //         }));
 }
 
-void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
+void ScriptSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -246,7 +246,7 @@ void ScriptSystem::OnEntityAdded(const Handle<Entity>& entity)
     }
 }
 
-void ScriptSystem::OnEntityRemoved(ID<Entity> entity)
+void ScriptSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -304,7 +304,7 @@ void ScriptSystem::Process(float delta)
         return;
     }
 
-    for (auto [entity_id, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!(script_component.flags & ScriptComponentFlags::INITIALIZED))
         {
@@ -349,7 +349,7 @@ void ScriptSystem::HandleGameStateChanged(GameStateMode game_state_mode, GameSta
 
 void ScriptSystem::CallScriptMethod(UTF8StringView method_name)
 {
-    for (auto [entity_id, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
+    for (auto [entity, script_component] : GetEntityManager().GetEntitySet<ScriptComponent>().GetScopedView(GetComponentInfos()))
     {
         if (!(script_component.flags & ScriptComponentFlags::INITIALIZED))
         {

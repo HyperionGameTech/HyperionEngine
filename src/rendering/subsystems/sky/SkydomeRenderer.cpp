@@ -5,6 +5,7 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
@@ -142,6 +143,12 @@ void SkydomeRenderer::Update(float delta)
         {
             FrameBase* frame = g_rendering_api->GetCurrentFrame();
 
+            RenderSetup render_setup { world, nullptr };
+
+            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}", env_probe->GetEnvProbe()->GetID());
+
+            env_probe->Render(frame, render_setup);
+
             // Copy cubemap from env probe to cubemap texture
             const ImageRef& src_image = env_probe->GetFramebuffer()->GetAttachment(0)->GetImage();
 
@@ -164,7 +171,13 @@ void SkydomeRenderer::Update(float delta)
         }
     };
 
+    if (!m_env_probe->ReceivesUpdate())
+    {
+        return;
+    }
+
     m_env_probe->Update(delta);
+    m_env_probe->SetNeedsRender(true);
 
     if (m_env_probe->NeedsRender())
     {
@@ -178,6 +191,8 @@ void SkydomeRenderer::Update(float delta)
             &m_env_probe->GetRenderResource(),
             &m_cubemap->GetRenderResource());
     }
+
+    m_env_probe->SetReceivesUpdate(false);
 }
 
 } // namespace hyperion

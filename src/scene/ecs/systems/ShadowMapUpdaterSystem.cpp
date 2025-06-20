@@ -31,18 +31,18 @@ ShadowMapUpdaterSystem::ShadowMapUpdaterSystem(EntityManager& entity_manager)
 {
 }
 
-void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
+void ShadowMapUpdaterSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
     ShadowMapComponent& shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
     LightComponent& light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
-    // if (shadow_map_component.render_subsystem)
-    // {
-    //     shadow_map_component.render_subsystem->RemoveFromEnvironment();
-    //     shadow_map_component.render_subsystem.Reset();
-    // }
+    if (shadow_map_component.subsystem)
+    {
+        GetWorld()->RemoveSubsystem(shadow_map_component.subsystem);
+        shadow_map_component.subsystem.Reset();
+    }
 
     if (!light_component.light)
     {
@@ -54,127 +54,122 @@ void ShadowMapUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
     AddRenderSubsystemToEnvironment(shadow_map_component, light_component);
 }
 
-void ShadowMapUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
+void ShadowMapUpdaterSystem::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
     ShadowMapComponent& shadow_map_component = GetEntityManager().GetComponent<ShadowMapComponent>(entity);
     LightComponent& light_component = GetEntityManager().GetComponent<LightComponent>(entity);
 
-    // if (shadow_map_component.render_subsystem)
-    // {
-    //     shadow_map_component.render_subsystem->RemoveFromEnvironment();
-    //     shadow_map_component.render_subsystem.Reset();
-    // }
+    if (shadow_map_component.subsystem)
+    {
+        GetWorld()->RemoveSubsystem(shadow_map_component.subsystem);
+        shadow_map_component.subsystem.Reset();
+    }
 }
 
 void ShadowMapUpdaterSystem::Process(float delta)
 {
-    // for (auto [entity_id, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
-    // {
-    //     if (!light_component.light)
-    //     {
-    //         continue;
-    //     }
+    for (auto [entity, shadow_map_component, light_component, transform_component] : GetEntityManager().GetEntitySet<ShadowMapComponent, LightComponent, TransformComponent>().GetScopedView(GetComponentInfos()))
+    {
+        if (!light_component.light)
+        {
+            continue;
+        }
 
-    //     if (!shadow_map_component.subsystem.IsValid())
-    //     {
-    //         continue;
-    //     }
+        if (!shadow_map_component.subsystem.IsValid())
+        {
+            continue;
+        }
 
-    //     // only update shadow map every 10 ticks
-    //     if (shadow_map_component.update_counter++ % 10 != 0)
-    //     {
-    //         continue;
-    //     }
+        // only update shadow map every 10 ticks
+        if (shadow_map_component.update_counter++ % 10 != 0)
+        {
+            continue;
+        }
 
-    //     switch (light_component.light->GetLightType())
-    //     {
-    //     case LightType::DIRECTIONAL:
-    //     {
-    //         DirectionalLightShadowRenderer* shadow_renderer = static_cast<DirectionalLightShadowRenderer*>(shadow_map_component.subsystem.Get());
+        switch (light_component.light->GetLightType())
+        {
+        case LightType::DIRECTIONAL:
+        {
+            DirectionalLightShadowRenderer* shadow_renderer = static_cast<DirectionalLightShadowRenderer*>(shadow_map_component.subsystem.Get());
 
-    //         const Vec3f& center = transform_component.transform.GetTranslation();
-    //         const Vec3f light_direction = light_component.light->GetPosition().Normalized() * -1.0f;
+            const Vec3f& center = transform_component.transform.GetTranslation();
+            const Vec3f light_direction = light_component.light->GetPosition().Normalized() * -1.0f;
 
-    //         const Handle<Camera>& shadow_camera = shadow_renderer->GetCamera();
+            const Handle<Camera>& shadow_camera = shadow_renderer->GetCamera();
 
-    //         if (!shadow_camera)
-    //         {
-    //             continue;
-    //         }
+            if (!shadow_camera)
+            {
+                continue;
+            }
 
-    //         shadow_camera->SetTranslation(center + light_direction);
-    //         shadow_camera->SetTarget(center);
+            shadow_camera->SetTranslation(center + light_direction);
+            shadow_camera->SetTarget(center);
 
-    //         BoundingBox aabb { center - shadow_map_component.radius, center + shadow_map_component.radius };
+            BoundingBox aabb { center - shadow_map_component.radius, center + shadow_map_component.radius };
 
-    //         FixedArray<Vec3f, 8> corners = aabb.GetCorners();
+            FixedArray<Vec3f, 8> corners = aabb.GetCorners();
 
-    //         for (Vec3f& corner : corners)
-    //         {
-    //             corner = shadow_camera->GetViewMatrix() * corner;
+            for (Vec3f& corner : corners)
+            {
+                corner = shadow_camera->GetViewMatrix() * corner;
 
-    //             aabb.max = MathUtil::Max(aabb.max, corner);
-    //             aabb.min = MathUtil::Min(aabb.min, corner);
-    //         }
+                aabb.max = MathUtil::Max(aabb.max, corner);
+                aabb.min = MathUtil::Min(aabb.min, corner);
+            }
 
-    //         aabb.max.z = shadow_map_component.radius;
-    //         aabb.min.z = -shadow_map_component.radius;
+            aabb.max.z = shadow_map_component.radius;
+            aabb.min.z = -shadow_map_component.radius;
 
-    //         shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
-    //         shadow_renderer->SetAABB(aabb);
+            shadow_renderer->GetCamera()->SetToOrthographicProjection(aabb.min.x, aabb.max.x, aabb.min.y, aabb.max.y, aabb.min.z, aabb.max.z);
+            shadow_renderer->SetAABB(aabb);
 
-    //         break;
-    //     }
-    //     case LightType::POINT:
-    //         // No update needed
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // }
+            break;
+        }
+        case LightType::POINT:
+            // No update needed
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 void ShadowMapUpdaterSystem::AddRenderSubsystemToEnvironment(ShadowMapComponent& shadow_map_component, LightComponent& light_component)
 {
-    if (!GetWorld())
+    AssertThrow(GetWorld() != nullptr);
+
+    AssertThrow(light_component.light->IsReady());
+
+    if (shadow_map_component.subsystem.IsValid())
     {
-        return;
+        GetWorld()->RemoveSubsystem(shadow_map_component.subsystem);
+        shadow_map_component.subsystem.Reset();
     }
 
-    // AssertThrow(light_component.light->IsReady());
+    switch (light_component.light->GetLightType())
+    {
+    case LightType::DIRECTIONAL:
+        shadow_map_component.subsystem = GetWorld()->AddSubsystem<DirectionalLightShadowRenderer>(
+            GetScene()->HandleFromThis(),
+            light_component.light,
+            shadow_map_component.resolution,
+            shadow_map_component.mode);
 
-    // if (shadow_map_component.render_subsystem)
-    // {
-    //     shadow_map_component.render_subsystem->RemoveFromEnvironment();
-    //     shadow_map_component.render_subsystem.Reset();
-    // }
+        break;
+    case LightType::POINT:
+        // shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
+        //     GetScene()->HandleFromThis(),
+        //     TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
+        //     shadow_map_component.resolution);
 
-    // switch (light_component.light->GetLightType())
-    // {
-    // case LightType::DIRECTIONAL:
-    //     shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<DirectionalLightShadowRenderer>(
-    //         Name::Unique("shadow_map_renderer_directional"),
-    //         GetScene()->HandleFromThis(),
-    //         TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
-    //         shadow_map_component.resolution,
-    //         shadow_map_component.mode);
+        break;
+    default:
+        HYP_LOG(Shadows, Error, "Unsupported light type for shadow map");
 
-    //     break;
-    // case LightType::POINT:
-    //     shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
-    //         Name::Unique("shadow_map_renderer_point"),
-    //         GetScene()->HandleFromThis(),
-    //         TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),
-    //         shadow_map_component.resolution);
-
-    //     break;
-    // default:
-    //     HYP_LOG(Shadows, Error, "Unsupported light type for shadow map");
-
-    //     break;
-    // }
+        break;
+    }
 }
 
 } // namespace hyperion

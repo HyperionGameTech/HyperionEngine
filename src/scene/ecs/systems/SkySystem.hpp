@@ -27,8 +27,8 @@ public:
         return true;
     }
 
-    virtual void OnEntityAdded(const Handle<Entity>& entity) override;
-    virtual void OnEntityRemoved(ID<Entity> entity) override;
+    virtual void OnEntityAdded(Entity* entity) override;
+    virtual void OnEntityRemoved(Entity* entity) override;
 
     virtual void Process(float delta) override;
 
@@ -48,7 +48,7 @@ private:
         };
     }
 
-    void AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, const Handle<Entity>& entity, SkyComponent& sky_component, MeshComponent* mesh_component);
+    void AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, Entity* entity, SkyComponent& sky_component, MeshComponent* mesh_component);
 };
 
 } // namespace hyperion

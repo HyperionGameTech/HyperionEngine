@@ -212,7 +212,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (false)
+    if (true)
     {
         Handle<Entity> skybox_entity = scene->GetEntityManager()->AddEntity();
 
@@ -250,7 +250,7 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 0
+#if 1
                 Handle<Node> env_grid_node = scene->GetRoot()->AddChild();
                 env_grid_node->SetName(NAME("EnvGrid2"));
 
