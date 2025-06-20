@@ -8,7 +8,7 @@
 #include <core/math/Quaternion.hpp>
 
 #ifdef HYP_BULLET_PHYSICS
-    #include "btBulletDynamicsCommon.h"
+#include "btBulletDynamicsCommon.h"
 
 namespace hyperion::physics {
 
@@ -124,7 +124,7 @@ void BulletPhysicsAdapter::Teardown(PhysicsWorldBase* world)
     m_collision_configuration = nullptr;
 }
 
-void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, GameCounter::TickUnitHighPrec delta)
+void BulletPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 {
     AssertThrow(m_dynamics_world != nullptr);
 

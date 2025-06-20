@@ -130,7 +130,7 @@ protected:
     void UpdateTextAABB();
     void UpdateRenderData();
 
-    virtual void Update_Internal(GameCounter::TickUnit delta) override;
+    virtual void Update_Internal(float delta) override;
 
     const RC<FontAtlas>& GetFontAtlasOrDefault() const;
 

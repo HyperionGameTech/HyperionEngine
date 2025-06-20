@@ -36,22 +36,22 @@ class HYP_API UIElementFactoryRegistry
 {
     struct FactoryInstance
     {
-        RC<UIElementFactoryBase> (*make_factory_function)(void);
-        RC<UIElementFactoryBase> factory_instance;
+        Handle<UIElementFactoryBase> (*make_factory_function)(void);
+        Handle<UIElementFactoryBase> factory_instance;
     };
 
 public:
     static UIElementFactoryRegistry& GetInstance();
 
     UIElementFactoryBase* GetFactory(TypeID type_id);
-    void RegisterFactory(TypeID type_id, RC<UIElementFactoryBase> (*make_factory_function)(void));
+    void RegisterFactory(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
 
 private:
     TypeMap<FactoryInstance> m_element_factories;
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIElementFactoryBase : public EnableRefCountedPtrFromThis<UIElementFactoryBase>
+class HYP_API UIElementFactoryBase : public HypObject<UIElementFactoryBase>
 {
     HYP_OBJECT_BODY(UIElementFactoryBase);
 
@@ -574,16 +574,16 @@ private:
 struct HYP_API UIElementFactoryRegistrationBase
 {
 protected:
-    RC<UIElementFactoryBase> (*m_make_factory_function)(void);
+    Handle<UIElementFactoryBase> (*m_make_factory_function)(void);
 
-    UIElementFactoryRegistrationBase(TypeID type_id, RC<UIElementFactoryBase> (*make_factory_function)(void));
+    UIElementFactoryRegistrationBase(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
     ~UIElementFactoryRegistrationBase();
 };
 
 template <class T>
 struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
 {
-    UIElementFactoryRegistration(RC<UIElementFactoryBase> (*make_factory_function)(void))
+    UIElementFactoryRegistration(Handle<UIElementFactoryBase> (*make_factory_function)(void))
         : UIElementFactoryRegistrationBase(TypeID::ForType<T>(), make_factory_function)
     {
     }
@@ -594,8 +594,8 @@ struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
 #define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory)                                                \
     static ::hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
     {                                                                                            \
-        []() -> RC<UIElementFactoryBase> {                                                       \
-            return MakeRefCountedPtr<Factory>();                                                 \
+        []() -> Handle<UIElementFactoryBase> {                                                       \
+            return CreateObject<Factory>();                                                 \
         }                                                                                        \
     }
 

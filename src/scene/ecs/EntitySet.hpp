@@ -17,7 +17,6 @@
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntityContainer.hpp>
 #include <scene/ecs/ComponentContainer.hpp>
-#include <scene/ecs/EntitySetBase.hpp>
 
 #include <Types.hpp>
 
@@ -72,8 +71,8 @@ struct EntitySetIterator
         const typename EntitySet<Components...>::Element& element = set.m_elements[index];
 
         return ConcatTuples(
-            MakeTuple(element.first),
-            GetComponents(element.second, std::make_index_sequence<sizeof...(Components)>()));
+            MakeTuple(element.template GetElement<0>()),
+            GetComponents(element.template GetElement<2>(), std::make_index_sequence<sizeof...(Components)>()));
     }
 
     Tuple<ID<Entity>, const Components&...> operator*() const
@@ -102,6 +101,37 @@ private:
 
 template <class... Components>
 struct EntitySetView;
+
+class EntitySetBase
+{
+public:
+    EntitySetBase() = default;
+    EntitySetBase(const EntitySetBase& other) = delete;
+    EntitySetBase& operator=(const EntitySetBase& other) = delete;
+    EntitySetBase(EntitySetBase&& other) noexcept = delete;
+    EntitySetBase& operator=(EntitySetBase&& other) noexcept = delete;
+    virtual ~EntitySetBase() = default;
+
+    virtual SizeType Size() const = 0;
+
+    /*! \brief Checks if an Entity's components are valid for this EntitySet.
+     *
+     *  \param entity The Entity to check.
+     *
+     *  \return True if the Entity's components are valid for this EntitySet, false otherwise.
+     */
+    virtual bool ValidForEntity(ID<Entity> entity) const = 0;
+
+    /*! \brief Removes the given Entity from this EntitySet.
+     *
+     *  \param entity The Entity to remove.
+     */
+    virtual void RemoveEntity(ID<Entity> entity) = 0;
+
+    /*! \brief To be used by the EntityManager
+        \note Do not call this function directly. */
+    virtual void OnEntityUpdated(ID<Entity> id) = 0;
+};
 
 /*! \brief A set of entities with a specific set of components.
  *
@@ -198,7 +228,7 @@ public:
 
             EntityData& entity_data = m_entities.GetEntityData(id);
 
-            m_elements.PushBack({ id, entity_data.type_id, { entity_data.template GetComponentID<Components>()... } });
+            m_elements.EmplaceBack(id, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentID<Components>()... });
         }
         else
         {

@@ -278,7 +278,7 @@ void UIStage::AddChildUIObject(const Handle<UIObject>& ui_object)
     }
 }
 
-void UIStage::Update_Internal(GameCounter::TickUnit delta)
+void UIStage::Update_Internal(float delta)
 {
     HYP_SCOPE;
     AssertOnOwnerThread();

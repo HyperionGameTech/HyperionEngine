@@ -151,12 +151,6 @@ Scene::Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags
       m_previous_delta(0.01667f),
       m_render_resource(nullptr)
 {
-    // Disable command execution if not on game thread
-    if (m_owner_thread_id != g_game_thread)
-    {
-        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
-    }
-
     m_root = CreateObject<Node>(NAME("<ROOT>"), Handle<Entity>::empty, Transform::identity, this);
 }
 
@@ -252,6 +246,7 @@ void Scene::Init()
     // (OnEntityAdded() calls on Systems may require this)
     SetReady(true);
 
+    InitObject(m_root);
     InitObject(m_entity_manager);
 }
 
@@ -264,15 +259,6 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
 
     m_owner_thread_id = owner_thread_id;
     m_entity_manager->SetOwnerThreadID(owner_thread_id);
-
-    if (m_owner_thread_id == g_game_thread)
-    {
-        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() | EntityManagerCommandQueueFlags::EXEC_COMMANDS);
-    }
-    else
-    {
-        m_entity_manager->GetCommandQueue().SetFlags(m_entity_manager->GetCommandQueue().GetFlags() & ~EntityManagerCommandQueueFlags::EXEC_COMMANDS);
-    }
 }
 
 const Handle<Camera>& Scene::GetPrimaryCamera() const
@@ -347,7 +333,7 @@ Handle<Node> Scene::FindNodeByName(WeakName name) const
     return m_root->FindChildByName(name);
 }
 
-void Scene::Update(GameCounter::TickUnit delta)
+void Scene::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(m_owner_thread_id);
@@ -362,11 +348,6 @@ void Scene::Update(GameCounter::TickUnit delta)
         // stored on VisibilityStateComponent.
         m_octree.PerformUpdates();
         m_octree.NextVisibilityState();
-    }
-
-    if (IsForegroundScene())
-    {
-        m_entity_manager->FlushCommandQueue(delta);
     }
 }
 

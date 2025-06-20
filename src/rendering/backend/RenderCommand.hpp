@@ -208,6 +208,11 @@ public:
     static RenderCommandSemaphore s_semaphore;
 
 public:
+    HYP_FORCE_INLINE static void SwapBuffers()
+    {
+        s_buffer_index.Increment(1, MemoryOrder::RELEASE);
+    }
+
     /*! \brief Push a render command to the render command queue.
         \details The render command will be executed in the render thread.
 

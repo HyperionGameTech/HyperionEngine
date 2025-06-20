@@ -55,14 +55,20 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
         const HypClassDefinition& hyp_class = pair.second;
 
         const bool is_component = hyp_class.HasAttribute("component");
+        const bool is_entity = mod.HasBaseClass(hyp_class, "Entity");
         const bool has_scriptable_methods = hyp_class.HasScriptableMethods();
 
         const HypClassAttributeValue& struct_size_attribute_value = hyp_class.GetAttribute("size");
         const HypClassAttributeValue& post_load_attribute_value = hyp_class.GetAttribute("postload");
 
-        if (is_component)
+        if (is_component || is_entity)
         {
             writer.WriteString("#include <scene/ecs/ComponentInterface.hpp>\n");
+        }
+
+        if (is_entity)
+        {
+            writer.WriteString("#include <scene/ecs/EntityTag.hpp>\n");
         }
 
         if (has_scriptable_methods)
@@ -318,6 +324,11 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
         if (is_component)
         {
             writer.WriteString(HYP_FORMAT("HYP_REGISTER_COMPONENT({});\n", hyp_class.name));
+        }
+
+        if (is_entity)
+        {
+            writer.WriteString(HYP_FORMAT("HYP_REGISTER_ENTITY_TYPE({});\n", hyp_class.name));
         }
 
         if (struct_size_attribute_value.IsValid())

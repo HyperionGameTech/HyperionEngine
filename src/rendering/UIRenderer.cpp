@@ -14,6 +14,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Renderer.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/font/FontAtlas.hpp>
 
@@ -63,6 +64,31 @@ struct alignas(16) UIEntityInstanceBatch : EntityInstanceBatch
 static_assert(sizeof(UIEntityInstanceBatch) == 6976);
 
 #pragma region Render commands
+
+struct RENDER_COMMAND(SetFinalPassImageView)
+    : renderer::RenderCommand
+{
+    ImageViewRef image_view;
+
+    RENDER_COMMAND(SetFinalPassImageView)(const ImageViewRef& image_view)
+        : image_view(image_view)
+    {
+    }
+
+    virtual ~RENDER_COMMAND(SetFinalPassImageView)() override = default;
+
+    virtual RendererResult operator()() override
+    {
+        if (!image_view)
+        {
+            image_view = g_render_global_state->PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView();
+        }
+
+        g_engine->GetFinalPass()->SetUILayerImageView(image_view);
+
+        HYPERION_RETURN_OK;
+    }
+};
 
 struct RENDER_COMMAND(RebuildProxyGroups_UI)
     : renderer::RenderCommand
@@ -272,6 +298,48 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     }
 };
 
+struct RENDER_COMMAND(RenderUI)
+    : renderer::RenderCommand
+{
+    RenderWorld* world;
+    RenderView* view;
+    FramebufferRef framebuffer;
+    UIRenderCollector& render_collector;
+
+    RENDER_COMMAND(RenderUI)(RenderWorld* world, RenderView* view, const FramebufferRef& framebuffer, UIRenderCollector& render_collector)
+        : world(world),
+          view(view),
+          framebuffer(framebuffer),
+          render_collector(render_collector)
+    {
+        AssertThrow(world != nullptr);
+        AssertThrow(view != nullptr);
+
+        // world->IncRef();
+        // view->IncRef();
+    }
+
+    virtual ~RENDER_COMMAND(RenderUI)() override
+    {
+        world->DecRef();
+        view->DecRef();
+    }
+
+    virtual RendererResult operator()() override
+    {
+        HYP_NAMED_SCOPE("Render UI");
+
+        FrameBase* frame = g_rendering_api->GetCurrentFrame();
+
+        RenderSetup render_setup { world, view };
+
+        render_collector.CollectDrawCalls(frame, render_setup);
+        render_collector.ExecuteDrawCalls(frame, render_setup, framebuffer);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
 #pragma endregion Render commands
 
 #pragma region UIRenderCollector
@@ -427,14 +495,14 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 
 #pragma region UIRenderSubsystem
 
-UIRenderSubsystem::UIRenderSubsystem(Name name, const Handle<UIStage>& ui_stage)
-    : RenderSubsystem(name),
-      m_ui_stage(ui_stage)
+UIRenderSubsystem::UIRenderSubsystem(const Handle<UIStage>& ui_stage)
+    : m_ui_stage(ui_stage)
 {
 }
 
 UIRenderSubsystem::~UIRenderSubsystem()
 {
+    HYP_SYNC_RENDER();
 }
 
 void UIRenderSubsystem::Init()
@@ -444,9 +512,9 @@ void UIRenderSubsystem::Init()
     struct RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)
         : renderer::RenderCommand
     {
-        RC<UIRenderSubsystem> ui_render_subsystem;
+        UIRenderSubsystem* ui_render_subsystem;
 
-        RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)(const RC<UIRenderSubsystem>& ui_render_subsystem)
+        RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)(UIRenderSubsystem* ui_render_subsystem)
             : ui_render_subsystem(ui_render_subsystem)
         {
             AssertThrow(ui_render_subsystem != nullptr);
@@ -462,13 +530,13 @@ void UIRenderSubsystem::Init()
         }
     };
 
-    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakRefCountedPtrFromThis()]()
+    m_on_gbuffer_resolution_changed_handle = g_engine->GetDelegates().OnAfterSwapchainRecreated.Bind([weak_this = WeakHandleFromThis()]()
         {
             Threads::AssertOnThread(g_render_thread);
 
             HYP_LOG(UI, Debug, "UIRenderSubsystem: resizing to {}", g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
 
-            RC<UIRenderSubsystem> subsystem = weak_this.Lock().CastUnsafe<UIRenderSubsystem>();
+            Handle<UIRenderSubsystem> subsystem = weak_this.Lock().Cast<UIRenderSubsystem>();
 
             if (!subsystem)
             {
@@ -477,7 +545,7 @@ void UIRenderSubsystem::Init()
                 return;
             }
 
-            g_engine->GetFinalPass()->SetUILayerImageView(g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+            PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
             SafeRelease(std::move(subsystem->m_framebuffer));
 
@@ -497,41 +565,36 @@ void UIRenderSubsystem::Init()
         .camera = m_ui_stage->GetCamera() });
     InitObject(m_view);
 
-    m_render_view = TResourceHandle<RenderView>(m_view->GetRenderResource());
-
-    PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, RefCountedPtrFromThis().CastUnsafe<UIRenderSubsystem>());
+    PUSH_RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer, this);
 }
 
-// called from game thread
-void UIRenderSubsystem::InitGame()
+void UIRenderSubsystem::OnAddedToWorld()
 {
+    HYP_SCOPE;
 }
 
-void UIRenderSubsystem::OnRemoved()
+void UIRenderSubsystem::OnRemovedFromWorld()
 {
-    m_render_view.Reset();
     m_view.Reset();
 
-    g_engine->GetFinalPass()->SetUILayerImageView(g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+    PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
     SafeRelease(std::move(m_framebuffer));
 
     m_on_gbuffer_resolution_changed_handle.Reset();
 }
 
-void UIRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
+void UIRenderSubsystem::Update(float delta)
 {
-    // do nothing
-}
+    g_engine->GetWorld()->GetRenderResource().IncRef();
+    m_view->GetRenderResource().IncRef();
 
-void UIRenderSubsystem::OnRender(FrameBase* frame, const RenderSetup&)
-{
-    HYP_SCOPE;
-
-    const RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), m_render_view.Get() };
-
-    m_render_collector.CollectDrawCalls(frame, render_setup);
-    m_render_collector.ExecuteDrawCalls(frame, render_setup, m_framebuffer);
+    PUSH_RENDER_COMMAND(
+        RenderUI,
+        &g_engine->GetWorld()->GetRenderResource(),
+        &m_view->GetRenderResource(),
+        m_framebuffer,
+        m_render_collector);
 }
 
 void UIRenderSubsystem::CreateFramebuffer()
@@ -541,7 +604,7 @@ void UIRenderSubsystem::CreateFramebuffer()
 
     const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
 
-    m_render_view->SetViewport(Viewport {
+    m_view->SetViewport(Viewport {
         .extent = surface_size,
         .position = Vec2i::Zero() });
 
@@ -565,12 +628,22 @@ void UIRenderSubsystem::CreateFramebuffer()
 
     m_camera_resource_handle->SetFramebuffer(m_framebuffer);
 
-    m_ui_stage->GetScene()->GetEntityManager()->PushCommand([ui_stage = m_ui_stage, surface_size](EntityManager& mgr, GameCounter::TickUnit delta)
-        {
-            ui_stage->SetSurfaceSize(surface_size);
-        });
+    const ThreadID owner_thread_id = m_ui_stage->GetScene()->GetEntityManager()->GetOwnerThreadID();
 
-    g_engine->GetFinalPass()->SetUILayerImageView(color_attachment->GetImageView());
+    if (Threads::IsOnThread(owner_thread_id))
+    {
+        m_ui_stage->SetSurfaceSize(surface_size);
+    }
+    else
+    {
+        Threads::GetThread(owner_thread_id)->GetScheduler().Enqueue([ui_stage = m_ui_stage, surface_size]()
+            {
+                ui_stage->SetSurfaceSize(surface_size);
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
+    }
+
+    PUSH_RENDER_COMMAND(SetFinalPassImageView, color_attachment->GetImageView());
 }
 
 #pragma endregion UIRenderSubsystem

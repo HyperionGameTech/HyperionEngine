@@ -37,7 +37,7 @@ void UISubsystem::OnAddedToWorld()
 
     InitObject(m_ui_stage);
 
-    m_ui_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<UIRenderSubsystem>(Name::Unique("UIRenderSubsystem"), m_ui_stage);
+    m_ui_render_subsystem = GetWorld()->AddSubsystem<UIRenderSubsystem>(m_ui_stage);
 }
 
 void UISubsystem::OnRemovedFromWorld()
@@ -46,12 +46,11 @@ void UISubsystem::OnRemovedFromWorld()
 
     if (m_ui_render_subsystem != nullptr)
     {
-        m_ui_render_subsystem->RemoveFromEnvironment();
-        m_ui_render_subsystem.Reset();
+        GetWorld()->RemoveSubsystem(m_ui_render_subsystem);
     }
 }
 
-void UISubsystem::PreUpdate(GameCounter::TickUnit delta)
+void UISubsystem::PreUpdate(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
@@ -59,18 +58,13 @@ void UISubsystem::PreUpdate(GameCounter::TickUnit delta)
     m_ui_stage->Update(delta);
 }
 
-void UISubsystem::Update(GameCounter::TickUnit delta)
+void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     AssertThrow(m_ui_stage != nullptr);
     AssertThrow(m_ui_render_subsystem != nullptr);
-
-    if (!m_ui_render_subsystem->IsInitialized())
-    {
-        return;
-    }
 
     UIRenderCollector& render_collector = m_ui_render_subsystem->GetRenderCollector();
     render_collector.ResetOrdering();

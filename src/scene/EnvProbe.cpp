@@ -8,6 +8,7 @@
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/RenderWorld.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -23,6 +24,41 @@
 
 namespace hyperion {
 
+#pragma region Render commands
+
+struct RENDER_COMMAND(RenderPointLightShadow)
+    : renderer::RenderCommand
+{
+    RenderWorld* world;
+    RenderEnvProbe* env_probe;
+
+    RENDER_COMMAND(RenderPointLightShadow)(RenderWorld* world, RenderEnvProbe* env_probe)
+        : world(world),
+          env_probe(env_probe)
+    {
+        // world->IncRef();
+        // env_probe->IncRef();
+    }
+
+    virtual ~RENDER_COMMAND(RenderPointLightShadow)() override
+    {
+        world->DecRef();
+        env_probe->DecRef();
+    }
+
+    virtual RendererResult operator()() override
+    {
+        FrameBase* frame = g_rendering_api->GetCurrentFrame();
+        RenderSetup render_setup { world, nullptr };
+
+        env_probe->Render(frame, render_setup);
+
+        HYPERION_RETURN_OK;
+    }
+};
+
+#pragma endregion Render commands
+
 EnvProbe::EnvProbe()
     : EnvProbe(BoundingBox::Empty(), Vec2u { 1, 1 }, EnvProbeType::INVALID)
 {
@@ -34,7 +70,6 @@ EnvProbe::EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeTyp
       m_env_probe_type(env_probe_type),
       m_camera_near(0.05f),
       m_camera_far(aabb.GetRadius()),
-      m_needs_update(true),
       m_needs_render_counter(0),
       m_render_resource(nullptr)
 {
@@ -217,7 +252,7 @@ void EnvProbe::SetOrigin(const Vec3f& origin)
     Invalidate();
 }
 
-void EnvProbe::Update(GameCounter::TickUnit delta)
+void EnvProbe::Update(float delta)
 {
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
@@ -290,6 +325,13 @@ void EnvProbe::Update(GameCounter::TickUnit delta)
         | EnvProbeFlags::DIRTY;
 
     m_render_resource->SetBufferData(buffer_data);
+
+    if (IsShadowProbe())
+    {
+        GetWorld()->GetRenderResource().IncRef();
+        m_render_resource->IncRef();
+        PUSH_RENDER_COMMAND(RenderPointLightShadow, &GetWorld()->GetRenderResource(), m_render_resource);
+    }
 }
 
 } // namespace hyperion

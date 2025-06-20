@@ -91,7 +91,7 @@ public:
         while (state & read_mask)
         {
             state = m_rw_marker.Get(MemoryOrder::ACQUIRE);
-            Threads::Sleep(0);
+            HYP_WAIT_IDLE();
         }
 
         const int id = ++m_redirect_id_counter;
@@ -120,7 +120,7 @@ public:
         while (state & read_mask)
         {
             state = m_rw_marker.Get(MemoryOrder::ACQUIRE);
-            Threads::Sleep(0);
+            HYP_WAIT_IDLE();
         }
 
         auto it = m_redirects.Find(id);
@@ -165,7 +165,7 @@ public:
         {
             m_rw_marker.Decrement(2, MemoryOrder::RELAXED);
             // wait for write flag to be released
-            Threads::Sleep(0);
+            HYP_WAIT_IDLE();
         }
 
         void* context = m_contexts[channel_ptr->GetID()];
@@ -208,7 +208,7 @@ public:
         {
             m_rw_marker.Decrement(2, MemoryOrder::RELAXED);
             // wait for write flag to be released
-            Threads::Sleep(0);
+            HYP_WAIT_IDLE();
         }
 
         void* context = m_contexts[channel_ptr->GetID()];

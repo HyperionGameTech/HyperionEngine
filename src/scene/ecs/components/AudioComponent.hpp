@@ -77,7 +77,7 @@ struct AudioComponent
     Vec3f last_position;
 
     HYP_FIELD()
-    GameCounter::TickUnit timer = 0.0f;
+    float timer = 0.0f;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

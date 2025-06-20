@@ -41,6 +41,19 @@ struct EntityData
         return (HasComponent<Components>() && ...);
     }
 
+    HYP_FORCE_INLINE bool HasComponents(Span<const TypeID> component_type_ids) const
+    {
+        for (const TypeID& type_id : component_type_ids)
+        {
+            if (!components.Contains(type_id))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     template <class Component>
     HYP_FORCE_INLINE ComponentID GetComponentID() const
     {
@@ -100,13 +113,14 @@ struct EntityData
     }
 };
 
+HYP_DISABLE_OPTIMIZATION;
 class EntityContainer
 {
 public:
     using Iterator = HashMap<WeakHandle<Entity>, EntityData>::Iterator;
     using ConstIterator = HashMap<WeakHandle<Entity>, EntityData>::ConstIterator;
 
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle)
+    void Add(const Handle<Entity>& handle)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -114,23 +128,7 @@ public:
         AssertThrow(it.second);
     }
 
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle, const EntityData& entity_data)
-    {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        auto it = m_entities.Insert(handle.ToWeak(), entity_data);
-        AssertThrow(it.second);
-    }
-
-    HYP_FORCE_INLINE void AddEntity(const Handle<Entity>& handle, EntityData&& entity_data)
-    {
-        HYP_MT_CHECK_RW(m_data_race_detector);
-
-        auto it = m_entities.Insert(handle.ToWeak(), std::move(entity_data));
-        AssertThrow(it.second);
-    }
-
-    HYP_FORCE_INLINE EntityData* TryGetEntityData(ID<Entity> id)
+    EntityData* TryGetEntityData(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -139,7 +137,7 @@ public:
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    HYP_FORCE_INLINE const EntityData* TryGetEntityData(ID<Entity> id) const
+    const EntityData* TryGetEntityData(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -148,7 +146,7 @@ public:
         return it != m_entities.End() ? &it->second : nullptr;
     }
 
-    HYP_FORCE_INLINE EntityData& GetEntityData(ID<Entity> id)
+    EntityData& GetEntityData(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -158,7 +156,7 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE const EntityData& GetEntityData(ID<Entity> id) const
+    const EntityData& GetEntityData(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -168,49 +166,49 @@ public:
         return it->second;
     }
 
-    HYP_FORCE_INLINE Iterator Find(const Handle<Entity>& entity)
+    Iterator Find(const Handle<Entity>& entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(const Handle<Entity>& entity) const
+    ConstIterator Find(const Handle<Entity>& entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(entity);
     }
 
-    HYP_FORCE_INLINE Iterator Find(const WeakHandle<Entity>& entity)
+    Iterator Find(const WeakHandle<Entity>& entity)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.Find(entity);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(const WeakHandle<Entity>& entity) const
+    ConstIterator Find(const WeakHandle<Entity>& entity) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.Find(entity);
     }
 
-    HYP_FORCE_INLINE Iterator Find(ID<Entity> id)
+    Iterator Find(ID<Entity> id)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(id);
     }
 
-    HYP_FORCE_INLINE ConstIterator Find(ID<Entity> id) const
+    ConstIterator Find(ID<Entity> id) const
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
         return m_entities.FindAs(id);
     }
 
-    HYP_FORCE_INLINE void Erase(ConstIterator it)
+    void Erase(ConstIterator it)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 
@@ -224,6 +222,7 @@ private:
 
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
+HYP_ENABLE_OPTIMIZATION;
 
 } // namespace hyperion
 

@@ -149,6 +149,8 @@ private:
 
         if (asset.IsValid())
         {
+            asset.OnPostLoad();
+
             if (callbacks)
             {
                 callbacks->OnItemComplete(AssetBatchCallbackData(key, &asset));

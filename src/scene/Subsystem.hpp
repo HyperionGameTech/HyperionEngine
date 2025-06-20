@@ -42,8 +42,8 @@ public:
 
     virtual void OnAddedToWorld() = 0;
     virtual void OnRemovedFromWorld() = 0;
-    virtual void PreUpdate(GameCounter::TickUnit delta) { }
-    virtual void Update(GameCounter::TickUnit delta) = 0;
+    virtual void PreUpdate(float delta) { }
+    virtual void Update(float delta) = 0;
     virtual void OnSceneAttached(const Handle<Scene>& scene) { };
     virtual void OnSceneDetached(const Handle<Scene>& scene) { };
 

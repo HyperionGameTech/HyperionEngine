@@ -16,10 +16,6 @@ template <class T>
 struct SerializationWrapper
 {
     using Type = std::conditional_t<std::is_base_of_v<HypObjectBase, T>, Handle<T>, T>;
-
-    static void OnPostLoad(const Type& value)
-    {
-    }
 };
 
 template <class T>
@@ -38,10 +34,6 @@ template <class T>
 struct SerializationWrapper<RC<T>>
 {
     using Type = RC<T>;
-
-    static void OnPostLoad(const Type& value)
-    {
-    }
 };
 
 template <class T>
@@ -54,8 +46,6 @@ template <>
 struct SerializationWrapper<Node>
 {
     using Type = Handle<Node>;
-
-    HYP_API static void OnPostLoad(const Type& value);
 };
 
 template <>

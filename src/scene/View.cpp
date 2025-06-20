@@ -16,7 +16,6 @@
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
-#include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/SkyComponent.hpp>
@@ -141,7 +140,7 @@ void View::UpdateVisibility()
     }
 }
 
-void View::Update(GameCounter::TickUnit delta)
+void View::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -603,18 +602,19 @@ void View::CollectEnvGrids()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity_id, env_grid_component] : scene->GetEntityManager()->GetEntitySet<EnvGridComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity_id, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!env_grid_component.env_grid.IsValid())
-            {
-                continue;
-            }
+            // @TODO Store pointer to Entity rather than ID so we don't need to lock the handle
+            Handle<Entity> entity { entity_id };
+            AssertDebug(entity->IsInstanceOf<EnvGrid>());
 
-            const BoundingBox& grid_aabb = env_grid_component.env_grid->GetAABB();
+            Handle<EnvGrid> env_grid = entity.Cast<EnvGrid>();
+
+            const BoundingBox& grid_aabb = env_grid->GetAABB();
 
             if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid_component.env_grid->GetID().Value(), GetID().Value());
+                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid->GetID().Value(), GetID().Value());
 
                 continue;
             }
@@ -624,7 +624,7 @@ void View::CollectEnvGrids()
                 continue;
             }
 
-            m_tracked_env_grids.Track(env_grid_component.env_grid->GetID(), &env_grid_component.env_grid->GetRenderResource());
+            m_tracked_env_grids.Track(env_grid->GetID(), &env_grid->GetRenderResource());
         }
     }
 
@@ -676,12 +676,12 @@ void View::CollectEnvProbes()
 
         for (auto [entity_id, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!sky_component.render_subsystem)
+            if (!sky_component.subsystem.IsValid())
             {
                 continue;
             }
 
-            if (!sky_component.render_subsystem->GetEnvProbe().IsValid() || !sky_component.render_subsystem->GetEnvProbe()->IsReady())
+            if (!sky_component.subsystem->GetEnvProbe().IsValid() || !sky_component.subsystem->GetEnvProbe()->IsReady())
             {
                 HYP_LOG(Scene, Warning, "Sky component in scene {} does not have a valid EnvProbe in view {}", scene->GetID().Value(), GetID().Value());
 
@@ -690,8 +690,8 @@ void View::CollectEnvProbes()
 
             ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
             m_tracked_env_probes.Track(
-                sky_component.render_subsystem->GetEnvProbe()->GetID(),
-                &sky_component.render_subsystem->GetEnvProbe()->GetRenderResource(),
+                sky_component.subsystem->GetEnvProbe()->GetID(),
+                &sky_component.subsystem->GetEnvProbe()->GetRenderResource(),
                 &track_state);
         }
     }

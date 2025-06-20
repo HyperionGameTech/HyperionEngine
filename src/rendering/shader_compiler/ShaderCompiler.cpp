@@ -680,20 +680,20 @@ static ByteBuffer CompileToSPIRV(
         return ByteBuffer();
     }
 
+#if 1
     glslang::TProgram* cpp_program = glslang_get_cpp_program(program);
     if (!cpp_program->buildReflection())
     {
         GLSL_ERROR(Error, "Failed to build shader reflection!");
     }
+#endif
 
     glslang_spv_options_t spv_options {};
     spv_options.disable_optimizer = false;
     spv_options.validate = true;
 
     glslang_program_SPIRV_generate_with_options(program, stage, &spv_options);
-
-    // @TODO Add info from descriptor usages
-
+#if 1
     for (int i = 0; i < cpp_program->getNumUniformBlocks(); i++)
     {
         const auto& uniform_block = cpp_program->getUniformBlock(i);
@@ -738,6 +738,7 @@ static ByteBuffer CompileToSPIRV(
             descriptor_usage->type.size = uniform_block.size;
         }
     }
+#endif
 
     ByteBuffer shader_module(glslang_program_SPIRV_get_size(program) * sizeof(uint32));
     glslang_program_SPIRV_get(program, reinterpret_cast<uint32*>(shader_module.Data()));

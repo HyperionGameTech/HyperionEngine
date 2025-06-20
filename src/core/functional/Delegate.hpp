@@ -440,7 +440,7 @@ public:
             while (state & g_read_mask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
-                Threads::Sleep(0);
+                HYP_WAIT_IDLE();
             }
 
             if (current->IsMarkedForRemoval())
@@ -524,7 +524,7 @@ public:
             while (state & g_read_mask)
             {
                 state = current->mask.Get(MemoryOrder::ACQUIRE);
-                Threads::Sleep(0);
+                HYP_WAIT_IDLE();
             }
 
             if (current->IsMarkedForRemoval())
@@ -643,7 +643,7 @@ protected:
         {
             entry->mask.Decrement(2, MemoryOrder::RELAXED);
             // wait for write flag to be released
-            Threads::Sleep(0);
+            HYP_WAIT_IDLE();
         }
 
         entry->MarkForRemoval();

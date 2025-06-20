@@ -16,7 +16,7 @@
 
 namespace hyperion {
 
-class RenderEnvProbe;
+class EnvProbe;
 
 HYP_CLASS(NoScriptBindings)
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem
@@ -24,9 +24,7 @@ class HYP_API ReflectionProbeRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(ReflectionProbeRenderer);
 
 public:
-    ReflectionProbeRenderer(
-        Name name,
-        const TResourceHandle<RenderEnvProbe>& env_probe);
+    ReflectionProbeRenderer(Name name, const Handle<EnvProbe>& env_probe);
 
     ReflectionProbeRenderer(const ReflectionProbeRenderer& other) = delete;
     ReflectionProbeRenderer& operator=(const ReflectionProbeRenderer& other) = delete;
@@ -34,14 +32,10 @@ public:
 
 private:
     virtual void Init() override;
-    virtual void InitGame() override; // init on game thread
     virtual void OnRemoved() override;
-    virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void OnUpdate(float delta) override;
 
-    TResourceHandle<RenderEnvProbe> m_env_render_probe;
-
-    bool m_last_visibility_state = false;
+    Handle<EnvProbe> m_env_probe;
 };
 
 } // namespace hyperion

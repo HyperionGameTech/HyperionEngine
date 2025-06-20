@@ -203,7 +203,7 @@ void EditorCameraController::UpdateLogic(double delta)
     m_camera->SetNextTranslation(translation);
 }
 
-void EditorCameraController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
+void EditorCameraController::RespondToCommand(const CameraCommand& command, float dt)
 {
     HYP_SCOPE;
 

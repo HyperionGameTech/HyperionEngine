@@ -24,7 +24,7 @@ public:
     HyperionEditor& operator=(HyperionEditor&& other) noexcept = delete;
     virtual ~HyperionEditor() override;
 
-    virtual void Logic(GameCounter::TickUnit delta) override;
+    virtual void Logic(float delta) override;
     virtual void OnInputEvent(const SystemEvent& event) override;
 
 protected:

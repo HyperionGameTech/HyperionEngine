@@ -356,7 +356,7 @@ void AssetManager::Init()
     SetReady(true);
 }
 
-void AssetManager::Update(GameCounter::TickUnit delta)
+void AssetManager::Update(float delta)
 {
     HYP_SCOPE;
 

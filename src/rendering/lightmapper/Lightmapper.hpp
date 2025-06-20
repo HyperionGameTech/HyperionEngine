@@ -351,7 +351,7 @@ public:
     bool IsComplete() const;
 
     void PerformLightmapping();
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
     Delegate<void> OnComplete;
 

@@ -63,13 +63,13 @@ public:
         m_app_context = app_context;
     }
 
-    virtual void Update(GameCounter::TickUnit delta) final;
+    virtual void Update(float delta) final;
     virtual void HandleEvent(SystemEvent&& event) final;
     
 protected:
     virtual void Init() override;
     
-    virtual void Logic(GameCounter::TickUnit delta) = 0;
+    virtual void Logic(float delta) = 0;
     virtual void OnInputEvent(const SystemEvent& event);
 
     const Handle<UISubsystem>& GetUISubsystem() const

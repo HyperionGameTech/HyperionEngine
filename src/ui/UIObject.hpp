@@ -526,7 +526,7 @@ public:
     UIObject& operator=(UIObject&& other) noexcept = delete;
     virtual ~UIObject();
 
-    virtual void Update(GameCounter::TickUnit delta) final;
+    virtual void Update(float delta) final;
 
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
@@ -1291,7 +1291,7 @@ protected:
 
     virtual void SetFocusState_Internal(EnumFlags<UIObjectFocusState> focus_state);
 
-    virtual void Update_Internal(GameCounter::TickUnit delta);
+    virtual void Update_Internal(float delta);
 
     virtual void OnAttached_Internal(UIObject* parent);
     virtual void OnRemoved_Internal();

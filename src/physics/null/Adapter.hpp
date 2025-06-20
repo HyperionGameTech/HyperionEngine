@@ -15,7 +15,7 @@ public:
 
     void Init(PhysicsWorldBase* world);
     void Teardown(PhysicsWorldBase* world);
-    void Tick(PhysicsWorldBase* world, GameCounter::TickUnitHighPrec delta);
+    void Tick(PhysicsWorldBase* world, double delta);
 
     void OnRigidBodyAdded(const Handle<RigidBody>& rigid_body);
     void OnRigidBodyRemoved(const Handle<RigidBody>& rigid_body);

@@ -499,7 +499,7 @@ Material::TextureSet UIText::GetMaterialTextures() const
     };
 }
 
-void UIText::Update_Internal(GameCounter::TickUnit delta)
+void UIText::Update_Internal(float delta)
 {
     HYP_SCOPE;
 

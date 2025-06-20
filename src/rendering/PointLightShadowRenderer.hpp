@@ -31,34 +31,25 @@ class HYP_API PointLightShadowRenderer : public RenderSubsystem
     HYP_OBJECT_BODY(PointLightShadowRenderer);
 
 public:
-    PointLightShadowRenderer(
-        Name name,
-        const Handle<Scene>& parent_scene,
-        const TResourceHandle<RenderLight>& render_light,
-        const Vec2u& extent);
+    PointLightShadowRenderer(Name name, const Handle<Scene>& parent_scene, const Handle<Light>& light, const Vec2u& extent);
 
     PointLightShadowRenderer(const PointLightShadowRenderer& other) = delete;
     PointLightShadowRenderer& operator=(const PointLightShadowRenderer& other) = delete;
     virtual ~PointLightShadowRenderer() override;
 
+    virtual void OnRemoved() override;
+    virtual void OnUpdate(float delta) override;
+
 private:
     virtual void Init() override;
-    virtual void InitGame() override; // init on game thread
-    virtual void OnRemoved() override;
-    virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
 
     Handle<Scene> m_parent_scene;
-    TResourceHandle<RenderLight> m_render_light;
+    Handle<Light> m_light;
     Vec2u m_extent;
     BoundingBox m_aabb;
     Handle<EnvProbe> m_env_probe;
 
-    TResourceHandle<RenderScene> m_render_scene;
-
     TResourceHandle<RenderShadowMap> m_shadow_map;
-
-    bool m_last_visibility_state = false;
 };
 
 } // namespace hyperion

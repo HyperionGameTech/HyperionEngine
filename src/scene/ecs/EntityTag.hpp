@@ -5,12 +5,15 @@
 
 #include <core/Defines.hpp>
 
+#include <core/utilities/TypeID.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
 
-HYP_ENUM()
-enum class EntityTag : uint32
+class Entity;
+
+enum class EntityTag : uint64
 {
     NONE,
 
@@ -24,6 +27,8 @@ enum class EntityTag : uint32
     CAMERA_PRIMARY,
 
     LIGHTMAP_ELEMENT, /* Has an entry in a LightmapVolume - See MeshComponent lightmap_* fields */
+
+    RECEIVES_UPDATE,
 
     DESCRIPTOR_MAX, // Maximum value used for things like Octree entry hashes.
 
@@ -39,11 +44,44 @@ enum class EntityTag : uint32
     UPDATE_VISIBILITY_STATE,
     UPDATE_CAMERA_TRANSFORM,
     UPDATE_ENV_GRID_TRANSFORM,
-    UPDATE_ENV_GRID,
     UPDATE_ENV_PROBE_TRANSFORM,
 
-    MAX
+    TYPE_ID = (uint64(1) << 31),            // Flag to indicate that this EntityTag is a TypeID tag
+    TYPE_ID_MASK = uint64(0xFFFFFFFF) << 32 // Mask to get TypeID from EntityTag
 };
+
+static constexpr inline bool IsTypeIDEntityTag(EntityTag tag)
+{
+    return tag == EntityTag::TYPE_ID;
+}
+
+static constexpr inline TypeID GetTypeIDFromEntityTag(EntityTag tag)
+{
+    if (!IsTypeIDEntityTag(tag))
+    {
+        return TypeID::Void();
+    }
+
+    return TypeID(static_cast<uint64>(tag) >> 32);
+}
+
+template <class T>
+struct EntityTagTypeID
+{
+    static constexpr EntityTag value = (std::is_void_v<T> || std::is_same_v<T, Entity>)
+        ? EntityTag::TYPE_ID
+        : EntityTag((static_cast<uint64>(TypeID::ForType<T>().Value()) << 32) | uint64(EntityTag::TYPE_ID));
+};
+
+static constexpr inline EntityTag MakeEntityTagFromTypeID(TypeID type_id)
+{
+    if (type_id == TypeID::Void() || type_id == TypeID::ForType<Entity>())
+    {
+        return EntityTag::TYPE_ID;
+    }
+
+    return EntityTag((static_cast<uint64>(type_id.Value()) << 32) | uint64(EntityTag::TYPE_ID));
+}
 
 /*! \brief An EntityTag is a special component that is used to tag an entity with a specific flag.
  *
@@ -54,6 +92,13 @@ struct EntityTagComponent
 {
     static constexpr EntityTag value = Tag;
 };
+
+/*! \brief A helper used to query for Entity instances with a specific type.
+ *
+ *  \tparam T The type of Entity
+ */
+template <class T>
+using EntityType = EntityTagComponent<EntityTagTypeID<T>::value>;
 
 } // namespace hyperion
 

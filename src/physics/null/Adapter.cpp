@@ -21,7 +21,7 @@ void NullPhysicsAdapter::Teardown(PhysicsWorldBase* world)
 {
 }
 
-void NullPhysicsAdapter::Tick(PhysicsWorldBase* world, GameCounter::TickUnitHighPrec delta)
+void NullPhysicsAdapter::Tick(PhysicsWorldBase* world, double delta)
 {
 }
 

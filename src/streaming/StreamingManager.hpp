@@ -68,7 +68,7 @@ public:
 
     void Start();
     void Stop();
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
 private:
     void Init() override;

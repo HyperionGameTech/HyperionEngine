@@ -35,7 +35,7 @@ public:
         GetDerivedAdapter()->DerivedAdapter::Teardown(world);
     }
 
-    void Tick(PhysicsWorldBase* world, GameCounter::TickUnitHighPrec delta)
+    void Tick(PhysicsWorldBase* world, double delta)
     {
         GetDerivedAdapter()->DerivedAdapter::Tick(world, delta);
     }

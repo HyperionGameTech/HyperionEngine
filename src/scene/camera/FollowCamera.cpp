@@ -47,7 +47,7 @@ void FollowCameraController::UpdateLogic(double dt)
     m_camera->SetTranslation(origin + normalized_offset_direction * m_desired_distance);
 }
 
-void FollowCameraController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
+void FollowCameraController::RespondToCommand(const CameraCommand& command, float dt)
 {
     HYP_SCOPE;
 

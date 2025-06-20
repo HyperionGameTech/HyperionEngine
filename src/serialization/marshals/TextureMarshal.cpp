@@ -31,6 +31,7 @@ public:
 
         const Texture& in_object = in.Get<Texture>();
 
+        /// FIXME: StreamedTextureData is no longer HypObject
         if (const RC<StreamedTextureData>& streamed_texture_data = in_object.GetStreamedTextureData())
         {
             TResourceHandle<StreamedTextureData> resource_handle(*streamed_texture_data);

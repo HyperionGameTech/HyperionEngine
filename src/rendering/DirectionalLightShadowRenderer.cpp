@@ -11,6 +11,7 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/Renderer.hpp>
 
 #include <rendering/backend/RenderingAPI.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -26,6 +27,7 @@
 #include <scene/Texture.hpp>
 #include <scene/World.hpp>
 #include <scene/View.hpp>
+#include <scene/Light.hpp>
 
 #include <scene/camera/OrthoCamera.hpp>
 
@@ -362,15 +364,9 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
-    Name name,
-    const Handle<Scene>& parent_scene,
-    const TResourceHandle<RenderLight>& render_light,
-    Vec2u resolution,
-    ShadowMapFilterMode filter_mode)
-    : RenderSubsystem(name),
-      m_parent_scene(parent_scene),
-      m_render_light(render_light),
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scene>& parent_scene, const Handle<Light>& light, Vec2u resolution, ShadowMapFilterMode filter_mode)
+    : m_parent_scene(parent_scene),
+      m_light(light),
       m_resolution(resolution),
       m_filter_mode(filter_mode)
 {
@@ -401,19 +397,28 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(
 
 DirectionalLightShadowRenderer::~DirectionalLightShadowRenderer()
 {
+    HYP_SYNC_RENDER(); // wait for render commands to finish
+
     m_shadow_pass.Reset();
 }
 
-// called from render thread
 void DirectionalLightShadowRenderer::Init()
 {
+    SetReady(true);
+}
+
+void DirectionalLightShadowRenderer::OnAddedToWorld()
+{
+
     RenderShadowMap* shadow_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_map != nullptr, "Failed to allocate shadow map");
 
     m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_map);
 
-    AssertThrow(m_render_light);
-    m_render_light->SetShadowMap(TResourceHandle<RenderShadowMap>(m_shadow_map_resource_handle));
+    if (InitObject(m_light))
+    {
+        m_light->GetRenderResource().SetShadowMap(TResourceHandle<RenderShadowMap>(m_shadow_map_resource_handle));
+    }
 
     m_shadow_pass = MakeUnique<ShadowPass>(
         m_parent_scene,
@@ -424,6 +429,7 @@ void DirectionalLightShadowRenderer::Init()
         TResourceHandle<RenderView>(m_view_dynamics->GetRenderResource()),
         m_shader,
         &m_rerender_semaphore);
+
     m_shadow_pass->Create();
 
     const RenderableAttributeSet override_attributes(
@@ -438,11 +444,11 @@ void DirectionalLightShadowRenderer::Init()
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
 }
 
-void DirectionalLightShadowRenderer::OnRemoved()
+void DirectionalLightShadowRenderer::OnRemovedFromWorld()
 {
-    if (m_render_light)
+    if (m_light.IsValid())
     {
-        m_render_light->SetShadowMap(TResourceHandle<RenderShadowMap>());
+        m_light->GetRenderResource().SetShadowMap(TResourceHandle<RenderShadowMap>());
     }
 
     m_shadow_pass.Reset();
@@ -459,26 +465,47 @@ void DirectionalLightShadowRenderer::OnRemoved()
             HYP_LOG(Shadows, Error, "Failed to free shadow map!");
         }
     }
-
-    RenderSubsystem::OnRemoved();
 }
 
-// called from game thread
-void DirectionalLightShadowRenderer::InitGame()
-{
-    Threads::AssertOnThread(g_game_thread);
-
-    g_engine->GetWorld()->AddView(m_view_statics);
-    g_engine->GetWorld()->AddView(m_view_dynamics);
-}
-
-void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
+void DirectionalLightShadowRenderer::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
 
+    struct RENDER_COMMAND(RenderShadowPass)
+        : public renderer::RenderCommand
+    {
+        RenderWorld* world;
+        ShadowPass* shadow_pass;
+
+        RENDER_COMMAND(RenderShadowPass)(RenderWorld* world, ShadowPass* shadow_pass)
+            : world(world),
+              shadow_pass(shadow_pass)
+        {
+        }
+
+        virtual ~RENDER_COMMAND(RenderShadowPass)() override = default;
+
+        virtual RendererResult operator()() override
+        {
+            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+
+            RenderSetup render_setup { world, nullptr };
+
+            shadow_pass->Render(frame, render_setup);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
     AssertThrow(m_camera != nullptr);
     m_camera->Update(delta);
+
+    m_view_statics->UpdateVisibility();
+    m_view_statics->Update(delta);
+
+    m_view_dynamics->UpdateVisibility();
+    m_view_dynamics->Update(delta);
 
     Octree& octree = m_parent_scene->GetOctree();
 
@@ -519,16 +546,8 @@ void DirectionalLightShadowRenderer::OnUpdate(GameCounter::TickUnit delta)
         .view = m_camera->GetViewMatrix(),
         .aabb_max = Vec4f(m_aabb.max, 1.0f),
         .aabb_min = Vec4f(m_aabb.min, 1.0f) });
-}
 
-void DirectionalLightShadowRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertThrow(m_shadow_pass != nullptr);
-    m_shadow_pass->Render(frame, render_setup);
+    // PUSH_RENDER_COMMAND(RenderShadowPass, &g_engine->GetWorld()->GetRenderResource(), m_shadow_pass.Get());
 }
 
 void DirectionalLightShadowRenderer::CreateShader()

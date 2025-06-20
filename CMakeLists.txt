@@ -126,12 +126,12 @@ else()
     # for full template backtrace
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftemplate-backtrace-limit=0")
 
-    # # address sanitizer and other debugging utilities
+    # # # address sanitizer and other debugging utilities
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined")
 endif()
 
 set(HYP_VERSION_MAJOR 1)
-set(HYP_VERSION_MINOR 3)
+set(HYP_VERSION_MINOR 4)
 set(HYP_VERSION_PATCH 0)
 
 set(OpenGL_GL_PREFERENCE GLVND)

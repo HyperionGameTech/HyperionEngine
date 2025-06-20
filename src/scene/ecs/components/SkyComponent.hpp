@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_SKY_COMPONENT_HPP
 #define HYPERION_ECS_SKY_COMPONENT_HPP
 
-#include <core/memory/RefCountedPtr.hpp>
+#include <core/Handle.hpp>
 
 #include <HashCode.hpp>
 
@@ -15,7 +15,7 @@ HYP_STRUCT(Component, Label = "Sky Component", Description = "Controls the rende
 struct SkyComponent
 {
     HYP_FIELD()
-    RC<SkydomeRenderer> render_subsystem;
+    Handle<SkydomeRenderer> subsystem;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

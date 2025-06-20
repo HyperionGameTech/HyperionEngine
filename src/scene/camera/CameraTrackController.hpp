@@ -37,7 +37,7 @@ protected:
     double m_track_time;
 
 private:
-    virtual void RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt) override;
+    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
 };
 
 } // namespace hyperion

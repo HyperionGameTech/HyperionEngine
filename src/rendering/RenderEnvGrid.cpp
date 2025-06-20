@@ -449,6 +449,10 @@ void RenderEnvGrid::Destroy_Internal()
     SafeRelease(std::move(m_reduce_sh));
     SafeRelease(std::move(m_finalize_sh));
 
+    SafeRelease(std::move(m_compute_irradiance));
+    SafeRelease(std::move(m_compute_filtered_depth));
+    SafeRelease(std::move(m_copy_border_texels));
+
     SafeRelease(std::move(m_voxelize_probe));
     SafeRelease(std::move(m_offset_voxel_grid));
 

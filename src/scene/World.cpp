@@ -47,7 +47,7 @@ World::World()
 
 World::~World()
 {
-    if (IsInitCalled())
+    if (IsReady())
     {
         for (const Handle<Scene>& scene : m_scenes)
         {
@@ -233,7 +233,7 @@ void World::Init()
     SetReady(true);
 }
 
-void World::Update(GameCounter::TickUnit delta)
+void World::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);
@@ -252,7 +252,6 @@ void World::Update(GameCounter::TickUnit delta)
 
 #ifdef HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
     Array<Task<void>> update_subsystem_tasks;
-    update_subsystem_tasks.Reserve(m_subsystems.Size());
 
     for (auto& it : m_subsystems)
     {
@@ -297,11 +296,10 @@ void World::Update(GameCounter::TickUnit delta)
     {
         Subsystem* subsystem = it.second.Get();
 
+        subsystem->PreUpdate(delta);
         subsystem->Update(delta);
     }
 #endif
-
-    m_render_resource->GetEnvironment()->Update(delta);
 
     Array<EntityManager*> entity_managers;
     entity_managers.Reserve(m_scenes.Size());
@@ -330,7 +328,6 @@ void World::Update(GameCounter::TickUnit delta)
     update_views_tasks.Reserve(m_views.Size());
 #endif
 
-    // Ensure Scene::Update() and EntityManager::FlushCommandQueue() or called on all scenes before we kickoff async updates for their entity managers.
     for (EntityManager* entity_manager : entity_managers)
     {
         HYP_NAMED_SCOPE("Call BeginAsyncUpdate on EntityManager");
@@ -393,15 +390,16 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
 
     auto insert_result = m_subsystems.Set(type_id, subsystem);
 
+    // Create a new Handle, calling OnAddedToWorld() may add new subsystems which would invalidate the iterator
+    Handle<Subsystem> new_subsystem = insert_result.first->second;
+    AssertThrow(new_subsystem.IsValid());
+
     // If World is already initialized, initialize the subsystem
     // otherwise, it will be initialized when World::Init() is called
-    if (IsInitCalled())
+    if (IsReady())
     {
         if (insert_result.second)
         {
-            const Handle<Subsystem>& new_subsystem = insert_result.first->second;
-            AssertThrow(new_subsystem.IsValid());
-
             InitObject(new_subsystem);
 
             new_subsystem->OnAddedToWorld();
@@ -413,7 +411,7 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
         }
     }
 
-    return insert_result.first->second;
+    return new_subsystem;
 }
 
 Subsystem* World::GetSubsystem(TypeID type_id) const
@@ -454,6 +452,49 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
     }
 
     return it->second.Get();
+}
+
+bool World::RemoveSubsystem(Subsystem* subsystem)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    if (!subsystem)
+    {
+        return false;
+    }
+
+    const TypeID type_id = subsystem->InstanceClass()->GetTypeID();
+
+    auto it = m_subsystems.Find(type_id);
+
+    if (it == m_subsystems.End())
+    {
+        return false;
+    }
+
+    AssertThrow(it->second.Get() == subsystem);
+
+    if (IsReady())
+    {
+        for (const Handle<Scene>& scene : m_scenes)
+        {
+            if (!scene.IsValid())
+            {
+                continue;
+            }
+
+            subsystem->OnSceneDetached(scene);
+        }
+
+        subsystem->OnRemovedFromWorld();
+    }
+
+    subsystem->SetWorld(nullptr);
+
+    m_subsystems.Erase(it);
+
+    return true;
 }
 
 void World::StartSimulating()
@@ -515,7 +556,7 @@ void World::AddScene(const Handle<Scene>& scene)
 
     scene->SetWorld(this);
 
-    if (IsInitCalled())
+    if (IsReady())
     {
         InitObject(scene);
 
@@ -568,7 +609,7 @@ bool World::RemoveScene(const Handle<Scene>& scene)
 
         scene->SetWorld(nullptr);
 
-        if (IsInitCalled())
+        if (IsReady())
         {
             m_render_resource->RemoveScene(&scene->GetRenderResource());
 
@@ -631,7 +672,7 @@ void World::AddView(const Handle<View>& view)
 
     m_views.PushBack(view);
 
-    if (IsInitCalled())
+    if (IsReady())
     {
         // Add all scenes to the view, if the view should collect all world scenes
         if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)
@@ -668,7 +709,7 @@ void World::RemoveView(const Handle<View>& view)
 
     typename Array<Handle<View>>::Iterator it = m_views.Find(view);
 
-    if (IsInitCalled())
+    if (IsReady())
     {
         // Remove all scenes from the view, if the view should collect all world scenes
         if (view->GetFlags() & ViewFlags::ALL_WORLD_SCENES)

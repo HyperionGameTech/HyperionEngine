@@ -136,7 +136,7 @@ public:
     bool TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh = true) const;
 
     void UpdateVisibility();
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
 protected:
     void Init() override;

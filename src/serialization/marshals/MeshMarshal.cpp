@@ -30,6 +30,7 @@ public:
         out.SetProperty("Topology", uint32(in_object.GetTopology()));
         out.SetProperty("Attributes", FBOMStruct::Create<VertexAttributeSet>(), sizeof(VertexAttributeSet), &in_object.GetVertexAttributes());
 
+        /// FIXME: StreamedMeshData is no longer HypObject
         StreamedMeshData* streamed_mesh_data = in_object.GetStreamedMeshData();
 
         if (streamed_mesh_data != nullptr)

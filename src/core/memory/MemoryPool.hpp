@@ -24,9 +24,12 @@
 namespace hyperion {
 namespace memory {
 
+template <class T>
 struct MemoryPoolInitInfo
 {
-    static constexpr uint32 num_elements_per_block = 16;
+    static_assert(sizeof(T) <= 1024 * 1024, "Element size must be less than or equal to 1 MiB");
+
+    static constexpr uint32 num_elements_per_block = 1024 * 1024 / sizeof(T); // 1 MiB per block
     static constexpr uint32 num_initial_elements = num_elements_per_block;
 };
 
@@ -67,6 +70,12 @@ struct MemoryPoolBlock
         }
     }
 
+    MemoryPoolBlock(const MemoryPoolBlock& other) = delete;
+    MemoryPoolBlock& operator=(const MemoryPoolBlock& other) = delete;
+
+    MemoryPoolBlock(MemoryPoolBlock&& other) noexcept = delete;
+    MemoryPoolBlock& operator=(MemoryPoolBlock&& other) noexcept = delete;
+
     HYP_FORCE_INLINE bool IsEmpty() const
     {
         return num_elements.Get(MemoryOrder::ACQUIRE) == 0;
@@ -97,7 +106,7 @@ private:
     void RegisterMemoryPool();
 };
 
-template <class ElementType, class TInitInfo = MemoryPoolInitInfo, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 start_index, uint32 count) = nullptr>
+template <class ElementType, class TInitInfo = MemoryPoolInitInfo<ElementType>, void (*OnBlockAllocated)(void* ctx, ElementType* elements, uint32 start_index, uint32 count) = nullptr>
 class MemoryPool : MemoryPoolBase
 {
 public:

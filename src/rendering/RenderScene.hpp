@@ -45,7 +45,7 @@ private:
 };
 
 template <>
-struct ResourceMemoryPoolInitInfo<RenderScene> : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo<RenderScene> : MemoryPoolInitInfo<RenderScene>
 {
     static constexpr uint32 num_elements_per_block = 8;
     static constexpr uint32 num_initial_elements = 8;

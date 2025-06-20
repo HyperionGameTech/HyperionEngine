@@ -33,7 +33,7 @@ protected:
     virtual void OnDeactivated() override;
 
 private:
-    virtual void RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt) override;
+    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
 
     Vec3f m_offset,
         m_real_offset;

@@ -24,6 +24,7 @@ class HYP_API Entity : public HypObject<Entity>
 
 public:
     friend class EntityManager;
+    friend class Node;
 
     HYP_API Entity();
     HYP_API virtual ~Entity() override;
@@ -40,8 +41,34 @@ public:
 
     EntityManager* GetEntityManager() const;
 
+    void SetReceivesUpdate(bool receives_update);
+
+    /*! \brief Attaches this Entity to a Node. If the Entity is already attached to a Node, it will be detached first.
+     *
+     *  \param [in] attach_node The Node to attach the Entity to.
+     */
+    virtual void Attach(const Handle<Node>& attach_node);
+
+    /*! \brief Detaches this Entity from its current Node, if it is attached to one.
+     *
+     *  \note This will not remove the Entity from the EntityManager.
+     */
+    virtual void Detach();
+
 protected:
     virtual void Init() override;
+
+    virtual bool ReceivesUpdate() const
+    {
+        return false;
+    }
+
+    virtual void Update(float delta)
+    {
+    }
+
+    virtual void OnAttachedToNode(Node* node);
+    virtual void OnDetachedFromNode(Node* node);
 
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);

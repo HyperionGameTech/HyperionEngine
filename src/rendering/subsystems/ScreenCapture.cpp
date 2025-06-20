@@ -11,7 +11,8 @@
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <scene/Texture.hpp>
-#include <scene/World.hpp> // temp
+#include <scene/World.hpp>
+#include <scene/View.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -22,9 +23,8 @@
 
 namespace hyperion {
 
-ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TResourceHandle<RenderView>& view, ScreenCaptureMode screen_capture_mode)
-    : RenderSubsystem(name),
-      m_view(view),
+ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(const Handle<View>& view, ScreenCaptureMode screen_capture_mode)
+    : m_view(view),
       m_texture(CreateObject<Texture>(TextureDesc {
           ImageType::TEXTURE_TYPE_2D,
           InternalFormat::RGBA16F,
@@ -34,63 +34,115 @@ ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(Name name, const TRes
           WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE })),
       m_screen_capture_mode(screen_capture_mode)
 {
-    InitObject(m_texture);
 }
 
 ScreenCaptureRenderSubsystem::~ScreenCaptureRenderSubsystem()
 {
+    HYP_SYNC_RENDER(); // wait for render commands to finish
+
     SafeRelease(std::move(m_buffer));
+
+    m_view->GetRenderResource().DecRef();
 }
 
 void ScreenCaptureRenderSubsystem::Init()
 {
+    AssertThrow(m_view.IsValid());
+
+    InitObject(m_view);
+    m_view->GetRenderResource().IncRef();
+
+    InitObject(m_texture);
+
+    SetReady(true);
+}
+
+void ScreenCaptureRenderSubsystem::OnAddedToWorld()
+{
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_view);
 
     m_texture->SetPersistentRenderResourceEnabled(true);
 
     m_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, m_texture->GetRenderResource().GetImage()->GetByteSize());
-    HYPERION_ASSERT_RESULT(m_buffer->Create());
+    DeferCreate(m_buffer);
 }
 
-void ScreenCaptureRenderSubsystem::InitGame()
-{
-}
-
-void ScreenCaptureRenderSubsystem::OnRemoved()
+void ScreenCaptureRenderSubsystem::OnRemovedFromWorld()
 {
     SafeRelease(std::move(m_buffer));
 
     m_texture->SetPersistentRenderResourceEnabled(false);
 }
 
-void ScreenCaptureRenderSubsystem::OnUpdate(GameCounter::TickUnit delta)
+void ScreenCaptureRenderSubsystem::Update(float delta)
 {
-    // Do nothing
+    struct RENDER_COMMAND(UpdateScreenCapture)
+        : renderer::RenderCommand
+    {
+        ScreenCaptureRenderSubsystem* subsystem;
+
+        RENDER_COMMAND(UpdateScreenCapture)(ScreenCaptureRenderSubsystem* subsystem)
+            : subsystem(subsystem)
+        {
+        }
+
+        virtual ~RENDER_COMMAND(UpdateScreenCapture)() override
+        {
+        }
+
+        virtual RendererResult operator()() override
+        {
+            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+
+            subsystem->CaptureFrame(frame);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    PUSH_RENDER_COMMAND(UpdateScreenCapture, this);
 }
 
-void ScreenCaptureRenderSubsystem::OnRender(FrameBase* frame, const RenderSetup&)
+void ScreenCaptureRenderSubsystem::CaptureFrame(FrameBase* frame)
 {
+    Threads::AssertOnThread(g_render_thread);
+
     AssertThrow(m_texture.IsValid());
     AssertThrow(m_texture->IsReady());
 
-    const ImageRef& image_ref = m_view->GetRendererConfig().taa_enabled
-        ? m_view->GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
-        : m_view->GetTonemapPass()->GetFinalImageView()->GetImage();
+    const ImageRef& image_ref = m_view->GetRenderResource().GetRendererConfig().taa_enabled
+        ? m_view->GetRenderResource().GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
+        : m_view->GetRenderResource().GetTonemapPass()->GetFinalImageView()->GetImage();
 
     AssertThrow(image_ref.IsValid());
 
     // wait for the image to be ready
     if (image_ref->GetResourceState() == renderer::ResourceState::UNDEFINED)
     {
+        HYP_LOG(Rendering, Warning, "Screen capture image is not ready. Skipping capture.");
         return;
     }
 
     if (m_texture->GetExtent() != image_ref->GetExtent())
     {
-        m_texture->Resize(image_ref->GetExtent());
+        // HYP_LOG(Rendering, Debug, "Resizing screen capture texture from {} to {}", m_texture->GetExtent(), image_ref->GetExtent());
+
+        // DelegateHandler* delegate_handle = new DelegateHandler();
+        // *delegate_handle = frame->OnFrameEnd.Bind([delegate_handle, weak_this = WeakHandleFromThis(), new_extent = image_ref->GetExtent()](...)
+        //     {
+        //         if (Handle<ScreenCaptureRenderSubsystem> subsystem = weak_this.Lock().Cast<ScreenCaptureRenderSubsystem>())
+        //         {
+        //             AssertThrow(subsystem->m_texture.IsValid());
+
+        //             subsystem->m_texture->Resize(new_extent);
+
+        //             subsystem->OnTextureResize(subsystem->m_texture);
+        //         }
+
+        //         delete delegate_handle;
+        //     });
     }
 
     const renderer::ResourceState previous_resource_state = image_ref->GetResourceState();
@@ -100,11 +152,7 @@ void ScreenCaptureRenderSubsystem::OnRender(FrameBase* frame, const RenderSetup&
     switch (m_screen_capture_mode)
     {
     case ScreenCaptureMode::TO_TEXTURE:
-        // Hack, but we need to make sure the image is created before we can blit to it
-        if (!m_texture->GetRenderResource().GetImage()->IsCreated())
-        {
-            HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
-        }
+        AssertThrow(m_texture->GetRenderResource().GetImage()->IsCreated());
 
         frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
         frame->GetCommandList().Add<Blit>(image_ref, m_texture->GetRenderResource().GetImage());

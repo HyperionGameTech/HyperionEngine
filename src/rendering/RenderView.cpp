@@ -193,7 +193,8 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
         else
         {
             AssertThrow(render_view != nullptr);
-            AssertThrow(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER);
+            AssertThrowMsg(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER,
+                "No framebuffer set for RenderView and GBuffer is not enabled!");
 
             GBuffer* gbuffer = render_view->GetGBuffer();
             AssertThrow(gbuffer != nullptr);

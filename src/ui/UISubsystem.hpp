@@ -26,16 +26,11 @@ public:
     UISubsystem(const Handle<UIStage>& ui_stage);
     virtual ~UISubsystem() override;
 
-    bool RequiresUpdateOnGameThread() const override
-    {
-        return false;
-    }
-
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
 
-    void PreUpdate(GameCounter::TickUnit delta) override;
-    void Update(GameCounter::TickUnit delta) override;
+    void PreUpdate(float delta) override;
+    void Update(float delta) override;
 
     void OnSceneAttached(const Handle<Scene>& scene) override;
     void OnSceneDetached(const Handle<Scene>& scene) override;
@@ -48,7 +43,7 @@ public:
 
 private:
     Handle<UIStage> m_ui_stage;
-    RC<UIRenderSubsystem> m_ui_render_subsystem;
+    Handle<UIRenderSubsystem> m_ui_render_subsystem;
 };
 
 } // namespace hyperion

@@ -1622,7 +1622,7 @@ void Lightmapper::PerformLightmapping()
     }
 }
 
-void Lightmapper::Update(GameCounter::TickUnit delta)
+void Lightmapper::Update(float delta)
 {
     HYP_SCOPE;
     uint32 num_jobs = m_num_jobs.Get(MemoryOrder::ACQUIRE);

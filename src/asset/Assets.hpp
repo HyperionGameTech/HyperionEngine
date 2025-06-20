@@ -288,7 +288,7 @@ public:
         return m_asset_cache.Get();
     }
 
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {

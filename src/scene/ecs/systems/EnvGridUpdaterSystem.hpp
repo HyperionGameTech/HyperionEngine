@@ -4,7 +4,6 @@
 #define HYPERION_ECS_ENV_GRID_UPDATER_SYSTEM_HPP
 
 #include <scene/ecs/System.hpp>
-#include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
@@ -38,7 +37,6 @@ private:
     virtual SystemComponentDescriptors GetComponentDescriptors() const override
     {
         return {
-            ComponentDescriptor<EnvGridComponent, COMPONENT_RW_FLAGS_READ_WRITE> {},
             ComponentDescriptor<TransformComponent, COMPONENT_RW_FLAGS_READ> {},
             ComponentDescriptor<BoundingBoxComponent, COMPONENT_RW_FLAGS_READ> {},
 
@@ -49,14 +47,11 @@ private:
             ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ, false> {},
 
             ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID_TRANSFORM>, COMPONENT_RW_FLAGS_READ, false> {},
-            ComponentDescriptor<EntityTagComponent<EntityTag::UPDATE_ENV_GRID>, COMPONENT_RW_FLAGS_READ, false> {},
 
             // EnvGrid::Update() collects static entities
             ComponentDescriptor<EntityTagComponent<EntityTag::STATIC>, COMPONENT_RW_FLAGS_READ, false> {}
         };
     }
-
-    void UpdateEnvGrid(GameCounter::TickUnit delta, EnvGridComponent& env_grid_component, BoundingBoxComponent& bounding_box_component);
 };
 
 } // namespace hyperion

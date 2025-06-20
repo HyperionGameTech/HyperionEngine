@@ -3,6 +3,12 @@
 #ifndef HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 #define HYPERION_DIRECTIONAL_LIGHT_SHADOW_RENDERER_HPP
 
+#include <scene/Scene.hpp>
+#include <scene/Light.hpp>
+#include <scene/Subsystem.hpp>
+
+#include <scene/camera/Camera.hpp>
+
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/threading/Semaphore.hpp>
@@ -18,11 +24,6 @@
 #include <rendering/backend/RenderObject.hpp>
 
 #include <core/math/BoundingBox.hpp>
-
-#include <scene/Scene.hpp>
-#include <scene/Light.hpp>
-
-#include <scene/camera/Camera.hpp>
 
 #include <Types.hpp>
 
@@ -102,18 +103,12 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class DirectionalLightShadowRenderer : public RenderSubsystem
+class DirectionalLightShadowRenderer : public Subsystem
 {
     HYP_OBJECT_BODY(DirectionalLightShadowRenderer);
 
 public:
-    DirectionalLightShadowRenderer(
-        Name name,
-        const Handle<Scene>& parent_scene,
-        const TResourceHandle<RenderLight>& render_light,
-        Vec2u resolution,
-        ShadowMapFilterMode filter_mode);
-
+    DirectionalLightShadowRenderer(const Handle<Scene>& parent_scene, const Handle<Light>& light, Vec2u resolution, ShadowMapFilterMode filter_mode);
     DirectionalLightShadowRenderer(const DirectionalLightShadowRenderer& other) = delete;
     DirectionalLightShadowRenderer& operator=(const DirectionalLightShadowRenderer& other) = delete;
     virtual ~DirectionalLightShadowRenderer() override;
@@ -143,20 +138,19 @@ public:
         return m_shadow_map_resource_handle;
     }
 
+    virtual void OnAddedToWorld() override;
+    virtual void OnRemovedFromWorld() override;
+    virtual void Update(float delta) override;
+
 private:
     virtual void Init() override;     // init on render thread
-    virtual void InitGame() override; // init on game thread
-    virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
-    virtual void OnRemoved() override;
 
     void CreateShader();
 
     Handle<Scene> m_parent_scene;
+    Handle<Light> m_light;
     Handle<View> m_view_statics;
     Handle<View> m_view_dynamics;
-
-    TResourceHandle<RenderLight> m_render_light;
 
     UniquePtr<ShadowPass> m_shadow_pass;
     Vec2u m_resolution;

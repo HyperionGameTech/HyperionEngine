@@ -32,7 +32,7 @@ UIElementFactoryBase* UIElementFactoryRegistry::GetFactory(TypeID type_id)
     return factory_instance.factory_instance.Get();
 }
 
-void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, RC<UIElementFactoryBase> (*make_factory_function)(void))
+void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
 {
     m_element_factories.Set(type_id, FactoryInstance { make_factory_function, nullptr });
 }
@@ -41,7 +41,7 @@ void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, RC<UIElementFacto
 
 #pragma region UIElementFactoryRegistrationBase
 
-UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_id, RC<UIElementFactoryBase> (*make_factory_function)(void))
+UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
     : m_make_factory_function(make_factory_function)
 {
     UIElementFactoryRegistry::GetInstance().RegisterFactory(type_id, make_factory_function);

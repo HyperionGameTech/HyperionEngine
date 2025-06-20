@@ -72,7 +72,7 @@ protected:
     virtual void OnActivated() override;
     virtual void OnDeactivated() override;
 
-    virtual void RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt) override;
+    virtual void RespondToCommand(const CameraCommand& command, float dt) override;
 
     FirstPersonCameraControllerMode m_mode;
 

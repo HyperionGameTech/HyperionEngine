@@ -79,11 +79,6 @@ void WorldGrid::Init()
     InitObject(m_streaming_manager);
     m_streaming_manager->Start();
 
-    for (const auto& it : m_plugins)
-    {
-        it.second->Initialize(this);
-    }
-
     // Add a default layer if none are provided
     if (m_layers.Empty())
     {
@@ -123,17 +118,10 @@ void WorldGrid::Shutdown()
 
     m_streaming_manager->Stop();
 
-    for (const auto& it : m_plugins)
-    {
-        it.second->Shutdown(this);
-    }
-
-    m_plugins.Clear();
-
     SetReady(false);
 }
 
-void WorldGrid::Update(GameCounter::TickUnit delta)
+void WorldGrid::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);

@@ -7,6 +7,7 @@
 #include <core/containers/Array.hpp>
 
 #include <core/memory/UniquePtr.hpp>
+#include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
 

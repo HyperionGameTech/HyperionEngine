@@ -133,6 +133,10 @@ void RenderMesh::UploadMeshData()
         SafeRelease(std::move(m_vbo));
 
         m_vbo = g_rendering_api->MakeGPUBuffer(GPUBufferType::MESH_VERTEX_BUFFER, packed_buffer_size);
+
+#ifdef HYP_DEBUG_MODE
+        m_vbo->SetDebugName(NAME_FMT("RenderMesh_VertexBuffer_{}", m_mesh->GetID().Value()));
+#endif
     }
 
     if (!m_vbo->IsCreated())
@@ -145,6 +149,10 @@ void RenderMesh::UploadMeshData()
         SafeRelease(std::move(m_ibo));
 
         m_ibo = g_rendering_api->MakeGPUBuffer(GPUBufferType::MESH_INDEX_BUFFER, packed_indices_size);
+
+#ifdef HYP_DEBUG_MODE
+        m_ibo->SetDebugName(NAME_FMT("RenderMesh_IndexBuffer_{}", m_mesh->GetID().Value()));
+#endif
     }
 
     if (!m_ibo->IsCreated())

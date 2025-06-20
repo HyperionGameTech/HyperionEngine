@@ -56,7 +56,7 @@ Game::~Game()
     delete m_managed_game_object;
 }
 
-void Game::Update(GameCounter::TickUnit delta)
+void Game::Update(float delta)
 {
     HYP_SCOPE;
 

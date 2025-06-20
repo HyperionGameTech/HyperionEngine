@@ -78,6 +78,14 @@ public:
         m_name = name;
     }
 
+    HYP_FORCE_INLINE const RC<StreamedTextureData>& GetStreamedTextureData() const
+    {
+        return m_streamed_texture_data;
+    }
+
+    /*! \brief Set streamed data for the image. If the image has already been created, no updates will occur. */
+    void SetStreamedTextureData(const RC<StreamedTextureData>& streamed_texture_data);
+
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
         return m_texture_desc;

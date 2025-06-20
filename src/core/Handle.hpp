@@ -70,16 +70,20 @@ struct Handle final : HandleBase
 
             // This really shouldn't happen unless we're doing something wrong.
             // We shouldn't have an ID for a type that doesn't have a container.
-            AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
+            AssertThrowMsg(container != nullptr,
+                "Container is not initialized for type! Possibly using an ID created without pointing to a valid object with TypeID %u?",
+                id.GetTypeID().Value());
 
-            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.ToIndex()));
+            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex());
+            AssertThrow(header != nullptr);
 
-            ptr = static_cast<HypObjectBase*>(header->GetPointer());
+            ptr = container->GetObjectPointer(header);
             AssertThrow(ptr != nullptr);
 
+            AssertDebugMsg(ptr->m_header->GetRefCountStrong() > 0, "Object is no longer alive!");
+
             // If strong count == 1 after incrementing, the object has already been destructed and it is invalid to create a strong reference
-            const uint32 strong_count = header->IncRefStrong();
-            AssertThrowMsg(strong_count > 0, "Object is no longer alive!");
+            ptr->m_header->IncRefStrong();
         }
     }
 
@@ -407,17 +411,24 @@ struct WeakHandle final
         if (id.IsValid())
         {
             ObjectContainerBase* container = ObjectPool::GetObjectContainerHolder().TryGet(id.GetTypeID());
-            AssertThrowMsg(container != nullptr, "Container is not initialized for type!");
 
-            HypObjectMemory<T>* header = static_cast<HypObjectMemory<T>*>(container->GetObjectHeader(id.ToIndex()));
+            // This really shouldn't happen unless we're doing something wrong.
+            // We shouldn't have an ID for a type that doesn't have a container.
+            AssertThrowMsg(container != nullptr,
+                "Container is not initialized for type! Possibly using an ID created without pointing to a valid object with TypeID %u?",
+                id.GetTypeID().Value());
 
-            ptr = static_cast<HypObjectBase*>(header->GetPointer());
+            HypObjectHeader* header = container->GetObjectHeader(id.ToIndex());
+            AssertThrow(header != nullptr);
+
+            ptr = container->GetObjectPointer(header);
             AssertThrow(ptr != nullptr);
 
-            // All HypObjectBase types have an initial weak count that gets decremented on destruction.
-            // If we hit 1, it means the object is not only no longer alive - but that the ID is totally invalid and would sometimes point to the wrong object!
-            const uint32 weak_count = header->IncRefWeak();
-            AssertThrowMsg(weak_count > 0, "Object overwriting detected! This is likely due to attempting to create a WeakHandle from an ID that is no longer valid or has been reused for another object.");
+            // All HypObjectBase types have an initial weak count of 1 which gets incremented when the object is created and decremented in the destructor of HypObjectBase.
+            // If it is zero, it means the object is not only no longer alive - but that the ID is totally invalid and would sometimes point to the wrong object!
+            AssertDebugMsg(header->GetRefCountWeak() > 0, "Object overwriting detected! This is likely due to attempting to create a WeakHandle from an ID that is no longer valid or has been reused for another object.");
+
+            header->IncRefWeak();
         }
     }
 

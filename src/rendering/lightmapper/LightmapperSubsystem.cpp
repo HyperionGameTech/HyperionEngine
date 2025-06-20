@@ -38,7 +38,7 @@ void LightmapperSubsystem::OnRemovedFromWorld()
     m_lightmappers.Clear();
 }
 
-void LightmapperSubsystem::Update(GameCounter::TickUnit delta)
+void LightmapperSubsystem::Update(float delta)
 {
     Threads::AssertOnThread(g_game_thread);
 

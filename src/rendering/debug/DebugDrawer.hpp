@@ -214,7 +214,7 @@ public:
     virtual bool IsEnabled() const = 0;
 
     virtual void Initialize() = 0;
-    virtual void Update(GameCounter::TickUnit delta) = 0;
+    virtual void Update(float delta) = 0;
     virtual void Render(FrameBase* frame, const RenderSetup& render_setup) = 0;
 };
 
@@ -230,7 +230,7 @@ public:
     }
 
     virtual void Initialize() override;
-    virtual void Update(GameCounter::TickUnit delta) override;
+    virtual void Update(float delta) override;
     virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
 
     UniquePtr<DebugDrawCommandList> CreateCommandList();

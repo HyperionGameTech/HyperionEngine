@@ -185,7 +185,7 @@ void UITextbox::SetPlaceholder(const String& placeholder)
     UpdateTextColor();
 }
 
-void UITextbox::Update_Internal(GameCounter::TickUnit delta)
+void UITextbox::Update_Internal(float delta)
 {
     UIPanel::Update_Internal(delta);
 

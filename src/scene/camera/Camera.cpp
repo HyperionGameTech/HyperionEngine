@@ -92,7 +92,7 @@ void CameraController::PushCommand(const CameraCommand& command)
     m_command_queue.Push(command);
 }
 
-void CameraController::UpdateCommandQueue(GameCounter::TickUnit dt)
+void CameraController::UpdateCommandQueue(float dt)
 {
     HYP_SCOPE;
 
@@ -642,7 +642,7 @@ Vec2f Camera::GetPixelSize() const
     return Vec2f::One() / Vec2f { float(GetWidth()), float(GetHeight()) };
 }
 
-void Camera::Update(GameCounter::TickUnit dt)
+void Camera::Update(float dt)
 {
     HYP_SCOPE;
 

@@ -101,7 +101,7 @@ void AudioSystem::Process(float delta)
             if (!MathUtil::ApproxEqual(position, audio_component.last_position))
             {
                 const Vec3f position_change = position - audio_component.last_position;
-                const GameCounter::TickUnit time_change = (audio_component.timer + delta) - audio_component.timer;
+                const float time_change = (audio_component.timer + delta) - audio_component.timer;
                 const Vec3f velocity = position_change / time_change;
 
                 audio_component.audio_source->SetPosition(position);

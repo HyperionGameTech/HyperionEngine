@@ -16,6 +16,7 @@
 #include <scene/World.hpp>
 #include <scene/Light.hpp>
 #include <scene/Texture.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
@@ -26,7 +27,6 @@
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/EnvGridComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
 #include <scene/ecs/components/RigidBodyComponent.hpp>
 #include <scene/ecs/components/ScriptComponent.hpp>
@@ -212,7 +212,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (true)
+    if (false)
     {
         Handle<Entity> skybox_entity = scene->GetEntityManager()->AddEntity();
 
@@ -238,8 +238,6 @@ void HyperionEditor::Init()
     Handle<Entity> root_entity = scene->GetEntityManager()->AddEntity();
     scene->GetRoot()->SetEntity(root_entity);
 
-    constexpr auto x = TypeID::ForType<Entity*>();
-
     batch->OnComplete
         .Bind([this, scene](AssetMap& results)
             {
@@ -252,7 +250,7 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
                 Handle<Node> env_grid_node = scene->GetRoot()->AddChild();
                 env_grid_node->SetName(NAME("EnvGrid2"));
 
@@ -262,13 +260,6 @@ void HyperionEditor::Init()
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(env_grid_entity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
 
                 env_grid_node->SetEntity(env_grid_entity);
-
-        // // Add env grid component
-        // scene->GetEntityManager()->AddComponent<EnvGridComponent>(env_grid_entity, EnvGridComponent {
-        //                                                                                EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, Vec3u { 8, 4, 8 },
-        //                                                                                EnvGridMobility::STATIONARY // EnvGridMobility::FOLLOW_CAMERA_X | EnvGridMobility::FOLLOW_CAMERA_Z
-        //                                                                            });
-
 #endif
 
                 if (auto& zombie_asset = results["zombie"]; zombie_asset.IsValid())
@@ -303,7 +294,7 @@ void HyperionEditor::Init()
     batch->LoadAsync();
 }
 
-void HyperionEditor::Logic(GameCounter::TickUnit delta)
+void HyperionEditor::Logic(float delta)
 {
 }
 

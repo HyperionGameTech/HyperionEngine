@@ -528,15 +528,26 @@ void RenderTexture::Resize(const Vec3u& extent)
 {
     HYP_SCOPE;
 
-    Execute([this, extent]()
-        {
-            HYPERION_ASSERT_RESULT(m_image->Resize(extent));
+    TextureDesc texture_desc = m_texture->GetTextureDesc();
 
-            if (m_image_view->IsCreated())
-            {
-                m_image_view->Destroy();
-                HYPERION_ASSERT_RESULT(m_image_view->Create());
-            }
+    Execute([this, extent, texture_desc]()
+        {
+            // HYPERION_ASSERT_RESULT(m_image->Resize(extent));
+
+            // if (m_image_view->IsCreated())
+            // {
+            //     m_image_view->Destroy();
+            //     HYPERION_ASSERT_RESULT(m_image_view->Create());
+            // }
+
+            SafeRelease(std::move(m_image));
+            SafeRelease(std::move(m_image_view));
+
+            m_image = g_rendering_api->MakeImage(texture_desc);
+            HYPERION_ASSERT_RESULT(m_image->Create());
+
+            m_image_view = g_rendering_api->MakeImageView(m_image);
+            HYPERION_ASSERT_RESULT(m_image_view->Create());
         },
         /* force_owner_thread */ true);
 }

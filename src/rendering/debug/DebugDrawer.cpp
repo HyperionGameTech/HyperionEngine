@@ -259,7 +259,7 @@ void DebugDrawer::Initialize()
     m_is_initialized.Set(true, MemoryOrder::RELEASE);
 }
 
-void DebugDrawer::Update(GameCounter::TickUnit delta)
+void DebugDrawer::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);

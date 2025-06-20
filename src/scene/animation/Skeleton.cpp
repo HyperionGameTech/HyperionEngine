@@ -72,7 +72,7 @@ void Skeleton::Init()
     SetReady(true);
 }
 
-void Skeleton::Update(GameCounter::TickUnit)
+void Skeleton::Update(float)
 {
     if (!m_mutation_state.IsDirty())
     {

@@ -5,7 +5,11 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+
 #include <scene/camera/Camera.hpp>
+
+#include <scene/ecs/EntityManager.hpp>
+#include <scene/ecs/components/BoundingBoxComponent.hpp>
 
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderEnvProbe.hpp>
@@ -87,8 +91,7 @@ EnvGrid::EnvGrid()
 }
 
 EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
-    : HypObject(),
-      m_aabb(aabb),
+    : m_aabb(aabb),
       m_offset(aabb.GetCenter()),
       m_voxel_grid_aabb(aabb),
       m_options(options),
@@ -159,14 +162,37 @@ void EnvGrid::Init()
     SetReady(true);
 }
 
+void EnvGrid::OnAttachedToNode(Node* node)
+{
+    HYP_SCOPE;
+    AssertThrow(IsReady());
+
+    for (const Handle<EnvProbe>& env_probe : m_env_probe_collection.env_probes)
+    {
+        AttachChild(env_probe);
+    }
+
+    // debugging
+    AssertThrow(node->FindChildWithEntity(m_env_probe_collection.env_probes[0].GetID()) != nullptr);
+}
+
+void EnvGrid::OnDetachedFromNode(Node* node)
+{
+    // detach EnvProbes
+    HYP_SCOPE;
+
+    for (const Handle<EnvProbe>& env_probe : m_env_probe_collection.env_probes)
+    {
+        DetachChild(env_probe);
+    }
+}
+
 void EnvGrid::OnAddedToWorld(World* world)
 {
-    world->AddView(m_view);
 }
 
 void EnvGrid::OnRemovedFromWorld(World* world)
 {
-    world->RemoveView(m_view);
 }
 
 void EnvGrid::OnAddedToScene(Scene* scene)
@@ -210,7 +236,7 @@ void EnvGrid::CreateEnvProbes()
                     Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(env_probe_aabb, probe_dimensions, EnvProbeType::AMBIENT);
                     env_probe->m_grid_slot = index;
 
-                    AttachChild(env_probe);
+                    InitObject(env_probe);
 
                     m_env_probe_collection.AddProbe(index, env_probe);
                 }
@@ -337,15 +363,49 @@ void EnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
     m_render_resource->SetProbeIndices(std::move(updates));
 }
 
-void EnvGrid::Update(GameCounter::TickUnit delta)
+void EnvGrid::Update(float delta)
 {
     HYP_SCOPE;
 
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with AABB: {} on thread {}",
-        GetID(), m_aabb, Threads::CurrentThreadID().GetName());
+    bool should_recollect_entites = false;
+
+    if (!m_camera->IsReady())
+    {
+        should_recollect_entites = true;
+    }
+
+    BoundingBoxComponent* bounding_box_component = GetEntityManager()->TryGetComponent<BoundingBoxComponent>(GetID());
+    if (!bounding_box_component)
+    {
+        HYP_LOG(EnvGrid, Error, "EnvGrid {} does not have a BoundingBoxComponent, cannot update", GetID());
+        return;
+    }
+
+    Octree const* octree = &GetScene()->GetOctree();
+    octree->GetFittingOctant(bounding_box_component->world_aabb, octree);
+
+    // clang-format off
+    const HashCode octant_hash_code = octree->GetOctantID().GetHashCode()
+        .Add(octree->GetEntryListHash<EntityTag::STATIC>())
+        .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
+    // clang-format on
+
+    if (octant_hash_code != m_cached_octant_hash_code)
+    {
+        HYP_LOG(EnvGrid, Debug, "EnvGrid octant hash code changed ({} != {}), updating probes", m_cached_octant_hash_code.Value(), octant_hash_code.Value());
+
+        m_cached_octant_hash_code = octant_hash_code;
+
+        should_recollect_entites = true;
+    }
+
+    if (!should_recollect_entites)
+    {
+        return;
+    }
 
     m_camera->Update(delta);
 
@@ -357,10 +417,8 @@ void EnvGrid::Update(GameCounter::TickUnit delta)
         const Handle<EnvProbe>& probe = m_env_probe_collection.GetEnvProbeDirect(index);
         AssertThrow(probe.IsValid());
 
-        probe->SetNeedsUpdate(true);
         probe->SetNeedsRender(true);
-
-        probe->Update(delta);
+        probe->SetReceivesUpdate(true);
     }
 }
 

@@ -19,9 +19,9 @@
 
 namespace hyperion {
 
-class RenderSubsystem;
+class Subsystem;
 
-HYP_STRUCT(Component, Label = "Shadow Map Component", Description = "Controls shadow map rendering for a light source.", Editor = true, Size = 40)
+HYP_STRUCT(Component, Label = "Shadow Map Component", Description = "Controls shadow map rendering for a light source.", Editor = true, Size = 32)
 
 struct ShadowMapComponent
 {
@@ -35,7 +35,7 @@ struct ShadowMapComponent
     Vec2u resolution = Vec2u { 512, 512 };
 
     HYP_FIELD()
-    RC<RenderSubsystem> render_subsystem;
+    Handle<Subsystem> subsystem;
 
     HYP_FIELD()
     uint32 update_counter = 0;

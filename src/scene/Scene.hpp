@@ -214,7 +214,7 @@ public:
         m_is_audio_listener = is_audio_listener;
     }
 
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
     HYP_METHOD()
     bool AddToWorld(World* world);
@@ -260,7 +260,7 @@ private:
 
     bool m_is_audio_listener;
 
-    GameCounter::TickUnit m_previous_delta;
+    float m_previous_delta;
 
     RenderScene* m_render_resource;
 };

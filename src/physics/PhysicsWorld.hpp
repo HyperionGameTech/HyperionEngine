@@ -106,7 +106,7 @@ public:
         m_adapter.Teardown(this);
     }
 
-    void Tick(GameCounter::TickUnitHighPrec delta)
+    void Tick(double delta)
     {
         m_adapter.Tick(this, delta);
     }
@@ -120,7 +120,7 @@ private:
 
 #ifdef HYP_BULLET_PHYSICS
 
-    #include <physics/bullet/Adapter.hpp>
+#include <physics/bullet/Adapter.hpp>
 
 namespace hyperion {
 using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
@@ -128,7 +128,7 @@ using PhysicsWorld = physics::PhysicsWorld<physics::BulletPhysicsAdapter>;
 
 #else
 
-    #include <physics/null/Adapter.hpp>
+#include <physics/null/Adapter.hpp>
 
 namespace hyperion {
 using PhysicsWorld = physics::PhysicsWorld<physics::NullPhysicsAdapter>;

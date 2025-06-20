@@ -28,7 +28,7 @@ template <class T>
 class ResourceMemoryPool;
 
 template <class T>
-struct ResourceMemoryPoolInitInfo : MemoryPoolInitInfo
+struct ResourceMemoryPoolInitInfo : MemoryPoolInitInfo<T>
 {
 };
 

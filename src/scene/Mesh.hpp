@@ -74,10 +74,8 @@ public:
     void SetVertices(Span<const Vertex> vertices);
     void SetVertices(Span<const Vertex> vertices, Span<const uint32> indices);
 
-    HYP_METHOD(Property = "StreamedMeshData")
     const RC<StreamedMeshData>& GetStreamedMeshData() const;
 
-    HYP_METHOD(Property = "StreamedMeshData")
     void SetStreamedMeshData(RC<StreamedMeshData> streamed_mesh_data);
 
     HYP_METHOD()

@@ -74,10 +74,27 @@ namespace Hyperion
 
         private bool IsHiddenOrSystemFile(string path)
         {
-            FileAttributes attributes = File.GetAttributes(path);
+            try
+            {
+                FileAttributes attributes = File.GetAttributes(path);
 
-            return (attributes & FileAttributes.Hidden) == FileAttributes.Hidden || 
-                   (attributes & FileAttributes.System) == FileAttributes.System;
+                return (attributes & FileAttributes.Hidden) == FileAttributes.Hidden || 
+                    (attributes & FileAttributes.System) == FileAttributes.System;
+            }
+            catch (FileNotFoundException)
+            {
+                // If the file doesn't exist, we can't determine its attributes
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // If we don't have permission to access the file, assume it's not hidden or system
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         public void StopWatching()

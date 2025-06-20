@@ -70,7 +70,7 @@ public:
     }
 
     void Shutdown();
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
 private:
     void Init() override;

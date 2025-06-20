@@ -159,16 +159,6 @@ public:
         return m_dimensions;
     }
 
-    HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsUpdate(bool needs_update)
-    {
-        m_needs_update = needs_update;
-    }
-
-    HYP_DEPRECATED HYP_FORCE_INLINE bool NeedsUpdate() const
-    {
-        return m_needs_update;
-    }
-
     HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
     {
         if (needs_render)
@@ -191,11 +181,16 @@ public:
     HYP_DEPRECATED bool IsVisible(ID<Camera> camera_id) const;
     HYP_DEPRECATED void SetIsVisible(ID<Camera> camera_id, bool is_visible);
 
-    void Update(GameCounter::TickUnit delta);
+    virtual void Update(float delta) override;
 
     uint32 m_grid_slot = ~0u; // temp
 
-private:
+protected:
+    virtual bool ReceivesUpdate() const
+    {
+        return true;
+    }
+
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
     virtual void OnAddedToScene(Scene* scene) override;

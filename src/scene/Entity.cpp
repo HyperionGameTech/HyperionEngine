@@ -8,6 +8,7 @@
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
@@ -81,7 +82,8 @@ Entity::~Entity()
                 {
                     HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", weak_this.GetID().Value());
                 }
-            });
+            },
+            TaskEnqueueFlags::FIRE_AND_FORGET);
     }
 }
 
@@ -98,6 +100,99 @@ EntityManager* Entity::GetEntityManager() const
     }
 
     return m_scene->GetEntityManager();
+}
+
+void Entity::SetReceivesUpdate(bool receives_update)
+{
+    EntityManager* entity_manager = GetEntityManager();
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while setting receives update", GetID().Value());
+
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+
+    if (receives_update)
+    {
+        entity_manager->AddTag<EntityTag::RECEIVES_UPDATE>(GetID());
+    }
+    else
+    {
+        entity_manager->RemoveTag<EntityTag::RECEIVES_UPDATE>(GetID());
+    }
+}
+
+void Entity::Attach(const Handle<Node>& attach_node)
+{
+    EntityManager* entity_manager = GetEntityManager();
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", GetID().Value());
+
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    {
+        if (Handle<Node> node = node_link_component->node.Lock())
+        {
+            if (node == attach_node)
+            {
+                return;
+            }
+
+            AssertDebug(node->GetEntity() == this);
+
+            // Unset Entity first.
+            node->SetEntity(Handle<Entity>::empty);
+        }
+    }
+
+    // Attach() called with empty node, so just leave it as detached from any node, and return.
+    if (!attach_node.IsValid())
+    {
+        return;
+    }
+
+    Handle<Entity> strong_this = HandleFromThis();
+
+    Handle<Node> node = attach_node->AddChild();
+    node->SetEntity(strong_this);
+
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(strong_this))
+    {
+        node_link_component->node = node;
+    }
+    else
+    {
+        entity_manager->AddComponent<NodeLinkComponent>(strong_this, NodeLinkComponent { node });
+    }
+}
+
+void Entity::Detach()
+{
+    EntityManager* entity_manager = GetEntityManager();
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching from Node", GetID().Value());
+
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+
+    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(GetID()))
+    {
+        if (Handle<Node> node = node_link_component->node.Lock())
+        {
+            node->SetEntity(Handle<Entity>::empty);
+        }
+    }
+}
+
+void Entity::OnAttachedToNode(Node* node)
+{
+    AssertThrow(node != nullptr);
+
+    // Do nothing in default implementation.
+
+    // @TODO Ensure has BVHComponent if node has BUILD_BVH true
+}
+
+void Entity::OnDetachedFromNode(Node* node)
+{
+    AssertThrow(node != nullptr);
+
+    // Do nothing in default implementation.
 }
 
 void Entity::OnAddedToWorld(World* world)
@@ -170,7 +265,14 @@ void Entity::AttachChild(const Handle<Entity>& child)
             Handle<Node> child_node = node->AddChild();
             child_node->SetEntity(child);
 
-            entity_manager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { child_node });
+            if (NodeLinkComponent* child_node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(child))
+            {
+                child_node_link_component->node = child_node;
+            }
+            else
+            {
+                entity_manager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { child_node });
+            }
 
             return;
         }

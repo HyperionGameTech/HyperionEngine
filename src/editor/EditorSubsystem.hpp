@@ -342,7 +342,7 @@ public:
 
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
-    void Update(GameCounter::TickUnit delta) override;
+    void Update(float delta) override;
 
     void OnSceneAttached(const Handle<Scene>& scene) override;
     void OnSceneDetached(const Handle<Scene>& scene) override;
@@ -428,9 +428,9 @@ private:
 
     RC<FontAtlas> CreateFontAtlas();
 
-    void UpdateCamera(GameCounter::TickUnit delta);
-    void UpdateTasks(GameCounter::TickUnit delta);
-    void UpdateDebugOverlays(GameCounter::TickUnit delta);
+    void UpdateCamera(float delta);
+    void UpdateTasks(float delta);
+    void UpdateDebugOverlays(float delta);
 
     void StartWatchingNode(const Handle<Node>& node);
     void StopWatchingNode(const Handle<Node>& node);
@@ -490,7 +490,6 @@ private:
     Handle<UIObject> m_content_browser_contents_empty;
 
     Array<Handle<View>> m_views;
-    Array<RC<ScreenCaptureRenderSubsystem>> m_screen_capture_render_subsystems;
 
     DelegateHandlerSet m_delegate_handlers;
 };

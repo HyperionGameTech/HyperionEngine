@@ -33,7 +33,7 @@ namespace hyperion {
 class ComponentInterfaceRegistry;
 class ComponentContainerFactoryBase;
 
-enum class EntityTag : uint32;
+enum class EntityTag : uint64;
 
 template <EntityTag Tag>
 struct EntityTagComponent;
@@ -352,6 +352,11 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
 #define HYP_REGISTER_ENTITY_TAG(tag, ...)                                                                                                    \
     static ComponentInterfaceRegistration<EntityTagComponent<EntityTag::tag>, ##__VA_ARGS__> tag##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                        \
+    }
+
+#define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                                     \
+    static ComponentInterfaceRegistration<EntityTagComponent<EntityTagTypeID<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
+    {                                                                                                                                                        \
     }
 
 } // namespace hyperion

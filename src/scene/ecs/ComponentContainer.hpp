@@ -168,6 +168,15 @@ public:
      */
     virtual bool RemoveComponent(ComponentID id) = 0;
 
+    /*! \brief Removes the component with the given ID from the component container and stores the component object in HypData
+     *
+     *  \param id The ID of the component to remove.
+     *  \param out_hyp_data Out reference to store the component data in
+     *
+     *  \return True if the component was removed, false otherwise.
+     */
+    virtual bool RemoveComponent(ComponentID id, HypData& out_hyp_data) = 0;
+
     /*! \brief Moves the component with the given ID from this component container to the given component container.
      *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
      *
@@ -334,6 +343,24 @@ public:
 
         if (it != m_components.End())
         {
+            m_components.Erase(it);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    virtual bool RemoveComponent(ComponentID id, HypData& out_hyp_data) override
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        auto it = m_components.Find(id);
+
+        if (it != m_components.End())
+        {
+            out_hyp_data = HypData(std::move(it->second));
+
             m_components.Erase(it);
 
             return true;

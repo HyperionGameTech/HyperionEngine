@@ -924,7 +924,15 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& app_context)
                 m_delegate_handlers.Remove(&project->OnSceneAdded);
                 m_delegate_handlers.Remove(&project->OnSceneRemoved);
 
-                GetWorld()->GetRenderResource().GetEnvironment()->RemoveRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"));
+                ScreenCaptureRenderSubsystem* subsystem = GetWorld()->GetSubsystem<ScreenCaptureRenderSubsystem>();
+
+                if (subsystem)
+                {
+                    m_delegate_handlers.Remove(&subsystem->OnTextureResize);
+
+                    bool removed = GetWorld()->RemoveSubsystem(subsystem);
+                    AssertThrow(removed);
+                }
 
                 m_delegate_handlers.Remove("SetBuildBVHFlag");
                 m_delegate_handlers.Remove("OnPackageAdded");
@@ -1079,7 +1087,7 @@ void EditorSubsystem::OnRemovedFromWorld()
     }
 }
 
-void EditorSubsystem::Update(GameCounter::TickUnit delta)
+void EditorSubsystem::Update(float delta)
 {
     HYP_SCOPE;
 
@@ -1214,13 +1222,6 @@ void EditorSubsystem::CreateHighlightNode()
 
 void EditorSubsystem::InitViewport()
 {
-    for (const RC<ScreenCaptureRenderSubsystem>& screen_capture_render_subsystem : m_screen_capture_render_subsystems)
-    {
-        screen_capture_render_subsystem->RemoveFromEnvironment();
-    }
-
-    m_screen_capture_render_subsystems.Clear();
-
     for (const Handle<View>& view : m_views)
     {
         GetWorld()->RemoveView(view);
@@ -1243,8 +1244,20 @@ void EditorSubsystem::InitViewport()
 
         InitObject(view);
 
-        RC<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<ScreenCaptureRenderSubsystem>(NAME("EditorSceneCapture"), TResourceHandle<RenderView>(view->GetRenderResource()));
-        m_screen_capture_render_subsystems.PushBack(screen_capture_render_subsystem);
+        Handle<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->AddSubsystem<ScreenCaptureRenderSubsystem>(view);
+        // m_delegate_handlers.Add(
+        //     screen_capture_render_subsystem->OnTextureResize.Bind([this, scene_image_object_weak = scene_image_object.ToWeak()](const Handle<Texture>& texture)
+        //         {
+        //             if (Handle<UIObject> scene_image_object = scene_image_object_weak.Lock())
+        //             {
+        //                 if (Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>())
+        //                 {
+        //                     ui_image->SetTexture(Handle<Texture>::empty);
+        //                     ui_image->SetTexture(texture);
+        //                 }
+        //             }
+        //         },
+        //         g_game_thread));
 
         GetWorld()->AddView(view);
 
@@ -2834,12 +2847,12 @@ Handle<Node> EditorSubsystem::GetFocusedNode() const
     return m_focused_node.Lock();
 }
 
-void EditorSubsystem::UpdateCamera(GameCounter::TickUnit delta)
+void EditorSubsystem::UpdateCamera(float delta)
 {
     HYP_SCOPE;
 }
 
-void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
+void EditorSubsystem::UpdateTasks(float delta)
 {
     HYP_SCOPE;
 
@@ -2880,7 +2893,7 @@ void EditorSubsystem::UpdateTasks(GameCounter::TickUnit delta)
     }
 }
 
-void EditorSubsystem::UpdateDebugOverlays(GameCounter::TickUnit delta)
+void EditorSubsystem::UpdateDebugOverlays(float delta)
 {
     HYP_SCOPE;
 

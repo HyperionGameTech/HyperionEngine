@@ -36,125 +36,125 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(const Handle<Entity>& entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
-    BoundingBoxComponent& bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
-    TransformComponent& transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
+    // ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
+    // BoundingBoxComponent& bounding_box_component = GetEntityManager().GetComponent<BoundingBoxComponent>(entity);
+    // TransformComponent& transform_component = GetEntityManager().GetComponent<TransformComponent>(entity);
 
-    BoundingBox world_aabb = bounding_box_component.world_aabb;
+    // BoundingBox world_aabb = bounding_box_component.world_aabb;
 
-    if (!world_aabb.IsFinite())
-    {
-        world_aabb = BoundingBox::Empty();
-    }
+    // if (!world_aabb.IsFinite())
+    // {
+    //     world_aabb = BoundingBox::Empty();
+    // }
 
-    if (!world_aabb.IsValid())
-    {
-        HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
-    }
+    // if (!world_aabb.IsValid())
+    // {
+    //     HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
+    // }
 
-    if (reflection_probe_component.reflection_probe_renderer)
-    {
-        reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
-        reflection_probe_component.reflection_probe_renderer.Reset();
-    }
+    // if (reflection_probe_component.reflection_probe_renderer)
+    // {
+    //     reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
+    //     reflection_probe_component.reflection_probe_renderer.Reset();
+    // }
 
-    if (reflection_probe_component.env_probe.IsValid())
-    {
-        reflection_probe_component.env_probe->SetParentScene(GetScene()->HandleFromThis());
-        reflection_probe_component.env_probe->SetAABB(world_aabb);
-    }
-    else
-    {
-        reflection_probe_component.env_probe = CreateObject<EnvProbe>(
-            GetScene()->HandleFromThis(),
-            world_aabb,
-            reflection_probe_component.dimensions,
-            EnvProbeType::REFLECTION);
-    }
+    // if (reflection_probe_component.env_probe.IsValid())
+    // {
+    //     reflection_probe_component.env_probe->SetParentScene(GetScene()->HandleFromThis());
+    //     reflection_probe_component.env_probe->SetAABB(world_aabb);
+    // }
+    // else
+    // {
+    //     reflection_probe_component.env_probe = CreateObject<EnvProbe>(
+    //         GetScene()->HandleFromThis(),
+    //         world_aabb,
+    //         reflection_probe_component.dimensions,
+    //         EnvProbeType::REFLECTION);
+    // }
 
-    reflection_probe_component.env_probe->SetOrigin(transform_component.transform.GetTranslation());
+    // reflection_probe_component.env_probe->SetOrigin(transform_component.transform.GetTranslation());
 
-    InitObject(reflection_probe_component.env_probe);
+    // InitObject(reflection_probe_component.env_probe);
 
-    GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity);
+    // GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity);
 
-    AddRenderSubsystemToEnvironment(reflection_probe_component);
+    // AddRenderSubsystemToEnvironment(reflection_probe_component);
 }
 
 void ReflectionProbeUpdaterSystem::OnEntityRemoved(ID<Entity> entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
-    ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
+    // ReflectionProbeComponent& reflection_probe_component = GetEntityManager().GetComponent<ReflectionProbeComponent>(entity);
 
-    if (reflection_probe_component.env_probe.IsValid())
-    {
-        reflection_probe_component.env_probe->SetParentScene(Handle<Scene>::empty);
-    }
+    // if (reflection_probe_component.env_probe.IsValid())
+    // {
+    //     reflection_probe_component.env_probe->SetParentScene(Handle<Scene>::empty);
+    // }
 
-    if (reflection_probe_component.reflection_probe_renderer)
-    {
-        reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
-        reflection_probe_component.reflection_probe_renderer.Reset();
-    }
+    // if (reflection_probe_component.reflection_probe_renderer)
+    // {
+    //     reflection_probe_component.reflection_probe_renderer->RemoveFromEnvironment();
+    //     reflection_probe_component.reflection_probe_renderer.Reset();
+    // }
 }
 
 void ReflectionProbeUpdaterSystem::Process(float delta)
 {
-    for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
-    {
-        const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
+    // for (auto [entity_id, reflection_probe_component] : GetEntityManager().GetEntitySet<ReflectionProbeComponent>().GetScopedView(GetComponentInfos()))
+    // {
+    //     const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 
-        if (!env_probe.IsValid())
-        {
-            continue;
-        }
+    //     if (!env_probe.IsValid())
+    //     {
+    //         continue;
+    //     }
 
-        env_probe->Update(delta);
+    //     env_probe->Update(delta);
 
-        const Handle<Camera>& camera = GetScene()->GetPrimaryCamera();
+    //     const Handle<Camera>& camera = GetScene()->GetPrimaryCamera();
 
-        if (!camera.IsValid())
-        {
-            continue;
-        }
+    //     if (!camera.IsValid())
+    //     {
+    //         continue;
+    //     }
 
-        const bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
+    //     const bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
 
-        env_probe->SetIsVisible(camera.GetID(), is_env_probe_in_frustum);
-    }
+    //     env_probe->SetIsVisible(camera.GetID(), is_env_probe_in_frustum);
+    // }
 
-    { // Update transforms and bounding boxes of EnvProbes to match the components
-        HashSet<ID<Entity>> updated_entity_ids;
+    // { // Update transforms and bounding boxes of EnvProbes to match the components
+    //     HashSet<ID<Entity>> updated_entity_ids;
 
-        for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
-        {
-            const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
+    //     for (auto [entity_id, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
+    //     {
+    //         const Handle<EnvProbe>& env_probe = reflection_probe_component.env_probe;
 
-            if (!env_probe.IsValid())
-            {
-                continue;
-            }
+    //         if (!env_probe.IsValid())
+    //         {
+    //             continue;
+    //         }
 
-            // @FIXME: This is a hack to update the AABB of the reflection probe renderer,
-            // EnvProbe should be on the component
-            env_probe->SetAABB(bounding_box_component.world_aabb);
-            env_probe->SetOrigin(transform_component.transform.GetTranslation());
+    //         // @FIXME: This is a hack to update the AABB of the reflection probe renderer,
+    //         // EnvProbe should be on the component
+    //         env_probe->SetAABB(bounding_box_component.world_aabb);
+    //         env_probe->SetOrigin(transform_component.transform.GetTranslation());
 
-            updated_entity_ids.Insert(entity_id);
-        }
+    //         updated_entity_ids.Insert(entity_id);
+    //     }
 
-        if (updated_entity_ids.Any())
-        {
-            AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
-                {
-                    for (const ID<Entity>& entity_id : updated_entity_ids)
-                    {
-                        GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
-                    }
-                });
-        }
-    }
+    //     if (updated_entity_ids.Any())
+    //     {
+    //         AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
+    //             {
+    //                 for (const ID<Entity>& entity_id : updated_entity_ids)
+    //                 {
+    //                     GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
+    //                 }
+    //             });
+    //     }
+    // }
 }
 
 void ReflectionProbeUpdaterSystem::AddRenderSubsystemToEnvironment(ReflectionProbeComponent& reflection_probe_component)

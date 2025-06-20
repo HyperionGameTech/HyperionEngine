@@ -81,11 +81,11 @@ struct IsHypObject
  *  \note A type is considered a HypObject if it is derived from HypObjectBase or if it has HYP_OBJECT_BODY(...) in the class body.
  *  \tparam T The type to check. */
 template <class T>
-struct IsHypObject<T, std::enable_if_t<!std::is_same_v<HypObjectBase, T> && std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object /*&& std::is_same_v<T, typename T::HypObjectData::Type>*/)>>
+struct IsHypObject<T, std::enable_if_t<std::is_base_of_v<HypObjectBase, T> || (T::HypObjectData::is_hyp_object)>>
 {
     static constexpr bool value = true;
 
-    using Type = std::conditional_t<std::is_base_of_v<HypObjectBase, T>, T, typename T::HypObjectData::Type>;
+    using Type = typename T::HypObjectData::Type;
 };
 
 enum class HypObjectInitializerFlags : uint32
@@ -228,7 +228,7 @@ struct HypObjectInitializerGuard : HypObjectInitializerGuardBase
         using HypObjectType = typename IsHypObject<T>::Type;
         static const HypClass* hyp_class = GetClass(TypeID::ForType<HypObjectType>());
 
-        AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<HypObjectType>().Data());
+        AssertThrowMsg(hyp_class != nullptr, "HypClass not registered for type %s", TypeNameWithoutNamespace<T>().Data());
 
         return hyp_class;
     }

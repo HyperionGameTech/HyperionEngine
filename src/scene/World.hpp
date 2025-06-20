@@ -128,6 +128,9 @@ public:
     Subsystem* GetSubsystemByName(WeakName name) const;
 
     HYP_METHOD()
+    bool RemoveSubsystem(Subsystem* subsystem);
+
+    HYP_METHOD()
     const Handle<WorldGrid>& GetWorldGrid() const
     {
         return m_world_grid;
@@ -182,7 +185,7 @@ public:
     /*! \brief Perform any necessary game thread specific updates to the World.
      * The main logic loop of the engine happens here. Each Scene in the World is updated,
      * and within each Scene, each Entity, etc. */
-    void Update(GameCounter::TickUnit delta);
+    void Update(float delta);
 
     Delegate<void, World*, GameStateMode, GameStateMode> OnGameStateChange;
 

@@ -150,7 +150,7 @@ void FirstPersonCameraController::UpdateLogic(double dt)
     HYP_SCOPE;
 }
 
-void FirstPersonCameraController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
+void FirstPersonCameraController::RespondToCommand(const CameraCommand& command, float dt)
 {
     HYP_SCOPE;
 

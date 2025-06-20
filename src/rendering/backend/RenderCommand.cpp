@@ -16,8 +16,7 @@ RenderCommands::Buffer RenderCommands::s_buffers[2] = {};
 AtomicVar<uint32> RenderCommands::s_buffer_index = 0;
 RenderCommands::RenderCommandSemaphore RenderCommands::s_semaphore = {};
 
-// // Note: double buffering is currently disabled as some render commands are dependent on being executed sequentially.
-// #define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
+#define HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
 // #define HYP_RENDER_COMMANDS_DEBUG_LOG_NAME
 
 #pragma region RenderScheduler
@@ -56,16 +55,12 @@ RendererResult RenderCommands::Flush()
     Array<RenderCommand*> commands;
 
 #ifdef HYP_RENDER_COMMANDS_DOUBLE_BUFFERED
-    const uint32 buffer_index = CurrentBufferIndex();
+    const uint32 buffer_index = RenderCommands::s_buffer_index.Increment(1, MemoryOrder::ACQUIRE_RELEASE) % 2;
     Buffer& buffer = s_buffers[buffer_index];
 
     std::unique_lock lock(buffer.mtx);
 
     buffer.scheduler.AcceptAll(commands);
-
-    RenderCommands::buffer_index.Increment(1, MemoryOrder::RELEASE);
-
-    lock.unlock();
 
     const SizeType num_commands = commands.Size();
 
@@ -86,9 +81,10 @@ RendererResult RenderCommands::Flush()
     {
         buffer.scheduler.m_num_enqueued.Decrement(num_commands, MemoryOrder::RELEASE);
 
-        // Buffer is swapped now, safe to rewind without locking mutex.
         Rewind(buffer_index);
     }
+
+    lock.unlock();
 #else
     const uint32 buffer_index = 0;
     Buffer& buffer = s_buffers[buffer_index];

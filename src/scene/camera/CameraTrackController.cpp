@@ -37,7 +37,7 @@ void CameraTrackController::UpdateLogic(double dt)
     m_camera->SetDirection(view_vector);
 }
 
-void CameraTrackController::RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
+void CameraTrackController::RespondToCommand(const CameraCommand& command, float dt)
 {
 }
 

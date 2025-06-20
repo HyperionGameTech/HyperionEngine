@@ -4,11 +4,13 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/RenderWorld.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 
 #include <scene/World.hpp>
 #include <scene/Texture.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/CameraComponent.hpp>
@@ -24,9 +26,17 @@
 
 namespace hyperion {
 
-SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
-    : RenderSubsystem(name),
-      m_dimensions(dimensions)
+SkydomeRenderer::SkydomeRenderer(Vec2u dimensions)
+    : m_dimensions(dimensions)
+{
+}
+
+SkydomeRenderer::~SkydomeRenderer()
+{
+    HYP_SYNC_RENDER(); // wait for render commands to finish
+}
+
+void SkydomeRenderer::Init()
 {
     m_cubemap = CreateObject<Texture>(TextureDesc {
         ImageType::TEXTURE_TYPE_CUBEMAP,
@@ -36,8 +46,10 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
         FilterMode::TEXTURE_FILTER_LINEAR });
 
     InitObject(m_cubemap);
+    m_cubemap->SetPersistentRenderResourceEnabled(true);
 
     m_virtual_scene = CreateObject<Scene>(SceneFlags::NONE);
+    m_virtual_scene->SetOwnerThreadID(g_game_thread);
     m_virtual_scene->SetName(Name::Unique("SkydomeRendererScene"));
     InitObject(m_virtual_scene);
 
@@ -60,25 +72,8 @@ SkydomeRenderer::SkydomeRenderer(Name name, Vec2u dimensions)
 
     camera_node->SetEntity(camera_entity);
 
-    m_env_probe = CreateObject<EnvProbe>(
-        m_virtual_scene,
-        BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)),
-        m_dimensions,
-        EnvProbeType::SKY);
-}
-
-void SkydomeRenderer::Init()
-{
-}
-
-void SkydomeRenderer::InitGame()
-{
-    m_virtual_scene->SetOwnerThreadID(g_game_thread);
-
-    g_engine->GetWorld()->AddScene(m_virtual_scene);
-
+    m_env_probe = m_virtual_scene->GetEntityManager()->AddEntity<EnvProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions, EnvProbeType::SKY);
     InitObject(m_env_probe);
-    m_env_probe->GetRenderResource().IncRef(); // temp testing
 
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
 
@@ -92,79 +87,97 @@ void SkydomeRenderer::InitGame()
     }
 }
 
-void SkydomeRenderer::OnRemoved()
+void SkydomeRenderer::OnAddedToWorld()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_game_thread);
+
+    AssertDebug(m_virtual_scene.IsValid());
+    AssertDebug(m_camera.IsValid());
+    AssertDebug(m_cubemap.IsValid());
+
+    GetWorld()->AddScene(m_virtual_scene);
+}
+
+void SkydomeRenderer::OnRemovedFromWorld()
 {
     if (m_env_probe)
     {
-        m_env_probe->GetRenderResource().DecRef(); // temp testing
         m_env_probe.Reset();
     }
 
     m_camera.Reset();
     m_cubemap.Reset();
 
-    Threads::GetThread(g_game_thread)->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Remove skydome scene from world"), [scene = m_virtual_scene]()
+    GetWorld()->RemoveScene(m_virtual_scene);
+}
+
+void SkydomeRenderer::Update(float delta)
+{
+    struct RENDER_COMMAND(RenderSky)
+        : public renderer::RenderCommand
+    {
+        RenderWorld* world;
+        RenderEnvProbe* env_probe;
+        RenderTexture* cubemap;
+
+        RENDER_COMMAND(RenderSky)(RenderWorld* world, RenderEnvProbe* env_probe, RenderTexture* cubemap)
+            : world(world),
+              env_probe(env_probe),
+              cubemap(cubemap)
         {
-            g_engine->GetWorld()->RemoveScene(scene);
-        },
-        TaskEnqueueFlags::FIRE_AND_FORGET);
-}
+            // world->IncRef();
+            // env_probe->IncRef();
+            // cubemap->IncRef();
+        }
 
-void SkydomeRenderer::OnUpdate(GameCounter::TickUnit delta)
-{
-    // Do nothing
-}
+        virtual ~RENDER_COMMAND(RenderSky)() override
+        {
+            world->DecRef();
+            env_probe->DecRef();
+            cubemap->DecRef();
+        }
 
-void SkydomeRenderer::OnRender(FrameBase* frame, const RenderSetup& render_setup)
-{
-    AssertThrow(m_env_probe.IsValid());
+        virtual RendererResult operator()() override
+        {
+            FrameBase* frame = g_rendering_api->GetCurrentFrame();
 
-    if (!m_env_probe->IsReady())
+            // Copy cubemap from env probe to cubemap texture
+            const ImageRef& src_image = env_probe->GetFramebuffer()->GetAttachment(0)->GetImage();
+
+            AssertThrow(src_image.IsValid());
+            AssertThrow(src_image->IsCreated());
+
+            const ImageRef& dst_image = cubemap->GetImage();
+
+            frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
+            frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
+
+            frame->GetCommandList().Add<Blit>(src_image, dst_image);
+
+            frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
+
+            frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
+
+            HYPERION_RETURN_OK;
+        }
+    };
+
+    m_env_probe->Update(delta);
+
+    if (m_env_probe->NeedsRender())
     {
-        return;
+        g_engine->GetWorld()->GetRenderResource().IncRef();
+        m_env_probe->GetRenderResource().IncRef();
+        m_cubemap->GetRenderResource().IncRef();
+
+        PUSH_RENDER_COMMAND(
+            RenderSky,
+            &g_engine->GetWorld()->GetRenderResource(),
+            &m_env_probe->GetRenderResource(),
+            &m_cubemap->GetRenderResource());
     }
-
-    // @FIXME
-    if (!m_cubemap->GetRenderResource().GetImage()->IsCreated())
-    {
-        return;
-    }
-
-    if (!m_env_probe->NeedsRender())
-    {
-        return;
-    }
-
-    // temp testing
-    if (!m_env_probe->GetRenderResource().IsInitialized())
-    {
-        return;
-    }
-
-    m_env_probe->GetRenderResource().Render(frame, render_setup);
-
-    // Copy cubemap from env probe to cubemap texture
-    const ImageRef& src_image = m_env_probe->GetRenderResource().GetFramebuffer()->GetAttachment(0)->GetImage();
-    AssertThrow(src_image.IsValid());
-    // AssertThrow(src_image->IsCreated());
-
-    if (!src_image->IsCreated())
-    {
-        // hack to avoid crash
-        return;
-    }
-
-    const ImageRef& dst_image = m_cubemap->GetRenderResource().GetImage();
-
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
-    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
-
-    frame->GetCommandList().Add<Blit>(src_image, dst_image);
-
-    frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
-
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
 }
 
 } // namespace hyperion

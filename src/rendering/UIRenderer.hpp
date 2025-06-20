@@ -19,6 +19,7 @@
 #include <rendering/backend/RenderObject.hpp>
 
 #include <scene/Scene.hpp>
+#include <scene/Subsystem.hpp>
 
 namespace hyperion {
 
@@ -56,12 +57,12 @@ private:
 };
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API UIRenderSubsystem : public RenderSubsystem
+class HYP_API UIRenderSubsystem : public Subsystem
 {
     HYP_OBJECT_BODY(UIRenderSubsystem);
 
 public:
-    UIRenderSubsystem(Name name, const Handle<UIStage>& ui_stage);
+    UIRenderSubsystem(const Handle<UIStage>& ui_stage);
     UIRenderSubsystem(const UIRenderSubsystem& other) = delete;
     UIRenderSubsystem& operator=(const UIRenderSubsystem& other) = delete;
     virtual ~UIRenderSubsystem();
@@ -96,12 +97,13 @@ public:
         return m_render_proxy_tracker;
     }
 
+    virtual void Update(float delta) override;
+
 private:
     virtual void Init() override;
-    virtual void InitGame() override; // init on game thread
-    virtual void OnRemoved() override;
-    virtual void OnUpdate(GameCounter::TickUnit delta) override;
-    virtual void OnRender(FrameBase* frame, const RenderSetup& render_setup) override;
+
+    virtual void OnAddedToWorld() override;
+    virtual void OnRemovedFromWorld() override;
 
     void CreateFramebuffer();
 
@@ -117,7 +119,6 @@ private:
     TResourceHandle<RenderCamera> m_camera_resource_handle;
 
     Handle<View> m_view;
-    TResourceHandle<RenderView> m_render_view;
 
     DelegateHandler m_on_gbuffer_resolution_changed_handle;
 };

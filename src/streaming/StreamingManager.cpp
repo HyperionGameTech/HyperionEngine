@@ -827,7 +827,7 @@ void StreamingManager::Init()
     SetReady(true);
 }
 
-void StreamingManager::Update(GameCounter::TickUnit delta)
+void StreamingManager::Update(float delta)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread);

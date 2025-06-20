@@ -174,14 +174,18 @@ public:
 
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
-
-    void Update(GameCounter::TickUnit delta);
     
 private:
+    virtual void OnAttachedToNode(Node* node) override;
+    virtual void OnDetachedFromNode(Node* node) override;
+
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
+
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
+
+    virtual void Update(float delta) override;
 
     HYP_FORCE_INLINE Vec3f SizeOfProbe() const
     {
@@ -204,6 +208,8 @@ private:
     BoundingBox m_voxel_grid_aabb;
 
     EnvProbeCollection m_env_probe_collection;
+
+    HashCode m_cached_octant_hash_code;
 
     RenderEnvGrid* m_render_resource;
 };

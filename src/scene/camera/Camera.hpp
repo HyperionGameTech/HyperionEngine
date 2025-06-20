@@ -175,11 +175,11 @@ protected:
     virtual void OnActivated();
     virtual void OnDeactivated();
 
-    virtual void RespondToCommand(const CameraCommand& command, GameCounter::TickUnit dt)
+    virtual void RespondToCommand(const CameraCommand& command, float dt)
     {
     }
 
-    void UpdateCommandQueue(GameCounter::TickUnit dt);
+    void UpdateCommandQueue(float dt);
 
     void SetIsMouseLockRequested(bool mouse_lock_requested);
 
@@ -597,7 +597,7 @@ public:
     HYP_METHOD()
     Vec2f GetPixelSize() const;
 
-    void Update(GameCounter::TickUnit dt);
+    void Update(float dt);
     void UpdateMatrices();
 
 protected:

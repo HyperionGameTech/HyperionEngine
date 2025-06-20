@@ -263,8 +263,6 @@ void RenderWorld::Render(FrameBase* frame)
 
     RenderSetup render_setup { this, nullptr };
 
-    m_render_environment->RenderSubsystems(frame, render_setup);
-
     // Collect view-independent renderable types from all views
     FixedArray<Array<RenderLight*>, uint32(LightType::MAX)> lights;
     FixedArray<Array<RenderEnvProbe*>, uint32(EnvProbeType::REFLECTION) + 1> env_probes;
@@ -324,10 +322,6 @@ void RenderWorld::Render(FrameBase* frame)
     if (env_probes[uint32(EnvProbeType::SKY)].Any())
     {
         render_setup.env_probe = env_probes[uint32(EnvProbeType::SKY)][0];
-    }
-    else
-    {
-        HYP_LOG(Rendering, Warning, "No sky probe found in the world! EnvGrid and EnvProbe will have no fallback probe set.");
     }
 
     // if (env_probes.Any())

@@ -27,11 +27,6 @@ void UIImage::SetTexture(const Handle<Texture>& texture)
         return;
     }
 
-    if (m_texture.IsValid())
-    {
-        g_safe_deleter->SafeRelease(std::move(m_texture));
-    }
-
     m_texture = texture;
 
     InitObject(m_texture);

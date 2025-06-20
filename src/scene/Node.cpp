@@ -37,7 +37,7 @@ namespace hyperion {
 
 HYP_API void Node_OnPostLoad(Node& node)
 {
-    node.SetScene(nullptr);
+    node.SetScene(g_engine->GetDefaultWorld()->GetDetachedScene(g_game_thread));
 }
 
 #pragma region NodeTag
@@ -213,6 +213,7 @@ Node& Node::operator=(Node&& other) noexcept
 Node::~Node()
 {
     HYP_LOG(Node, Debug, "Destroying Node {}", m_name);
+
     for (const Handle<Node>& child : m_child_nodes)
     {
         if (!child.IsValid())
@@ -226,6 +227,16 @@ Node::~Node()
 
 void Node::Init()
 {
+    if (m_entity.IsValid())
+    {
+        InitObject(m_entity);
+    }
+
+    for (const Handle<Node>& child : m_child_nodes)
+    {
+        InitObject(child);
+    }
+
     SetReady(true);
 }
 
@@ -370,11 +381,6 @@ void Node::SetScene(Scene* scene)
 #endif
                 }
             }
-
-            if (m_flags & NodeFlags::BUILD_BVH)
-            {
-                EnsureEntityHasBVHComponent();
-            }
         }
     }
 
@@ -467,6 +473,11 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
         node->LockTransform();
     }
 
+    if (IsReady())
+    {
+        InitObject(node);
+    }
+
     Node* current_parent = this;
 
     while (current_parent != nullptr && current_parent->m_delegates != nullptr)
@@ -531,7 +542,7 @@ bool Node::RemoveChild(const Node* node)
 
     while (current_parent != nullptr && current_parent->m_delegates != nullptr)
     {
-        current_parent->m_delegates->OnChildRemoved(node, /* direct */ current_parent == this);
+        current_parent->m_delegates->OnChildRemoved(const_cast<Node*>(node), /* direct */ current_parent == this);
 
         current_parent = current_parent->m_parent_node;
     }
@@ -828,14 +839,40 @@ void Node::SetEntity(const Handle<Entity>& entity)
     }
 
     // Remove the NodeLinkComponent from the old entity
-    if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
+    if (m_entity.IsValid())
     {
-        // Ensure that we remove the NodeLinkComponent from the entity on the correct thread.
-        m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
+        m_entity->OnDetachedFromNode(this);
+
+        if (m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
+        {
+            m_scene->GetEntityManager()->RemoveComponent<NodeLinkComponent>(m_entity);
+        }
     }
 
     if (entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
     {
+        EntityManager* previous_entity_manager = entity->GetEntityManager();
+
+        // need to move the entity between EntityManagers
+        if (previous_entity_manager)
+        {
+            // Detach entity from its current node, if applicable
+            entity->Detach();
+
+            if (previous_entity_manager != m_scene->GetEntityManager().Get())
+            {
+                previous_entity_manager->MoveEntity(entity, m_scene->GetEntityManager());
+            }
+        }
+        else
+        {
+            // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
+            m_scene->GetEntityManager()->AddExistingEntity(entity);
+        }
+
+        // sanity check
+        AssertDebug(entity->GetScene() == m_scene);
+
         m_entity = entity;
 
         if (m_flags & NodeFlags::BUILD_BVH)
@@ -849,25 +886,6 @@ void Node::SetEntity(const Handle<Entity>& entity)
                 editor_delegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Entity")));
             });
 #endif
-
-        EntityManager* previous_entity_manager = m_entity->GetEntityManager();
-
-        // need to move the entity between EntityManagers
-        if (previous_entity_manager)
-        {
-            if (previous_entity_manager != m_scene->GetEntityManager().Get())
-            {
-                previous_entity_manager->MoveEntity(m_entity, m_scene->GetEntityManager());
-            }
-        }
-        else
-        {
-            // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
-            m_scene->GetEntityManager()->AddExistingEntity(m_entity);
-        }
-
-        // sanity check
-        AssertDebug(m_entity->GetScene() == m_scene);
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked
@@ -910,6 +928,13 @@ void Node::SetEntity(const Handle<Entity>& entity)
         {
             m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, {});
         }
+
+        if (IsReady())
+        {
+            InitObject(m_entity);
+        }
+
+        m_entity->OnAttachedToNode(this);
     }
     else
     {

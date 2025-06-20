@@ -63,7 +63,7 @@ public:
     virtual void DecRefWeak(HypObjectHeader*) = 0;
     virtual void* Release(HypObjectHeader*) = 0;
 
-    virtual void* GetObjectPointer(HypObjectHeader*) = 0;
+    virtual HypObjectBase* GetObjectPointer(HypObjectHeader*) = 0;
     virtual HypObjectHeader* GetObjectHeader(uint32 index) = 0;
 
     virtual void ReleaseIndex(uint32 index) = 0;
@@ -256,7 +256,7 @@ static inline void ObjectContainer_OnBlockAllocated(void* ctx, HypObjectMemory<T
 template <class T>
 class ObjectContainer final : public ObjectContainerBase
 {
-    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, MemoryPoolInitInfo, ObjectContainer_OnBlockAllocated<T>>;
+    using MemoryPoolType = MemoryPool<HypObjectMemory<T>, MemoryPoolInitInfo<T>, ObjectContainer_OnBlockAllocated<T>>;
 
     using HypObjectMemory = HypObjectMemory<T>;
 
@@ -318,7 +318,7 @@ public:
         return static_cast<HypObjectMemory*>(ptr)->HypObjectMemory::Release();
     }
 
-    virtual void* GetObjectPointer(HypObjectHeader* ptr) override
+    virtual HypObjectBase* GetObjectPointer(HypObjectHeader* ptr) override
     {
         if (!ptr)
         {

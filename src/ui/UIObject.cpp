@@ -255,7 +255,7 @@ void UIObject::Init()
     OnInit();
 }
 
-void UIObject::Update(GameCounter::TickUnit delta)
+void UIObject::Update(float delta)
 {
     HYP_SCOPE;
 
@@ -279,7 +279,7 @@ void UIObject::Update(GameCounter::TickUnit delta)
         /* deep */ true);
 }
 
-void UIObject::Update_Internal(GameCounter::TickUnit delta)
+void UIObject::Update_Internal(float delta)
 {
     HYP_SCOPE;
 

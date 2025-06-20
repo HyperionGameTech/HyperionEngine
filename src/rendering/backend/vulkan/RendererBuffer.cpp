@@ -314,7 +314,9 @@ VulkanGPUBuffer::VulkanGPUBuffer(GPUBufferType type, SizeType size, SizeType ali
 
 VulkanGPUBuffer::~VulkanGPUBuffer()
 {
-    AssertThrowMsg(m_handle == VK_NULL_HANDLE, "buffer should have been destroyed!");
+    AssertThrowMsg(m_handle == VK_NULL_HANDLE,
+        "Buffer should have been destroyed! Debug name: %s",
+        GetDebugName().LookupString());
 }
 
 void VulkanGPUBuffer::Memset(SizeType count, ubyte value)
