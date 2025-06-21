@@ -24,6 +24,7 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
@@ -120,7 +121,6 @@ void View::Init()
 
     m_render_resource = AllocateResource<RenderView>(this);
     m_render_resource->SetViewport(m_viewport);
-    m_render_resource->GetRenderCollector().SetOverrideAttributes(m_override_attributes);
 
     SetReady(true);
 }
@@ -174,6 +174,18 @@ void View::Update(float delta)
     CollectEnvGrids();
     CollectEnvProbes();
     m_last_collection_result = CollectEntities();
+
+    // temp test
+    DrawCallCollection& draw_call_collection = AcquireDrawCallCollection();
+    // HYP_LOG(Scene, Debug, "Acquired draw collection : {} \t count (rgs): {} ", (void*)&draw_collection, draw_collection.NumRenderGroups());
+
+    // constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
+    //     | (1 << BUCKET_LIGHTMAP)
+    //     | (1 << BUCKET_SKYBOX)
+    //     | (1 << BUCKET_TRANSLUCENT)
+    //     | (1 << BUCKET_DEBUG);
+
+    // RenderCollector::CollectDrawCalls(m_render_resource->GetEntityDrawCollection(), bucket_mask);
 
     // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}, EnvGrids: {}, EnvProbes: {}, Lights: {}, Lightmap Volumes: {}",
     //     GetID().Value(),

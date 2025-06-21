@@ -1,5 +1,8 @@
 #include <rendering/Renderer.hpp>
 
+#include <core/threading/Task.hpp>
+#include <core/threading/TaskSystem.hpp>
+
 #include <core/Defines.hpp>
 
 namespace hyperion {

@@ -174,7 +174,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         collection->ClearProxyGroups();
 
-        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
 
         for (const Pair<ID<Entity>, int>& pair : proxy_depths)
         {
@@ -201,7 +201,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
             attributes.SetDrawableLayer(pair.second);
 
-            Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
+            Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
 
             if (!render_group.IsValid())
             {
@@ -246,7 +246,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         bool removed = false;
 
-        for (auto& render_groups_by_attributes : collection->GetProxyGroups())
+        for (auto& render_groups_by_attributes : collection->proxy_groups)
         {
             for (auto& it : render_groups_by_attributes)
             {
@@ -263,7 +263,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
 
         // Reserve to prevent iterator invalidation
         render_proxy_tracker.Reserve(added_proxies.Size());
@@ -345,7 +345,8 @@ struct RENDER_COMMAND(RenderUI)
 #pragma region UIRenderCollector
 
 UIRenderCollector::UIRenderCollector()
-    : RenderCollector()
+    : RenderCollector(),
+      m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>()) // temp
 {
 }
 
@@ -411,7 +412,7 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& re
 
     Array<IteratorType> iterators;
 
-    for (auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+    for (auto& render_groups_by_attributes : m_draw_collection->proxy_groups)
     {
         for (auto& it : render_groups_by_attributes)
         {
@@ -451,7 +452,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+    for (const auto& render_groups_by_attributes : m_draw_collection->proxy_groups)
     {
         for (const auto& it : render_groups_by_attributes)
         {

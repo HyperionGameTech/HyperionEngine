@@ -19,6 +19,23 @@ class Entity;
 class ShadowMapAllocator;
 class GPUBufferHolderMap;
 class PlaceholderData;
+class EntityDrawCollection;
+class DrawCallCollection;
+class RenderView;
+class IDrawCallCollectionImpl;
+class RenderGroup;
+
+HYP_API extern uint32 GetRenderThreadFrameIndex();
+HYP_API extern uint32 GetGameThreadFrameIndex();
+
+HYP_API extern void BeginFrame_GameThread();
+HYP_API extern void EndFrame_GameThread();
+
+HYP_API extern void BeginFrame_RenderThread();
+HYP_API extern void EndFrame_RenderThread();
+
+// Acquire a draw collection for the game thread to write to
+HYP_API extern DrawCallCollection& AcquireDrawCallCollection(IDrawCallCollectionImpl* impl, RenderGroup* render_group);
 
 class RenderGlobalState
 {

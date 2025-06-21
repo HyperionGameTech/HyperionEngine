@@ -20,10 +20,11 @@
 #include <asset/Assets.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
+#include <rendering/RenderGlobalState.hpp>
 
 #include <Engine.hpp>
 
-#define HYP_GAME_THREAD_LOCKED 1
+// #define HYP_GAME_THREAD_LOCKED 1
 
 namespace hyperion {
 
@@ -143,12 +144,14 @@ void GameThread::operator()()
             }
         }
 
-        if (!m_game.IsValid())
+        BeginFrame_GameThread();
+
+        if (m_game.IsValid())
         {
-            continue;
+            m_game->Update(counter.delta);
         }
 
-        m_game->Update(counter.delta);
+        EndFrame_GameThread();
     }
 
     // flush scheduler

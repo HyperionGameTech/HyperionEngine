@@ -331,8 +331,15 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     {
         new_render_setup.env_probe = this;
 
-        m_render_view->GetRenderCollector().CollectDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
-        m_render_view->GetRenderCollector().ExecuteDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_TRANSLUCENT)));
+        RenderCollector::CollectDrawCalls(
+            m_render_view->GetEntityDrawCollection(),
+            ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
+
+        RenderCollector::ExecuteDrawCalls(
+            frame,
+            new_render_setup,
+            m_render_view->GetEntityDrawCollection(),
+            ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
         new_render_setup.env_probe = nullptr;
     }

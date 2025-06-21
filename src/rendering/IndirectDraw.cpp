@@ -288,7 +288,7 @@ void IndirectDrawState::PushInstancedDrawCall(const InstancedDrawCall& draw_call
 
 void IndirectDrawState::ResetDrawState()
 {
-    // assume render thread
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     m_num_draw_commands = 0;
 
@@ -300,7 +300,7 @@ void IndirectDrawState::ResetDrawState()
 
 void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* out_was_resized)
 {
-    // assume render thread
+    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
     const uint32 frame_index = frame->GetFrameIndex();
 

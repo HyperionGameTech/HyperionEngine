@@ -137,6 +137,8 @@ private:
                 m_app_context->GetMainWindow()->GetInputEventSink().Push(std::move(event));
             }
 
+            BeginFrame_RenderThread();
+
             if (uint32 num_enqueued = m_scheduler.NumEnqueued())
             {
                 m_scheduler.AcceptAll(tasks);
@@ -148,6 +150,8 @@ private:
             }
 
             g_engine->RenderNextFrame();
+
+            EndFrame_RenderThread();
         }
     }
 

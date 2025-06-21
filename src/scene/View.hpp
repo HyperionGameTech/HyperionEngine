@@ -150,6 +150,11 @@ public:
     HYP_METHOD()
     void SetPriority(int priority);
 
+    HYP_FORCE_INLINE const Optional<RenderableAttributeSet>& GetOverrideAttributes() const
+    {
+        return m_override_attributes;
+    }
+
     HYP_FORCE_INLINE const typename RenderProxyTracker::Diff& GetLastCollectionResult() const
     {
         return m_last_collection_result;

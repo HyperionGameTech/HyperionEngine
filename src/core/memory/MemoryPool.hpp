@@ -333,8 +333,8 @@ public:
     void RemoveEmptyBlocks()
     {
         HYP_SCOPE;
-        // Must be on the owner thread to remove empty blocks.
-        Threads::AssertOnThread(m_owner_thread_id);
+        // // Must be on the owner thread to remove empty blocks.
+        // Threads::AssertOnThread(m_owner_thread_id);
 
         if (m_num_blocks.Get(MemoryOrder::ACQUIRE) <= m_initial_num_blocks)
         {
@@ -376,6 +376,16 @@ public:
                 m_blocks.Erase(to_remove.PopBack());
             }
         }
+    }
+
+    void ClearUsedIndices()
+    {
+        HYP_SCOPE;
+
+        // // Must be on the owner thread to reset indices.
+        // Threads::AssertOnThread(m_owner_thread_id);
+
+        m_id_generator.Reset();
     }
 
 protected:

@@ -890,8 +890,15 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = &probe->GetRenderResource();
 
-    m_render_view->GetRenderCollector().CollectDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE)));
-    m_render_view->GetRenderCollector().ExecuteDrawCalls(frame, new_render_setup, Bitset((1 << BUCKET_OPAQUE)));
+    RenderCollector::CollectDrawCalls(
+        m_render_view->GetEntityDrawCollection(),
+        (1u << BUCKET_OPAQUE));
+
+    RenderCollector::ExecuteDrawCalls(
+        frame,
+        new_render_setup,
+        m_render_view->GetEntityDrawCollection(),
+        (1u << BUCKET_OPAQUE));
 
     switch (m_env_grid->GetEnvGridType())
     {

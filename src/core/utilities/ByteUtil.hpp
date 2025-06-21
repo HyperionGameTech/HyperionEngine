@@ -94,18 +94,64 @@ public:
     /*! \brief Gets the index of the lowest set bit in a 64-bit integer.
      *  \param bits The bits to get the index of the lowest set bit of.
      *  \return The index of the lowest set bit in the bits. */
-    static uint32 LowestSetBitIndex(uint64 bits);
+    static inline uint32 LowestSetBitIndex(uint64 bits);
 
     /*! \brief Gets the index of the highest set bit in a 64-bit integer.
      *  \param bits The bits to get the index of the highest set bit of.
      *  \return The index of the highest set bit in the bits. */
-    static uint32 HighestSetBitIndex(uint64 bits);
+    static inline uint32 HighestSetBitIndex(uint64 bits);
 
     /*! \brief Counts the number of bits set in a 64-bit integer.
      *  \param value The value to count the bits of.
      *  \return The number of bits set in the value. */
-    static uint64 BitCount(uint64 value);
+    static inline uint64 BitCount(uint64 value);
 };
+
+uint32 ByteUtil::LowestSetBitIndex(uint64 bits)
+{
+#ifdef HYP_CLANG_OR_GCC
+    const int bit_index = bits != 0 ? (__builtin_ffsll(bits) - 1) : uint32(-1);
+#elif defined(HYP_MSVC)
+    unsigned long bit_index = 0;
+    if (!_BitScanForward64(&bit_index, bits))
+    {
+        return uint32(-1);
+    }
+#else
+#error "ByteUtil::LowestSetBitIndex() not implemented for this platform"
+#endif
+
+    return uint32(bit_index);
+}
+
+uint32 ByteUtil::HighestSetBitIndex(uint64 bits)
+{
+#ifdef HYP_CLANG_OR_GCC
+    const int bit_index = bits != 0 ? (63 - __builtin_clzll(bits)) : uint32(-1);
+#elif defined(HYP_MSVC)
+    unsigned long bit_index = 0;
+    if (!_BitScanReverse64(&bit_index, bits))
+    {
+        return uint32(-1);
+    }
+#else
+#error "ByteUtil::HighestSetBitIndex() not implemented for this platform"
+#endif
+    return uint32(bit_index);
+}
+
+uint64 ByteUtil::BitCount(uint64 value)
+{
+#if HYP_WINDOWS
+    return __popcnt64(value);
+#else
+    // https://graphics.stanford.edu/~seander/bithacks.html
+    value = value - ((value >> 1) & (uint64) ~(uint64)0 / 3);
+    value = (value & (uint64) ~(uint64)0 / 15 * 3) + ((value >> 2) & (uint64) ~(uint64)0 / 15 * 3);
+    value = (value + (value >> 4)) & (uint64) ~(uint64)0 / 255 * 15;
+    return (uint64)(value * ((uint64) ~(uint64)0 / 255)) >> (sizeof(uint64) - 1) * CHAR_BIT;
+#endif
+}
 
 /*! \brief Converts a value of type \ref{To} to a value of type \ref{From}.
  *  Both types must be standard layout and have the same size.
@@ -120,7 +166,7 @@ static HYP_FORCE_INLINE To BitCast(const From& from)
     return ValueStorage<To>(&from).Get();
 }
 
-#define FOR_EACH_BIT(_num, _iter) for (uint64 num = (_num), _iter = ByteUtil::LowestSetBitIndex(num); _iter != uint32(-1); num &= ~(uint64(1) << _iter))
+#define FOR_EACH_BIT(_num, _iter) for (uint64 ITER_BITMASK = (_num), _iter; (_iter = ByteUtil::LowestSetBitIndex(ITER_BITMASK)) != uint32(-1); (ITER_BITMASK &= ~(uint64(1) << _iter)))
 
 } // namespace utilities
 

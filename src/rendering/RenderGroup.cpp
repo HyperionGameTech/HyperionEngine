@@ -305,15 +305,10 @@ void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_c
 void RenderGroup::CollectDrawCalls()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
+    // Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
     static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
-
-    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING)
-    {
-        m_indirect_renderer->GetDrawState().ResetDrawState();
-    }
 
     DrawCallCollection previous_draw_state = std::move(m_draw_state);
 
@@ -370,12 +365,6 @@ void RenderGroup::CollectDrawCalls()
     }
 
     previous_draw_state.ResetDrawCalls();
-
-    // register draw calls for indirect rendering
-    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING)
-    {
-        m_indirect_renderer->PushDrawCallsToIndirectState();
-    }
 }
 
 void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup)
@@ -393,6 +382,8 @@ void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& r
 
     Threads::AssertOnThread(g_render_thread);
 
+    m_indirect_renderer->GetDrawState().ResetDrawState();
+    m_indirect_renderer->PushDrawCallsToIndirectState();
     m_indirect_renderer->ExecuteCullShaderInBatches(frame, render_setup);
 }
 

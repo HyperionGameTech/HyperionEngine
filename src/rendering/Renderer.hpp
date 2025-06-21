@@ -9,7 +9,10 @@
 
 #include <core/utilities/Span.hpp>
 
+#include <rendering/EngineRenderStats.hpp>
+
 #include <rendering/backend/RenderObject.hpp>
+#include <rendering/rhi/RHICommandList.hpp>
 
 namespace hyperion {
 
@@ -19,6 +22,12 @@ class RenderEnvProbe;
 class RenderEnvGrid;
 class RenderLight;
 struct CullData;
+struct DrawCall;
+struct InstancedDrawCall;
+namespace threading {
+class TaskBatch;
+} // namespace threading
+using threading::TaskBatch;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
@@ -55,7 +64,7 @@ struct RendererConfig : public ConfigBase<RendererConfig>
 
 /*! \brief Describes the setup for rendering a frame. All RenderSetups must have a valid RenderWorld set. Passed to almost all Render() functions throughout the renderer.
  *  Most of the time you'll want a RenderSetup with a RenderView as well, but compute-only passes can use a RenderSetup without a view. Use HasView() to check if a view is set. */
-struct RenderSetup
+struct HYP_API RenderSetup
 {
     friend const RenderSetup& NullRenderSetup();
 

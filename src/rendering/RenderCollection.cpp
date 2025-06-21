@@ -140,7 +140,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
         const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
-        Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
+        Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
 
         if (!render_group.IsValid())
         {
@@ -196,7 +196,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
     {
         HYP_SCOPE;
 
-        auto& render_groups_by_attributes = collection->GetProxyGroups()[uint32(bucket)];
+        auto& render_groups_by_attributes = collection->proxy_groups[uint32(bucket)];
 
         auto it = render_groups_by_attributes.Find(attributes);
         AssertThrow(it != render_groups_by_attributes.End());
@@ -215,7 +215,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
     {
         HYP_SCOPE;
 
-        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
         render_proxy_tracker.Reserve(added_proxies.Size());
@@ -293,80 +293,17 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
 #pragma region EntityDrawCollection
 
-void EntityDrawCollection::ClearProxyGroups()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
-    // as well as render groups.
-    for (auto& render_groups_by_attributes : GetProxyGroups())
-    {
-        for (auto& it : render_groups_by_attributes)
-        {
-            it.second->ClearProxies();
-        }
-    }
-}
-
-void EntityDrawCollection::RemoveEmptyProxyGroups()
-{
-    HYP_SCOPE;
-
-    Threads::AssertOnThread(g_render_thread);
-
-    for (auto& render_groups_by_attributes : GetProxyGroups())
-    {
-        for (auto it = render_groups_by_attributes.Begin(); it != render_groups_by_attributes.End();)
-        {
-            if (it->second->GetRenderProxies().Any())
-            {
-                ++it;
-
-                continue;
-            }
-
-            it = render_groups_by_attributes.Erase(it);
-        }
-    }
-}
-
-uint32 EntityDrawCollection::NumRenderGroups() const
-{
-    Threads::AssertOnThread(g_render_thread);
-
-    uint32 count = 0;
-
-    for (const auto& render_groups_by_attributes : m_proxy_groups)
-    {
-        for (const auto& it : render_groups_by_attributes)
-        {
-            if (it.second.IsValid())
-            {
-                ++count;
-            }
-        }
-    }
-
-    return count;
-}
-
-#pragma endregion EntityDrawCollection
-
-#pragma region RenderCollector
-
-RenderCollector::RenderCollector()
-    : m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>()),
-      m_parallel_rendering_state(nullptr)
+EntityDrawCollection::EntityDrawCollection()
+    : parallel_rendering_state_head(nullptr),
+      parallel_rendering_state_tail(nullptr)
 {
 }
 
-RenderCollector::~RenderCollector()
+EntityDrawCollection::~EntityDrawCollection()
 {
-    if (m_parallel_rendering_state != nullptr)
+    if (parallel_rendering_state_head)
     {
-        ParallelRenderingState* state = m_parallel_rendering_state;
+        ParallelRenderingState* state = parallel_rendering_state_head;
 
         while (state != nullptr)
         {
@@ -385,28 +322,175 @@ RenderCollector::~RenderCollector()
     }
 }
 
-void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const Bitset& bucket_bits)
+void EntityDrawCollection::ClearProxyGroups()
 {
     HYP_SCOPE;
+
     Threads::AssertOnThread(g_render_thread);
 
-    if (bucket_bits.Count() == 0)
+    // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
+    // as well as render groups.
+    for (auto& render_groups_by_attributes : proxy_groups)
+    {
+        for (auto& it : render_groups_by_attributes)
+        {
+            it.second->ClearProxies();
+        }
+    }
+}
+
+void EntityDrawCollection::RemoveEmptyProxyGroups()
+{
+    HYP_SCOPE;
+
+    Threads::AssertOnThread(g_render_thread);
+
+    for (auto& render_groups_by_attributes : proxy_groups)
+    {
+        for (auto it = render_groups_by_attributes.Begin(); it != render_groups_by_attributes.End();)
+        {
+            if (it->second->GetRenderProxies().Any())
+            {
+                ++it;
+
+                continue;
+            }
+
+            it = render_groups_by_attributes.Erase(it);
+        }
+    }
+}
+
+uint32 EntityDrawCollection::NumRenderGroups() const
+{
+    uint32 count = 0;
+
+    for (const auto& render_groups_by_attributes : proxy_groups)
+    {
+        for (const auto& it : render_groups_by_attributes)
+        {
+            if (it.second.IsValid())
+            {
+                ++count;
+            }
+        }
+    }
+
+    return count;
+}
+
+ParallelRenderingState* EntityDrawCollection::AcquireNextParallelRenderingState()
+{
+    ParallelRenderingState* curr = parallel_rendering_state_tail;
+
+    if (!curr)
+    {
+        if (!parallel_rendering_state_head)
+        {
+            parallel_rendering_state_head = new ParallelRenderingState();
+
+            TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
+            TaskBatch* task_batch = new TaskBatch();
+            task_batch->pool = &pool;
+
+            parallel_rendering_state_head->task_batch = task_batch;
+            parallel_rendering_state_head->num_batches = ParallelRenderingState::max_batches;
+        }
+
+        curr = parallel_rendering_state_head;
+    }
+    else
+    {
+        if (!curr->next)
+        {
+            ParallelRenderingState* new_parallel_rendering_state = new ParallelRenderingState();
+
+            TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
+
+            TaskBatch* task_batch = new TaskBatch();
+            task_batch->pool = &pool;
+
+            new_parallel_rendering_state->task_batch = task_batch;
+            new_parallel_rendering_state->num_batches = ParallelRenderingState::max_batches;
+
+            curr->next = new_parallel_rendering_state;
+        }
+
+        curr = curr->next;
+    }
+
+    parallel_rendering_state_tail = curr;
+
+    AssertDebug(curr != nullptr);
+    AssertDebug(curr->task_batch != nullptr);
+    AssertDebug(curr->task_batch->IsCompleted());
+
+    return curr;
+}
+
+void EntityDrawCollection::CommitParallelRenderingState(RHICommandList& out_command_list)
+{
+    ParallelRenderingState* state = parallel_rendering_state_head;
+
+    while (state)
+    {
+        AssertDebug(state->task_batch != nullptr);
+
+        state->task_batch->AwaitCompletion();
+
+        out_command_list.Concat(std::move(state->base_command_list));
+
+        // Add command lists to the frame's command list
+        for (RHICommandList& command_list : state->command_lists)
+        {
+            out_command_list.Concat(std::move(command_list));
+        }
+
+        // Add render stats counts to the engine's render stats
+        for (EngineRenderStatsCounts& counts : state->render_stats_counts)
+        {
+            g_engine->GetRenderStatsCalculator().AddCounts(counts);
+
+            counts = EngineRenderStatsCounts(); // Reset counts after adding for next use
+        }
+
+        state->draw_calls.Clear();
+        state->draw_call_procs.Clear();
+        state->instanced_draw_calls.Clear();
+        state->instanced_draw_call_procs.Clear();
+
+        state->task_batch->ResetState();
+
+        state = state->next;
+    }
+
+    parallel_rendering_state_tail = nullptr;
+}
+
+#pragma endregion EntityDrawCollection
+
+#pragma region RenderCollector
+
+void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, uint32 bucket_bits)
+{
+    HYP_SCOPE;
+
+    if (!ByteUtil::BitCount(bucket_bits))
     {
         return;
     }
 
     HYP_MT_CHECK_READ(m_data_race_detector);
 
-    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
-
     using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
     Array<IteratorType> iterators;
 
-    for (Bitset::BitIndex bit_index : bucket_bits)
+    FOR_EACH_BIT(bucket_bits, bit_index)
     {
-        AssertDebug(bit_index < m_draw_collection->GetProxyGroups().Size());
+        AssertDebug(bit_index < draw_collection.proxy_groups.Size());
 
-        auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[bit_index];
+        auto& render_groups_by_attributes = draw_collection.proxy_groups[bit_index];
 
         if (render_groups_by_attributes.Empty())
         {
@@ -429,7 +513,7 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
         TaskSystem::GetInstance().ParallelForEach(
             TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
             iterators,
-            [this](IteratorType it, uint32, uint32)
+            [](IteratorType it, uint32, uint32)
             {
                 Handle<RenderGroup>& render_group = it->second;
                 AssertThrow(render_group.IsValid());
@@ -447,17 +531,41 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
             render_group->CollectDrawCalls();
         }
     }
+}
 
-    if (is_indirect_rendering_enabled && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr)
+void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
+
+    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
+    const bool perform_occlusion_culling = is_indirect_rendering_enabled && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr;
+
+    if (perform_occlusion_culling)
     {
-        for (SizeType index = 0; index < iterators.Size(); index++)
+        FOR_EACH_BIT(bucket_bits, bit_index)
         {
-            if (!(iterators[index]->second->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING))
+            AssertDebug(bit_index < draw_collection.proxy_groups.Size());
+
+            auto& render_groups_by_attributes = draw_collection.proxy_groups[bit_index];
+
+            if (render_groups_by_attributes.Empty())
             {
                 continue;
             }
 
-            (*iterators[index]).second->PerformOcclusionCulling(frame, render_setup);
+            for (auto& it : render_groups_by_attributes)
+            {
+                const Handle<RenderGroup>& render_group = it.second;
+
+                if (render_group->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)
+                {
+                    render_group->PerformOcclusionCulling(frame, render_setup);
+                }
+            }
         }
     }
 }
@@ -465,8 +573,9 @@ void RenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& rend
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
     const RenderSetup& render_setup,
-    const Bitset& bucket_bits,
-    PushConstantData push_constant) const
+    EntityDrawCollection& draw_collection,
+    uint32 bucket_bits,
+    PushConstantData push_constant)
 {
     AssertDebug(render_setup.IsValid());
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
@@ -474,81 +583,23 @@ void RenderCollector::ExecuteDrawCalls(
     const FramebufferRef& framebuffer = render_setup.view->GetView()->GetOutputTarget();
     AssertDebugMsg(framebuffer, "View has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, render_setup, framebuffer, bucket_bits, push_constant);
+    ExecuteDrawCalls(frame, render_setup, draw_collection, framebuffer, bucket_bits, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
     const RenderSetup& render_setup,
+    EntityDrawCollection& draw_collection,
     const FramebufferRef& framebuffer,
-    const Bitset& bucket_bits,
-    PushConstantData push_constant) const
+    uint32 bucket_bits,
+    PushConstantData push_constant)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    HYP_MT_CHECK_READ(m_data_race_detector);
-
-    AssertDebug(m_draw_collection != nullptr);
-
     const uint32 frame_index = frame->GetFrameIndex();
 
-    ParallelRenderingState* parallel_rendering_state_head = nullptr;
-    uint32 num_parallel_rendering_states = 0;
-
-    const auto acquire_next_parallel_rendering_state = [this, &num_parallel_rendering_states, &head = parallel_rendering_state_head]() -> ParallelRenderingState*
-    {
-        ParallelRenderingState* parallel_rendering_state = nullptr;
-
-        if (!head)
-        {
-            if (!m_parallel_rendering_state)
-            {
-                m_parallel_rendering_state = new ParallelRenderingState();
-
-                TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
-
-                TaskBatch* task_batch = new TaskBatch();
-                task_batch->pool = &pool;
-
-                m_parallel_rendering_state->task_batch = task_batch;
-                m_parallel_rendering_state->num_batches = ParallelRenderingState::max_batches;
-            }
-
-            head = m_parallel_rendering_state;
-            parallel_rendering_state = head;
-        }
-        else
-        {
-            if (!head->next)
-            {
-                ParallelRenderingState* new_parallel_rendering_state = new ParallelRenderingState();
-
-                TaskThreadPool& pool = TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER);
-
-                TaskBatch* task_batch = new TaskBatch();
-                task_batch->pool = &pool;
-
-                new_parallel_rendering_state->task_batch = task_batch;
-                new_parallel_rendering_state->num_batches = ParallelRenderingState::max_batches;
-
-                head->next = new_parallel_rendering_state;
-            }
-
-            parallel_rendering_state = head->next;
-            head = parallel_rendering_state;
-        }
-
-        AssertDebug(parallel_rendering_state != nullptr);
-        AssertDebug(parallel_rendering_state->task_batch != nullptr);
-        AssertDebug(parallel_rendering_state->task_batch->IsCompleted());
-
-        ++num_parallel_rendering_states;
-
-        return parallel_rendering_state;
-    };
-
-    if (bucket_bits.Count() == 0)
+    if (!ByteUtil::BitCount(bucket_bits))
     {
         return;
     }
@@ -556,11 +607,11 @@ void RenderCollector::ExecuteDrawCalls(
     Span<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>> groups_view;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
-    if (bucket_bits.Count() == 1)
+    if (ByteUtil::BitCount(bucket_bits) == 1)
     {
-        const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits.ToUInt64()));
+        const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits));
 
-        auto& render_groups_by_attributes = m_draw_collection->GetProxyGroups()[uint32(bucket)];
+        auto& render_groups_by_attributes = draw_collection.proxy_groups[uint32(bucket)];
 
         if (render_groups_by_attributes.Empty())
         {
@@ -573,13 +624,13 @@ void RenderCollector::ExecuteDrawCalls(
     {
         bool all_empty = true;
 
-        for (const auto& render_groups_by_attributes : m_draw_collection->GetProxyGroups())
+        for (const auto& render_groups_by_attributes : draw_collection.proxy_groups)
         {
             if (render_groups_by_attributes.Any())
             {
                 if (AnyOf(render_groups_by_attributes, [&bucket_bits](const auto& it)
                         {
-                            return bucket_bits.Test(uint32(it.first.GetMaterialAttributes().bucket));
+                            return (bucket_bits & (1u << uint32(it.first.GetMaterialAttributes().bucket))) != 0;
                         }))
                 {
                     all_empty = false;
@@ -594,7 +645,7 @@ void RenderCollector::ExecuteDrawCalls(
             return;
         }
 
-        groups_view = m_draw_collection->GetProxyGroups().ToSpan();
+        groups_view = draw_collection.proxy_groups.ToSpan();
     }
 
     if (framebuffer)
@@ -611,7 +662,7 @@ void RenderCollector::ExecuteDrawCalls(
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-            if (!bucket_bits.Test(uint32(bucket)))
+            if (!(bucket_bits & (1u << uint32(bucket))))
             {
                 continue;
             }
@@ -625,7 +676,7 @@ void RenderCollector::ExecuteDrawCalls(
 
             if (render_group->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
             {
-                parallel_rendering_state = acquire_next_parallel_rendering_state();
+                parallel_rendering_state = draw_collection.AcquireNextParallelRenderingState();
             }
 
             render_group->PerformRendering(frame, render_setup, parallel_rendering_state);
@@ -640,45 +691,7 @@ void RenderCollector::ExecuteDrawCalls(
     }
 
     // Wait for all parallel rendering tasks to finish
-    if (num_parallel_rendering_states != 0)
-    {
-        ParallelRenderingState* state = m_parallel_rendering_state;
-
-        while (num_parallel_rendering_states)
-        {
-            AssertDebug(state != nullptr);
-            AssertDebug(state->task_batch != nullptr);
-
-            state->task_batch->AwaitCompletion();
-
-            frame->GetCommandList().Concat(std::move(state->base_command_list));
-
-            // Add command lists to the frame's command list
-            for (RHICommandList& command_list : state->command_lists)
-            {
-                frame->GetCommandList().Concat(std::move(command_list));
-            }
-
-            // Add render stats counts to the engine's render stats
-            for (EngineRenderStatsCounts& counts : state->render_stats_counts)
-            {
-                g_engine->GetRenderStatsCalculator().AddCounts(counts);
-
-                counts = EngineRenderStatsCounts(); // Reset counts after adding for next use
-            }
-
-            state->draw_calls.Clear();
-            state->draw_call_procs.Clear();
-            state->instanced_draw_calls.Clear();
-            state->instanced_draw_call_procs.Clear();
-
-            state->task_batch->ResetState();
-
-            state = state->next;
-
-            --num_parallel_rendering_states;
-        }
-    }
+    draw_collection.CommitParallelRenderingState(frame->GetCommandList());
 
     if (framebuffer)
     {

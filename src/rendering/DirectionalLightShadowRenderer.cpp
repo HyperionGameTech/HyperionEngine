@@ -225,15 +225,15 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         {
             HYP_LOG(Shadows, Debug, "Rerendering static objects for shadow map");
 
-            m_render_view_statics->GetRenderCollector().CollectDrawCalls(
-                frame,
-                render_setup_statics,
-                Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)));
+            RenderCollector::CollectDrawCalls(
+                m_render_view_statics->GetEntityDrawCollection(),
+                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
-            m_render_view_statics->GetRenderCollector().ExecuteDrawCalls(
+            RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_statics,
-                Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)));
+                m_render_view_statics->GetEntityDrawCollection(),
+                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             // copy static framebuffer image
             frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
@@ -248,15 +248,15 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         }
 
         { // Render dynamics
-            m_render_view_dynamics->GetRenderCollector().CollectDrawCalls(
-                frame,
-                render_setup_dynamics,
-                Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)));
+            RenderCollector::CollectDrawCalls(
+                m_render_view_dynamics->GetEntityDrawCollection(),
+                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
-            m_render_view_dynamics->GetRenderCollector().ExecuteDrawCalls(
+            RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_dynamics,
-                Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP)));
+                m_render_view_dynamics->GetEntityDrawCollection(),
+                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             // copy dynamic framebuffer image
             frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
@@ -376,11 +376,18 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scen
 
     InitObject(m_camera);
 
+    const RenderableAttributeSet override_attributes(
+        MeshAttributes {},
+        MaterialAttributes {
+            .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
+            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT });
+
     m_view_statics = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES,
         .viewport = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
-        .camera = m_camera });
+        .camera = m_camera,
+        .override_attributes = override_attributes });
 
     InitObject(m_view_statics);
 
@@ -388,7 +395,8 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scen
         .flags = ViewFlags::COLLECT_DYNAMIC_ENTITIES,
         .viewport = Viewport { .extent = Vec2i(m_resolution), .position = Vec2i::Zero() },
         .scenes = { m_parent_scene },
-        .camera = m_camera });
+        .camera = m_camera,
+        .override_attributes = override_attributes });
 
     InitObject(m_view_dynamics);
 
@@ -431,15 +439,6 @@ void DirectionalLightShadowRenderer::OnAddedToWorld()
         &m_rerender_semaphore);
 
     m_shadow_pass->Create();
-
-    const RenderableAttributeSet override_attributes(
-        MeshAttributes {},
-        MaterialAttributes {
-            .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT });
-
-    m_view_statics->GetRenderResource().GetRenderCollector().SetOverrideAttributes(override_attributes);
-    m_view_dynamics->GetRenderResource().GetRenderCollector().SetOverrideAttributes(override_attributes);
 
     m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
 }

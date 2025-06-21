@@ -152,7 +152,7 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
     HYP_SCOPE;
 
     // Add proxy to group
-    Handle<RenderGroup>& render_group = collection->GetProxyGroups()[uint32(bucket)][attributes];
+    Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
 
     if (!render_group.IsValid())
     {
@@ -220,7 +220,7 @@ static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTrack
 {
     HYP_SCOPE;
 
-    auto& render_groups_by_attributes = collection->GetProxyGroups()[uint32(bucket)];
+    auto& render_groups_by_attributes = collection->proxy_groups[uint32(bucket)];
 
     auto it = render_groups_by_attributes.Find(attributes);
     AssertThrow(it != render_groups_by_attributes.End());
@@ -265,8 +265,7 @@ void RenderView::Initialize_Internal()
     }
 
     // Reclaim any claimed resources that were unclaimed in Destroy_Internal
-    EntityDrawCollection* collection = m_render_collector.GetDrawCollection();
-    RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+    RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
 
     Array<RenderProxy*> proxies;
     render_proxy_tracker.GetCurrent(proxies);
@@ -290,8 +289,7 @@ void RenderView::Destroy_Internal()
 
     // Unclaim all the claimed resources
     { // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
-        EntityDrawCollection* collection = m_render_collector.GetDrawCollection();
-        RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+        RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
 
         Array<RenderProxy*> proxies;
         render_proxy_tracker.GetCurrent(proxies);
@@ -771,10 +769,9 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
                 {
                     AssertDebugMsg(IsInitialized(), "UpdateTrackedRenderProxies can only be called on an initialized RenderView");
 
-                    EntityDrawCollection* collection = m_render_collector.GetDrawCollection();
-                    const RenderableAttributeSet* override_attributes = m_render_collector.GetOverrideAttributes().TryGet();
+                    const RenderableAttributeSet* override_attributes = m_view ? m_view->GetOverrideAttributes().TryGet() : nullptr;
 
-                    RenderProxyTracker& render_proxy_tracker = collection->GetRenderProxyTracker();
+                    RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
 
                     // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
                     render_proxy_tracker.Reserve(added_proxies.Size());
@@ -797,7 +794,7 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
 
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                        AssertThrow(RemoveRenderProxy(collection, render_proxy_tracker, entity_id, attributes, bucket));
+                        AssertThrow(RemoveRenderProxy(&m_entity_draw_collection, render_proxy_tracker, entity_id, attributes, bucket));
                     }
 
                     for (RenderProxy& proxy : added_proxies)
@@ -814,13 +811,13 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
 
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                        AddRenderProxy(collection, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);
+                        AddRenderProxy(&m_entity_draw_collection, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);
                     }
 
                     render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
 
                     // Clear out groups that are no longer used
-                    collection->RemoveEmptyProxyGroups();
+                    m_entity_draw_collection.RemoveEmptyProxyGroups();
                 });
         }
     }
@@ -1128,7 +1125,16 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     deferred_data.screen_width = m_gbuffer->GetExtent().x;
     deferred_data.screen_height = m_gbuffer->GetExtent().y;
 
-    CollectDrawCalls(frame, render_setup);
+    /// temp
+    constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
+        | (1 << BUCKET_LIGHTMAP)
+        | (1 << BUCKET_SKYBOX)
+        | (1 << BUCKET_TRANSLUCENT)
+        | (1 << BUCKET_DEBUG);
+
+    RenderCollector::CollectDrawCalls(m_entity_draw_collection, bucket_mask);
+
+    PerformOcclusionCulling(frame, render_setup);
 
     if (do_particles)
     {
@@ -1146,7 +1152,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     { // render opaque objects into separate framebuffer
         frame->GetCommandList().Add<BeginFramebuffer>(opaque_fbo, frame_index);
 
-        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_OPAQUE));
+        ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_OPAQUE));
 
         frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
     }
@@ -1222,7 +1228,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
         frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
 
-        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_LIGHTMAP));
+        ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_LIGHTMAP));
 
         frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
     }
@@ -1252,8 +1258,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         m_lightmap_pass->RenderToFramebuffer(frame, render_setup, translucent_fbo);
 
         // begin translucent with forward rendering
-        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_TRANSLUCENT));
-        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_DEBUG));
+        ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_TRANSLUCENT));
+        ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_DEBUG));
 
         if (do_particles)
         {
@@ -1265,7 +1271,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
             environment->GetGaussianSplatting()->Render(frame, render_setup);
         }
 
-        ExecuteDrawCalls(frame, render_setup, uint64(1u << BUCKET_SKYBOX));
+        ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_SKYBOX));
 
         // render debug draw
         g_engine->GetDebugDrawer()->Render(frame, render_setup);
@@ -1307,25 +1313,24 @@ void RenderView::PostRender(FrameBase* frame)
 {
 }
 
-void RenderView::CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup)
+void RenderView::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
 
-    m_render_collector.CollectDrawCalls(
-        frame,
-        render_setup,
-        Bitset((1 << BUCKET_OPAQUE) | (1 << BUCKET_LIGHTMAP) | (1 << BUCKET_SKYBOX) | (1 << BUCKET_TRANSLUCENT) | (1 << BUCKET_DEBUG)));
+    constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
+        | (1 << BUCKET_LIGHTMAP)
+        | (1 << BUCKET_SKYBOX)
+        | (1 << BUCKET_TRANSLUCENT)
+        | (1 << BUCKET_DEBUG);
+
+    RenderCollector::PerformOcclusionCulling(frame, render_setup, m_entity_draw_collection, bucket_mask);
 }
 
-void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint64 bucket_mask)
+void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask)
 {
     HYP_SCOPE;
 
-    m_render_collector.ExecuteDrawCalls(
-        frame,
-        render_setup,
-        nullptr,
-        Bitset(bucket_mask));
+    RenderCollector::ExecuteDrawCalls(frame, render_setup, m_entity_draw_collection, nullptr, bucket_mask);
 }
 
 void RenderView::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)

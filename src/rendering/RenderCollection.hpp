@@ -41,45 +41,6 @@ struct RenderSetup;
 
 using renderer::PushConstantData;
 
-class EntityDrawCollection
-{
-public:
-    void ClearProxyGroups();
-    void RemoveEmptyProxyGroups();
-
-    /*! \note To be used from render thread only */
-    HYP_FORCE_INLINE FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>& GetProxyGroups()
-    {
-        return m_proxy_groups;
-    }
-
-    /*! \note To be used from render thread only */
-    HYP_FORCE_INLINE const FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX>& GetProxyGroups() const
-    {
-        return m_proxy_groups;
-    }
-
-    /*! \brief Get the Render thread side RenderProxyTracker.
-     */
-    HYP_FORCE_INLINE RenderProxyTracker& GetRenderProxyTracker()
-    {
-        return m_render_proxy_tracker;
-    }
-
-    /*! \brief Get the Render thread side RenderProxyTracker.
-     */
-    HYP_FORCE_INLINE const RenderProxyTracker& GetRenderProxyTracker() const
-    {
-        return m_render_proxy_tracker;
-    }
-
-    uint32 NumRenderGroups() const;
-
-private:
-    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> m_proxy_groups;
-    RenderProxyTracker m_render_proxy_tracker;
-};
-
 struct ParallelRenderingState
 {
     static constexpr uint32 max_batches = num_async_rendering_command_buffers;
@@ -103,55 +64,50 @@ struct ParallelRenderingState
     ParallelRenderingState* next = nullptr;
 };
 
+struct HYP_API EntityDrawCollection
+{
+    EntityDrawCollection();
+
+    EntityDrawCollection(const EntityDrawCollection& other) = delete;
+    EntityDrawCollection& operator=(const EntityDrawCollection& other) = delete;
+
+    EntityDrawCollection(EntityDrawCollection&& other) noexcept = delete;
+    EntityDrawCollection& operator=(EntityDrawCollection&& other) noexcept = delete;
+
+    ~EntityDrawCollection();
+
+    void ClearProxyGroups();
+    void RemoveEmptyProxyGroups();
+
+    uint32 NumRenderGroups() const;
+
+    ParallelRenderingState* AcquireNextParallelRenderingState();
+    void CommitParallelRenderingState(RHICommandList& out_command_list);
+
+    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> proxy_groups;
+    RenderProxyTracker render_proxy_tracker;
+    ParallelRenderingState* parallel_rendering_state_head;
+    ParallelRenderingState* parallel_rendering_state_tail;
+};
+
 class RenderCollector
 {
 public:
-    RenderCollector();
-    RenderCollector(const RenderCollector& other) = delete;
-    RenderCollector& operator=(const RenderCollector& other) = delete;
-    RenderCollector(RenderCollector&& other) noexcept = default;
-    RenderCollector& operator=(RenderCollector&& other) noexcept = default;
-    ~RenderCollector();
+    static void CollectDrawCalls(EntityDrawCollection& draw_collection, uint32 bucket_bits);
 
-    HYP_FORCE_INLINE const RC<EntityDrawCollection>& GetDrawCollection() const
-    {
-        return m_draw_collection;
-    }
+    static void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits);
 
-    HYP_FORCE_INLINE const Optional<RenderableAttributeSet>& GetOverrideAttributes() const
-    {
-        return m_override_attributes;
-    }
+    // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
+    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits, PushConstantData push_constant = {});
 
-    HYP_FORCE_INLINE void SetOverrideAttributes(const Optional<RenderableAttributeSet>& override_attributes)
-    {
-        m_override_attributes = override_attributes;
-    }
-
-    void CollectDrawCalls(
+    // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
+    static void ExecuteDrawCalls(
         FrameBase* frame,
         const RenderSetup& render_setup,
-        const Bitset& bucket_bits);
-
-    void ExecuteDrawCalls(
-        FrameBase* frame,
-        const RenderSetup& render_setup,
-        const Bitset& bucket_bits,
-        PushConstantData push_constant = {}) const;
-
-    void ExecuteDrawCalls(
-        FrameBase* frame,
-        const RenderSetup& render_setup,
+        EntityDrawCollection& draw_collection,
         const FramebufferRef& framebuffer,
-        const Bitset& bucket_bits,
-        PushConstantData push_constant = {}) const;
-
-protected:
-    RC<EntityDrawCollection> m_draw_collection;
-    Optional<RenderableAttributeSet> m_override_attributes;
-    mutable ParallelRenderingState* m_parallel_rendering_state;
-
-    HYP_DECLARE_MT_CHECK(m_data_race_detector);
+        uint32 bucket_bits,
+        PushConstantData push_constant = {});
 };
 
 } // namespace hyperion
