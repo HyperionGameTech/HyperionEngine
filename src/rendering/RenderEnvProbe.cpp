@@ -332,13 +332,13 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         new_render_setup.env_probe = this;
 
         RenderCollector::CollectDrawCalls(
-            m_render_view->GetEntityDrawCollection(),
+            m_render_view->GetRenderProxyList(),
             ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
         RenderCollector::ExecuteDrawCalls(
             frame,
             new_render_setup,
-            m_render_view->GetEntityDrawCollection(),
+            m_render_view->GetRenderProxyList(),
             ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
         new_render_setup.env_probe = nullptr;

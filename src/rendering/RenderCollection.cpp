@@ -49,7 +49,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 {
     TResourceHandle<RenderView> render_view;
 
-    RC<EntityDrawCollection> collection;
+    RC<RenderProxyList> render_proxy_list;
     Array<RenderProxy> added_proxies;
     Array<ID<Entity>> removed_proxies;
 
@@ -58,13 +58,13 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
     RENDER_COMMAND(RebuildProxyGroups)(
         const TResourceHandle<RenderView>& render_view,
-        const RC<EntityDrawCollection>& collection,
+        const RC<RenderProxyList>& render_proxy_list,
         Array<RenderProxy*>&& added_proxy_ptrs,
         Array<ID<Entity>>&& removed_proxies,
         const Handle<Camera>& camera = Handle<Camera>::empty,
         const Optional<RenderableAttributeSet>& override_attributes = {})
         : render_view(render_view),
-          collection(collection),
+          render_proxy_list(render_proxy_list),
           removed_proxies(std::move(removed_proxies)),
           camera(camera),
           override_attributes(override_attributes)
@@ -140,7 +140,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
         const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
-        DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[uint32(bucket)][attributes];
+        DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[uint32(bucket)][attributes];
         Handle<RenderGroup>& rg = mapping.render_group;
 
         if (!rg.IsValid())
@@ -207,7 +207,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
     {
         HYP_SCOPE;
 
-        auto& mappings = collection->mappings_by_bucket[uint32(bucket)];
+        auto& mappings = render_proxy_list->mappings_by_bucket[uint32(bucket)];
 
         auto it = mappings.Find(attributes);
         AssertThrow(it != mappings.End());
@@ -226,7 +226,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
     {
         HYP_SCOPE;
 
-        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
+        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
 
         // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
         render_proxy_tracker.Reserve(added_proxies.Size());
@@ -291,10 +291,10 @@ struct RENDER_COMMAND(RebuildProxyGroups)
             AddRenderProxy(render_proxy_tracker, std::move(proxy), attributes, bucket);
         }
 
-        render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
+        render_proxy_tracker.Advance(AdvanceAction::PERSIST);
 
         // Clear out groups that are no longer used
-        collection->RemoveEmptyProxyGroups();
+        render_proxy_list->RemoveEmptyProxyGroups();
 
         HYPERION_RETURN_OK;
     }
@@ -302,15 +302,15 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
 #pragma endregion Render commands
 
-#pragma region EntityDrawCollection
+#pragma region RenderProxyList
 
-EntityDrawCollection::EntityDrawCollection()
+RenderProxyList::RenderProxyList()
     : parallel_rendering_state_head(nullptr),
       parallel_rendering_state_tail(nullptr)
 {
 }
 
-EntityDrawCollection::~EntityDrawCollection()
+RenderProxyList::~RenderProxyList()
 {
     if (parallel_rendering_state_head)
     {
@@ -335,7 +335,7 @@ EntityDrawCollection::~EntityDrawCollection()
     ClearProxyGroups();
 }
 
-void EntityDrawCollection::ClearProxyGroups()
+void RenderProxyList::ClearProxyGroups()
 {
     HYP_SCOPE;
 
@@ -361,7 +361,7 @@ void EntityDrawCollection::ClearProxyGroups()
     }
 }
 
-void EntityDrawCollection::RemoveEmptyProxyGroups()
+void RenderProxyList::RemoveEmptyProxyGroups()
 {
     HYP_SCOPE;
 
@@ -390,7 +390,7 @@ void EntityDrawCollection::RemoveEmptyProxyGroups()
     }
 }
 
-uint32 EntityDrawCollection::NumRenderGroups() const
+uint32 RenderProxyList::NumRenderGroups() const
 {
     uint32 count = 0;
 
@@ -411,7 +411,7 @@ uint32 EntityDrawCollection::NumRenderGroups() const
     return count;
 }
 
-ParallelRenderingState* EntityDrawCollection::AcquireNextParallelRenderingState()
+ParallelRenderingState* RenderProxyList::AcquireNextParallelRenderingState()
 {
     ParallelRenderingState* curr = parallel_rendering_state_tail;
 
@@ -461,7 +461,7 @@ ParallelRenderingState* EntityDrawCollection::AcquireNextParallelRenderingState(
     return curr;
 }
 
-void EntityDrawCollection::CommitParallelRenderingState(RHICommandList& out_command_list)
+void RenderProxyList::CommitParallelRenderingState(RHICommandList& out_command_list)
 {
     ParallelRenderingState* state = parallel_rendering_state_head;
 
@@ -500,11 +500,11 @@ void EntityDrawCollection::CommitParallelRenderingState(RHICommandList& out_comm
     parallel_rendering_state_tail = nullptr;
 }
 
-#pragma endregion EntityDrawCollection
+#pragma endregion RenderProxyList
 
 #pragma region RenderCollector
 
-void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, uint32 bucket_bits)
+void RenderCollector::CollectDrawCalls(RenderProxyList& render_proxy_list, uint32 bucket_bits)
 {
     HYP_SCOPE;
 
@@ -520,9 +520,9 @@ void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, ui
 
     FOR_EACH_BIT(bucket_bits, bit_index)
     {
-        AssertDebug(bit_index < draw_collection.mappings_by_bucket.Size());
+        AssertDebug(bit_index < render_proxy_list.mappings_by_bucket.Size());
 
-        auto& mappings = draw_collection.mappings_by_bucket[bit_index];
+        auto& mappings = render_proxy_list.mappings_by_bucket[bit_index];
 
         if (mappings.Empty())
         {
@@ -551,7 +551,7 @@ void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, ui
     }
 }
 
-void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits)
+void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -566,9 +566,9 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     {
         FOR_EACH_BIT(bucket_bits, bit_index)
         {
-            AssertDebug(bit_index < draw_collection.mappings_by_bucket.Size());
+            AssertDebug(bit_index < render_proxy_list.mappings_by_bucket.Size());
 
-            auto& mappings = draw_collection.mappings_by_bucket[bit_index];
+            auto& mappings = render_proxy_list.mappings_by_bucket[bit_index];
 
             if (mappings.Empty())
             {
@@ -604,7 +604,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
     const RenderSetup& render_setup,
-    EntityDrawCollection& draw_collection,
+    RenderProxyList& render_proxy_list,
     uint32 bucket_bits,
     PushConstantData push_constant)
 {
@@ -614,13 +614,13 @@ void RenderCollector::ExecuteDrawCalls(
     const FramebufferRef& framebuffer = render_setup.view->GetView()->GetOutputTarget();
     AssertDebugMsg(framebuffer, "View has no Framebuffer attached");
 
-    ExecuteDrawCalls(frame, render_setup, draw_collection, framebuffer, bucket_bits, push_constant);
+    ExecuteDrawCalls(frame, render_setup, render_proxy_list, framebuffer, bucket_bits, push_constant);
 }
 
 void RenderCollector::ExecuteDrawCalls(
     FrameBase* frame,
     const RenderSetup& render_setup,
-    EntityDrawCollection& draw_collection,
+    RenderProxyList& render_proxy_list,
     const FramebufferRef& framebuffer,
     uint32 bucket_bits,
     PushConstantData push_constant)
@@ -642,7 +642,7 @@ void RenderCollector::ExecuteDrawCalls(
     {
         const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits));
 
-        auto& mappings = draw_collection.mappings_by_bucket[uint32(bucket)];
+        auto& mappings = render_proxy_list.mappings_by_bucket[uint32(bucket)];
 
         if (mappings.Empty())
         {
@@ -655,7 +655,7 @@ void RenderCollector::ExecuteDrawCalls(
     {
         bool all_empty = true;
 
-        for (const auto& mappings : draw_collection.mappings_by_bucket)
+        for (const auto& mappings : render_proxy_list.mappings_by_bucket)
         {
             if (mappings.Any())
             {
@@ -676,7 +676,7 @@ void RenderCollector::ExecuteDrawCalls(
             return;
         }
 
-        groups_view = draw_collection.mappings_by_bucket.ToSpan();
+        groups_view = render_proxy_list.mappings_by_bucket.ToSpan();
     }
 
     if (framebuffer)
@@ -716,7 +716,7 @@ void RenderCollector::ExecuteDrawCalls(
 
             if (render_group->GetFlags() & RenderGroupFlags::PARALLEL_RENDERING)
             {
-                parallel_rendering_state = draw_collection.AcquireNextParallelRenderingState();
+                parallel_rendering_state = render_proxy_list.AcquireNextParallelRenderingState();
             }
 
             render_group->PerformRendering(frame, render_setup, draw_call_collection, indirect_renderer, parallel_rendering_state);
@@ -731,7 +731,7 @@ void RenderCollector::ExecuteDrawCalls(
     }
 
     // Wait for all parallel rendering tasks to finish
-    draw_collection.CommitParallelRenderingState(frame->GetCommandList());
+    render_proxy_list.CommitParallelRenderingState(frame->GetCommandList());
 
     if (framebuffer)
     {

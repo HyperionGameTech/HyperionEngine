@@ -891,13 +891,13 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     new_render_setup.env_probe = &probe->GetRenderResource();
 
     RenderCollector::CollectDrawCalls(
-        m_render_view->GetEntityDrawCollection(),
+        m_render_view->GetRenderProxyList(),
         (1u << BUCKET_OPAQUE));
 
     RenderCollector::ExecuteDrawCalls(
         frame,
         new_render_setup,
-        m_render_view->GetEntityDrawCollection(),
+        m_render_view->GetRenderProxyList(),
         (1u << BUCKET_OPAQUE));
 
     switch (m_env_grid->GetEnvGridType())

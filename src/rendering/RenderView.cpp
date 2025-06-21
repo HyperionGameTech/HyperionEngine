@@ -147,12 +147,12 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
 }
 
 HYP_DISABLE_OPTIMIZATION;
-static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, RenderCamera* render_camera, RenderView* render_view, const RenderableAttributeSet& attributes, Bucket bucket)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, RenderCamera* render_camera, RenderView* render_view, const RenderableAttributeSet& attributes, Bucket bucket)
 {
     HYP_SCOPE;
 
     // Add proxy to group
-    DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[int32(bucket)][attributes];
+    DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[int32(bucket)][attributes];
     Handle<RenderGroup>& rg = mapping.render_group;
 
     if (!rg.IsValid())
@@ -227,11 +227,11 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
 }
 HYP_ENABLE_OPTIMIZATION;
 
-static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
 {
     HYP_SCOPE;
 
-    auto& mappings = collection->mappings_by_bucket[uint32(bucket)];
+    auto& mappings = render_proxy_list->mappings_by_bucket[uint32(bucket)];
 
     auto it = mappings.Find(attributes);
     AssertThrow(it != mappings.End());
@@ -276,7 +276,7 @@ void RenderView::Initialize_Internal()
     }
 
     // Reclaim any claimed resources that were unclaimed in Destroy_Internal
-    RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
+    RenderProxyTracker& render_proxy_tracker = m_render_proxy_list.render_proxy_tracker;
 
     Array<RenderProxy*> proxies;
     render_proxy_tracker.GetCurrent(proxies);
@@ -300,7 +300,7 @@ void RenderView::Destroy_Internal()
 
     // Unclaim all the claimed resources
     { // NOTE: We don't clear out the proxy list, we need to know which proxies to reclaim if this is reactivated
-        RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
+        RenderProxyTracker& render_proxy_tracker = m_render_proxy_list.render_proxy_tracker;
 
         Array<RenderProxy*> proxies;
         render_proxy_tracker.GetCurrent(proxies);
@@ -751,6 +751,7 @@ void RenderView::SetPriority(int priority)
             m_priority = priority;
         });
 }
+
 typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const RenderProxyTracker& render_proxy_tracker)
 {
     HYP_SCOPE;
@@ -782,7 +783,7 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
 
                     const RenderableAttributeSet* override_attributes = m_view ? m_view->GetOverrideAttributes().TryGet() : nullptr;
 
-                    RenderProxyTracker& render_proxy_tracker = m_entity_draw_collection.render_proxy_tracker;
+                    RenderProxyTracker& render_proxy_tracker = m_render_proxy_list.render_proxy_tracker;
 
                     // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
                     render_proxy_tracker.Reserve(added_proxies.Size());
@@ -805,7 +806,7 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
 
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                        AssertThrow(RemoveRenderProxy(&m_entity_draw_collection, render_proxy_tracker, entity_id, attributes, bucket));
+                        AssertThrow(RemoveRenderProxy(&m_render_proxy_list, render_proxy_tracker, entity_id, attributes, bucket));
                     }
 
                     for (RenderProxy& proxy : added_proxies)
@@ -822,13 +823,13 @@ typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const R
 
                         const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
-                        AddRenderProxy(&m_entity_draw_collection, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);
+                        AddRenderProxy(&m_render_proxy_list, render_proxy_tracker, std::move(proxy), m_render_camera.Get(), this, attributes, bucket);
                     }
 
-                    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
+                    render_proxy_tracker.Advance(AdvanceAction::PERSIST);
 
                     // Clear out groups that are no longer used
-                    m_entity_draw_collection.RemoveEmptyProxyGroups();
+                    m_render_proxy_list.RemoveEmptyProxyGroups();
                 });
         }
     }
@@ -890,7 +891,7 @@ void RenderView::UpdateTrackedLights(const ResourceTracker<ID<Light>, RenderLigh
                 m_tracked_lights.Track(render_light->GetLight()->GetID(), render_light);
             }
 
-            m_tracked_lights.Advance(RenderProxyListAdvanceAction::PERSIST);
+            m_tracked_lights.Advance(AdvanceAction::PERSIST);
         });
 }
 
@@ -945,7 +946,7 @@ void RenderView::UpdateTrackedLightmapVolumes(const ResourceTracker<ID<LightmapV
                 m_tracked_lightmap_volumes.Track(render_lightmap_volume->GetLightmapVolume()->GetID(), render_lightmap_volume);
             }
 
-            m_tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::PERSIST);
+            m_tracked_lightmap_volumes.Advance(AdvanceAction::PERSIST);
         });
 }
 
@@ -1000,7 +1001,7 @@ void RenderView::UpdateTrackedEnvGrids(const ResourceTracker<ID<EnvGrid>, Render
                 m_tracked_env_grids.Track(render_env_grid->GetEnvGrid()->GetID(), render_env_grid);
             }
 
-            m_tracked_env_grids.Advance(RenderProxyListAdvanceAction::PERSIST);
+            m_tracked_env_grids.Advance(AdvanceAction::PERSIST);
         });
 }
 
@@ -1058,7 +1059,7 @@ void RenderView::UpdateTrackedEnvProbes(const ResourceTracker<ID<EnvProbe>, Rend
                 m_tracked_env_probes.Track(render_env_probe->GetEnvProbe()->GetID(), render_env_probe);
             }
 
-            m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::PERSIST);
+            m_tracked_env_probes.Advance(AdvanceAction::PERSIST);
         });
 }
 
@@ -1143,7 +1144,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         | (1 << BUCKET_TRANSLUCENT)
         | (1 << BUCKET_DEBUG);
 
-    RenderCollector::CollectDrawCalls(m_entity_draw_collection, bucket_mask);
+    RenderCollector::CollectDrawCalls(m_render_proxy_list, bucket_mask);
 
     PerformOcclusionCulling(frame, render_setup);
 
@@ -1334,14 +1335,14 @@ void RenderView::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& re
         | (1 << BUCKET_TRANSLUCENT)
         | (1 << BUCKET_DEBUG);
 
-    RenderCollector::PerformOcclusionCulling(frame, render_setup, m_entity_draw_collection, bucket_mask);
+    RenderCollector::PerformOcclusionCulling(frame, render_setup, m_render_proxy_list, bucket_mask);
 }
 
 void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask)
 {
     HYP_SCOPE;
 
-    RenderCollector::ExecuteDrawCalls(frame, render_setup, m_entity_draw_collection, nullptr, bucket_mask);
+    RenderCollector::ExecuteDrawCalls(frame, render_setup, m_render_proxy_list, nullptr, bucket_mask);
 }
 
 void RenderView::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)

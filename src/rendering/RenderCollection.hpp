@@ -84,17 +84,17 @@ struct DrawCallCollectionMapping
     }
 };
 
-struct HYP_API EntityDrawCollection
+struct HYP_API RenderProxyList
 {
-    EntityDrawCollection();
+    RenderProxyList();
 
-    EntityDrawCollection(const EntityDrawCollection& other) = delete;
-    EntityDrawCollection& operator=(const EntityDrawCollection& other) = delete;
+    RenderProxyList(const RenderProxyList& other) = delete;
+    RenderProxyList& operator=(const RenderProxyList& other) = delete;
 
-    EntityDrawCollection(EntityDrawCollection&& other) noexcept = delete;
-    EntityDrawCollection& operator=(EntityDrawCollection&& other) noexcept = delete;
+    RenderProxyList(RenderProxyList&& other) noexcept = delete;
+    RenderProxyList& operator=(RenderProxyList&& other) noexcept = delete;
 
-    ~EntityDrawCollection();
+    ~RenderProxyList();
 
     void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
@@ -113,18 +113,18 @@ struct HYP_API EntityDrawCollection
 class RenderCollector
 {
 public:
-    static void CollectDrawCalls(EntityDrawCollection& draw_collection, uint32 bucket_bits);
+    static void CollectDrawCalls(RenderProxyList& render_proxy_list, uint32 bucket_bits);
 
-    static void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits);
+    static void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
-    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, EntityDrawCollection& draw_collection, uint32 bucket_bits, PushConstantData push_constant = {});
+    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits, PushConstantData push_constant = {});
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
     static void ExecuteDrawCalls(
         FrameBase* frame,
         const RenderSetup& render_setup,
-        EntityDrawCollection& draw_collection,
+        RenderProxyList& render_proxy_list,
         const FramebufferRef& framebuffer,
         uint32 bucket_bits,
         PushConstantData push_constant = {});

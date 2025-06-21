@@ -27,6 +27,7 @@
 #include <scene/Texture.hpp>
 
 #include <core/containers/LinkedList.hpp>
+#include <core/containers/HashMap.hpp>
 
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/Threads.hpp>
@@ -55,19 +56,33 @@ static std::atomic_uint g_frame_counter { 0 };                              // l
 static std::counting_semaphore<num_frames> g_full_semaphore { 0 };          // renderer waits here
 static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // game waits here when ring is full
 
-struct DrawCollectionAllocation
+struct DrawCollectionAllocation;
+
+using DrawCollectionPool = MemoryPool<DrawCollectionAllocation>;
+
+// struct DrawCollectionAllocation
+// {
+//     DrawCollectionPool* pool; // the view this allocation is for
+//     uint32 index;
+//     uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
+
+//     ValueStorage<RenderProxyList> storage;
+// };
+
+// static_assert(std::is_trivial_v<DrawCollectionAllocation>, "DrawCollectionAllocation must be trivial");
+
+struct ViewData
 {
-    uint32 index;
-    uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
-
-    ValueStorage<EntityDrawCollection> storage;
+    RenderProxyList render_proxy_list;
+    Array<DrawCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
+    Array<DrawCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
 };
-
-static_assert(std::is_trivial_v<DrawCollectionAllocation>, "DrawCollectionAllocation must be trivial");
 
 struct FrameData
 {
-    MemoryPool<DrawCollectionAllocation> draw_collection_pool;
+    LinkedList<ViewData> per_view_data;
+    HashMap<View*, ViewData*> per_view_data_map;
+
     Array<DrawCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
     Array<DrawCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
 };
@@ -86,44 +101,54 @@ HYP_API uint32 GetGameThreadFrameIndex()
     return g_producer_index.load(std::memory_order_relaxed);
 }
 
-HYP_API EntityDrawCollection& AcquireDrawCollection()
+HYP_API RenderProxyList& AcquireRenderProxyList(View* view)
 {
     HYP_SCOPE;
 
+    AssertDebug(view != nullptr);
+
     uint32_t slot = g_producer_index.load(std::memory_order_relaxed);
+
+    ViewData*& vd = g_frame_data[slot].per_view_data_map[view];
+    if (!vd)
+    {
+        // create a new pool for this view
+        vd = &g_frame_data[slot].per_view_data.EmplaceBack();
+    }
 
     uint32 idx;
 
     DrawCollectionAllocation* allocation;
-    idx = g_frame_data[slot].draw_collection_pool.AcquireIndex(&allocation);
+    idx = vd->pool.AcquireIndex(&allocation);
 
     if (idx == ~0u)
     {
         HYP_FAIL("Failed to acquire draw collection!");
     }
 
-    EntityDrawCollection* collection;
+    RenderProxyList* render_proxy_list;
 
     if (allocation->alive_frames != 0)
     {
         DebugLog(LogType::Debug, "Reusing draw collection index %u from frame %u\n", allocation->index, allocation->index);
 
         // reuse the existing instance
-        collection = allocation->storage.GetPointer();
+        render_proxy_list = allocation->storage.GetPointer();
     }
     else
     {
         allocation->index = idx;
         allocation->alive_frames = 1;
+        allocation->pool = &vd->pool;
 
         DebugLog(LogType::Debug, "Constructing draw collection index %u from frame %u\n", allocation->index, allocation->index);
 
-        collection = allocation->storage.Construct();
+        render_proxy_list = allocation->storage.Construct();
     }
 
     g_frame_data[slot].allocation_ptrs.PushBack(allocation);
 
-    return *collection;
+    return *render_proxy_list;
 }
 
 HYP_API void BeginFrame_GameThread()
@@ -172,40 +197,43 @@ HYP_API void EndFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
-    frame_data.draw_collection_pool.ClearUsedIndices();
-
-    for (auto it = frame_data.allocation_ptrs.Begin(); it != frame_data.allocation_ptrs.End(); ++it)
+    for (ViewData& vd : frame_data.per_view_data)
     {
-        DrawCollectionAllocation* allocation = *it;
+        vd.pool.ClearUsedIndices();
 
-        --allocation->alive_frames;
-    }
-
-    for (auto it = frame_data.prev_allocation_ptrs.Begin(); it != frame_data.prev_allocation_ptrs.End();)
-    {
-        DrawCollectionAllocation* allocation = *it;
-
-        ++allocation->alive_frames;
-
-        if (allocation->alive_frames > 3)
+        for (auto it = vd.allocation_ptrs.Begin(); it != vd.allocation_ptrs.End(); ++it)
         {
-            allocation->storage.Destruct();
-            allocation->alive_frames = 0;
+            DrawCollectionAllocation* allocation = *it;
 
-            DebugLog(LogType::Debug, "Releasing draw collection index %u from frame %u\n", allocation->index, slot);
-
-            frame_data.draw_collection_pool.ReleaseIndex(allocation->index);
-
-            it = frame_data.prev_allocation_ptrs.Erase(it);
+            --allocation->alive_frames;
         }
-        else
+
+        for (auto it = vd.prev_allocation_ptrs.Begin(); it != vd.prev_allocation_ptrs.End();)
         {
-            ++it;
-        }
-    }
+            DrawCollectionAllocation* allocation = *it;
 
-    frame_data.prev_allocation_ptrs.Clear();
-    std::swap(frame_data.allocation_ptrs, frame_data.prev_allocation_ptrs);
+            ++allocation->alive_frames;
+
+            if (allocation->alive_frames > 3)
+            {
+                allocation->storage.Destruct();
+                allocation->alive_frames = 0;
+
+                DebugLog(LogType::Debug, "Releasing draw collection index %u from frame %u\n", allocation->index, slot);
+
+                vd.pool.ReleaseIndex(allocation->index);
+
+                it = vd.prev_allocation_ptrs.Erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        vd.prev_allocation_ptrs.Clear();
+        std::swap(vd.allocation_ptrs, vd.prev_allocation_ptrs);
+    }
 
     /// @TODO Some heuristic for clearing allocations that weren't active for a few frames
 

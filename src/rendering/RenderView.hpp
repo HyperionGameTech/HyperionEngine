@@ -199,15 +199,15 @@ public:
     }
 
     // Temp
-    HYP_FORCE_INLINE EntityDrawCollection& GetEntityDrawCollection()
+    HYP_FORCE_INLINE RenderProxyList& GetRenderProxyList()
     {
-        return m_entity_draw_collection;
+        return m_render_proxy_list;
     }
 
     // Temp
-    HYP_FORCE_INLINE const EntityDrawCollection& GetEntityDrawCollection() const
+    HYP_FORCE_INLINE const RenderProxyList& GetRenderProxyList() const
     {
-        return m_entity_draw_collection;
+        return m_render_proxy_list;
     }
 
     HYP_FORCE_INLINE const CullData& GetCullData() const
@@ -301,7 +301,7 @@ protected:
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
     // Temp
-    EntityDrawCollection m_entity_draw_collection;
+    RenderProxyList m_render_proxy_list;
 };
 
 } // namespace hyperion

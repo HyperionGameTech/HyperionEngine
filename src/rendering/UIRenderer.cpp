@@ -93,7 +93,7 @@ struct RENDER_COMMAND(SetFinalPassImageView)
 struct RENDER_COMMAND(RebuildProxyGroups_UI)
     : renderer::RenderCommand
 {
-    RC<EntityDrawCollection> collection;
+    RC<RenderProxyList> render_proxy_list;
     Array<RenderProxy> added_proxies;
     Array<ID<Entity>> removed_entities;
 
@@ -104,13 +104,13 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     Optional<RenderableAttributeSet> override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
-        const RC<EntityDrawCollection>& collection,
+        const RC<RenderProxyList>& render_proxy_list,
         Array<RenderProxy*>&& added_proxy_ptrs,
         Array<ID<Entity>>&& removed_entities,
         const Array<Pair<ID<Entity>, int>>& proxy_depths,
         const FramebufferRef& framebuffer,
         const Optional<RenderableAttributeSet>& override_attributes = {})
-        : collection(collection),
+        : render_proxy_list(render_proxy_list),
           removed_entities(std::move(removed_entities)),
           proxy_depths(proxy_depths),
           framebuffer(framebuffer),
@@ -172,9 +172,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: BuildProxyGroupsInOrder");
 
-        collection->ClearProxyGroups();
+        render_proxy_list->ClearProxyGroups();
 
-        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
+        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
 
         for (const Pair<ID<Entity>, int>& pair : proxy_depths)
         {
@@ -201,7 +201,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
             attributes.SetDrawableLayer(pair.second);
 
-            DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[uint32(bucket)][attributes];
+            DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[uint32(bucket)][attributes];
             Handle<RenderGroup>& rg = mapping.render_group;
 
             if (!rg.IsValid())
@@ -248,7 +248,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
             rg->AddRenderProxy(proxy);
         }
 
-        collection->RemoveEmptyProxyGroups();
+        render_proxy_list->RemoveEmptyProxyGroups();
     }
 
     bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity)
@@ -257,7 +257,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         bool removed = false;
 
-        for (auto& mappings : collection->mappings_by_bucket)
+        for (auto& mappings : render_proxy_list->mappings_by_bucket)
         {
             for (auto& it : mappings)
             {
@@ -277,7 +277,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyTracker& render_proxy_tracker = collection->render_proxy_tracker;
+        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
 
         // Reserve to prevent iterator invalidation
         render_proxy_tracker.Reserve(added_proxies.Size());
@@ -304,7 +304,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
             render_proxy_tracker.Track(proxy.entity.GetID(), std::move(proxy));
         }
 
-        render_proxy_tracker.Advance(RenderProxyListAdvanceAction::PERSIST);
+        render_proxy_tracker.Advance(AdvanceAction::PERSIST);
 
         BuildProxyGroupsInOrder();
 
@@ -360,7 +360,7 @@ struct RENDER_COMMAND(RenderUI)
 
 UIRenderCollector::UIRenderCollector()
     : RenderCollector(),
-      m_draw_collection(MakeRefCountedPtr<EntityDrawCollection>()) // temp
+      m_draw_collection(MakeRefCountedPtr<RenderProxyList>()) // temp
 {
 }
 
@@ -412,7 +412,7 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
         }
     }
 
-    render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+    render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
     return diff;
 }

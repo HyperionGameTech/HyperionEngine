@@ -160,7 +160,7 @@ struct RenderProxy
 };
 
 /*! \brief The action to take on call to \ref{RenderProxyTracker::Advance}. */
-enum class RenderProxyListAdvanceAction : uint32
+enum class AdvanceAction : uint32
 {
     CLEAR,  //! Clear the 'next' elements, so on next iteration, any elements that have not been re-added are marked for removal.
     PERSIST //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
@@ -536,7 +536,7 @@ public:
         return &it->second;
     }
 
-    void Advance(RenderProxyListAdvanceAction action)
+    void Advance(AdvanceAction action)
     {
         HYP_SCOPE;
 
@@ -560,12 +560,12 @@ public:
 
         switch (action)
         {
-        case RenderProxyListAdvanceAction::CLEAR:
+        case AdvanceAction::CLEAR:
             // Next state starts out zeroed out -- and next call to Advance will remove proxies for these objs
             m_previous = std::move(m_next);
 
             break;
-        case RenderProxyListAdvanceAction::PERSIST:
+        case AdvanceAction::PERSIST:
             m_previous = m_next;
 
             break;

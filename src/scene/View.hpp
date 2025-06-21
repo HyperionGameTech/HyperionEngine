@@ -202,6 +202,8 @@ protected:
     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
+
+    RenderProxyList m_render_proxy_list;
 };
 
 } // namespace hyperion

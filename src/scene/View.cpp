@@ -176,8 +176,8 @@ void View::Update(float delta)
     m_last_collection_result = CollectEntities();
 
     // temp test
-    // EntityDrawCollection& draw_collection = AcquireDrawCollection();
-    // HYP_LOG(Scene, Debug, "Acquired draw collection : {} \t count (rgs): {} ", (void*)&draw_collection, draw_collection.NumRenderGroups());
+    // RenderProxyList& render_proxy_list = AcquireDrawCollection();
+    // HYP_LOG(Scene, Debug, "Acquired draw collection : {} \t count (rgs): {} ", (void*)&render_proxy_list, render_proxy_list.NumRenderGroups());
 
     // constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
     //     | (1 << BUCKET_LIGHTMAP)
@@ -185,7 +185,7 @@ void View::Update(float delta)
     //     | (1 << BUCKET_TRANSLUCENT)
     //     | (1 << BUCKET_DEBUG);
 
-    // RenderCollector::CollectDrawCalls(m_render_resource->GetEntityDrawCollection(), bucket_mask);
+    // RenderCollector::CollectDrawCalls(m_render_resource->GetRenderProxyList(), bucket_mask);
 
     // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}, EnvGrids: {}, EnvProbes: {}, Lights: {}, Lightmap Volumes: {}",
     //     GetID().Value(),
@@ -285,7 +285,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
 
         auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+        m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
         return diff;
     }
@@ -352,7 +352,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
     }
 
     auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
     return diff;
 }
@@ -369,7 +369,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect dynamic entities!", GetID().Value());
         // if camera is invalid, update without adding any entities
         auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+        m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
         return diff;
     }
@@ -425,7 +425,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
     }
 
     auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
     return diff;
 }
@@ -442,7 +442,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
         // if camera is invalid, update without adding any entities
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect static entities!", GetID().Value());
         auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-        m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+        m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
         return diff;
     }
@@ -498,7 +498,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities()
     }
 
     auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
-    m_render_proxy_tracker.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 
     return diff;
 }
@@ -560,7 +560,7 @@ void View::CollectLights()
     }
 
     m_render_resource->UpdateTrackedLights(m_tracked_lights);
-    m_tracked_lights.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_tracked_lights.Advance(AdvanceAction::CLEAR);
 }
 
 void View::CollectLightmapVolumes()
@@ -613,7 +613,7 @@ void View::CollectLightmapVolumes()
     }
 
     m_render_resource->UpdateTrackedLightmapVolumes(m_tracked_lightmap_volumes);
-    m_tracked_lightmap_volumes.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
 }
 
 void View::CollectEnvGrids()
@@ -655,7 +655,7 @@ void View::CollectEnvGrids()
     }
 
     m_render_resource->UpdateTrackedEnvGrids(m_tracked_env_grids);
-    m_tracked_env_grids.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_tracked_env_grids.Advance(AdvanceAction::CLEAR);
 }
 
 void View::CollectEnvProbes()
@@ -725,7 +725,7 @@ void View::CollectEnvProbes()
     /// TODO: point light Shadow maps
 
     m_render_resource->UpdateTrackedEnvProbes(m_tracked_env_probes);
-    m_tracked_env_probes.Advance(RenderProxyListAdvanceAction::CLEAR);
+    m_tracked_env_probes.Advance(AdvanceAction::CLEAR);
 }
 
 #pragma endregion View

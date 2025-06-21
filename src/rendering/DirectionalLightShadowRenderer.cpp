@@ -226,13 +226,13 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
             HYP_LOG(Shadows, Debug, "Rerendering static objects for shadow map");
 
             RenderCollector::CollectDrawCalls(
-                m_render_view_statics->GetEntityDrawCollection(),
+                m_render_view_statics->GetRenderProxyList(),
                 ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_statics,
-                m_render_view_statics->GetEntityDrawCollection(),
+                m_render_view_statics->GetRenderProxyList(),
                 ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             // copy static framebuffer image
@@ -249,13 +249,13 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         { // Render dynamics
             RenderCollector::CollectDrawCalls(
-                m_render_view_dynamics->GetEntityDrawCollection(),
+                m_render_view_dynamics->GetRenderProxyList(),
                 ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_dynamics,
-                m_render_view_dynamics->GetEntityDrawCollection(),
+                m_render_view_dynamics->GetRenderProxyList(),
                 ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
             // copy dynamic framebuffer image
