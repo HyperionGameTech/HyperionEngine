@@ -57,12 +57,14 @@ public:
      *
      *  \param [in] attach_node The Node to attach the Entity to.
      */
+    HYP_METHOD()
     virtual void Attach(const Handle<Node>& attach_node);
 
     /*! \brief Detaches this Entity from its current Node, if it is attached to one.
      *
      *  \note This will not remove the Entity from the EntityManager.
      */
+    HYP_METHOD()
     virtual void Detach();
 
 protected:

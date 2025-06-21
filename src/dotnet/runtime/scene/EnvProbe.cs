@@ -14,7 +14,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="EnvProbe")]
-    public class EnvProbe : HypObject
+    public class EnvProbe : Entity
     {
         public EnvProbe()
         {

@@ -126,8 +126,6 @@ void EntityManager::InitializeSystem(const Handle<SystemBase>& system)
                 m_system_entity_map[system.Get()].Insert(entity);
             }
 
-            HYP_LOG(ECS, Debug, "Adding entity #{} to system {}", entity->GetID(), system->GetName());
-
             system->OnEntityAdded(entity);
         }
     }
@@ -166,8 +164,6 @@ void EntityManager::ShutdownSystem(const Handle<SystemBase>& system)
                 system_entity_it->second.Erase(entity);
             }
 
-            HYP_LOG(ECS, Debug, "Removing entity #{} from system {}", entity->GetID(), system->GetName());
-
             system->OnEntityRemoved(entity);
         }
     }
@@ -189,7 +185,6 @@ void EntityManager::Init()
 
         if (m_world && m_scene->IsForegroundScene())
         {
-            HYP_LOG(ECS, Debug, "EntityManager::Init() - Adding entity #{} to world {}", entity->GetID(), m_world->GetID());
             entity->OnAddedToWorld(m_world);
         }
     }
@@ -649,9 +644,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef component_ref = component_container_it->second->TryGetComponent(component_id);
             AssertThrowMsg(component_ref.HasValue(), "Component of type '%s' with ID %u does not exist in component container", *GetComponentTypeName(component_type_id), component_id);
 
-            // Notify the entity that the component is being removed
-            // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-            entity->OnComponentRemoved(component_ref);
+            // // Notify the entity that the component is being removed
+            // // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+            // entity->OnComponentRemoved(component_ref);
 
             HypData component_hyp_data;
             if (!component_container_it->second->RemoveComponent(component_id, component_hyp_data))
@@ -752,8 +747,8 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef component_ref = container->TryGetComponent(component_id);
             AssertThrowMsg(component_ref.HasValue(), "Failed to get component of type '%s' with ID %u from component container", *GetComponentTypeName(component_type_id), component_id);
 
-            // Note: Call before notifying systems as they are able to remove components!
-            entity->OnComponentAdded(component_ref);
+            // // Note: Call before notifying systems as they are able to remove components!
+            // entity->OnComponentAdded(component_ref);
         }
 
         {
