@@ -85,6 +85,11 @@ public:
         return *m_render_resource;
     }
 
+    HYP_FORCE_INLINE const Handle<View>& GetView() const
+    {
+        return m_view;
+    }
+
     HYP_METHOD()
     EnvProbeType GetEnvProbeType() const
     {

@@ -3,16 +3,18 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/Mesh.hpp>
+#include <scene/BVH.hpp>
 
 #include <scene/animation/Bone.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/BVHComponent.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -274,11 +276,6 @@ void Node::SetFlags(EnumFlags<NodeFlags> flags)
     if (m_flags == flags)
     {
         return;
-    }
-
-    if ((flags & NodeFlags::BUILD_BVH) && !(m_flags & NodeFlags::BUILD_BVH))
-    {
-        EnsureEntityHasBVHComponent();
     }
 
     m_flags = flags;
@@ -875,11 +872,6 @@ void Node::SetEntity(const Handle<Entity>& entity)
 
         m_entity = entity;
 
-        if (m_flags & NodeFlags::BUILD_BVH)
-        {
-            EnsureEntityHasBVHComponent();
-        }
-
 #ifdef HYP_EDITOR
         GetEditorDelegates([this](EditorDelegates* editor_delegates)
             {
@@ -929,11 +921,7 @@ void Node::SetEntity(const Handle<Entity>& entity)
             m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, {});
         }
 
-        if (IsReady())
-        {
-            InitObject(m_entity);
-        }
-
+        InitObject(m_entity);
         m_entity->OnAttachedToNode(this);
     }
     else
@@ -1168,31 +1156,6 @@ void Node::RefreshEntityTransform()
     }
 }
 
-void Node::EnsureEntityHasBVHComponent()
-{
-    if (!m_entity.IsValid())
-    {
-        return;
-    }
-
-    if (!m_scene)
-    {
-        return;
-    }
-
-    if (!m_scene->GetEntityManager())
-    {
-        return;
-    }
-
-    if (m_scene->GetEntityManager()->HasComponent<BVHComponent>(m_entity))
-    {
-        return;
-    }
-
-    m_scene->GetEntityManager()->AddComponent<BVHComponent>(m_entity, BVHComponent {});
-}
-
 uint32 Node::CalculateDepth() const
 {
     uint32 depth = 0;
@@ -1235,14 +1198,17 @@ bool Node::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
     {
         if (m_entity.IsValid())
         {
-            BVHNode* bvh = nullptr;
+            const BVHNode* bvh = nullptr;
             Matrix4 model_matrix = Matrix4::Identity();
 
             if (use_bvh && m_scene && m_scene->GetEntityManager())
             {
-                if (BVHComponent* bvh_component = m_scene->GetEntityManager()->TryGetComponent<BVHComponent>(m_entity))
+                if (MeshComponent* mesh_component = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(m_entity); mesh_component && mesh_component->mesh.IsValid())
                 {
-                    bvh = &bvh_component->bvh;
+                    if (mesh_component->mesh->GetBVH().IsValid())
+                    {
+                        bvh = &mesh_component->mesh->GetBVH();
+                    }
                 }
 
                 if (TransformComponent* transform_component = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity))

@@ -15,8 +15,6 @@ namespace Hyperion
         IgnoreParentTransform = IgnoreParentTranslation | IgnoreParentScale | IgnoreParentRotation,
 
         ExcludeFromParentAABB = 0x8,
-
-        BuildBVH = 0x10, // Should this Node ensure a BVHComponent is added to its Entity?
         
         Transient = 0x100, // Set if the node should not be serialized.
 

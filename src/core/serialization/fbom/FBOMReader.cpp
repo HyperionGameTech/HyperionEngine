@@ -995,7 +995,6 @@ FBOMResult FBOMReader::ReadObject(FBOMLoadContext& context, BufferedReader* read
                     }
                     else
                     {
-                        HYP_BREAKPOINT;
                         return { FBOMResult::FBOM_ERR, HYP_FORMAT("No marshal registered for type: {}", object_type.ToString(false)) };
                     }
                 }

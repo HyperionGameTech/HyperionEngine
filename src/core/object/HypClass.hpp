@@ -404,10 +404,20 @@ public:
         return m_parent;
     }
 
-    bool HasParent(const HypClass* parent_hyp_class) const;
+    /*! \brief Check if this HypClass is derived from the given HypClass or is equal to it.
+     *  \param other The HypClass to check this against
+     *  \return True if this HypClass is derived from or equal to the given HypClass, false otherwise. */
+    bool IsDerivedFrom(const HypClass* other) const;
 
-    virtual SizeType GetSize() const = 0;
-    virtual SizeType GetAlignment() const = 0;
+    HYP_FORCE_INLINE SizeType GetSize() const
+    {
+        return m_size;
+    }
+
+    HYP_FORCE_INLINE SizeType GetAlignment() const
+    {
+        return m_alignment;
+    }
 
     HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer(void* object_ptr) const
     {
@@ -628,14 +638,22 @@ protected:
     const HypClass* m_parent;
     HypClassAttributeSet m_attributes;
     EnumFlags<HypClassFlags> m_flags;
+
+    SizeType m_size;
+    SizeType m_alignment;
+
     Array<HypProperty*> m_properties;
     HashMap<Name, HypProperty*> m_properties_by_name;
+
     Array<HypMethod*> m_methods;
     HashMap<Name, HypMethod*> m_methods_by_name;
+
     Array<HypField*> m_fields;
     HashMap<Name, HypField*> m_fields_by_name;
+
     Array<HypConstant*> m_constants;
     HashMap<Name, HypConstant*> m_constants_by_name;
+
     EnumFlags<HypClassSerializationMode> m_serialization_mode;
 
 private:
@@ -673,6 +691,8 @@ public:
         Span<HypMember> members)
         : HypClass(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
+        m_size = sizeof(T);
+        m_alignment = alignof(T);
     }
 
     virtual ~HypClassInstance() = default;
@@ -696,16 +716,6 @@ public:
         {
             return HypClassAllocationMethod::NONE;
         }
-    }
-
-    virtual SizeType GetSize() const override
-    {
-        return sizeof(T);
-    }
-
-    virtual SizeType GetAlignment() const override
-    {
-        return alignof(T);
     }
 
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override
@@ -932,9 +942,6 @@ public:
     virtual bool IsValid() const override;
 
     virtual HypClassAllocationMethod GetAllocationMethod() const override;
-
-    virtual SizeType GetSize() const override;
-    virtual SizeType GetAlignment() const override;
 
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override;
 

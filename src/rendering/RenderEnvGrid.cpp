@@ -120,12 +120,9 @@ static const bool sh_parallel_reduce = false;
 
 static const uint32 max_queued_probes_for_render = 1;
 
-static const InternalFormat ambient_probe_format = InternalFormat::RGBA8;
-
 static const Vec3u voxel_grid_dimensions { 256, 256, 256 };
 static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
 
-static const Vec2u framebuffer_dimensions { 256, 256 };
 static const EnvProbeGridIndex invalid_probe_index = EnvProbeGridIndex();
 
 const InternalFormat light_field_color_format = InternalFormat::RGBA8;
@@ -292,36 +289,6 @@ void RenderEnvGrid::SetProbeIndices(Array<uint32>&& indices)
         });
 }
 
-void RenderEnvGrid::SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera)
-{
-    HYP_SCOPE;
-
-    Execute([this, render_camera = std::move(render_camera)]()
-        {
-            if (m_render_camera)
-            {
-                m_render_camera->SetFramebuffer(nullptr);
-            }
-
-            m_render_camera = std::move(render_camera);
-
-            if (m_render_camera)
-            {
-                m_render_camera->SetFramebuffer(m_framebuffer);
-            }
-        });
-}
-
-void RenderEnvGrid::SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene)
-{
-    HYP_SCOPE;
-
-    Execute([this, render_scene = std::move(render_scene)]()
-        {
-            m_render_scene = std::move(render_scene);
-        });
-}
-
 void RenderEnvGrid::SetViewResourceHandle(TResourceHandle<RenderView>&& render_view)
 {
     HYP_SCOPE;
@@ -345,48 +312,6 @@ void RenderEnvGrid::CreateShader()
 void RenderEnvGrid::CreateFramebuffer()
 {
     HYP_SCOPE;
-
-    m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_dimensions, 6);
-
-    m_framebuffer->AddAttachment(
-        0,
-        ambient_probe_format,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
-
-    // Normals
-    m_framebuffer->AddAttachment(
-        1,
-        InternalFormat::RG16F,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
-
-    // Distance Moments
-    AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
-        2,
-        InternalFormat::RG16F,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
-
-    // Set clear color for moments to be infinity
-    moments_attachment->SetClearColor(MathUtil::Infinity<Vec4f>());
-
-    m_framebuffer->AddAttachment(
-        3,
-        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
-
-    DeferCreate(m_framebuffer);
-
-    if (m_render_camera)
-    {
-        m_render_camera->SetFramebuffer(m_framebuffer);
-    }
 }
 
 void RenderEnvGrid::Initialize_Internal()
@@ -433,16 +358,7 @@ void RenderEnvGrid::Destroy_Internal()
         m_voxel_grid_texture.Reset();
     }
 
-    if (m_render_camera)
-    {
-        m_render_camera->SetFramebuffer(nullptr);
-    }
-
-    m_render_camera.Reset();
-    m_render_scene.Reset();
     m_render_view.Reset();
-
-    SafeRelease(std::move(m_framebuffer));
 
     SafeRelease(std::move(m_clear_sh));
     SafeRelease(std::move(m_compute_sh));
@@ -484,6 +400,8 @@ void RenderEnvGrid::CreateVoxelGridData()
         return;
     }
 
+    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+
     // Create our voxel grid texture
     m_voxel_grid_texture = CreateObject<Texture>(
         TextureDesc {
@@ -508,15 +426,15 @@ void RenderEnvGrid::CreateVoxelGridData()
         m_voxel_grid_texture->GetRenderResource().GetImageView());
 
     // Create shader, descriptor sets for voxelizing probes
-    AssertThrowMsg(m_framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
+    AssertThrowMsg(framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
 
     ShaderRef voxelize_probe_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { "MODE_VOXELIZE" } });
     ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { "MODE_OFFSET" } });
     ShaderRef clear_voxels_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_ClearProbeVoxels"));
 
-    AttachmentBase* color_attachment = m_framebuffer->GetAttachment(0);
-    AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
-    AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
+    AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
+    AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
+    AttachmentBase* depth_attachment = framebuffer->GetAttachment(2);
 
     const renderer::DescriptorTableDeclaration& descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
@@ -697,6 +615,9 @@ void RenderEnvGrid::CreateLightFieldData()
 
     AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
+    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    AssertThrow(framebuffer.IsValid());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
 
     m_irradiance_texture = CreateObject<Texture>(
@@ -784,9 +705,9 @@ void RenderEnvGrid::CreateLightFieldData()
 
             descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffers[frame_index]);
 
-            descriptor_set->SetElement(NAME("InColorImage"), m_framebuffer->GetAttachment(0)->GetImageView());
-            descriptor_set->SetElement(NAME("InNormalsImage"), m_framebuffer->GetAttachment(1)->GetImageView());
-            descriptor_set->SetElement(NAME("InDepthImage"), m_framebuffer->GetAttachment(2)->GetImageView());
+            descriptor_set->SetElement(NAME("InColorImage"), framebuffer->GetAttachment(0)->GetImageView());
+            descriptor_set->SetElement(NAME("InNormalsImage"), framebuffer->GetAttachment(1)->GetImageView());
+            descriptor_set->SetElement(NAME("InDepthImage"), framebuffer->GetAttachment(2)->GetImageView());
             descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
             descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
             descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetRenderResource().GetImageView());
@@ -999,6 +920,9 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 {
     HYP_SCOPE;
 
+    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    AssertThrow(framebuffer.IsValid());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
 
@@ -1007,9 +931,9 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     const uint32 grid_slot = probe->m_grid_slot;
     AssertThrow(grid_slot != ~0u);
 
-    AttachmentBase* color_attachment = m_framebuffer->GetAttachment(0);
-    AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
-    AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
+    AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
+    AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
+    AttachmentBase* depth_attachment = framebuffer->GetAttachment(2);
 
     const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
     AssertThrow(cubemap_dimensions.Volume() > 0);
@@ -1039,13 +963,13 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     for (const DescriptorTableRef& descriptor_set_ref : m_compute_sh_descriptor_tables)
     {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
-            ->SetElement(NAME("InColorCubemap"), m_framebuffer->GetAttachment(0)->GetImageView());
+            ->SetElement(NAME("InColorCubemap"), framebuffer->GetAttachment(0)->GetImageView());
 
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
-            ->SetElement(NAME("InNormalsCubemap"), m_framebuffer->GetAttachment(1)->GetImageView());
+            ->SetElement(NAME("InNormalsCubemap"), framebuffer->GetAttachment(1)->GetImageView());
 
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
-            ->SetElement(NAME("InDepthCubemap"), m_framebuffer->GetAttachment(2)->GetImageView());
+            ->SetElement(NAME("InDepthCubemap"), framebuffer->GetAttachment(2)->GetImageView());
 
         descriptor_set_ref->Update(frame->GetFrameIndex());
     }
@@ -1357,10 +1281,11 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
         renderer::ResourceState::SHADER_RESOURCE);
 }
 
-void RenderEnvGrid::VoxelizeProbe(
-    FrameBase* frame,
-    uint32 probe_index)
+void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
 {
+    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    AssertThrow(framebuffer.IsValid());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
 
@@ -1375,7 +1300,7 @@ void RenderEnvGrid::VoxelizeProbe(
     AssertThrow(probe.IsValid());
     AssertThrow(probe->IsReady());
 
-    const ImageRef& color_image = m_framebuffer->GetAttachment(0)->GetImage();
+    const ImageRef& color_image = framebuffer->GetAttachment(0)->GetImage();
     const Vec3u cubemap_dimensions = color_image->GetExtent();
 
     struct

@@ -14,6 +14,8 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/Vertex.hpp>
 
+#include <scene/BVH.hpp>
+
 #include <rendering/RenderableAttributes.hpp>
 
 #include <rendering/backend/RendererStructs.hpp>
@@ -54,13 +56,13 @@ public:
 
     ~Mesh();
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE Name GetName() const
     {
         return m_name;
     }
 
-    HYP_METHOD(Property = "Name", Serialize = true, Editor = true)
+    HYP_METHOD()
     HYP_FORCE_INLINE void SetName(Name name)
     {
         m_name = name;
@@ -130,13 +132,20 @@ public:
      *  \note Init() must be called before this method. */
     void SetPersistentRenderResourceEnabled(bool enabled);
 
-    bool BuildBVH(BVHNode& out_bvh_node, int max_depth = 3);
+    HYP_FORCE_INLINE const BVHNode& GetBVH() const
+    {
+        return m_bvh;
+    }
+
+    HYP_METHOD()
+    bool BuildBVH(int max_depth = 3);
 
 private:
     void Init() override;
 
     void CalculateAABB();
 
+    HYP_FIELD(Serialize, Editor)
     Name m_name;
 
     MeshAttributes m_mesh_attributes;
@@ -146,6 +155,9 @@ private:
     RC<StreamedMeshData> m_streamed_mesh_data;
 
     mutable BoundingBox m_aabb;
+
+    HYP_FIELD(Serialize)
+    BVHNode m_bvh;
 
     RenderMesh* m_render_resource;
     ResourceHandle m_render_persistent;

@@ -40,7 +40,6 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
-#include <scene/ecs/components/BVHComponent.hpp>
 
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
@@ -370,7 +369,7 @@ public:
 
                 const BVHNode* bvh_node = static_cast<const BVHNode*>(ray_hit.user_data);
 
-                const Triangle& triangle = bvh_node->GetTriangles()[ray_hit.id];
+                const Triangle& triangle = bvh_node->triangles[ray_hit.id];
 
                 results.Emplace(ray_hit, m_sub_element->entity, triangle);
             }
@@ -405,7 +404,7 @@ public:
 
         for (const LightmapBottomLevelAccelerationStructure& acceleration_structure : m_acceleration_structures)
         {
-            if (!ray.TestAABB(acceleration_structure.GetTransform() * acceleration_structure.GetRoot()->GetAABB()))
+            if (!ray.TestAABB(acceleration_structure.GetTransform() * acceleration_structure.GetRoot()->aabb))
             {
                 continue;
             }
@@ -1575,17 +1574,14 @@ void Lightmapper::PerformLightmapping()
 
     for (LightmapSubElement& sub_element : m_sub_elements)
     {
-        BVHComponent* bvh_component = mgr.TryGetComponent<BVHComponent>(sub_element.entity);
-
-        if (!bvh_component)
+        if (!sub_element.mesh->BuildBVH())
         {
-            // BVHUpdaterSystem will calculate BVH when added
-            mgr.AddComponent<BVHComponent>(sub_element.entity, BVHComponent {});
+            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", sub_element.entity.GetID());
 
-            bvh_component = &mgr.GetComponent<BVHComponent>(sub_element.entity);
+            continue;
         }
 
-        m_acceleration_structure->Add(&sub_element, &bvh_component->bvh);
+        m_acceleration_structure->Add(&sub_element, &sub_element.mesh->GetBVH());
     }
 
     uint32 num_triangles = 0;

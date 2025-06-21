@@ -11,6 +11,7 @@
 
 #include <scene/World.hpp>
 #include <scene/Texture.hpp>
+#include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
@@ -119,24 +120,22 @@ void SkydomeRenderer::Update(float delta)
         : public renderer::RenderCommand
     {
         RenderWorld* world;
-        RenderEnvProbe* env_probe;
         RenderTexture* cubemap;
 
-        RENDER_COMMAND(RenderSky)(RenderWorld* world, RenderEnvProbe* env_probe, RenderTexture* cubemap)
+        Handle<EnvProbe> env_probe;
+
+        RENDER_COMMAND(RenderSky)(RenderWorld* world, RenderTexture* cubemap, const Handle<EnvProbe>& env_probe)
             : world(world),
               env_probe(env_probe),
               cubemap(cubemap)
         {
-            // world->IncRef();
-            // env_probe->IncRef();
-            // cubemap->IncRef();
         }
 
         virtual ~RENDER_COMMAND(RenderSky)() override
         {
             world->DecRef();
-            env_probe->DecRef();
             cubemap->DecRef();
+            env_probe->GetRenderResource().DecRef();
         }
 
         virtual RendererResult operator()() override
@@ -145,12 +144,12 @@ void SkydomeRenderer::Update(float delta)
 
             RenderSetup render_setup { world, nullptr };
 
-            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}", env_probe->GetEnvProbe()->GetID());
+            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}", env_probe->GetID());
 
-            env_probe->Render(frame, render_setup);
+            env_probe->GetRenderResource().Render(frame, render_setup);
 
             // Copy cubemap from env probe to cubemap texture
-            const ImageRef& src_image = env_probe->GetFramebuffer()->GetAttachment(0)->GetImage();
+            const ImageRef& src_image = env_probe->GetView()->GetOutputTarget()->GetAttachment(0)->GetImage();
 
             AssertThrow(src_image.IsValid());
             AssertThrow(src_image->IsCreated());
@@ -182,14 +181,14 @@ void SkydomeRenderer::Update(float delta)
     if (m_env_probe->NeedsRender())
     {
         g_engine->GetWorld()->GetRenderResource().IncRef();
-        m_env_probe->GetRenderResource().IncRef();
         m_cubemap->GetRenderResource().IncRef();
+        m_env_probe->GetRenderResource().IncRef();
 
         PUSH_RENDER_COMMAND(
             RenderSky,
             &g_engine->GetWorld()->GetRenderResource(),
-            &m_env_probe->GetRenderResource(),
-            &m_cubemap->GetRenderResource());
+            &m_cubemap->GetRenderResource(),
+            m_env_probe);
     }
 
     m_env_probe->SetReceivesUpdate(false);

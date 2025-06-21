@@ -687,7 +687,7 @@ void Mesh::CalculateAABB()
     m_aabb = aabb;
 }
 
-bool Mesh::BuildBVH(BVHNode& out_bvh_node, int max_depth)
+bool Mesh::BuildBVH(int max_depth)
 {
     if (!m_streamed_mesh_data)
     {
@@ -698,7 +698,7 @@ bool Mesh::BuildBVH(BVHNode& out_bvh_node, int max_depth)
 
     const MeshData& mesh_data = m_streamed_mesh_data->GetMeshData();
 
-    out_bvh_node = BVHNode(m_aabb);
+    m_bvh = BVHNode(m_aabb);
 
     for (uint32 i = 0; i < mesh_data.indices.Size(); i += 3)
     {
@@ -722,10 +722,10 @@ bool Mesh::BuildBVH(BVHNode& out_bvh_node, int max_depth)
         triangle[1].bitangent = (Vec4f(triangle[1].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
         triangle[2].bitangent = (Vec4f(triangle[2].bitangent.Normalized(), 0.0f)).GetXYZ().Normalize();
 
-        out_bvh_node.AddTriangle(triangle);
+        m_bvh.AddTriangle(triangle);
     }
 
-    out_bvh_node.Split(max_depth);
+    m_bvh.Split(max_depth);
 
     return true;
 }

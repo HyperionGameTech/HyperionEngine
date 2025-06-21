@@ -454,23 +454,11 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(
-            entity,
-            TransformComponent {});
-
-        scene->GetEntityManager()->AddComponent<MeshComponent>(
-            entity,
-            MeshComponent {
-                mesh,
-                material });
-
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(
-            entity,
-            BoundingBoxComponent {
-                mesh->GetAABB() });
+        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
+        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
+        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
 
         Handle<Node> node = top->AddChild(CreateObject<Node>(CreateNameFromDynamicString(obj_mesh.name)));
-        node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetEntity(entity);
         node->SetLocalTranslation(mesh_aabb_center);
     }

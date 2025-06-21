@@ -1061,7 +1061,7 @@ void EditorSubsystem::OnAddedToWorld()
 
     NewProject();
 
-    // auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "UntitledProject7");
+    // auto result = EditorProject::Load(GetResourceDirectory() / "projects" / "UntitledProject9");
 
     // if (!result)
     // {
@@ -1861,22 +1861,6 @@ void EditorSubsystem::StartWatchingNode(const Handle<Node>& node)
                 data_source->Remove(node->GetUUID());
             }
         }));
-
-    for (Node* child : node->GetDescendants())
-    {
-        child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
-    }
-
-    m_delegate_handlers.Add(
-        node->GetDelegates()->OnChildAdded.Bind([](Node* node, bool)
-            {
-                node->SetFlags(node->GetFlags() | NodeFlags::BUILD_BVH);
-
-                for (Node* child : node->GetDescendants())
-                {
-                    child->SetFlags(child->GetFlags() | NodeFlags::BUILD_BVH);
-                }
-            }));
 }
 
 void EditorSubsystem::StopWatchingNode(const Handle<Node>& node)

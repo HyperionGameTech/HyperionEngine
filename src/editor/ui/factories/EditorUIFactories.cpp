@@ -643,7 +643,7 @@ public:
 
                 if (property_panel_class)
                 {
-                    if (!property_panel_class->HasParent(EditorPropertyPanelBase::Class()))
+                    if (!property_panel_class->IsDerivedFrom(EditorPropertyPanelBase::Class()))
                     {
                         HYP_LOG(Editor, Error, "Editor property panel class \"{}\" does not inherit from EditorPropertyPanelBase", property_panel_class->GetName());
 

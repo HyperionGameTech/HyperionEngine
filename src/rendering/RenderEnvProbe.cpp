@@ -32,9 +32,6 @@
 
 namespace hyperion {
 
-static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;
-static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
-
 static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
 {
     FixedArray<Matrix4, 6> view_matrices;
@@ -60,24 +57,15 @@ RenderEnvProbe::RenderEnvProbe(EnvProbe* env_probe)
     if (!m_env_probe->IsControlledByEnvGrid())
     {
         CreateShader();
-        CreateFramebuffer();
     }
 }
 
 RenderEnvProbe::~RenderEnvProbe()
 {
-    if (m_render_camera)
-    {
-        m_render_camera->SetFramebuffer(nullptr);
-    }
-
-    m_render_scene.Reset();
-    m_render_camera.Reset();
     m_render_view.Reset();
     m_shadow_map.Reset();
 
     SafeRelease(std::move(m_shader));
-    SafeRelease(std::move(m_framebuffer));
 }
 
 void RenderEnvProbe::SetPositionInGrid(const Vec4i& position_in_grid)
@@ -108,46 +96,6 @@ void RenderEnvProbe::SetBufferData(const EnvProbeShaderData& buffer_data)
             m_buffer_data.position_in_grid = position_in_grid;
 
             SetNeedsUpdate();
-        });
-}
-
-void RenderEnvProbe::SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera)
-{
-    HYP_SCOPE;
-
-    Execute([this, render_camera = std::move(render_camera)]()
-        {
-            if (m_render_camera == render_camera)
-            {
-                return;
-            }
-
-            if (m_render_camera)
-            {
-                m_render_camera->SetFramebuffer(nullptr);
-            }
-
-            m_render_camera = std::move(render_camera);
-
-            if (m_render_camera)
-            {
-                m_render_camera->SetFramebuffer(m_framebuffer);
-            }
-        });
-}
-
-void RenderEnvProbe::SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene)
-{
-    HYP_SCOPE;
-
-    Execute([this, render_scene = std::move(render_scene)]()
-        {
-            if (m_render_scene == render_scene)
-            {
-                return;
-            }
-
-            m_render_scene = std::move(render_scene);
         });
 }
 
@@ -224,71 +172,6 @@ void RenderEnvProbe::CreateShader()
     }
 
     AssertThrow(m_shader.IsValid());
-}
-
-void RenderEnvProbe::CreateFramebuffer()
-{
-    m_framebuffer = g_rendering_api->MakeFramebuffer(m_env_probe->GetDimensions(), 6);
-
-    InternalFormat format = InternalFormat::NONE;
-
-    if (m_env_probe->IsReflectionProbe() || m_env_probe->IsSkyProbe())
-    {
-        format = reflection_probe_format;
-    }
-    else if (m_env_probe->IsShadowProbe())
-    {
-        format = shadow_probe_format;
-    }
-
-    AssertThrowMsg(format != InternalFormat::NONE, "Invalid attachment format for EnvProbe");
-
-    AttachmentRef color_attachment = m_framebuffer->AddAttachment(
-        0,
-        format,
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
-
-    if (m_env_probe->IsShadowProbe())
-    {
-        // For shadows, we want to make sure we clear the color to infinity
-        // (the color attachment is used for moments for VSM)
-        color_attachment->SetClearColor(MathUtil::Infinity<Vec4f>());
-
-        m_framebuffer->AddAttachment(
-            1,
-            g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE);
-    }
-    else if (m_env_probe->IsReflectionProbe())
-    {
-        AttachmentRef normals_attachment = m_framebuffer->AddAttachment(
-            1,
-            InternalFormat::RG16F,
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE);
-
-        AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
-            2,
-            InternalFormat::RG16F,
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE);
-        moments_attachment->SetClearColor(MathUtil::Infinity<Vec4f>());
-
-        m_framebuffer->AddAttachment(
-            3,
-            g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE);
-    }
-
-    DeferCreate(m_framebuffer);
 }
 
 void RenderEnvProbe::Initialize_Internal()
@@ -437,12 +320,6 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         return;
     }
 
-    if (!m_render_scene || !m_render_camera)
-    {
-        HYP_LOG(EnvProbe, Warning, "EnvProbe {} has no scene or camera render resource handle set!", m_env_probe->GetID());
-        return;
-    }
-
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
         m_env_probe->GetID(), m_env_probe->GetEnvProbeType());
 
@@ -460,7 +337,10 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         new_render_setup.env_probe = nullptr;
     }
 
-    const ImageRef& framebuffer_image = m_framebuffer->GetAttachment(0)->GetImage();
+    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    AssertDebug(framebuffer.IsValid());
+
+    const ImageRef& framebuffer_image = framebuffer->GetAttachment(0)->GetImage();
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
@@ -590,7 +470,10 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     HYPERION_ASSERT_RESULT(uniform_buffer->Create());
     uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
-    AttachmentBase* color_attachment = m_framebuffer->GetAttachment(0);
+    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    AssertDebug(framebuffer.IsValid());
+
+    AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
     AttachmentBase* normals_attachment = nullptr;
     AttachmentBase* moments_attachment = nullptr;
 
@@ -598,10 +481,10 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     {
         AssertThrow(color_attachment != nullptr);
 
-        normals_attachment = m_framebuffer->GetAttachment(1);
+        normals_attachment = framebuffer->GetAttachment(1);
         AssertThrow(normals_attachment != nullptr);
 
-        moments_attachment = m_framebuffer->GetAttachment(2);
+        moments_attachment = framebuffer->GetAttachment(2);
         AssertThrow(moments_attachment != nullptr);
     }
 
@@ -678,6 +561,9 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    AssertDebug(framebuffer.IsValid());
 
     static constexpr Vec2u sh_num_samples = { 16, 16 };
     static constexpr Vec2u sh_num_tiles = { 16, 16 };
@@ -767,11 +653,11 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
         HYPERION_ASSERT_RESULT(pipeline->Create());
     }
 
-    AttachmentBase* color_attachment = m_framebuffer->GetAttachment(0);
+    AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
     AssertThrow(color_attachment != nullptr);
 
-    AttachmentBase* normals_attachment = m_framebuffer->GetAttachment(1);
-    AttachmentBase* depth_attachment = m_framebuffer->GetAttachment(2);
+    AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
+    AttachmentBase* depth_attachment = framebuffer->GetAttachment(2);
 
     // Bind a directional light and sky envprobe if available
     RenderEnvProbe* sky_env_probe = nullptr;

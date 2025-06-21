@@ -127,8 +127,15 @@ void RenderProxyUpdaterSystem::OnEntityAdded(Entity* entity)
     }
     else
     {
-        HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity->GetID());
-        HYP_BREAKPOINT;
+        if (!mesh_component.mesh.IsValid())
+        {
+            HYP_LOG(ECS, Warning, "Mesh not valid for entity #{}!", entity->GetID());
+        }
+
+        if (!mesh_component.material.IsValid())
+        {
+            HYP_LOG(ECS, Warning, "Material not valid for entity #{}!", entity->GetID());
+        }
     }
 }
 
@@ -156,38 +163,41 @@ void RenderProxyUpdaterSystem::Process(float delta)
 
         if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid())
         {
-            HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}", entity->GetID());
-
-            delete mesh_component.proxy;
-            mesh_component.proxy = nullptr;
-        }
-        else
-        {
-            if (!mesh_component.proxy)
+            if (mesh_component.proxy)
             {
-                mesh_component.proxy = new RenderProxy {};
+                HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}!", entity->GetID());
+
+                delete mesh_component.proxy;
+                mesh_component.proxy = nullptr;
             }
 
-            const uint32 render_proxy_version = mesh_component.proxy->version + 1;
-
-            // Update MeshComponent's proxy
-            // @TODO: Include RT info on RenderProxy, add a system that will update BLAS on the render thread.
-            // @TODO Add Lightmap volume info
-            *mesh_component.proxy = RenderProxy {
-                entity->WeakHandleFromThis(),
-                mesh_component.mesh,
-                mesh_component.material,
-                mesh_component.skeleton,
-                transform_component.transform.GetMatrix(),
-                mesh_component.previous_model_matrix,
-                bounding_box_component.world_aabb,
-                mesh_component.user_data,
-                mesh_component.instance_data,
-                render_proxy_version
-            };
-
-            render_proxy_ptrs.PushBack(mesh_component.proxy);
+            continue;
         }
+
+        if (!mesh_component.proxy)
+        {
+            mesh_component.proxy = new RenderProxy {};
+        }
+
+        const uint32 render_proxy_version = mesh_component.proxy->version + 1;
+
+        // Update MeshComponent's proxy
+        // @TODO: Include RT info on RenderProxy, add a system that will update BLAS on the render thread.
+        // @TODO Add Lightmap volume info
+        *mesh_component.proxy = RenderProxy {
+            entity->WeakHandleFromThis(),
+            mesh_component.mesh,
+            mesh_component.material,
+            mesh_component.skeleton,
+            transform_component.transform.GetMatrix(),
+            mesh_component.previous_model_matrix,
+            bounding_box_component.world_aabb,
+            mesh_component.user_data,
+            mesh_component.instance_data,
+            render_proxy_version
+        };
+
+        render_proxy_ptrs.PushBack(mesh_component.proxy);
 
         if (mesh_component.previous_model_matrix == transform_component.transform.GetMatrix())
         {

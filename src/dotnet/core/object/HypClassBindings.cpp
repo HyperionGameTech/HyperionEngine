@@ -42,6 +42,9 @@ DynamicHypClassInstance::DynamicHypClassInstance(TypeID type_id, Name name, cons
     {
         HYP_LOG(Object, Error, "DynamicHypClassInstance: Will be unable to create an instance of class {} because parent class {} cannot create instance", *m_name, *m_parent->GetName());
     }
+
+    m_size = m_parent->GetSize();
+    m_alignment = m_parent->GetAlignment();
 }
 
 DynamicHypClassInstance::~DynamicHypClassInstance()
@@ -60,20 +63,6 @@ HypClassAllocationMethod DynamicHypClassInstance::GetAllocationMethod() const
     AssertThrow(m_parent != nullptr);
 
     return m_parent->GetAllocationMethod();
-}
-
-SizeType DynamicHypClassInstance::GetSize() const
-{
-    AssertThrow(m_parent != nullptr);
-
-    return m_parent->GetSize();
-}
-
-SizeType DynamicHypClassInstance::GetAlignment() const
-{
-    AssertThrow(m_parent != nullptr);
-
-    return m_parent->GetAlignment();
 }
 
 bool DynamicHypClassInstance::GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const

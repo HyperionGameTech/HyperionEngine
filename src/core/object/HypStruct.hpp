@@ -40,9 +40,6 @@ public:
         return HypClassAllocationMethod::NONE;
     }
 
-    virtual SizeType GetSize() const override = 0;
-    virtual SizeType GetAlignment() const override = 0;
-
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override = 0;
 
     virtual bool CanCreateInstance() const override = 0;
@@ -105,19 +102,11 @@ public:
         Span<HypMember> members)
         : HypStruct(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
+        m_size = sizeof(T);
+        m_alignment = alignof(T);
     }
 
     virtual ~HypStructInstance() override = default;
-
-    virtual SizeType GetSize() const override
-    {
-        return sizeof(T);
-    }
-
-    virtual SizeType GetAlignment() const override
-    {
-        return alignof(T);
-    }
 
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override
     {

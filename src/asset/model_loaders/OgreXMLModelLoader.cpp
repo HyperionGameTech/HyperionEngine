@@ -322,7 +322,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         }
 
         Handle<Node> node = CreateObject<Node>();
-        node->SetFlags(NodeFlags::BUILD_BVH);
         node->SetName(CreateNameFromDynamicString(sub_mesh.name));
         node->SetEntity(entity);
 

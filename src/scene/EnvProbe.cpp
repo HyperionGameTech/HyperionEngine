@@ -24,6 +24,9 @@
 
 namespace hyperion {
 
+static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;
+static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(RenderPointLightShadow)
@@ -131,8 +134,6 @@ void EnvProbe::Init()
 
         InitObject(m_camera);
 
-        m_render_resource->SetCameraResourceHandle(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
-
         CreateView();
 
         m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
@@ -178,8 +179,6 @@ void EnvProbe::OnAddedToScene(Scene* scene)
         m_view->AddScene(scene->HandleFromThis());
     }
 
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(scene->GetRenderResource()));
-
     Invalidate();
 }
 
@@ -189,8 +188,6 @@ void EnvProbe::OnRemovedFromScene(Scene* scene)
     {
         m_view->RemoveScene(scene->HandleFromThis());
     }
-
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
 
     Invalidate();
 }
@@ -202,12 +199,55 @@ void EnvProbe::CreateView()
         return;
     }
 
+    ViewOutputTargetDesc output_target_desc {
+        .extent = Vec2u(m_dimensions),
+        .attachments = {},
+        .num_views = 6
+    };
+
+    if (IsReflectionProbe() || IsSkyProbe())
+    {
+        output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+            .format = reflection_probe_format,
+            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
+            .load_op = renderer::LoadOperation::CLEAR,
+            .store_op = renderer::StoreOperation::STORE });
+
+        output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+            .format = InternalFormat::RG16F,
+            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
+            .load_op = renderer::LoadOperation::CLEAR,
+            .store_op = renderer::StoreOperation::STORE });
+
+        output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+            .format = InternalFormat::RGBA16F,
+            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
+            .load_op = renderer::LoadOperation::CLEAR,
+            .store_op = renderer::StoreOperation::STORE,
+            .clear_color = MathUtil::Infinity<Vec4f>() });
+    }
+    else if (IsShadowProbe())
+    {
+        output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+            .format = shadow_probe_format,
+            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
+            .load_op = renderer::LoadOperation::CLEAR,
+            .store_op = renderer::StoreOperation::STORE });
+    }
+
+    output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
+        .format = g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
+        .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
+        .load_op = renderer::LoadOperation::CLEAR,
+        .store_op = renderer::StoreOperation::STORE });
+
     m_view = CreateObject<View>(ViewDesc {
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
+        .output_target_desc = output_target_desc,
         .scenes = {},
         .camera = m_camera,
         .override_attributes = RenderableAttributeSet(

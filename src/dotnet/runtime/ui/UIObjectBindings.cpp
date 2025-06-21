@@ -59,7 +59,7 @@ extern "C"
         AssertThrow(name != nullptr);
         AssertThrow(out_hyp_data != nullptr);
 
-        if (hyp_class != UIObject::Class() && !hyp_class->HasParent(UIObject::Class()))
+        if (!hyp_class->IsDerivedFrom(UIObject::Class()))
         {
             return false;
         }

@@ -51,7 +51,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(Entity* entity)
         return;
     }
 
-    AddRenderSubsystemToEnvironment(shadow_map_component, light_component);
+    // AddRenderSubsystemToEnvironment(shadow_map_component, light_component);
 }
 
 void ShadowMapUpdaterSystem::OnEntityRemoved(Entity* entity)

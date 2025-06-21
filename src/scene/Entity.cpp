@@ -4,10 +4,12 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
+#include <scene/Mesh.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -198,8 +200,6 @@ void Entity::OnAttachedToNode(Node* node)
     AssertThrow(node != nullptr);
 
     // Do nothing in default implementation.
-
-    // @TODO Ensure has BVHComponent if node has BUILD_BVH true
 }
 
 void Entity::OnDetachedFromNode(Node* node)
@@ -211,6 +211,7 @@ void Entity::OnDetachedFromNode(Node* node)
 
 void Entity::OnAddedToWorld(World* world)
 {
+    HYP_LOG(ECS, Debug, "Entity {} added to world {}", GetID(), world->GetID());
     AssertDebug(world != nullptr);
 
     m_world = world;
@@ -218,6 +219,7 @@ void Entity::OnAddedToWorld(World* world)
 
 void Entity::OnRemovedFromWorld(World* world)
 {
+    HYP_LOG(ECS, Debug, "Entity {} removed from world {}", GetID(), world->GetID());
     AssertDebug(world != nullptr);
     AssertDebug(m_world == world);
 
@@ -239,6 +241,40 @@ void Entity::OnRemovedFromScene(Scene* scene)
     AssertDebug(m_scene == scene);
 
     m_scene = nullptr;
+}
+
+void Entity::OnComponentAdded(AnyRef component)
+{
+    if (MeshComponent* mesh_component = component.TryGet<MeshComponent>())
+    {
+        if (!mesh_component->mesh.IsValid())
+        {
+            HYP_LOG(ECS, Warning, "Entity {} has a MeshComponent with an invalid mesh", GetID());
+
+            return;
+        }
+
+        if (m_entity_init_info.bvh_depth > 0)
+        {
+            if (mesh_component->mesh->GetBVH().IsValid())
+            {
+                HYP_LOG(ECS, Debug, "Entity {} has a MeshComponent with a BVH, skipping BVH build", GetID());
+
+                return;
+            }
+
+            if (!mesh_component->mesh->BuildBVH(m_entity_init_info.bvh_depth))
+            {
+                HYP_LOG(ECS, Error, "Failed to build BVH for MeshComponent on Entity {}!", GetID());
+
+                return;
+            }
+        }
+    }
+}
+
+void Entity::OnComponentRemoved(AnyRef component)
+{
 }
 
 void Entity::AttachChild(const Handle<Entity>& child)

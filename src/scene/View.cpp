@@ -55,10 +55,33 @@ View::View(const ViewDesc& view_desc)
       m_priority(view_desc.priority),
       m_override_attributes(view_desc.override_attributes)
 {
+    if (view_desc.output_target_desc.attachments.Any())
+    {
+        m_output_target = g_rendering_api->MakeFramebuffer(view_desc.output_target_desc.extent, view_desc.output_target_desc.num_views);
+
+        for (uint32 attachment_index = 0; attachment_index < view_desc.output_target_desc.attachments.Size(); ++attachment_index)
+        {
+            const ViewOutputTargetAttachmentDesc& attachment_desc = view_desc.output_target_desc.attachments[attachment_index];
+
+            AttachmentRef attachment = m_output_target->AddAttachment(
+                attachment_index,
+                attachment_desc.format,
+                attachment_desc.image_type,
+                attachment_desc.load_op,
+                attachment_desc.store_op);
+
+            attachment->SetClearColor(attachment_desc.clear_color);
+        }
+    }
 }
 
 View::~View()
 {
+    if (m_output_target)
+    {
+        SafeRelease(std::move(m_output_target));
+    }
+
     if (m_render_resource)
     {
         FreeResource(m_render_resource);
@@ -80,6 +103,8 @@ void View::Init()
     AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with ID #%u", GetID().Value());
     InitObject(m_camera);
 
+    DeferCreate(m_output_target);
+
     Array<TResourceHandle<RenderScene>> render_scenes;
     render_scenes.Reserve(m_scenes.Size());
 
@@ -94,8 +119,6 @@ void View::Init()
     }
 
     m_render_resource = AllocateResource<RenderView>(this);
-    m_render_resource->SetScenes(render_scenes);
-    m_render_resource->SetCamera(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
     m_render_resource->SetViewport(m_viewport);
     m_render_resource->GetRenderCollector().SetOverrideAttributes(m_override_attributes);
 
@@ -202,8 +225,6 @@ void View::AddScene(const Handle<Scene>& scene)
     if (IsInitCalled())
     {
         InitObject(scene);
-
-        m_render_resource->AddScene(TResourceHandle<RenderScene>(scene->GetRenderResource()));
     }
 }
 
@@ -219,11 +240,6 @@ void View::RemoveScene(const Handle<Scene>& scene)
     if (!m_scenes.Contains(scene))
     {
         return;
-    }
-
-    if (IsInitCalled())
-    {
-        m_render_resource->RemoveScene(&scene->GetRenderResource());
     }
 
     m_scenes.Erase(scene);

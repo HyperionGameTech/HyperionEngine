@@ -33,6 +33,10 @@ namespace hyperion {
 static const Vec2u sh_probe_dimensions { 256, 256 };
 static const Vec2u light_field_probe_dimensions { 32, 32 };
 
+static const InternalFormat ambient_probe_format = InternalFormat::RGBA8;
+
+static const Vec2u framebuffer_dimensions { 256, 256 };
+
 static Vec2u GetProbeDimensions(EnvGridType env_grid_type)
 {
     switch (env_grid_type)
@@ -97,6 +101,8 @@ EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
       m_options(options),
       m_render_resource(nullptr)
 {
+    m_entity_init_info.receives_update = true;
+    m_entity_init_info.can_ever_update = true;
 }
 
 EnvGrid::~EnvGrid()
@@ -140,12 +146,40 @@ void EnvGrid::Init()
 
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
+    ViewOutputTargetDesc output_target_desc {
+        .extent = Vec2u(framebuffer_dimensions),
+        .attachments = {
+            ViewOutputTargetAttachmentDesc {
+                ambient_probe_format,
+                ImageType::TEXTURE_TYPE_CUBEMAP,
+                renderer::LoadOperation::CLEAR,
+                renderer::StoreOperation::STORE },
+            ViewOutputTargetAttachmentDesc {
+                InternalFormat::RG16F,
+                ImageType::TEXTURE_TYPE_CUBEMAP,
+                renderer::LoadOperation::CLEAR,
+                renderer::StoreOperation::STORE },
+            ViewOutputTargetAttachmentDesc {
+                InternalFormat::RG16F,
+                ImageType::TEXTURE_TYPE_CUBEMAP,
+                renderer::LoadOperation::CLEAR,
+                renderer::StoreOperation::STORE,
+                MathUtil::Infinity<Vec4f>() },
+            ViewOutputTargetAttachmentDesc {
+                g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
+                ImageType::TEXTURE_TYPE_CUBEMAP,
+                renderer::LoadOperation::CLEAR,
+                renderer::StoreOperation::STORE } },
+        .num_views = 6
+    };
+
     m_view = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = Vec2i(probe_dimensions), .position = Vec2i::Zero() },
+        .output_target_desc = output_target_desc,
         .scenes = {},
         .camera = m_camera,
         .override_attributes = RenderableAttributeSet(
@@ -156,7 +190,6 @@ void EnvGrid::Init()
 
     InitObject(m_view);
 
-    m_render_resource->SetCameraResourceHandle(TResourceHandle<RenderCamera>(m_camera->GetRenderResource()));
     m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
 
     SetReady(true);
@@ -198,13 +231,11 @@ void EnvGrid::OnRemovedFromWorld(World* world)
 void EnvGrid::OnAddedToScene(Scene* scene)
 {
     m_view->AddScene(scene->HandleFromThis());
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>(scene->GetRenderResource()));
 }
 
 void EnvGrid::OnRemovedFromScene(Scene* scene)
 {
     m_view->RemoveScene(scene->HandleFromThis());
-    m_render_resource->SetSceneResourceHandle(TResourceHandle<RenderScene>());
 }
 
 void EnvGrid::CreateEnvProbes()
@@ -411,6 +442,8 @@ void EnvGrid::Update(float delta)
 
     m_view->UpdateVisibility();
     m_view->Update(delta);
+
+    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes", GetID(), m_env_probe_collection.num_probes);
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)
     {

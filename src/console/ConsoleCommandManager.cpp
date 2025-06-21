@@ -97,7 +97,7 @@ int ConsoleCommandManager::FindAndRegisterCommands()
                 return IterationResult::CONTINUE;
             }
 
-            if (hyp_class->HasParent(parent_hyp_class))
+            if (hyp_class->IsDerivedFrom(parent_hyp_class))
             {
                 HypData hyp_data;
                 if (!hyp_class->CreateInstance(hyp_data))

@@ -344,6 +344,8 @@ private:
                 AssertDebug(num >= 0); // sanity check
             }
             while (num > 0 && !m_stop_requested.Get(MemoryOrder::RELAXED));
+
+            Threads::Sleep(1000);
         }
     }
 
@@ -601,9 +603,10 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
                     cell->OnStreamStart();
 
                     is_ok &= layer_data.cells.UpdateCellState(cell->GetPatchInfo().coord, StreamingCellState::LOADED);
-                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADED for coord: %d,%d for layer: %s",
+                    AssertDebugMsg(is_ok, "Failed to update StreamingCell state to LOADED for coord: %d,%d for layer: %s\tCurrent state: %u",
                         cell->GetPatchInfo().coord.x, cell->GetPatchInfo().coord.y,
-                        layer_data.layer->InstanceClass()->GetName().LookupString());
+                        layer_data.layer->InstanceClass()->GetName().LookupString(),
+                        layer_data.cells.GetCellState(cell->GetPatchInfo().coord));
 
                     is_ok &= layer_data.cells.SetCellLockState(cell->GetPatchInfo().coord, false);
                     AssertDebugMsg(is_ok, "Failed to unlock StreamingCell with coord: %d,%d for layer: %s",

@@ -34,7 +34,7 @@ void SkySystem::OnEntityAdded(Entity* entity)
 
     AssertThrow(GetWorld() != nullptr);
 
-    HYP_LOG(ECS, Debug, "Adding sky system for entity: #{}, Scene: {}", entity->GetID().Value(), GetScene()->GetName());
+    HYP_LOG(ECS, Debug, "Adding sky system for entity: #{}, Scene: {}", entity->GetID(), GetScene()->GetName());
 
     SkyComponent& sky_component = GetEntityManager().GetComponent<SkyComponent>(entity);
     MeshComponent* mesh_component = GetEntityManager().TryGetComponent<MeshComponent>(entity);

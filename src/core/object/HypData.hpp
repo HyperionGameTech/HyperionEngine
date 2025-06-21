@@ -2107,6 +2107,103 @@ struct HypDataHelper<HashSet<ValueType, KeyByFunction>> : HypDataHelper<Any>
     }
 };
 
+template <class T>
+struct HypDataHelperDecl<LinkedList<T>>
+{
+};
+
+template <class T>
+struct HypDataHelper<LinkedList<T>> : HypDataHelper<Any>
+{
+    using ConvertibleFrom = Tuple<>;
+
+    HYP_FORCE_INLINE bool Is(const Any& value) const
+    {
+        return value.Is<LinkedList<T>>();
+    }
+
+    HYP_FORCE_INLINE LinkedList<T>& Get(const Any& value) const
+    {
+        return value.Get<LinkedList<T>>();
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, const LinkedList<T>& value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<LinkedList<T>>(value));
+    }
+
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, LinkedList<T>&& value) const
+    {
+        HypDataHelper<Any>::Set(hyp_data, Any::Construct<LinkedList<T>>(std::move(value)));
+    }
+
+    static FBOMResult Serialize(const LinkedList<T>& value, FBOMData& out_data)
+    {
+        HYP_SCOPE;
+
+        const SizeType size = value.Size();
+
+        if (size == 0)
+        {
+            // If size is empty, serialize a placeholder value to get the element type
+            out_data = FBOMData::FromArray(FBOMArray(HypDataPlaceholderSerializedType<T>::Get()));
+
+            return FBOMResult::FBOM_OK;
+        }
+
+        Array<FBOMData> elements;
+        elements.Reserve(size);
+
+        uint32 element_index = 0;
+
+        for (const T& value : value)
+        {
+            FBOMData& element = elements.EmplaceBack();
+
+            if (FBOMResult err = HypDataHelper<T>::Serialize(value, element))
+            {
+                return err;
+            }
+        }
+
+        out_data = FBOMData::FromArray(FBOMArray(elements[0].GetType(), std::move(elements)));
+
+        return FBOMResult::FBOM_OK;
+    }
+
+    static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
+    {
+        HYP_SCOPE;
+
+        FBOMArray array { FBOMUnset() };
+
+        if (FBOMResult err = data.ReadArray(context, array))
+        {
+            return err;
+        }
+
+        const SizeType size = array.Size();
+
+        LinkedList<T> result;
+
+        for (SizeType i = 0; i < size; i++)
+        {
+            HypData element;
+
+            if (FBOMResult err = HypDataHelper<T>::Deserialize(context, array.GetElement(i), element))
+            {
+                return err;
+            }
+
+            result.PushBack(std::move(element.Get<T>()));
+        }
+
+        HypDataHelper<LinkedList<T>> {}.Set(out, std::move(result));
+
+        return { FBOMResult::FBOM_OK };
+    }
+};
+
 // fwd decl for math types
 namespace math {
 template <class T>

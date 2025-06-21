@@ -146,6 +146,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
+HYP_DISABLE_OPTIMIZATION;
 static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, RenderCamera* render_camera, RenderView* render_view, const RenderableAttributeSet& attributes, Bucket bucket)
 {
     HYP_SCOPE;
@@ -179,12 +180,8 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
         // Create RenderGroup
         render_group = CreateObject<RenderGroup>(shader, attributes, render_group_flags);
 
-        FramebufferRef framebuffer;
-
-        if (render_camera != nullptr)
-        {
-            framebuffer = render_camera->GetFramebuffer();
-        }
+        AssertThrow(render_view->GetView() != nullptr);
+        FramebufferRef framebuffer = render_view->GetView()->GetOutputTarget();
 
         if (framebuffer != nullptr)
         {
@@ -192,9 +189,13 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
         }
         else
         {
-            AssertThrow(render_view != nullptr);
-            AssertThrowMsg(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER,
-                "No framebuffer set for RenderView and GBuffer is not enabled!");
+            AssertDebug(render_view != nullptr);
+            if (!(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER))
+            {
+                HYP_FAIL(
+                    "No framebuffer set for RenderView and GBuffer is not enabled for View with ID: %u",
+                    render_view->GetView()->GetID().Value());
+            }
 
             GBuffer* gbuffer = render_view->GetGBuffer();
             AssertThrow(gbuffer != nullptr);
@@ -213,6 +214,7 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
 
     render_group->AddRenderProxy(&iter->second);
 }
+HYP_ENABLE_OPTIMIZATION;
 
 static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
 {
@@ -254,6 +256,13 @@ RenderView::~RenderView()
 void RenderView::Initialize_Internal()
 {
     HYP_SCOPE;
+
+    if (m_view)
+    {
+        AssertThrow(m_view->GetCamera().IsValid());
+
+        m_render_camera = TResourceHandle<RenderCamera>(m_view->GetCamera()->GetRenderResource());
+    }
 
     // Reclaim any claimed resources that were unclaimed in Destroy_Internal
     EntityDrawCollection* collection = m_render_collector.GetDrawCollection();
@@ -362,6 +371,8 @@ void RenderView::Destroy_Internal()
 
         SafeRelease(std::move(m_final_pass_descriptor_set));
     }
+
+    m_render_camera.Reset();
 }
 
 void RenderView::Update_Internal()
@@ -731,50 +742,6 @@ void RenderView::SetPriority(int priority)
             m_priority = priority;
         });
 }
-
-void RenderView::AddScene(const TResourceHandle<RenderScene>& render_scene)
-{
-    HYP_SCOPE;
-
-    if (!render_scene)
-    {
-        return;
-    }
-
-    Execute([this, render_scene = render_scene]()
-        {
-            if (m_render_scenes.Contains(render_scene))
-            {
-                return; // already added
-            }
-
-            m_render_scenes.PushBack(render_scene);
-        });
-}
-
-void RenderView::RemoveScene(RenderScene* render_scene)
-{
-    HYP_SCOPE;
-
-    if (!render_scene)
-    {
-        return;
-    }
-
-    Execute([this, render_scene]()
-        {
-            auto it = m_render_scenes.FindIf([render_scene](const TResourceHandle<RenderScene>& item)
-                {
-                    return item.Get() == render_scene;
-                });
-
-            if (it != m_render_scenes.End())
-            {
-                m_render_scenes.Erase(it);
-            }
-        });
-}
-
 typename RenderProxyTracker::Diff RenderView::UpdateTrackedRenderProxies(const RenderProxyTracker& render_proxy_tracker)
 {
     HYP_SCOPE;
@@ -1327,7 +1294,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     EngineRenderStatsCounts counts {};
     counts[ERS_VIEWS] = 1;
-    counts[ERS_SCENES] = m_render_scenes.Size();
+    // counts[ERS_SCENES] = m_render_scenes.Size();
     counts[ERS_LIGHTS] = m_tracked_lights.GetCurrentBits().Count();
     counts[ERS_LIGHTMAP_VOLUMES] = m_tracked_lightmap_volumes.GetCurrentBits().Count();
     counts[ERS_ENV_GRIDS] = m_tracked_env_grids.GetCurrentBits().Count();

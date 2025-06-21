@@ -3018,7 +3018,7 @@ Handle<UIObject> UIObject::CreateUIObject(const HypClass* hyp_class, Name name, 
         return Handle<UIObject>::empty;
     }
 
-    AssertThrowMsg(hyp_class->HasParent(UIObject::Class()), "Cannot spawn instance of class that is not a subclass of UIObject");
+    AssertThrowMsg(hyp_class->IsDerivedFrom(UIObject::Class()), "Cannot spawn instance of class that is not a subclass of UIObject");
 
     AssertOnOwnerThread();
 

@@ -18,57 +18,30 @@
 namespace hyperion {
 
 /// reference: https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/bvh.html
-class BVHNode
+
+HYP_STRUCT()
+struct BVHNode
 {
-public:
-    BVHNode()
-        : m_aabb(BoundingBox::Empty()),
-          m_is_leaf_node(false)
-    {
-    }
+    HYP_FIELD(Serialize)
+    BoundingBox aabb;
 
-    BVHNode(const BoundingBox& aabb)
-        : m_aabb(aabb),
-          m_is_leaf_node(true)
-    {
-    }
+    HYP_FIELD(Serialize)
+    LinkedList<BVHNode> children;
 
-    BVHNode(const BVHNode& other) = delete;
-    BVHNode& operator=(const BVHNode& other) = delete;
+    HYP_FIELD(Serialize)
+    Array<Triangle, DynamicAllocator> triangles;
 
-    BVHNode(BVHNode&& other) noexcept = default;
-    BVHNode& operator=(BVHNode&& other) noexcept = default;
-
-    ~BVHNode() = default;
+    HYP_FIELD(Serialize)
+    bool is_leaf_node = false;
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return m_aabb.IsValid() && m_aabb.IsFinite();
-    }
-
-    HYP_FORCE_INLINE const BoundingBox& GetAABB() const
-    {
-        return m_aabb;
-    }
-
-    HYP_FORCE_INLINE const LinkedList<BVHNode>& GetChildren() const
-    {
-        return m_children;
-    }
-
-    HYP_FORCE_INLINE const Array<Triangle>& GetTriangles() const
-    {
-        return m_triangles;
+        return aabb.IsValid() && aabb.IsFinite();
     }
 
     HYP_FORCE_INLINE void AddTriangle(const Triangle& triangle)
     {
-        m_triangles.PushBack(triangle);
-    }
-
-    HYP_FORCE_INLINE bool IsLeafNode() const
-    {
-        return m_is_leaf_node;
+        triangles.PushBack(triangle);
     }
 
     void Split(int max_depth = 3)
@@ -80,20 +53,20 @@ public:
     {
         RayTestResults results;
 
-        if (ray.TestAABB(m_aabb))
+        if (ray.TestAABB(aabb))
         {
-            if (IsLeafNode())
+            if (is_leaf_node)
             {
-                for (SizeType triangle_index = 0; triangle_index < m_triangles.Size(); triangle_index++)
+                for (SizeType triangle_index = 0; triangle_index < triangles.Size(); triangle_index++)
                 {
-                    const Triangle& triangle = m_triangles[triangle_index];
+                    const Triangle& triangle = triangles[triangle_index];
 
                     ray.TestTriangle(triangle, triangle_index, this, results);
                 }
             }
             else
             {
-                for (const BVHNode& node : m_children)
+                for (const BVHNode& node : children)
                 {
                     results.Merge(node.TestRay(ray));
                 }
@@ -106,17 +79,17 @@ public:
 private:
     void Split_Internal(int depth, int max_depth)
     {
-        if (m_is_leaf_node)
+        if (is_leaf_node)
         {
-            if (m_triangles.Any())
+            if (triangles.Any())
             {
                 if (depth < max_depth)
                 {
-                    const Vec3f center = m_aabb.GetCenter();
-                    const Vec3f extent = m_aabb.GetExtent();
+                    const Vec3f center = aabb.GetCenter();
+                    const Vec3f extent = aabb.GetExtent();
 
-                    const Vec3f& min = m_aabb.GetMin();
-                    const Vec3f& max = m_aabb.GetMax();
+                    const Vec3f& min = aabb.GetMin();
+                    const Vec3f& max = aabb.GetMax();
 
                     for (int i = 0; i < 2; i++)
                     {
@@ -134,39 +107,34 @@ private:
                                     j == 0 ? center.y : max.y,
                                     k == 0 ? center.z : max.z);
 
-                                m_children.EmplaceBack(BoundingBox(new_min, new_max));
+                                children.EmplaceBack(BoundingBox(new_min, new_max));
                             }
                         }
                     }
 
-                    for (const Triangle& triangle : m_triangles)
+                    for (const Triangle& triangle : triangles)
                     {
-                        for (BVHNode& node : m_children)
+                        for (BVHNode& node : children)
                         {
-                            if (node.GetAABB().ContainsTriangle(triangle))
+                            if (node.aabb.ContainsTriangle(triangle))
                             {
-                                node.m_triangles.PushBack(triangle);
+                                node.triangles.PushBack(triangle);
                             }
                         }
                     }
 
-                    m_triangles.Clear();
+                    triangles.Clear();
 
-                    m_is_leaf_node = false;
+                    is_leaf_node = false;
                 }
             }
         }
 
-        for (BVHNode& node : m_children)
+        for (BVHNode& node : children)
         {
             node.Split_Internal(depth + 1, max_depth);
         }
     }
-
-    BoundingBox m_aabb;
-    LinkedList<BVHNode> m_children;
-    Array<Triangle, DynamicAllocator> m_triangles;
-    bool m_is_leaf_node : 1;
 };
 
 } // namespace hyperion

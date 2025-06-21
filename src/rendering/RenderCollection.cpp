@@ -471,8 +471,8 @@ void RenderCollector::ExecuteDrawCalls(
     AssertDebug(render_setup.IsValid());
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
 
-    const FramebufferRef& framebuffer = render_setup.view->GetCamera()->GetFramebuffer();
-    AssertDebugMsg(framebuffer, "Camera has no Framebuffer attached");
+    const FramebufferRef& framebuffer = render_setup.view->GetView()->GetOutputTarget();
+    AssertDebugMsg(framebuffer, "View has no Framebuffer attached");
 
     ExecuteDrawCalls(frame, render_setup, framebuffer, bucket_bits, push_constant);
 }

@@ -509,7 +509,7 @@ public:
 
         if (!ptr)
         {
-            HYP_FAIL("Dereferenced null resource handle");
+            HYP_FAIL("Dereferenced null resource handle (Type: %s)", TypeName<ResourceType>().Data());
         }
 
         return *ptr;

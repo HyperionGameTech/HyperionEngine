@@ -84,20 +84,6 @@ public:
 
     void SetBufferData(const EnvProbeShaderData& buffer_data);
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
-    {
-        return m_render_camera;
-    }
-
-    void SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera);
-
-    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetSceneRenderResourceHandle() const
-    {
-        return m_render_scene;
-    }
-
-    void SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene);
-
     HYP_FORCE_INLINE const TResourceHandle<RenderView>& GetViewRenderResourceHandle() const
     {
         return m_render_view;
@@ -115,11 +101,6 @@ public:
     HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
     {
         return m_prefiltered_env_map;
-    }
-
-    HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
-    {
-        return m_framebuffer;
     }
 
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
@@ -145,7 +126,6 @@ protected:
 
 private:
     void CreateShader();
-    void CreateFramebuffer();
 
     void UpdateBufferData();
 
@@ -163,15 +143,12 @@ private:
 
     Vec4i m_position_in_grid;
 
-    FramebufferRef m_framebuffer;
     ShaderRef m_shader;
 
     Handle<Texture> m_prefiltered_env_map;
 
     EnvProbeSphericalHarmonics m_spherical_harmonics;
 
-    TResourceHandle<RenderCamera> m_render_camera;
-    TResourceHandle<RenderScene> m_render_scene;
     TResourceHandle<RenderView> m_render_view;
     TResourceHandle<RenderShadowMap> m_shadow_map;
 };

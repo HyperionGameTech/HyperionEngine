@@ -6,6 +6,7 @@
 #include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <core/object/HypData.hpp>
+#include <core/object/HypClass.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -98,6 +99,8 @@ public:
         default:
             return { FBOMResult::FBOM_ERR, "Unsupported node type" };
         }
+
+        HYP_LOG(Serialization, Debug, "Deserializing Node of type: {}", node->InstanceClass()->GetName());
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, node->InstanceClass(), AnyRef(*node)))
         {

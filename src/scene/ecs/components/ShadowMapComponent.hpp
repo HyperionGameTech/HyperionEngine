@@ -22,7 +22,6 @@ namespace hyperion {
 class Subsystem;
 
 HYP_STRUCT(Component, Label = "Shadow Map Component", Description = "Controls shadow map rendering for a light source.", Editor = true, Size = 32)
-
 struct ShadowMapComponent
 {
     HYP_FIELD(Property = "Mode", Serialize = true, Editor = true)

@@ -20,7 +20,6 @@
 #include <scene/ecs/systems/SkySystem.hpp>
 #include <scene/ecs/systems/AudioSystem.hpp>
 #include <scene/ecs/systems/BLASUpdaterSystem.hpp>
-#include <scene/ecs/systems/BVHUpdaterSystem.hpp>
 #include <scene/ecs/systems/PhysicsSystem.hpp>
 #include <scene/ecs/systems/ScriptSystem.hpp>
 #include <scene/ecs/systems/ScenePrimaryCameraSystem.hpp>
@@ -238,7 +237,6 @@ void Scene::Init()
     AddSystemIfApplicable<SkySystem>();
     AddSystemIfApplicable<AudioSystem>();
     AddSystemIfApplicable<BLASUpdaterSystem>();
-    AddSystemIfApplicable<BVHUpdaterSystem>();
     AddSystemIfApplicable<PhysicsSystem>();
     AddSystemIfApplicable<ScriptSystem>();
 

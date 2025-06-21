@@ -152,13 +152,21 @@ public:
      */
     virtual bool HasComponent(ComponentID id) const = 0;
 
-    /*! \brief Adds a component to the component container, using type erasure.
+    /*! \brief Adds a component to the component container, using HypData to store the component data generically.
      *
-     *  \param ref A type-erased reference to an object of type Component.
+     *  \param component_data The HypData containing the component data to add.
      *
      *  \return The ID of the added component.
      */
-    virtual ComponentID AddComponent(AnyRef ref) = 0;
+    virtual ComponentID AddComponent(const HypData& component_data) = 0;
+
+    /*! \brief Adds a component to the component container, using HypData to store the component data generically.
+     *
+     *  \param component_data The HypData containing the component data to add.
+     *
+     *  \return The ID of the added component.
+     */
+    virtual ComponentID AddComponent(HypData&& component_data) = 0;
 
     /*! \brief Removes the component with the given ID from the component container.
      *
@@ -317,6 +325,17 @@ public:
         return m_components.At(id);
     }
 
+    HYP_FORCE_INLINE Pair<ComponentID, Component&> AddComponent(const Component& component)
+    {
+        HYP_MT_CHECK_RW(m_data_race_detector);
+
+        ComponentID id = ++m_component_id_counter;
+
+        auto insert_result = m_components.Set(id, component);
+
+        return Pair<ComponentID, Component&> { id, insert_result.first->second };
+    }
+
     HYP_FORCE_INLINE Pair<ComponentID, Component&> AddComponent(Component&& component)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
@@ -328,11 +347,20 @@ public:
         return Pair<ComponentID, Component&> { id, insert_result.first->second };
     }
 
-    virtual ComponentID AddComponent(AnyRef ref) override
+    virtual ComponentID AddComponent(const HypData& component_data) override
     {
-        AssertThrowMsg(ref.Is<Component>(), "Component is not of the correct type");
+        AssertThrowMsg(component_data.IsValid(), "Cannot add an invalid component");
+        AssertThrowMsg(component_data.Is<Component>(), "Component data is not of the correct type");
 
-        return AddComponent(std::move(ref.Get<Component>())).first;
+        return AddComponent(component_data.Get<Component>()).first;
+    }
+
+    virtual ComponentID AddComponent(HypData&& component_data) override
+    {
+        AssertThrowMsg(component_data.IsValid(), "Cannot add an invalid component");
+        AssertThrowMsg(component_data.Is<Component>(), "Component is not of the correct type");
+
+        return AddComponent(std::move(component_data.Get<Component>())).first;
     }
 
     virtual bool RemoveComponent(ComponentID id) override

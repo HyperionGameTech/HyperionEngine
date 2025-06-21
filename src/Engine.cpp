@@ -426,7 +426,6 @@ HYP_API void Engine::RenderNextFrame()
     HYP_PROFILE_BEGIN;
 
 #ifdef HYP_ENABLE_RENDER_STATS
-    // @TODO Refactor to use double buffering
     m_render_stats_calculator.Advance(m_render_stats);
     OnRenderStatsUpdated(m_render_stats);
 #endif

@@ -71,20 +71,6 @@ public:
 
     void SetProbeIndices(Array<uint32>&& indices);
 
-    HYP_FORCE_INLINE const TResourceHandle<RenderCamera>& GetCameraRenderResourceHandle() const
-    {
-        return m_render_camera;
-    }
-
-    void SetCameraResourceHandle(TResourceHandle<RenderCamera>&& render_camera);
-
-    HYP_FORCE_INLINE const TResourceHandle<RenderScene>& GetSceneRenderResourceHandle() const
-    {
-        return m_render_scene;
-    }
-
-    void SetSceneResourceHandle(TResourceHandle<RenderScene>&& render_scene);
-
     HYP_FORCE_INLINE const TResourceHandle<RenderView>& GetViewRenderResourceHandle() const
     {
         return m_render_view;

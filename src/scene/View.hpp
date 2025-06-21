@@ -56,10 +56,27 @@ enum class ViewFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
+struct ViewOutputTargetAttachmentDesc
+{
+    InternalFormat format = InternalFormat::RGBA8;
+    ImageType image_type = ImageType::TEXTURE_TYPE_2D;
+    renderer::LoadOperation load_op = renderer::LoadOperation::LOAD;
+    renderer::StoreOperation store_op = renderer::StoreOperation::STORE;
+    Vec4f clear_color = Vec4f::Zero();
+};
+
+struct ViewOutputTargetDesc
+{
+    Vec2u extent = Vec2u::One();
+    Array<ViewOutputTargetAttachmentDesc> attachments;
+    uint32 num_views = 1;
+};
+
 struct ViewDesc
 {
     EnumFlags<ViewFlags> flags = ViewFlags::DEFAULT;
     Viewport viewport;
+    ViewOutputTargetDesc output_target_desc;
     Array<Handle<Scene>> scenes;
     Handle<Camera> camera;
     int priority = 0;
@@ -112,6 +129,11 @@ public:
         return m_camera;
     }
 
+    HYP_FORCE_INLINE const FramebufferRef& GetOutputTarget() const
+    {
+        return m_output_target;
+    }
+
     HYP_FORCE_INLINE const Viewport& GetViewport() const
     {
         return m_viewport;
@@ -160,6 +182,7 @@ protected:
 
     Array<Handle<Scene>> m_scenes;
     Handle<Camera> m_camera;
+    FramebufferRef m_output_target;
 
     int m_priority;
 

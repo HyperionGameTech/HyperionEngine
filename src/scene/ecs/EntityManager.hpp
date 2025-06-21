@@ -384,7 +384,10 @@ public:
 
     /*! \brief Adds an existing entity to the EntityManager. */
     HYP_METHOD()
-    void AddExistingEntity(const Handle<Entity>& entity);
+    HYP_FORCE_INLINE void AddExistingEntity(const Handle<Entity>& entity)
+    {
+        AddExistingEntity_Internal(entity);
+    }
 
     /*! \brief Moves an entity from one EntityManager to another.
      *  This is useful for moving entities between scenes.
@@ -445,7 +448,7 @@ public:
         return RemoveComponent<EntityTagComponent<Tag>>(entity);
     }
 
-    HYP_FORCE_INLINE Array<EntityTag> GetTags(const Entity* entity) const
+    HYP_FORCE_INLINE Array<EntityTag> GetSavableTags(const Entity* entity) const
     {
         Array<EntityTag> tags;
         GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::DESCRIPTOR_MAX) - 2>(), tags);
@@ -453,7 +456,7 @@ public:
         return tags;
     }
 
-    HYP_FORCE_INLINE uint32 GetTagsMask(const Entity* entity) const
+    HYP_FORCE_INLINE uint32 GetSavableTagsMask(const Entity* entity) const
     {
         uint32 mask = 0;
         GetTagsHelper(entity, std::make_integer_sequence<uint32, uint32(EntityTag::DESCRIPTOR_MAX) - 2>(), mask);
@@ -667,7 +670,9 @@ public:
         return it->second.components;
     }
 
-    void AddComponent(Entity* entity, AnyRef component);
+    void AddComponent(Entity* entity, const HypData& component_data);
+    void AddComponent(Entity* entity, HypData&& component_data);
+
     bool RemoveComponent(TypeID component_type_id, Entity* entity);
 
     template <class Component, class U = Component>
@@ -717,6 +722,9 @@ public:
         component_ptr = &component_insert_result.second;
         component_ids = entity_data->components;
 
+        // Note: Call OnComponentAdded on the entity before notifying systems, as systems may remove the component
+        entity->OnComponentAdded(component_ptr);
+
         // Notify systems that entity is being added to them
         NotifySystemsOfEntityAdded(entity_handle, component_ids);
 
@@ -759,29 +767,36 @@ public:
         // Notify systems that entity is being removed from them
         removed_component_ids.Set(component_type_id, component_id);
 
-        if (!GetContainer<Component>().RemoveComponent(component_id))
+        HypData component_hyp_data;
+
+        if (!GetContainer<Component>().RemoveComponent(component_id, component_hyp_data))
         {
             return false;
         }
 
         entity_data->components.Erase(component_it);
 
-        // Lock the entity sets mutex
-        Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
-
-        auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
-
-        if (component_entity_sets_it != m_component_entity_sets.End())
         {
-            for (TypeID entity_set_type_id : component_entity_sets_it->second)
-            {
-                EntitySetBase& entity_set = *m_entity_sets.At(entity_set_type_id);
+            // Lock the entity sets mutex
+            Mutex::Guard entity_sets_guard(m_entity_sets_mutex);
 
-                entity_set.OnEntityUpdated(entity_handle);
+            auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
+
+            if (component_entity_sets_it != m_component_entity_sets.End())
+            {
+                for (TypeID entity_set_type_id : component_entity_sets_it->second)
+                {
+                    EntitySetBase& entity_set = *m_entity_sets.At(entity_set_type_id);
+
+                    entity_set.OnEntityUpdated(entity_handle);
+                }
             }
         }
 
         NotifySystemsOfEntityRemoved(entity, removed_component_ids);
+
+        entity->OnComponentRemoved(component_hyp_data.ToRef());
+        component_hyp_data.Reset();
 
         return true;
     }
@@ -947,6 +962,8 @@ private:
     HYP_METHOD()
     Handle<Entity> AddTypedEntity(const HypClass* hyp_class);
 
+    void AddExistingEntity_Internal(const Handle<Entity>& entity);
+
     template <class Component>
     static void EnsureValidComponentType()
     {
@@ -958,7 +975,7 @@ private:
     static void EnsureValidComponentType(TypeID component_type_id)
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type");
+        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type: TypeID(%u)", component_type_id.Value());
 #endif
     }
 

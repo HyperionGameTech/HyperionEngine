@@ -3,12 +3,14 @@
 #include <scene/Octree.hpp>
 #include <scene/Entity.hpp>
 #include <scene/Node.hpp>
+#include <scene/Mesh.hpp>
+#include <scene/BVH.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/BVHComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/NodeLinkComponent.hpp>
+#include <scene/ecs/components/MeshComponent.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -253,9 +255,7 @@ void Octree::RebuildEntriesHash(uint32 level)
 
         if (m_entity_manager)
         {
-            // @FIXME: Having issue here where entity is no longer part of this entitymanager.
-            // Must be getting moved to a different one.
-            tags = m_entity_manager->GetTags(entry.value);
+            tags = m_entity_manager->GetSavableTags(entry.value);
         }
 
         for (uint32 i = 0; i < uint32(tags.Size()); i++)
@@ -325,7 +325,8 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
                     }
 
                     // If the entity has a BVH associated with it, use that instead of the AABB for more accuracy
-                    if (BVHComponent* bvh_component = m_entity_manager->TryGetComponent<BVHComponent>(entry.value))
+                    if (MeshComponent* mesh_component = m_entity_manager->TryGetComponent<MeshComponent>(entry.value);
+                        mesh_component && mesh_component->mesh && mesh_component->mesh->GetBVH().IsValid())
                     {
                         Matrix4 model_matrix = Matrix4::Identity();
                         Matrix4 normal_matrix = Matrix4::Identity();
@@ -340,7 +341,7 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
                             local_space_ray = model_matrix.Inverted() * ray;
                         }
 
-                        RayTestResults local_bvh_results = bvh_component->bvh.TestRay(local_space_ray);
+                        RayTestResults local_bvh_results = mesh_component->mesh->GetBVH().TestRay(local_space_ray);
 
                         if (local_bvh_results.Any())
                         {

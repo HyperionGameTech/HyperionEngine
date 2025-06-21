@@ -8,6 +8,8 @@
 
 #include <core/containers/Array.hpp>
 
+#include <core/memory/AnyRef.hpp>
+
 #include <core/object/HypObject.hpp>
 
 namespace hyperion {
@@ -21,6 +23,7 @@ struct EntityInitInfo
 {
     bool receives_update : 1 = false;
     bool can_ever_update : 1 = true;
+    uint8 bvh_depth : 3 = 3; // 0 means no BVH, 1 means 1 level deep, etc.
 };
 
 HYP_CLASS()
@@ -77,6 +80,9 @@ protected:
 
     virtual void OnAddedToScene(Scene* scene);
     virtual void OnRemovedFromScene(Scene* scene);
+
+    virtual void OnComponentAdded(AnyRef component);
+    virtual void OnComponentRemoved(AnyRef component);
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);

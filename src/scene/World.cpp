@@ -386,7 +386,7 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
     subsystem->SetWorld(this);
 
     const auto it = m_subsystems.Find(type_id);
-    AssertThrowMsg(it == m_subsystems.End(), "Subsystem already exists in World");
+    AssertThrowMsg(it == m_subsystems.End(), "Subsystem of type %s already exists in World", *subsystem->InstanceClass()->GetName());
 
     auto insert_result = m_subsystems.Set(type_id, subsystem);
 

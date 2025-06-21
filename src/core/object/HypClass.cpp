@@ -228,6 +228,8 @@ HypClass::HypClass(TypeID type_id, Name name, int static_index, uint32 num_desce
       m_parent(nullptr),
       m_attributes(attributes),
       m_flags(flags),
+      m_size(0),
+      m_alignment(0),
       m_serialization_mode(HypClassSerializationMode::DEFAULT)
 {
     if (bool(m_attributes["abstract"]))
@@ -649,18 +651,23 @@ bool HypClass::GetManagedObjectFromObjectInitializer(const IHypObjectInitializer
     return true;
 }
 
-bool HypClass::HasParent(const HypClass* parent_hyp_class) const
+bool HypClass::IsDerivedFrom(const HypClass* other) const
 {
-    if (!parent_hyp_class)
+    if (other == nullptr)
     {
         return false;
+    }
+
+    if (this == other)
+    {
+        return true;
     }
 
     const HypClass* current = this;
 
     while (current != nullptr)
     {
-        if (current->m_parent == parent_hyp_class)
+        if (current->m_parent == other)
         {
             return true;
         }

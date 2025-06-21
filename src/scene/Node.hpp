@@ -50,8 +50,6 @@ enum NodeFlags : uint32
 
     EXCLUDE_FROM_PARENT_AABB = 0x8,
 
-    BUILD_BVH = 0x10, // Should this Node ensure a BVHComponent is added to its Entity?
-
     TRANSIENT = 0x100, // Set if the node should not be serialized
 
     HIDE_IN_SCENE_OUTLINE = 0x1000 // Should this node be hidden in the editor's outline window?
@@ -687,8 +685,6 @@ protected:
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
     void RefreshEntityTransform();
-
-    void EnsureEntityHasBVHComponent();
 
     void OnNestedNodeAdded(Node* node, bool direct);
     void OnNestedNodeRemoved(Node* node, bool direct);

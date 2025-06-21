@@ -2,6 +2,7 @@
 
 #include <core/serialization/fbom/FBOM.hpp>
 #include <core/serialization/fbom/FBOMArray.hpp>
+#include <core/serialization/fbom/marshals/HypClassInstanceMarshal.hpp>
 
 #include <core/threading/Threads.hpp>
 
@@ -24,23 +25,27 @@
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/ComponentInterface.hpp>
 
+// temp
+#include <scene/ecs/components/MeshComponent.hpp>
+
 #include <Engine.hpp>
 
 namespace hyperion::serialization {
 
 template <>
-class FBOMMarshaler<Entity> : public FBOMObjectMarshalerBase<Entity>
+class FBOMMarshaler<Entity> : public HypClassInstanceMarshal
 {
 public:
     virtual ~FBOMMarshaler() override = default;
 
-    virtual FBOMResult Serialize(const Entity& entity, FBOMObject& out) const override
+    virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        // out.SetProperty("IsValid", entity.IsValid());
+        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        {
+            return err;
+        }
 
-        // if (!entity.IsValid()) {
-        //     return { FBOMResult::FBOM_OK };
-        // }
+        const Entity& entity = in.Get<Entity>();
 
         EntityManager* entity_manager = entity.GetEntityManager();
 
@@ -152,22 +157,35 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        // bool is_valid = false;
+        const HypClass* hyp_class = in.GetHypClass();
+        AssertThrow(hyp_class);
 
-        // if (FBOMResult err = in.GetProperty("IsValid").ReadBool(&is_valid)) {
-        //     return err;
-        // }
+        if (!hyp_class->IsDerivedFrom(Entity::Class()))
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, serialized data with type '{}' (HypClass: {}, TypeID: {}) is not a subclass of Entity", in.GetType().name, hyp_class->GetName(), in.GetType().GetNativeTypeID().Value()) };
+        }
 
-        // if (!is_valid) {
-        //     out = HypData(Handle<Entity>::empty);
+        if (!hyp_class->CreateInstance(out))
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, HypClass '{}' instance creation failed", hyp_class->GetName()) };
+        }
 
-        //     return FBOMResult::FBOM_OK;
-        // }
+        const Handle<Entity>& entity = out.Get<Handle<Entity>>();
+
+        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, in.GetHypClass(), entity.ToRef()))
+        {
+            return err;
+        }
+
+        HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with ID: {}",
+            entity->InstanceClass()->GetName(),
+            entity->GetID());
+
+        // Read components
 
         const Handle<Scene>& detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(ThreadID::Current());
         const Handle<EntityManager>& entity_manager = detached_scene->GetEntityManager();
-
-        Handle<Entity> entity = entity_manager->AddEntity();
+        entity_manager->AddExistingEntity(entity);
 
         for (const FBOMObject& child : in.GetChildren())
         {
@@ -255,7 +273,22 @@ public:
                 continue;
             }
 
-            entity_manager->AddComponent(entity, child.m_deserialized_object->ToRef());
+            HYP_LOG(Serialization, Debug, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with ID: {}",
+                component_interface->GetTypeName(),
+                child_type_id.Value(),
+                child.GetType().name,
+                entity->InstanceClass()->GetName(),
+                entity->GetID());
+
+            // temp
+            if (component_interface->GetTypeName() == "MeshComponent")
+            {
+                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with ID: {}", entity->GetID());
+                MeshComponent& mesh_component = child.m_deserialized_object->Get<MeshComponent>();
+                AssertThrow(mesh_component.mesh.IsValid());
+            }
+
+            entity_manager->AddComponent(entity, *child.m_deserialized_object);
         }
 
         out = HypData(entity);

@@ -46,10 +46,22 @@ namespace Hyperion
 
         private unsafe void AddComponent<T>(Entity entity, HypClass componentHypClass, ref T component) where T : struct, IComponent
         {
-            fixed (void* ptr = &component)
-            {
-                EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, new IntPtr(ptr));
-            }
+            // fixed (void* componentPtr = &component)
+            // {
+            //     HypDataBuffer hypDataBuffer = new HypDataBuffer();
+            //     hypDataBuffer.SetValue((IntPtr)componentPtr);
+
+            //     EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, &hypDataBuffer);
+
+            //     hypDataBuffer.Dispose();
+            // }
+
+            HypDataBuffer hypDataBuffer = new HypDataBuffer();
+            hypDataBuffer.SetValue(component);
+
+            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, &hypDataBuffer);
+
+            hypDataBuffer.Dispose();
         }
 
         public ref T GetComponent<T>(Entity entity) where T : struct, IComponent
@@ -77,6 +89,6 @@ namespace Hyperion
         private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IntPtr entityAddress);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
-        private static extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, IntPtr componentPtr);
+        private static unsafe extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, HypDataBuffer* componentHypDataPtr);
     }
 }

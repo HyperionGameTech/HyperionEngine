@@ -19,9 +19,11 @@ class DynamicHypStructInstance final : public HypStruct
 public:
     DynamicHypStructInstance(TypeID type_id, Name name, uint32 size, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members, DynamicHypStructInstance_DestructFunction destruct_function)
         : HypStruct(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members),
-          m_size(size),
           m_destruct_function(destruct_function)
     {
+        m_size = size;
+        m_alignment = alignof(void*);
+
         // @TODO Register the ManagedClass (dotnet::Class) for this. We need the assembly.
         HypClassRegistry::GetInstance().RegisterClass(type_id, this);
     }
@@ -29,17 +31,6 @@ public:
     virtual ~DynamicHypStructInstance() override
     {
         HypClassRegistry::GetInstance().UnregisterClass(this);
-    }
-
-    virtual SizeType GetSize() const override
-    {
-        return m_size;
-    }
-
-    virtual SizeType GetAlignment() const override
-    {
-        // @TODO: Implement .NET struct alignment
-        return alignof(void*);
     }
 
     virtual bool GetManagedObject(const void* object_ptr, dotnet::ObjectReference& out_object_reference) const override
@@ -104,7 +95,6 @@ protected:
         HYP_NOT_IMPLEMENTED();
     }
 
-    uint32 m_size;
     DynamicHypStructInstance_DestructFunction m_destruct_function;
 };
 

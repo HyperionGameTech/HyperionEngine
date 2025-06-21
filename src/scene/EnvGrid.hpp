@@ -110,7 +110,7 @@ struct EnvProbeCollection
 struct EnvGridOptions
 {
     EnvGridType type = ENV_GRID_TYPE_SH;
-    Vec3u density = Vec3u::Zero();
+    Vec3u density = { 3, 3, 3 };
     EnumFlags<EnvGridFlags> flags = EnvGridFlags::NONE;
 };
 
