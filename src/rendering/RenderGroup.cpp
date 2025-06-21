@@ -50,7 +50,7 @@ using renderer::CommandBufferType;
 RenderGroup::RenderGroup()
     : HypObject(),
       m_flags(RenderGroupFlags::NONE),
-      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(), this)
+      m_draw_call_collection_impl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
 {
 }
 
@@ -62,7 +62,7 @@ RenderGroup::RenderGroup(
       m_flags(flags),
       m_shader(shader),
       m_renderable_attributes(renderable_attributes),
-      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(), this)
+      m_draw_call_collection_impl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
 {
 }
 
@@ -76,7 +76,7 @@ RenderGroup::RenderGroup(
       m_shader(shader),
       m_descriptor_table(descriptor_table),
       m_renderable_attributes(renderable_attributes),
-      m_draw_state(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>(), this)
+      m_draw_call_collection_impl(GetOrCreateDrawCallCollectionImpl<EntityInstanceBatch>())
 {
 }
 
@@ -85,11 +85,6 @@ RenderGroup::~RenderGroup()
     // for (auto &it : m_render_proxies) {
     //     it.second->DecRefs();
     // }
-
-    if (m_indirect_renderer != nullptr)
-    {
-        m_indirect_renderer->Destroy();
-    }
 
     SafeRelease(std::move(m_shader));
     SafeRelease(std::move(m_descriptor_table));
@@ -151,11 +146,6 @@ void RenderGroup::Init()
         {
             HYP_SCOPE;
 
-            if (m_indirect_renderer != nullptr)
-            {
-                m_indirect_renderer->Destroy();
-            }
-
             SafeRelease(std::move(m_shader));
             SafeRelease(std::move(m_descriptor_table));
             SafeRelease(std::move(m_fbos));
@@ -173,21 +163,9 @@ void RenderGroup::Init()
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
 
-    CreateIndirectRenderer();
     CreateGraphicsPipeline();
 
     SetReady(true);
-}
-
-void RenderGroup::CreateIndirectRenderer()
-{
-    HYP_SCOPE;
-
-    if (m_flags & RenderGroupFlags::INDIRECT_RENDERING)
-    {
-        m_indirect_renderer = MakeUnique<IndirectRenderer>(&m_draw_state);
-        m_indirect_renderer->Create();
-    }
 }
 
 void RenderGroup::CreateGraphicsPipeline()
@@ -219,7 +197,7 @@ void RenderGroup::CreateGraphicsPipeline()
         {
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
-                const GPUBufferRef& gpu_buffer = m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
+                const GPUBufferRef& gpu_buffer = m_draw_call_collection_impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
                 AssertThrow(gpu_buffer.IsValid());
 
                 const DescriptorSetRef& instancing_descriptor_set = m_descriptor_table->GetDescriptorSet(NAME("Instancing"), frame_index);
@@ -299,18 +277,21 @@ void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_c
 
     AssertThrowMsg(!IsInitCalled(), "Cannot use SetDrawCallCollectionImpl() after Init() has been called on RenderGroup; graphics pipeline will have been already created");
 
-    m_draw_state = DrawCallCollection(draw_call_collection_impl, this);
+    m_draw_call_collection_impl = draw_call_collection_impl;
 }
 
-void RenderGroup::CollectDrawCalls()
+void RenderGroup::CollectDrawCalls(DrawCallCollection& draw_call_collection)
 {
     HYP_SCOPE;
     // Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+    draw_call_collection.impl = m_draw_call_collection_impl;
+    draw_call_collection.render_group = this;
+
     static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
 
-    DrawCallCollection previous_draw_state = std::move(m_draw_state);
+    DrawCallCollection previous_draw_state = std::move(draw_call_collection);
 
     for (const auto& it : m_render_proxies)
     {
@@ -342,7 +323,7 @@ void RenderGroup::CollectDrawCalls()
         if (!render_proxy->instance_data.enable_auto_instancing
             && render_proxy->instance_data.num_instances == 1)
         {
-            m_draw_state.PushRenderProxy(draw_call_id, *render_proxy);
+            draw_call_collection.PushRenderProxy(draw_call_id, *render_proxy); // NOLINT(bugprone-use-after-move)
 
             continue;
         }
@@ -358,33 +339,13 @@ void RenderGroup::CollectDrawCalls()
             // Reset it
             *batch = EntityInstanceBatch { batch_index };
 
-            m_draw_state.GetImpl()->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
+            draw_call_collection.impl->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
         }
 
-        m_draw_state.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
+        draw_call_collection.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
     }
 
     previous_draw_state.ResetDrawCalls();
-}
-
-void RenderGroup::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup)
-{
-    HYP_SCOPE;
-
-    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
-
-    if (!is_indirect_rendering_enabled)
-    {
-        return;
-    }
-
-    AssertThrow((m_flags & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
-
-    Threads::AssertOnThread(g_render_thread);
-
-    m_indirect_renderer->GetDrawState().ResetDrawState();
-    m_indirect_renderer->PushDrawCallsToIndirectState();
-    m_indirect_renderer->ExecuteCullShaderInBatches(frame, render_setup);
 }
 
 template <class T, class OutArray, typename = std::enable_if_t<std::is_base_of_v<DrawCallBase, T>>>
@@ -426,13 +387,18 @@ static void RenderAll(
     const RenderSetup& render_setup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
-    const DrawCallCollection& draw_state)
+    const DrawCallCollection& draw_call_collection)
 {
     HYP_SCOPE;
 
+    if constexpr (UseIndirectRendering)
+    {
+        AssertDebug(indirect_renderer != nullptr);
+    }
+
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    if (draw_state.GetInstancedDrawCalls().Size() == 0 && draw_state.GetDrawCalls().Size() == 0)
+    if (draw_call_collection.instanced_draw_calls.Empty() && draw_call_collection.draw_calls.Empty())
     {
         // No draw calls to render
         return;
@@ -500,7 +466,7 @@ static void RenderAll(
             material_descriptor_set_index);
     }
 
-    for (const DrawCall& draw_call : draw_state.GetDrawCalls())
+    for (const DrawCall& draw_call : draw_call_collection.draw_calls)
     {
         if (entity_descriptor_set.IsValid())
         {
@@ -549,7 +515,7 @@ static void RenderAll(
         counts[ERS_TRIANGLES] += draw_call.render_mesh->NumIndices() / 3;
     }
 
-    for (const InstancedDrawCall& draw_call : draw_state.GetInstancedDrawCalls())
+    for (const InstancedDrawCall& draw_call : draw_call_collection.instanced_draw_calls)
     {
         EntityInstanceBatch* entity_instance_batch = draw_call.batch;
         AssertDebug(entity_instance_batch != nullptr);
@@ -573,7 +539,7 @@ static void RenderAll(
                 entity_descriptor_set_index);
         }
 
-        const SizeType offset = entity_instance_batch->batch_index * draw_state.GetImpl()->GetBatchSizeOf();
+        const SizeType offset = entity_instance_batch->batch_index * draw_call_collection.impl->GetBatchSizeOf();
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             instancing_descriptor_set,
@@ -621,16 +587,21 @@ static void RenderAll_Parallel(
     const RenderSetup& render_setup,
     const GraphicsPipelineRef& pipeline,
     IndirectRenderer* indirect_renderer,
-    const DrawCallCollection& draw_state,
+    const DrawCallCollection& draw_call_collection,
     ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
+
+    if constexpr (UseIndirectRendering)
+    {
+        AssertDebug(indirect_renderer != nullptr);
+    }
 
     AssertDebug(parallel_rendering_state != nullptr);
 
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
-    if (draw_state.GetInstancedDrawCalls().Size() == 0 && draw_state.GetDrawCalls().Size() == 0)
+    if (draw_call_collection.instanced_draw_calls.Empty() && draw_call_collection.draw_calls.Empty())
     {
         // No draw calls to render
         return;
@@ -692,11 +663,11 @@ static void RenderAll_Parallel(
     }
 
     // Store the proc in the parallel rendering state so that it doesn't get destroyed until we're done with it
-    if (draw_state.GetDrawCalls().Size() != 0)
+    if (draw_call_collection.draw_calls.Any())
     {
-        DivideDrawCalls(draw_state.GetDrawCalls(), parallel_rendering_state->num_batches, parallel_rendering_state->draw_calls);
+        DivideDrawCalls(draw_call_collection.draw_calls.ToSpan(), parallel_rendering_state->num_batches, parallel_rendering_state->draw_calls);
 
-        ProcRef<void(Span<const DrawCall>, uint32, uint32)> proc = parallel_rendering_state->draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const DrawCall> draw_calls, uint32 index, uint32)
+        ProcRef<void(Span<const DrawCall>, uint32, uint32)> proc = parallel_rendering_state->draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_call_collection, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const DrawCall> draw_calls, uint32 index, uint32)
             {
                 if (!draw_calls)
                 {
@@ -765,11 +736,11 @@ static void RenderAll_Parallel(
             std::move(proc));
     }
 
-    if (draw_state.GetInstancedDrawCalls().Size() != 0)
+    if (draw_call_collection.instanced_draw_calls.Any())
     {
-        DivideDrawCalls(draw_state.GetInstancedDrawCalls(), parallel_rendering_state->num_batches, parallel_rendering_state->instanced_draw_calls);
+        DivideDrawCalls(draw_call_collection.instanced_draw_calls.ToSpan(), parallel_rendering_state->num_batches, parallel_rendering_state->instanced_draw_calls);
 
-        ProcRef<void(Span<const InstancedDrawCall>, uint32, uint32)> proc = parallel_rendering_state->instanced_draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_state, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const InstancedDrawCall> draw_calls, uint32 index, uint32)
+        ProcRef<void(Span<const InstancedDrawCall>, uint32, uint32)> proc = parallel_rendering_state->instanced_draw_call_procs.EmplaceBack([frame_index, parallel_rendering_state, &draw_call_collection, &pipeline, indirect_renderer, material_descriptor_set_index](Span<const InstancedDrawCall> draw_calls, uint32 index, uint32)
             {
                 if (!draw_calls)
                 {
@@ -809,7 +780,7 @@ static void RenderAll_Parallel(
                             entity_descriptor_set_index);
                     }
 
-                    const SizeType offset = entity_instance_batch->batch_index * draw_state.GetImpl()->GetBatchSizeOf();
+                    const SizeType offset = entity_instance_batch->batch_index * draw_call_collection.impl->GetBatchSizeOf();
 
                     command_list.Add<BindDescriptorSet>(
                         instancing_descriptor_set,
@@ -857,7 +828,7 @@ static void RenderAll_Parallel(
     }
 }
 
-void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state)
+void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_setup, const DrawCallCollection& draw_call_collection, IndirectRenderer* indirect_renderer, ParallelRenderingState* parallel_rendering_state)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -880,8 +851,8 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 frame,
                 render_setup,
                 m_pipeline,
-                m_indirect_renderer.Get(),
-                m_draw_state,
+                indirect_renderer,
+                draw_call_collection,
                 parallel_rendering_state);
         }
         else
@@ -890,8 +861,8 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 frame,
                 render_setup,
                 m_pipeline,
-                m_indirect_renderer.Get(),
-                m_draw_state);
+                indirect_renderer,
+                draw_call_collection);
         }
     }
     else
@@ -904,8 +875,8 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 frame,
                 render_setup,
                 m_pipeline,
-                m_indirect_renderer.Get(),
-                m_draw_state,
+                indirect_renderer,
+                draw_call_collection,
                 parallel_rendering_state);
         }
         else
@@ -914,8 +885,8 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
                 frame,
                 render_setup,
                 m_pipeline,
-                m_indirect_renderer.Get(),
-                m_draw_state);
+                indirect_renderer,
+                draw_call_collection);
         }
     }
 

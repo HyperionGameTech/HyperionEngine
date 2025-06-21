@@ -20,6 +20,7 @@
 #include <rendering/DrawCall.hpp>
 #include <rendering/RenderProxy.hpp>
 #include <rendering/EngineRenderStats.hpp>
+#include <rendering/IndirectDraw.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -38,6 +39,7 @@ class RenderGroup;
 class RenderCamera;
 class RenderView;
 struct RenderSetup;
+class IndirectRenderer;
 
 using renderer::PushConstantData;
 
@@ -64,6 +66,24 @@ struct ParallelRenderingState
     ParallelRenderingState* next = nullptr;
 };
 
+// Utility struct that maps attribute sets -> draw call collections that have been written to already and had render groups created.
+struct DrawCallCollectionMapping
+{
+    Handle<RenderGroup> render_group;
+    DrawCallCollection draw_call_collection;
+    IndirectRenderer* indirect_renderer = nullptr;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return render_group.IsValid();
+    }
+
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return render_group.IsValid();
+    }
+};
+
 struct HYP_API EntityDrawCollection
 {
     EntityDrawCollection();
@@ -84,7 +104,7 @@ struct HYP_API EntityDrawCollection
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
 
-    FixedArray<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>, Bucket::BUCKET_MAX> proxy_groups;
+    FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, Bucket::BUCKET_MAX> mappings_by_bucket;
     RenderProxyTracker render_proxy_tracker;
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;

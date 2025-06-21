@@ -152,9 +152,10 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
     HYP_SCOPE;
 
     // Add proxy to group
-    Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
+    DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[int32(bucket)][attributes];
+    Handle<RenderGroup>& rg = mapping.render_group;
 
-    if (!render_group.IsValid())
+    if (!rg.IsValid())
     {
         EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
@@ -178,14 +179,24 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
         }
 
         // Create RenderGroup
-        render_group = CreateObject<RenderGroup>(shader, attributes, render_group_flags);
+        rg = CreateObject<RenderGroup>(shader, attributes, render_group_flags);
+
+        if (render_group_flags & RenderGroupFlags::INDIRECT_RENDERING)
+        {
+            AssertDebugMsg(mapping.indirect_renderer == nullptr, "Indirect renderer already exists on mapping");
+
+            mapping.indirect_renderer = new IndirectRenderer();
+            mapping.indirect_renderer->Create(rg->GetDrawCallCollectionImpl());
+
+            mapping.draw_call_collection.impl = rg->GetDrawCallCollectionImpl();
+        }
 
         AssertThrow(render_view->GetView() != nullptr);
         FramebufferRef framebuffer = render_view->GetView()->GetOutputTarget();
 
         if (framebuffer != nullptr)
         {
-            render_group->AddFramebuffer(framebuffer);
+            rg->AddFramebuffer(framebuffer);
         }
         else
         {
@@ -203,16 +214,16 @@ static void AddRenderProxy(EntityDrawCollection* collection, RenderProxyTracker&
             const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
             AssertThrow(bucket_framebuffer != nullptr);
 
-            render_group->AddFramebuffer(bucket_framebuffer);
+            rg->AddFramebuffer(bucket_framebuffer);
         }
 
-        InitObject(render_group);
+        InitObject(rg);
     }
 
     const ID<Entity> entity_id = proxy.entity.GetID();
     auto iter = render_proxy_tracker.Track(entity_id, std::move(proxy));
 
-    render_group->AddRenderProxy(&iter->second);
+    rg->AddRenderProxy(&iter->second);
 }
 HYP_ENABLE_OPTIMIZATION;
 
@@ -220,15 +231,15 @@ static bool RemoveRenderProxy(EntityDrawCollection* collection, RenderProxyTrack
 {
     HYP_SCOPE;
 
-    auto& render_groups_by_attributes = collection->proxy_groups[uint32(bucket)];
+    auto& mappings = collection->mappings_by_bucket[uint32(bucket)];
 
-    auto it = render_groups_by_attributes.Find(attributes);
-    AssertThrow(it != render_groups_by_attributes.End());
+    auto it = mappings.Find(attributes);
+    AssertThrow(it != mappings.End());
 
-    const Handle<RenderGroup>& render_group = it->second;
-    AssertThrow(render_group.IsValid());
+    const DrawCallCollectionMapping& mapping = it->second;
+    AssertThrow(mapping.IsValid());
 
-    const bool removed = render_group->RemoveRenderProxy(entity);
+    const bool removed = mapping.render_group->RemoveRenderProxy(entity);
 
     render_proxy_tracker.MarkToRemove(entity);
 

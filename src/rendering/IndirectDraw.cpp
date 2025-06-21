@@ -219,6 +219,9 @@ IndirectDrawState::IndirectDrawState()
 
 IndirectDrawState::~IndirectDrawState()
 {
+    SafeRelease(std::move(m_indirect_buffers));
+    SafeRelease(std::move(m_instance_buffers));
+    SafeRelease(std::move(m_staging_buffers));
 }
 
 void IndirectDrawState::Create()
@@ -228,13 +231,6 @@ void IndirectDrawState::Create()
         m_indirect_buffers,
         m_instance_buffers,
         m_staging_buffers);
-}
-
-void IndirectDrawState::Destroy()
-{
-    SafeRelease(std::move(m_indirect_buffers));
-    SafeRelease(std::move(m_instance_buffers));
-    SafeRelease(std::move(m_staging_buffers));
 }
 
 void IndirectDrawState::PushDrawCall(const DrawCall& draw_call, DrawCommandData& out)
@@ -362,16 +358,17 @@ void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* out_was_resized
 
 #pragma region IndirectRenderer
 
-IndirectRenderer::IndirectRenderer(DrawCallCollection* draw_call_collection)
-    : m_draw_call_collection(draw_call_collection),
-      m_cached_cull_data_updated_bits(0x0)
+IndirectRenderer::IndirectRenderer()
+    : m_cached_cull_data_updated_bits(0x0)
 {
-    AssertThrow(m_draw_call_collection != nullptr);
 }
 
-IndirectRenderer::~IndirectRenderer() = default;
+IndirectRenderer::~IndirectRenderer()
+{
+    SafeRelease(std::move(m_object_visibility));
+}
 
-void IndirectRenderer::Create()
+void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
 {
     m_indirect_draw_state.Create();
 
@@ -382,11 +379,10 @@ void IndirectRenderer::Create()
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
-    AssertThrow(m_draw_call_collection != nullptr);
-    AssertThrow(m_draw_call_collection->GetImpl() != nullptr);
+    AssertThrow(impl != nullptr);
 
-    GPUBufferHolderBase* entity_instance_batches = m_draw_call_collection->GetImpl()->GetEntityInstanceBatchHolder();
-    const SizeType batch_sizeof = m_draw_call_collection->GetImpl()->GetBatchSizeOf();
+    GPUBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
+    const SizeType batch_sizeof = impl->GetBatchSizeOf();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -422,19 +418,12 @@ void IndirectRenderer::Create()
     DeferCreate(m_object_visibility);
 }
 
-void IndirectRenderer::Destroy()
-{
-    SafeRelease(std::move(m_object_visibility));
-
-    m_indirect_draw_state.Destroy();
-}
-
-void IndirectRenderer::PushDrawCallsToIndirectState()
+void IndirectRenderer::PushDrawCallsToIndirectState(DrawCallCollection& draw_call_collection)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    for (DrawCall& draw_call : m_draw_call_collection->GetDrawCalls())
+    for (DrawCall& draw_call : draw_call_collection.draw_calls)
     {
         DrawCommandData draw_command_data;
         m_indirect_draw_state.PushDrawCall(draw_call, draw_command_data);
@@ -442,7 +431,7 @@ void IndirectRenderer::PushDrawCallsToIndirectState()
         draw_call.draw_command_index = draw_command_data.draw_command_index;
     }
 
-    for (InstancedDrawCall& draw_call : m_draw_call_collection->GetInstancedDrawCalls())
+    for (InstancedDrawCall& draw_call : draw_call_collection.instanced_draw_calls)
     {
         DrawCommandData draw_command_data;
         m_indirect_draw_state.PushInstancedDrawCall(draw_call, draw_command_data);

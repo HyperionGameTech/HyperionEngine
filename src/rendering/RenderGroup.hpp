@@ -98,11 +98,6 @@ public:
         return m_fbos;
     }
 
-    HYP_FORCE_INLINE const DrawCallCollection& GetDrawState() const
-    {
-        return m_draw_state;
-    }
-
     HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
     {
         return m_flags;
@@ -122,21 +117,22 @@ public:
 
     void SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_collection_impl);
 
+    HYP_FORCE_INLINE IDrawCallCollectionImpl* GetDrawCallCollectionImpl() const
+    {
+        return m_draw_call_collection_impl;
+    }
+
     /*! \brief Collect drawable objects, then run the culling compute shader
      *  to mark any occluded objects as such. Must be used with indirect rendering.
      *  If nullptr is provided for cull_data, no occlusion culling will happen.
      */
-    void CollectDrawCalls();
+    void CollectDrawCalls(DrawCallCollection& draw_call_collection);
 
-    /*! \brief Render objects using direct rendering, no occlusion culling is provided. */
-    void PerformRendering(FrameBase* frame, const RenderSetup& render_setup, ParallelRenderingState* parallel_rendering_state);
-
-    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
+    void PerformRendering(FrameBase* frame, const RenderSetup& render_setup, const DrawCallCollection& draw_call_collection, IndirectRenderer* indirect_renderer, ParallelRenderingState* parallel_rendering_state);
 
 private:
     void Init() override;
     
-    void CreateIndirectRenderer();
     void CreateGraphicsPipeline();
 
     EnumFlags<RenderGroupFlags> m_flags;
@@ -149,13 +145,11 @@ private:
 
     RenderableAttributeSet m_renderable_attributes;
 
-    UniquePtr<IndirectRenderer> m_indirect_renderer;
-
     Array<FramebufferRef> m_fbos;
 
-    DrawCallCollection m_draw_state;
-
     FlatMap<ID<Entity>, const RenderProxy*> m_render_proxies;
+
+    IDrawCallCollectionImpl* m_draw_call_collection_impl;
 };
 
 } // namespace hyperion

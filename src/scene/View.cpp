@@ -176,7 +176,7 @@ void View::Update(float delta)
     m_last_collection_result = CollectEntities();
 
     // temp test
-    DrawCallCollection& draw_call_collection = AcquireDrawCallCollection();
+    // EntityDrawCollection& draw_collection = AcquireDrawCollection();
     // HYP_LOG(Scene, Debug, "Acquired draw collection : {} \t count (rgs): {} ", (void*)&draw_collection, draw_collection.NumRenderGroups());
 
     // constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)

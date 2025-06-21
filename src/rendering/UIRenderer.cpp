@@ -201,9 +201,10 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
             attributes.SetDrawableLayer(pair.second);
 
-            Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
+            DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[uint32(bucket)][attributes];
+            Handle<RenderGroup>& rg = mapping.render_group;
 
-            if (!render_group.IsValid())
+            if (!rg.IsValid())
             {
                 ShaderDefinition shader_definition = attributes.GetShaderDefinition();
                 shader_definition.GetProperties().Set("INSTANCING");
@@ -213,17 +214,17 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
                 // Create RenderGroup
                 // @NOTE: Parallel disabled for now as we don't have ParallelRenderingState for UI yet.
-                render_group = CreateObject<RenderGroup>(
+                rg = CreateObject<RenderGroup>(
                     shader,
                     attributes,
                     RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::PARALLEL_RENDERING));
 
-                render_group->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<UIEntityInstanceBatch>());
+                rg->SetDrawCallCollectionImpl(GetOrCreateDrawCallCollectionImpl<UIEntityInstanceBatch>());
 
-                render_group->AddFramebuffer(framebuffer);
+                rg->AddFramebuffer(framebuffer);
 
 #ifdef HYP_DEBUG_MODE
-                if (!render_group.IsValid())
+                if (!rg.IsValid())
                 {
                     HYP_LOG(UI, Error, "Render group not valid for attribute set {}!", attributes.GetHashCode().Value());
 
@@ -231,10 +232,20 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
                 }
 #endif
 
-                InitObject(render_group);
+                InitObject(rg);
+
+                if (rg->GetFlags() & RenderGroupFlags::INDIRECT_RENDERING)
+                {
+                    AssertDebugMsg(mapping.indirect_renderer == nullptr, "Indirect renderer already exists on mapping");
+
+                    mapping.indirect_renderer = new IndirectRenderer();
+                    mapping.indirect_renderer->Create(rg->GetDrawCallCollectionImpl());
+
+                    mapping.draw_call_collection.impl = rg->GetDrawCallCollectionImpl();
+                }
             }
 
-            render_group->AddRenderProxy(proxy);
+            rg->AddRenderProxy(proxy);
         }
 
         collection->RemoveEmptyProxyGroups();
@@ -246,11 +257,14 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         bool removed = false;
 
-        for (auto& render_groups_by_attributes : collection->proxy_groups)
+        for (auto& mappings : collection->mappings_by_bucket)
         {
-            for (auto& it : render_groups_by_attributes)
+            for (auto& it : mappings)
             {
-                removed |= it.second->RemoveRenderProxy(entity);
+                const DrawCallCollectionMapping& mapping = it.second;
+                AssertDebug(mapping.IsValid());
+
+                removed |= mapping.render_group->RemoveRenderProxy(entity);
             }
         }
 
@@ -408,16 +422,14 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& re
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
 
     Array<IteratorType> iterators;
 
-    for (auto& render_groups_by_attributes : m_draw_collection->proxy_groups)
+    for (auto& mappings : m_draw_collection->mappings_by_bucket)
     {
-        for (auto& it : render_groups_by_attributes)
+        for (auto& it : mappings)
         {
-            const RenderableAttributeSet& attributes = it.first;
-
             iterators.PushBack(&it);
         }
     }
@@ -425,12 +437,15 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& re
     TaskSystem::GetInstance().ParallelForEach(
         TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
         iterators,
-        [this](IteratorType it, uint32, uint32)
+        [](IteratorType it, uint32, uint32)
         {
-            Handle<RenderGroup>& render_group = it->second;
-            AssertThrow(render_group.IsValid());
+            DrawCallCollectionMapping& mapping = it->second;
+            AssertDebug(mapping.IsValid());
 
-            render_group->CollectDrawCalls();
+            const Handle<RenderGroup>& render_group = mapping.render_group;
+            AssertDebug(render_group.IsValid());
+
+            render_group->CollectDrawCalls(mapping.draw_call_collection);
         });
 }
 
@@ -449,12 +464,12 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
         frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
     }
 
-    using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::ConstIterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto& render_groups_by_attributes : m_draw_collection->proxy_groups)
+    for (const auto& mappings : m_draw_collection->mappings_by_bucket)
     {
-        for (const auto& it : render_groups_by_attributes)
+        for (const auto& it : mappings)
         {
             iterators.PushBack(&it);
         }
@@ -476,14 +491,18 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
         const auto& it = *iterators[index];
 
         const RenderableAttributeSet& attributes = it.first;
-        const Handle<RenderGroup>& render_group = it.second;
+        const DrawCallCollectionMapping& mapping = it.second;
+        AssertThrow(mapping.IsValid());
 
+        const Handle<RenderGroup>& render_group = mapping.render_group;
         AssertThrow(render_group.IsValid());
+
+        const DrawCallCollection& draw_call_collection = mapping.draw_call_collection;
 
         // Don't count draw calls for UI
         SuppressEngineRenderStatsScope suppress_render_stats_scope;
 
-        render_group->PerformRendering(frame, render_setup, nullptr);
+        render_group->PerformRendering(frame, render_setup, draw_call_collection, nullptr, nullptr);
     }
 
     if (framebuffer.IsValid())

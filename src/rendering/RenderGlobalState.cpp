@@ -13,7 +13,6 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/GPUBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
-#include <rendering/DrawCall.hpp>
 
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
@@ -61,7 +60,7 @@ struct DrawCollectionAllocation
     uint32 index;
     uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
 
-    ValueStorage<DrawCallCollection> storage;
+    ValueStorage<EntityDrawCollection> storage;
 };
 
 static_assert(std::is_trivial_v<DrawCollectionAllocation>, "DrawCollectionAllocation must be trivial");
@@ -87,7 +86,7 @@ HYP_API uint32 GetGameThreadFrameIndex()
     return g_producer_index.load(std::memory_order_relaxed);
 }
 
-HYP_API DrawCallCollection& AcquireDrawCallCollection(IDrawCallCollectionImpl* impl, RenderGroup* render_group)
+HYP_API EntityDrawCollection& AcquireDrawCollection()
 {
     HYP_SCOPE;
 
@@ -103,24 +102,24 @@ HYP_API DrawCallCollection& AcquireDrawCallCollection(IDrawCallCollectionImpl* i
         HYP_FAIL("Failed to acquire draw collection!");
     }
 
-    DrawCallCollection* collection;
+    EntityDrawCollection* collection;
 
-    // if (allocation->alive_frames != 0)
-    // {
-    //     DebugLog(LogType::Debug, "Reusing draw collection index %u from frame %u\n", allocation->index, allocation->index);
+    if (allocation->alive_frames != 0)
+    {
+        DebugLog(LogType::Debug, "Reusing draw collection index %u from frame %u\n", allocation->index, allocation->index);
 
-    //     // reuse the existing instance
-    //     collection = allocation->storage.GetPointer();
-    // }
-    // else
-    // {
-    allocation->index = idx;
-    allocation->alive_frames = 1;
+        // reuse the existing instance
+        collection = allocation->storage.GetPointer();
+    }
+    else
+    {
+        allocation->index = idx;
+        allocation->alive_frames = 1;
 
-    DebugLog(LogType::Debug, "Constructing draw collection index %u from frame %u\n", allocation->index, allocation->index);
+        DebugLog(LogType::Debug, "Constructing draw collection index %u from frame %u\n", allocation->index, allocation->index);
 
-    collection = allocation->storage.Construct();
-    // }
+        collection = allocation->storage.Construct();
+    }
 
     g_frame_data[slot].allocation_ptrs.PushBack(allocation);
 
@@ -173,50 +172,40 @@ HYP_API void EndFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
+    frame_data.draw_collection_pool.ClearUsedIndices();
+
     for (auto it = frame_data.allocation_ptrs.Begin(); it != frame_data.allocation_ptrs.End(); ++it)
     {
         DrawCollectionAllocation* allocation = *it;
 
-        allocation->storage.Destruct();
-        allocation->alive_frames = 0;
+        --allocation->alive_frames;
     }
 
-    frame_data.allocation_ptrs.Clear();
+    for (auto it = frame_data.prev_allocation_ptrs.Begin(); it != frame_data.prev_allocation_ptrs.End();)
+    {
+        DrawCollectionAllocation* allocation = *it;
 
-    frame_data.draw_collection_pool.ClearUsedIndices();
+        ++allocation->alive_frames;
 
-    // for (auto it = frame_data.allocation_ptrs.Begin(); it != frame_data.allocation_ptrs.End(); ++it)
-    // {
-    //     DrawCollectionAllocation* allocation = *it;
+        if (allocation->alive_frames > 3)
+        {
+            allocation->storage.Destruct();
+            allocation->alive_frames = 0;
 
-    //     --allocation->alive_frames;
-    // }
+            DebugLog(LogType::Debug, "Releasing draw collection index %u from frame %u\n", allocation->index, slot);
 
-    // for (auto it = frame_data.prev_allocation_ptrs.Begin(); it != frame_data.prev_allocation_ptrs.End();)
-    // {
-    //     DrawCollectionAllocation* allocation = *it;
+            frame_data.draw_collection_pool.ReleaseIndex(allocation->index);
 
-    //     ++allocation->alive_frames;
+            it = frame_data.prev_allocation_ptrs.Erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 
-    //     if (allocation->alive_frames > 3)
-    //     {
-    //         allocation->storage.Destruct();
-    //         allocation->alive_frames = 0;
-
-    //         DebugLog(LogType::Debug, "Releasing draw collection index %u from frame %u\n", allocation->index, slot);
-
-    //         frame_data.draw_collection_pool.ReleaseIndex(allocation->index);
-
-    //         it = frame_data.prev_allocation_ptrs.Erase(it);
-    //     }
-    //     else
-    //     {
-    //         ++it;
-    //     }
-    // }
-
-    // frame_data.prev_allocation_ptrs.Clear();
-    // std::swap(frame_data.allocation_ptrs, frame_data.prev_allocation_ptrs);
+    frame_data.prev_allocation_ptrs.Clear();
+    std::swap(frame_data.allocation_ptrs, frame_data.prev_allocation_ptrs);
 
     /// @TODO Some heuristic for clearing allocations that weren't active for a few frames
 

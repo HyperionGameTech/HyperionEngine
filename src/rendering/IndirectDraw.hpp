@@ -31,6 +31,7 @@ struct DrawCall;
 struct InstancedDrawCall;
 
 class DrawCallCollection;
+class IDrawCallCollectionImpl;
 
 struct alignas(16) ObjectInstance
 {
@@ -73,7 +74,6 @@ public:
     }
 
     void Create();
-    void Destroy();
 
     void PushDrawCall(const DrawCall& draw_call, DrawCommandData& out);
     void PushInstancedDrawCall(const InstancedDrawCall& draw_call, DrawCommandData& out);
@@ -99,7 +99,7 @@ public:
     friend struct RenderCommand_CreateIndirectRenderer;
     friend struct RenderCommand_DestroyIndirectRenderer;
 
-    IndirectRenderer(DrawCallCollection* draw_call_collection);
+    IndirectRenderer();
     IndirectRenderer(const IndirectRenderer&) = delete;
     IndirectRenderer& operator=(const IndirectRenderer&) = delete;
     IndirectRenderer(IndirectRenderer&&) noexcept = delete;
@@ -116,18 +116,16 @@ public:
         return m_indirect_draw_state;
     }
 
-    void Create();
-    void Destroy();
+    void Create(IDrawCallCollectionImpl* impl);
 
     /*! \brief Register all current draw calls in the draw call collection with the indirect draw state */
-    void PushDrawCallsToIndirectState();
+    void PushDrawCallsToIndirectState(DrawCallCollection& draw_call_collection);
 
     void ExecuteCullShaderInBatches(FrameBase* frame, const RenderSetup& render_setup);
 
 private:
     void RebuildDescriptors(FrameBase* frame);
 
-    DrawCallCollection* m_draw_call_collection;
     IndirectDrawState m_indirect_draw_state;
     ComputePipelineRef m_object_visibility;
     CullData m_cached_cull_data;

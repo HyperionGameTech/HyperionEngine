@@ -145,12 +145,17 @@ public:
     virtual GPUBufferHolderBase* GetEntityInstanceBatchHolder() const = 0;
 };
 
-class DrawCallCollection
+struct DrawCallCollection
 {
-public:
+    DrawCallCollection()
+        : impl(nullptr),
+          render_group(nullptr)
+    {
+    }
+
     DrawCallCollection(IDrawCallCollectionImpl* impl, RenderGroup* render_group)
-        : m_impl(impl),
-          m_render_group(render_group)
+        : impl(impl),
+          render_group(render_group)
     {
     }
 
@@ -162,36 +167,6 @@ public:
 
     ~DrawCallCollection();
 
-    HYP_FORCE_INLINE IDrawCallCollectionImpl* GetImpl() const
-    {
-        return m_impl;
-    }
-
-    HYP_FORCE_INLINE RenderGroup* GetRenderGroup() const
-    {
-        return m_render_group;
-    }
-
-    HYP_FORCE_INLINE Span<DrawCall> GetDrawCalls()
-    {
-        return m_draw_calls;
-    }
-
-    HYP_FORCE_INLINE Span<const DrawCall> GetDrawCalls() const
-    {
-        return m_draw_calls;
-    }
-
-    HYP_FORCE_INLINE Span<InstancedDrawCall> GetInstancedDrawCalls()
-    {
-        return m_instanced_draw_calls;
-    }
-
-    HYP_FORCE_INLINE Span<const InstancedDrawCall> GetInstancedDrawCalls() const
-    {
-        return m_instanced_draw_calls;
-    }
-
     void PushRenderProxy(DrawCallID id, const RenderProxy& render_proxy);
     void PushRenderProxyInstanced(EntityInstanceBatch* batch, DrawCallID id, const RenderProxy& render_proxy);
 
@@ -199,22 +174,20 @@ public:
 
     void ResetDrawCalls();
 
-protected:
-private:
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
     uint32 PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
 
-    IDrawCallCollectionImpl* m_impl;
+    IDrawCallCollectionImpl* impl;
 
-    RenderGroup* m_render_group;
+    RenderGroup* render_group;
 
-    Array<DrawCall, InlineAllocator<16>> m_draw_calls;
-    Array<InstancedDrawCall, InlineAllocator<16>> m_instanced_draw_calls;
+    Array<DrawCall, InlineAllocator<16>> draw_calls;
+    Array<InstancedDrawCall, InlineAllocator<16>> instanced_draw_calls;
 
     // Map from draw call ID to index in instanced_draw_calls
-    HashMap<uint64, Array<SizeType>> m_index_map;
+    HashMap<uint64, Array<SizeType>> index_map;
 };
 
 template <class EntityInstanceBatchType>

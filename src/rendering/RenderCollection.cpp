@@ -140,9 +140,10 @@ struct RENDER_COMMAND(RebuildProxyGroups)
         const ID<Entity> entity = proxy.entity.GetID();
 
         // Add proxy to group
-        Handle<RenderGroup>& render_group = collection->proxy_groups[uint32(bucket)][attributes];
+        DrawCallCollectionMapping& mapping = collection->mappings_by_bucket[uint32(bucket)][attributes];
+        Handle<RenderGroup>& rg = mapping.render_group;
 
-        if (!render_group.IsValid())
+        if (!rg.IsValid())
         {
             EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
@@ -155,10 +156,20 @@ struct RENDER_COMMAND(RebuildProxyGroups)
             }
 
             // Create RenderGroup
-            render_group = CreateObject<RenderGroup>(
+            rg = CreateObject<RenderGroup>(
                 g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
                 attributes,
                 render_group_flags);
+
+            if (render_group_flags & RenderGroupFlags::INDIRECT_RENDERING)
+            {
+                AssertDebugMsg(mapping.indirect_renderer == nullptr, "Indirect renderer already exists on mapping");
+
+                mapping.indirect_renderer = new IndirectRenderer();
+                mapping.indirect_renderer->Create(rg->GetDrawCallCollectionImpl());
+
+                mapping.draw_call_collection.impl = rg->GetDrawCallCollectionImpl();
+            }
 
             FramebufferRef framebuffer;
 
@@ -169,7 +180,7 @@ struct RENDER_COMMAND(RebuildProxyGroups)
 
             if (framebuffer != nullptr)
             {
-                render_group->AddFramebuffer(framebuffer);
+                rg->AddFramebuffer(framebuffer);
             }
             else
             {
@@ -181,30 +192,30 @@ struct RENDER_COMMAND(RebuildProxyGroups)
                 const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
                 AssertThrow(bucket_framebuffer != nullptr);
 
-                render_group->AddFramebuffer(bucket_framebuffer);
+                rg->AddFramebuffer(bucket_framebuffer);
             }
 
-            InitObject(render_group);
+            InitObject(rg);
         }
 
         auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
 
-        render_group->AddRenderProxy(&iter->second);
+        rg->AddRenderProxy(&iter->second);
     }
 
     bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
     {
         HYP_SCOPE;
 
-        auto& render_groups_by_attributes = collection->proxy_groups[uint32(bucket)];
+        auto& mappings = collection->mappings_by_bucket[uint32(bucket)];
 
-        auto it = render_groups_by_attributes.Find(attributes);
-        AssertThrow(it != render_groups_by_attributes.End());
+        auto it = mappings.Find(attributes);
+        AssertThrow(it != mappings.End());
 
-        const Handle<RenderGroup>& render_group = it->second;
-        AssertThrow(render_group.IsValid());
+        const DrawCallCollectionMapping& mapping = it->second;
+        AssertThrow(mapping.IsValid());
 
-        const bool removed = render_group->RemoveRenderProxy(entity);
+        const bool removed = mapping.render_group->RemoveRenderProxy(entity);
 
         render_proxy_tracker.MarkToRemove(entity);
 
@@ -320,21 +331,32 @@ EntityDrawCollection::~EntityDrawCollection()
             state = next_state;
         }
     }
+
+    ClearProxyGroups();
 }
 
 void EntityDrawCollection::ClearProxyGroups()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_render_thread);
-
     // Do not fully clear, keep the attribs around so that we can have memory reserved for each slot,
     // as well as render groups.
-    for (auto& render_groups_by_attributes : proxy_groups)
+    for (auto& mappings : mappings_by_bucket)
     {
-        for (auto& it : render_groups_by_attributes)
+        for (auto& it : mappings)
         {
-            it.second->ClearProxies();
+            DrawCallCollectionMapping& mapping = it.second;
+
+            if (mapping.render_group.IsValid())
+            {
+                mapping.render_group->ClearProxies();
+            }
+
+            if (mapping.indirect_renderer)
+            {
+                delete mapping.indirect_renderer;
+                mapping.indirect_renderer = nullptr;
+            }
         }
     }
 }
@@ -343,20 +365,27 @@ void EntityDrawCollection::RemoveEmptyProxyGroups()
 {
     HYP_SCOPE;
 
-    Threads::AssertOnThread(g_render_thread);
-
-    for (auto& render_groups_by_attributes : proxy_groups)
+    for (auto& mappings : mappings_by_bucket)
     {
-        for (auto it = render_groups_by_attributes.Begin(); it != render_groups_by_attributes.End();)
+        for (auto it = mappings.Begin(); it != mappings.End();)
         {
-            if (it->second->GetRenderProxies().Any())
+            DrawCallCollectionMapping& mapping = it->second;
+            AssertDebug(mapping.IsValid());
+
+            if (mapping.render_group->GetRenderProxies().Any())
             {
                 ++it;
 
                 continue;
             }
 
-            it = render_groups_by_attributes.Erase(it);
+            if (mapping.indirect_renderer)
+            {
+                delete mapping.indirect_renderer;
+                mapping.indirect_renderer = nullptr;
+            }
+
+            it = mappings.Erase(it);
         }
     }
 }
@@ -365,11 +394,14 @@ uint32 EntityDrawCollection::NumRenderGroups() const
 {
     uint32 count = 0;
 
-    for (const auto& render_groups_by_attributes : proxy_groups)
+    for (const auto& mappings : mappings_by_bucket)
     {
-        for (const auto& it : render_groups_by_attributes)
+        for (const auto& it : mappings)
         {
-            if (it.second.IsValid())
+            const DrawCallCollectionMapping& mapping = it.second;
+            AssertDebug(mapping.IsValid());
+
+            if (mapping.IsValid())
             {
                 ++count;
             }
@@ -483,21 +515,21 @@ void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, ui
 
     HYP_MT_CHECK_READ(m_data_race_detector);
 
-    using IteratorType = FlatMap<RenderableAttributeSet, Handle<RenderGroup>>::Iterator;
+    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
     Array<IteratorType> iterators;
 
     FOR_EACH_BIT(bucket_bits, bit_index)
     {
-        AssertDebug(bit_index < draw_collection.proxy_groups.Size());
+        AssertDebug(bit_index < draw_collection.mappings_by_bucket.Size());
 
-        auto& render_groups_by_attributes = draw_collection.proxy_groups[bit_index];
+        auto& mappings = draw_collection.mappings_by_bucket[bit_index];
 
-        if (render_groups_by_attributes.Empty())
+        if (mappings.Empty())
         {
             continue;
         }
 
-        for (auto& it : render_groups_by_attributes)
+        for (auto& it : mappings)
         {
             iterators.PushBack(&it);
         }
@@ -508,28 +540,14 @@ void RenderCollector::CollectDrawCalls(EntityDrawCollection& draw_collection, ui
         return;
     }
 
-    if (do_parallel_collection && iterators.Size() > 1)
+    for (IteratorType it : iterators)
     {
-        TaskSystem::GetInstance().ParallelForEach(
-            TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
-            iterators,
-            [](IteratorType it, uint32, uint32)
-            {
-                Handle<RenderGroup>& render_group = it->second;
-                AssertThrow(render_group.IsValid());
+        const RenderableAttributeSet& attributes = it->first;
 
-                render_group->CollectDrawCalls();
-            });
-    }
-    else
-    {
-        for (IteratorType it : iterators)
-        {
-            Handle<RenderGroup>& render_group = it->second;
-            AssertThrow(render_group.IsValid());
+        DrawCallCollectionMapping& mapping = it->second;
+        AssertDebug(mapping.IsValid());
 
-            render_group->CollectDrawCalls();
-        }
+        mapping.render_group->CollectDrawCalls(mapping.draw_call_collection);
     }
 }
 
@@ -548,22 +566,35 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     {
         FOR_EACH_BIT(bucket_bits, bit_index)
         {
-            AssertDebug(bit_index < draw_collection.proxy_groups.Size());
+            AssertDebug(bit_index < draw_collection.mappings_by_bucket.Size());
 
-            auto& render_groups_by_attributes = draw_collection.proxy_groups[bit_index];
+            auto& mappings = draw_collection.mappings_by_bucket[bit_index];
 
-            if (render_groups_by_attributes.Empty())
+            if (mappings.Empty())
             {
                 continue;
             }
 
-            for (auto& it : render_groups_by_attributes)
+            for (auto& it : mappings)
             {
-                const Handle<RenderGroup>& render_group = it.second;
+                DrawCallCollectionMapping& mapping = it.second;
+                AssertDebug(mapping.IsValid());
+
+                const Handle<RenderGroup>& render_group = mapping.render_group;
+                AssertDebug(render_group.IsValid());
+
+                DrawCallCollection& draw_call_collection = mapping.draw_call_collection;
+                IndirectRenderer* indirect_renderer = mapping.indirect_renderer;
 
                 if (render_group->GetFlags() & RenderGroupFlags::OCCLUSION_CULLING)
                 {
-                    render_group->PerformOcclusionCulling(frame, render_setup);
+                    AssertDebug((render_group->GetFlags() & (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING)) == (RenderGroupFlags::INDIRECT_RENDERING | RenderGroupFlags::OCCLUSION_CULLING));
+                    AssertDebug(indirect_renderer != nullptr);
+
+                    indirect_renderer->GetDrawState().ResetDrawState();
+
+                    indirect_renderer->PushDrawCallsToIndirectState(draw_call_collection);
+                    indirect_renderer->ExecuteCullShaderInBatches(frame, render_setup);
                 }
             }
         }
@@ -604,31 +635,31 @@ void RenderCollector::ExecuteDrawCalls(
         return;
     }
 
-    Span<FlatMap<RenderableAttributeSet, Handle<RenderGroup>>> groups_view;
+    Span<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>> groups_view;
 
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucket_bits) == 1)
     {
         const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits));
 
-        auto& render_groups_by_attributes = draw_collection.proxy_groups[uint32(bucket)];
+        auto& mappings = draw_collection.mappings_by_bucket[uint32(bucket)];
 
-        if (render_groups_by_attributes.Empty())
+        if (mappings.Empty())
         {
             return;
         }
 
-        groups_view = { &render_groups_by_attributes, 1 };
+        groups_view = { &mappings, 1 };
     }
     else
     {
         bool all_empty = true;
 
-        for (const auto& render_groups_by_attributes : draw_collection.proxy_groups)
+        for (const auto& mappings : draw_collection.mappings_by_bucket)
         {
-            if (render_groups_by_attributes.Any())
+            if (mappings.Any())
             {
-                if (AnyOf(render_groups_by_attributes, [&bucket_bits](const auto& it)
+                if (AnyOf(mappings, [&bucket_bits](const auto& it)
                         {
                             return (bucket_bits & (1u << uint32(it.first.GetMaterialAttributes().bucket))) != 0;
                         }))
@@ -645,7 +676,7 @@ void RenderCollector::ExecuteDrawCalls(
             return;
         }
 
-        groups_view = draw_collection.proxy_groups.ToSpan();
+        groups_view = draw_collection.mappings_by_bucket.ToSpan();
     }
 
     if (framebuffer)
@@ -653,12 +684,14 @@ void RenderCollector::ExecuteDrawCalls(
         frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, frame_index);
     }
 
-    for (const auto& render_groups_by_attributes : groups_view)
+    for (const auto& mappings : groups_view)
     {
-        for (const auto& it : render_groups_by_attributes)
+        for (const auto& it : mappings)
         {
             const RenderableAttributeSet& attributes = it.first;
-            const Handle<RenderGroup>& render_group = it.second;
+
+            const DrawCallCollectionMapping& mapping = it.second;
+            AssertDebug(mapping.IsValid());
 
             const Bucket bucket = attributes.GetMaterialAttributes().bucket;
 
@@ -666,6 +699,13 @@ void RenderCollector::ExecuteDrawCalls(
             {
                 continue;
             }
+
+            const Handle<RenderGroup>& render_group = mapping.render_group;
+            AssertDebug(render_group.IsValid());
+
+            const DrawCallCollection& draw_call_collection = mapping.draw_call_collection;
+
+            IndirectRenderer* indirect_renderer = mapping.indirect_renderer;
 
             if (push_constant)
             {
@@ -679,7 +719,7 @@ void RenderCollector::ExecuteDrawCalls(
                 parallel_rendering_state = draw_collection.AcquireNextParallelRenderingState();
             }
 
-            render_group->PerformRendering(frame, render_setup, parallel_rendering_state);
+            render_group->PerformRendering(frame, render_setup, draw_call_collection, indirect_renderer, parallel_rendering_state);
 
             if (parallel_rendering_state != nullptr)
             {
