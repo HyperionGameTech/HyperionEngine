@@ -580,7 +580,7 @@ void UIRenderSubsystem::Init()
 
     m_view = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
-        .viewport = Viewport { .extent = m_ui_stage->GetSurfaceSize(), .position = Vec2i::Zero() },
+        .viewport = Viewport { .extent = Vec2u(m_ui_stage->GetSurfaceSize()), .position = Vec2i::Zero() },
         .scenes = { m_ui_stage->GetScene()->HandleFromThis() },
         .camera = m_ui_stage->GetCamera() });
     InitObject(m_view);
@@ -622,7 +622,7 @@ void UIRenderSubsystem::CreateFramebuffer()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const Vec2i surface_size = g_engine->GetAppContext()->GetMainWindow()->GetDimensions();
+    const Vec2u surface_size = Vec2u(g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
 
     m_view->SetViewport(Viewport {
         .extent = surface_size,
@@ -652,13 +652,13 @@ void UIRenderSubsystem::CreateFramebuffer()
 
     if (Threads::IsOnThread(owner_thread_id))
     {
-        m_ui_stage->SetSurfaceSize(surface_size);
+        m_ui_stage->SetSurfaceSize(Vec2i(surface_size));
     }
     else
     {
         Threads::GetThread(owner_thread_id)->GetScheduler().Enqueue([ui_stage = m_ui_stage, surface_size]()
             {
-                ui_stage->SetSurfaceSize(surface_size);
+                ui_stage->SetSurfaceSize(Vec2i(surface_size));
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
     }

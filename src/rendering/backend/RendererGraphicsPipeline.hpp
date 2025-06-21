@@ -126,7 +126,7 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
     HYP_API virtual void Bind(CommandBufferBase* command_buffer) = 0;
-    HYP_API virtual void Bind(CommandBufferBase* command_buffer, Vec2i viewport_offset, Vec2i viewport_extent) = 0;
+    HYP_API virtual void Bind(CommandBufferBase* command_buffer, Vec2i viewport_offset, Vec2u viewport_extent) = 0;
 
     HYP_API virtual bool MatchesSignature(
         const ShaderBase* shader,

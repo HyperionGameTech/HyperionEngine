@@ -192,30 +192,13 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
         }
 
         AssertThrow(render_view->GetView() != nullptr);
-        FramebufferRef framebuffer = render_view->GetView()->GetOutputTarget();
 
-        if (framebuffer != nullptr)
-        {
-            rg->AddFramebuffer(framebuffer);
-        }
-        else
-        {
-            AssertDebug(render_view != nullptr);
-            if (!(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER))
-            {
-                HYP_FAIL(
-                    "No framebuffer set for RenderView and GBuffer is not enabled for View with ID: %u",
-                    render_view->GetView()->GetID().Value());
-            }
+        const ViewOutputTarget& output_target = render_view->GetView()->GetOutputTarget();
 
-            GBuffer* gbuffer = render_view->GetGBuffer();
-            AssertThrow(gbuffer != nullptr);
+        const FramebufferRef& framebuffer = output_target.GetFramebuffer(attributes.GetMaterialAttributes().bucket);
+        AssertThrow(framebuffer != nullptr);
 
-            const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-            AssertThrow(bucket_framebuffer != nullptr);
-
-            rg->AddFramebuffer(bucket_framebuffer);
-        }
+        rg->AddFramebuffer(framebuffer);
 
         InitObject(rg);
     }
@@ -374,7 +357,7 @@ void RenderView::Destroy_Internal()
         }
     }
 
-    if (m_gbuffer)
+    if (m_view->GetFlags() & ViewFlags::GBUFFER)
     {
         DestroyRenderer();
 
@@ -382,6 +365,16 @@ void RenderView::Destroy_Internal()
     }
 
     m_render_camera.Reset();
+}
+
+GBuffer* RenderView::GetGBuffer() const
+{
+    if (!m_view)
+    {
+        return nullptr;
+    }
+
+    return m_view->GetOutputTarget().GetGBuffer();
 }
 
 void RenderView::Update_Internal()
@@ -394,29 +387,33 @@ void RenderView::CreateRenderer()
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    m_gbuffer = MakeUnique<GBuffer>(Vec2u(m_viewport.extent));
-    m_gbuffer->Create();
+    GBuffer* gbuffer = m_view->GetOutputTarget().GetGBuffer();
+    AssertDebug(gbuffer != nullptr);
 
-    const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-    const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
-    const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    gbuffer->Create();
 
-    m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, m_gbuffer.Get());
+    HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", m_view->GetID(), gbuffer->GetExtent());
+
+    const FramebufferRef& opaque_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+
+    m_env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, gbuffer);
     m_env_grid_radiance_pass->Create();
 
-    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, m_gbuffer.Get());
+    m_env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, gbuffer);
     m_env_grid_irradiance_pass->Create();
 
-    m_ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), m_gbuffer.Get());
+    m_ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
     m_ssgi->Create();
 
     m_post_processing = MakeUnique<PostProcessing>();
     m_post_processing->Create();
 
-    m_indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, m_gbuffer.Get());
+    m_indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, gbuffer);
     m_indirect_pass->Create();
 
-    m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, m_gbuffer.Get());
+    m_direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, gbuffer);
     m_direct_pass->Create();
 
     AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
@@ -440,25 +437,25 @@ void RenderView::CreateRenderer()
 
     m_mip_chain->SetPersistentRenderResourceEnabled(true);
 
-    m_hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), m_gbuffer.Get());
+    m_hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer);
     m_hbao->Create();
 
-    // m_dof_blur = MakeUnique<DOFBlur>(m_gbuffer->GetResolution(), m_gbuffer);
+    // m_dof_blur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
     // m_dof_blur->Create();
 
     CreateCombinePass();
 
-    m_reflections_pass = MakeUnique<ReflectionsPass>(m_gbuffer.Get(), m_mip_chain->GetRenderResource().GetImageView(), m_combine_pass->GetFinalImageView());
+    m_reflections_pass = MakeUnique<ReflectionsPass>(gbuffer, m_mip_chain->GetRenderResource().GetImageView(), m_combine_pass->GetFinalImageView());
     m_reflections_pass->Create();
 
-    m_tonemap_pass = MakeUnique<TonemapPass>(m_gbuffer.Get());
+    m_tonemap_pass = MakeUnique<TonemapPass>(gbuffer);
     m_tonemap_pass->Create();
 
     // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-    m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+    m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
     m_lightmap_pass->Create();
 
-    m_temporal_aa = MakeUnique<TemporalAA>(m_gbuffer->GetExtent(), m_tonemap_pass->GetFinalImageView(), m_gbuffer.Get());
+    m_temporal_aa = MakeUnique<TemporalAA>(gbuffer->GetExtent(), m_tonemap_pass->GetFinalImageView(), gbuffer);
     m_temporal_aa->Create();
 
     CreateDescriptorSets();
@@ -489,9 +486,9 @@ void RenderView::CreateDescriptorSets()
         NAME("GBufferTranslucentTexture")
     };
 
-    const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-    const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
-    const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    const FramebufferRef& opaque_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
 
     // depth attachment goes into separate slot
     AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
@@ -586,7 +583,7 @@ void RenderView::CreateCombinePass()
     Threads::AssertOnThread(g_render_thread);
 
     // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
-    const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    const FramebufferRef& translucent_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
     AssertThrow(translucent_fbo != nullptr);
 
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
@@ -676,8 +673,6 @@ void RenderView::DestroyRenderer()
 
     m_indirect_pass.Reset();
     m_direct_pass.Reset();
-
-    m_gbuffer->Destroy();
 }
 
 void RenderView::SetViewport(const Viewport& viewport)
@@ -693,17 +688,20 @@ void RenderView::SetViewport(const Viewport& viewport)
 
             m_viewport = viewport;
 
-            if (IsInitialized() && m_gbuffer)
+            if (IsInitialized() && (m_view->GetFlags() & ViewFlags::GBUFFER))
             {
                 AssertThrow(m_viewport.extent.Volume() > 0);
 
                 const Vec2u new_size = Vec2u(m_viewport.extent);
 
-                m_gbuffer->Resize(new_size);
+                GBuffer* gbuffer = m_view->GetOutputTarget().GetGBuffer();
+                AssertDebug(gbuffer != nullptr);
 
-                const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-                const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
-                const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+                gbuffer->Resize(new_size);
+
+                const FramebufferRef& opaque_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+                const FramebufferRef& lightmap_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+                const FramebufferRef& translucent_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
 
                 m_hbao->Resize(new_size);
 
@@ -721,10 +719,10 @@ void RenderView::SetViewport(const Viewport& viewport)
 
                 m_tonemap_pass->Resize(new_size);
 
-                m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, m_gbuffer.Get());
+                m_lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
                 m_lightmap_pass->Create();
 
-                m_temporal_aa = MakeUnique<TemporalAA>(new_size, m_tonemap_pass->GetFinalImageView(), m_gbuffer.Get());
+                m_temporal_aa = MakeUnique<TemporalAA>(new_size, m_tonemap_pass->GetFinalImageView(), gbuffer);
                 m_temporal_aa->Create();
 
                 AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
@@ -1085,7 +1083,7 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
 
     RenderSetup render_setup { render_world, this };
 
-    if (!m_gbuffer)
+    if (!(m_view->GetFlags() & ViewFlags::GBUFFER))
     {
         return;
     }
@@ -1095,9 +1093,9 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     // @TODO: Refactor to put this in the RenderWorld
     RenderEnvironment* environment = render_world->GetEnvironment();
 
-    const FramebufferRef& opaque_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetFramebuffer();
-    const FramebufferRef& lightmap_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_LIGHTMAP).GetFramebuffer();
-    const FramebufferRef& translucent_fbo = m_gbuffer->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer();
+    const FramebufferRef& opaque_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = m_view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
 
     const bool do_particles = true;
     const bool do_gaussian_splatting = false; // environment && environment->IsReady();
@@ -1134,17 +1132,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
 
-    deferred_data.screen_width = m_gbuffer->GetExtent().x;
-    deferred_data.screen_height = m_gbuffer->GetExtent().y;
-
-    /// temp
-    constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
-        | (1 << BUCKET_LIGHTMAP)
-        | (1 << BUCKET_SKYBOX)
-        | (1 << BUCKET_TRANSLUCENT)
-        | (1 << BUCKET_DEBUG);
-
-    RenderCollector::CollectDrawCalls(m_render_proxy_list, bucket_mask);
+    deferred_data.screen_width = m_viewport.extent.x;
+    deferred_data.screen_height = m_viewport.extent.y;
 
     PerformOcclusionCulling(frame, render_setup);
 
@@ -1273,20 +1262,20 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
         ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_TRANSLUCENT));
         ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_DEBUG));
 
-        if (do_particles)
-        {
-            environment->GetParticleSystem()->Render(frame, render_setup);
-        }
+        // if (do_particles)
+        // {
+        //     environment->GetParticleSystem()->Render(frame, render_setup);
+        // }
 
-        if (do_gaussian_splatting)
-        {
-            environment->GetGaussianSplatting()->Render(frame, render_setup);
-        }
+        // if (do_gaussian_splatting)
+        // {
+        //     environment->GetGaussianSplatting()->Render(frame, render_setup);
+        // }
 
         ExecuteDrawCalls(frame, render_setup, (1u << BUCKET_SKYBOX));
 
-        // render debug draw
-        g_engine->GetDebugDrawer()->Render(frame, render_setup);
+        // // render debug draw
+        // g_engine->GetDebugDrawer()->Render(frame, render_setup);
 
         frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
     }
@@ -1319,6 +1308,8 @@ void RenderView::Render(FrameBase* frame, RenderWorld* render_world)
     counts[ERS_ENV_PROBES] = m_tracked_env_probes.GetCurrentBits().Count();
     // counts.num_env_probes
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
+
+    GetConsumerRenderProxyList(m_view).render_proxy_tracker.Advance(AdvanceAction::CLEAR);
 }
 
 void RenderView::PostRender(FrameBase* frame)
@@ -1335,14 +1326,14 @@ void RenderView::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& re
         | (1 << BUCKET_TRANSLUCENT)
         | (1 << BUCKET_DEBUG);
 
-    RenderCollector::PerformOcclusionCulling(frame, render_setup, m_render_proxy_list, bucket_mask);
+    RenderCollector::PerformOcclusionCulling(frame, render_setup, GetConsumerRenderProxyList(m_view), bucket_mask);
 }
 
 void RenderView::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask)
 {
     HYP_SCOPE;
 
-    RenderCollector::ExecuteDrawCalls(frame, render_setup, m_render_proxy_list, nullptr, bucket_mask);
+    RenderCollector::ExecuteDrawCalls(frame, render_setup, GetConsumerRenderProxyList(m_view), bucket_mask);
 }
 
 void RenderView::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)

@@ -234,7 +234,7 @@ void RenderGroup::AddRenderProxy(RenderProxy* render_proxy)
 {
     AssertDebug(render_proxy != nullptr);
 
-    Threads::AssertOnThread(g_render_thread);
+    // Threads::AssertOnThread(g_render_thread);
 
     AssertDebug(render_proxy->mesh.IsValid());
     AssertDebug(render_proxy->mesh->IsReady());
@@ -248,7 +248,7 @@ void RenderGroup::AddRenderProxy(RenderProxy* render_proxy)
 
 bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
 {
-    Threads::AssertOnThread(g_render_thread);
+    // Threads::AssertOnThread(g_render_thread);
 
     const auto it = m_render_proxies.Find(entity);
 
@@ -266,7 +266,7 @@ bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
 
 typename FlatMap<ID<Entity>, const RenderProxy*>::Iterator RenderGroup::RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy*>::ConstIterator iterator)
 {
-    Threads::AssertOnThread(g_render_thread);
+    // Threads::AssertOnThread(g_render_thread);
 
     return m_render_proxies.Erase(iterator);
 }
@@ -345,6 +345,7 @@ void RenderGroup::CollectDrawCalls(DrawCallCollection& draw_call_collection)
         draw_call_collection.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
     }
 
+    // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
     previous_draw_state.ResetDrawCalls();
 }
 

@@ -120,19 +120,19 @@ VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd)
 {
     Vec2i viewport_offset = Vec2i::Zero();
-    Vec2i viewport_extent = Vec2i::One();
+    Vec2u viewport_extent = Vec2u::One();
 
     if (m_framebuffers.Any())
     {
-        viewport_extent = Vec2i(m_framebuffers[0]->GetExtent());
+        viewport_extent = m_framebuffers[0]->GetExtent();
     }
 
     Bind(cmd, viewport_offset, viewport_extent);
 }
 
-void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd, Vec2i viewport_offset, Vec2i viewport_extent)
+void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd, Vec2i viewport_offset, Vec2u viewport_extent)
 {
-    if (viewport_extent != Vec2i::Zero())
+    if (viewport_extent != Vec2u::Zero())
     {
         Viewport viewport;
         viewport.position = viewport_offset;
@@ -198,10 +198,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         break;
     }
 
-    m_viewport = {
-        Vec2i::Zero(),
-        Vec2i(m_framebuffers[0]->GetExtent())
-    };
+    m_viewport = { m_framebuffers[0]->GetExtent(), Vec2i::Zero() };
 
     VkViewport vk_viewport {};
     vk_viewport.x = float(m_viewport.position.x);

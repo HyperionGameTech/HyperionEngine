@@ -485,8 +485,9 @@ Handle<RenderGroup> DebugDrawer::GetOrCreateRenderGroup(RenderableAttributeSet a
             m_descriptor_table,
             RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING));
 
-        const FramebufferRef& framebuffer = g_engine->GetCurrentView()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-        render_group->AddFramebuffer(framebuffer);
+        /// FIXME: GetCurrentView() should not be used here
+        // const FramebufferRef& framebuffer = g_engine->GetCurrentView()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
+        // render_group->AddFramebuffer(framebuffer);
 
         InitObject(render_group);
 

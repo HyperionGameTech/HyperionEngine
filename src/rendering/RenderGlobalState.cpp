@@ -11,6 +11,7 @@
 #include <rendering/RenderShadowMap.hpp>
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderTexture.hpp>
+#include <rendering/DrawCall.hpp>
 #include <rendering/GPUBufferHolderMap.hpp>
 #include <rendering/PlaceholderData.hpp>
 
@@ -25,6 +26,7 @@
 #include <rendering/backend/RenderingAPI.hpp>
 
 #include <scene/Texture.hpp>
+#include <scene/View.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
@@ -48,6 +50,7 @@
 namespace hyperion {
 
 static constexpr uint32 num_frames = 3; // number of frames in the ring buffer
+static constexpr uint32 max_views_per_frame = 16;
 
 // global ring buffer for the game and render threads to write/read data from
 static std::atomic_uint g_producer_index { 0 };                             // where the game will write next
@@ -56,35 +59,42 @@ static std::atomic_uint g_frame_counter { 0 };                              // l
 static std::counting_semaphore<num_frames> g_full_semaphore { 0 };          // renderer waits here
 static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // game waits here when ring is full
 
-struct DrawCollectionAllocation;
+struct DrawCallCollectionAllocation;
 
-using DrawCollectionPool = MemoryPool<DrawCollectionAllocation>;
+using DrawCallCollectionPool = MemoryPool<DrawCallCollectionAllocation>;
 
-// struct DrawCollectionAllocation
-// {
-//     DrawCollectionPool* pool; // the view this allocation is for
-//     uint32 index;
-//     uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
+struct DrawCallCollectionAllocation
+{
+    uint32 index;
+    uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
 
-//     ValueStorage<RenderProxyList> storage;
-// };
+    ValueStorage<DrawCallCollection> storage;
+};
 
-// static_assert(std::is_trivial_v<DrawCollectionAllocation>, "DrawCollectionAllocation must be trivial");
+static_assert(std::is_trivial_v<DrawCallCollectionAllocation>, "DrawCallCollectionAllocation must be trivial");
 
 struct ViewData
 {
     RenderProxyList render_proxy_list;
-    Array<DrawCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
-    Array<DrawCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
+
+    DrawCallCollectionPool pool;                               // pool of draw call collections for this view
+    Array<DrawCallCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
+    Array<DrawCallCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
+
+    uint32 frames_since_write : 4; // frames_since_write of this view in the current frame, used to determine if the view is still alive if not reset to zero.
 };
 
 struct FrameData
 {
     LinkedList<ViewData> per_view_data;
-    HashMap<View*, ViewData*> per_view_data_map;
+    HashMap<View*, ViewData*> views;
 
-    Array<DrawCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
-    Array<DrawCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
+    // FixedArray<ViewData*, max_views_per_frame> views;
+    // uint32 view_id_counter = 0;
+
+    // used to assign unique view IDs
+    Array<DrawCallCollectionAllocation*> allocation_ptrs;      // for bookkeeping purposes
+    Array<DrawCallCollectionAllocation*> prev_allocation_ptrs; // for bookkeeping purposes
 };
 
 static FrameData g_frame_data[num_frames];
@@ -101,7 +111,7 @@ HYP_API uint32 GetGameThreadFrameIndex()
     return g_producer_index.load(std::memory_order_relaxed);
 }
 
-HYP_API RenderProxyList& AcquireRenderProxyList(View* view)
+HYP_API RenderProxyList& GetProducerRenderProxyList(View* view)
 {
     HYP_SCOPE;
 
@@ -109,46 +119,89 @@ HYP_API RenderProxyList& AcquireRenderProxyList(View* view)
 
     uint32_t slot = g_producer_index.load(std::memory_order_relaxed);
 
-    ViewData*& vd = g_frame_data[slot].per_view_data_map[view];
+    ViewData*& vd = g_frame_data[slot].views[view];
+
     if (!vd)
     {
         // create a new pool for this view
         vd = &g_frame_data[slot].per_view_data.EmplaceBack();
     }
 
-    uint32 idx;
+    // reset the frames_since_write counter
+    vd->frames_since_write = 0;
 
-    DrawCollectionAllocation* allocation;
-    idx = vd->pool.AcquireIndex(&allocation);
+    return vd->render_proxy_list;
+}
 
-    if (idx == ~0u)
+HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
+{
+    HYP_SCOPE;
+
+    AssertDebug(view != nullptr);
+
+    uint32_t slot = g_consumer_index.load(std::memory_order_relaxed);
+
+    ViewData*& vd = g_frame_data[slot].views[view];
+
+    if (!vd)
     {
-        HYP_FAIL("Failed to acquire draw collection!");
+        // create a new pool for this view
+        vd = &g_frame_data[slot].per_view_data.EmplaceBack();
     }
 
-    RenderProxyList* render_proxy_list;
+    return vd->render_proxy_list;
+}
 
-    if (allocation->alive_frames != 0)
-    {
-        DebugLog(LogType::Debug, "Reusing draw collection index %u from frame %u\n", allocation->index, allocation->index);
+HYP_API DrawCallCollection* AllocateDrawCallCollection(View* view)
+{
+    HYP_SCOPE;
 
-        // reuse the existing instance
-        render_proxy_list = allocation->storage.GetPointer();
-    }
-    else
-    {
-        allocation->index = idx;
-        allocation->alive_frames = 1;
-        allocation->pool = &vd->pool;
+    HYP_NOT_IMPLEMENTED();
 
-        DebugLog(LogType::Debug, "Constructing draw collection index %u from frame %u\n", allocation->index, allocation->index);
+    // AssertDebug(view != nullptr);
 
-        render_proxy_list = allocation->storage.Construct();
-    }
+    // uint32_t slot = g_producer_index.load(std::memory_order_relaxed);
 
-    g_frame_data[slot].allocation_ptrs.PushBack(allocation);
+    // ViewData*& vd = g_frame_data[slot].views[view];
 
-    return *render_proxy_list;
+    // if (!vd)
+    // {
+    //     // create a new pool for this view
+    //     vd = &g_frame_data[slot].per_view_data.EmplaceBack();
+    // }
+
+    // uint32 idx;
+
+    // DrawCallCollectionAllocation* allocation;
+    // idx = vd->pool.AcquireIndex(&allocation);
+
+    // if (idx == ~0u)
+    // {
+    //     HYP_FAIL("Failed to acquire draw collection!");
+    // }
+
+    // DrawCallCollection* collection;
+
+    // if (allocation->alive_frames != 0)
+    // {
+    //     DebugLog(LogType::Debug, "Reusing draw call collection index %u from frame %u\n", allocation->index, allocation->index);
+
+    //     // reuse the existing instance
+    //     collection = allocation->storage.GetPointer();
+    // }
+    // else
+    // {
+    //     allocation->index = idx;
+    //     allocation->alive_frames = 1;
+
+    //     DebugLog(LogType::Debug, "Constructing draw call collection index %u from frame %u\n", allocation->index, allocation->index);
+
+    //     collection = allocation->storage.Construct();
+    // }
+
+    // g_frame_data[slot].allocation_ptrs.PushBack(allocation);
+
+    // return collection;
 }
 
 HYP_API void BeginFrame_GameThread()
@@ -197,20 +250,58 @@ HYP_API void EndFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
-    for (ViewData& vd : frame_data.per_view_data)
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End();)
     {
+        ViewData& vd = *it;
+
+        // Clear out data for views that haven't been written to for a while
+        if (vd.frames_since_write == 15)
+        {
+            DebugLog(LogType::Debug, "Clearing draw collection for view %p in frame %u\n", &vd.render_proxy_list, slot);
+
+            // clear the draw collection for this view
+            for (auto alloc_it = vd.allocation_ptrs.Begin(); alloc_it != vd.allocation_ptrs.End(); ++alloc_it)
+            {
+                DrawCallCollectionAllocation* allocation = *alloc_it;
+
+                DebugLog(LogType::Debug, "Releasing draw collection index %u from frame %u\n", allocation->index, slot);
+
+                allocation->storage.Destruct();
+                allocation->alive_frames = 0;
+
+                vd.pool.ReleaseIndex(allocation->index);
+            }
+
+            vd.allocation_ptrs.Clear();
+            vd.prev_allocation_ptrs.Clear();
+
+            auto view_it = frame_data.views.FindIf([&vd](const auto& pair)
+                {
+                    return pair.second == &vd;
+                });
+
+            AssertDebug(view_it != frame_data.views.End());
+
+            frame_data.views.Erase(view_it);
+
+            it = frame_data.per_view_data.Erase(it);
+
+            continue;
+        }
+
         vd.pool.ClearUsedIndices();
 
-        for (auto it = vd.allocation_ptrs.Begin(); it != vd.allocation_ptrs.End(); ++it)
+        for (DrawCallCollectionAllocation* allocation : vd.allocation_ptrs)
         {
-            DrawCollectionAllocation* allocation = *it;
+            AssertDebug(allocation->alive_frames > 0);
 
+            // Decrease the alive frames for all allocations
             --allocation->alive_frames;
         }
 
-        for (auto it = vd.prev_allocation_ptrs.Begin(); it != vd.prev_allocation_ptrs.End();)
+        for (auto alloc_it = vd.prev_allocation_ptrs.Begin(); alloc_it != vd.prev_allocation_ptrs.End();)
         {
-            DrawCollectionAllocation* allocation = *it;
+            DrawCallCollectionAllocation* allocation = *alloc_it;
 
             ++allocation->alive_frames;
 
@@ -223,16 +314,20 @@ HYP_API void EndFrame_RenderThread()
 
                 vd.pool.ReleaseIndex(allocation->index);
 
-                it = vd.prev_allocation_ptrs.Erase(it);
+                alloc_it = vd.prev_allocation_ptrs.Erase(alloc_it);
             }
             else
             {
-                ++it;
+                ++alloc_it;
             }
         }
 
         vd.prev_allocation_ptrs.Clear();
         std::swap(vd.allocation_ptrs, vd.prev_allocation_ptrs);
+
+        ++vd.frames_since_write;
+
+        ++it;
     }
 
     /// @TODO Some heuristic for clearing allocations that weren't active for a few frames

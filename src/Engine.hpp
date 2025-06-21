@@ -88,12 +88,6 @@ public:
         m_app_context = app_context;
     }
 
-    // Temporary stopgap
-    HYP_DEPRECATED HYP_FORCE_INLINE RenderView* GetCurrentView() const
-    {
-        return m_view;
-    }
-
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetWorld() const
     {
@@ -195,8 +189,6 @@ private:
     ShaderCompiler m_shader_compiler;
 
     UniquePtr<MaterialDescriptorSetManager> m_material_descriptor_set_manager;
-
-    RenderView* m_view; // temporary; to be removed after refactoring
 
     Handle<World> m_world;
 

@@ -194,11 +194,16 @@ private:
 class BeginFramebuffer final : public RHICommandBase
 {
 public:
+#ifdef HYP_DEBUG_MODE
+    HYP_API BeginFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index);
+    HYP_API virtual void Prepare(FrameBase* frame) override;
+#else
     BeginFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index)
         : m_framebuffer(framebuffer),
           m_frame_index(frame_index)
     {
     }
+#endif
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {
@@ -213,11 +218,16 @@ private:
 class EndFramebuffer final : public RHICommandBase
 {
 public:
+#ifdef HYP_DEBUG_MODE
+    HYP_API EndFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index);
+    HYP_API virtual void Prepare(FrameBase* frame) override;
+#else
     EndFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index)
         : m_framebuffer(framebuffer),
           m_frame_index(frame_index)
     {
     }
+#endif
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {
@@ -232,7 +242,7 @@ private:
 class BindGraphicsPipeline final : public RHICommandBase
 {
 public:
-    BindGraphicsPipeline(const GraphicsPipelineRef& pipeline, Vec2i viewport_offset, Vec2i viewport_extent)
+    BindGraphicsPipeline(const GraphicsPipelineRef& pipeline, Vec2i viewport_offset, Vec2u viewport_extent)
         : m_pipeline(pipeline),
           m_viewport_offset(viewport_offset),
           m_viewport_extent(viewport_extent)
@@ -246,7 +256,7 @@ public:
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {
-        if (m_viewport_offset != Vec2i(0, 0) || m_viewport_extent != Vec2i(0, 0))
+        if (m_viewport_offset != Vec2i(0, 0) || m_viewport_extent != Vec2u(0, 0))
         {
             m_pipeline->Bind(cmd, m_viewport_offset, m_viewport_extent);
         }
@@ -259,7 +269,7 @@ public:
 private:
     GraphicsPipelineRef m_pipeline;
     Vec2i m_viewport_offset;
-    Vec2i m_viewport_extent;
+    Vec2u m_viewport_extent;
 };
 
 class BindComputePipeline final : public RHICommandBase

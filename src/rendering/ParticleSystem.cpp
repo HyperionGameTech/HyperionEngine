@@ -256,8 +256,8 @@ void ParticleSpawner::CreateRenderGroup()
         descriptor_table,
         RenderGroupFlags::NONE);
 
-    // @FIXME: needs to be per view!
-    m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer());
+    // // @FIXME: needs to be per view!
+    // m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }

@@ -331,20 +331,18 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     {
         new_render_setup.env_probe = this;
 
-        RenderCollector::CollectDrawCalls(
-            m_render_view->GetRenderProxyList(),
-            ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
-
         RenderCollector::ExecuteDrawCalls(
             frame,
             new_render_setup,
-            m_render_view->GetRenderProxyList(),
+            GetConsumerRenderProxyList(m_render_view->GetView()),
             ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
 
         new_render_setup.env_probe = nullptr;
     }
 
-    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_env_probe->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertDebug(framebuffer.IsValid());
 
     const ImageRef& framebuffer_image = framebuffer->GetAttachment(0)->GetImage();
@@ -477,7 +475,9 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     HYPERION_ASSERT_RESULT(uniform_buffer->Create());
     uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
-    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_env_probe->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertDebug(framebuffer.IsValid());
 
     AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
@@ -569,7 +569,9 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    const FramebufferRef& framebuffer = m_env_probe->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_env_probe->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertDebug(framebuffer.IsValid());
 
     static constexpr Vec2u sh_num_samples = { 16, 16 };

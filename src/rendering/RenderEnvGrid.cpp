@@ -400,7 +400,10 @@ void RenderEnvGrid::CreateVoxelGridData()
         return;
     }
 
-    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
+    AssertThrowMsg(framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
 
     // Create our voxel grid texture
     m_voxel_grid_texture = CreateObject<Texture>(
@@ -426,7 +429,6 @@ void RenderEnvGrid::CreateVoxelGridData()
         m_voxel_grid_texture->GetRenderResource().GetImageView());
 
     // Create shader, descriptor sets for voxelizing probes
-    AssertThrowMsg(framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
 
     ShaderRef voxelize_probe_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { "MODE_VOXELIZE" } });
     ShaderRef offset_voxel_grid_shader = g_shader_manager->GetOrCreate(NAME("EnvProbe_VoxelizeProbe"), { { "MODE_OFFSET" } });
@@ -615,7 +617,9 @@ void RenderEnvGrid::CreateLightFieldData()
 
     AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
     const EnvGridOptions& options = m_env_grid->GetOptions();
@@ -890,14 +894,10 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = &probe->GetRenderResource();
 
-    RenderCollector::CollectDrawCalls(
-        m_render_view->GetRenderProxyList(),
-        (1u << BUCKET_OPAQUE));
-
     RenderCollector::ExecuteDrawCalls(
         frame,
         new_render_setup,
-        m_render_view->GetRenderProxyList(),
+        GetConsumerRenderProxyList(m_render_view->GetView()),
         (1u << BUCKET_OPAQUE));
 
     switch (m_env_grid->GetEnvGridType())
@@ -927,7 +927,9 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 {
     HYP_SCOPE;
 
-    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
     const EnvGridOptions& options = m_env_grid->GetOptions();
@@ -1290,7 +1292,9 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
 
 void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
 {
-    const FramebufferRef& framebuffer = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
     const EnvGridOptions& options = m_env_grid->GetOptions();

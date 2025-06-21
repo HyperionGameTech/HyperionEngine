@@ -1234,8 +1234,7 @@ void EditorSubsystem::InitViewport()
 
     if (Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
     {
-        Vec2i viewport_size = MathUtil::Max(g_engine->GetAppContext()->GetMainWindow()->GetDimensions(), Vec2i::One());
-        // Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
+        Vec2u viewport_size = MathUtil::Max(Vec2u(g_engine->GetAppContext()->GetMainWindow()->GetDimensions()), Vec2u::One());
 
         Handle<View> view = CreateObject<View>(ViewDesc {
             .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
@@ -1270,7 +1269,7 @@ void EditorSubsystem::InitViewport()
                 {
                     if (Handle<View> view = view_weak.Lock())
                     {
-                        Vec2i viewport_size = MathUtil::Max(scene_image_object->GetActualSize(), Vec2i::One());
+                        Vec2u viewport_size = MathUtil::Max(Vec2u(scene_image_object->GetActualSize()), Vec2u::One());
 
                         view->SetViewport(Viewport { .extent = viewport_size, .position = Vec2i::Zero() });
 

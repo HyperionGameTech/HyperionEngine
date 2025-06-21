@@ -9,11 +9,13 @@
 #include <core/math/Ray.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/Variant.hpp>
 
 #include <core/memory/resource/Resource.hpp>
 
 #include <rendering/RenderCollection.hpp>
 #include <rendering/backend/RendererStructs.hpp>
+#include <rendering/backend/RenderObject.hpp>
 
 #include <GameCounter.hpp>
 
@@ -32,6 +34,13 @@ class EnvGrid;
 class RenderEnvGrid;
 class EnvProbe;
 class RenderEnvProbe;
+class GBuffer;
+
+// /// ViewID is used to identify a View in a single frame. When a View is used in a frame, the global render state assigns an ID to it.
+// /// It is not persistent across frames, and should not be used to identify a View across multiple frames.
+// using ViewID = uint32;
+// constexpr ViewID invalid_view_id = ViewID(-1);
+// constexpr ViewID max_view_id = 15;
 
 enum class ViewFlags : uint32
 {
@@ -83,6 +92,26 @@ struct ViewDesc
     Optional<RenderableAttributeSet> override_attributes;
 };
 
+class HYP_API ViewOutputTarget
+{
+public:
+    ViewOutputTarget();
+    ViewOutputTarget(const FramebufferRef& framebuffer);
+    ViewOutputTarget(GBuffer* gbuffer);
+    ViewOutputTarget(const ViewOutputTarget& other) = delete;
+    ViewOutputTarget& operator=(const ViewOutputTarget& other) = delete;
+    ViewOutputTarget(ViewOutputTarget&& other) noexcept = default;
+    ViewOutputTarget& operator=(ViewOutputTarget&& other) noexcept = default;
+    ~ViewOutputTarget() = default;
+
+    GBuffer* GetGBuffer() const;
+    const FramebufferRef& GetFramebuffer() const;
+    const FramebufferRef& GetFramebuffer(Bucket bucket) const;
+
+private:
+    Variant<FramebufferRef, GBuffer*> m_impl;
+};
+
 HYP_CLASS()
 class HYP_API View final : public HypObject<View>
 {
@@ -104,6 +133,11 @@ public:
     HYP_FORCE_INLINE RenderView& GetRenderResource() const
     {
         return *m_render_resource;
+    }
+
+    HYP_FORCE_INLINE const ViewDesc& GetViewDesc() const
+    {
+        return m_view_desc;
     }
 
     HYP_FORCE_INLINE EnumFlags<ViewFlags> GetFlags() const
@@ -129,7 +163,7 @@ public:
         return m_camera;
     }
 
-    HYP_FORCE_INLINE const FramebufferRef& GetOutputTarget() const
+    HYP_FORCE_INLINE const ViewOutputTarget& GetOutputTarget() const
     {
         return m_output_target;
     }
@@ -173,11 +207,13 @@ protected:
     void CollectEnvGrids();
     void CollectEnvProbes();
 
-    typename RenderProxyTracker::Diff CollectEntities();
+    typename RenderProxyTracker::Diff CollectEntities(RenderProxyList& rpl);
 
-    typename RenderProxyTracker::Diff CollectAllEntities();
-    typename RenderProxyTracker::Diff CollectDynamicEntities();
-    typename RenderProxyTracker::Diff CollectStaticEntities();
+    typename RenderProxyTracker::Diff CollectAllEntities(RenderProxyList& rpl);
+    typename RenderProxyTracker::Diff CollectDynamicEntities(RenderProxyList& rpl);
+    typename RenderProxyTracker::Diff CollectStaticEntities(RenderProxyList& rpl);
+
+    ViewDesc m_view_desc;
 
     RenderView* m_render_resource;
 
@@ -187,7 +223,9 @@ protected:
 
     Array<Handle<Scene>> m_scenes;
     Handle<Camera> m_camera;
-    FramebufferRef m_output_target;
+    ViewOutputTarget m_output_target;
+
+    // ViewID m_view_id; // unique ID for this view in the current frame
 
     int m_priority;
 
@@ -202,8 +240,6 @@ protected:
     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
-
-    RenderProxyList m_render_proxy_list;
 };
 
 } // namespace hyperion

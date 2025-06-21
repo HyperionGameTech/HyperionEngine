@@ -71,10 +71,10 @@ void RenderEnvironment::Initialize()
     m_gaussian_splatting = CreateObject<GaussianSplatting>();
     InitObject(m_gaussian_splatting);
 
-    // @TODO Move to RenderView
-    m_rt_radiance = MakeUnique<RTRadianceRenderer>(
-        RTRadianceConfig::FromConfig(),
-        g_engine->GetCurrentView()->GetGBuffer());
+    /// FIXME: GetCurrentView() should not be used here
+    // m_rt_radiance = MakeUnique<RTRadianceRenderer>(
+    //     RTRadianceConfig::FromConfig(),
+    //     g_engine->GetCurrentView()->GetGBuffer());
 
     if (g_rendering_api->GetRenderConfig().IsRaytracingSupported()
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())

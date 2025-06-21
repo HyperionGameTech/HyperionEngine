@@ -22,6 +22,7 @@ class PlaceholderData;
 class RenderProxyList;
 class RenderView;
 class View;
+class DrawCallCollection;
 
 HYP_API extern uint32 GetRenderThreadFrameIndex();
 HYP_API extern uint32 GetGameThreadFrameIndex();
@@ -33,7 +34,10 @@ HYP_API extern void BeginFrame_RenderThread();
 HYP_API extern void EndFrame_RenderThread();
 
 // Acquire a draw collection for the game thread to write to for a certain view
-HYP_API extern RenderProxyList& AcquireRenderProxyList(View* view);
+HYP_API extern RenderProxyList& GetProducerRenderProxyList(View* view);
+HYP_API extern RenderProxyList& GetConsumerRenderProxyList(View* view);
+
+HYP_API extern DrawCallCollection* AllocateDrawCallCollection(View* view);
 
 class RenderGlobalState
 {

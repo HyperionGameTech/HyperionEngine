@@ -142,10 +142,7 @@ public:
         return m_final_pass_descriptor_set;
     }
 
-    HYP_FORCE_INLINE GBuffer* GetGBuffer() const
-    {
-        return m_gbuffer.Get();
-    }
+    GBuffer* GetGBuffer() const;
 
     HYP_FORCE_INLINE ReflectionsPass* GetReflectionsPass() const
     {
@@ -196,18 +193,6 @@ public:
     HYP_FORCE_INLINE const RenderCollector& GetRenderCollector() const
     {
         return m_render_collector;
-    }
-
-    // Temp
-    HYP_FORCE_INLINE RenderProxyList& GetRenderProxyList()
-    {
-        return m_render_proxy_list;
-    }
-
-    // Temp
-    HYP_FORCE_INLINE const RenderProxyList& GetRenderProxyList() const
-    {
-        return m_render_proxy_list;
     }
 
     HYP_FORCE_INLINE const CullData& GetCullData() const
@@ -268,8 +253,6 @@ protected:
 
     Array<Array<RenderEnvProbe*>> m_env_probes;
     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
-
-    UniquePtr<GBuffer> m_gbuffer;
 
     UniquePtr<DeferredPass> m_indirect_pass;
     UniquePtr<DeferredPass> m_direct_pass;

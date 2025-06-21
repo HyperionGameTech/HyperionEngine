@@ -61,7 +61,7 @@ public:
     HYP_API virtual RendererResult Destroy() override;
 
     HYP_API virtual void Bind(CommandBufferBase* cmd) override;
-    HYP_API virtual void Bind(CommandBufferBase* cmd, Vec2i viewport_offset, Vec2i viewport_extent) override;
+    HYP_API virtual void Bind(CommandBufferBase* cmd, Vec2i viewport_offset, Vec2u viewport_extent) override;
 
     HYP_API virtual bool MatchesSignature(
         const ShaderBase* shader,

@@ -293,12 +293,6 @@ HYP_API void Engine::Init()
 
     m_debug_drawer = MakeUnique<DebugDrawer>();
 
-    m_view = AllocateResource<RenderView>(nullptr);
-    m_view->SetViewport(Viewport {
-        .extent = m_app_context->GetMainWindow()->GetDimensions(),
-        .position = Vec2i::Zero() });
-    m_view->IncRef();
-
     m_world = CreateObject<World>();
 
     SetReady(true);
@@ -410,10 +404,6 @@ void Engine::FinalizeStop()
     m_graphics_pipeline_cache.Reset();
 
     m_material_descriptor_set_manager.Reset();
-
-    m_view->DecRef();
-    FreeResource(m_view);
-    m_view = nullptr;
 
     m_debug_drawer.Reset();
 

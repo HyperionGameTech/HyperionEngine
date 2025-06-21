@@ -859,17 +859,17 @@ struct ImageSubResource
 
 struct Viewport
 {
-    Vec2i extent;
+    Vec2u extent;
     Vec2i position;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return position != Vec2i::Zero() || extent != Vec2i::Zero();
+        return position != Vec2i::Zero() || extent != Vec2u::Zero();
     }
 
     HYP_FORCE_INLINE bool operator!() const
     {
-        return position == Vec2i::Zero() && extent == Vec2i::Zero();
+        return position == Vec2i::Zero() && extent == Vec2u::Zero();
     }
 
     HYP_FORCE_INLINE bool operator==(const Viewport& other) const

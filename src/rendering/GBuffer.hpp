@@ -106,7 +106,7 @@ public:
     GBuffer& operator=(const GBuffer& other) = delete;
     GBuffer(GBuffer&& other) noexcept = delete;
     GBuffer& operator=(GBuffer&& other) noexcept = delete;
-    ~GBuffer() = default;
+    ~GBuffer();
 
     HYP_FORCE_INLINE GBufferBucket& GetBucket(Bucket bucket)
     {
@@ -124,13 +124,13 @@ public:
     }
 
     void Create();
-    void Destroy();
 
     void Resize(Vec2u resolution);
 
     Delegate<void, Vec2u> OnGBufferResolutionChanged;
 
 private:
+    void CreateBucketFramebuffers();
     FramebufferRef CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, Bucket bucket);
 
     FixedArray<GBufferBucket, uint32(Bucket::BUCKET_MAX) - 1> m_buckets;

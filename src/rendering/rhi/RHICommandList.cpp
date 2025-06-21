@@ -88,4 +88,43 @@ void BindDescriptorTable::Prepare(FrameBase* frame)
 
 #pragma endregion BindDescriptorTable
 
+#pragma region BeginFramebuffer
+
+#ifdef HYP_DEBUG_MODE
+static bool g_is_in_framebuffer = false;
+
+BeginFramebuffer::BeginFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index)
+    : m_framebuffer(framebuffer),
+      m_frame_index(frame_index)
+{
+    AssertThrowMsg(!g_is_in_framebuffer, "Cannot begin framebuffer: already in a framebuffer");
+    g_is_in_framebuffer = true;
+}
+
+void BeginFramebuffer::Prepare(FrameBase* frame)
+{
+}
+#endif
+
+#pragma endregion BeginFramebuffer
+
+#pragma region EndFramebuffer
+
+#ifdef HYP_DEBUG_MODE
+
+EndFramebuffer::EndFramebuffer(const FramebufferRef& framebuffer, uint32 frame_index)
+    : m_framebuffer(framebuffer),
+      m_frame_index(frame_index)
+{
+    AssertThrowMsg(g_is_in_framebuffer, "Cannot end framebuffer: not in a framebuffer");
+    g_is_in_framebuffer = false;
+}
+
+void EndFramebuffer::Prepare(FrameBase* frame)
+{
+}
+#endif
+
+#pragma endregion EndFramebuffer
+
 } // namespace hyperion

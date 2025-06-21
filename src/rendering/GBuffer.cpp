@@ -43,7 +43,6 @@ const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resourc
 static InternalFormat GetImageFormat(GBufferResourceName resource)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
 
     InternalFormat color_format = InternalFormat::NONE;
 
@@ -83,12 +82,65 @@ GBuffer::GBuffer(Vec2u extent)
         m_buckets[bucket_index].SetGBuffer(this);
         m_buckets[bucket_index].SetBucket(bucket);
     }
+
+    CreateBucketFramebuffers();
+}
+
+GBuffer::~GBuffer()
+{
+    for (GBufferBucket& it : m_buckets)
+    {
+        it.SetFramebuffer(nullptr);
+    }
+
+    SafeRelease(std::move(m_framebuffers));
 }
 
 void GBuffer::Create()
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
+
+    HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
+
+    for (auto& framebuffer : m_framebuffers)
+    {
+        DeferCreate(framebuffer);
+    }
+}
+
+void GBuffer::Resize(Vec2u extent)
+{
+    HYP_SCOPE;
+
+    if (m_extent == extent)
+    {
+        return;
+    }
+
+    m_extent = extent;
+
+    for (GBufferBucket& it : m_buckets)
+    {
+        it.SetFramebuffer(nullptr);
+    }
+
+    SafeRelease(std::move(m_framebuffers));
+
+    CreateBucketFramebuffers();
+
+    for (auto& framebuffer : m_framebuffers)
+    {
+        DeferCreate(framebuffer);
+    }
+
+    OnGBufferResolutionChanged(m_extent);
+}
+
+void GBuffer::CreateBucketFramebuffers()
+{
+    HYP_SCOPE;
+
+    AssertThrow(m_framebuffers.Empty());
 
     for (GBufferBucket& it : m_buckets)
     {
@@ -120,41 +172,9 @@ void GBuffer::Create()
     }
 }
 
-void GBuffer::Destroy()
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    for (GBufferBucket& it : m_buckets)
-    {
-        it.SetFramebuffer(nullptr);
-    }
-
-    SafeRelease(std::move(m_framebuffers));
-}
-
-void GBuffer::Resize(Vec2u extent)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    if (m_extent == extent)
-    {
-        return;
-    }
-
-    m_extent = extent;
-
-    Destroy();
-    Create();
-
-    OnGBufferResolutionChanged(m_extent);
-}
-
 FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, Bucket bucket)
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(resolution.Volume() != 0);
 
@@ -171,12 +191,9 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
         texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
         texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
 
-        ImageRef attachment_image = g_rendering_api->MakeImage(texture_desc);
-        DeferCreate(attachment_image);
-
         framebuffer->AddAttachment(
             binding,
-            attachment_image,
+            g_rendering_api->MakeImage(texture_desc),
             renderer::LoadOperation::CLEAR,
             renderer::StoreOperation::STORE);
     };
@@ -235,8 +252,6 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
         }
     }
 
-    DeferCreate(framebuffer);
-
     m_framebuffers.PushBack(framebuffer);
 
     return framebuffer;
@@ -257,7 +272,6 @@ GBuffer::GBufferBucket::~GBufferBucket()
 AttachmentBase* GBuffer::GBufferBucket::GetGBufferAttachment(GBufferResourceName resource_name) const
 {
     HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
 
     AssertThrow(m_framebuffer != nullptr);
     AssertThrow(uint32(resource_name) < uint32(GBUFFER_RESOURCE_MAX));

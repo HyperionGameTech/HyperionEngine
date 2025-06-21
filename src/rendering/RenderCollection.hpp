@@ -99,7 +99,16 @@ struct HYP_API RenderProxyList
     void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
 
+    /*! \brief Counts the number of render groups in the list. */
     uint32 NumRenderGroups() const;
+
+    /*! \brief Counts the total number of render proxies in all render groups.
+     *  really only useful for debugging purposes. */
+    uint32 NumRenderProxies() const;
+
+    /*! \brief Creates RenderGroups and adds/removes RenderProxies based on the renderable attributes of the render proxies.
+     *  If override_attributes is provided, it will be used instead of the renderable attributes of the render proxies. */
+    void BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes = nullptr);
 
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
@@ -108,6 +117,10 @@ struct HYP_API RenderProxyList
     RenderProxyTracker render_proxy_tracker;
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;
+
+#ifdef HYP_ENABLE_MT_CHECK
+    HYP_DECLARE_MT_CHECK(data_race_detector);
+#endif
 };
 
 class RenderCollector

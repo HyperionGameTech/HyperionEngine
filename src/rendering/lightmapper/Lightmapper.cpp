@@ -1120,7 +1120,7 @@ LightmapJob::LightmapJob(LightmapJobParams&& params)
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_GRIDS
             | ViewFlags::SKIP_LIGHTMAP_VOLUMES,
-        .viewport = Viewport { .extent = Vec2i::One(), .position = Vec2i::Zero() },
+        .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
         .scenes = { m_params.scene },
         .camera = camera });
 

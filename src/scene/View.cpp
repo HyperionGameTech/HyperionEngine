@@ -25,6 +25,7 @@
 #include <rendering/RenderCamera.hpp>
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/GBuffer.hpp>
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 #include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
@@ -38,7 +39,64 @@
 #include <Engine.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK
+#define HYP_VISIBILITY_CHECK_DEBUG
+
 namespace hyperion {
+
+#pragma region ViewOutputTarget
+
+ViewOutputTarget::ViewOutputTarget()
+    : m_impl(FramebufferRef::Null())
+{
+}
+
+ViewOutputTarget::ViewOutputTarget(const FramebufferRef& framebuffer)
+    : m_impl(framebuffer)
+{
+}
+
+ViewOutputTarget::ViewOutputTarget(GBuffer* gbuffer)
+    : m_impl(gbuffer)
+{
+    AssertThrow(gbuffer != nullptr);
+}
+
+GBuffer* ViewOutputTarget::GetGBuffer() const
+{
+    GBuffer* const* ptr = m_impl.TryGet<GBuffer*>();
+
+    return ptr ? *ptr : nullptr;
+}
+
+const FramebufferRef& ViewOutputTarget::GetFramebuffer() const
+{
+    if (FramebufferRef const* framebuffer = m_impl.TryGet<FramebufferRef>())
+    {
+        AssertDebug(framebuffer->IsValid());
+
+        return *framebuffer;
+    }
+    else if (GBuffer* const* gbuffer = m_impl.TryGet<GBuffer*>())
+    {
+        AssertDebug(*gbuffer != nullptr);
+
+        return (*gbuffer)->GetBucket(BUCKET_OPAQUE).GetFramebuffer();
+    }
+
+    return FramebufferRef::Null();
+}
+
+const FramebufferRef& ViewOutputTarget::GetFramebuffer(Bucket bucket) const
+{
+    if (m_impl.Is<GBuffer*>())
+    {
+        return m_impl.Get<GBuffer*>()->GetBucket(bucket).GetFramebuffer();
+    }
+
+    return m_impl.Get<FramebufferRef>();
+}
+
+#pragma endregion ViewOutputTarget
 
 #pragma region View
 
@@ -49,6 +107,7 @@ View::View()
 
 View::View(const ViewDesc& view_desc)
     : m_render_resource(nullptr),
+      m_view_desc(view_desc),
       m_flags(view_desc.flags),
       m_viewport(view_desc.viewport),
       m_scenes(view_desc.scenes),
@@ -56,31 +115,21 @@ View::View(const ViewDesc& view_desc)
       m_priority(view_desc.priority),
       m_override_attributes(view_desc.override_attributes)
 {
-    if (view_desc.output_target_desc.attachments.Any())
-    {
-        m_output_target = g_rendering_api->MakeFramebuffer(view_desc.output_target_desc.extent, view_desc.output_target_desc.num_views);
-
-        for (uint32 attachment_index = 0; attachment_index < view_desc.output_target_desc.attachments.Size(); ++attachment_index)
-        {
-            const ViewOutputTargetAttachmentDesc& attachment_desc = view_desc.output_target_desc.attachments[attachment_index];
-
-            AttachmentRef attachment = m_output_target->AddAttachment(
-                attachment_index,
-                attachment_desc.format,
-                attachment_desc.image_type,
-                attachment_desc.load_op,
-                attachment_desc.store_op);
-
-            attachment->SetClearColor(attachment_desc.clear_color);
-        }
-    }
 }
 
 View::~View()
 {
-    if (m_output_target)
+    if (GBuffer* gbuffer = m_output_target.GetGBuffer())
     {
-        SafeRelease(std::move(m_output_target));
+        delete gbuffer;
+
+        m_output_target = ViewOutputTarget();
+    }
+    else if (FramebufferRef framebuffer = m_output_target.GetFramebuffer())
+    {
+        m_output_target = ViewOutputTarget();
+
+        SafeRelease(std::move(framebuffer));
     }
 
     if (m_render_resource)
@@ -96,6 +145,11 @@ void View::Init()
         {
             if (m_render_resource)
             {
+                if (m_flags & ViewFlags::GBUFFER)
+                {
+                    m_render_resource->DecRef();
+                }
+
                 FreeResource(m_render_resource);
                 m_render_resource = nullptr;
             }
@@ -104,7 +158,35 @@ void View::Init()
     AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with ID #%u", GetID().Value());
     InitObject(m_camera);
 
-    DeferCreate(m_output_target);
+    if (m_view_desc.flags & ViewFlags::GBUFFER)
+    {
+        AssertDebugMsg(m_view_desc.output_target_desc.attachments.Empty(),
+            "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
+
+        m_output_target = ViewOutputTarget(new GBuffer(Vec2u(m_viewport.extent)));
+    }
+    else if (m_view_desc.output_target_desc.attachments.Any())
+    {
+        FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(m_view_desc.output_target_desc.extent, m_view_desc.output_target_desc.num_views);
+
+        for (uint32 attachment_index = 0; attachment_index < m_view_desc.output_target_desc.attachments.Size(); ++attachment_index)
+        {
+            const ViewOutputTargetAttachmentDesc& attachment_desc = m_view_desc.output_target_desc.attachments[attachment_index];
+
+            AttachmentRef attachment = framebuffer->AddAttachment(
+                attachment_index,
+                attachment_desc.format,
+                attachment_desc.image_type,
+                attachment_desc.load_op,
+                attachment_desc.store_op);
+
+            attachment->SetClearColor(attachment_desc.clear_color);
+        }
+
+        DeferCreate(framebuffer);
+
+        m_output_target = ViewOutputTarget(framebuffer);
+    }
 
     Array<TResourceHandle<RenderScene>> render_scenes;
     render_scenes.Reserve(m_scenes.Size());
@@ -169,15 +251,28 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+    // temp test
+    RenderProxyList& rpl = GetProducerRenderProxyList(this);
+
     CollectLights();
     CollectLightmapVolumes();
     CollectEnvGrids();
     CollectEnvProbes();
-    m_last_collection_result = CollectEntities();
 
-    // temp test
-    // RenderProxyList& render_proxy_list = AcquireDrawCollection();
-    // HYP_LOG(Scene, Debug, "Acquired draw collection : {} \t count (rgs): {} ", (void*)&render_proxy_list, render_proxy_list.NumRenderGroups());
+    m_last_collection_result = CollectEntities(rpl);
+
+    /// temp
+    constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
+        | (1 << BUCKET_LIGHTMAP)
+        | (1 << BUCKET_SKYBOX)
+        | (1 << BUCKET_TRANSLUCENT)
+        | (1 << BUCKET_DEBUG);
+
+    rpl.BuildRenderGroups(m_render_resource, m_override_attributes.TryGet());
+
+    RenderCollector::CollectDrawCalls(rpl, bucket_mask);
+
+    HYP_LOG(Scene, Debug, "Acquired proxy list : {} \t total count : {}", (void*)&rpl, rpl.NumRenderProxies());
 
     // constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
     //     | (1 << BUCKET_LIGHTMAP)
@@ -257,29 +352,30 @@ void View::RemoveScene(const Handle<Scene>& scene)
     m_scenes.Erase(scene);
 }
 
-typename RenderProxyTracker::Diff View::CollectEntities()
+typename RenderProxyTracker::Diff View::CollectEntities(RenderProxyList& rpl)
 {
     AssertReady();
 
-    switch (uint32(m_flags & ViewFlags::COLLECT_ALL_ENTITIES))
-    {
-    case uint32(ViewFlags::COLLECT_ALL_ENTITIES):
-        return CollectAllEntities();
-    case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
-        return CollectDynamicEntities();
-    case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
-        return CollectStaticEntities();
-    default:
-        HYP_UNREACHABLE();
-    }
+    // switch (uint32(m_flags & ViewFlags::COLLECT_ALL_ENTITIES))
+    // {
+    // case uint32(ViewFlags::COLLECT_ALL_ENTITIES):
+    return CollectAllEntities(rpl);
+    // case uint32(ViewFlags::COLLECT_DYNAMIC_ENTITIES):
+    //     return CollectDynamicEntities(rpl);
+    // case uint32(ViewFlags::COLLECT_STATIC_ENTITIES):
+    //     return CollectStaticEntities(rpl);
+    // default:
+    //     HYP_UNREACHABLE();
+    // }
 }
 
-typename RenderProxyTracker::Diff View::CollectAllEntities()
+typename RenderProxyTracker::Diff View::CollectAllEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+#if 0
     if (!m_camera.IsValid())
     {
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
@@ -353,11 +449,86 @@ typename RenderProxyTracker::Diff View::CollectAllEntities()
 
     auto diff = m_render_resource->UpdateTrackedRenderProxies(m_render_proxy_tracker);
     m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+#else
+    if (!m_camera.IsValid())
+    {
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
 
-    return diff;
+        // auto diff = rpl.SyncTrackedProxies(m_render_proxy_tracker, m_render_resource, m_override_attributes.TryGet());
+        // m_render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+
+        return rpl.render_proxy_tracker.GetDiff();
+    }
+
+    const ID<Camera> camera_id = m_camera->GetID();
+
+    const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
+
+    for (const Handle<Scene>& scene : m_scenes)
+    {
+        AssertThrow(scene.IsValid());
+        AssertThrow(scene->IsReady());
+
+        if (scene->GetFlags() & SceneFlags::DETACHED)
+        {
+            HYP_LOG(Scene, Warning, "Scene \"{}\" has DETACHED flag set, cannot collect entities for render collector!", scene->GetName());
+
+            continue;
+        }
+
+        const VisibilityStateSnapshot visibility_state_snapshot = scene->GetOctree().GetVisibilityState().GetSnapshot(camera_id);
+
+        uint32 num_collected_entities = 0;
+        uint32 num_skipped_entities = 0;
+
+        for (auto [entity, mesh_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<MeshComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (!skip_frustum_culling && !(visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE))
+            {
+#ifndef HYP_DISABLE_VISIBILITY_CHECK
+                if (!visibility_state_component.visibility_state)
+                {
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+                    ++num_skipped_entities;
+#endif
+                    continue;
+                }
+
+                if (!visibility_state_component.visibility_state->GetSnapshot(camera_id).ValidToParent(visibility_state_snapshot))
+                {
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+                    ++num_skipped_entities;
+#endif
+
+                    continue;
+                }
+#endif
+            }
+
+            ++num_collected_entities;
+
+            AssertDebug(mesh_component.proxy != nullptr);
+
+            AssertDebug(mesh_component.proxy->entity.IsValid());
+            AssertDebug(mesh_component.proxy->mesh.IsValid());
+            AssertDebug(mesh_component.proxy->material.IsValid());
+
+            rpl.render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
+        }
+
+#ifdef HYP_VISIBILITY_CHECK_DEBUG
+        HYP_LOG(Scene, Debug, "Collected {} entities for View {}, {} skipped", num_collected_entities, GetID(), num_skipped_entities);
+#endif
+    }
+
+    // auto diff = rpl.SyncTrackedProxies(m_render_proxy_tracker, m_render_resource, m_override_attributes.TryGet());
+    return rpl.render_proxy_tracker.GetDiff();
+#endif
+
+    return {};
 }
 
-typename RenderProxyTracker::Diff View::CollectDynamicEntities()
+typename RenderProxyTracker::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -430,7 +601,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities()
     return diff;
 }
 
-typename RenderProxyTracker::Diff View::CollectStaticEntities()
+typename RenderProxyTracker::Diff View::CollectStaticEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);

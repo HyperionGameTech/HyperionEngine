@@ -149,7 +149,7 @@ void SkydomeRenderer::Update(float delta)
             env_probe->GetRenderResource().Render(frame, render_setup);
 
             // Copy cubemap from env probe to cubemap texture
-            const ImageRef& src_image = env_probe->GetView()->GetOutputTarget()->GetAttachment(0)->GetImage();
+            const ImageRef& src_image = env_probe->GetView()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImage();
 
             AssertThrow(src_image.IsValid());
             AssertThrow(src_image->IsCreated());

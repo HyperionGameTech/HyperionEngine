@@ -246,7 +246,7 @@ void EnvProbe::CreateView()
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
-        .viewport = Viewport { .extent = Vec2i(m_dimensions), .position = Vec2i::Zero() },
+        .viewport = Viewport { .extent = m_dimensions, .position = Vec2i::Zero() },
         .output_target_desc = output_target_desc,
         .scenes = {},
         .camera = m_camera,

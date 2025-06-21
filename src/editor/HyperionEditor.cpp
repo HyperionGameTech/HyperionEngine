@@ -139,12 +139,12 @@ void HyperionEditor::Init()
 
     // return;
 
-    auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
-        .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
-        .origin = Vec3f(0.0f, 6.0f, 0.0f),
-        .start_size = 0.2f,
-        .has_physics = true });
-    InitObject(test_particle_spawner);
+    // auto test_particle_spawner = CreateObject<ParticleSpawner>(ParticleSpawnerParams {
+    //     .texture = AssetManager::GetInstance()->Load<Texture>("textures/spark.png").GetValue().Result(),
+    //     .origin = Vec3f(0.0f, 6.0f, 0.0f),
+    //     .start_size = 0.2f,
+    //     .has_physics = true });
+    // InitObject(test_particle_spawner);
 
     // scene->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
 

@@ -548,7 +548,7 @@ protected:
 
     HYP_FORCE_INLINE constexpr TypeID CurrentTypeID() const
     {
-        return type_ids[m_current_index];
+        return m_current_index != invalid_type_index ? type_ids[m_current_index] : TypeID::Void();
     }
 };
 
