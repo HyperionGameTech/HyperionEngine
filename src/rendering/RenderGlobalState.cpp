@@ -118,6 +118,7 @@ HYP_API RenderProxyList& GetProducerRenderProxyList(View* view)
     {
         // create a new pool for this view
         vd = &g_frame_data[slot].per_view_data.EmplaceBack();
+        vd->render_proxy_list.state = RenderProxyList::CS_WRITING;
     }
 
     // reset the frames_since_write counter
@@ -140,6 +141,7 @@ HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
     {
         // create a new pool for this view
         vd = &g_frame_data[slot].per_view_data.EmplaceBack();
+        vd->render_proxy_list.state = RenderProxyList::CS_READING;
     }
 
     return vd->render_proxy_list;
@@ -150,7 +152,17 @@ HYP_API void BeginFrame_GameThread()
     HYP_SCOPE;
 
     g_free_semaphore.acquire();
+
     uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& frame_data = g_frame_data[slot];
+
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
+    {
+        ViewData& vd = *it;
+
+        vd.render_proxy_list.BeginWrite();
+    }
 }
 
 HYP_API void EndFrame_GameThread()
@@ -159,6 +171,17 @@ HYP_API void EndFrame_GameThread()
 #ifdef HYP_DEBUG_MODE
     Threads::AssertOnThread(g_game_thread);
 #endif
+
+    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& frame_data = g_frame_data[slot];
+
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
+    {
+        ViewData& vd = *it;
+
+        vd.render_proxy_list.EndWrite();
+    }
 
     g_producer_index.store((g_producer_index.load(std::memory_order_relaxed) + 1) % num_frames, std::memory_order_relaxed);
     g_frame_counter.fetch_add(1, std::memory_order_release); // publish the new frame #
@@ -174,6 +197,16 @@ HYP_API void BeginFrame_RenderThread()
 #endif
 
     g_full_semaphore.acquire();
+
+    uint32 slot = g_consumer_index.load(std::memory_order_relaxed);
+
+    FrameData& frame_data = g_frame_data[slot];
+
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
+    {
+        ViewData& vd = *it;
+        vd.render_proxy_list.BeginRead();
+    }
 }
 
 HYP_API void EndFrame_RenderThread()
@@ -192,7 +225,7 @@ HYP_API void EndFrame_RenderThread()
     {
         ViewData& vd = *it;
         vd.render_proxy_list.EndRead();
-        vd.render_proxy_list.RemoveEmptyProxyGroups();
+        vd.render_proxy_list.RemoveEmptyRenderGroups();
 
         // Clear out data for views that haven't been written to for a while
         if (vd.frames_since_write == max_frames_before_discard)
@@ -209,6 +242,8 @@ HYP_API void EndFrame_RenderThread()
             frame_data.views.Erase(view_it);
 
             it = frame_data.per_view_data.Erase(it);
+
+            /// TODO: Clear tracked resources - DecRef needs to be called on all resources in the render_proxy_list
 
             continue;
         }

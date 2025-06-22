@@ -53,4 +53,22 @@ extern "C"
         manager->AddComponent(entity_handle, *component_hyp_data);
     }
 
+    HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* manager, const HypClass* hyp_class, HypData* out_hyp_data)
+    {
+        AssertThrow(manager != nullptr);
+        AssertThrow(hyp_class != nullptr);
+        AssertThrow(out_hyp_data != nullptr);
+
+        Handle<Entity> entity_handle = manager->AddTypedEntity(hyp_class);
+
+        if (!entity_handle.IsValid())
+        {
+            return false;
+        }
+
+        *out_hyp_data = HypData(entity_handle);
+
+        return true;
+    }
+
 } // extern "C"

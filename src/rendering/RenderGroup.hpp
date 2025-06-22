@@ -103,18 +103,6 @@ public:
         return m_flags;
     }
 
-    void ClearProxies();
-
-    void AddRenderProxy(RenderProxy* render_proxy);
-
-    bool RemoveRenderProxy(ID<Entity> entity);
-    typename FlatMap<ID<Entity>, const RenderProxy*>::Iterator RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy*>::ConstIterator iterator);
-
-    HYP_FORCE_INLINE const FlatMap<ID<Entity>, const RenderProxy*>& GetRenderProxies() const
-    {
-        return m_render_proxies;
-    }
-
     void SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_collection_impl);
 
     HYP_FORCE_INLINE IDrawCallCollectionImpl* GetDrawCallCollectionImpl() const
@@ -146,8 +134,6 @@ private:
     RenderableAttributeSet m_renderable_attributes;
 
     Array<FramebufferRef> m_fbos;
-
-    FlatMap<ID<Entity>, const RenderProxy*> m_render_proxies;
 
     IDrawCallCollectionImpl* m_draw_call_collection_impl;
 };

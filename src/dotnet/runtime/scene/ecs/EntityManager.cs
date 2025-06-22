@@ -22,7 +22,26 @@ namespace Hyperion
         {
             HypClass hypClass = HypClass.GetClass<T>();
 
-            return InvokeNativeMethod<T>(new Name("AddTypedEntity", weak: true), new object[] { hypClass.Address });
+            unsafe
+            {
+                HypDataBuffer hypDataBuffer = new HypDataBuffer();
+
+                try
+                {
+                    if (!EntityManager_AddTypedEntity(NativeAddress, hypClass.Address, &hypDataBuffer))
+                    {
+                        throw new Exception("Failed to add entity of type " + typeof(T).Name);
+                    }
+
+                    T entity = (T)hypDataBuffer.GetValue();
+
+                    return entity;
+                }
+                finally
+                {
+                    hypDataBuffer.Dispose();
+                }
+            }
         }
 
         public bool HasComponent<T>(Entity entity) where T : struct, IComponent
@@ -90,5 +109,9 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
         private static unsafe extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, HypDataBuffer* componentHypDataPtr);
+
+        [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        private static unsafe extern bool EntityManager_AddTypedEntity(IntPtr entityManagerPtr, IntPtr hypClassAddress, [Out] HypDataBuffer* outHypDataBufferPtr);
     }
 }

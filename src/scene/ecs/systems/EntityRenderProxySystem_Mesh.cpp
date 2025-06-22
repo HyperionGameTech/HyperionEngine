@@ -169,6 +169,8 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
 
                 delete mesh_component.proxy;
                 mesh_component.proxy = nullptr;
+
+                updated_entities.Insert(entity->WeakHandleFromThis());
             }
 
             continue;

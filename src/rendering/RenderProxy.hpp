@@ -125,6 +125,8 @@ struct RenderProxy
     MeshInstanceData instance_data;
     uint32 version = 0;
 
+    ~RenderProxy() = default;
+
     void IncRefs() const;
     void DecRefs() const;
 
@@ -610,8 +612,6 @@ public:
 
                 if (it != m_element_map.End())
                 {
-                    // g_safe_deleter->SafeRelease(std::move(it->second));
-
                     m_element_map.Erase(it);
                 }
             }

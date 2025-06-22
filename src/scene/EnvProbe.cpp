@@ -64,11 +64,11 @@ struct RENDER_COMMAND(RenderPointLightShadow)
 #pragma endregion Render commands
 
 EnvProbe::EnvProbe()
-    : EnvProbe(BoundingBox::Empty(), Vec2u { 1, 1 }, EPT_INVALID)
+    : EnvProbe(EPT_INVALID, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u { 1, 1 })
 {
 }
 
-EnvProbe::EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeType env_probe_type)
+EnvProbe::EnvProbe(EnvProbeType env_probe_type, const BoundingBox& aabb, const Vec2u& dimensions)
     : m_aabb(aabb),
       m_dimensions(dimensions),
       m_env_probe_type(env_probe_type),

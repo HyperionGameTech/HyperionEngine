@@ -390,6 +390,9 @@ public:
         AddExistingEntity_Internal(entity);
     }
 
+    HYP_METHOD()
+    Handle<Entity> AddTypedEntity(const HypClass* hyp_class);
+
     /*! \brief Moves an entity from one EntityManager to another.
      *  This is useful for moving entities between scenes.
      *  All components will be moved to the other EntityManager.
@@ -980,9 +983,6 @@ private:
 
     HYP_METHOD()
     Handle<Entity> AddBasicEntity();
-
-    HYP_METHOD()
-    Handle<Entity> AddTypedEntity(const HypClass* hyp_class);
 
     void AddExistingEntity_Internal(const Handle<Entity>& entity);
 

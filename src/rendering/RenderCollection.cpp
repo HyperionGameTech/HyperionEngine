@@ -145,6 +145,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
+HYP_ENABLE_OPTIMIZATION;
 static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
@@ -200,10 +201,21 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
         InitObject(rg);
     }
 
-    rg->AddRenderProxy(proxy);
-}
+    AssertDebug(!render_proxy_list->render_proxies.Contains(proxy));
+    render_proxy_list->render_proxies.PushBack(proxy);
 
-static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, RenderBucket rb)
+    auto insert_result = mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
+    volatile void* ptr = insert_result.first->second; // for debugging purposes
+    AssertDebugMsg(insert_result.second,
+        "RenderProxyList::AddRenderProxy: Render proxy already exists in mapping for entity #%u : render proxy entity: %u\t address: %p",
+        proxy->entity.GetID().Value(),
+        insert_result.first->second->entity.GetID().Value(),
+        ptr);
+    ptr = 0; // prevent optimization from removing the volatile pointer
+}
+HYP_ENABLE_OPTIMIZATION;
+
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -212,12 +224,24 @@ static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTra
     auto it = mappings.Find(attributes);
     AssertThrow(it != mappings.End());
 
-    const DrawCallCollectionMapping& mapping = it->second;
+    DrawCallCollectionMapping& mapping = it->second;
     AssertThrow(mapping.IsValid());
 
-    const bool removed = mapping.render_group->RemoveRenderProxy(entity);
+    auto proxy_iter = mapping.render_proxies.Find(proxy->entity.GetID());
 
-    return removed;
+    if (proxy_iter == mapping.render_proxies.End())
+    {
+        HYP_LOG(Rendering, Warning, "RenderProxyList::RemoveRenderProxy: Render proxy not found in mapping for entity #%u", proxy->entity.GetID().Value());
+        return false;
+    }
+
+    auto rp_it = render_proxy_list->render_proxies.Find(proxy_iter->second);
+    AssertDebug(rp_it != render_proxy_list->render_proxies.End());
+
+    render_proxy_list->render_proxies.Erase(rp_it);
+    mapping.render_proxies.Erase(proxy_iter);
+
+    return true;
 }
 
 RenderProxyList::RenderProxyList()
@@ -253,10 +277,23 @@ RenderProxyList::~RenderProxyList()
         }
     }
 
-    ClearProxyGroups();
+    Clear();
+
+#define DO_FINALIZATION_CHECK(tracker)                                                                                                    \
+    AssertThrowMsg(tracker.GetCurrentBits().Count() == 0,                                                                                 \
+        HYP_STR(tracker) " still has %u bits set. This means that there are still render proxies that have not been removed or cleared.", \
+        tracker.GetCurrentBits().Count())
+
+    DO_FINALIZATION_CHECK(render_proxy_tracker);
+    DO_FINALIZATION_CHECK(tracked_lights);
+    DO_FINALIZATION_CHECK(tracked_lightmap_volumes);
+    DO_FINALIZATION_CHECK(tracked_env_grids);
+    DO_FINALIZATION_CHECK(tracked_env_probes);
+
+#undef DO_FINALIZATION_CHECK
 }
 
-void RenderProxyList::ClearProxyGroups()
+void RenderProxyList::Clear()
 {
     HYP_SCOPE;
 
@@ -267,11 +304,7 @@ void RenderProxyList::ClearProxyGroups()
         for (auto& it : mappings)
         {
             DrawCallCollectionMapping& mapping = it.second;
-
-            if (mapping.render_group.IsValid())
-            {
-                mapping.render_group->ClearProxies();
-            }
+            mapping.render_proxies.Clear();
 
             if (mapping.indirect_renderer)
             {
@@ -280,9 +313,11 @@ void RenderProxyList::ClearProxyGroups()
             }
         }
     }
+
+    render_proxies.Clear();
 }
 
-void RenderProxyList::RemoveEmptyProxyGroups()
+void RenderProxyList::RemoveEmptyRenderGroups()
 {
     HYP_SCOPE;
 
@@ -293,7 +328,7 @@ void RenderProxyList::RemoveEmptyProxyGroups()
             DrawCallCollectionMapping& mapping = it->second;
             AssertDebug(mapping.IsValid());
 
-            if (mapping.render_group->GetRenderProxies().Any())
+            if (mapping.render_proxies.Any())
             {
                 ++it;
 
@@ -334,23 +369,7 @@ uint32 RenderProxyList::NumRenderGroups() const
 
 uint32 RenderProxyList::NumRenderProxies() const
 {
-    uint32 count = 0;
-
-    for (const auto& mappings : mappings_by_bucket)
-    {
-        for (const auto& it : mappings)
-        {
-            const DrawCallCollectionMapping& mapping = it.second;
-            AssertDebug(mapping.IsValid());
-
-            if (mapping.IsValid())
-            {
-                count += mapping.render_group->GetRenderProxies().Size();
-            }
-        }
-    }
-
-    return count;
+    return render_proxies.Size();
 }
 
 void RenderProxyList::BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes)
@@ -358,11 +377,14 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
+    // should be in this state - this should be called from the game thread when the render proxy list is being built
+    AssertDebug(state == CS_WRITING);
+
     typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
 
     if (diff.NeedsUpdate())
     {
-        Array<ID<Entity>> removed_proxies;
+        Array<RenderProxy*> removed_proxies;
         render_proxy_tracker.GetRemoved(removed_proxies, true /* include_changed */);
 
         Array<RenderProxy*> added_proxy_ptrs;
@@ -378,10 +400,9 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
                 proxy->IncRefs();
             }
 
-            for (ID<Entity> entity_id : removed_proxies)
+            for (RenderProxy* proxy : removed_proxies)
             {
-                const RenderProxy* proxy = render_proxy_tracker.GetElement(entity_id);
-                AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
+                AssertDebug(proxy != nullptr);
 
                 proxy->DecRefs();
 
@@ -390,7 +411,7 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
                 const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                AssertThrow(RemoveRenderProxy(this, render_proxy_tracker, entity_id, attributes, rb));
+                AssertThrow(RemoveRenderProxy(this, render_proxy_tracker, proxy, attributes, rb));
             }
 
             for (RenderProxy* proxy : added_proxy_ptrs)
@@ -407,12 +428,16 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
                 const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
+                // sanity check
+                AssertDebug(!render_proxies.Contains(proxy));
+                AssertDebug(render_proxies.FindIf([&](const RenderProxy* p)
+                                {
+                                    return p->entity.GetID() == proxy->entity.GetID();
+                                })
+                    == render_proxies.End());
+
                 AddRenderProxy(this, render_proxy_tracker, proxy, render_view, attributes, rb);
             }
-
-            // render_proxy_tracker.Advance(AdvanceAction::PERSIST);
-
-            // Clear out groups that are no longer used
         }
     }
 }
@@ -514,9 +539,10 @@ void RenderCollector::CollectDrawCalls(RenderProxyList& render_proxy_list, uint3
 {
     HYP_SCOPE;
 
-    if (!ByteUtil::BitCount(bucket_bits))
+    if (bucket_bits == 0)
     {
-        return;
+        static constexpr uint32 all_buckets = (1u << RB_MAX) - 1;
+        bucket_bits = all_buckets; // All buckets
     }
 
     HYP_MT_CHECK_RW(render_proxy_list.data_race_detector);
@@ -553,7 +579,71 @@ void RenderCollector::CollectDrawCalls(RenderProxyList& render_proxy_list, uint3
         DrawCallCollectionMapping& mapping = it->second;
         AssertDebug(mapping.IsValid());
 
-        mapping.render_group->CollectDrawCalls(mapping.draw_call_collection);
+        DrawCallCollection& draw_call_collection = mapping.draw_call_collection;
+
+        // mapping.render_group->CollectDrawCalls(mapping.draw_call_collection);
+
+        draw_call_collection.impl = mapping.render_group->GetDrawCallCollectionImpl();
+        draw_call_collection.render_group = mapping.render_group;
+
+        static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+
+        DrawCallCollection previous_draw_state = std::move(draw_call_collection);
+
+        for (const auto& it : mapping.render_proxies)
+        {
+            const RenderProxy* render_proxy = it.second;
+            AssertDebug(render_proxy != nullptr);
+
+            AssertDebug(render_proxy->mesh.IsValid());
+            AssertDebug(render_proxy->mesh->IsReady());
+
+            AssertDebug(render_proxy->material.IsValid());
+            AssertDebug(render_proxy->material->IsReady());
+
+            if (render_proxy->instance_data.num_instances == 0)
+            {
+                continue;
+            }
+
+            DrawCallID draw_call_id;
+
+            if (unique_per_material)
+            {
+                draw_call_id = DrawCallID(render_proxy->mesh->GetID(), render_proxy->material->GetID());
+            }
+            else
+            {
+                draw_call_id = DrawCallID(render_proxy->mesh->GetID());
+            }
+
+            if (!render_proxy->instance_data.enable_auto_instancing
+                && render_proxy->instance_data.num_instances == 1)
+            {
+                draw_call_collection.PushRenderProxy(draw_call_id, *render_proxy); // NOLINT(bugprone-use-after-move)
+
+                continue;
+            }
+
+            EntityInstanceBatch* batch = nullptr;
+
+            // take a batch for reuse if a draw call was using one
+            if ((batch = previous_draw_state.TakeDrawCallBatch(draw_call_id)) != nullptr)
+            {
+                const uint32 batch_index = batch->batch_index;
+                AssertDebug(batch_index != ~0u);
+
+                // Reset it
+                *batch = EntityInstanceBatch { batch_index };
+
+                draw_call_collection.impl->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
+            }
+
+            draw_call_collection.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
+        }
+
+        // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
+        previous_draw_state.ResetDrawCalls();
     }
 }
 

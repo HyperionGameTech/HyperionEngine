@@ -410,7 +410,7 @@ Handle<Entity> EntityManager::AddBasicEntity()
 
     HYP_MT_CHECK_RW(m_entities_data_race_detector);
 
-    m_entities.Add(entity->InstanceClass()->GetTypeID(), entity);
+    m_entities.Add(Entity::Class()->GetTypeID(), entity);
 
     entity->m_scene = m_scene;
     InitObject(entity);
@@ -420,21 +420,8 @@ Handle<Entity> EntityManager::AddBasicEntity()
         AddTag<EntityTag::RECEIVES_UPDATE>(entity);
     }
 
-    // Create tag to track TypeID of the entity.
-    EntityTag entity_type_tag = MakeEntityTagFromTypeID(entity.GetTypeID());
-    AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
-
-    if (entity_type_tag != EntityTag::TYPE_ID)
-    {
-        if (const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entity_type_tag))
-        {
-            AddTag(entity, entity_type_tag);
-        }
-    }
-    else
-    {
-        AddTag<EntityTag::TYPE_ID>(entity);
-    }
+    // Use basic TypeID tag for the entity, as the type is just Entity
+    AddTag<EntityTag::TYPE_ID>(entity);
 
     if (IsInitCalled())
     {
@@ -487,6 +474,8 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
     }
 
     // Create tag to track TypeID of the entity.
+    /// TODO: Recursively add tags for parent classes if they are also Entity subclasses.
+
     EntityTag entity_type_tag = MakeEntityTagFromTypeID(entity.GetTypeID());
     AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
 

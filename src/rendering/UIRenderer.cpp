@@ -172,7 +172,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups: BuildProxyGroupsInOrder");
 
-        render_proxy_list->ClearProxyGroups();
+        render_proxy_list->Clear();
 
         RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
 
@@ -245,10 +245,14 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
                 }
             }
 
-            rg->AddRenderProxy(proxy);
+            AssertDebug(!render_proxy_list->render_proxies.Contains(proxy));
+            render_proxy_list->render_proxies.PushBack(proxy);
+
+            auto insert_result = mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
+            AssertDebug(insert_result.second);
         }
 
-        render_proxy_list->RemoveEmptyProxyGroups();
+        render_proxy_list->RemoveEmptyRenderGroups();
     }
 
     bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity)
@@ -261,10 +265,21 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
         {
             for (auto& it : mappings)
             {
-                const DrawCallCollectionMapping& mapping = it.second;
+                DrawCallCollectionMapping& mapping = it.second;
                 AssertDebug(mapping.IsValid());
 
-                removed |= mapping.render_group->RemoveRenderProxy(entity);
+                auto proxy_iter = mapping.render_proxies.Find(entity);
+
+                if (proxy_iter != mapping.render_proxies.End())
+                {
+                    AssertThrow(render_proxy_list->render_proxies.Erase(proxy_iter->second));
+
+                    mapping.render_proxies.Erase(proxy_iter);
+
+                    removed = true;
+
+                    continue;
+                }
             }
         }
 
@@ -422,31 +437,33 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& re
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
+    RenderCollector::CollectDrawCalls(*m_draw_collection, 0);
 
-    Array<IteratorType> iterators;
+    // using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
 
-    for (auto& mappings : m_draw_collection->mappings_by_bucket)
-    {
-        for (auto& it : mappings)
-        {
-            iterators.PushBack(&it);
-        }
-    }
+    // Array<IteratorType> iterators;
 
-    TaskSystem::GetInstance().ParallelForEach(
-        TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
-        iterators,
-        [](IteratorType it, uint32, uint32)
-        {
-            DrawCallCollectionMapping& mapping = it->second;
-            AssertDebug(mapping.IsValid());
+    // for (auto& mappings : m_draw_collection->mappings_by_bucket)
+    // {
+    //     for (auto& it : mappings)
+    //     {
+    //         iterators.PushBack(&it);
+    //     }
+    // }
 
-            const Handle<RenderGroup>& render_group = mapping.render_group;
-            AssertDebug(render_group.IsValid());
+    // TaskSystem::GetInstance().ParallelForEach(
+    //     TaskSystem::GetInstance().GetPool(TaskThreadPoolName::THREAD_POOL_RENDER),
+    //     iterators,
+    //     [](IteratorType it, uint32, uint32)
+    //     {
+    //         DrawCallCollectionMapping& mapping = it->second;
+    //         AssertDebug(mapping.IsValid());
 
-            render_group->CollectDrawCalls(mapping.draw_call_collection);
-        });
+    //         const Handle<RenderGroup>& render_group = mapping.render_group;
+    //         AssertDebug(render_group.IsValid());
+
+    //         render_group->CollectDrawCalls(mapping.draw_call_collection);
+    //     });
 }
 
 void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) const

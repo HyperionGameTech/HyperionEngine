@@ -219,58 +219,6 @@ void RenderGroup::CreateGraphicsPipeline()
         m_renderable_attributes);
 }
 
-void RenderGroup::ClearProxies()
-{
-    Threads::AssertOnThread(g_render_thread);
-
-    // for (auto &it : m_render_proxies) {
-    //     it.second->DecRefs();
-    // }
-
-    m_render_proxies.Clear();
-}
-
-void RenderGroup::AddRenderProxy(RenderProxy* render_proxy)
-{
-    AssertDebug(render_proxy != nullptr);
-
-    // Threads::AssertOnThread(g_render_thread);
-
-    AssertDebug(render_proxy->mesh.IsValid());
-    AssertDebug(render_proxy->mesh->IsReady());
-
-    AssertDebug(render_proxy->material.IsValid());
-    AssertDebug(render_proxy->material->IsReady());
-
-    bool inserted = m_render_proxies.Insert(render_proxy->entity.GetID(), render_proxy).second;
-    AssertDebug(inserted);
-}
-
-bool RenderGroup::RemoveRenderProxy(ID<Entity> entity)
-{
-    // Threads::AssertOnThread(g_render_thread);
-
-    const auto it = m_render_proxies.Find(entity);
-
-    if (it == m_render_proxies.End())
-    {
-        return false;
-    }
-
-    // it->second->DecRefs();
-
-    m_render_proxies.Erase(it);
-
-    return true;
-}
-
-typename FlatMap<ID<Entity>, const RenderProxy*>::Iterator RenderGroup::RemoveRenderProxy(typename FlatMap<ID<Entity>, const RenderProxy*>::ConstIterator iterator)
-{
-    // Threads::AssertOnThread(g_render_thread);
-
-    return m_render_proxies.Erase(iterator);
-}
-
 void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_collection_impl)
 {
     AssertThrow(draw_call_collection_impl != nullptr);
@@ -278,75 +226,6 @@ void RenderGroup::SetDrawCallCollectionImpl(IDrawCallCollectionImpl* draw_call_c
     AssertThrowMsg(!IsInitCalled(), "Cannot use SetDrawCallCollectionImpl() after Init() has been called on RenderGroup; graphics pipeline will have been already created");
 
     m_draw_call_collection_impl = draw_call_collection_impl;
-}
-
-void RenderGroup::CollectDrawCalls(DrawCallCollection& draw_call_collection)
-{
-    HYP_SCOPE;
-    // Threads::AssertOnThread(g_render_thread | ThreadCategory::THREAD_CATEGORY_TASK);
-    AssertReady();
-
-    draw_call_collection.impl = m_draw_call_collection_impl;
-    draw_call_collection.render_group = this;
-
-    static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
-
-    DrawCallCollection previous_draw_state = std::move(draw_call_collection);
-
-    for (const auto& it : m_render_proxies)
-    {
-        const RenderProxy* render_proxy = it.second;
-        AssertDebug(render_proxy != nullptr);
-
-        AssertDebug(render_proxy->mesh.IsValid());
-        AssertDebug(render_proxy->mesh->IsReady());
-
-        AssertDebug(render_proxy->material.IsValid());
-        AssertDebug(render_proxy->material->IsReady());
-
-        if (render_proxy->instance_data.num_instances == 0)
-        {
-            continue;
-        }
-
-        DrawCallID draw_call_id;
-
-        if (unique_per_material)
-        {
-            draw_call_id = DrawCallID(render_proxy->mesh->GetID(), render_proxy->material->GetID());
-        }
-        else
-        {
-            draw_call_id = DrawCallID(render_proxy->mesh->GetID());
-        }
-
-        if (!render_proxy->instance_data.enable_auto_instancing
-            && render_proxy->instance_data.num_instances == 1)
-        {
-            draw_call_collection.PushRenderProxy(draw_call_id, *render_proxy); // NOLINT(bugprone-use-after-move)
-
-            continue;
-        }
-
-        EntityInstanceBatch* batch = nullptr;
-
-        // take a batch for reuse if a draw call was using one
-        if ((batch = previous_draw_state.TakeDrawCallBatch(draw_call_id)) != nullptr)
-        {
-            const uint32 batch_index = batch->batch_index;
-            AssertDebug(batch_index != ~0u);
-
-            // Reset it
-            *batch = EntityInstanceBatch { batch_index };
-
-            draw_call_collection.impl->GetEntityInstanceBatchHolder()->MarkDirty(batch->batch_index);
-        }
-
-        draw_call_collection.PushRenderProxyInstanced(batch, draw_call_id, *render_proxy);
-    }
-
-    // Any draw calls that were not reused from the previous state, clear them out and release batch indices.
-    previous_draw_state.ResetDrawCalls();
 }
 
 template <class T, class OutArray, typename = std::enable_if_t<std::is_base_of_v<DrawCallBase, T>>>
@@ -882,10 +761,12 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
         }
     }
 
+#if defined(HYP_ENABLE_RENDER_STATS) && defined(HYP_ENABLE_RENDER_STATS_COUNTERS)
     EngineRenderStatsCounts counts;
     counts[ERS_RENDER_GROUPS] = 1;
 
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
+#endif
 }
 
 #pragma endregion RenderGroup

@@ -39,6 +39,7 @@ SuppressEngineRenderStatsScope::~SuppressEngineRenderStatsScope()
 
 void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& counts)
 {
+#if defined(HYP_ENABLE_RENDER_STATS) && defined(HYP_ENABLE_RENDER_STATS_COUNTERS)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
@@ -51,6 +52,7 @@ void EngineRenderStatsCalculator::AddCounts(const EngineRenderStatsCounts& count
     {
         m_counts.counts[i] += counts.counts[i];
     }
+#endif
 }
 
 void EngineRenderStatsCalculator::AddSample(double delta)

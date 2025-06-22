@@ -1327,6 +1327,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     AssertThrow(rs.IsValid());
 
+    EngineRenderStatsCounts counts {};
+
     Array<RenderProxyList*> render_proxy_lists;
 
     // Collect view-independent renderable types from all views
@@ -1353,16 +1355,17 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         if (!pd)
         {
             pd = &m_pass_data.EmplaceBack();
-            pd->viewport = rpl.viewport;
 
             CreateViewPassData(view, *pd);
+
+            pd->viewport = view->GetRenderResource().GetViewport(); // rpl.viewport;
         }
-        else if (pd->viewport != rpl.viewport)
+        else if (pd->viewport != view->GetRenderResource().GetViewport())
         {
-            ResizeView(rpl.viewport, view, *pd);
+            ResizeView(view->GetRenderResource().GetViewport(), view, *pd);
         }
 
-        pd->priority = rpl.priority;
+        pd->priority = view->GetRenderResource().GetPriority();
 
         for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
         {
@@ -1424,30 +1427,39 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (env_probes.Any())
         {
-            for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
+            // for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
+            // {
+            EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[EPT_REFLECTION];
+
+            if (env_probe_renderer)
             {
-                EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
-
-                if (!env_probe_renderer)
-                {
-                    HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", env_probe_type);
-                    continue;
-                }
-
-                for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
+                for (RenderEnvProbe* env_probe : env_probes[EPT_REFLECTION])
                 {
                     new_rs.env_probe = env_probe;
                     env_probe_renderer->RenderFrame(frame, new_rs);
                     new_rs.env_probe = nullptr; // reset for next probe
+
+                    counts[ERS_ENV_PROBES]++;
                 }
             }
+            else
+            {
+
+                HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
+            }
+
+            // }
         }
+
+        HYP_LOG(Rendering, Debug, "EnvProbes: {}", env_probes[uint32(EPT_REFLECTION)].Size());
 
         if (env_grids.Any())
         {
             for (RenderEnvGrid* env_grid : env_grids)
             {
                 env_grid->Render(frame, new_rs);
+
+                counts[ERS_ENV_GRIDS]++;
             }
         }
     }
@@ -1473,7 +1485,19 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         new_rs.view = nullptr;
         new_rs.pass_data = nullptr;
+
+#ifdef HYP_ENABLE_RENDER_STATS
+        RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+
+        counts[ERS_VIEWS]++;
+        counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
+        counts[ERS_LIGHTS] += rpl.NumLights();
+        counts[ERS_ENV_GRIDS] += rpl.env_grids.Size();
+        counts[ERS_ENV_PROBES] += rpl.NumEnvProbes();
+#endif
     }
+
+    g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
 void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& rs)
@@ -1546,8 +1570,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
 
-    deferred_data.screen_width = rpl.viewport.extent.x;
-    deferred_data.screen_height = rpl.viewport.extent.y;
+    deferred_data.screen_width = view->GetRenderResource().GetViewport().extent.x;  // rpl.viewport.extent.x;
+    deferred_data.screen_height = view->GetRenderResource().GetViewport().extent.y; // rpl.viewport.extent.y;
 
     PerformOcclusionCulling(frame, rs);
 
@@ -1724,16 +1748,6 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         });
 
     m_last_frame_data.pass_data.Insert(last_frame_data_it, Pair<View*, DeferredPassData*> { view, pd });
-
-    EngineRenderStatsCounts counts {};
-    counts[ERS_VIEWS] = 1;
-    // counts[ERS_SCENES] = m_render_scenes.Size();
-    counts[ERS_LIGHTS] = rpl.tracked_lights.GetCurrentBits().Count();
-    counts[ERS_LIGHTMAP_VOLUMES] = rpl.tracked_lightmap_volumes.GetCurrentBits().Count();
-    counts[ERS_ENV_GRIDS] = rpl.tracked_env_grids.GetCurrentBits().Count();
-    counts[ERS_ENV_PROBES] = rpl.tracked_env_probes.GetCurrentBits().Count();
-    // counts.num_env_probes
-    g_engine->GetRenderStatsCalculator().AddCounts(counts);
 }
 
 void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs)

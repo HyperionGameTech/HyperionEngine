@@ -408,11 +408,11 @@ TaskThread* TaskSystem::GetNextTaskThread(TaskThreadPool& pool)
 const FlatMap<TaskThreadPoolName, UniquePtr<TaskThreadPool> (*)(void)> g_thread_pool_factories {
     { TaskThreadPoolName::THREAD_POOL_GENERIC, +[]() -> UniquePtr<TaskThreadPool>
         {
-            return MakeUnique<GenericTaskThreadPool>(4, ThreadPriorityValue::HIGH);
+            return MakeUnique<GenericTaskThreadPool>(2, ThreadPriorityValue::HIGHEST);
         } },
     { TaskThreadPoolName::THREAD_POOL_RENDER, +[]() -> UniquePtr<TaskThreadPool>
         {
-            return MakeUnique<RenderTaskThreadPool>(4, ThreadPriorityValue::HIGHEST);
+            return MakeUnique<RenderTaskThreadPool>(2, ThreadPriorityValue::HIGHEST);
         } },
     { TaskThreadPoolName::THREAD_POOL_BACKGROUND, +[]() -> UniquePtr<TaskThreadPool>
         {

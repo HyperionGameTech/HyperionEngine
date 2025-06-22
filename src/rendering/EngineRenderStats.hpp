@@ -10,6 +10,9 @@
 
 #include <cfloat>
 
+#define HYP_ENABLE_RENDER_STATS
+#define HYP_ENABLE_RENDER_STATS_COUNTERS
+
 namespace hyperion {
 
 enum EngineRenderStatsCountType : uint32

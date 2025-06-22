@@ -74,7 +74,7 @@ class HYP_API EnvProbe : public Entity
 
 public:
     EnvProbe();
-    EnvProbe(const BoundingBox& aabb, const Vec2u& dimensions, EnvProbeType env_probe_type);
+    EnvProbe(EnvProbeType env_probe_type, const BoundingBox& aabb, const Vec2u& dimensions);
 
     EnvProbe(const EnvProbe& other) = delete;
     EnvProbe& operator=(const EnvProbe& other) = delete;
@@ -270,6 +270,46 @@ protected:
     Handle<Texture> m_prefiltered_env_map;
 
     RenderEnvProbe* m_render_resource;
+};
+
+HYP_CLASS()
+class HYP_API ReflectionProbe : public EnvProbe
+{
+    HYP_OBJECT_BODY(ReflectionProbe);
+public:
+    ReflectionProbe()
+        : EnvProbe(EPT_REFLECTION, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u(1, 1))
+    {
+    }
+
+    ReflectionProbe(const BoundingBox& aabb, const Vec2u& dimensions)
+        : EnvProbe(EPT_REFLECTION, aabb, dimensions)
+    {
+    }
+
+    ReflectionProbe(const ReflectionProbe& other) = delete;
+    ReflectionProbe& operator=(const ReflectionProbe& other) = delete;
+    ~ReflectionProbe() override = default;
+};
+
+HYP_CLASS()
+class HYP_API SkyProbe : public EnvProbe
+{
+    HYP_OBJECT_BODY(SkyProbe);
+public:
+    SkyProbe()
+        : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u(1, 1))
+    {
+    }
+
+    SkyProbe(const BoundingBox& aabb, const Vec2u& dimensions)
+        : EnvProbe(EPT_SKY, aabb, dimensions)
+    {
+    }
+
+    SkyProbe(const SkyProbe& other) = delete;
+    SkyProbe& operator=(const SkyProbe& other) = delete;
+    ~SkyProbe() override = default;
 };
 
 } // namespace hyperion

@@ -137,24 +137,26 @@ void Entity::SetReceivesUpdate(bool receives_update)
 
 void Entity::Attach(const Handle<Node>& attach_node)
 {
-    EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", GetID().Value());
+    { // detach from node if already attached.
+        EntityManager* entity_manager = GetEntityManager();
+        AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+        Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
 
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
-    {
-        if (Handle<Node> node = node_link_component->node.Lock())
+        if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
         {
-            if (node == attach_node)
+            if (Handle<Node> node = node_link_component->node.Lock())
             {
-                return;
+                if (node == attach_node)
+                {
+                    return;
+                }
+
+                AssertDebug(node->GetEntity() == this);
+
+                // Unset Entity first.
+                node->SetEntity(Handle<Entity>::empty);
             }
-
-            AssertDebug(node->GetEntity() == this);
-
-            // Unset Entity first.
-            node->SetEntity(Handle<Entity>::empty);
         }
     }
 
@@ -166,17 +168,9 @@ void Entity::Attach(const Handle<Node>& attach_node)
 
     Handle<Entity> strong_this = HandleFromThis();
 
-    Handle<Node> node = attach_node->AddChild();
-    node->SetEntity(strong_this);
-
-    if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(strong_this))
-    {
-        node_link_component->node = node;
-    }
-    else
-    {
-        entity_manager->AddComponent<NodeLinkComponent>(strong_this, NodeLinkComponent { node });
-    }
+    // add a subnode to the attach_node, and set the entity to this.
+    Handle<Node> subnode = attach_node->AddChild();
+    subnode->SetEntity(strong_this);
 }
 
 void Entity::Detach()

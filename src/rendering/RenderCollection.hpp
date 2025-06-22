@@ -76,6 +76,7 @@ struct ParallelRenderingState
 struct DrawCallCollectionMapping
 {
     Handle<RenderGroup> render_group;
+    HashMap<ID<Entity>, RenderProxy*> render_proxies;
     DrawCallCollection draw_call_collection;
     IndirectRenderer* indirect_renderer = nullptr;
 
@@ -149,19 +150,44 @@ struct HYP_API RenderProxyList
         return num_env_probes;
     }
 
+    void BeginWrite()
+    {
+        AssertDebug(state != CS_READING);
+
+        state = CS_WRITING;
+    }
+
+    void EndWrite()
+    {
+        AssertDebug(state == CS_WRITING);
+
+        state = CS_WRITTEN;
+    }
+
+    void BeginRead()
+    {
+        AssertDebug(state != CS_WRITING);
+
+        state = CS_READING;
+    }
+
     /*! \brief Call on the consumer (render) thread when finished reading the render proxy list for the current frame.
      *  This will mark all proxies that are not written again in the next frame as cleared so they can be removed. */
     void EndRead()
     {
-        render_proxy_tracker.Advance(AdvanceAction::CLEAR);
-        tracked_lights.Advance(AdvanceAction::CLEAR);
-        tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
-        tracked_env_grids.Advance(AdvanceAction::CLEAR);
-        tracked_env_probes.Advance(AdvanceAction::CLEAR);
+        AssertDebug(state == CS_READING);
+
+        // render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+        // tracked_lights.Advance(AdvanceAction::CLEAR);
+        // tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
+        // tracked_env_grids.Advance(AdvanceAction::CLEAR);
+        // tracked_env_probes.Advance(AdvanceAction::CLEAR);
+
+        state = CS_EMPTY;
     }
 
-    void ClearProxyGroups();
-    void RemoveEmptyProxyGroups();
+    void Clear();
+    void RemoveEmptyRenderGroups();
 
     /*! \brief Counts the number of render groups in the list. */
     uint32 NumRenderGroups() const;
@@ -177,6 +203,17 @@ struct HYP_API RenderProxyList
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
 
+    // State for tracking transitions from writing (game thread) to reading (render thread).
+    enum CollectionState : uint8
+    {
+        CS_EMPTY = 0, //!< Not written to yet. Either just created or finished reading and cleared from the render thread.
+        CS_WRITING,   //!< Currently being written to. set when the frame starts on the game thread.
+        CS_WRITTEN,   //!< Written to, but not yet read from. set when the frame finishes on the game thread.
+        CS_READING    //!< Currently ready to be read. set when the frame starts on the render thread.
+    };
+
+    CollectionState state : 3 = CS_EMPTY;
+
     Viewport viewport;
     int priority;
 
@@ -186,6 +223,7 @@ struct HYP_API RenderProxyList
     ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
+    Array<RenderProxy*> render_proxies;
     Array<Array<RenderLight*>> lights;
     Array<Array<RenderEnvProbe*>> env_probes;
     Array<RenderEnvGrid*> env_grids;

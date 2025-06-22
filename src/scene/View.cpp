@@ -40,7 +40,7 @@
 #include <Engine.hpp>
 
 // #define HYP_DISABLE_VISIBILITY_CHECK
-#define HYP_VISIBILITY_CHECK_DEBUG
+// #define HYP_VISIBILITY_CHECK_DEBUG
 
 namespace hyperion {
 
@@ -252,10 +252,14 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    // temp test
     RenderProxyList& rpl = GetProducerRenderProxyList(this);
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;
+    rpl.render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+    rpl.tracked_lights.Advance(AdvanceAction::CLEAR);
+    rpl.tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
+    rpl.tracked_env_grids.Advance(AdvanceAction::CLEAR);
+    rpl.tracked_env_probes.Advance(AdvanceAction::CLEAR);
 
     CollectLights(rpl);
     CollectLightmapVolumes(rpl);
@@ -275,7 +279,7 @@ void View::Update(float delta)
 
     RenderCollector::CollectDrawCalls(rpl, bucket_mask);
 
-    HYP_LOG(Scene, Debug, "Acquired proxy list : {} \t total count : {}", (void*)&rpl, rpl.NumRenderProxies());
+    // HYP_LOG(Scene, Debug, "Acquired proxy list : {} \t total count : {}", (void*)&rpl, rpl.NumRenderProxies());
 
     // constexpr uint32 bucket_mask = (1 << RB_OPAQUE)
     //     | (1 << RB_LIGHTMAP)
@@ -852,18 +856,15 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity, reflection_probe_component] : scene->GetEntityManager()->GetEntitySet<ReflectionProbeComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ReflectionProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!reflection_probe_component.env_probe.IsValid())
-            {
-                continue;
-            }
+            ReflectionProbe* probe = static_cast<ReflectionProbe*>(entity);
 
-            const BoundingBox& probe_aabb = reflection_probe_component.env_probe->GetAABB();
+            const BoundingBox& probe_aabb = probe->GetAABB();
 
             if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", reflection_probe_component.env_probe->GetID(), GetID());
+                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->GetID(), GetID());
 
                 continue;
             }
@@ -875,29 +876,19 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
             ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
             rpl.tracked_env_probes.Track(
-                reflection_probe_component.env_probe->GetID(),
-                &reflection_probe_component.env_probe->GetRenderResource(),
+                probe->GetID(),
+                &probe->GetRenderResource(),
                 &track_state);
         }
 
-        for (auto [entity, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!sky_component.subsystem.IsValid())
-            {
-                continue;
-            }
-
-            if (!sky_component.subsystem->GetEnvProbe().IsValid() || !sky_component.subsystem->GetEnvProbe()->IsReady())
-            {
-                HYP_LOG(Scene, Warning, "Sky component in scene {} does not have a valid EnvProbe in view {}", scene->GetID(), GetID());
-
-                continue;
-            }
+            SkyProbe* sky_probe = static_cast<SkyProbe*>(entity);
 
             ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
             rpl.tracked_env_probes.Track(
-                sky_component.subsystem->GetEnvProbe()->GetID(),
-                &sky_component.subsystem->GetEnvProbe()->GetRenderResource(),
+                sky_probe->GetID(),
+                &sky_probe->GetRenderResource(),
                 &track_state);
         }
     }

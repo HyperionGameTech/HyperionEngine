@@ -46,7 +46,7 @@ enum class EntityTag : uint64
     UPDATE_ENV_GRID_TRANSFORM,
     UPDATE_ENV_PROBE_TRANSFORM,
 
-    TYPE_ID = (uint64(1) << 31),            // Flag to indicate that this EntityTag is a TypeID tag
+    TYPE_ID = (uint64(1) << 31),            // Flag to indicate that this EntityTag is a TypeID tag (NOTE: TypeID tag is not polymorphic)
     TYPE_ID_MASK = uint64(0xFFFFFFFF) << 32 // Mask to get TypeID from EntityTag
 };
 
