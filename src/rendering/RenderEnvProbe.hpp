@@ -7,6 +7,7 @@
 
 #include <core/math/Matrix4.hpp>
 
+#include <rendering/Renderer.hpp>
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -142,6 +143,45 @@ private:
 
     TResourceHandle<RenderView> m_render_view;
     TResourceHandle<RenderShadowMap> m_shadow_map;
+};
+
+class EnvProbeRenderer : public IRenderer
+{
+public:
+    virtual ~EnvProbeRenderer() override;
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override final;
+
+protected:
+    EnvProbeRenderer(EnvProbeType env_probe_type);
+
+    virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) = 0;
+
+private:
+    EnvProbeType m_env_probe_type;
+};
+
+class ReflectionProbeRenderer : public EnvProbeRenderer
+{
+public:
+    ReflectionProbeRenderer();
+    virtual ~ReflectionProbeRenderer() override;
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+
+protected:
+    void CreateShader();
+
+    virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) override;
+
+    void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe);
+    void ComputeSH(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe);
+
+    ShaderRef m_shader;
 };
 
 } // namespace hyperion

@@ -24,6 +24,7 @@ class RenderView;
 class View;
 class DrawCallCollection;
 class IRenderer;
+class EnvProbeRenderer;
 
 HYP_API extern uint32 GetRenderThreadFrameIndex();
 HYP_API extern uint32 GetGameThreadFrameIndex();
@@ -122,6 +123,7 @@ public:
     DescriptorTableRef GlobalDescriptorTable;
 
     IRenderer* Renderer;
+    EnvProbeRenderer** EnvProbeRenderers;
 
 private:
     void CreateBlueNoiseBuffer();

@@ -362,7 +362,7 @@ public:
         return m_last_frame_data;
     }
 
-    virtual const RendererConfig& GetRendererConfig() const override
+    HYP_FORCE_INLINE const RendererConfig& GetRendererConfig() const
     {
         return m_renderer_config;
     }

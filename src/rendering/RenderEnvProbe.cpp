@@ -254,6 +254,7 @@ void RenderEnvProbe::UpdateBufferData()
     GetGPUBufferHolder()->MarkDirty(m_buffer_index);
 }
 
+/// TEMPORARY: will be replaced by EnvProbeRenderer classes.
 void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
@@ -269,10 +270,6 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     AssertDebug(m_buffer_index != ~0u);
 
     RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
-
-    HYP_DEFER({
-        rpl.EndRead();
-    });
 
     if (!m_env_probe->NeedsRender())
     {
@@ -308,12 +305,12 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
-        if (ShouldComputePrefilteredEnvMap())
+        if (m_env_probe->ShouldComputePrefilteredEnvMap())
         {
             ComputePrefilteredEnvMap(frame, render_setup);
         }
 
-        if (ShouldComputeSphericalHarmonics())
+        if (m_env_probe->ShouldComputeSphericalHarmonics())
         {
             ComputeSH(frame, render_setup);
         }
@@ -403,10 +400,13 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
         HYP_FAIL("Failed to create ConvolveProbe shader");
     }
 
-    AssertThrow(m_prefiltered_env_map.IsValid());
+    const Handle<Texture>& prefiltered_env_map = m_env_probe->GetPrefilteredEnvMap();
+    AssertThrow(prefiltered_env_map.IsValid());
+
+    AssertThrow(prefiltered_env_map.IsValid());
 
     ConvolveProbeUniforms uniforms;
-    uniforms.out_image_dimensions = m_prefiltered_env_map->GetExtent().GetXY();
+    uniforms.out_image_dimensions = prefiltered_env_map->GetExtent().GetXY();
     uniforms.world_position = m_buffer_data.world_position;
 
     const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
@@ -472,7 +472,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
         descriptor_set->SetElement(NAME("MomentsTexture"), moments_attachment ? moments_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
         descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
-        descriptor_set->SetElement(NAME("OutImage"), m_prefiltered_env_map->GetRenderResource().GetImageView());
+        descriptor_set->SetElement(NAME("OutImage"), prefiltered_env_map->GetRenderResource().GetImageView());
     }
 
     HYPERION_ASSERT_RESULT(descriptor_table->Create());
@@ -480,7 +480,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
-    frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(convolve_probe_compute_pipeline);
 
@@ -493,15 +493,15 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
 
     frame->GetCommandList().Add<DispatchCompute>(
         convolve_probe_compute_pipeline,
-        Vec3u { (m_prefiltered_env_map->GetExtent().x + 7) / 8, (m_prefiltered_env_map->GetExtent().y + 7) / 8, 1 });
+        Vec3u { (prefiltered_env_map->GetExtent().x + 7) / 8, (prefiltered_env_map->GetExtent().y + 7) / 8, 1 });
 
-    if (m_prefiltered_env_map->GetTextureDesc().HasMipmaps())
+    if (prefiltered_env_map->GetTextureDesc().HasMipmaps())
     {
-        frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
-        frame->GetCommandList().Add<GenerateMipmaps>(m_prefiltered_env_map->GetRenderResource().GetImage());
+        frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<GenerateMipmaps>(prefiltered_env_map->GetRenderResource().GetImage());
     }
 
-    frame->GetCommandList().Add<InsertBarrier>(m_prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     EnvProbeShaderData* buffer_data = static_cast<EnvProbeShaderData*>(m_buffer_address);
     HYP_LOG(EnvProbe, Debug, "Convolving EnvProbe {} (type: {}), texture slot: {}", m_env_probe->GetID(), m_env_probe->GetEnvProbeType(),
@@ -509,7 +509,7 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, m_prefiltered_env_map->GetRenderResource().GetImageView());
+        g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
         HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
             m_texture_slot, m_env_probe->GetID());
     }
@@ -839,6 +839,285 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
 }
 
 #pragma endregion RenderEnvProbe
+
+#pragma region EnvProbeRenderer
+
+EnvProbeRenderer::EnvProbeRenderer(EnvProbeType env_probe_type)
+    : m_env_probe_type(env_probe_type)
+{
+    AssertDebug(env_probe_type < EPT_MAX && env_probe_type != EPT_INVALID);
+}
+
+EnvProbeRenderer::~EnvProbeRenderer()
+{
+}
+
+void EnvProbeRenderer::Initialize()
+{
+}
+
+void EnvProbeRenderer::Shutdown()
+{
+}
+
+void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.env_probe != nullptr);
+
+    EnvProbe* env_probe = render_setup.env_probe->GetEnvProbe();
+    AssertDebug(env_probe != nullptr);
+
+    AssertDebug(env_probe->GetEnvProbeType() == m_env_probe_type);
+
+    RenderProbe(frame, render_setup, env_probe);
+}
+
+#pragma endregion EnvProbeRenderer
+
+#pragma region ReflectionProbeRenderer
+
+ReflectionProbeRenderer::ReflectionProbeRenderer()
+    : EnvProbeRenderer(EPT_REFLECTION)
+{
+}
+
+ReflectionProbeRenderer::~ReflectionProbeRenderer()
+{
+}
+
+void ReflectionProbeRenderer::Initialize()
+{
+    HYP_SCOPE;
+
+    EnvProbeRenderer::Initialize();
+
+    CreateShader();
+}
+
+void ReflectionProbeRenderer::Shutdown()
+{
+    HYP_SCOPE;
+
+    EnvProbeRenderer::Shutdown();
+
+    SafeRelease(std::move(m_shader));
+}
+
+void ReflectionProbeRenderer::CreateShader()
+{
+    HYP_SCOPE;
+
+    AssertDebug(!m_shader.IsValid());
+
+    m_shader = g_shader_manager->GetOrCreate(
+        NAME("RenderToCubemap"),
+        ShaderProperties(static_mesh_vertex_attributes, { "WRITE_NORMALS", "WRITE_MOMENTS" }));
+
+    AssertThrow(m_shader.IsValid());
+}
+
+void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
+
+    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+
+    HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
+        env_probe->GetID(), env_probe->GetEnvProbeType());
+
+    RenderSetup rs = render_setup;
+    rs.env_probe = &env_probe->GetRenderResource();
+
+    RenderCollector::ExecuteDrawCalls(frame, rs, rpl, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
+
+    rs.env_probe = nullptr;
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
+    AssertDebug(output_target.IsValid());
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
+    AssertDebug(framebuffer.IsValid());
+
+    const ImageRef& framebuffer_image = framebuffer->GetAttachment(0)->GetImage();
+
+    if (env_probe->ShouldComputePrefilteredEnvMap())
+    {
+        ComputePrefilteredEnvMap(frame, render_setup, env_probe);
+    }
+
+    if (env_probe->ShouldComputeSphericalHarmonics())
+    {
+        ComputeSH(frame, render_setup, env_probe);
+    }
+}
+
+void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
+
+    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+
+    struct ConvolveProbeUniforms
+    {
+        Vec2u out_image_dimensions;
+        Vec4f world_position;
+        uint32 num_bound_lights;
+        alignas(16) uint32 light_indices[16];
+    };
+
+    ShaderProperties shader_properties;
+    shader_properties.Set("LIGHTING");
+
+    ShaderRef convolve_probe_shader = g_shader_manager->GetOrCreate(NAME("ConvolveProbe"), shader_properties);
+
+    if (!convolve_probe_shader)
+    {
+        HYP_FAIL("Failed to create ConvolveProbe shader");
+    }
+
+    const Handle<Texture>& prefiltered_env_map = env_probe->GetPrefilteredEnvMap();
+    AssertThrow(prefiltered_env_map.IsValid());
+
+    ConvolveProbeUniforms uniforms;
+    uniforms.out_image_dimensions = prefiltered_env_map->GetExtent().GetXY();
+    uniforms.world_position = env_probe->GetRenderResource().GetBufferData().world_position;
+
+    const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
+    uint32 num_bound_lights = 0;
+
+    for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
+    {
+        if (num_bound_lights >= max_bound_lights)
+        {
+            break;
+        }
+
+        for (const auto& it : rpl.GetLights(LightType(light_type)))
+        {
+            if (num_bound_lights >= max_bound_lights)
+            {
+                break;
+            }
+
+            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
+        }
+    }
+
+    uniforms.num_bound_lights = num_bound_lights;
+
+    GPUBufferRef uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+    HYPERION_ASSERT_RESULT(uniform_buffer->Create());
+    uniform_buffer->Copy(sizeof(uniforms), &uniforms);
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
+    AssertDebug(output_target.IsValid());
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
+    AssertDebug(framebuffer.IsValid());
+
+    AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
+    AssertThrow(color_attachment != nullptr);
+
+    AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
+    AssertThrow(normals_attachment != nullptr);
+
+    AttachmentBase* moments_attachment = framebuffer->GetAttachment(2);
+    AssertThrow(moments_attachment != nullptr);
+
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    descriptor_table->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", env_probe->GetID().Value()));
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("ConvolveProbeDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set.IsValid());
+
+        descriptor_set->SetElement(NAME("UniformBuffer"), uniform_buffer);
+        descriptor_set->SetElement(NAME("ColorTexture"), color_attachment->GetImageView());
+        descriptor_set->SetElement(NAME("NormalsTexture"), normals_attachment ? normals_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("MomentsTexture"), moments_attachment ? moments_attachment->GetImageView() : g_render_global_state->PlaceholderData->GetImageViewCube1x1R8());
+        descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
+        descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
+        descriptor_set->SetElement(NAME("OutImage"), prefiltered_env_map->GetRenderResource().GetImageView());
+    }
+
+    HYPERION_ASSERT_RESULT(descriptor_table->Create());
+
+    ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
+    HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
+
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+
+    frame->GetCommandList().Add<BindComputePipeline>(convolve_probe_compute_pipeline);
+
+    frame->GetCommandList().Add<BindDescriptorTable>(
+        descriptor_table,
+        convolve_probe_compute_pipeline,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
+        frame->GetFrameIndex());
+
+    frame->GetCommandList().Add<DispatchCompute>(
+        convolve_probe_compute_pipeline,
+        Vec3u { (prefiltered_env_map->GetExtent().x + 7) / 8, (prefiltered_env_map->GetExtent().y + 7) / 8, 1 });
+
+    if (prefiltered_env_map->GetTextureDesc().HasMipmaps())
+    {
+        frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<GenerateMipmaps>(prefiltered_env_map->GetRenderResource().GetImage());
+    }
+
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        // g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
+        // HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
+        //     m_texture_slot, m_env_probe->GetID());
+    }
+
+    DelegateHandler* delegate_handle = new DelegateHandler();
+    *delegate_handle = frame->OnFrameEnd.Bind([delegate_handle, uniform_buffer = std::move(uniform_buffer), convolve_probe_compute_pipeline = std::move(convolve_probe_compute_pipeline), descriptor_table = std::move(descriptor_table)](...)
+        {
+            HYPERION_ASSERT_RESULT(uniform_buffer->Destroy());
+            HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Destroy());
+            HYPERION_ASSERT_RESULT(descriptor_table->Destroy());
+
+            delete delegate_handle;
+        });
+}
+
+void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    AssertDebug(render_setup.IsValid());
+
+    /// @TODO: Implement
+}
+
+#pragma endregion ReflectionProbeRenderer
 
 namespace renderer {
 

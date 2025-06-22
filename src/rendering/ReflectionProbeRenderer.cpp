@@ -25,6 +25,7 @@
 
 namespace hyperion {
 
+#if 0
 ReflectionProbeRenderer::ReflectionProbeRenderer(Name name, const Handle<EnvProbe>& env_probe)
     : RenderSubsystem(name),
       m_env_probe(env_probe)
@@ -95,5 +96,6 @@ void ReflectionProbeRenderer::OnUpdate(float delta)
 
     m_env_probe->SetNeedsRender(false);
 }
+#endif
 
 } // namespace hyperion

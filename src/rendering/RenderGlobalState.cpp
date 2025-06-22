@@ -29,6 +29,7 @@
 
 #include <scene/Texture.hpp>
 #include <scene/View.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
@@ -190,6 +191,8 @@ HYP_API void EndFrame_RenderThread()
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End();)
     {
         ViewData& vd = *it;
+        vd.render_proxy_list.EndRead();
+        vd.render_proxy_list.RemoveEmptyProxyGroups();
 
         // Clear out data for views that haven't been written to for a while
         if (vd.frames_since_write == max_frames_before_discard)
@@ -253,6 +256,11 @@ RenderGlobalState::RenderGlobalState()
 
     Renderer = new DeferredRenderer();
     Renderer->Initialize();
+
+    EnvProbeRenderers = new EnvProbeRenderer*[EPT_MAX];
+    Memory::MemSet(EnvProbeRenderers, 0, sizeof(EnvProbeRenderer*) * EPT_MAX);
+    EnvProbeRenderers[EPT_REFLECTION] = new ReflectionProbeRenderer();
+    // EnvProbeRenderers[EPT_SKY] = new SkyEnvProbeRenderer();
 }
 
 RenderGlobalState::~RenderGlobalState()
@@ -261,6 +269,17 @@ RenderGlobalState::~RenderGlobalState()
     ShadowMapAllocator->Destroy();
     GlobalDescriptorTable->Destroy();
     PlaceholderData->Destroy();
+
+    for (uint32 i = 0; i < EPT_MAX; i++)
+    {
+        if (EnvProbeRenderers[i])
+        {
+            EnvProbeRenderers[i]->Shutdown();
+            delete EnvProbeRenderers[i];
+        }
+    }
+
+    delete[] EnvProbeRenderers;
 
     Renderer->Shutdown();
     delete Renderer;

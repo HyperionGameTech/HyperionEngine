@@ -762,10 +762,6 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
 
-    HYP_DEFER({
-        rpl.EndRead();
-    });
-
     const BoundingBox grid_aabb = BoundingBox(
         m_buffer_data.aabb_min.GetXYZ(),
         m_buffer_data.aabb_max.GetXYZ());

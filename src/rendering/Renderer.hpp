@@ -155,8 +155,6 @@ class IRenderer
 public:
     virtual ~IRenderer() = default;
 
-    virtual const RendererConfig& GetRendererConfig() const = 0;
-
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
 

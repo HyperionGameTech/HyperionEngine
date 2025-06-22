@@ -1422,16 +1422,26 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             new_rs.env_probe = env_probes[uint32(EPT_SKY)][0];
         }
 
-        // if (env_probes.Any())
-        // {
-        //     for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
-        //     {
-        //         for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
-        //         {
-        //             env_probe->Render(frame, new_rs);
-        //         }
-        //     }
-        // }
+        if (env_probes.Any())
+        {
+            for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
+            {
+                EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
+
+                if (!env_probe_renderer)
+                {
+                    HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", env_probe_type);
+                    continue;
+                }
+
+                for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
+                {
+                    new_rs.env_probe = env_probe;
+                    env_probe_renderer->RenderFrame(frame, new_rs);
+                    new_rs.env_probe = nullptr; // reset for next probe
+                }
+            }
+        }
 
         if (env_grids.Any())
         {
@@ -1463,11 +1473,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         new_rs.view = nullptr;
         new_rs.pass_data = nullptr;
-    }
-
-    for (RenderProxyList* rpl : render_proxy_lists)
-    {
-        rpl->EndRead();
     }
 }
 

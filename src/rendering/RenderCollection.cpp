@@ -410,10 +410,9 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
                 AddRenderProxy(this, render_proxy_tracker, proxy, render_view, attributes, rb);
             }
 
-            render_proxy_tracker.Advance(AdvanceAction::PERSIST);
+            // render_proxy_tracker.Advance(AdvanceAction::PERSIST);
 
             // Clear out groups that are no longer used
-            RemoveEmptyProxyGroups();
         }
     }
 }

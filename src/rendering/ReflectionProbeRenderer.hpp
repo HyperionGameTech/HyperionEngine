@@ -16,9 +16,9 @@
 
 namespace hyperion {
 
+#if 0
 class EnvProbe;
 
-HYP_CLASS(NoScriptBindings)
 class HYP_API ReflectionProbeRenderer : public RenderSubsystem
 {
     HYP_OBJECT_BODY(ReflectionProbeRenderer);
@@ -37,6 +37,7 @@ private:
 
     Handle<EnvProbe> m_env_probe;
 };
+#endif
 
 } // namespace hyperion
 

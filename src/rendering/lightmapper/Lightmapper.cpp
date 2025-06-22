@@ -175,11 +175,6 @@ struct RENDER_COMMAND(LightmapRender)
             }
         }
 
-        if (rpl)
-        {
-            rpl->EndRead();
-        }
-
         HYPERION_RETURN_OK;
     }
 };
@@ -865,8 +860,8 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
     if (render_setup.env_probe)
     {
         // prepare env probe texture to be sampled on the CPU in the tasks
-        render_setup.env_probe->GetPrefilteredEnvMap()->Readback();
-        env_probe_texture = render_setup.env_probe->GetPrefilteredEnvMap();
+        env_probe_texture = render_setup.env_probe->GetEnvProbe()->GetPrefilteredEnvMap();
+        env_probe_texture->Readback();
     }
 
     m_hits_buffer.Resize(rays.Size());

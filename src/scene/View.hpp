@@ -104,6 +104,11 @@ public:
     ViewOutputTarget& operator=(ViewOutputTarget&& other) noexcept = default;
     ~ViewOutputTarget() = default;
 
+    HYP_FORCE_INLINE bool IsValid() const
+    {
+        return m_impl.HasValue();
+    }
+
     GBuffer* GetGBuffer() const;
     const FramebufferRef& GetFramebuffer() const;
     const FramebufferRef& GetFramebuffer(RenderBucket rb) const;
