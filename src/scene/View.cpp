@@ -254,6 +254,8 @@ void View::Update(float delta)
 
     // temp test
     RenderProxyList& rpl = GetProducerRenderProxyList(this);
+    rpl.viewport = m_viewport;
+    rpl.priority = m_priority;
 
     CollectLights(rpl);
     CollectLightmapVolumes(rpl);

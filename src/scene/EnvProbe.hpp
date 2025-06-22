@@ -126,6 +126,36 @@ public:
         return m_env_probe_type == EPT_AMBIENT;
     }
 
+    HYP_FORCE_INLINE bool ShouldComputePrefilteredEnvMap() const
+    {
+        if (IsControlledByEnvGrid())
+        {
+            return false;
+        }
+
+        if (IsReflectionProbe() || IsSkyProbe())
+        {
+            return m_dimensions.Volume() > 1;
+        }
+
+        return false;
+    }
+
+    HYP_FORCE_INLINE bool ShouldComputeSphericalHarmonics() const
+    {
+        if (IsControlledByEnvGrid())
+        {
+            return false;
+        }
+
+        if (IsReflectionProbe() || IsSkyProbe())
+        {
+            return m_dimensions.Volume() > 1;
+        }
+
+        return false;
+    }
+
     HYP_METHOD()
     const BoundingBox& GetAABB() const
     {
@@ -162,6 +192,11 @@ public:
     HYP_FORCE_INLINE Vec2u GetDimensions() const
     {
         return m_dimensions;
+    }
+
+    HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
+    {
+        return m_prefiltered_env_map;
     }
 
     HYP_DEPRECATED HYP_FORCE_INLINE void SetNeedsRender(bool needs_render)
@@ -231,6 +266,8 @@ protected:
     bool m_needs_update;
     AtomicVar<int32> m_needs_render_counter;
     HashCode m_octant_hash_code;
+
+    Handle<Texture> m_prefiltered_env_map;
 
     RenderEnvProbe* m_render_resource;
 };

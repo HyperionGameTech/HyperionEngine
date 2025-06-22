@@ -98,11 +98,6 @@ public:
 
     void SetShadowMap(TResourceHandle<RenderShadowMap>&& shadow_map);
 
-    HYP_FORCE_INLINE const Handle<Texture>& GetPrefilteredEnvMap() const
-    {
-        return m_prefiltered_env_map;
-    }
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -129,10 +124,8 @@ private:
 
     void UpdateBufferData();
 
-    bool ShouldComputePrefilteredEnvMap() const;
     void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup);
 
-    bool ShouldComputeSphericalHarmonics() const;
     void ComputeSH(FrameBase* frame, const RenderSetup& render_setup);
 
     EnvProbe* m_env_probe;
@@ -144,8 +137,6 @@ private:
     Vec4i m_position_in_grid;
 
     ShaderRef m_shader;
-
-    Handle<Texture> m_prefiltered_env_map;
 
     EnvProbeSphericalHarmonics m_spherical_harmonics;
 

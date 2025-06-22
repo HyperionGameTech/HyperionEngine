@@ -1090,8 +1090,6 @@ void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_dat
 
     CreateViewDescriptorSets(view, pass_data);
     CreateViewFinalPassDescriptorSet(view, pass_data);
-
-    pass_data.viewport = view->GetRenderResource().GetViewport();
 }
 
 void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data)
@@ -1340,13 +1338,31 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     {
         AssertThrow(render_view);
 
-        if (render_view->GetView() == nullptr)
+        View* view = render_view->GetView();
+
+        if (!view)
         {
             continue;
         }
 
-        RenderProxyList& rpl = GetConsumerRenderProxyList(render_view->GetView());
+        RenderProxyList& rpl = GetConsumerRenderProxyList(view);
         render_proxy_lists.PushBack(&rpl);
+
+        DeferredPassData*& pd = m_view_pass_data[view];
+
+        if (!pd)
+        {
+            pd = &m_pass_data.EmplaceBack();
+            pd->viewport = rpl.viewport;
+
+            CreateViewPassData(view, *pd);
+        }
+        else if (pd->viewport != rpl.viewport)
+        {
+            ResizeView(rpl.viewport, view, *pd);
+        }
+
+        pd->priority = rpl.priority;
 
         for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
         {
@@ -1437,17 +1453,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             continue;
         }
 
-        DeferredPassData*& pd = m_view_pass_data[view];
-
-        if (!pd)
-        {
-            pd = &m_pass_data.EmplaceBack();
-            CreateViewPassData(view, *pd);
-        }
-        else if (pd->viewport != view->GetRenderResource().GetViewport())
-        {
-            ResizeView(view->GetViewport(), view, *pd);
-        }
+        DeferredPassData* pd = m_view_pass_data[view];
+        AssertDebug(pd != nullptr);
 
         new_rs.view = render_view.Get();
         new_rs.pass_data = pd;
@@ -1534,8 +1541,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
     deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
 
-    deferred_data.screen_width = view->GetRenderResource().m_viewport.extent.x;
-    deferred_data.screen_height = view->GetRenderResource().m_viewport.extent.y;
+    deferred_data.screen_width = rpl.viewport.extent.x;
+    deferred_data.screen_height = rpl.viewport.extent.y;
 
     PerformOcclusionCulling(frame, rs);
 
@@ -1708,7 +1715,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         Pair<View*, DeferredPassData*> { view, pd },
         [view](const Pair<View*, DeferredPassData*>& a, const Pair<View*, DeferredPassData*>& b)
         {
-            return a.first->GetRenderResource().GetPriority() < b.first->GetRenderResource().GetPriority();
+            return a.second->priority < b.second->priority;
         });
 
     m_last_frame_data.pass_data.Insert(last_frame_data_it, Pair<View*, DeferredPassData*> { view, pd });

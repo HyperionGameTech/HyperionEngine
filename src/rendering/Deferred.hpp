@@ -302,6 +302,8 @@ struct PassData
 
 struct DeferredPassData : PassData
 {
+    int priority = 0;
+
     // Descriptor set used when rendering the View in FinalPass.
     DescriptorSetRef final_pass_descriptor_set;
 

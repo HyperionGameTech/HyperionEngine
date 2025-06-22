@@ -4,6 +4,7 @@
 #include <scene/View.hpp>
 #include <scene/World.hpp>
 #include <scene/Scene.hpp>
+#include <scene/Texture.hpp>
 
 #include <rendering/RenderEnvProbe.hpp>
 #include <rendering/RenderCamera.hpp>
@@ -137,6 +138,26 @@ void EnvProbe::Init()
         CreateView();
 
         m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
+    }
+
+    if (ShouldComputePrefilteredEnvMap())
+    {
+        if (!m_prefiltered_env_map)
+        {
+            m_prefiltered_env_map = CreateObject<Texture>(TextureDesc {
+                ImageType::TEXTURE_TYPE_2D,
+                InternalFormat::RGBA16F,
+                Vec3u { 1024, 1024, 1 },
+                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+                FilterMode::TEXTURE_FILTER_LINEAR,
+                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                1,
+                ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+
+            AssertThrow(InitObject(m_prefiltered_env_map));
+
+            m_prefiltered_env_map->SetPersistentRenderResourceEnabled(true);
+        }
     }
 
     EnvProbeShaderData buffer_data {};

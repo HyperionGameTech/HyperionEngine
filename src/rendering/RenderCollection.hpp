@@ -177,6 +177,9 @@ struct HYP_API RenderProxyList
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
 
+    Viewport viewport;
+    int priority;
+
     RenderProxyTracker render_proxy_tracker;
     ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;

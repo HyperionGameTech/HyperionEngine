@@ -180,25 +180,8 @@ void RenderEnvProbe::Initialize_Internal()
 {
     HYP_SCOPE;
 
-    if (ShouldComputePrefilteredEnvMap())
+    if (m_env_probe->ShouldComputePrefilteredEnvMap())
     {
-        if (!m_prefiltered_env_map)
-        {
-            m_prefiltered_env_map = CreateObject<Texture>(TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA16F,
-                Vec3u { 1024, 1024, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
-                1,
-                ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
-
-            AssertThrow(InitObject(m_prefiltered_env_map));
-
-            m_prefiltered_env_map->SetPersistentRenderResourceEnabled(true);
-        }
-
         AssertDebugMsg(m_texture_slot == RenderGlobalState::IndexAllocator::invalid_index, "Texture slot not released for EnvProbe with ID: #%u", m_env_probe->GetID().Value());
         m_texture_slot = g_render_global_state->AllocateIndex(RenderGlobalState::ENV_PROBE);
 
@@ -226,8 +209,6 @@ void RenderEnvProbe::Destroy_Internal()
 
         m_texture_slot = RenderGlobalState::IndexAllocator::invalid_index;
     }
-
-    m_prefiltered_env_map.Reset();
 }
 
 void RenderEnvProbe::Update_Internal()
@@ -240,36 +221,6 @@ void RenderEnvProbe::Update_Internal()
 GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
 {
     return g_render_global_state->EnvProbes;
-}
-
-bool RenderEnvProbe::ShouldComputePrefilteredEnvMap() const
-{
-    if (m_env_probe->IsControlledByEnvGrid())
-    {
-        return false;
-    }
-
-    if (m_env_probe->IsReflectionProbe() || m_env_probe->IsSkyProbe())
-    {
-        return m_env_probe->GetDimensions().Volume() > 1;
-    }
-
-    return false;
-}
-
-bool RenderEnvProbe::ShouldComputeSphericalHarmonics() const
-{
-    if (m_env_probe->IsControlledByEnvGrid())
-    {
-        return false;
-    }
-
-    if (m_env_probe->IsReflectionProbe() || m_env_probe->IsSkyProbe())
-    {
-        return m_env_probe->GetDimensions().Volume() > 1;
-    }
-
-    return false;
 }
 
 void RenderEnvProbe::UpdateBufferData()

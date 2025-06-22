@@ -221,7 +221,9 @@ static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTra
 }
 
 RenderProxyList::RenderProxyList()
-    : parallel_rendering_state_head(nullptr),
+    : viewport(Viewport { Vec2u::One(), Vec2i::Zero() }),
+      priority(0),
+      parallel_rendering_state_head(nullptr),
       parallel_rendering_state_tail(nullptr)
 {
     // these are buckets per type (fixed size)
