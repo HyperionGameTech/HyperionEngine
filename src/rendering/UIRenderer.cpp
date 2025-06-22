@@ -197,11 +197,11 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
                 mesh->GetMeshAttributes(),
                 material->GetRenderAttributes() });
 
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+            const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
             attributes.SetDrawableLayer(pair.second);
 
-            DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[uint32(bucket)][attributes];
+            DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[rb][attributes];
             Handle<RenderGroup>& rg = mapping.render_group;
 
             if (!rg.IsValid())

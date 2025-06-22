@@ -90,7 +90,7 @@ void ShadowMapUpdaterSystem::Process(float delta)
 
     //     switch (light_component.light->GetLightType())
     //     {
-    //     case LightType::DIRECTIONAL:
+    //     case LT_DIRECTIONAL:
     //     {
     //         DirectionalLightShadowRenderer* shadow_renderer = static_cast<DirectionalLightShadowRenderer*>(shadow_map_component.subsystem.Get());
 
@@ -127,7 +127,7 @@ void ShadowMapUpdaterSystem::Process(float delta)
 
     //         break;
     //     }
-    //     case LightType::POINT:
+    //     case LT_POINT:
     //         // No update needed
     //         break;
     //     default:
@@ -150,7 +150,7 @@ void ShadowMapUpdaterSystem::Process(float delta)
 
 //     switch (light_component.light->GetLightType())
 //     {
-//     case LightType::DIRECTIONAL:
+//     case LT_DIRECTIONAL:
 //         shadow_map_component.subsystem = GetWorld()->AddSubsystem<DirectionalLightShadowRenderer>(
 //             GetScene()->HandleFromThis(),
 //             light_component.light,
@@ -158,7 +158,7 @@ void ShadowMapUpdaterSystem::Process(float delta)
 //             shadow_map_component.mode);
 
 //         break;
-//     case LightType::POINT:
+//     case LT_POINT:
 //         // shadow_map_component.render_subsystem = GetWorld()->GetRenderResource().GetEnvironment()->AddRenderSubsystem<PointLightShadowRenderer>(
 //         //     GetScene()->HandleFromThis(),
 //         //     TResourceHandle<RenderLight>(light_component.light->GetRenderResource()),

@@ -34,8 +34,14 @@ HYP_API extern void EndFrame_GameThread();
 HYP_API extern void BeginFrame_RenderThread();
 HYP_API extern void EndFrame_RenderThread();
 
-// Acquire a draw collection for the game thread to write to for a certain view
+/*! \brief Get the RenderProxyList for the Game thread to write to for the current frame, for the given view.
+ *  The game thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
+ *  use when rendering the frame.
+ *  \note This is only valid to call from the game thread, or from a task that is initiated by the game thread. */
 HYP_API extern RenderProxyList& GetProducerRenderProxyList(View* view);
+
+/*! \brief Get the RenderProxyList for the Render thread to read from for the current frame, for the given view.
+ *  \note This is only valid to call from the render thread, or from a task that is initiated by the render thread. */
 HYP_API extern RenderProxyList& GetConsumerRenderProxyList(View* view);
 
 class RenderGlobalState

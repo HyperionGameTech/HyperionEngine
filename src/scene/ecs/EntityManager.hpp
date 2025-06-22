@@ -295,6 +295,7 @@ public:
     }
 
     static bool IsEntityTagComponent(TypeID component_type_id);
+    static bool IsEntityTagComponent(TypeID component_type_id, EntityTag& out_tag);
 
     template <class Component>
     static ANSIStringView GetComponentTypeName()
@@ -723,7 +724,17 @@ public:
         component_ids = entity_data->components;
 
         // Note: Call OnComponentAdded on the entity before notifying systems, as systems may remove the component
-        entity->OnComponentAdded(component_ptr);
+        EntityTag tag;
+        if (IsEntityTagComponent(component_type_id, tag))
+        {
+            // If the component is an EntityTagComponent, add the tag to the entity
+            entity->OnTagAdded(tag);
+        }
+        else
+        {
+            // Notify the entity that a component was added
+            entity->OnComponentAdded(component_ptr);
+        }
 
         // Notify systems that entity is being added to them
         NotifySystemsOfEntityAdded(entity_handle, component_ids);
@@ -795,7 +806,18 @@ public:
 
         NotifySystemsOfEntityRemoved(entity, removed_component_ids);
 
-        entity->OnComponentRemoved(component_hyp_data.ToRef());
+        EntityTag tag;
+        if (IsEntityTagComponent(component_type_id, tag))
+        {
+            // If the component is an EntityTagComponent, remove the tag from the entity
+            entity->OnTagRemoved(tag);
+        }
+        else
+        {
+            // Notify the entity that a component was removed
+            entity->OnComponentRemoved(component_hyp_data.ToRef());
+        }
+
         component_hyp_data.Reset();
 
         return true;

@@ -20,6 +20,8 @@
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/View.hpp>
+#include <scene/Light.hpp>    // For LightType
+#include <scene/EnvProbe.hpp> // For EnvProbeType
 
 #include <scene/camera/Camera.hpp>
 
@@ -41,266 +43,6 @@
 namespace hyperion {
 
 static constexpr bool do_parallel_collection = false; // true;
-
-#pragma region Render commands
-
-struct RENDER_COMMAND(RebuildProxyGroups)
-    : renderer::RenderCommand
-{
-    TResourceHandle<RenderView> render_view;
-
-    RC<RenderProxyList> render_proxy_list;
-    Array<RenderProxy> added_proxies;
-    Array<ID<Entity>> removed_proxies;
-
-    Handle<Camera> camera;
-    Optional<RenderableAttributeSet> override_attributes;
-
-    RENDER_COMMAND(RebuildProxyGroups)(
-        const TResourceHandle<RenderView>& render_view,
-        const RC<RenderProxyList>& render_proxy_list,
-        Array<RenderProxy*>&& added_proxy_ptrs,
-        Array<ID<Entity>>&& removed_proxies,
-        const Handle<Camera>& camera = Handle<Camera>::empty,
-        const Optional<RenderableAttributeSet>& override_attributes = {})
-        : render_view(render_view),
-          render_proxy_list(render_proxy_list),
-          removed_proxies(std::move(removed_proxies)),
-          camera(camera),
-          override_attributes(override_attributes)
-    {
-        AssertThrow(render_view);
-
-        added_proxies.Reserve(added_proxy_ptrs.Size());
-
-        for (RenderProxy* proxy_ptr : added_proxy_ptrs)
-        {
-            added_proxies.PushBack(*proxy_ptr);
-        }
-    }
-
-    virtual ~RENDER_COMMAND(RebuildProxyGroups)() override = default;
-
-    RenderableAttributeSet GetRenderableAttributesForProxy(const RenderProxy& proxy) const
-    {
-        HYP_SCOPE;
-
-        const Handle<Mesh>& mesh = proxy.mesh;
-        AssertThrow(mesh.IsValid());
-
-        const Handle<Material>& material = proxy.material;
-        AssertThrow(material.IsValid());
-
-        RenderableAttributeSet attributes {
-            mesh->GetMeshAttributes(),
-            material->GetRenderAttributes()
-        };
-
-        if (override_attributes.HasValue())
-        {
-            if (const ShaderDefinition& override_shader_definition = override_attributes->GetShaderDefinition())
-            {
-                attributes.SetShaderDefinition(override_shader_definition);
-            }
-
-            const ShaderDefinition& shader_definition = override_attributes->GetShaderDefinition().IsValid()
-                ? override_attributes->GetShaderDefinition()
-                : attributes.GetShaderDefinition();
-
-#ifdef HYP_DEBUG_MODE
-            AssertThrow(shader_definition.IsValid());
-#endif
-
-            // Check for varying vertex attributes on the override shader compared to the entity's vertex
-            // attributes. If there is not a match, we should switch to a version of the override shader that
-            // has matching vertex attribs.
-            const VertexAttributeSet mesh_vertex_attributes = attributes.GetMeshAttributes().vertex_attributes;
-
-            MaterialAttributes new_material_attributes = override_attributes->GetMaterialAttributes();
-            new_material_attributes.shader_definition = shader_definition;
-
-            if (mesh_vertex_attributes != new_material_attributes.shader_definition.GetProperties().GetRequiredVertexAttributes())
-            {
-                new_material_attributes.shader_definition.properties.SetRequiredVertexAttributes(mesh_vertex_attributes);
-            }
-
-            // do not override bucket!
-            new_material_attributes.bucket = attributes.GetMaterialAttributes().bucket;
-
-            attributes.SetMaterialAttributes(new_material_attributes);
-        }
-
-        return attributes;
-    }
-
-    void AddRenderProxy(RenderProxyTracker& render_proxy_tracker, RenderProxy&& proxy, const RenderableAttributeSet& attributes, Bucket bucket)
-    {
-        HYP_SCOPE;
-
-        const ID<Entity> entity = proxy.entity.GetID();
-
-        // Add proxy to group
-        DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[uint32(bucket)][attributes];
-        Handle<RenderGroup>& rg = mapping.render_group;
-
-        if (!rg.IsValid())
-        {
-            EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
-
-            // Disable occlusion culling for translucent objects
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-            if (bucket == BUCKET_TRANSLUCENT || bucket == BUCKET_DEBUG)
-            {
-                render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
-            }
-
-            // Create RenderGroup
-            rg = CreateObject<RenderGroup>(
-                g_shader_manager->GetOrCreate(attributes.GetShaderDefinition()),
-                attributes,
-                render_group_flags);
-
-            if (render_group_flags & RenderGroupFlags::INDIRECT_RENDERING)
-            {
-                AssertDebugMsg(mapping.indirect_renderer == nullptr, "Indirect renderer already exists on mapping");
-
-                mapping.indirect_renderer = new IndirectRenderer();
-                mapping.indirect_renderer->Create(rg->GetDrawCallCollectionImpl());
-
-                mapping.draw_call_collection.impl = rg->GetDrawCallCollectionImpl();
-            }
-
-            FramebufferRef framebuffer;
-
-            if (camera.IsValid())
-            {
-                framebuffer = camera->GetRenderResource().GetFramebuffer();
-            }
-
-            if (framebuffer != nullptr)
-            {
-                rg->AddFramebuffer(framebuffer);
-            }
-            else
-            {
-                AssertThrow(render_view->GetView()->GetFlags() & ViewFlags::GBUFFER);
-
-                GBuffer* gbuffer = render_view->GetGBuffer();
-                AssertThrow(gbuffer != nullptr);
-
-                const FramebufferRef& bucket_framebuffer = gbuffer->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
-                AssertThrow(bucket_framebuffer != nullptr);
-
-                rg->AddFramebuffer(bucket_framebuffer);
-            }
-
-            InitObject(rg);
-        }
-
-        auto iter = render_proxy_tracker.Track(entity, std::move(proxy));
-
-        rg->AddRenderProxy(&iter->second);
-    }
-
-    bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
-    {
-        HYP_SCOPE;
-
-        auto& mappings = render_proxy_list->mappings_by_bucket[uint32(bucket)];
-
-        auto it = mappings.Find(attributes);
-        AssertThrow(it != mappings.End());
-
-        const DrawCallCollectionMapping& mapping = it->second;
-        AssertThrow(mapping.IsValid());
-
-        const bool removed = mapping.render_group->RemoveRenderProxy(entity);
-
-        render_proxy_tracker.MarkToRemove(entity);
-
-        return removed;
-    }
-
-    virtual RendererResult operator()() override
-    {
-        HYP_SCOPE;
-
-        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
-
-        // Reserve to prevent iterator invalidation (pointers to proxies are stored in the render groups)
-        render_proxy_tracker.Reserve(added_proxies.Size());
-
-#if 0
-        HYP_LOG(RenderCollection, Debug,
-            "Added: {} | Removed: {}",
-            added_proxies.Size(),
-            removed_proxies.Size()
-        );
-
-        for (const auto &added : added_proxies) {
-            HYP_LOG(
-                RenderCollection,
-                Debug,
-                "Added proxy for entity {} (mesh={}, count: {}, material={}, count: {})",
-                added.entity->GetID(),
-                added.mesh ? *added.mesh->GetName() : "null", added.mesh ? added.mesh->GetRenderResource().NumRefs() : 0,
-                added.material ? *added.material->GetName() : "null", added.material ? added.material->GetRenderResource().NumRefs() : 0
-            );
-        }
-
-        for (const auto &removed : removed_proxies) {
-            HYP_LOG(
-                RenderCollection,
-                Debug,
-                "Removed proxy for entity {}",
-                removed
-            );
-        }
-#endif
-        for (RenderProxy& proxy : added_proxies)
-        {
-            proxy.IncRefs();
-        }
-
-        for (ID<Entity> entity_id : removed_proxies)
-        {
-            const RenderProxy* proxy = render_proxy_tracker.GetElement(entity_id);
-            AssertThrowMsg(proxy != nullptr, "Proxy is missing for Entity #%u", entity_id.Value());
-
-            proxy->DecRefs();
-
-            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy);
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-            AssertThrow(RemoveRenderProxy(render_proxy_tracker, entity_id, attributes, bucket));
-        }
-
-        for (RenderProxy& proxy : added_proxies)
-        {
-            const Handle<Mesh>& mesh = proxy.mesh;
-            AssertThrow(mesh.IsValid());
-            AssertThrow(mesh->IsReady());
-
-            const Handle<Material>& material = proxy.material;
-            AssertThrow(material.IsValid());
-
-            const RenderableAttributeSet attributes = GetRenderableAttributesForProxy(proxy);
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
-
-            AddRenderProxy(render_proxy_tracker, std::move(proxy), attributes, bucket);
-        }
-
-        render_proxy_tracker.Advance(AdvanceAction::PERSIST);
-
-        // Clear out groups that are no longer used
-        render_proxy_list->RemoveEmptyProxyGroups();
-
-        HYPERION_RETURN_OK;
-    }
-};
-
-#pragma endregion Render commands
 
 #pragma region RenderProxyList
 
@@ -374,7 +116,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     overridden = 0;
 
     has_instancing = proxy->instance_data.enable_auto_instancing || proxy->instance_data.num_instances > 1;
-    has_forward_lighting = attributes.GetMaterialAttributes().bucket == BUCKET_TRANSLUCENT;
+    has_forward_lighting = attributes.GetMaterialAttributes().bucket == RB_TRANSLUCENT;
 
     if (!overridden)
     {
@@ -403,12 +145,12 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
-static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, Bucket bucket)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
     // Add proxy to group
-    DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[int32(bucket)][attributes];
+    DrawCallCollectionMapping& mapping = render_proxy_list->mappings_by_bucket[rb][attributes];
     Handle<RenderGroup>& rg = mapping.render_group;
 
     if (!rg.IsValid())
@@ -416,9 +158,9 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
         EnumFlags<RenderGroupFlags> render_group_flags = RenderGroupFlags::DEFAULT;
 
         // Disable occlusion culling for translucent objects
-        const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+        const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-        if (bucket == BUCKET_TRANSLUCENT || bucket == BUCKET_DEBUG)
+        if (rb == RB_TRANSLUCENT || rb == RB_DEBUG)
         {
             render_group_flags &= ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING);
         }
@@ -461,11 +203,11 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
     rg->AddRenderProxy(proxy);
 }
 
-static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, Bucket bucket)
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, ID<Entity> entity, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
-    auto& mappings = render_proxy_list->mappings_by_bucket[uint32(bucket)];
+    auto& mappings = render_proxy_list->mappings_by_bucket[rb];
 
     auto it = mappings.Find(attributes);
     AssertThrow(it != mappings.End());
@@ -482,6 +224,9 @@ RenderProxyList::RenderProxyList()
     : parallel_rendering_state_head(nullptr),
       parallel_rendering_state_tail(nullptr)
 {
+    // these are buckets per type (fixed size)
+    lights.Resize(LT_MAX);
+    env_probes.Resize(EPT_MAX);
 }
 
 RenderProxyList::~RenderProxyList()
@@ -641,9 +386,9 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
                 RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                 UpdateRenderableAttributesDynamic(proxy, attributes);
 
-                const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+                const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                AssertThrow(RemoveRenderProxy(this, render_proxy_tracker, entity_id, attributes, bucket));
+                AssertThrow(RemoveRenderProxy(this, render_proxy_tracker, entity_id, attributes, rb));
             }
 
             for (RenderProxy* proxy : added_proxy_ptrs)
@@ -658,9 +403,9 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
                 RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                 UpdateRenderableAttributesDynamic(proxy, attributes);
 
-                const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+                const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                AddRenderProxy(this, render_proxy_tracker, proxy, render_view, attributes, bucket);
+                AddRenderProxy(this, render_proxy_tracker, proxy, render_view, attributes, rb);
             }
 
             render_proxy_tracker.Advance(AdvanceAction::PERSIST);
@@ -913,9 +658,9 @@ void RenderCollector::ExecuteDrawCalls(
     // If only one bit is set, we can skip the loop by directly accessing the RenderGroup
     if (ByteUtil::BitCount(bucket_bits) == 1)
     {
-        const Bucket bucket = Bucket(MathUtil::FastLog2_Pow2(bucket_bits));
+        const RenderBucket rb = RenderBucket(MathUtil::FastLog2_Pow2(bucket_bits));
 
-        auto& mappings = render_proxy_list.mappings_by_bucket[uint32(bucket)];
+        auto& mappings = render_proxy_list.mappings_by_bucket[rb];
 
         if (mappings.Empty())
         {
@@ -966,9 +711,9 @@ void RenderCollector::ExecuteDrawCalls(
             const DrawCallCollectionMapping& mapping = it.second;
             AssertDebug(mapping.IsValid());
 
-            const Bucket bucket = attributes.GetMaterialAttributes().bucket;
+            const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-            if (!(bucket_bits & (1u << uint32(bucket))))
+            if (!(bucket_bits & (1u << uint32(rb))))
             {
                 continue;
             }

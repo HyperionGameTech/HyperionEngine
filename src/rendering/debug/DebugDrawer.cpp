@@ -41,7 +41,7 @@ static RenderableAttributeSet GetRenderableAttributes()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .bucket = Bucket::BUCKET_TRANSLUCENT,
+            .bucket = RB_TRANSLUCENT,
             .fill_mode = FillMode::FILL,
             .blend_function = BlendFunction::None(),
             .flags = MaterialAttributeFlags::DEPTH_TEST,
@@ -334,19 +334,19 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
     {
         const DebugDrawCommand& draw_command = *m_draw_commands[index];
 
-        uint32 env_probe_type = uint32(EnvProbeType::INVALID);
+        uint32 env_probe_type = uint32(EPT_INVALID);
         uint32 env_probe_index = ~0u;
 
         if (draw_command.shape == &AmbientProbe)
         {
             const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
-            env_probe_type = uint32(EnvProbeType::AMBIENT);
+            env_probe_type = uint32(EPT_AMBIENT);
             env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
         }
         else if (draw_command.shape == &ReflectionProbe)
         {
             const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
-            env_probe_type = uint32(EnvProbeType::REFLECTION);
+            env_probe_type = uint32(EPT_REFLECTION);
             env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
         }
 

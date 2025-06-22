@@ -326,7 +326,7 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
                     }))
             {
                 attributes.blend_function = BlendFunction::AlphaBlending();
-                attributes.bucket = BUCKET_TRANSLUCENT;
+                attributes.bucket = RB_TRANSLUCENT;
             }
         }
 

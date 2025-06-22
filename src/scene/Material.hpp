@@ -439,7 +439,7 @@ public:
     static const ParameterTable& DefaultParameters();
 
     Material();
-    Material(Name name, Bucket bucket = Bucket::BUCKET_OPAQUE);
+    Material(Name name, RenderBucket rb = RB_OPAQUE);
     Material(Name name, const MaterialAttributes& attributes);
     Material(Name name, const MaterialAttributes& attributes, const ParameterTable& parameters, const TextureSet& textures);
     Material(const Material& other) = delete;
@@ -569,16 +569,16 @@ public:
 
     /*! \brief Get the bucket for this Material.
      *  \return The bucket for this Material. */
-    HYP_FORCE_INLINE Bucket GetBucket() const
+    HYP_FORCE_INLINE RenderBucket GetBucket() const
     {
         return m_render_attributes.bucket;
     }
 
     /*! \brief Set the bucket for this Material.
-     *  \param bucket The bucket to set. */
-    HYP_FORCE_INLINE void SetBucket(Bucket bucket)
+     *  \param rb The bucket to set. */
+    HYP_FORCE_INLINE void SetBucket(RenderBucket rb)
     {
-        m_render_attributes.bucket = bucket;
+        m_render_attributes.bucket = rb;
     }
 
     /*! \brief Get whether this Material is alpha blended.

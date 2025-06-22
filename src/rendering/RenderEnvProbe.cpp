@@ -23,6 +23,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -315,6 +317,12 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(m_buffer_index != ~0u);
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
+    HYP_DEFER({
+        rpl.EndRead();
+    });
+
     if (!m_env_probe->NeedsRender())
     {
         return;
@@ -334,8 +342,8 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         RenderCollector::ExecuteDrawCalls(
             frame,
             new_render_setup,
-            GetConsumerRenderProxyList(m_render_view->GetView()),
-            ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
+            rpl,
+            ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
         new_render_setup.env_probe = nullptr;
     }
@@ -420,6 +428,8 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
 
     AssertThrow(render_setup.IsValid());
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
     struct ConvolveProbeUniforms
     {
         Vec2u out_image_dimensions;
@@ -451,14 +461,14 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
     uint32 num_bound_lights = 0;
 
-    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+    for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
     {
         if (num_bound_lights >= max_bound_lights)
         {
             break;
         }
 
-        for (const auto& it : m_render_view->GetLights(LightType(light_type)))
+        for (const auto& it : rpl.GetLights(LightType(light_type)))
         {
             if (num_bound_lights >= max_bound_lights)
             {
@@ -569,6 +579,8 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
     const ViewOutputTarget& output_target = m_env_probe->GetView()->GetOutputTarget();
 
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
@@ -672,12 +684,12 @@ void RenderEnvProbe::ComputeSH(FrameBase* frame, const RenderSetup& render_setup
     RenderEnvProbe* sky_env_probe = nullptr;
     RenderLight* render_light = nullptr;
 
-    if (const Array<RenderLight*>& directional_lights = m_render_view->GetLights(LightType::DIRECTIONAL); directional_lights.Any())
+    if (const Array<RenderLight*>& directional_lights = rpl.GetLights(LT_DIRECTIONAL); directional_lights.Any())
     {
         render_light = directional_lights.Front();
     }
 
-    if (const Array<RenderEnvProbe*>& sky_env_probes = m_render_view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
+    if (const Array<RenderEnvProbe*>& sky_env_probes = rpl.GetEnvProbes(EPT_SKY); sky_env_probes.Any())
     {
         sky_env_probe = sky_env_probes.Front();
     }

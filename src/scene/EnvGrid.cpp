@@ -264,7 +264,7 @@ void EnvGrid::CreateEnvProbes()
                         m_aabb.min + (Vec3f(float(x), float(y), float(z)) * SizeOfProbe()),
                         m_aabb.min + (Vec3f(float(x + 1), float(y + 1), float(z + 1)) * SizeOfProbe()));
 
-                    Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(env_probe_aabb, probe_dimensions, EnvProbeType::AMBIENT);
+                    Handle<EnvProbe> env_probe = CreateObject<EnvProbe>(env_probe_aabb, probe_dimensions, EPT_AMBIENT);
                     env_probe->m_grid_slot = index;
 
                     InitObject(env_probe);

@@ -264,7 +264,7 @@ void TemporalBlending::CreateDescriptorSets()
             ->SetElement(NAME("PrevImage"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
-            ->SetElement(NAME("VelocityImage"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+            ->SetElement(NAME("VelocityImage"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
         m_descriptor_table->GetDescriptorSet(NAME("TemporalBlendingDescriptorSet"), frame_index)
             ->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
@@ -305,7 +305,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
     frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
 
     const Vec3u& extent = active_image->GetExtent();
-    const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
+    const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(RB_OPAQUE)
                                                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)
                                                ->GetImage()
                                                ->GetExtent();

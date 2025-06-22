@@ -23,7 +23,7 @@ namespace hyperion {
 #pragma region Light
 
 Light::Light()
-    : Light(LightType::DIRECTIONAL, Vec3f::Zero(), Color::White(), 1.0f, 1.0f)
+    : Light(LT_DIRECTIONAL, Vec3f::Zero(), Color::White(), 1.0f, 1.0f)
 {
 }
 
@@ -165,12 +165,12 @@ Pair<Vec3f, Vec3f> Light::CalculateAreaLightRect() const
 
 BoundingBox Light::GetAABB() const
 {
-    if (m_type == LightType::DIRECTIONAL)
+    if (m_type == LT_DIRECTIONAL)
     {
         return BoundingBox::Infinity();
     }
 
-    if (m_type == LightType::AREA_RECT)
+    if (m_type == LT_AREA_RECT)
     {
         const Pair<Vec3f, Vec3f> rect = CalculateAreaLightRect();
 
@@ -180,7 +180,7 @@ BoundingBox Light::GetAABB() const
             .Union(m_position + m_normal * m_radius);
     }
 
-    if (m_type == LightType::POINT)
+    if (m_type == LT_POINT)
     {
         return BoundingBox(GetBoundingSphere());
     }
@@ -190,7 +190,7 @@ BoundingBox Light::GetAABB() const
 
 BoundingSphere Light::GetBoundingSphere() const
 {
-    if (m_type == LightType::DIRECTIONAL)
+    if (m_type == LT_DIRECTIONAL)
     {
         return BoundingSphere::infinity;
     }

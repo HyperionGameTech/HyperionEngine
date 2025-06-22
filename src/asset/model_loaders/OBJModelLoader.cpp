@@ -444,7 +444,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
                 { .shader_definition = ShaderDefinition {
                       NAME("Forward"),
                       ShaderProperties(mesh->GetVertexAttributes()) },
-                    .bucket = Bucket::BUCKET_OPAQUE },
+                    .bucket = RB_OPAQUE },
                 { { Material::MATERIAL_KEY_ALBEDO, Vec4f(1.0f) }, { Material::MATERIAL_KEY_ROUGHNESS, 0.65f }, { Material::MATERIAL_KEY_METALNESS, 0.0f } });
         }
 

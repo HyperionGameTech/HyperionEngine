@@ -29,14 +29,14 @@ class Material;
 class RenderLight;
 
 HYP_ENUM()
-enum class LightType : uint32
+enum LightType : uint32
 {
-    DIRECTIONAL,
-    POINT,
-    SPOT,
-    AREA_RECT,
+    LT_DIRECTIONAL,
+    LT_POINT,
+    LT_SPOT,
+    LT_AREA_RECT,
 
-    MAX
+    LT_MAX
 };
 
 HYP_CLASS()
@@ -236,9 +236,9 @@ public:
     {
         switch (m_type)
         {
-        case LightType::DIRECTIONAL:
+        case LT_DIRECTIONAL:
             return INFINITY;
-        case LightType::POINT:
+        case LT_POINT:
             return m_radius;
         default:
             return 0.0f;

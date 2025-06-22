@@ -119,7 +119,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
                 NAME("Skybox"),
                 ShaderProperties(mesh->GetVertexAttributes())
             };
-            material_attributes.bucket = Bucket::BUCKET_SKYBOX;
+            material_attributes.bucket = RB_SKYBOX;
             material_attributes.cull_faces = FaceCullMode::FRONT;
             material_attributes.flags = MaterialAttributeFlags::DEPTH_TEST;
 

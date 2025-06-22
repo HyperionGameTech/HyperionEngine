@@ -69,7 +69,7 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(Entity* entity)
     //         GetScene()->HandleFromThis(),
     //         world_aabb,
     //         reflection_probe_component.dimensions,
-    //         EnvProbeType::REFLECTION);
+    //         EPT_REFLECTION);
     // }
 
     // reflection_probe_component.env_probe->SetOrigin(transform_component.transform.GetTranslation());

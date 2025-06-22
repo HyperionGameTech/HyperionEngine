@@ -420,6 +420,64 @@ public:
     }
 
     template <class AllocatorType>
+    void GetRemoved(Array<ElementType, AllocatorType>& out, bool include_changed) const
+    {
+        HYP_SCOPE;
+
+        Bitset removed_bits = GetRemoved();
+
+        if (include_changed)
+        {
+            removed_bits |= GetChanged();
+        }
+
+        out.Reserve(removed_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(it->second);
+
+            removed_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetRemoved(Array<ElementType*, AllocatorType>& out, bool include_changed) const
+    {
+        HYP_SCOPE;
+
+        Bitset removed_bits = GetRemoved();
+
+        if (include_changed)
+        {
+            removed_bits |= GetChanged();
+        }
+
+        out.Reserve(removed_bits.Count());
+
+        Bitset::BitIndex first_set_bit_index;
+
+        while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
+        {
+            const IDType id = IDType::FromIndex(first_set_bit_index);
+
+            auto it = m_element_map.Find(id);
+            AssertThrow(it != m_element_map.End());
+
+            out.PushBack(const_cast<ElementType*>(&it->second));
+
+            removed_bits.Set(first_set_bit_index, false);
+        }
+    }
+
+    template <class AllocatorType>
     void GetAdded(Array<ElementType, AllocatorType>& out, bool include_changed) const
     {
         HYP_SCOPE;

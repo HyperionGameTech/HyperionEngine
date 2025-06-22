@@ -1482,7 +1482,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                         NAME("Forward"),
                         ShaderProperties(mesh->attributes, {{ "SKINNING" }})
                     },
-                    .bucket = Bucket::BUCKET_OPAQUE
+                    .bucket = RB_OPAQUE
                 });
 
                 Handle<Scene> detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID());

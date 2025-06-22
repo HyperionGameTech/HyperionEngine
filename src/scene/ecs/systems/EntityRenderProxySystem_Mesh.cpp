@@ -1,6 +1,6 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <scene/ecs/systems/RenderProxyUpdaterSystem.hpp>
+#include <scene/ecs/systems/EntityRenderProxySystem_Mesh.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
 #include <scene/animation/Skeleton.hpp>
@@ -78,7 +78,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
                 .entity_index = proxy.entity.GetID().ToIndex(),
                 .material_index = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u,
                 .skeleton_index = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u,
-                .bucket = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : BUCKET_NONE,
+                .bucket = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : RB_NONE,
                 .flags = proxy.skeleton.IsValid() ? ENTITY_GPU_FLAG_HAS_SKELETON : ENTITY_GPU_FLAG_NONE,
                 .user_data = proxy.user_data.ReinterpretAs<EntityUserData>()
             };
@@ -94,7 +94,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
 #pragma endregion Render commands
 
-void RenderProxyUpdaterSystem::OnEntityAdded(Entity* entity)
+void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
@@ -139,7 +139,7 @@ void RenderProxyUpdaterSystem::OnEntityAdded(Entity* entity)
     }
 }
 
-void RenderProxyUpdaterSystem::OnEntityRemoved(Entity* entity)
+void EntityRenderProxySystem_Mesh::OnEntityRemoved(Entity* entity)
 {
     SystemBase::OnEntityRemoved(entity);
 
@@ -152,7 +152,7 @@ void RenderProxyUpdaterSystem::OnEntityRemoved(Entity* entity)
     }
 }
 
-void RenderProxyUpdaterSystem::Process(float delta)
+void EntityRenderProxySystem_Mesh::Process(float delta)
 {
     HashSet<WeakHandle<Entity>> updated_entities;
     Array<RenderProxy*> render_proxy_ptrs;

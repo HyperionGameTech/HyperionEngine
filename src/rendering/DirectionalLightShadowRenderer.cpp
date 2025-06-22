@@ -229,7 +229,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 frame,
                 render_setup_statics,
                 GetConsumerRenderProxyList(m_render_view_statics->GetView()),
-                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
+                ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy static framebuffer image
             frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
@@ -248,7 +248,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 frame,
                 render_setup_dynamics,
                 GetConsumerRenderProxyList(m_render_view_dynamics->GetView()),
-                ((1u << BUCKET_OPAQUE) | (1u << BUCKET_TRANSLUCENT)));
+                ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy dynamic framebuffer image
             frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);

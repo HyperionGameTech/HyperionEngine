@@ -106,7 +106,7 @@ public:
 
     GBuffer* GetGBuffer() const;
     const FramebufferRef& GetFramebuffer() const;
-    const FramebufferRef& GetFramebuffer(Bucket bucket) const;
+    const FramebufferRef& GetFramebuffer(RenderBucket rb) const;
 
 private:
     Variant<FramebufferRef, GBuffer*> m_impl;
@@ -202,10 +202,10 @@ public:
 protected:
     void Init() override;
     
-    void CollectLights();
-    void CollectLightmapVolumes();
-    void CollectEnvGrids();
-    void CollectEnvProbes();
+    void CollectLights(RenderProxyList& rpl);
+    void CollectLightmapVolumes(RenderProxyList& rpl);
+    void CollectEnvGrids(RenderProxyList& rpl);
+    void CollectEnvProbes(RenderProxyList& rpl);
 
     typename RenderProxyTracker::Diff CollectEntities(RenderProxyList& rpl);
 
@@ -230,14 +230,6 @@ protected:
     int m_priority;
 
     Optional<RenderableAttributeSet> m_override_attributes;
-
-    // Game thread side collection
-    RenderProxyTracker m_render_proxy_tracker;
-
-    ResourceTracker<ID<Light>, RenderLight*> m_tracked_lights;
-    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> m_tracked_lightmap_volumes;
-    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> m_tracked_env_grids;
-    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
 
     typename RenderProxyTracker::Diff m_last_collection_result;
 };

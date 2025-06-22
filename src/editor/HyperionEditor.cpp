@@ -150,7 +150,7 @@ void HyperionEditor::Init()
     // if (false)
     // { // add test area light
     //     Handle<Light> light = CreateObject<Light>(
-    //         LightType::AREA_RECT,
+    //         LT_AREA_RECT,
     //         Vec3f(0.0f, 1.25f, 0.0f),
     //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
     //         Vec2f(2.0f, 2.0f),
@@ -169,7 +169,7 @@ void HyperionEditor::Init()
     //         { .shader_definition = ShaderDefinition {
     //               HYP_NAME(Forward),
     //               ShaderProperties(static_mesh_vertex_attributes) },
-    //             .bucket = Bucket::BUCKET_OPAQUE },
+    //             .bucket = RB_OPAQUE },
     //         {}, { { MaterialTextureKey::ALBEDO_MAP, std::move(dummy_light_texture) } }));
     //     AssertThrow(light->GetMaterial().IsValid());
 
@@ -197,7 +197,7 @@ void HyperionEditor::Init()
     sun_node->SetName(NAME("Sun"));
 
     Handle<Light> sun_entity = scene->GetEntityManager()->AddEntity<Light>(
-        LightType::DIRECTIONAL,
+        LT_DIRECTIONAL,
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         5.0f,

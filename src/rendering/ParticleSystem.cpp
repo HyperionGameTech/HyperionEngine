@@ -249,7 +249,7 @@ void ParticleSpawner::CreateRenderGroup()
             MeshAttributes {
                 .vertex_attributes = static_mesh_vertex_attributes },
             MaterialAttributes {
-                .bucket = Bucket::BUCKET_TRANSLUCENT,
+                .bucket = RB_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces = FaceCullMode::FRONT,
                 .flags = MaterialAttributeFlags::DEPTH_TEST }),
@@ -257,7 +257,7 @@ void ParticleSpawner::CreateRenderGroup()
         RenderGroupFlags::NONE);
 
     // // @FIXME: needs to be per view!
-    // m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(Bucket::BUCKET_TRANSLUCENT).GetFramebuffer());
+    // m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(RB_TRANSLUCENT).GetFramebuffer());
 
     AssertThrow(InitObject(m_render_group));
 }

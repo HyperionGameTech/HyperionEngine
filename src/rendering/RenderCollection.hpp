@@ -40,6 +40,12 @@ class RenderCamera;
 class RenderView;
 struct RenderSetup;
 class IndirectRenderer;
+class RenderLight;
+class RenderLightmapVolume;
+class RenderEnvGrid;
+class RenderEnvProbe;
+enum LightType : uint32;
+enum EnvProbeType : uint32;
 
 using renderer::PushConstantData;
 
@@ -84,6 +90,7 @@ struct DrawCallCollectionMapping
     }
 };
 
+/*! \brief A collection of renderable objects and setup for a specific View, proxied so the render thread can work with it. */
 struct HYP_API RenderProxyList
 {
     RenderProxyList();
@@ -95,6 +102,63 @@ struct HYP_API RenderProxyList
     RenderProxyList& operator=(RenderProxyList&& other) noexcept = delete;
 
     ~RenderProxyList();
+
+    /*! \brief Get the currently bound Lights with the given LightType.
+     *  \note Only call from render thread or from task on a task thread that is initiated by the render thread.
+     *  \param type The type of light to get. */
+    HYP_FORCE_INLINE const Array<RenderLight*>& GetLights(LightType type) const
+    {
+        AssertDebug(type < lights.Size());
+
+        return lights[type];
+    }
+
+    HYP_FORCE_INLINE SizeType NumLights() const
+    {
+        SizeType num_lights = 0;
+
+        for (const auto& it : lights)
+        {
+            num_lights += it.Size();
+        }
+
+        return num_lights;
+    }
+
+    HYP_FORCE_INLINE const Array<RenderEnvGrid*>& GetEnvGrids() const
+    {
+        return env_grids;
+    }
+
+    HYP_FORCE_INLINE const Array<RenderEnvProbe*>& GetEnvProbes(EnvProbeType type) const
+    {
+        AssertDebug(type < env_probes.Size());
+
+        return env_probes[type];
+    }
+
+    HYP_FORCE_INLINE SizeType NumEnvProbes() const
+    {
+        SizeType num_env_probes = 0;
+
+        for (const auto& it : env_probes)
+        {
+            num_env_probes += it.Size();
+        }
+
+        return num_env_probes;
+    }
+
+    /*! \brief Call on the consumer (render) thread when finished reading the render proxy list for the current frame.
+     *  This will mark all proxies that are not written again in the next frame as cleared so they can be removed. */
+    void EndRead()
+    {
+        render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+        tracked_lights.Advance(AdvanceAction::CLEAR);
+        tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
+        tracked_env_grids.Advance(AdvanceAction::CLEAR);
+        tracked_env_probes.Advance(AdvanceAction::CLEAR);
+    }
 
     void ClearProxyGroups();
     void RemoveEmptyProxyGroups();
@@ -113,10 +177,21 @@ struct HYP_API RenderProxyList
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
 
-    FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, Bucket::BUCKET_MAX> mappings_by_bucket;
     RenderProxyTracker render_proxy_tracker;
+    ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
+    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
+    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
+    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
+
+    Array<Array<RenderLight*>> lights;
+    Array<Array<RenderEnvProbe*>> env_probes;
+    Array<RenderEnvGrid*> env_grids;
+    Array<RenderLightmapVolume*> lightmap_volumes;
+
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;
+
+    FixedArray<FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>, RB_MAX> mappings_by_bucket;
 
 #ifdef HYP_ENABLE_MT_CHECK
     HYP_DECLARE_MT_CHECK(data_race_detector);

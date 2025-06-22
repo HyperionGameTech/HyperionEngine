@@ -1,7 +1,7 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_ECS_RENDER_PROXY_UPDATER_SYSTEM_HPP
-#define HYPERION_ECS_RENDER_PROXY_UPDATER_SYSTEM_HPP
+#ifndef HYPERION_ECS_ENTITY_RENDER_PROXY_SYSTEM_MESH_HPP
+#define HYPERION_ECS_ENTITY_RENDER_PROXY_SYSTEM_MESH_HPP
 
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/EntityTag.hpp>
@@ -14,18 +14,22 @@
 
 namespace hyperion {
 
+/*! \brief System that updates the render proxy for entities with MeshComponent.
+ *  This system processes entities with MeshComponent and updates their render proxies
+ *  based on the mesh, material, and other properties defined in the MeshComponent.
+ */
 HYP_CLASS(NoScriptBindings)
-class RenderProxyUpdaterSystem : public SystemBase
+class EntityRenderProxySystem_Mesh : public SystemBase
 {
-    HYP_OBJECT_BODY(RenderProxyUpdaterSystem);
+    HYP_OBJECT_BODY(EntityRenderProxySystem_Mesh);
 
 public:
-    RenderProxyUpdaterSystem(EntityManager& entity_manager)
+    EntityRenderProxySystem_Mesh(EntityManager& entity_manager)
         : SystemBase(entity_manager)
     {
     }
 
-    virtual ~RenderProxyUpdaterSystem() override = default;
+    virtual ~EntityRenderProxySystem_Mesh() override = default;
 
     virtual void OnEntityAdded(Entity* entity) override;
     virtual void OnEntityRemoved(Entity* entity) override;

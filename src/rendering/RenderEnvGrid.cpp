@@ -27,6 +27,8 @@
 
 #include <core/math/MathUtil.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
@@ -758,6 +760,12 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
+    HYP_DEFER({
+        rpl.EndRead();
+    });
+
     const BoundingBox grid_aabb = BoundingBox(
         m_buffer_data.aabb_min.GetXYZ(),
         m_buffer_data.aabb_max.GetXYZ());
@@ -883,6 +891,8 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
 
     AssertDebug(render_setup.IsValid());
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
 
@@ -897,8 +907,8 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     RenderCollector::ExecuteDrawCalls(
         frame,
         new_render_setup,
-        GetConsumerRenderProxyList(m_render_view->GetView()),
-        (1u << BUCKET_OPAQUE));
+        rpl,
+        (1u << RB_OPAQUE));
 
     switch (m_env_grid->GetEnvGridType())
     {
@@ -1140,6 +1150,8 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
 
     AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
+    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+
     const EnvGridOptions& options = m_env_grid->GetOptions();
 
     const uint32 probe_index = probe->m_grid_slot;
@@ -1168,14 +1180,14 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
         uint32 num_bound_lights = 0;
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+        for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
         {
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
             }
 
-            for (const auto& it : m_render_view->GetLights(LightType(light_type)))
+            for (const auto& it : rpl.GetLights(LightType(light_type)))
             {
                 if (num_bound_lights >= max_bound_lights)
                 {

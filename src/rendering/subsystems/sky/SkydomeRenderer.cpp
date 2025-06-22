@@ -74,7 +74,7 @@ void SkydomeRenderer::Init()
 
     camera_node->SetEntity(camera_entity);
 
-    m_env_probe = m_virtual_scene->GetEntityManager()->AddEntity<EnvProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions, EnvProbeType::SKY);
+    m_env_probe = m_virtual_scene->GetEntityManager()->AddEntity<EnvProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions, EPT_SKY);
     InitObject(m_env_probe);
 
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");

@@ -45,19 +45,19 @@ enum EnvProbeBindingSlot : uint32
 };
 
 HYP_ENUM()
-enum class EnvProbeType : uint32
+enum EnvProbeType : uint32
 {
-    INVALID = uint32(-1),
+    EPT_INVALID = uint32(-1),
 
-    SKY = 0,
-    REFLECTION,
+    EPT_SKY = 0,
+    EPT_REFLECTION,
 
-    SHADOW,
+    EPT_SHADOW,
 
     // These below types are controlled by EnvGrid
-    AMBIENT,
+    EPT_AMBIENT,
 
-    MAX
+    EPT_MAX
 };
 
 class EnvProbe;
@@ -99,31 +99,31 @@ public:
     HYP_METHOD()
     bool IsReflectionProbe() const
     {
-        return m_env_probe_type == EnvProbeType::REFLECTION;
+        return m_env_probe_type == EPT_REFLECTION;
     }
 
     HYP_METHOD()
     bool IsSkyProbe() const
     {
-        return m_env_probe_type == EnvProbeType::SKY;
+        return m_env_probe_type == EPT_SKY;
     }
 
     HYP_METHOD()
     bool IsShadowProbe() const
     {
-        return m_env_probe_type == EnvProbeType::SHADOW;
+        return m_env_probe_type == EPT_SHADOW;
     }
 
     HYP_METHOD()
     bool IsAmbientProbe() const
     {
-        return m_env_probe_type == EnvProbeType::AMBIENT;
+        return m_env_probe_type == EPT_AMBIENT;
     }
 
     HYP_METHOD()
     bool IsControlledByEnvGrid() const
     {
-        return m_env_probe_type == EnvProbeType::AMBIENT;
+        return m_env_probe_type == EPT_AMBIENT;
     }
 
     HYP_METHOD()

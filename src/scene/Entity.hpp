@@ -12,12 +12,17 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/math/Matrix4.hpp>
+
+#include <rendering/RenderProxy.hpp>
+
 namespace hyperion {
 
 class World;
 class Scene;
 class Node;
 class EntityManager;
+enum class EntityTag : uint64;
 
 struct EntityInitInfo
 {
@@ -30,6 +35,8 @@ HYP_CLASS()
 class HYP_API Entity : public HypObject<Entity>
 {
     HYP_OBJECT_BODY(Entity);
+
+    friend class EntityRenderProxySystem_Mesh;
 
 public:
     friend class EntityManager;
@@ -46,6 +53,11 @@ public:
     HYP_FORCE_INLINE Scene* GetScene() const
     {
         return m_scene;
+    }
+
+    HYP_FORCE_INLINE const Matrix4& GetPrevModelMatrix() const
+    {
+        return m_prev_model_matrix;
     }
 
     EntityManager* GetEntityManager() const;
@@ -86,6 +98,11 @@ protected:
     virtual void OnComponentAdded(AnyRef component);
     virtual void OnComponentRemoved(AnyRef component);
 
+    virtual void OnTagAdded(EntityTag tag);
+    virtual void OnTagRemoved(EntityTag tag);
+
+    virtual void UpdateRenderProxy();
+
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
 
@@ -94,6 +111,8 @@ protected:
 private:
     World* m_world;
     Scene* m_scene;
+
+    Matrix4 m_prev_model_matrix;
 };
 
 } // namespace hyperion

@@ -51,6 +51,24 @@ bool EntityManager::IsEntityTagComponent(TypeID component_type_id)
     return component_interface->IsEntityTag();
 }
 
+bool EntityManager::IsEntityTagComponent(TypeID component_type_id, EntityTag& out_tag)
+{
+    const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
+
+    if (!component_interface)
+    {
+        return false;
+    }
+
+    if (component_interface->IsEntityTag())
+    {
+        out_tag = component_interface->GetEntityTag();
+        return true;
+    }
+
+    return false;
+}
+
 ANSIStringView EntityManager::GetComponentTypeName(TypeID component_type_id)
 {
     const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
@@ -232,6 +250,48 @@ void EntityManager::Shutdown()
         {
             Entity* entity = entities_it.first;
             AssertThrow(entity);
+
+            // call OnComponentRemoved() for all components of the entity
+            HYP_MT_CHECK_RW(m_entities_data_race_detector);
+
+            EntityData& entity_data = entities_it.second;
+            NotifySystemsOfEntityRemoved(entity, entity_data.components);
+
+            for (auto component_info_pair_it = entity_data.components.Begin(); component_info_pair_it != entity_data.components.End();)
+            {
+                const TypeID component_type_id = component_info_pair_it->first;
+                const ComponentID component_id = component_info_pair_it->second;
+
+                auto component_container_it = m_containers.Find(component_type_id);
+                AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
+                AssertThrowMsg(component_container_it->second->HasComponent(component_id), "Component does not exist in component container");
+
+                AnyRef component_ref = component_container_it->second->TryGetComponent(component_id);
+                AssertThrowMsg(component_ref.HasValue(), "Component of type '%s' with ID %u does not exist in component container", *GetComponentTypeName(component_type_id), component_id);
+
+                // Notify the entity that the component is being removed
+                // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+                EntityTag tag;
+                if (IsEntityTagComponent(component_type_id, tag))
+                {
+                    // Remove the tag from the entity
+                    entity->OnTagRemoved(tag);
+                }
+                else
+                {
+                    entity->OnComponentRemoved(component_ref);
+                }
+
+                HypData component_hyp_data;
+                if (!component_container_it->second->RemoveComponent(component_id, component_hyp_data))
+                {
+                    HYP_FAIL("Failed to get component of type '%s' as HypData when removing it from entity '%u'",
+                        *GetComponentTypeName(component_type_id), entity->GetID().Value());
+                }
+
+                // Update iterator, erase the component from the entity's component map
+                component_info_pair_it = entity_data.components.Erase(component_info_pair_it);
+            }
 
             if (m_world && m_scene->IsForegroundScene())
             {
@@ -559,7 +619,16 @@ bool EntityManager::RemoveEntity(Entity* entity)
 
         // Notify the entity that the component is being removed
         // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-        entity->OnComponentRemoved(component_ref);
+        EntityTag tag;
+        if (IsEntityTagComponent(component_type_id, tag))
+        {
+            // Remove the tag from the entity
+            entity->OnTagRemoved(tag);
+        }
+        else
+        {
+            entity->OnComponentRemoved(component_ref);
+        }
 
         HypData component_hyp_data;
         if (!component_container_it->second->RemoveComponent(component_id, component_hyp_data))
@@ -644,9 +713,18 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef component_ref = component_container_it->second->TryGetComponent(component_id);
             AssertThrowMsg(component_ref.HasValue(), "Component of type '%s' with ID %u does not exist in component container", *GetComponentTypeName(component_type_id), component_id);
 
-            // // Notify the entity that the component is being removed
-            // // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
-            // entity->OnComponentRemoved(component_ref);
+            // Notify the entity that the component is being removed
+            // - needed to ensure proper lifecycle. every OnComponentRemoved() call must be matched with an OnComponentAdded() call and vice versa
+            EntityTag tag;
+            if (IsEntityTagComponent(component_type_id, tag))
+            {
+                // Remove the tag from the entity
+                entity->OnTagRemoved(tag);
+            }
+            else
+            {
+                entity->OnComponentRemoved(component_ref);
+            }
 
             HypData component_hyp_data;
             if (!component_container_it->second->RemoveComponent(component_id, component_hyp_data))
@@ -747,8 +825,16 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
             AnyRef component_ref = container->TryGetComponent(component_id);
             AssertThrowMsg(component_ref.HasValue(), "Failed to get component of type '%s' with ID %u from component container", *GetComponentTypeName(component_type_id), component_id);
 
-            // // Note: Call before notifying systems as they are able to remove components!
-            // entity->OnComponentAdded(component_ref);
+            EntityTag tag;
+            if (IsEntityTagComponent(component_type_id, tag))
+            {
+                entity->OnTagAdded(tag);
+            }
+            else
+            {
+                // Note: Call before notifying systems as they are able to remove components!
+                entity->OnComponentAdded(component_ref);
+            }
         }
 
         {
@@ -862,7 +948,17 @@ void EntityManager::AddComponent(Entity* entity, const HypData& component_data)
     AssertThrowMsg(component_ref.HasValue(), "Failed to get component of type '%s' with ID %u from component container", *GetComponentTypeName(component_type_id), component_id);
 
     // Note: Call before notifying systems as they are able to remove components!
-    entity->OnComponentAdded(component_ref);
+
+    EntityTag tag;
+    if (IsEntityTagComponent(component_type_id, tag))
+    {
+        entity->OnTagAdded(tag);
+    }
+    else
+    {
+        // Note: Call before notifying systems as they are able to remove components!
+        entity->OnComponentAdded(component_ref);
+    }
 
     // Notify systems that entity is being added to them
     NotifySystemsOfEntityAdded(entity_handle, component_ids);
@@ -931,8 +1027,16 @@ void EntityManager::AddComponent(Entity* entity, HypData&& component_data)
     AnyRef component_ref = container->TryGetComponent(component_id);
     AssertThrowMsg(component_ref.HasValue(), "Failed to get component of type '%s' with ID %u from component container", *GetComponentTypeName(component_type_id), component_id);
 
-    // Note: Call before notifying systems as they are able to remove components!
-    entity->OnComponentAdded(component_ref);
+    EntityTag tag;
+    if (IsEntityTagComponent(component_type_id, tag))
+    {
+        entity->OnTagAdded(tag);
+    }
+    else
+    {
+        // Note: Call before notifying systems as they are able to remove components!
+        entity->OnComponentAdded(component_ref);
+    }
 
     // Notify systems that entity is being added to them
     NotifySystemsOfEntityAdded(entity_handle, component_ids);
@@ -988,7 +1092,15 @@ bool EntityManager::RemoveComponent(TypeID component_type_id, Entity* entity)
         return false;
     }
 
-    entity->OnComponentRemoved(component_ref);
+    EntityTag tag;
+    if (IsEntityTagComponent(component_type_id, tag))
+    {
+        entity->OnTagRemoved(tag);
+    }
+    else
+    {
+        entity->OnComponentRemoved(component_ref);
+    }
 
     if (!container->RemoveComponent(component_id))
     {

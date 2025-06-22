@@ -123,16 +123,23 @@ struct RENDER_COMMAND(LightmapRender)
 
         RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), view };
 
+        RenderProxyList* rpl = nullptr;
+
         if (view)
         {
-            if (const Array<RenderEnvProbe*>& sky_env_probes = view->GetEnvProbes(EnvProbeType::SKY); sky_env_probes.Any())
-            {
-                render_setup.env_probe = sky_env_probes[0];
-            }
+            rpl = &GetConsumerRenderProxyList(view->GetView());
         }
 
         const uint32 frame_index = frame->GetFrameIndex();
         const uint32 previous_frame_index = (frame_index + max_frames_in_flight - 1) % max_frames_in_flight;
+
+        if (rpl)
+        {
+            if (const Array<RenderEnvProbe*>& sky_env_probes = rpl->GetEnvProbes(EPT_SKY); sky_env_probes.Any())
+            {
+                render_setup.env_probe = sky_env_probes[0];
+            }
+        }
 
         {
             // Read ray hits from last time this frame was rendered
@@ -166,6 +173,11 @@ struct RENDER_COMMAND(LightmapRender)
 
                 lightmap_renderer->Render(frame, render_setup, job, rays, ray_offset);
             }
+        }
+
+        if (rpl)
+        {
+            rpl->EndRead();
         }
 
         HYPERION_RETURN_OK;
@@ -620,7 +632,7 @@ void LightmapGPUPathTracer::UpdateUniforms(FrameBase* frame, uint32 ray_offset)
     // const uint32 max_bound_lights = MathUtil::Min(g_engine->GetRenderState()->NumBoundLights(), ArraySize(uniforms.light_indices));
     // uint32 num_bound_lights = 0;
 
-    // for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++) {
+    // for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++) {
     //     if (num_bound_lights >= max_bound_lights) {
     //         break;
     //     }
@@ -1539,7 +1551,7 @@ void Lightmapper::PerformLightmapping()
         }
 
         // Only process opaque and translucent materials
-        if (mesh_component.material->GetBucket() != BUCKET_OPAQUE && mesh_component.material->GetBucket() != BUCKET_TRANSLUCENT)
+        if (mesh_component.material->GetBucket() != RB_OPAQUE && mesh_component.material->GetBucket() != RB_TRANSLUCENT)
         {
             HYP_LOG(Lightmap, Info, "Skip entity with bucket that is not opaque or translucent");
 
@@ -1713,7 +1725,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
         sub_element.material = sub_element.material.IsValid() ? sub_element.material->Clone() : CreateObject<Material>();
         is_new_material = true;
 
-        sub_element.material->SetBucket(BUCKET_LIGHTMAP);
+        sub_element.material->SetBucket(RB_LIGHTMAP);
 
 #if 0
         // temp ; testing. - will instead be set in the lightmap volume

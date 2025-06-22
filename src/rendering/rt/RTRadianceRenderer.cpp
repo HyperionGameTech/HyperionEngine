@@ -118,6 +118,8 @@ void RTRadianceRenderer::Destroy()
 
 void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup)
 {
+    RenderProxyList& rpl = GetConsumerRenderProxyList(render_setup.view->GetView());
+
     RTRadianceUniforms uniforms {};
 
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
@@ -129,14 +131,14 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& ren
 
     const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
 
-    for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+    for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
     {
         if (num_bound_lights >= max_bound_lights)
         {
             break;
         }
 
-        for (const auto& it : render_setup.view->GetLights(LightType(light_type)))
+        for (const auto& it : rpl.GetLights(LightType(light_type)))
         {
             if (num_bound_lights >= max_bound_lights)
             {

@@ -50,7 +50,7 @@ const Material::ParameterTable& Material::DefaultParameters()
 Material::Material()
     : m_render_attributes {
           .shader_definition = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
-          .bucket = Bucket::BUCKET_OPAQUE,
+          .bucket = RB_OPAQUE,
           .fill_mode = FillMode::FILL,
           .blend_function = BlendFunction::None(),
           .cull_faces = FaceCullMode::BACK,
@@ -63,11 +63,11 @@ Material::Material()
     ResetParameters();
 }
 
-Material::Material(Name name, Bucket bucket)
+Material::Material(Name name, RenderBucket rb)
     : m_name(name),
       m_render_attributes {
           .shader_definition = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
-          .bucket = Bucket::BUCKET_OPAQUE
+          .bucket = rb
       },
       m_is_dynamic(false),
       m_mutation_state(DataMutationState::CLEAN),

@@ -53,8 +53,8 @@ class DOFBlur;
 class Texture;
 class RTRadianceRenderer;
 struct RenderSetup;
-enum class LightType : uint32;
-enum class EnvProbeType : uint32;
+enum LightType : uint32;
+enum EnvProbeType : uint32;
 
 using DeferredFlagBits = uint32;
 
@@ -88,7 +88,7 @@ public:
     virtual ~DeferredPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
     void CreateShader();
@@ -100,8 +100,8 @@ protected:
 private:
     const DeferredPassMode m_mode;
 
-    FixedArray<ShaderRef, uint32(LightType::MAX)> m_direct_light_shaders;
-    FixedArray<Handle<RenderGroup>, uint32(LightType::MAX)> m_direct_light_render_groups;
+    FixedArray<ShaderRef, uint32(LT_MAX)> m_direct_light_shaders;
+    FixedArray<Handle<RenderGroup>, uint32(LT_MAX)> m_direct_light_render_groups;
 
     Handle<Texture> m_ltc_matrix_texture;
     Handle<Texture> m_ltc_brdf_texture;
@@ -132,7 +132,7 @@ public:
     virtual ~TonemapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
     virtual void CreatePipeline() override;
@@ -160,7 +160,7 @@ public:
     virtual ~LightmapPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
     virtual void CreatePipeline() override;
@@ -188,9 +188,9 @@ public:
     virtual ~EnvGridPass() override;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -250,9 +250,9 @@ public:
     bool ShouldRenderSSR() const;
 
     virtual void Create() override;
-    virtual void Render(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
-    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) override
+    virtual void RenderToFramebuffer(FrameBase* frame, const RenderSetup& rs, const FramebufferRef& framebuffer) override
     {
         HYP_NOT_IMPLEMENTED();
     }
@@ -368,9 +368,11 @@ public:
     virtual void Initialize() override;
     virtual void Shutdown() override;
 
-    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override;
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& rs) override;
 
 private:
+    void RenderFrameForView(FrameBase* frame, const RenderSetup& rs);
+
     // Called on initialization or when the view changes
     void CreateViewPassData(View* view, DeferredPassData& pass_data);
     void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data);
@@ -379,9 +381,9 @@ private:
 
     void ResizeView(Viewport viewport, View* view, DeferredPassData& pass_data);
 
-    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
-    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask);
-    void GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image);
+    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs);
+    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, uint32 bucket_mask);
+    void GenerateMipChain(FrameBase* frame, const RenderSetup& rs, const ImageRef& src_image);
 
     LinkedList<DeferredPassData> m_pass_data;
     HashMap<View*, DeferredPassData*> m_view_pass_data;

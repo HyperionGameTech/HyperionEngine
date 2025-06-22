@@ -57,7 +57,7 @@ public:
         friend class GBuffer;
 
         GBuffer* m_gbuffer;
-        Bucket m_bucket;
+        RenderBucket m_bucket;
         FramebufferRef m_framebuffer;
 
     public:
@@ -78,14 +78,14 @@ public:
             m_gbuffer = gbuffer;
         }
 
-        HYP_FORCE_INLINE Bucket GetBucket() const
+        HYP_FORCE_INLINE RenderBucket GetBucket() const
         {
             return m_bucket;
         }
 
-        HYP_FORCE_INLINE void SetBucket(Bucket bucket)
+        HYP_FORCE_INLINE void SetBucket(RenderBucket rb)
         {
-            m_bucket = bucket;
+            m_bucket = rb;
         }
 
         HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
@@ -108,14 +108,14 @@ public:
     GBuffer& operator=(GBuffer&& other) noexcept = delete;
     ~GBuffer();
 
-    HYP_FORCE_INLINE GBufferBucket& GetBucket(Bucket bucket)
+    HYP_FORCE_INLINE GBufferBucket& GetBucket(RenderBucket rb)
     {
-        return m_buckets[int(bucket) - 1];
+        return m_buckets[int(rb) - 1];
     }
 
-    HYP_FORCE_INLINE const GBufferBucket& GetBucket(Bucket bucket) const
+    HYP_FORCE_INLINE const GBufferBucket& GetBucket(RenderBucket rb) const
     {
-        return m_buckets[int(bucket) - 1];
+        return m_buckets[int(rb) - 1];
     }
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const
@@ -131,9 +131,9 @@ public:
 
 private:
     void CreateBucketFramebuffers();
-    FramebufferRef CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, Bucket bucket);
+    FramebufferRef CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, RenderBucket rb);
 
-    FixedArray<GBufferBucket, uint32(Bucket::BUCKET_MAX) - 1> m_buckets;
+    FixedArray<GBufferBucket, uint32(RB_MAX) - 1> m_buckets;
     Array<FramebufferRef> m_framebuffers;
 
     Vec2u m_extent;

@@ -438,7 +438,7 @@ void TerrainWorldGridLayer::Init()
     InitObject(m_scene);
 
     m_material = CreateObject<Material>(NAME("terrain_material"));
-    m_material->SetBucket(BUCKET_OPAQUE);
+    m_material->SetBucket(RB_OPAQUE);
     m_material->SetIsDepthTestEnabled(true);
     m_material->SetIsDepthWriteEnabled(true);
     m_material->SetParameter(Material::MATERIAL_KEY_ALBEDO, Vec4f(0.2f, 0.5f, 0.1f, 1.0f));

@@ -120,9 +120,9 @@ void TemporalAA::CreateComputePipelines()
         descriptor_set->SetElement(NAME("InColorTexture"), m_input_image_view);
         descriptor_set->SetElement(NAME("InPrevColorTexture"), (*textures[(frame_index + 1) % 2])->GetRenderResource().GetImageView());
 
-        descriptor_set->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
+        descriptor_set->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_VELOCITY)->GetImageView());
 
-        descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
+        descriptor_set->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)->GetImageView());
 
         descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
@@ -161,7 +161,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
         Vec2f camera_near_far;
     } push_constants;
 
-    const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(Bucket::BUCKET_OPAQUE)
+    const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(RB_OPAQUE)
                                                .GetGBufferAttachment(GBUFFER_RESOURCE_DEPTH)
                                                ->GetImage()
                                                ->GetExtent();

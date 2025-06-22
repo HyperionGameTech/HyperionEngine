@@ -8,7 +8,7 @@
 
 #include <scene/ecs/systems/CameraSystem.hpp>
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
-#include <scene/ecs/systems/RenderProxyUpdaterSystem.hpp>
+#include <scene/ecs/systems/EntityRenderProxySystem_Mesh.hpp>
 #include <scene/ecs/systems/EntityMeshDirtyStateSystem.hpp>
 #include <scene/ecs/systems/WorldAABBUpdaterSystem.hpp>
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
@@ -91,7 +91,7 @@ static SceneValidationResult ValidateSceneLights(const Scene* scene)
 
             Light* light = static_cast<Light*>(entity);
 
-            if (light->GetLightType() == LightType::DIRECTIONAL)
+            if (light->GetLightType() == LT_DIRECTIONAL)
             {
                 ++num_directional_lights;
             }
@@ -225,7 +225,7 @@ void Scene::Init()
     AddSystemIfApplicable<ScenePrimaryCameraSystem>();
     AddSystemIfApplicable<WorldAABBUpdaterSystem>();
     AddSystemIfApplicable<EntityMeshDirtyStateSystem>();
-    AddSystemIfApplicable<RenderProxyUpdaterSystem>();
+    AddSystemIfApplicable<EntityRenderProxySystem_Mesh>();
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<ReflectionProbeUpdaterSystem>();
     AddSystemIfApplicable<ShadowMapUpdaterSystem>();

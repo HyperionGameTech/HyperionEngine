@@ -220,6 +220,7 @@ void Entity::OnAddedToWorld(World* world)
 void Entity::OnRemovedFromWorld(World* world)
 {
     HYP_LOG(ECS, Debug, "Entity {} removed from world {}", GetID(), world->GetID());
+
     AssertDebug(world != nullptr);
     AssertDebug(m_world == world);
 
@@ -274,6 +275,18 @@ void Entity::OnComponentAdded(AnyRef component)
 }
 
 void Entity::OnComponentRemoved(AnyRef component)
+{
+}
+
+void Entity::OnTagAdded(EntityTag tag)
+{
+}
+
+void Entity::OnTagRemoved(EntityTag tag)
+{
+}
+
+void Entity::UpdateRenderProxy()
 {
 }
 

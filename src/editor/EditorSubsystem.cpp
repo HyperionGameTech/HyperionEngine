@@ -587,7 +587,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                 // disable depth write and depth test
                 material_attributes.flags &= ~(MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST);
-                material_attributes.bucket = Bucket::BUCKET_DEBUG;
+                material_attributes.bucket = RB_DEBUG;
 
                 // testing
                 material_attributes.stencil_function = StencilFunction {
@@ -1107,7 +1107,7 @@ void EditorSubsystem::Update(float delta)
                 .vertex_attributes = static_mesh_vertex_attributes
             },
             MaterialAttributes {
-                .bucket             = Bucket::BUCKET_TRANSLUCENT,
+                .bucket             = RB_TRANSLUCENT,
                 .fill_mode          = FillMode::FILL,
                 .blend_function     = BlendFunction::None(),
                 .flags              = MaterialAttributeFlags::DEPTH_TEST,
@@ -1170,7 +1170,7 @@ void EditorSubsystem::CreateHighlightNode()
     //             NAME("Forward"),
     //             ShaderProperties(mesh->GetVertexAttributes())
     //         },
-    //         .bucket = Bucket::BUCKET_TRANSLUCENT,
+    //         .bucket = RB_TRANSLUCENT,
     //         // .flags = MaterialAttributeFlags::NONE, // temp
     //         .stencil_function = StencilFunction {
     //             .pass_op        = StencilOp::REPLACE,

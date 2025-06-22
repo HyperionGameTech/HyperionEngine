@@ -53,6 +53,7 @@ namespace hyperion {
 
 static constexpr uint32 num_frames = 3; // number of frames in the ring buffer
 static constexpr uint32 max_views_per_frame = 16;
+static constexpr uint32 max_frames_before_discard = 4; // number of frames before ViewData is discarded if not written to
 
 // global ring buffer for the game and render threads to write/read data from
 static std::atomic_uint g_producer_index { 0 };                             // where the game will write next
@@ -92,8 +93,6 @@ struct FrameData
 
 static FrameData g_frame_data[num_frames];
 
-HYP_DISABLE_OPTIMIZATION;
-
 HYP_API uint32 GetRenderThreadFrameIndex()
 {
     return g_consumer_index.load(std::memory_order_relaxed);
@@ -110,7 +109,7 @@ HYP_API RenderProxyList& GetProducerRenderProxyList(View* view)
 
     AssertDebug(view != nullptr);
 
-    uint32_t slot = g_producer_index.load(std::memory_order_relaxed);
+    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
 
     ViewData*& vd = g_frame_data[slot].views[view];
 
@@ -132,7 +131,7 @@ HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
 
     AssertDebug(view != nullptr);
 
-    uint32_t slot = g_consumer_index.load(std::memory_order_relaxed);
+    const uint32 slot = g_consumer_index.load(std::memory_order_relaxed);
 
     ViewData*& vd = g_frame_data[slot].views[view];
 
@@ -150,7 +149,7 @@ HYP_API void BeginFrame_GameThread()
     HYP_SCOPE;
 
     g_free_semaphore.acquire();
-    uint32_t slot = g_producer_index.load(std::memory_order_relaxed);
+    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
 }
 
 HYP_API void EndFrame_GameThread()
@@ -173,11 +172,7 @@ HYP_API void BeginFrame_RenderThread()
     Threads::AssertOnThread(g_render_thread);
 #endif
 
-    // @TODO : read the draw collections from the previous frame using g_frame_data[frame_index].draw_collection_ptrs
-
     g_full_semaphore.acquire();
-
-    uint32_t slot = g_consumer_index.load(std::memory_order_relaxed);
 }
 
 HYP_API void EndFrame_RenderThread()
@@ -191,12 +186,13 @@ HYP_API void EndFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
+    // cull ViewData that hasn't been written to for a while
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End();)
     {
         ViewData& vd = *it;
 
         // Clear out data for views that haven't been written to for a while
-        if (vd.frames_since_write == 15)
+        if (vd.frames_since_write == max_frames_before_discard)
         {
             DebugLog(LogType::Debug, "Clearing draw collection for view %p in frame %u\n", &vd.render_proxy_list, slot);
 
@@ -217,16 +213,10 @@ HYP_API void EndFrame_RenderThread()
         ++it;
     }
 
-    /// @TODO Some heuristic for clearing allocations that weren't active for a few frames
-
-    // update the GPU buffers for the current frame @TODO !!
-
     g_consumer_index.store((slot + 1) % num_frames, std::memory_order_relaxed);
 
     g_free_semaphore.release();
 }
-
-HYP_ENABLE_OPTIMIZATION;
 
 RenderGlobalState::RenderGlobalState()
     : ShadowMapAllocator(MakeUnique<class ShadowMapAllocator>()),

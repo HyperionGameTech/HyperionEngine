@@ -58,7 +58,7 @@ void PointLightShadowRenderer::Init()
     m_shadow_map = TResourceHandle<RenderShadowMap>(*shadow_map);
     m_aabb = m_light->GetAABB();
 
-    m_env_probe = m_parent_scene->GetEntityManager()->AddEntity<EnvProbe>(m_aabb, m_extent, EnvProbeType::SHADOW);
+    m_env_probe = m_parent_scene->GetEntityManager()->AddEntity<EnvProbe>(m_aabb, m_extent, EPT_SHADOW);
     InitObject(m_env_probe);
 
     m_env_probe->GetRenderResource().SetShadowMap(TResourceHandle<RenderShadowMap>(m_shadow_map));

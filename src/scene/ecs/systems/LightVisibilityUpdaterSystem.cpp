@@ -56,12 +56,12 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(Entity* entity)
 
         switch (light->GetLightType())
         {
-        case LightType::DIRECTIONAL:
+        case LT_DIRECTIONAL:
             bounding_box_component->local_aabb = BoundingBox::Infinity();
             bounding_box_component->world_aabb = BoundingBox::Infinity();
             break;
-        case LightType::POINT: // fallthrough
-        case LightType::AREA_RECT:
+        case LT_POINT: // fallthrough
+        case LT_AREA_RECT:
             bounding_box_component->local_aabb = light->GetAABB();
             bounding_box_component->world_aabb = transform * bounding_box_component->local_aabb;
             break;
@@ -76,7 +76,7 @@ void LightVisibilityUpdaterSystem::OnEntityAdded(Entity* entity)
         if (!visibility_state_component)
         {
             // Directional light sources are always visible
-            if (light->GetLightType() == LightType::DIRECTIONAL)
+            if (light->GetLightType() == LT_DIRECTIONAL)
             {
                 GetEntityManager().AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
             }
@@ -107,7 +107,7 @@ void LightVisibilityUpdaterSystem::Process(float delta)
                 continue;
             }
 
-            if (light_component.light->GetLightType() == LightType::DIRECTIONAL)
+            if (light_component.light->GetLightType() == LT_DIRECTIONAL)
             {
                 visibility_state_component.flags |= VISIBILITY_STATE_FLAG_INVALIDATED;
             }
@@ -124,7 +124,7 @@ void LightVisibilityUpdaterSystem::Process(float delta)
                 continue;
             }
 
-            if (light_component.light->GetLightType() == LightType::DIRECTIONAL)
+            if (light_component.light->GetLightType() == LT_DIRECTIONAL)
             {
                 // Normalize the translation*rotation to set the direction of directional lights
                 light_component.light->SetPosition((transform_component.transform.GetTranslation() * transform_component.transform.GetRotation()).Normalized());
@@ -167,7 +167,7 @@ void LightVisibilityUpdaterSystem::Process(float delta)
             }
 
             // For area lights, update the material ID if the entity has a MeshComponent.
-            if (light_component.light->GetLightType() == LightType::AREA_RECT)
+            if (light_component.light->GetLightType() == LT_AREA_RECT)
             {
                 /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {
                     light_component.light->SetMaterial(mesh_component->material);

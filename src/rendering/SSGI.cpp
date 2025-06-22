@@ -10,6 +10,7 @@
 #include <rendering/RenderWorld.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/Deferred.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
@@ -286,16 +287,18 @@ void SSGI::FillUniformBufferData(RenderView* view, SSGIUniforms& out_uniforms) c
     // Can only fill the lights if we have a view ready
     if (view)
     {
+        RenderProxyList& rpl = GetConsumerRenderProxyList(view->GetView());
+
         const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 
-        for (uint32 light_type = 0; light_type < uint32(LightType::MAX); light_type++)
+        for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
         {
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
             }
 
-            for (const auto& it : view->GetLights(LightType(light_type)))
+            for (const auto& it : rpl.GetLights(LightType(light_type)))
             {
                 if (num_bound_lights >= max_bound_lights)
                 {

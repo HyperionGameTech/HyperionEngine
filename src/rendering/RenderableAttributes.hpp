@@ -43,7 +43,7 @@ struct MaterialAttributes
     ShaderDefinition shader_definition;
 
     HYP_FIELD()
-    Bucket bucket = Bucket::BUCKET_OPAQUE;
+    RenderBucket bucket = RB_OPAQUE;
 
     HYP_FIELD()
     FillMode fill_mode = FillMode::FILL;

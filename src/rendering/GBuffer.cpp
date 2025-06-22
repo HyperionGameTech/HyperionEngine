@@ -75,12 +75,12 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
 GBuffer::GBuffer(Vec2u extent)
     : m_extent(extent)
 {
-    for (uint32 bucket_index = 0; bucket_index < BUCKET_MAX - 1; bucket_index++)
+    for (uint32 bucket_index = 0; bucket_index < RB_MAX - 1; bucket_index++)
     {
-        const Bucket bucket = Bucket(bucket_index + 1);
+        const RenderBucket rb = RenderBucket(bucket_index + 1);
 
         m_buckets[bucket_index].SetGBuffer(this);
-        m_buckets[bucket_index].SetBucket(bucket);
+        m_buckets[bucket_index].SetBucket(rb);
     }
 
     CreateBucketFramebuffers();
@@ -144,24 +144,24 @@ void GBuffer::CreateBucketFramebuffers()
 
     for (GBufferBucket& it : m_buckets)
     {
-        const Bucket bucket = it.GetBucket();
+        const RenderBucket rb = it.GetBucket();
 
-        switch (bucket)
+        switch (rb)
         {
-        case BUCKET_OPAQUE:
-            it.m_framebuffer = CreateFramebuffer(nullptr, m_extent, bucket);
+        case RB_OPAQUE:
+            it.m_framebuffer = CreateFramebuffer(nullptr, m_extent, rb);
             break;
-        case BUCKET_LIGHTMAP:
-            it.m_framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).m_framebuffer, m_extent, bucket);
+        case RB_LIGHTMAP:
+            it.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
-        case BUCKET_TRANSLUCENT:
-            it.m_framebuffer = CreateFramebuffer(GetBucket(BUCKET_OPAQUE).m_framebuffer, m_extent, bucket);
+        case RB_TRANSLUCENT:
+            it.m_framebuffer = CreateFramebuffer(GetBucket(RB_OPAQUE).m_framebuffer, m_extent, rb);
             break;
-        case BUCKET_SKYBOX:
-            it.m_framebuffer = GetBucket(BUCKET_TRANSLUCENT).m_framebuffer;
+        case RB_SKYBOX:
+            it.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
-        case BUCKET_DEBUG:
-            it.m_framebuffer = GetBucket(BUCKET_TRANSLUCENT).m_framebuffer;
+        case RB_DEBUG:
+            it.m_framebuffer = GetBucket(RB_TRANSLUCENT).m_framebuffer;
             break;
         default:
             HYP_UNREACHABLE();
@@ -172,7 +172,7 @@ void GBuffer::CreateBucketFramebuffers()
     }
 }
 
-FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, Bucket bucket)
+FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuffer, Vec2u resolution, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -219,11 +219,11 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
     //   the shaded result in the deferred pass before the translucent objects are rendered
     //   using forward rendering, and we need to be able to accommodate the high range of
     //   values that can be produced by the deferred shading pass
-    if (bucket == BUCKET_OPAQUE)
+    if (rb == RB_OPAQUE)
     {
         add_owned_attachment(0, GetImageFormat(GBUFFER_RESOURCE_ALBEDO));
     }
-    else if (bucket == BUCKET_LIGHTMAP)
+    else if (rb == RB_LIGHTMAP)
     {
         add_shared_attachment(0);
     }

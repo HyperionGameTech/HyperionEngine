@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
+    [HypClassBinding(Name = "LightType")]
     public enum LightType : uint
     {
         Directional = 0,
