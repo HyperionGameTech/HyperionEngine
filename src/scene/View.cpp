@@ -14,7 +14,6 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/ReflectionProbeComponent.hpp>
@@ -688,44 +687,42 @@ void View::CollectLights()
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity, light_component, transform_component, visibility_state_component] : scene->GetEntityManager()->GetEntitySet<LightComponent, TransformComponent, VisibilityStateComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!light_component.light.IsValid())
-            {
-                continue;
-            }
+            AssertDebug(entity->IsInstanceOf<Light>());
+
+            Light* light = static_cast<Light*>(entity);
 
             bool is_light_in_frustum = false;
 
-            if (visibility_state_component.flags & VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE)
+            switch (light->GetLightType())
             {
+            case LightType::DIRECTIONAL:
                 is_light_in_frustum = true;
-            }
-            else
-            {
-                switch (light_component.light->GetLightType())
-                {
-                case LightType::DIRECTIONAL:
-                    is_light_in_frustum = true;
-                    break;
-                case LightType::POINT:
-                    is_light_in_frustum = m_camera->GetFrustum().ContainsBoundingSphere(light_component.light->GetBoundingSphere());
-                    break;
-                case LightType::SPOT:
-                    // @TODO Implement frustum culling for spot lights
-                    is_light_in_frustum = true;
-                    break;
-                case LightType::AREA_RECT:
-                    is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(light_component.light->GetAABB());
-                    break;
-                default:
-                    break;
-                }
+                break;
+            case LightType::POINT:
+                is_light_in_frustum = m_camera->GetFrustum().ContainsBoundingSphere(light->GetBoundingSphere());
+                break;
+            case LightType::SPOT:
+                // @TODO Implement frustum culling for spot lights
+                is_light_in_frustum = true;
+                break;
+            case LightType::AREA_RECT:
+                is_light_in_frustum = m_camera->GetFrustum().ContainsAABB(light->GetAABB());
+                break;
+            default:
+                break;
             }
 
             if (is_light_in_frustum)
             {
-                m_tracked_lights.Track(light_component.light->GetID(), &light_component.light->GetRenderResource());
+                m_tracked_lights.Track(light->GetID(), &light->GetRenderResource());
+            }
+
+            /// TODO: Move this
+            if (light->GetMutationState().IsDirty())
+            {
+                light->EnqueueRenderUpdates();
             }
         }
     }

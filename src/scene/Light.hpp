@@ -17,6 +17,8 @@
 #include <core/math/BoundingBox.hpp>
 #include <core/math/BoundingSphere.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <Types.hpp>
 
 namespace hyperion {
@@ -38,7 +40,7 @@ enum class LightType : uint32
 };
 
 HYP_CLASS()
-class HYP_API Light final : public HypObject<Light>
+class HYP_API Light final : public Entity
 {
     HYP_OBJECT_BODY(Light);
 

@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#if 0
 #include <scene/ecs/systems/LightVisibilityUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
 
@@ -184,3 +185,5 @@ void LightVisibilityUpdaterSystem::Process(float delta)
 }
 
 } // namespace hyperion
+
+#endif

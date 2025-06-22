@@ -7,7 +7,6 @@
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/MeshComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
 #include <scene/ecs/components/LightmapVolumeComponent.hpp>
 #include <scene/ecs/EntityTag.hpp>
@@ -42,7 +41,6 @@ private:
 
             // Calling EnvGrid::Update() calls View::Update() which reads the the following components.
             ComponentDescriptor<MeshComponent, COMPONENT_RW_FLAGS_READ, false> {},
-            ComponentDescriptor<LightComponent, COMPONENT_RW_FLAGS_READ, false> {},
             ComponentDescriptor<VisibilityStateComponent, COMPONENT_RW_FLAGS_READ, false> {},
             ComponentDescriptor<LightmapVolumeComponent, COMPONENT_RW_FLAGS_READ, false> {},
 

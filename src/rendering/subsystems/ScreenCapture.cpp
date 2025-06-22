@@ -81,10 +81,10 @@ void ScreenCaptureRenderSubsystem::Update(float delta)
     struct RENDER_COMMAND(UpdateScreenCapture)
         : renderer::RenderCommand
     {
-        ScreenCaptureRenderSubsystem* subsystem;
+        WeakHandle<ScreenCaptureRenderSubsystem> subsystem_weak;
 
-        RENDER_COMMAND(UpdateScreenCapture)(ScreenCaptureRenderSubsystem* subsystem)
-            : subsystem(subsystem)
+        RENDER_COMMAND(UpdateScreenCapture)(const WeakHandle<ScreenCaptureRenderSubsystem>& subsystem_weak)
+            : subsystem_weak(subsystem_weak)
         {
         }
 
@@ -94,15 +94,21 @@ void ScreenCaptureRenderSubsystem::Update(float delta)
 
         virtual RendererResult operator()() override
         {
-            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+            Handle<ScreenCaptureRenderSubsystem> subsystem = subsystem_weak.Lock();
+            if (!subsystem.IsValid())
+            {
+                HYP_LOG(Rendering, Warning, "ScreenCaptureRenderSubsystem is no longer valid. Skipping capture.");
+                HYPERION_RETURN_OK;
+            }
 
+            FrameBase* frame = g_rendering_api->GetCurrentFrame();
             subsystem->CaptureFrame(frame);
 
             HYPERION_RETURN_OK;
         }
     };
 
-    PUSH_RENDER_COMMAND(UpdateScreenCapture, this);
+    PUSH_RENDER_COMMAND(UpdateScreenCapture, WeakHandle<ScreenCaptureRenderSubsystem>(WeakHandleFromThis()));
 }
 
 void ScreenCaptureRenderSubsystem::CaptureFrame(FrameBase* frame)

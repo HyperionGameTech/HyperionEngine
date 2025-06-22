@@ -11,6 +11,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 #include <core/memory/AnyRef.hpp>
+#include <core/memory/MemoryPool.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
 
@@ -428,7 +429,10 @@ public:
 
 private:
     ComponentID m_component_id_counter = 0;
+
+    /// TODO: Change to MemoryPool and use Component* rather than ComponentID
     HashMap<ComponentID, Component> m_components;
+    // MemoryPool<Component> m_component_pool;
 };
 
 template <class Component>

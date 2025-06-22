@@ -2,7 +2,6 @@
 
 #include <scene/ecs/systems/VisibilityStateUpdaterSystem.hpp>
 #include <scene/ecs/EntityManager.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
 
 #include <scene/Scene.hpp>
 #include <scene/Octree.hpp>

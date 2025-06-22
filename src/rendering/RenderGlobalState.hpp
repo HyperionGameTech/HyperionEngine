@@ -37,8 +37,6 @@ HYP_API extern void EndFrame_RenderThread();
 HYP_API extern RenderProxyList& GetProducerRenderProxyList(View* view);
 HYP_API extern RenderProxyList& GetConsumerRenderProxyList(View* view);
 
-HYP_API extern DrawCallCollection* AllocateDrawCallCollection(View* view);
-
 class RenderGlobalState
 {
 public:

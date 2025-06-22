@@ -28,8 +28,7 @@ Light::Light()
 }
 
 Light::Light(LightType type, const Vec3f& position, const Color& color, float intensity, float radius)
-    : HypObject(),
-      m_type(type),
+    : m_type(type),
       m_position(position),
       m_color(color),
       m_intensity(intensity),
@@ -39,11 +38,13 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_mutation_state(DataMutationState::CLEAN),
       m_render_resource(nullptr)
 {
+    m_entity_init_info.can_ever_update = false;
+    m_entity_init_info.receives_update = false;
+    m_entity_init_info.bvh_depth = 0; // No BVH for lights
 }
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& area_size, const Color& color, float intensity, float radius)
-    : HypObject(),
-      m_type(type),
+    : m_type(type),
       m_position(position),
       m_normal(normal),
       m_area_size(area_size),
@@ -55,6 +56,9 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_mutation_state(DataMutationState::CLEAN),
       m_render_resource(nullptr)
 {
+    m_entity_init_info.can_ever_update = false;
+    m_entity_init_info.receives_update = false;
+    m_entity_init_info.bvh_depth = 0; // No BVH for lights
 }
 
 Light::~Light()

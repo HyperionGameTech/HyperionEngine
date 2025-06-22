@@ -12,7 +12,7 @@ namespace Hyperion
     }
 
     [HypClassBinding(Name="Light")]
-    public class Light : HypObject
+    public class Light : Entity
     {
         public Light()
         {

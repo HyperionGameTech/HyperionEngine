@@ -59,8 +59,6 @@ RenderEnvironment::~RenderEnvironment()
     }
 
     SafeRelease(std::move(m_top_level_acceleration_structures));
-
-    HYP_SYNC_RENDER();
 }
 
 void RenderEnvironment::Initialize()

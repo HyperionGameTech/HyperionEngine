@@ -3,6 +3,8 @@
 #ifndef HYPERION_ECS_LIGHT_VISIBILITY_UPDATER_SYSTEM_HPP
 #define HYPERION_ECS_LIGHT_VISIBILITY_UPDATER_SYSTEM_HPP
 
+#if 0
+
 #include <scene/ecs/System.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
@@ -17,7 +19,6 @@
 
 namespace hyperion {
 
-HYP_CLASS(NoScriptBindings)
 class LightVisibilityUpdaterSystem : public SystemBase
 {
     HYP_OBJECT_BODY(LightVisibilityUpdaterSystem);
@@ -56,5 +57,6 @@ private:
 };
 
 } // namespace hyperion
+#endif
 
 #endif

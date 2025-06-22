@@ -85,14 +85,13 @@ static SceneValidationResult ValidateSceneLights(const Scene* scene)
     {
         int num_directional_lights = 0;
 
-        for (auto [entity, light_component] : scene->GetEntityManager()->GetEntitySet<LightComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            if (!light_component.light.IsValid())
-            {
-                continue;
-            }
+            AssertDebug(entity->IsInstanceOf<Light>());
 
-            if (light_component.light->GetLightType() == LightType::DIRECTIONAL)
+            Light* light = static_cast<Light*>(entity);
+
+            if (light->GetLightType() == LightType::DIRECTIONAL)
             {
                 ++num_directional_lights;
             }
@@ -229,7 +228,6 @@ void Scene::Init()
     AddSystemIfApplicable<RenderProxyUpdaterSystem>();
     AddSystemIfApplicable<VisibilityStateUpdaterSystem>();
     AddSystemIfApplicable<ReflectionProbeUpdaterSystem>();
-    AddSystemIfApplicable<LightVisibilityUpdaterSystem>();
     AddSystemIfApplicable<ShadowMapUpdaterSystem>();
     AddSystemIfApplicable<EnvGridUpdaterSystem>();
     AddSystemIfApplicable<LightmapSystem>();

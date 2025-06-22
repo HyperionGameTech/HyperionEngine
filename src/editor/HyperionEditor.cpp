@@ -23,7 +23,6 @@
 #include <scene/ecs/components/SkyComponent.hpp>
 #include <scene/ecs/components/TransformComponent.hpp>
 #include <scene/ecs/components/AudioComponent.hpp>
-#include <scene/ecs/components/LightComponent.hpp>
 #include <scene/ecs/components/ShadowMapComponent.hpp>
 #include <scene/ecs/components/BoundingBoxComponent.hpp>
 #include <scene/ecs/components/VisibilityStateComponent.hpp>
@@ -148,65 +147,64 @@ void HyperionEditor::Init()
 
     // scene->GetWorld()->GetRenderResource().GetEnvironment()->GetParticleSystem()->GetParticleSpawners().Add(test_particle_spawner);
 
-    if (false)
-    { // add test area light
-        Handle<Light> light = CreateObject<Light>(
-            LightType::AREA_RECT,
-            Vec3f(0.0f, 1.25f, 0.0f),
-            Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
-            Vec2f(2.0f, 2.0f),
-            Color(1.0f, 0.0f, 0.0f),
-            1.0f,
-            1.0f);
+    // if (false)
+    // { // add test area light
+    //     Handle<Light> light = CreateObject<Light>(
+    //         LightType::AREA_RECT,
+    //         Vec3f(0.0f, 1.25f, 0.0f),
+    //         Vec3f(0.0f, 0.0f, -1.0f).Normalize(),
+    //         Vec2f(2.0f, 2.0f),
+    //         Color(1.0f, 0.0f, 0.0f),
+    //         1.0f,
+    //         1.0f);
 
-        Handle<Texture> dummy_light_texture;
+    //     Handle<Texture> dummy_light_texture;
 
-        if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png"))
-        {
-            dummy_light_texture = dummy_light_texture_asset->Result();
-        }
+    //     if (auto dummy_light_texture_asset = AssetManager::GetInstance()->Load<Texture>("textures/brdfLUT.png"))
+    //     {
+    //         dummy_light_texture = dummy_light_texture_asset->Result();
+    //     }
 
-        light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
-            { .shader_definition = ShaderDefinition {
-                  HYP_NAME(Forward),
-                  ShaderProperties(static_mesh_vertex_attributes) },
-                .bucket = Bucket::BUCKET_OPAQUE },
-            {}, { { MaterialTextureKey::ALBEDO_MAP, std::move(dummy_light_texture) } }));
-        AssertThrow(light->GetMaterial().IsValid());
+    //     light->SetMaterial(MaterialCache::GetInstance()->GetOrCreate(
+    //         { .shader_definition = ShaderDefinition {
+    //               HYP_NAME(Forward),
+    //               ShaderProperties(static_mesh_vertex_attributes) },
+    //             .bucket = Bucket::BUCKET_OPAQUE },
+    //         {}, { { MaterialTextureKey::ALBEDO_MAP, std::move(dummy_light_texture) } }));
+    //     AssertThrow(light->GetMaterial().IsValid());
 
-        InitObject(light);
+    //     InitObject(light);
 
-        Handle<Node> light_node = scene->GetRoot()->AddChild();
-        light_node->SetName(NAME("AreaLight"));
+    //     Handle<Node> light_node = scene->GetRoot()->AddChild();
+    //     light_node->SetName(NAME("AreaLight"));
 
-        auto area_light_entity = scene->GetEntityManager()->AddEntity();
+    //     auto area_light_entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, { Transform(light->GetPosition(), Vec3f(1.0f), Quaternion::Identity()) });
+    //     scene->GetEntityManager()->AddComponent<TransformComponent>(area_light_entity, { Transform(light->GetPosition(), Vec3f(1.0f), Quaternion::Identity()) });
 
-        scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, { light });
+    //     scene->GetEntityManager()->AddComponent<LightComponent>(area_light_entity, { light });
 
-        light_node->SetEntity(area_light_entity);
-    }
+    //     light_node->SetEntity(area_light_entity);
+    // }
 
 // add sun
 #if 1
-    auto sun = CreateObject<Light>(
-        LightType::DIRECTIONAL,
-        Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
-        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
-        5.0f,
-        0.0f);
+    auto sun = CreateObject<Light>();
 
     InitObject(sun);
 
     Handle<Node> sun_node = scene->GetRoot()->AddChild();
     sun_node->SetName(NAME("Sun"));
 
-    Handle<Entity> sun_entity = scene->GetEntityManager()->AddEntity();
-    sun_node->SetEntity(sun_entity);
+    Handle<Light> sun_entity = scene->GetEntityManager()->AddEntity<Light>(
+        LightType::DIRECTIONAL,
+        Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
+        Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
+        5.0f,
+        0.0f);
     sun_node->SetWorldTranslation(Vec3f { -0.4f, 0.8f, 0.0f }.Normalize());
 
-    scene->GetEntityManager()->AddComponent<LightComponent>(sun_entity, LightComponent { sun });
+    sun_entity->Attach(sun_node);
 
     scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent { .mode = ShadowMapFilterMode::PCF, .radius = 80.0f, .resolution = { 1024, 1024 } });
 #endif
