@@ -170,6 +170,7 @@ template <class IDType, class ElementType>
 class ResourceTracker
 {
 public:
+    // Uses dynamic node allocator for the hash table to prevent iterator invalidation.
     using MapType = HashMap<IDType, ElementType, HashTable_DynamicNodeAllocator<KeyValuePair<IDType, ElementType>>>;
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");

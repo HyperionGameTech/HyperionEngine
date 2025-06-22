@@ -10,6 +10,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/Deferred.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
@@ -429,6 +430,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertThrow(render_setup.IsValid());
     AssertThrow(render_setup.HasView());
+    AssertThrow(render_setup.pass_data != nullptr);
 
     UpdateUniforms(frame);
 
@@ -462,7 +464,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     // bind per-view descriptor sets
     frame->GetCommandList().Add<BindDescriptorSet>(
-        render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+        render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
         m_pipeline);
 
     frame->GetCommandList().Add<TraceRays>(

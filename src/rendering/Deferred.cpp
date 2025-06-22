@@ -257,6 +257,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
+    AssertDebug(render_setup.pass_data != nullptr);
 
     if (m_mode == DeferredPassMode::INDIRECT_LIGHTING)
     {
@@ -324,7 +325,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+                render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
                 view_descriptor_set_index);
@@ -578,6 +579,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
+    AssertDebug(render_setup.pass_data != nullptr);
 
     // shouldn't be called if no env grids are present
     AssertDebug(render_setup.view->GetEnvGrids().Size() != 0);
@@ -627,7 +629,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& render_setup)
             global_descriptor_set_index);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_setup.view->GetDescriptorSets()[frame_index],
+            render_setup.pass_data->descriptor_sets[frame_index],
             render_group->GetPipeline(),
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
@@ -804,6 +806,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
+    AssertDebug(render_setup.pass_data != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -901,7 +904,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_setup.view->GetDescriptorSets()[frame_index],
+                render_setup.pass_data->descriptor_sets[frame_index],
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {},
                 view_descriptor_set_index);
@@ -938,5 +941,699 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 }
 
 #pragma endregion ReflectionsPass
+
+#pragma region DeferredPassData
+
+DeferredPassData::~DeferredPassData()
+{
+    SafeRelease(std::move(final_pass_descriptor_set));
+    SafeRelease(std::move(descriptor_sets));
+
+    depth_pyramid_renderer.Reset();
+
+    hbao.Reset();
+
+    temporal_aa.Reset();
+
+    // m_dof_blur->Destroy();
+
+    ssgi.Reset();
+
+    post_processing->Destroy();
+    post_processing.Reset();
+
+    combine_pass.Reset();
+
+    env_grid_radiance_pass.Reset();
+    env_grid_irradiance_pass.Reset();
+
+    reflections_pass.Reset();
+
+    lightmap_pass.Reset();
+    tonemap_pass.Reset();
+    mip_chain.Reset();
+    indirect_pass.Reset();
+    direct_pass.Reset();
+}
+
+#pragma endregion DeferredPassData
+
+#pragma region DeferredRenderer
+
+constexpr Vec2u mip_chain_extent { 512, 512 };
+constexpr InternalFormat mip_chain_format = InternalFormat::R10G10B10A2;
+
+DeferredRenderer::DeferredRenderer()
+    : m_renderer_config(RendererConfig::FromConfig())
+{
+}
+
+DeferredRenderer::~DeferredRenderer()
+{
+    m_pass_data.Clear();
+}
+
+void DeferredRenderer::Initialize()
+{
+}
+
+void DeferredRenderer::Shutdown()
+{
+}
+
+void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_data)
+{
+    HYP_SCOPE;
+
+    AssertThrow(view != nullptr);
+    AssertThrow(view->GetFlags() & ViewFlags::GBUFFER);
+
+    GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
+    AssertDebug(gbuffer != nullptr);
+
+    gbuffer->Create();
+
+    HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->GetID(), gbuffer->GetExtent());
+
+    const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+
+    pass_data.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, gbuffer);
+    pass_data.env_grid_radiance_pass->Create();
+
+    pass_data.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, gbuffer);
+    pass_data.env_grid_irradiance_pass->Create();
+
+    pass_data.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
+    pass_data.ssgi->Create();
+
+    pass_data.post_processing = MakeUnique<PostProcessing>();
+    pass_data.post_processing->Create();
+
+    pass_data.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, gbuffer);
+    pass_data.indirect_pass->Create();
+
+    pass_data.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, gbuffer);
+    pass_data.direct_pass->Create();
+
+    AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AssertThrow(depth_attachment != nullptr);
+
+    pass_data.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
+    pass_data.depth_pyramid_renderer->Create();
+
+    pass_data.cull_data.depth_pyramid_image_view = pass_data.depth_pyramid_renderer->GetResultImageView();
+    pass_data.cull_data.depth_pyramid_dimensions = pass_data.depth_pyramid_renderer->GetExtent();
+
+    pass_data.mip_chain = CreateObject<Texture>(TextureDesc {
+        ImageType::TEXTURE_TYPE_2D,
+        mip_chain_format,
+        Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
+        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE });
+
+    InitObject(pass_data.mip_chain);
+
+    pass_data.mip_chain->SetPersistentRenderResourceEnabled(true);
+
+    pass_data.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer);
+    pass_data.hbao->Create();
+
+    // m_dof_blur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
+    // m_dof_blur->Create();
+
+    CreateViewCombinePass(view, pass_data);
+
+    pass_data.reflections_pass = MakeUnique<ReflectionsPass>(gbuffer, pass_data.mip_chain->GetRenderResource().GetImageView(), pass_data.combine_pass->GetFinalImageView());
+    pass_data.reflections_pass->Create();
+
+    pass_data.tonemap_pass = MakeUnique<TonemapPass>(gbuffer);
+    pass_data.tonemap_pass->Create();
+
+    // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
+    pass_data.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
+    pass_data.lightmap_pass->Create();
+
+    pass_data.temporal_aa = MakeUnique<TemporalAA>(gbuffer->GetExtent(), pass_data.tonemap_pass->GetFinalImageView(), gbuffer);
+    pass_data.temporal_aa->Create();
+
+    CreateViewDescriptorSets(view, pass_data);
+    CreateViewFinalPassDescriptorSet(view, pass_data);
+
+    pass_data.viewport = view->GetRenderResource().GetViewport();
+}
+
+void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data)
+{
+    HYP_SCOPE;
+
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const ImageViewRef& input_image_view = m_renderer_config.taa_enabled
+        ? pass_data.temporal_aa->GetResultTexture()->GetRenderResource().GetImageView()
+        : pass_data.combine_pass->GetFinalImageView();
+
+    AssertThrow(input_image_view.IsValid());
+
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+
+    renderer::DescriptorSetDeclaration* decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("RenderTextureToScreenDescriptorSet"));
+    AssertThrow(decl != nullptr);
+
+    const renderer::DescriptorSetLayout layout { decl };
+
+    DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+    descriptor_set->SetDebugName(NAME("FinalPassDescriptorSet"));
+    descriptor_set->SetElement(NAME("InTexture"), input_image_view);
+
+    DeferCreate(descriptor_set);
+
+    pass_data.final_pass_descriptor_set = std::move(descriptor_set);
+}
+
+void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pass_data)
+{
+    HYP_SCOPE;
+
+    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
+    AssertThrow(decl != nullptr);
+
+    const renderer::DescriptorSetLayout layout { decl };
+
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    static const FixedArray<Name, GBUFFER_RESOURCE_MAX> gbuffer_texture_names {
+        NAME("GBufferAlbedoTexture"),
+        NAME("GBufferNormalsTexture"),
+        NAME("GBufferMaterialTexture"),
+        NAME("GBufferLightmapTexture"),
+        NAME("GBufferVelocityTexture"),
+        NAME("GBufferMaskTexture"),
+        NAME("GBufferWSNormalsTexture"),
+        NAME("GBufferTranslucentTexture")
+    };
+
+    const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+
+    // depth attachment goes into separate slot
+    AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AssertThrow(depth_attachment != nullptr);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        descriptor_set->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frame_index));
+
+        if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+        {
+            uint32 gbuffer_element_index = 0;
+
+            // not including depth texture here (hence the - 1)
+            for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++)
+            {
+                descriptor_set->SetElement(NAME("GBufferTextures"), gbuffer_element_index++, opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+            }
+
+            // add translucent bucket's albedo
+            descriptor_set->SetElement(NAME("GBufferTextures"), gbuffer_element_index++, translucent_fbo->GetAttachment(0)->GetImageView());
+        }
+        else
+        {
+            for (uint32 attachment_index = 0; attachment_index < GBUFFER_RESOURCE_MAX - 1; attachment_index++)
+            {
+                descriptor_set->SetElement(gbuffer_texture_names[attachment_index], opaque_fbo->GetAttachment(attachment_index)->GetImageView());
+            }
+
+            // add translucent bucket's albedo
+            descriptor_set->SetElement(NAME("GBufferTranslucentTexture"), translucent_fbo->GetAttachment(0)->GetImageView());
+        }
+
+        descriptor_set->SetElement(NAME("GBufferDepthTexture"), depth_attachment->GetImageView());
+
+        descriptor_set->SetElement(NAME("GBufferMipChain"), pass_data.mip_chain->GetRenderResource().GetImageView());
+
+        descriptor_set->SetElement(NAME("PostProcessingUniforms"), pass_data.post_processing->GetUniformBuffer());
+
+        descriptor_set->SetElement(NAME("DepthPyramidResult"), pass_data.depth_pyramid_renderer->GetResultImageView());
+
+        descriptor_set->SetElement(NAME("TAAResultTexture"), pass_data.temporal_aa->GetResultTexture()->GetRenderResource().GetImageView());
+
+        if (pass_data.reflections_pass->ShouldRenderSSR())
+        {
+            descriptor_set->SetElement(NAME("SSRResultTexture"), pass_data.reflections_pass->GetSSRRenderer()->GetFinalResultTexture()->GetRenderResource().GetImageView());
+        }
+        else
+        {
+            descriptor_set->SetElement(NAME("SSRResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+        }
+
+        if (pass_data.ssgi)
+        {
+            descriptor_set->SetElement(NAME("SSGIResultTexture"), pass_data.ssgi->GetFinalResultTexture()->GetRenderResource().GetImageView());
+        }
+        else
+        {
+            descriptor_set->SetElement(NAME("SSGIResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+        }
+
+        if (pass_data.hbao)
+        {
+            descriptor_set->SetElement(NAME("SSAOResultTexture"), pass_data.hbao->GetFinalImageView());
+        }
+        else
+        {
+            descriptor_set->SetElement(NAME("SSAOResultTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+        }
+
+        descriptor_set->SetElement(NAME("DeferredResult"), pass_data.combine_pass->GetFinalImageView());
+
+        descriptor_set->SetElement(NAME("DeferredIndirectResultTexture"), pass_data.indirect_pass->GetFinalImageView());
+
+        descriptor_set->SetElement(NAME("ReflectionProbeResultTexture"), pass_data.reflections_pass->GetFinalImageView());
+
+        descriptor_set->SetElement(NAME("EnvGridRadianceResultTexture"), pass_data.env_grid_radiance_pass->GetFinalImageView());
+        descriptor_set->SetElement(NAME("EnvGridIrradianceResultTexture"), pass_data.env_grid_irradiance_pass->GetFinalImageView());
+
+        HYPERION_ASSERT_RESULT(descriptor_set->Create());
+
+        descriptor_sets[frame_index] = std::move(descriptor_set);
+    }
+
+    pass_data.descriptor_sets = std::move(descriptor_sets);
+}
+
+void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& pass_data)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
+    // The combine pass will render into the translucent bucket's framebuffer with the shaded result.
+    const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+    AssertThrow(translucent_fbo != nullptr);
+
+    ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
+    AssertThrow(render_texture_to_screen_shader.IsValid());
+
+    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+
+    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    {
+        const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index);
+        AssertThrow(descriptor_set != nullptr);
+
+        descriptor_set->SetElement(NAME("InTexture"), pass_data.indirect_pass->GetFinalImageView());
+    }
+
+    DeferCreate(descriptor_table);
+
+    pass_data.combine_pass = MakeUnique<FullScreenPass>(
+        render_texture_to_screen_shader,
+        std::move(descriptor_table),
+        translucent_fbo,
+        translucent_fbo->GetAttachment(0)->GetFormat(),
+        translucent_fbo->GetExtent(),
+        nullptr);
+
+    pass_data.combine_pass->Create();
+}
+
+void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassData& pass_data)
+{
+    AssertThrow(viewport.extent.Volume() > 0);
+
+    const Vec2u new_size = Vec2u(viewport.extent);
+
+    GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
+    AssertDebug(gbuffer != nullptr);
+
+    gbuffer->Resize(new_size);
+
+    const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+
+    pass_data.hbao->Resize(new_size);
+
+    pass_data.direct_pass->Resize(new_size);
+    pass_data.indirect_pass->Resize(new_size);
+
+    pass_data.combine_pass.Reset();
+    CreateViewCombinePass(view, pass_data);
+
+    pass_data.env_grid_radiance_pass->Resize(new_size);
+    pass_data.env_grid_irradiance_pass->Resize(new_size);
+
+    pass_data.reflections_pass->Resize(new_size);
+
+    pass_data.tonemap_pass->Resize(new_size);
+
+    pass_data.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
+    pass_data.lightmap_pass->Create();
+
+    pass_data.temporal_aa = MakeUnique<TemporalAA>(new_size, pass_data.tonemap_pass->GetFinalImageView(), gbuffer);
+    pass_data.temporal_aa->Create();
+
+    AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AssertThrow(depth_attachment != nullptr);
+
+    pass_data.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
+    pass_data.depth_pyramid_renderer->Create();
+
+    SafeRelease(std::move(pass_data.descriptor_sets));
+    CreateViewDescriptorSets(view, pass_data);
+
+    SafeRelease(std::move(pass_data.final_pass_descriptor_set));
+    CreateViewFinalPassDescriptorSet(view, pass_data);
+
+    pass_data.viewport = viewport;
+}
+
+void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
+{
+    HYP_SCOPE;
+
+    AssertThrow(render_setup.IsValid());
+    AssertThrow(render_setup.HasView());
+
+    uint32 global_frame_index = GetRenderThreadFrameIndex();
+    if (m_last_frame_data.frame_id != global_frame_index)
+    {
+        m_last_frame_data.frame_id = global_frame_index;
+        m_last_frame_data.pass_data.Clear();
+    }
+
+    View* view = render_setup.view->GetView();
+
+    if (!(view->GetFlags() & ViewFlags::GBUFFER))
+    {
+        return;
+    }
+
+    DeferredPassData*& pd = m_view_pass_data[view];
+
+    if (!pd)
+    {
+        pd = &m_pass_data.EmplaceBack();
+        CreateViewPassData(view, *pd);
+    }
+    else if (pd->viewport != view->GetRenderResource().GetViewport())
+    {
+        ResizeView(view->GetViewport(), view, *pd);
+    }
+
+    RenderSetup rs = render_setup;
+    rs.pass_data = pd;
+
+    const uint32 frame_index = frame->GetFrameIndex();
+
+    // @TODO: Refactor to put this in the RenderWorld
+    RenderEnvironment* environment = rs.world->GetEnvironment();
+
+    const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_OPAQUE);
+    const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_LIGHTMAP);
+    const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(Bucket::BUCKET_TRANSLUCENT);
+
+    const bool do_particles = true;
+    const bool do_gaussian_splatting = false; // environment && environment->IsReady();
+
+    const bool use_rt_radiance = m_renderer_config.path_tracer_enabled || m_renderer_config.rt_reflections_enabled;
+    const bool use_ddgi = m_renderer_config.rt_gi_enabled;
+    const bool use_hbao = m_renderer_config.hbao_enabled;
+    const bool use_hbil = m_renderer_config.hbil_enabled;
+    const bool use_ssgi = m_renderer_config.ssgi_enabled;
+
+    const bool use_env_grid_irradiance = view->GetRenderResource().m_env_grids.Any() && m_renderer_config.env_grid_gi_enabled;
+    const bool use_env_grid_radiance = view->GetRenderResource().m_env_grids.Any() && m_renderer_config.env_grid_radiance_enabled;
+
+    const bool use_temporal_aa = pd->temporal_aa != nullptr && m_renderer_config.taa_enabled;
+
+    const bool use_reflection_probes = view->GetRenderResource().m_env_probes[uint32(EnvProbeType::SKY)].Any() || view->GetRenderResource().m_env_probes[uint32(EnvProbeType::REFLECTION)].Any();
+
+    if (use_temporal_aa)
+    {
+        view->GetRenderResource().m_render_camera->ApplyJitter(rs);
+    }
+
+    struct
+    {
+        uint32 flags;
+        uint32 screen_width;
+        uint32 screen_height;
+    } deferred_data;
+
+    Memory::MemSet(&deferred_data, 0, sizeof(deferred_data));
+
+    deferred_data.flags |= use_hbao ? DEFERRED_FLAGS_HBAO_ENABLED : 0;
+    deferred_data.flags |= use_hbil ? DEFERRED_FLAGS_HBIL_ENABLED : 0;
+    deferred_data.flags |= use_rt_radiance ? DEFERRED_FLAGS_RT_RADIANCE_ENABLED : 0;
+    deferred_data.flags |= use_ddgi ? DEFERRED_FLAGS_DDGI_ENABLED : 0;
+
+    deferred_data.screen_width = view->GetRenderResource().m_viewport.extent.x;
+    deferred_data.screen_height = view->GetRenderResource().m_viewport.extent.y;
+
+    PerformOcclusionCulling(frame, rs);
+
+    if (do_particles)
+    {
+        environment->GetParticleSystem()->UpdateParticles(frame, rs);
+    }
+
+    if (do_gaussian_splatting)
+    {
+        environment->GetGaussianSplatting()->UpdateSplats(frame, rs);
+    }
+
+    pd->indirect_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+    pd->direct_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+
+    { // render opaque objects into separate framebuffer
+        frame->GetCommandList().Add<BeginFramebuffer>(opaque_fbo, frame_index);
+
+        ExecuteDrawCalls(frame, rs, (1u << BUCKET_OPAQUE));
+
+        frame->GetCommandList().Add<EndFramebuffer>(opaque_fbo, frame_index);
+    }
+
+    if (use_env_grid_irradiance || use_env_grid_radiance)
+    {
+        if (use_env_grid_irradiance)
+        {
+            pd->env_grid_irradiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+            pd->env_grid_irradiance_pass->Render(frame, rs);
+        }
+
+        if (use_env_grid_radiance)
+        {
+            pd->env_grid_radiance_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+            pd->env_grid_radiance_pass->Render(frame, rs);
+        }
+    }
+
+    if (use_reflection_probes)
+    {
+        pd->reflections_pass->SetPushConstants(&deferred_data, sizeof(deferred_data));
+        pd->reflections_pass->Render(frame, rs);
+    }
+
+    // @FIXME: RT Radiance should be moved away from the RenderEnvironment and be part of the RenderView,
+    // otherwise the same pass will be executed for each view (shared).
+    // DDGI Should be a RenderSubsystem instead of existing on the RenderEnvironment directly,
+    // so it is rendered with the RenderWorld rather than the RenderView.
+    if (use_rt_radiance)
+    {
+        environment->RenderRTRadiance(frame, rs);
+    }
+
+    if (use_ddgi)
+    {
+        environment->RenderDDGIProbes(frame, rs);
+    }
+
+    if (use_hbao || use_hbil)
+    {
+        pd->hbao->Render(frame, rs);
+    }
+
+    if (use_ssgi)
+    {
+        RenderSetup new_render_setup = render_setup;
+
+        if (const Array<RenderEnvProbe*>& sky_env_probes = view->GetRenderResource().m_env_probes[uint32(EnvProbeType::SKY)]; sky_env_probes.Any())
+        {
+            new_render_setup.env_probe = sky_env_probes.Front();
+        }
+
+        pd->ssgi->Render(frame, rs);
+    }
+
+    pd->post_processing->RenderPre(frame, rs);
+
+    // render indirect and direct lighting into the same framebuffer
+    const FramebufferRef& deferred_pass_framebuffer = pd->indirect_pass->GetFramebuffer();
+
+    { // deferred lighting on opaque objects
+        frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
+
+        pd->indirect_pass->Render(frame, rs);
+        pd->direct_pass->Render(frame, rs);
+
+        frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
+    }
+
+    if (view->GetRenderResource().m_lightmap_volumes.Any())
+    { // render objects to be lightmapped, separate from the opaque objects.
+        // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
+        frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);
+
+        ExecuteDrawCalls(frame, rs, (1u << BUCKET_LIGHTMAP));
+
+        frame->GetCommandList().Add<EndFramebuffer>(lightmap_fbo, frame_index);
+    }
+
+    { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
+        const ImageRef& src_image = deferred_pass_framebuffer->GetAttachment(0)->GetImage();
+        GenerateMipChain(frame, rs, src_image);
+    }
+
+    { // translucent objects
+        frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
+
+        { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
+            frame->GetCommandList().Add<BindGraphicsPipeline>(pd->combine_pass->GetRenderGroup()->GetPipeline());
+
+            frame->GetCommandList().Add<BindDescriptorTable>(
+                pd->combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
+                pd->combine_pass->GetRenderGroup()->GetPipeline(),
+                ArrayMap<Name, ArrayMap<Name, uint32>> {},
+                frame_index);
+
+            pd->combine_pass->GetQuadMesh()->GetRenderResource().Render(frame->GetCommandList());
+        }
+
+        // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.
+        // Apply lightmaps over the now shaded opaque objects.
+        pd->lightmap_pass->RenderToFramebuffer(frame, rs, translucent_fbo);
+
+        // begin translucent with forward rendering
+        ExecuteDrawCalls(frame, rs, (1u << BUCKET_TRANSLUCENT));
+        ExecuteDrawCalls(frame, rs, (1u << BUCKET_DEBUG));
+
+        // if (do_particles)
+        // {
+        //     environment->GetParticleSystem()->Render(frame, render_setup);
+        // }
+
+        // if (do_gaussian_splatting)
+        // {
+        //     environment->GetGaussianSplatting()->Render(frame, render_setup);
+        // }
+
+        ExecuteDrawCalls(frame, rs, (1u << BUCKET_SKYBOX));
+
+        // // render debug draw
+        // g_engine->GetDebugDrawer()->Render(frame, render_setup);
+
+        frame->GetCommandList().Add<EndFramebuffer>(translucent_fbo, frame_index);
+    }
+
+    { // render depth pyramid
+        pd->depth_pyramid_renderer->Render(frame);
+        // update culling info now that depth pyramid has been rendered
+        pd->cull_data.depth_pyramid_image_view = pd->depth_pyramid_renderer->GetResultImageView();
+        pd->cull_data.depth_pyramid_dimensions = pd->depth_pyramid_renderer->GetExtent();
+    }
+
+    pd->post_processing->RenderPost(frame, rs);
+
+    pd->tonemap_pass->Render(frame, rs);
+
+    if (use_temporal_aa)
+    {
+        pd->temporal_aa->Render(frame, rs);
+    }
+
+    // depth of field
+    // m_dof_blur->Render(frame);
+
+    // Ordered by View priority
+    auto last_frame_data_it = std::lower_bound(
+        m_last_frame_data.pass_data.Begin(),
+        m_last_frame_data.pass_data.End(),
+        Pair<View*, DeferredPassData*> { view, pd },
+        [view](const Pair<View*, DeferredPassData*>& a, const Pair<View*, DeferredPassData*>& b)
+        {
+            return a.first->GetRenderResource().GetPriority() < b.first->GetRenderResource().GetPriority();
+        });
+
+    m_last_frame_data.pass_data.Insert(last_frame_data_it, Pair<View*, DeferredPassData*> { view, pd });
+
+    EngineRenderStatsCounts counts {};
+    counts[ERS_VIEWS] = 1;
+    // counts[ERS_SCENES] = m_render_scenes.Size();
+    counts[ERS_LIGHTS] = view->GetRenderResource().m_tracked_lights.GetCurrentBits().Count();
+    counts[ERS_LIGHTMAP_VOLUMES] = view->GetRenderResource().m_tracked_lightmap_volumes.GetCurrentBits().Count();
+    counts[ERS_ENV_GRIDS] = view->GetRenderResource().m_tracked_env_grids.GetCurrentBits().Count();
+    counts[ERS_ENV_PROBES] = view->GetRenderResource().m_tracked_env_probes.GetCurrentBits().Count();
+    // counts.num_env_probes
+    g_engine->GetRenderStatsCalculator().AddCounts(counts);
+
+    GetConsumerRenderProxyList(view).render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+
+    // @TODO Remove data for views that aren't used after a frame
+}
+
+void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup)
+{
+    HYP_SCOPE;
+
+    constexpr uint32 bucket_mask = (1 << BUCKET_OPAQUE)
+        | (1 << BUCKET_LIGHTMAP)
+        | (1 << BUCKET_SKYBOX)
+        | (1 << BUCKET_TRANSLUCENT)
+        | (1 << BUCKET_DEBUG);
+
+    RenderCollector::PerformOcclusionCulling(frame, render_setup, GetConsumerRenderProxyList(render_setup.view->GetView()), bucket_mask);
+}
+
+void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask)
+{
+    HYP_SCOPE;
+
+    RenderCollector::ExecuteDrawCalls(frame, render_setup, GetConsumerRenderProxyList(render_setup.view->GetView()), bucket_mask);
+}
+
+void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image)
+{
+    HYP_SCOPE;
+
+    const uint32 frame_index = frame->GetFrameIndex();
+
+    DeferredPassData* pd = static_cast<DeferredPassData*>(render_setup.pass_data);
+
+    const ImageRef& mipmapped_result = pd->mip_chain->GetRenderResource().GetImage();
+    AssertThrow(mipmapped_result.IsValid());
+
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(mipmapped_result, renderer::ResourceState::COPY_DST);
+
+    // Blit into the mipmap chain img
+    frame->GetCommandList().Add<BlitRect>(
+        src_image,
+        mipmapped_result,
+        Rect<uint32> { 0, 0, src_image->GetExtent().x, src_image->GetExtent().y },
+        Rect<uint32> { 0, 0, mipmapped_result->GetExtent().x, mipmapped_result->GetExtent().y });
+
+    frame->GetCommandList().Add<GenerateMipmaps>(mipmapped_result);
+
+    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
+}
+
+#pragma endregion DeferredRenderer
 
 } // namespace hyperion

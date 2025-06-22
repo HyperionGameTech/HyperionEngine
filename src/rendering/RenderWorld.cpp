@@ -348,7 +348,10 @@ void RenderWorld::Render(FrameBase* frame)
 
     for (const TResourceHandle<RenderView>& current_view : m_render_views)
     {
-        current_view->Render(frame, this);
+        RenderSetup rs = render_setup;
+        rs.view = current_view.Get();
+
+        g_render_global_state->Renderer->RenderFrame(frame, rs);
     }
 }
 

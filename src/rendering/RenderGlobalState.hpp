@@ -23,6 +23,7 @@ class RenderProxyList;
 class RenderView;
 class View;
 class DrawCallCollection;
+class IRenderer;
 
 HYP_API extern uint32 GetRenderThreadFrameIndex();
 HYP_API extern uint32 GetGameThreadFrameIndex();
@@ -113,6 +114,8 @@ public:
     UniquePtr<PlaceholderData> PlaceholderData;
 
     DescriptorTableRef GlobalDescriptorTable;
+
+    IRenderer* Renderer;
 
 private:
     void CreateBlueNoiseBuffer();

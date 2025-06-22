@@ -339,8 +339,10 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (view_descriptor_set_index != ~0u)
     {
+        AssertThrow(render_setup.pass_data != nullptr);
+
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+            render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
             m_perform_blending,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);

@@ -28,6 +28,33 @@ class DepthPyramidRenderer;
 class SSRRenderer;
 class SSGI;
 class ShaderProperties;
+class View;
+class DeferredRenderer;
+class RenderWorld;
+class RenderScene;
+class RenderCamera;
+class RenderLight;
+class RenderLightmapVolume;
+class RenderEnvGrid;
+class RenderEnvProbe;
+class GBuffer;
+class EnvGrid;
+class EnvGridPass;
+class EnvProbe;
+class ReflectionsPass;
+class TonemapPass;
+class LightmapPass;
+class FullScreenPass;
+class TemporalAA;
+class PostProcessing;
+class DeferredPass;
+class HBAO;
+class DOFBlur;
+class Texture;
+class RTRadianceRenderer;
+struct RenderSetup;
+enum class LightType : uint32;
+enum class EnvProbeType : uint32;
 
 using DeferredFlagBits = uint32;
 
@@ -258,6 +285,110 @@ private:
     UniquePtr<FullScreenPass> m_render_ssr_to_screen_pass;
 
     bool m_is_first_frame;
+};
+
+/*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
+struct PassData
+{
+    Viewport viewport;
+
+    // per-View descriptor sets
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    CullData cull_data;
+
+    virtual ~PassData() = default;
+};
+
+struct DeferredPassData : PassData
+{
+    // Descriptor set used when rendering the View in FinalPass.
+    DescriptorSetRef final_pass_descriptor_set;
+
+    Handle<Texture> mip_chain;
+
+    UniquePtr<DeferredPass> indirect_pass;
+    UniquePtr<DeferredPass> direct_pass;
+    UniquePtr<EnvGridPass> env_grid_radiance_pass;
+    UniquePtr<EnvGridPass> env_grid_irradiance_pass;
+    UniquePtr<ReflectionsPass> reflections_pass;
+    UniquePtr<LightmapPass> lightmap_pass;
+    UniquePtr<TonemapPass> tonemap_pass;
+    UniquePtr<PostProcessing> post_processing;
+    UniquePtr<HBAO> hbao;
+    UniquePtr<TemporalAA> temporal_aa;
+    UniquePtr<SSGI> ssgi;
+    UniquePtr<FullScreenPass> combine_pass;
+    UniquePtr<DepthPyramidRenderer> depth_pyramid_renderer;
+    UniquePtr<DOFBlur> dof_blur;
+
+    virtual ~DeferredPassData() override;
+};
+
+class DeferredRenderer final : public IRenderer
+{
+public:
+    struct LastFrameData
+    {
+        // View pass data from the most recent frame, sorted by View priority
+        uint8 frame_id = uint8(-1);
+
+        // The pass data for the last frame (per-View), sorted by View priority.
+        Array<Pair<View*, DeferredPassData*>> pass_data;
+
+        DeferredPassData* GetPassDataForView(const View* view) const
+        {
+            for (const auto& pair : pass_data)
+            {
+                if (pair.first == view)
+                {
+                    return pair.second;
+                }
+            }
+
+            return nullptr;
+        }
+    };
+
+    DeferredRenderer();
+    DeferredRenderer(const DeferredRenderer& other) = delete;
+    DeferredRenderer& operator=(const DeferredRenderer& other) = delete;
+    virtual ~DeferredRenderer() override;
+
+    HYP_FORCE_INLINE const LastFrameData& GetLastFrameData() const
+    {
+        return m_last_frame_data;
+    }
+
+    virtual const RendererConfig& GetRendererConfig() const override
+    {
+        return m_renderer_config;
+    }
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override;
+
+private:
+    // Called on initialization or when the view changes
+    void CreateViewPassData(View* view, DeferredPassData& pass_data);
+    void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data);
+    void CreateViewDescriptorSets(View* view, DeferredPassData& pass_data);
+    void CreateViewCombinePass(View* view, DeferredPassData& pass_data);
+
+    void ResizeView(Viewport viewport, View* view, DeferredPassData& pass_data);
+
+    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
+    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask);
+    void GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image);
+
+    LinkedList<DeferredPassData> m_pass_data;
+    HashMap<View*, DeferredPassData*> m_view_pass_data;
+
+    LastFrameData m_last_frame_data;
+
+    RendererConfig m_renderer_config;
 };
 
 } // namespace hyperion

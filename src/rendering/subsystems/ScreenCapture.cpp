@@ -4,6 +4,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderGlobalState.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/FinalPass.hpp>
 #include <rendering/TemporalAA.hpp>
@@ -118,9 +119,21 @@ void ScreenCaptureRenderSubsystem::CaptureFrame(FrameBase* frame)
     AssertThrow(m_texture.IsValid());
     AssertThrow(m_texture->IsReady());
 
-    const ImageRef& image_ref = m_view->GetRenderResource().GetRendererConfig().taa_enabled
-        ? m_view->GetRenderResource().GetTemporalAA()->GetResultTexture()->GetRenderResource().GetImage()
-        : m_view->GetRenderResource().GetTonemapPass()->GetFinalImageView()->GetImage();
+    DeferredRenderer* deferred_renderer = static_cast<DeferredRenderer*>(g_render_global_state->Renderer);
+    AssertDebug(deferred_renderer != nullptr);
+
+    DeferredPassData* pd = deferred_renderer->GetLastFrameData().GetPassDataForView(m_view.Get());
+
+    if (!pd)
+    {
+        HYP_LOG(Rendering, Warning, "No pass data found for view {}. Skipping screen capture.", m_view->GetID());
+
+        return;
+    }
+
+    const ImageRef& image_ref = deferred_renderer->GetRendererConfig().taa_enabled
+        ? pd->temporal_aa->GetResultTexture()->GetRenderResource().GetImage()
+        : pd->tonemap_pass->GetFinalImageView()->GetImage();
 
     AssertThrow(image_ref.IsValid());
 

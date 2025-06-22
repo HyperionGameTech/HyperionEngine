@@ -52,6 +52,8 @@ enum class EnvProbeType : uint32;
 class RenderView : public RenderResourceBase
 {
 public:
+    friend class DeferredRenderer; // temp
+
     RenderView(View* view);
     RenderView(const RenderView& other) = delete;
     RenderView& operator=(const RenderView& other) = delete;
@@ -60,11 +62,6 @@ public:
     HYP_FORCE_INLINE View* GetView() const
     {
         return m_view;
-    }
-
-    HYP_FORCE_INLINE const RendererConfig& GetRendererConfig() const
-    {
-        return m_renderer_config;
     }
 
     HYP_FORCE_INLINE const Viewport& GetViewport() const
@@ -137,53 +134,7 @@ public:
         m_render_camera = render_camera;
     }
 
-    HYP_FORCE_INLINE const DescriptorSetRef& GetFinalPassDescriptorSet() const
-    {
-        return m_final_pass_descriptor_set;
-    }
-
     GBuffer* GetGBuffer() const;
-
-    HYP_FORCE_INLINE ReflectionsPass* GetReflectionsPass() const
-    {
-        return m_reflections_pass.Get();
-    }
-
-    HYP_FORCE_INLINE TonemapPass* GetTonemapPass() const
-    {
-        return m_tonemap_pass.Get();
-    }
-
-    /*! \brief Pre-tonemapping, deferred shaded result with transparent objects rendered using forward rendering. */
-    HYP_FORCE_INLINE FullScreenPass* GetCombinePass() const
-    {
-        return m_combine_pass.Get();
-    }
-
-    HYP_FORCE_INLINE PostProcessing* GetPostProcessing() const
-    {
-        return m_post_processing.Get();
-    }
-
-    HYP_FORCE_INLINE DepthPyramidRenderer* GetDepthPyramidRenderer() const
-    {
-        return m_depth_pyramid_renderer.Get();
-    }
-
-    HYP_FORCE_INLINE const Handle<Texture>& GetMipChain() const
-    {
-        return m_mip_chain;
-    }
-
-    HYP_FORCE_INLINE TemporalAA* GetTemporalAA() const
-    {
-        return m_temporal_aa.Get();
-    }
-
-    HYP_FORCE_INLINE const FixedArray<DescriptorSetRef, max_frames_in_flight>& GetDescriptorSets() const
-    {
-        return m_descriptor_sets;
-    }
 
     HYP_FORCE_INLINE RenderCollector& GetRenderCollector()
     {
@@ -195,11 +146,6 @@ public:
         return m_render_collector;
     }
 
-    HYP_FORCE_INLINE const CullData& GetCullData() const
-    {
-        return m_cull_data;
-    }
-
     /*! \brief Update the render collector on the render thread to reflect the state of \ref{render_proxy_tracker} */
     typename RenderProxyTracker::Diff UpdateTrackedRenderProxies(const RenderProxyTracker& render_proxy_tracker);
     void UpdateTrackedLights(const ResourceTracker<ID<Light>, RenderLight*>& tracked_lights);
@@ -208,7 +154,6 @@ public:
     void UpdateTrackedEnvProbes(const ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>& tracked_env_probes);
 
     virtual void PreRender(FrameBase* frame);
-    virtual void Render(FrameBase* frame, RenderWorld* render_world);
     virtual void PostRender(FrameBase* frame);
 
 protected:
@@ -219,24 +164,11 @@ protected:
     void CreateRenderer();
     void DestroyRenderer();
 
-    void CreateCombinePass();
-    void CreateDescriptorSets();
-    void CreateFinalPassDescriptorSet();
-
-    void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup);
-    void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, uint32 bucket_mask);
-    void GenerateMipChain(FrameBase* frame, const RenderSetup& render_setup, const ImageRef& src_image);
-
     View* m_view;
-
-    RendererConfig m_renderer_config;
 
     Viewport m_viewport;
 
     int m_priority;
-
-    // Descriptor set used when rendering the View using FinalPass.
-    DescriptorSetRef m_final_pass_descriptor_set;
 
     TResourceHandle<RenderCamera> m_render_camera;
 
@@ -253,35 +185,6 @@ protected:
 
     Array<Array<RenderEnvProbe*>> m_env_probes;
     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> m_tracked_env_probes;
-
-    UniquePtr<DeferredPass> m_indirect_pass;
-    UniquePtr<DeferredPass> m_direct_pass;
-
-    UniquePtr<EnvGridPass> m_env_grid_radiance_pass;
-    UniquePtr<EnvGridPass> m_env_grid_irradiance_pass;
-
-    UniquePtr<ReflectionsPass> m_reflections_pass;
-
-    UniquePtr<LightmapPass> m_lightmap_pass;
-
-    UniquePtr<TonemapPass> m_tonemap_pass;
-
-    UniquePtr<PostProcessing> m_post_processing;
-    UniquePtr<HBAO> m_hbao;
-    UniquePtr<TemporalAA> m_temporal_aa;
-    UniquePtr<SSGI> m_ssgi;
-
-    UniquePtr<FullScreenPass> m_combine_pass;
-
-    UniquePtr<DepthPyramidRenderer> m_depth_pyramid_renderer;
-
-    UniquePtr<DOFBlur> m_dof_blur;
-
-    Handle<Texture> m_mip_chain;
-
-    CullData m_cull_data;
-
-    FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 
     // Temp
     RenderProxyList m_render_proxy_list;

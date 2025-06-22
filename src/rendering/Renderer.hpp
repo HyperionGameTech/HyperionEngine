@@ -24,6 +24,8 @@ class RenderLight;
 struct CullData;
 struct DrawCall;
 struct InstancedDrawCall;
+struct PassData;
+class IRenderer;
 namespace threading {
 class TaskBatch;
 } // namespace threading
@@ -73,6 +75,7 @@ struct HYP_API RenderSetup
     RenderEnvProbe* env_probe;
     RenderEnvGrid* env_grid;
     RenderLight* light;
+    PassData* pass_data;
 
 private:
     // Private constructor for null RenderSetup
@@ -81,7 +84,8 @@ private:
           view(nullptr),
           env_probe(nullptr),
           env_grid(nullptr),
-          light(nullptr)
+          light(nullptr),
+          pass_data(nullptr)
     {
     }
 
@@ -91,7 +95,8 @@ public:
           view(nullptr),
           env_probe(nullptr),
           env_grid(nullptr),
-          light(nullptr)
+          light(nullptr),
+          pass_data(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
@@ -101,7 +106,8 @@ public:
           view(view),
           env_probe(nullptr),
           env_grid(nullptr),
-          light(nullptr)
+          light(nullptr),
+          pass_data(nullptr)
     {
         AssertDebugMsg(world != nullptr, "RenderSetup must have a valid RenderWorld");
     }
@@ -143,6 +149,19 @@ public:
 /*! \brief Special null RenderSetup that can be used for simple rendering tasks that don't make sense to use a RenderWorld, such as rendering texture mipmaps.
  *  \internal Use sparingly as most rendering tasks should have a valid RenderWorld and using this will cause the IsValid() check to return false */
 extern const RenderSetup& NullRenderSetup();
+
+class IRenderer
+{
+public:
+    virtual ~IRenderer() = default;
+
+    virtual const RendererConfig& GetRendererConfig() const = 0;
+
+    virtual void Initialize() = 0;
+    virtual void Shutdown() = 0;
+
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) = 0;
+};
 
 } // namespace hyperion
 

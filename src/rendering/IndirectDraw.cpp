@@ -447,8 +447,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
+    AssertDebug(render_setup.pass_data != nullptr);
 
-    AssertThrow(render_setup.view->GetCullData().depth_pyramid_image_view != nullptr);
+    AssertThrow(render_setup.pass_data->cull_data.depth_pyramid_image_view != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -473,9 +474,9 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
         }
     }
 
-    if (m_cached_cull_data != render_setup.view->GetCullData())
+    if (m_cached_cull_data != render_setup.pass_data->cull_data)
     {
-        m_cached_cull_data = render_setup.view->GetCullData();
+        m_cached_cull_data = render_setup.pass_data->cull_data;
         m_cached_cull_data_updated_bits = 0xFF;
     }
 
@@ -502,7 +503,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     if (view_descriptor_set_index != ~0u)
     {
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_setup.view->GetDescriptorSets()[frame_index],
+            render_setup.pass_data->descriptor_sets[frame_index],
             m_object_visibility,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
@@ -521,7 +522,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     push_constants.batch_offset = 0;
     push_constants.num_instances = num_instances;
-    push_constants.depth_pyramid_dimensions = render_setup.view->GetDepthPyramidRenderer()->GetExtent();
+    push_constants.depth_pyramid_dimensions = static_cast<DeferredPassData*>(render_setup.pass_data)->depth_pyramid_renderer->GetExtent();
 
     m_object_visibility->SetPushConstants(&push_constants, sizeof(push_constants));
 

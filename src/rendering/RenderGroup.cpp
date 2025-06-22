@@ -443,15 +443,10 @@ static void RenderAll(
 
     if (view_descriptor_set_index != ~0u)
     {
-        AssertThrow(render_setup.HasView());
-
-        const DescriptorSetRef& view_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
-
-        AssertThrowMsg(view_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
-            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), view_descriptor_set_index);
+        AssertThrow(render_setup.pass_data != nullptr);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
-            view_descriptor_set,
+            render_setup.pass_data->descriptor_sets[frame_index],
             pipeline,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
@@ -636,15 +631,10 @@ static void RenderAll_Parallel(
 
     if (view_descriptor_set_index != ~0u)
     {
-        AssertThrow(render_setup.HasView());
-
-        const DescriptorSetRef& view_descriptor_set = render_setup.view->GetDescriptorSets()[frame_index];
-
-        AssertThrowMsg(view_descriptor_set.IsValid(), "Scene descriptor set is not valid but should be (shader: %s, scene descriptor set index: %u)",
-            pipeline->GetShader()->GetCompiledShader()->GetDefinition().GetName().LookupString(), view_descriptor_set_index);
+        AssertThrow(render_setup.pass_data != nullptr);
 
         base_command_list.Add<BindDescriptorSet>(
-            view_descriptor_set,
+            render_setup.pass_data->descriptor_sets[frame_index],
             pipeline,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
@@ -837,12 +827,13 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
 
     AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
+    // AssertDebugMsg(render_setup.pass_data != nullptr, "RenderSetup must have valid PassData for rendering");
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
     const bool use_indirect_rendering = is_indirect_rendering_enabled
         && m_flags[RenderGroupFlags::INDIRECT_RENDERING]
-        && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr;
+        && (render_setup.pass_data && render_setup.pass_data->cull_data.depth_pyramid_image_view);
 
     if (use_indirect_rendering)
     {

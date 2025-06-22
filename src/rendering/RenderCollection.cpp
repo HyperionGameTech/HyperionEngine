@@ -818,11 +818,12 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
 
     AssertDebug(render_setup.IsValid());
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
+    AssertDebugMsg(render_setup.pass_data != nullptr, "RenderSetup must have valid PassData to perform occlusion culling");
 
     HYP_MT_CHECK_RW(render_proxy_list.data_race_detector);
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
-    const bool perform_occlusion_culling = is_indirect_rendering_enabled && render_setup.view->GetCullData().depth_pyramid_image_view != nullptr;
+    const bool perform_occlusion_culling = is_indirect_rendering_enabled && render_setup.pass_data->cull_data.depth_pyramid_image_view != nullptr;
 
     if (perform_occlusion_culling)
     {

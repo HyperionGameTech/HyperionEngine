@@ -49,7 +49,7 @@ struct MeshComponent
     // 128
 
     HYP_FIELD()
-    RenderProxy* proxy = nullptr;
+    RenderProxy* proxy = nullptr; /// TODO: Move RenderProxy over to Entity so lights, envprobes etc all have proxies as well.
 
     // 136
 

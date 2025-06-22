@@ -587,8 +587,10 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
     if (view_descriptor_set_index != ~0u)
     {
+        AssertThrow(render_setup.pass_data != nullptr);
+
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+            render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
             m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
@@ -708,8 +710,10 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
     if (view_descriptor_set_index != ~0u)
     {
+        AssertThrow(render_setup.pass_data != nullptr);
+
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_setup.view->GetDescriptorSets()[frame->GetFrameIndex()],
+            render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
             m_render_group->GetPipeline(),
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);

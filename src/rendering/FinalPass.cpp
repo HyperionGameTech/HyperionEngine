@@ -183,7 +183,7 @@ void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
     const uint32 acquired_image_index = m_swapchain->GetAcquiredImageIndex();
 
     const FramebufferRef& framebuffer = m_swapchain->GetFramebuffers()[acquired_image_index];
-    AssertThrow(framebuffer != nullptr);
+    AssertDebug(framebuffer != nullptr);
 
     frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, 0);
     frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline());
@@ -195,26 +195,30 @@ void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
         frame_index);
 
     const uint32 descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("RenderTextureToScreenDescriptorSet"));
-    AssertThrow(descriptor_set_index != ~0u);
+    AssertDebug(descriptor_set_index != ~0u);
 
     // Render each sub-view
-    if (render_world)
+    DeferredRenderer* dr = static_cast<DeferredRenderer*>(g_render_global_state->Renderer);
+    AssertDebug(dr != nullptr);
+
+    // ordered by priority of the view
+    for (const Pair<View*, DeferredPassData*>& it : dr->GetLastFrameData().pass_data)
     {
-        for (const TResourceHandle<RenderView>& it : render_world->GetViews())
-        {
-            if (it->GetFinalPassDescriptorSet() == nullptr)
-            {
-                continue;
-            }
+        View* view = it.first;
+        AssertDebug(view != nullptr);
 
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                it->GetFinalPassDescriptorSet(),
-                m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
-                ArrayMap<Name, uint32> {},
-                descriptor_set_index);
+        DeferredPassData* pd = it.second;
+        AssertDebug(pd != nullptr);
 
-            m_quad_mesh->GetRenderResource().Render(frame->GetCommandList());
-        }
+        AssertDebug(pd->final_pass_descriptor_set);
+
+        frame->GetCommandList().Add<BindDescriptorSet>(
+            pd->final_pass_descriptor_set,
+            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            ArrayMap<Name, uint32> {},
+            descriptor_set_index);
+
+        m_quad_mesh->GetRenderResource().Render(frame->GetCommandList());
     }
 
 #ifdef HYP_RENDER_UI_IN_FINAL_PASS
