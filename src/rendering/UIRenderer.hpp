@@ -54,7 +54,7 @@ public:
 
 private:
     Array<Pair<ID<Entity>, int>> m_proxy_depths;
-    RC<RenderProxyList> m_draw_collection; // temp
+    RC<RenderProxyList> m_rpl;
 };
 
 HYP_CLASS(NoScriptBindings)

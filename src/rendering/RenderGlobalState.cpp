@@ -157,17 +157,6 @@ HYP_API void BeginFrame_GameThread()
     HYP_SCOPE;
 
     g_free_semaphore.acquire();
-
-    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
-
-    FrameData& frame_data = g_frame_data[slot];
-
-    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
-    {
-        ViewData& vd = *it;
-
-        vd.render_proxy_list.BeginWrite();
-    }
 }
 
 HYP_API void EndFrame_GameThread()
@@ -176,17 +165,6 @@ HYP_API void EndFrame_GameThread()
 #ifdef HYP_DEBUG_MODE
     Threads::AssertOnThread(g_game_thread);
 #endif
-
-    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
-
-    FrameData& frame_data = g_frame_data[slot];
-
-    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
-    {
-        ViewData& vd = *it;
-
-        vd.render_proxy_list.EndWrite();
-    }
 
     g_producer_index.store((g_producer_index.load(std::memory_order_relaxed) + 1) % num_frames, std::memory_order_relaxed);
     g_frame_counter.fetch_add(1, std::memory_order_release); // publish the new frame #
@@ -536,6 +514,14 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
     AssertDebug(env_probe != nullptr);
     AssertDebug(env_probe->IsReady());
 
+    if (!env_probe->GetPrefilteredEnvMap().IsValid())
+    {
+        HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", env_probe->GetID(),
+            env_probe->InstanceClass()->GetName());
+
+        return;
+    }
+
     DebugLog(LogType::Debug, "EnvProbe %u (class: %s) binding changed from %u to %u\n", env_probe->GetID().Value(),
         *env_probe->InstanceClass()->GetName(),
         prev, next);
@@ -550,8 +536,8 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
     }
     else
     {
-        env_probe->GetRenderResource().IncRef();
-        env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
+        // env_probe->GetRenderResource().IncRef();
+        // env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
     }
 
     // temp solution
@@ -570,8 +556,8 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
     }
     else
     {
-        env_probe->GetRenderResource().DecRef();
-        env_probe->GetPrefilteredEnvMap()->GetRenderResource().DecRef();
+        // env_probe->GetRenderResource().DecRef();
+        // env_probe->GetPrefilteredEnvMap()->GetRenderResource().DecRef();
     }
 }
 

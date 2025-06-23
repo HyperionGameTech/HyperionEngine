@@ -167,7 +167,14 @@ struct HYP_API RenderProxyList
 
     void BeginRead()
     {
+#ifdef HYP_DEBUG_MODE
         AssertDebug(state != CS_WRITING);
+        if (state < CS_WRITTEN)
+        {
+            DebugLog(LogType::Warn, "RenderProxyList reading before it has been written!\n\t"
+                                    "This may result in flickering artifacts or missing objects in the render pass\n");
+        }
+#endif
 
         state = CS_READING;
     }
@@ -178,7 +185,7 @@ struct HYP_API RenderProxyList
     {
         AssertDebug(state == CS_READING);
 
-        state = CS_EMPTY;
+        state = CS_DONE;
     }
 
     void Clear();
@@ -201,13 +208,13 @@ struct HYP_API RenderProxyList
     // State for tracking transitions from writing (game thread) to reading (render thread).
     enum CollectionState : uint8
     {
-        CS_EMPTY = 0, //!< Not written to yet. Either just created or finished reading and cleared from the render thread.
-        CS_WRITING,   //!< Currently being written to. set when the frame starts on the game thread.
-        CS_WRITTEN,   //!< Written to, but not yet read from. set when the frame finishes on the game thread.
-        CS_READING    //!< Currently ready to be read. set when the frame starts on the render thread.
+        CS_WRITING, //!< Currently being written to. set when the frame starts on the game thread.
+        CS_WRITTEN, //!< Written to, but not yet read from. set when the frame finishes on the game thread.
+        CS_READING, //!< Currently ready to be read. set when the frame starts on the render thread.
+        CS_DONE     //!< Finished reading. set when the frame finishes on the render thread.
     };
 
-    CollectionState state : 3 = CS_EMPTY;
+    CollectionState state : 2 = CS_DONE;
 
     Viewport viewport;
     int priority;

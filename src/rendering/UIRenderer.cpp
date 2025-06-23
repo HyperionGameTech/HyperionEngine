@@ -375,7 +375,7 @@ struct RENDER_COMMAND(RenderUI)
 
 UIRenderCollector::UIRenderCollector()
     : RenderCollector(),
-      m_draw_collection(MakeRefCountedPtr<RenderProxyList>()) // temp
+      m_rpl(MakeRefCountedPtr<RenderProxyList>())
 {
 }
 
@@ -418,7 +418,7 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
         {
             PUSH_RENDER_COMMAND(
                 RebuildProxyGroups_UI,
-                m_draw_collection,
+                m_rpl,
                 std::move(added_proxies_ptrs),
                 std::move(removed_entities),
                 m_proxy_depths,
@@ -437,13 +437,13 @@ void UIRenderCollector::CollectDrawCalls(FrameBase* frame, const RenderSetup& re
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    RenderCollector::CollectDrawCalls(*m_draw_collection, 0);
+    RenderCollector::CollectDrawCalls(*m_rpl, 0);
 
     // using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::Iterator;
 
     // Array<IteratorType> iterators;
 
-    // for (auto& mappings : m_draw_collection->mappings_by_bucket)
+    // for (auto& mappings : m_rpl->mappings_by_bucket)
     // {
     //     for (auto& it : mappings)
     //     {
@@ -472,7 +472,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
 
     Threads::AssertOnThread(g_render_thread);
 
-    AssertThrow(m_draw_collection != nullptr);
+    AssertThrow(m_rpl != nullptr);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -484,7 +484,7 @@ void UIRenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& re
     using IteratorType = FlatMap<RenderableAttributeSet, DrawCallCollectionMapping>::ConstIterator;
     Array<IteratorType> iterators;
 
-    for (const auto& mappings : m_draw_collection->mappings_by_bucket)
+    for (const auto& mappings : m_rpl->mappings_by_bucket)
     {
         for (const auto& it : mappings)
         {

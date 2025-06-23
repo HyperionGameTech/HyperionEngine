@@ -252,7 +252,11 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+    HYP_LOG(Scene, Debug, "Update view {} for frame {}", GetID(), GetGameThreadFrameIndex());
+
     RenderProxyList& rpl = GetProducerRenderProxyList(this);
+    rpl.BeginWrite();
+
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;
     rpl.render_proxy_tracker.Advance(AdvanceAction::CLEAR);
@@ -278,6 +282,8 @@ void View::Update(float delta)
     rpl.BuildRenderGroups(m_render_resource, m_override_attributes.TryGet());
 
     RenderCollector::CollectDrawCalls(rpl, bucket_mask);
+
+    rpl.EndWrite();
 
     // HYP_LOG(Scene, Debug, "Acquired proxy list : {} \t total count : {}", (void*)&rpl, rpl.NumRenderProxies());
 

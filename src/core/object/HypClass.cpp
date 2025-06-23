@@ -57,6 +57,7 @@ bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID typ
 
     if (other_hyp_class != nullptr)
     {
+        // fast path
         if (other_hyp_class->GetStaticIndex() != -1)
         {
             return uint32(other_hyp_class->GetStaticIndex() - hyp_class->GetStaticIndex()) <= hyp_class->GetNumDescendants();
@@ -69,6 +70,7 @@ bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID typ
         }
     }
 
+    // slow path
     while (other_hyp_class != nullptr)
     {
         if (other_hyp_class == hyp_class)
@@ -89,11 +91,13 @@ bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hy
         return false;
     }
 
+    // fast path
     if (instance_hyp_class->GetStaticIndex() != -1)
     {
         return uint32(instance_hyp_class->GetStaticIndex() - hyp_class->GetStaticIndex()) <= hyp_class->GetNumDescendants();
     }
 
+    // slow path
     do
     {
         if (instance_hyp_class == hyp_class)
@@ -663,6 +667,13 @@ bool HypClass::IsDerivedFrom(const HypClass* other) const
         return true;
     }
 
+    // fast path
+    if (m_static_index != -1)
+    {
+        return uint32(m_static_index - other->m_static_index) <= other->m_num_descendants;
+    }
+
+    // slow path
     const HypClass* current = this;
 
     while (current != nullptr)

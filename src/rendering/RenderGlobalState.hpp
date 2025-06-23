@@ -135,133 +135,108 @@ protected:
     static SizeType GetNumDescendants(TypeID type_id);
 };
 
+/*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
+ *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
+ *  Only static subclasses are supported so using types extended only from managed code will not work. (See HypClass::GetStaticIndex)
+ *  \note This system is not thread safe and should only be used from a single thread at any given time */
 template <class T, auto OnBindingChanged>
 class ObjectBinder final : public ObjectBinderBase
 {
     struct Impl final
     {
-        template <class Functions>
-        Impl(TypeWrapper<Functions>)
+        Impl(TypeID type_id)
+            : type_id(type_id)
         {
-            Bind = &Functions::Bind;
-            Unbind = &Functions::Unbind;
-            UpdateBoundResources = &Functions::UpdateBoundResources;
-            ReleaseBindings = &Functions::ReleaseBindings;
         }
 
-        bool (*Bind)(Impl* impl, ObjectBindingAllocatorBase* allocator, T* object);
-        void (*Unbind)(Impl* impl, ObjectBindingAllocatorBase* allocator, T* object);
-        void (*UpdateBoundResources)(Impl* impl, ObjectBindingAllocatorBase* allocator);
-        void (*ReleaseBindings)(Impl* impl, ObjectBindingAllocatorBase* allocator);
-
-        HYP_FORCE_INLINE Bitset GetNewlyAdded() const
-        {
-            const SizeType new_num_bits = MathUtil::Max(m_last_frame_ids.NumBits(), m_current_frame_ids.NumBits());
-
-            return Bitset(m_current_frame_ids).Resize(new_num_bits) & ~Bitset(m_last_frame_ids).Resize(new_num_bits);
-        }
-
-        HYP_FORCE_INLINE Bitset GetRemoved() const
-        {
-            const SizeType new_num_bits = MathUtil::Max(m_last_frame_ids.NumBits(), m_current_frame_ids.NumBits());
-
-            return Bitset(m_last_frame_ids).Resize(new_num_bits) & ~Bitset(m_current_frame_ids).Resize(new_num_bits);
-        }
-
-        HashMap<WeakHandle<T>, uint32> m_bindings;
-        // these bitsets are used to track which objects were bound in the last frame with bitwise operations
-        Bitset m_last_frame_ids;
-        Bitset m_current_frame_ids;
-    };
-
-    template <class Subclass>
-    struct ImplFunctions final
-    {
-        static void ReleaseBindings(Impl* impl, ObjectBindingAllocatorBase* allocator)
+        void ReleaseBindings(ObjectBindingAllocatorBase* allocator)
         {
             // Unbind all objects that were bound in the last frame
-            for (Bitset::BitIndex bit_index : impl->m_last_frame_ids)
+            for (Bitset::BitIndex bit_index : last_frame_ids)
             {
-                const ID<Subclass> id = ID<Subclass>::FromIndex(bit_index);
-                const auto it = impl->m_bindings.FindAs(id);
-                AssertDebug(it != impl->m_bindings.End());
+                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
 
-                if (it != impl->m_bindings.End())
+                const auto it = bindings.FindAs(id);
+                AssertDebug(it != bindings.End());
+
+                if (it != bindings.End())
                 {
-                    Subclass* object = it->first.GetUnsafe();
+                    T* object = it->first.GetUnsafe();
                     const uint32 binding = it->second;
 
                     OnBindingChanged(object, binding, ObjectBindingAllocatorBase::invalid_binding);
                     allocator->FreeIndex(binding);
-                    impl->m_bindings.Erase(it);
+                    bindings.Erase(it);
                 }
             }
         }
 
-        static bool Bind(Impl* impl, ObjectBindingAllocatorBase* allocator, T* object)
+        bool Bind(ObjectBindingAllocatorBase* allocator, T* object)
         {
-            ID<Subclass> id = static_cast<Subclass*>(object)->GetID();
+            IDBase id = object->GetID();
 
             if (!id.IsValid())
             {
                 return false;
             }
 
-            if (impl->m_allocator->current_frame_count >= impl->m_allocator->max_size)
+            if (allocator->current_frame_count >= allocator->max_size)
             {
-                DebugLog(LogType::Warn, "ObjectBinder<%s>::Impl<%s>: Maximum size of %u reached, cannot bind more objects!\n", TypeNameWithoutNamespace<T>().Data(), TypeNameWithoutNamespace<Subclass>().Data(), allocator->max_size);
+                DebugLog(LogType::Warn, "ObjectBinder<%s>: Maximum size of %u reached, cannot bind more objects!\n", TypeNameWithoutNamespace<T>().Data(), allocator->max_size);
                 return false; // maximum size reached
             }
 
             ++allocator->current_frame_count;
 
-            impl->m_current_frame_ids.Set(id.ToIndex(), true);
+            current_frame_ids.Set(id.ToIndex(), true);
 
             return true;
         }
 
-        static void Unbind(Impl* impl, ObjectBindingAllocatorBase* allocator, T* object)
+        void Unbind(ObjectBindingAllocatorBase* allocator, T* object)
         {
-            ID<Subclass> id = static_cast<Subclass*>(object)->GetID();
+            IDBase id = object->GetID();
 
             if (!id.IsValid())
             {
                 return;
             }
 
-            impl->m_current_frame_ids.Set(id.ToIndex(), false);
+            current_frame_ids.Set(id.ToIndex(), false);
         }
 
-        static void UpdateBoundResources(Impl* impl, ObjectBindingAllocatorBase* allocator)
+        void UpdateBoundResources(ObjectBindingAllocatorBase* allocator)
         {
-            const Bitset removed = impl->GetRemoved();
-            const Bitset newly_added = impl->GetNewlyAdded();
-            const Bitset after = (impl->m_last_frame_ids & ~removed) | newly_added;
+            const Bitset removed = GetRemoved();
+            const Bitset newly_added = GetNewlyAdded();
+            const Bitset after = (last_frame_ids & ~removed) | newly_added;
 
             AssertDebug(after.Count() <= allocator->max_size);
 
             for (Bitset::BitIndex bit_index : removed)
             {
-                const ID<Subclass> id = ID<Subclass>::FromIndex(bit_index);
-                const auto it = impl->m_bindings.FindAs(id);
-                AssertDebug(it != impl->m_bindings.End());
+                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
 
-                if (it != impl->m_bindings.End())
+                const auto it = bindings.FindAs(id);
+                AssertDebug(it != bindings.End());
+
+                if (it != bindings.End())
                 {
-                    Subclass* object = it->first.Get();
+                    T* object = it->first.GetUnsafe();
                     const uint32 binding = it->second;
 
                     OnBindingChanged(object, binding, ObjectBindingAllocatorBase::invalid_binding);
                     allocator->FreeIndex(binding);
-                    impl->m_bindings.Erase(it);
+                    bindings.Erase(it);
                 }
             }
 
             for (Bitset::BitIndex bit_index : newly_added)
             {
-                const ID<Subclass> id = ID<Subclass>::FromIndex(bit_index);
-                const auto it = impl->m_bindings.FindAs(id);
-                if (it != impl->m_bindings.End())
+                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
+
+                const auto it = bindings.FindAs(id);
+                if (it != bindings.End())
                 {
                     // already bound
                     continue;
@@ -270,15 +245,14 @@ class ObjectBinder final : public ObjectBinderBase
                 const uint32 index = allocator->AllocateIndex();
                 if (index == ObjectBindingAllocatorBase::invalid_binding)
                 {
-                    DebugLog(LogType::Warn, "ObjectBinder<%s>::Impl<%s>: Maximum size of %u reached, cannot bind more objects!\n",
-                        TypeNameWithoutNamespace<T>().Data(),
+                    DebugLog(LogType::Warn, "ObjectBinder<%s>: Maximum size of %u reached, cannot bind more objects!\n",
                         TypeNameWithoutNamespace<T>().Data(),
                         allocator->max_size);
 
                     continue; // no more space to bind
                 }
 
-                auto insert_result = impl->m_bindings.Insert(WeakHandle<Subclass> { id }, index);
+                auto insert_result = bindings.Insert(WeakHandle<T> { id }, index);
                 AssertDebugMsg(insert_result.second, "Failed to insert binding for object with ID %u - it should not already exist!", id.Value());
 
                 OnBindingChanged(insert_result.first->first.GetUnsafe(), ObjectBindingAllocatorBase::invalid_binding, index);
@@ -286,24 +260,43 @@ class ObjectBinder final : public ObjectBinderBase
 
             if (newly_added.Count() != 0 || removed.Count() != 0)
             {
-                DebugLog(LogType::Debug, "ObjectBinder<%s>::Impl<%s>: %u objects added, %u objects removed, %u total bindings\n",
+                DebugLog(LogType::Debug, "ObjectBinder<%s>: %u objects added, %u objects removed, %u total bindings\n",
                     TypeNameWithoutNamespace<T>().Data(),
-                    TypeNameWithoutNamespace<Subclass>().Data(),
                     newly_added.Count(),
                     removed.Count(),
                     after.Count());
             }
 
-            impl->m_last_frame_ids = impl->m_current_frame_ids;
-            impl->m_current_frame_ids.Clear();
+            last_frame_ids = current_frame_ids;
+            current_frame_ids.Clear();
         }
+
+        HYP_FORCE_INLINE Bitset GetNewlyAdded() const
+        {
+            const SizeType count = MathUtil::Max(last_frame_ids.NumBits(), current_frame_ids.NumBits());
+
+            return Bitset(current_frame_ids).Resize(count) & ~Bitset(last_frame_ids).Resize(count);
+        }
+
+        HYP_FORCE_INLINE Bitset GetRemoved() const
+        {
+            const SizeType count = MathUtil::Max(last_frame_ids.NumBits(), current_frame_ids.NumBits());
+
+            return Bitset(last_frame_ids).Resize(count) & ~Bitset(current_frame_ids).Resize(count);
+        }
+
+        TypeID type_id;
+        // these bitsets are used to track which objects were bound in the last frame with bitwise operations
+        Bitset last_frame_ids;
+        Bitset current_frame_ids;
+        HashMap<WeakHandle<T>, uint32> bindings;
     };
 
 public:
     ObjectBinder(RenderGlobalState* rgs, ObjectBindingAllocatorBase* allocator)
         : ObjectBinderBase(rgs),
           m_allocator(allocator),
-          m_impl(ImplFunctions<T>())
+          m_impl(TypeID::ForType<T>())
     {
         AssertDebug(m_allocator != nullptr);
 
@@ -322,13 +315,15 @@ public:
 
     ~ObjectBinder() override
     {
+        m_impl.ReleaseBindings(m_allocator);
+
         // Loop over the set bits and destruct subclass impls
         for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
         {
             AssertDebug(bit_index < m_subclass_impls.Size());
 
             Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.ReleaseBindings(&impl, m_allocator);
+            impl.ReleaseBindings(m_allocator);
             m_subclass_impls[bit_index].Destruct();
         }
     }
@@ -340,27 +335,29 @@ public:
             return false;
         }
 
-        constexpr TypeID type_id = TypeID::ForType<T>();
-        if (object->GetTypeID() == type_id)
+        constexpr TypeID base_type_id = TypeID::ForType<T>();
+        const TypeID object_type_id = object->GetTypeID();
+
+        if (object_type_id == base_type_id)
         {
-            return m_impl.Bind(&m_impl, m_allocator, object);
+            return m_impl.Bind(m_allocator, object);
         }
         else
         {
-            const int subclass_index = GetSubclassIndex(type_id, object->GetTypeID());
+            const int subclass_index = GetSubclassIndex(base_type_id, object_type_id);
             AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
                 "ObjectBinder<%s>: Attempted to bind object with TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), object->GetTypeID().Value(), type_id.Value());
+                TypeNameWithoutNamespace<T>().Data(), object_type_id.Value(), base_type_id.Value());
 
             if (!m_subclass_impls_initialized.Test(subclass_index))
             {
-                m_subclass_impls[subclass_index].Construct(this);
+                m_subclass_impls[subclass_index].Construct(object_type_id);
                 m_subclass_impls_initialized.Set(subclass_index, true);
             }
 
             Impl& impl = m_subclass_impls[subclass_index].Get();
 
-            return impl.Bind(&impl, m_allocator, object);
+            return impl.Bind(m_allocator, object);
         }
     }
 
@@ -371,7 +368,7 @@ public:
         constexpr TypeID type_id = TypeID::ForType<T>();
         if (object->GetTypeID() == type_id)
         {
-            m_impl.Unbind(&m_impl, m_allocator, object);
+            m_impl.Unbind(m_allocator, object);
         }
         else
         {
@@ -387,18 +384,18 @@ public:
             }
 
             Impl& impl = m_subclass_impls[type_id].Get();
-            impl.Unbind(&impl, m_allocator, object);
+            impl.Unbind(m_allocator, object);
         }
     }
 
     virtual void UpdateBoundResources() override
     {
-        m_impl.UpdateBoundResources();
+        m_impl.UpdateBoundResources(m_allocator);
 
         for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
         {
             Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.UpdateBoundResources(&m_impl, m_allocator);
+            impl.UpdateBoundResources(m_allocator);
         }
     }
 
@@ -407,6 +404,7 @@ protected:
 
     // base class impl
     Impl m_impl;
+
     // per-subtype implementations (only constructed and setup on first Bind() call with that type)
     Array<ValueStorage<Impl>> m_subclass_impls;
     Bitset m_subclass_impls_initialized;

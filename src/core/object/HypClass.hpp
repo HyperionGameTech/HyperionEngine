@@ -389,11 +389,17 @@ public:
         return m_name;
     }
 
+    /*! \brief Returns the statically assigned index of this class in the global HypClass table.
+     *  Only classes that are picked up by the build tool at configuration time will have a static index assigned.
+     *  (Dynamic types created in managed code will return -1 for this)
+     *  \note GetStaticIndex is used mainly for fast type checking internally, as it can be used to compare with HypClass::GetNumDescendants to check
+     *  if the static index is within the expected range. It can also be used to preallocate slots for subclasses (see ObjectBinder<T> for example usage) */
     HYP_FORCE_INLINE int GetStaticIndex() const
     {
         return m_static_index;
     }
 
+    /*! \brief Returns the total number of descendants of this HypClass. */
     HYP_FORCE_INLINE uint32 GetNumDescendants() const
     {
         return m_num_descendants;

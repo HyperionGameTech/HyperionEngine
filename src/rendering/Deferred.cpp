@@ -1435,8 +1435,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             {
                 for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
                 {
-                    HYP_LOG(Rendering, Debug, "Binding EnvProbe {} (type: {})", env_probe->GetEnvProbe()->GetID(),
-                        env_probe->GetEnvProbe()->GetEnvProbeType());
                     // Acquire binding slot for the env probe
                     if (!g_render_global_state->EnvProbeBinder.Bind(env_probe->GetEnvProbe()))
                     {
@@ -1444,23 +1442,27 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                         continue;
                     }
 
-                    // if (env_probe->GetEnvProbe()->NeedsRender())
-                    // {
-                    EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
-                    if (env_probe_renderer)
+                    if (env_probe->GetEnvProbe()->NeedsRender())
                     {
-                        new_rs.env_probe = env_probe;
-                        env_probe_renderer->RenderFrame(frame, new_rs);
-                        new_rs.env_probe = nullptr; // reset for next probe
+                        EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
 
-                        counts[ERS_ENV_PROBES]++;
-                    }
-                    else
-                    {
+                        if (env_probe_renderer)
+                        {
+                            new_rs.env_probe = env_probe;
+                            env_probe_renderer->RenderFrame(frame, new_rs);
+                            new_rs.env_probe = nullptr; // reset for next probe
 
-                        HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
+                            counts[ERS_ENV_PROBES]++;
+                        }
+                        else
+                        {
+
+                            HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
+                        }
+
+                        // // Temp; refactor
+                        // env_probe->GetEnvProbe()->SetNeedsRender(false);
                     }
-                    // }
                 }
             }
         }

@@ -74,6 +74,7 @@ class HYP_API EnvProbe : public Entity
 
 public:
     EnvProbe();
+    EnvProbe(EnvProbeType env_probe_type);
     EnvProbe(EnvProbeType env_probe_type, const BoundingBox& aabb, const Vec2u& dimensions);
 
     EnvProbe(const EnvProbe& other) = delete;
@@ -278,7 +279,7 @@ class HYP_API ReflectionProbe : public EnvProbe
     HYP_OBJECT_BODY(ReflectionProbe);
 public:
     ReflectionProbe()
-        : EnvProbe(EPT_REFLECTION, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u(1, 1))
+        : EnvProbe(EPT_REFLECTION)
     {
     }
 

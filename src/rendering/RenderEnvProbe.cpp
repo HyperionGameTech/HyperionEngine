@@ -1008,6 +1008,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
         for (const auto& it : rpl.GetLights(LightType(light_type)))
         {
+            HYP_LOG(Rendering, Debug, "Rendering env probe {} : Light bound : {}", env_probe->GetID(), it->GetLight()->GetID());
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
@@ -1030,12 +1031,12 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     AssertDebug(framebuffer.IsValid());
 
     AttachmentBase* color_attachment = framebuffer->GetAttachment(0);
-    AssertThrow(color_attachment != nullptr);
 
     AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
-    AssertThrow(normals_attachment != nullptr);
-
     AttachmentBase* moments_attachment = framebuffer->GetAttachment(2);
+
+    AssertThrow(color_attachment != nullptr);
+    AssertThrow(normals_attachment != nullptr);
     AssertThrow(moments_attachment != nullptr);
 
     const renderer::DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
