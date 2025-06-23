@@ -31,6 +31,8 @@
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 
+#include <core/object/HypClass.hpp>
+
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
 
@@ -62,6 +64,9 @@ static std::atomic_uint g_consumer_index { 0 };                             // w
 static std::atomic_uint g_frame_counter { 0 };                              // logical frame number
 static std::counting_semaphore<num_frames> g_full_semaphore { 0 };          // renderer waits here
 static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // game waits here when ring is full
+
+// Shared allocator for reflection probes and sky probes.
+static ObjectBindingAllocator<16> g_envprobe_bindings_allocator;
 
 struct DrawCallCollectionAllocation;
 
@@ -207,6 +212,9 @@ HYP_API void BeginFrame_RenderThread()
         ViewData& vd = *it;
         vd.render_proxy_list.BeginRead();
     }
+
+    // Reset binding allocators at the end of the frame
+    g_envprobe_bindings_allocator.Reset();
 }
 
 HYP_API void EndFrame_RenderThread()
@@ -256,8 +264,67 @@ HYP_API void EndFrame_RenderThread()
     g_free_semaphore.release();
 }
 
+#pragma region ObjectBinderBase
+
+ObjectBinderBase::ObjectBinderBase(RenderGlobalState* rgs)
+{
+    AssertDebug(rgs != nullptr);
+
+    for (uint32 i = 0; i < RenderGlobalState::max_binders; i++)
+    {
+        if (rgs->ObjectBinders[i] == nullptr)
+        {
+            rgs->ObjectBinders[i] = this;
+            return;
+        }
+    }
+
+    HYP_FAIL("Failed to find a free slot in the RenderGlobalState's ObjectBinders array!");
+}
+
+int ObjectBinderBase::GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id)
+{
+    const HypClass* base = GetClass(base_type_id);
+    if (!base)
+    {
+        return -1;
+    }
+
+    const HypClass* subclass = GetClass(subclass_type_id);
+
+    if (!subclass)
+    {
+        return -1;
+    }
+
+    int subclass_static_index = subclass->GetStaticIndex();
+    if (subclass_static_index < 0)
+    {
+        return -1; // subclass is not a static class
+    }
+
+    return (subclass_static_index - base->GetStaticIndex()) <= base->GetNumDescendants();
+}
+
+SizeType ObjectBinderBase::GetNumDescendants(TypeID type_id)
+{
+    const HypClass* base = GetClass(type_id);
+    if (!base)
+    {
+        return 0;
+    }
+
+    return base->GetNumDescendants();
+}
+
+#pragma endregion ObjectBinderBase
+
+#pragma region RenderGlobalState
+
 RenderGlobalState::RenderGlobalState()
-    : ShadowMapAllocator(MakeUnique<class ShadowMapAllocator>()),
+    : ObjectBinders { nullptr },
+      EnvProbeBinder(this, &g_envprobe_bindings_allocator),
+      ShadowMapAllocator(MakeUnique<class ShadowMapAllocator>()),
       GPUBufferHolderMap(MakeUnique<class GPUBufferHolderMap>()),
       PlaceholderData(MakeUnique<class PlaceholderData>())
 {
@@ -331,39 +398,6 @@ void RenderGlobalState::UpdateBuffers(FrameBase* frame)
         it.second->UpdateBufferSize(frame->GetFrameIndex());
         it.second->UpdateBufferData(frame->GetFrameIndex());
     }
-}
-
-uint32 RenderGlobalState::AllocateIndex(IndexAllocatorType type)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertDebug(type + 1 <= IndexAllocatorType::MAX);
-
-    uint32 index = m_index_allocators[type].AllocateIndex(index_allocator_maximums[type]);
-
-    if (index == ~0u)
-    {
-        HYP_LOG(Rendering, Error, "Failed to allocate index for type {}. Maximum index limit reached: {}", type, index_allocator_maximums[type]);
-    }
-
-    return index;
-}
-
-void RenderGlobalState::FreeIndex(IndexAllocatorType type, uint32 index)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_render_thread);
-
-    AssertDebug(type < IndexAllocatorType::MAX);
-
-    if (index >= index_allocator_maximums[type])
-    {
-        HYP_LOG(Rendering, Error, "Attempted to free index {} for type {}, but it exceeds the maximum index limit: {}", index, type, index_allocator_maximums[type]);
-        return;
-    }
-
-    m_index_allocators[type].FreeIndex(index);
 }
 
 void RenderGlobalState::CreateBlueNoiseBuffer()
@@ -496,5 +530,51 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frame_index)
         }
     }
 }
+
+void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next)
+{
+    AssertDebug(env_probe != nullptr);
+    AssertDebug(env_probe->IsReady());
+
+    DebugLog(LogType::Debug, "EnvProbe %u (class: %s) binding changed from %u to %u\n", env_probe->GetID().Value(),
+        *env_probe->InstanceClass()->GetName(),
+        prev, next);
+
+    if (prev != ~0u)
+    {
+        HYP_LOG(Rendering, Debug, "UN setting env probe texture at index: {}", prev);
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), prev, g_render_global_state->PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView());
+        }
+    }
+    else
+    {
+        env_probe->GetRenderResource().IncRef();
+        env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
+    }
+
+    // temp solution
+    env_probe->GetRenderResource().SetTextureSlot(next);
+
+    if (next != ~0u)
+    {
+        AssertDebug(env_probe->GetPrefilteredEnvMap().IsValid());
+        AssertDebug(env_probe->GetPrefilteredEnvMap()->IsReady());
+
+        HYP_LOG(Rendering, Debug, "Setting env probe texture at index: {} to tex with ID: {}", next, env_probe->GetPrefilteredEnvMap().GetID());
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), next, env_probe->GetPrefilteredEnvMap()->GetRenderResource().GetImageView());
+        }
+    }
+    else
+    {
+        env_probe->GetRenderResource().DecRef();
+        env_probe->GetPrefilteredEnvMap()->GetRenderResource().DecRef();
+    }
+}
+
+#pragma endregion RenderGlobalState
 
 } // namespace hyperion

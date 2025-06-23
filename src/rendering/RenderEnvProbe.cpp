@@ -82,6 +82,25 @@ void RenderEnvProbe::SetPositionInGrid(const Vec4i& position_in_grid)
         });
 }
 
+void RenderEnvProbe::SetTextureSlot(uint32 texture_slot)
+{
+    HYP_SCOPE;
+
+    Execute([this, texture_slot]()
+        {
+            HYP_LOG(Rendering, Debug, "Setting texture slot for EnvProbe {} (type: {}) to {}", m_env_probe->GetID(), m_env_probe->GetEnvProbeType(), texture_slot);
+
+            if (m_texture_slot == texture_slot)
+            {
+                return;
+            }
+
+            m_texture_slot = texture_slot;
+
+            SetNeedsUpdate();
+        });
+}
+
 void RenderEnvProbe::SetBufferData(const EnvProbeShaderData& buffer_data)
 {
     HYP_SCOPE;
@@ -89,12 +108,12 @@ void RenderEnvProbe::SetBufferData(const EnvProbeShaderData& buffer_data)
     Execute([this, buffer_data]()
         {
             // TEMP hack: save previous texture_index and position_in_grid
-            const uint32 texture_index = m_buffer_data.texture_index;
             const Vec4i position_in_grid = m_buffer_data.position_in_grid;
 
             m_buffer_data = buffer_data;
 
             // restore previous texture_index and position_in_grid
+            m_buffer_data.texture_index = m_texture_slot;
             m_buffer_data.position_in_grid = position_in_grid;
 
             SetNeedsUpdate();
@@ -180,35 +199,12 @@ void RenderEnvProbe::Initialize_Internal()
 {
     HYP_SCOPE;
 
-    if (m_env_probe->ShouldComputePrefilteredEnvMap())
-    {
-        AssertDebugMsg(m_texture_slot == RenderGlobalState::IndexAllocator::invalid_index, "Texture slot not released for EnvProbe with ID: #%u", m_env_probe->GetID().Value());
-        m_texture_slot = g_render_global_state->AllocateIndex(RenderGlobalState::ENV_PROBE);
-
-        if (m_texture_slot == RenderGlobalState::IndexAllocator::invalid_index)
-        {
-            HYP_LOG(EnvProbe, Error, "Failed to allocate texture slot for EnvProbe {}", m_env_probe->GetID());
-        }
-    }
-
     UpdateBufferData();
 }
 
 void RenderEnvProbe::Destroy_Internal()
 {
     HYP_SCOPE;
-
-    if (m_texture_slot != RenderGlobalState::IndexAllocator::invalid_index)
-    {
-        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-        {
-            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, g_render_global_state->PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView());
-        }
-
-        g_render_global_state->FreeIndex(RenderGlobalState::ENV_PROBE, m_texture_slot);
-
-        m_texture_slot = RenderGlobalState::IndexAllocator::invalid_index;
-    }
 }
 
 void RenderEnvProbe::Update_Internal()
@@ -504,15 +500,15 @@ void RenderEnvProbe::ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetu
     frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
     EnvProbeShaderData* buffer_data = static_cast<EnvProbeShaderData*>(m_buffer_address);
-    HYP_LOG(EnvProbe, Debug, "Convolving EnvProbe {} (type: {}), texture slot: {}", m_env_probe->GetID(), m_env_probe->GetEnvProbeType(),
-        buffer_data->texture_index);
+    // HYP_LOG(EnvProbe, Debug, "Convolving EnvProbe {} (type: {}), texture slot: {}", m_env_probe->GetID(), m_env_probe->GetEnvProbeType(),
+    //     buffer_data->texture_index);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
-        HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
-            m_texture_slot, m_env_probe->GetID());
-    }
+    // for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    // {
+    //     g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
+    //     HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
+    //         m_texture_slot, m_env_probe->GetID());
+    // }
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind([delegate_handle, uniform_buffer = std::move(uniform_buffer), convolve_probe_compute_pipeline = std::move(convolve_probe_compute_pipeline), descriptor_table = std::move(descriptor_table)](...)
@@ -873,7 +869,12 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
 
     AssertDebug(env_probe->GetEnvProbeType() == m_env_probe_type);
 
-    RenderProbe(frame, render_setup, env_probe);
+    RenderSetup rs = render_setup;
+    rs.view = env_probe->GetRenderResource().GetViewRenderResourceHandle().Get();
+
+    RenderProbe(frame, rs, env_probe);
+
+    rs.view = nullptr;
 }
 
 #pragma endregion EnvProbeRenderer
@@ -933,15 +934,10 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     RenderProxyList& rpl = GetConsumerRenderProxyList(view);
 
-    HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
-        env_probe->GetID(), env_probe->GetEnvProbeType());
+    // HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
+    //     env_probe->GetID(), env_probe->GetEnvProbeType());
 
-    RenderSetup rs = render_setup;
-    rs.env_probe = &env_probe->GetRenderResource();
-
-    RenderCollector::ExecuteDrawCalls(frame, rs, rpl, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
-
-    rs.env_probe = nullptr;
+    RenderCollector::ExecuteDrawCalls(frame, render_setup, rpl, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
     const ViewOutputTarget& output_target = view->GetOutputTarget();
     AssertDebug(output_target.IsValid());
@@ -1089,12 +1085,12 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
 
-    for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-    {
-        // g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
-        // HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
-        //     m_texture_slot, m_env_probe->GetID());
-    }
+    // for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+    // {
+    //     g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
+    //     HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
+    //         m_env_probe->GetTextureSlot(), m_env_probe->GetID());
+    // }
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind([delegate_handle, uniform_buffer = std::move(uniform_buffer), convolve_probe_compute_pipeline = std::move(convolve_probe_compute_pipeline), descriptor_table = std::move(descriptor_table)](...)

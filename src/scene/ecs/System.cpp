@@ -14,11 +14,6 @@ Name SystemBase::GetName() const
     return InstanceClass()->GetName();
 }
 
-TypeID SystemBase::GetTypeID() const
-{
-    return InstanceClass()->GetTypeID();
-}
-
 Scene* SystemBase::GetScene() const
 {
     return GetEntityManager().GetScene();

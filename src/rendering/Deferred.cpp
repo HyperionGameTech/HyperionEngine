@@ -903,6 +903,10 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
+            HYP_LOG(Rendering, Debug, "Applying reflection probe {} (type: {}) with texture slot : {}", env_probe->GetEnvProbe()->GetID(),
+                env_probe->GetEnvProbe()->GetEnvProbeType(),
+                env_probe->GetTextureSlot());
+
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
                 render_group->GetPipeline(),
@@ -1427,31 +1431,39 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (env_probes.Any())
         {
-            // for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
-            // {
-            EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[EPT_REFLECTION];
-
-            if (env_probe_renderer)
+            for (uint32 env_probe_type = 0; env_probe_type <= EPT_REFLECTION; env_probe_type++)
             {
-                for (RenderEnvProbe* env_probe : env_probes[EPT_REFLECTION])
+                for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
                 {
-                    new_rs.env_probe = env_probe;
-                    env_probe_renderer->RenderFrame(frame, new_rs);
-                    new_rs.env_probe = nullptr; // reset for next probe
+                    HYP_LOG(Rendering, Debug, "Binding EnvProbe {} (type: {})", env_probe->GetEnvProbe()->GetID(),
+                        env_probe->GetEnvProbe()->GetEnvProbeType());
+                    // Acquire binding slot for the env probe
+                    if (!g_render_global_state->EnvProbeBinder.Bind(env_probe->GetEnvProbe()))
+                    {
+                        HYP_LOG(Rendering, Warning, "Failed to bind EnvProbe {}! Skipping rendering of env probes of this type.", env_probe->GetEnvProbe()->GetID());
+                        continue;
+                    }
 
-                    counts[ERS_ENV_PROBES]++;
+                    // if (env_probe->GetEnvProbe()->NeedsRender())
+                    // {
+                    EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
+                    if (env_probe_renderer)
+                    {
+                        new_rs.env_probe = env_probe;
+                        env_probe_renderer->RenderFrame(frame, new_rs);
+                        new_rs.env_probe = nullptr; // reset for next probe
+
+                        counts[ERS_ENV_PROBES]++;
+                    }
+                    else
+                    {
+
+                        HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
+                    }
+                    // }
                 }
             }
-            else
-            {
-
-                HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
-            }
-
-            // }
         }
-
-        HYP_LOG(Rendering, Debug, "EnvProbes: {}", env_probes[uint32(EPT_REFLECTION)].Size());
 
         if (env_grids.Any())
         {

@@ -362,6 +362,11 @@ public:                                                                         
         return m_hyp_object_initializer_ptr->GetManagedObjectResource();                      \
     }                                                                                         \
                                                                                               \
+    HYP_FORCE_INLINE TypeID GetTypeID() const                                                 \
+    {                                                                                         \
+        return m_header->container->GetObjectTypeID();                                        \
+    }                                                                                         \
+                                                                                              \
     HYP_FORCE_INLINE const HypClass* InstanceClass() const                                    \
     {                                                                                         \
         return m_header->container->GetHypClass();                                            \

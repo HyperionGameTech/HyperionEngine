@@ -64,7 +64,7 @@ struct RENDER_COMMAND(RenderPointLightShadow)
 #pragma endregion Render commands
 
 EnvProbe::EnvProbe()
-    : EnvProbe(EPT_INVALID, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u { 1, 1 })
+    : EnvProbe(EPT_INVALID, BoundingBox(Vec3f(-25.0f), Vec3f(25.0f)), Vec2u { 256, 256 })
 {
 }
 

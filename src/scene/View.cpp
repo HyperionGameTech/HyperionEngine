@@ -874,23 +874,20 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 continue;
             }
 
-            ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
-            rpl.tracked_env_probes.Track(
-                probe->GetID(),
-                &probe->GetRenderResource(),
-                &track_state);
+            ResourceTracker<ID<ReflectionProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
+            rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource(), &track_state);
         }
 
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        {
-            SkyProbe* sky_probe = static_cast<SkyProbe*>(entity);
+        // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        // {
+        //     SkyProbe* sky_probe = static_cast<SkyProbe*>(entity);
 
-            ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
-            rpl.tracked_env_probes.Track(
-                sky_probe->GetID(),
-                &sky_probe->GetRenderResource(),
-                &track_state);
-        }
+        //     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
+        //     rpl.tracked_env_probes.Track(
+        //         sky_probe->GetID(),
+        //         &sky_probe->GetRenderResource(),
+        //         &track_state);
+        // }
     }
 
     /// TODO: point light Shadow maps

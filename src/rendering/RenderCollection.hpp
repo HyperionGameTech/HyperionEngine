@@ -44,6 +44,7 @@ class RenderLight;
 class RenderLightmapVolume;
 class RenderEnvGrid;
 class RenderEnvProbe;
+class ReflectionProbe;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
@@ -177,12 +178,6 @@ struct HYP_API RenderProxyList
     {
         AssertDebug(state == CS_READING);
 
-        // render_proxy_tracker.Advance(AdvanceAction::CLEAR);
-        // tracked_lights.Advance(AdvanceAction::CLEAR);
-        // tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
-        // tracked_env_grids.Advance(AdvanceAction::CLEAR);
-        // tracked_env_probes.Advance(AdvanceAction::CLEAR);
-
         state = CS_EMPTY;
     }
 
@@ -219,7 +214,7 @@ struct HYP_API RenderProxyList
 
     RenderProxyTracker render_proxy_tracker;
     ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
-    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
+    ResourceTracker<ID<ReflectionProbe>, RenderEnvProbe*> tracked_env_probes;
     ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 

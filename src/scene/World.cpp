@@ -35,7 +35,7 @@
 namespace hyperion {
 
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
-#define HYP_WORLD_ASYNC_VIEW_UPDATES
+// #define HYP_WORLD_ASYNC_VIEW_UPDATES
 
 World::World()
     : HypObject(),

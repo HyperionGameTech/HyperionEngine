@@ -63,7 +63,6 @@ public:
     virtual ~SystemBase() override = default;
 
     Name GetName() const;
-    TypeID GetTypeID() const;
 
     virtual bool ShouldCreateForScene(Scene* scene) const
     {
