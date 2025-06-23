@@ -129,7 +129,7 @@ void RenderLightmapVolume::BuildAtlasTextures(Array<TResourceHandle<RenderTextur
                 }
             }
 
-            renderer::SingleTimeCommands commands;
+            SingleTimeCommands commands;
 
             commands.Push([&](RHICommandList& cmd)
                 {
@@ -142,7 +142,7 @@ void RenderLightmapVolume::BuildAtlasTextures(Array<TResourceHandle<RenderTextur
 
                         TResourceHandle<RenderTexture>& atlas_texture = m_atlas_textures[texture_type_index];
 
-                        cmd.Add<InsertBarrier>(atlas_texture->GetImage(), renderer::ResourceState::COPY_DST);
+                        cmd.Add<InsertBarrier>(atlas_texture->GetImage(), RS_COPY_DST);
 
                         for (const auto& element_texture_pair : element_textures[texture_type_index])
                         {
@@ -162,7 +162,7 @@ void RenderLightmapVolume::BuildAtlasTextures(Array<TResourceHandle<RenderTextur
                             AssertDebug(element->offset_coords.x + element->dimensions.x <= atlas_texture->GetImage()->GetExtent().x);
                             AssertDebug(element->offset_coords.y + element->dimensions.y <= atlas_texture->GetImage()->GetExtent().y);
 
-                            cmd.Add<InsertBarrier>(render_texture->GetImage(), renderer::ResourceState::COPY_SRC);
+                            cmd.Add<InsertBarrier>(render_texture->GetImage(), RS_COPY_SRC);
 
                             cmd.Add<Blit>(
                                 render_texture->GetImage(),
@@ -183,10 +183,10 @@ void RenderLightmapVolume::BuildAtlasTextures(Array<TResourceHandle<RenderTextur
                                 0  /* dst_face */
                             );
 
-                            cmd.Add<InsertBarrier>(render_texture->GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+                            cmd.Add<InsertBarrier>(render_texture->GetImage(), RS_SHADER_RESOURCE);
                         }
 
-                        cmd.Add<InsertBarrier>(atlas_texture->GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+                        cmd.Add<InsertBarrier>(atlas_texture->GetImage(), RS_SHADER_RESOURCE);
                     }
                 });
 
@@ -237,10 +237,6 @@ void RenderLightmapVolume::BuildAtlasTextures(Array<TResourceHandle<RenderTextur
 
 #pragma endregion RenderLightmapVolume
 
-namespace renderer {
-
 HYP_DESCRIPTOR_SSBO(Global, LightmapVolumesBuffer, 1, ~0u, false);
-
-} // namespace renderer
 
 } // namespace hyperion

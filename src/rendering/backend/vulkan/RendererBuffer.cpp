@@ -22,8 +22,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -52,27 +50,27 @@ VkImageLayout GetVkImageLayout(ResourceState state)
 {
     switch (state)
     {
-    case ResourceState::UNDEFINED:
+    case RS_UNDEFINED:
         return VK_IMAGE_LAYOUT_UNDEFINED;
-    case ResourceState::PRE_INITIALIZED:
+    case RS_PRE_INITIALIZED:
         return VK_IMAGE_LAYOUT_PREINITIALIZED;
-    case ResourceState::COMMON:
-    case ResourceState::UNORDERED_ACCESS:
+    case RS_COMMON:
+    case RS_UNORDERED_ACCESS:
         return VK_IMAGE_LAYOUT_GENERAL;
-    case ResourceState::RENDER_TARGET:
-    case ResourceState::RESOLVE_DST:
+    case RS_RENDER_TARGET:
+    case RS_RESOLVE_DST:
         return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    case ResourceState::DEPTH_STENCIL:
+    case RS_DEPTH_STENCIL:
         return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    case ResourceState::SHADER_RESOURCE:
-    case ResourceState::RESOLVE_SRC:
+    case RS_SHADER_RESOURCE:
+    case RS_RESOLVE_SRC:
         return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    case ResourceState::COPY_DST:
+    case RS_COPY_DST:
         return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    case ResourceState::COPY_SRC:
+    case RS_COPY_SRC:
         return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         break;
-    case ResourceState::PRESENT:
+    case RS_PRESENT:
         return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     default:
         AssertThrowMsg(false, "Unknown resource state");
@@ -84,34 +82,34 @@ VkAccessFlags GetVkAccessMask(ResourceState state)
 {
     switch (state)
     {
-    case ResourceState::UNDEFINED:
-    case ResourceState::PRESENT:
-    case ResourceState::COMMON:
-    case ResourceState::PRE_INITIALIZED:
+    case RS_UNDEFINED:
+    case RS_PRESENT:
+    case RS_COMMON:
+    case RS_PRE_INITIALIZED:
         return VkAccessFlagBits(0);
-    case ResourceState::VERTEX_BUFFER:
+    case RS_VERTEX_BUFFER:
         return VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    case ResourceState::CONSTANT_BUFFER:
+    case RS_CONSTANT_BUFFER:
         return VK_ACCESS_UNIFORM_READ_BIT;
-    case ResourceState::INDEX_BUFFER:
+    case RS_INDEX_BUFFER:
         return VK_ACCESS_INDEX_READ_BIT;
-    case ResourceState::RENDER_TARGET:
+    case RS_RENDER_TARGET:
         return VkAccessFlagBits(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT);
-    case ResourceState::UNORDERED_ACCESS:
+    case RS_UNORDERED_ACCESS:
         return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    case ResourceState::DEPTH_STENCIL:
+    case RS_DEPTH_STENCIL:
         return VkAccessFlagBits(VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-    case ResourceState::SHADER_RESOURCE:
+    case RS_SHADER_RESOURCE:
         return VK_ACCESS_SHADER_READ_BIT;
-    case ResourceState::INDIRECT_ARG:
+    case RS_INDIRECT_ARG:
         return VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    case ResourceState::COPY_DST:
+    case RS_COPY_DST:
         return VK_ACCESS_TRANSFER_WRITE_BIT;
-    case ResourceState::COPY_SRC:
+    case RS_COPY_SRC:
         return VK_ACCESS_TRANSFER_READ_BIT;
-    case ResourceState::RESOLVE_DST:
+    case RS_RESOLVE_DST:
         return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    case ResourceState::RESOLVE_SRC:
+    case RS_RESOLVE_SRC:
         return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     default:
         AssertThrowMsg(false, "Unknown resource state");
@@ -119,13 +117,13 @@ VkAccessFlags GetVkAccessMask(ResourceState state)
     }
 }
 
-VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shader_type = ShaderModuleType::UNSET)
+VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderModuleType shader_type = SMT_UNSET)
 {
     switch (state)
     {
-    case ResourceState::UNDEFINED:
-    case ResourceState::PRE_INITIALIZED:
-    case ResourceState::COMMON:
+    case RS_UNDEFINED:
+    case RS_PRE_INITIALIZED:
+    case RS_COMMON:
         if (!src)
         {
             HYP_LOG(RenderingBackend, Warning, "Attempt to get shader stage mask for resource state but `src` was set to false. Falling back to all commands.");
@@ -134,53 +132,53 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
         }
 
         return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    case ResourceState::VERTEX_BUFFER:
-    case ResourceState::INDEX_BUFFER:
+    case RS_VERTEX_BUFFER:
+    case RS_INDEX_BUFFER:
         return VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-    case ResourceState::UNORDERED_ACCESS:
-    case ResourceState::CONSTANT_BUFFER:
-    case ResourceState::SHADER_RESOURCE:
+    case RS_UNORDERED_ACCESS:
+    case RS_CONSTANT_BUFFER:
+    case RS_SHADER_RESOURCE:
         switch (shader_type)
         {
-        case ShaderModuleType::VERTEX:
+        case SMT_VERTEX:
             return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-        case ShaderModuleType::FRAGMENT:
+        case SMT_FRAGMENT:
             return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        case ShaderModuleType::COMPUTE:
+        case SMT_COMPUTE:
             return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-        case ShaderModuleType::RAY_ANY_HIT:
-        case ShaderModuleType::RAY_CLOSEST_HIT:
-        case ShaderModuleType::RAY_GEN:
-        case ShaderModuleType::RAY_INTERSECT:
-        case ShaderModuleType::RAY_MISS:
+        case SMT_RAY_ANY_HIT:
+        case SMT_RAY_CLOSEST_HIT:
+        case SMT_RAY_GEN:
+        case SMT_RAY_INTERSECT:
+        case SMT_RAY_MISS:
             return VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
-        case ShaderModuleType::GEOMETRY:
+        case SMT_GEOMETRY:
             return VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-        case ShaderModuleType::TESS_CONTROL:
+        case SMT_TESS_CONTROL:
             return VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-        case ShaderModuleType::TESS_EVAL:
+        case SMT_TESS_EVAL:
             return VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-        case ShaderModuleType::MESH:
+        case SMT_MESH:
             return VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
-        case ShaderModuleType::TASK:
+        case SMT_TASK:
             return VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
-        case ShaderModuleType::UNSET:
+        case SMT_UNSET:
             return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
                 | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
         }
-    case ResourceState::RENDER_TARGET:
+    case RS_RENDER_TARGET:
         return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    case ResourceState::DEPTH_STENCIL:
+    case RS_DEPTH_STENCIL:
         return src ? VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    case ResourceState::INDIRECT_ARG:
+    case RS_INDIRECT_ARG:
         return VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-    case ResourceState::COPY_DST:
-    case ResourceState::COPY_SRC:
-    case ResourceState::RESOLVE_DST:
-    case ResourceState::RESOLVE_SRC:
+    case RS_COPY_DST:
+    case RS_COPY_SRC:
+    case RS_RESOLVE_DST:
+    case RS_RESOLVE_SRC:
         return VK_PIPELINE_STAGE_TRANSFER_BIT;
-    case ResourceState::PRESENT:
+    case RS_PRESENT:
         return src ? (VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT) : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     default:
         AssertThrowMsg(false, "Unknown resource state");
@@ -529,8 +527,8 @@ void VulkanGPUBuffer::CopyFrom(
         return;
     }
 
-    InsertBarrier(command_buffer, ResourceState::COPY_DST);
-    src_buffer->InsertBarrier(command_buffer, ResourceState::COPY_SRC);
+    InsertBarrier(command_buffer, RS_COPY_DST);
+    src_buffer->InsertBarrier(command_buffer, RS_COPY_SRC);
 
     VkBufferCopy region {};
     region.size = count;
@@ -559,7 +557,7 @@ RendererResult VulkanGPUBuffer::Destroy()
 
     m_handle = VK_NULL_HANDLE;
     m_vma_allocation = VK_NULL_HANDLE;
-    m_resource_state = ResourceState::UNDEFINED;
+    m_resource_state = RS_UNDEFINED;
 
     HYPERION_RETURN_OK;
 }
@@ -759,5 +757,4 @@ RendererResult VulkanGPUBuffer::CheckCanAllocate(
 
 #pragma endregion VulkanGPUBuffer
 
-} // namespace renderer
 } // namespace hyperion

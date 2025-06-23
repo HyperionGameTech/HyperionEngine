@@ -12,8 +12,6 @@
 #include <memory>
 
 namespace hyperion {
-namespace renderer {
-
 struct MeshBindingDescription
 {
     uint32 binding;
@@ -77,7 +75,6 @@ struct IndirectDrawCommand
 static_assert(std::is_standard_layout_v<IndirectDrawCommand>, "IndirectDrawCommand must be POD");
 static_assert(sizeof(IndirectDrawCommand) == 20, "Verify size of struct in shader");
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_STRUCTS_HPP

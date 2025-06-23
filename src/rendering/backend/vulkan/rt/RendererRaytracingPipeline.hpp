@@ -11,8 +11,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanShader;
 
 class VulkanRaytracingPipeline final : public RaytracingPipelineBase, public VulkanPipelineBase
@@ -59,7 +57,6 @@ private:
     ShaderBindingTableMap m_shader_binding_table_buffers;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_RAYTRACING_PIPELINE_HPP

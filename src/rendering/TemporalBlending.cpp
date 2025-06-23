@@ -28,7 +28,7 @@ namespace hyperion {
 #pragma region Render commands
 
 struct RENDER_COMMAND(RecreateTemporalBlendingFramebuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     TemporalBlending& temporal_blending;
     Vec2u new_size;
@@ -59,7 +59,7 @@ TemporalBlending::TemporalBlending(
     GBuffer* gbuffer)
     : TemporalBlending(
           extent,
-          InternalFormat::RGBA8,
+          TF_RGBA8,
           technique,
           feedback,
           input_image_view,
@@ -69,7 +69,7 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::TemporalBlending(
     const Vec2u& extent,
-    InternalFormat image_format,
+    TextureFormat image_format,
     TemporalBlendTechnique technique,
     TemporalBlendFeedback feedback,
     const FramebufferRef& input_framebuffer,
@@ -87,7 +87,7 @@ TemporalBlending::TemporalBlending(
 
 TemporalBlending::TemporalBlending(
     const Vec2u& extent,
-    InternalFormat image_format,
+    TextureFormat image_format,
     TemporalBlendTechnique technique,
     TemporalBlendFeedback feedback,
     const ImageViewRef& input_image_view,
@@ -180,13 +180,13 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 
     switch (m_image_format)
     {
-    case InternalFormat::RGBA8:
+    case TF_RGBA8:
         shader_properties.Set("OUTPUT_RGBA8");
         break;
-    case InternalFormat::RGBA16F:
+    case TF_RGBA16F:
         shader_properties.Set("OUTPUT_RGBA16F");
         break;
-    case InternalFormat::RGBA32F:
+    case TF_RGBA32F:
         shader_properties.Set("OUTPUT_RGBA32F");
         break;
     default:
@@ -206,28 +206,28 @@ ShaderProperties TemporalBlending::GetShaderProperties() const
 void TemporalBlending::CreateImageOutputs()
 {
     m_result_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         m_image_format,
         Vec3u(m_extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
 
     m_history_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         m_image_format,
         Vec3u(m_extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_history_texture);
 
@@ -239,7 +239,7 @@ void TemporalBlending::CreateDescriptorSets()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -302,7 +302,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
 
-    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, RS_UNORDERED_ACCESS);
 
     const Vec3u& extent = active_image->GetExtent();
     const Vec3u depth_texture_dimensions = m_gbuffer->GetBucket(RB_OPAQUE)
@@ -356,7 +356,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& render_setup)
             1 });
 
     // set it to be able to be used as texture2D for next pass, or outside of this
-    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, RS_SHADER_RESOURCE);
 
     m_blending_frame_counter = m_technique == TemporalBlendTechnique::TECHNIQUE_4
         ? m_blending_frame_counter + 1

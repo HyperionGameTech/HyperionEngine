@@ -66,7 +66,7 @@ static_assert(sizeof(UIEntityInstanceBatch) == 6976);
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetFinalPassImageView)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     ImageViewRef image_view;
 
@@ -91,7 +91,7 @@ struct RENDER_COMMAND(SetFinalPassImageView)
 };
 
 struct RENDER_COMMAND(RebuildProxyGroups_UI)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     RC<RenderProxyList> render_proxy_list;
     Array<RenderProxy> added_proxies;
@@ -328,7 +328,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 };
 
 struct RENDER_COMMAND(RenderUI)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     RenderWorld* world;
     RenderView* view;
@@ -547,7 +547,7 @@ void UIRenderSubsystem::Init()
     HYP_SCOPE;
 
     struct RENDER_COMMAND(CreateUIRenderSubsystemFramebuffer)
-        : renderer::RenderCommand
+        : RenderCommand
     {
         UIRenderSubsystem* ui_render_subsystem;
 
@@ -649,17 +649,17 @@ void UIRenderSubsystem::CreateFramebuffer()
 
     AttachmentRef color_attachment = m_framebuffer->AddAttachment(
         0,
-        InternalFormat::RGBA16F,
-        ImageType::TEXTURE_TYPE_2D,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
+        TF_RGBA16F,
+        TT_TEX2D,
+        LoadOperation::CLEAR,
+        StoreOperation::STORE);
 
     m_framebuffer->AddAttachment(
         1,
-        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-        ImageType::TEXTURE_TYPE_2D,
-        renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
+        g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+        TT_TEX2D,
+        LoadOperation::CLEAR,
+        StoreOperation::STORE);
 
     DeferCreate(m_framebuffer);
 

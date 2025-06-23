@@ -31,7 +31,7 @@ void RenderSubsystem::RemoveFromEnvironment()
     HYP_SCOPE;
 
     // struct RENDER_COMMAND(RemoveRenderSubsystemFromEnvironment)
-    //     : public renderer::RenderCommand
+    //     : public RenderCommand
     // {
     //     Handle<RenderSubsystem> render_subsystem;
 

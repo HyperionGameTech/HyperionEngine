@@ -15,9 +15,7 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

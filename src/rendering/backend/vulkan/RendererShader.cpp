@@ -16,8 +16,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -98,8 +96,8 @@ RendererResult VulkanShader::CreateShaderGroups()
 
         switch (shader_module.type)
         {
-        case ShaderModuleType::RAY_MISS: /* fallthrough */
-        case ShaderModuleType::RAY_GEN:
+        case SMT_RAY_MISS: /* fallthrough */
+        case SMT_RAY_GEN:
             m_shader_groups.PushBack({ shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR {
                     .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -110,7 +108,7 @@ RendererResult VulkanShader::CreateShaderGroups()
                     .intersectionShader = VK_SHADER_UNUSED_KHR } });
 
             break;
-        case ShaderModuleType::RAY_CLOSEST_HIT:
+        case SMT_RAY_CLOSEST_HIT:
             m_shader_groups.PushBack({ shader_module.type,
                 VkRayTracingShaderGroupCreateInfoKHR {
                     .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -137,43 +135,43 @@ VkPipelineShaderStageCreateInfo VulkanShader::CreateShaderStage(const VulkanShad
 
     switch (shader_module.type)
     {
-    case ShaderModuleType::VERTEX:
+    case SMT_VERTEX:
         create_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
         break;
-    case ShaderModuleType::FRAGMENT:
+    case SMT_FRAGMENT:
         create_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         break;
-    case ShaderModuleType::GEOMETRY:
+    case SMT_GEOMETRY:
         create_info.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
         break;
-    case ShaderModuleType::COMPUTE:
+    case SMT_COMPUTE:
         create_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         break;
-    case ShaderModuleType::TASK:
+    case SMT_TASK:
         create_info.stage = VK_SHADER_STAGE_TASK_BIT_NV;
         break;
-    case ShaderModuleType::MESH:
+    case SMT_MESH:
         create_info.stage = VK_SHADER_STAGE_MESH_BIT_NV;
         break;
-    case ShaderModuleType::TESS_CONTROL:
+    case SMT_TESS_CONTROL:
         create_info.stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
         break;
-    case ShaderModuleType::TESS_EVAL:
+    case SMT_TESS_EVAL:
         create_info.stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
         break;
-    case ShaderModuleType::RAY_GEN:
+    case SMT_RAY_GEN:
         create_info.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         break;
-    case ShaderModuleType::RAY_INTERSECT:
+    case SMT_RAY_INTERSECT:
         create_info.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
         break;
-    case ShaderModuleType::RAY_ANY_HIT:
+    case SMT_RAY_ANY_HIT:
         create_info.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
         break;
-    case ShaderModuleType::RAY_CLOSEST_HIT:
+    case SMT_RAY_CLOSEST_HIT:
         create_info.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         break;
-    case ShaderModuleType::RAY_MISS:
+    case SMT_RAY_MISS:
         create_info.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
         break;
     default:
@@ -228,5 +226,4 @@ RendererResult VulkanShader::Destroy()
 
 #pragma endregion VulkanShader
 
-} // namespace renderer
 } // namespace hyperion

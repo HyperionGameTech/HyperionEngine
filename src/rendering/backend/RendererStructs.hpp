@@ -19,291 +19,279 @@
 
 namespace hyperion {
 
-enum class ImageFormatCapabilities : uint32
+enum ImageUsage : uint32
 {
-    NONE = 0x0,
-    SAMPLED = 0x1,
-    STORAGE = 0x2,
-    ATTACHMENT = 0x4,
-    BLENDED = 0x8
+    IU_NONE = 0x0,
+    IU_SAMPLED = 0x1,
+    IU_STORAGE = 0x2,
+    IU_ATTACHMENT = 0x4,
+    IU_BLENDED = 0x8
 };
 
-HYP_MAKE_ENUM_FLAGS(ImageFormatCapabilities);
+HYP_MAKE_ENUM_FLAGS(ImageUsage);
 
-} // namespace hyperion
-
-namespace hyperion::renderer {
-
-enum class ImageSupportType
+enum ImageSupport : uint8
 {
-    SRV,
-    UAV,
-    DEPTH
+    IS_SRV,
+    IS_UAV,
+    IS_DEPTH
 };
 
-enum class DefaultImageFormatType
+enum DefaultImageFormat : uint8
 {
-    NONE,
-    COLOR,
-    DEPTH,
-    NORMALS,
-    STORAGE
+    DIF_NONE,
+    DIF_COLOR,
+    DIF_DEPTH,
+    DIF_NORMALS,
+    DIF_STORAGE
 };
 
-enum class ImageType : uint32
+enum TextureType : uint32
 {
-    TEXTURE_TYPE_INVALID = uint32(-1),
+    TT_INVALID = uint32(-1),
 
-    TEXTURE_TYPE_2D = 0,
-    TEXTURE_TYPE_3D = 1,
-    TEXTURE_TYPE_CUBEMAP = 2,
-    TEXTURE_TYPE_2D_ARRAY = 3,
-    TEXTURE_TYPE_CUBEMAP_ARRAY = 4,
+    TT_TEX2D = 0,
+    TT_TEX3D = 1,
+    TT_CUBEMAP = 2,
+    TT_TEX2D_ARRAY = 3,
+    TT_CUBEMAP_ARRAY = 4,
 
-    TEXTURE_TYPE_MAX
+    TT_MAX
 };
 
-enum class BaseFormat : uint32
+enum TextureFormatBase : uint32
 {
-    TEXTURE_FORMAT_NONE,
-    TEXTURE_FORMAT_R,
-    TEXTURE_FORMAT_RG,
-    TEXTURE_FORMAT_RGB,
-    TEXTURE_FORMAT_RGBA,
-
-    TEXTURE_FORMAT_BGR,
-    TEXTURE_FORMAT_BGRA,
-
-    TEXTURE_FORMAT_DEPTH
+    TFB_NONE,
+    TFB_R,
+    TFB_RG,
+    TFB_RGB,
+    TFB_RGBA,
+    TFB_BGR,
+    TFB_BGRA,
+    TFB_DEPTH
 };
 
-enum class InternalFormat : uint32
+enum TextureFormat : uint32
 {
-    NONE,
+    TF_NONE,
 
-    R8,
-    RG8,
-    RGB8,
-    RGBA8,
+    TF_R8,
+    TF_RG8,
+    TF_RGB8,
+    TF_RGBA8,
 
-    B8,
-    BG8,
-    BGR8,
-    BGRA8,
+    TF_B8,
+    TF_BG8,
+    TF_BGR8,
+    TF_BGRA8,
 
-    R16,
-    RG16,
-    RGB16,
-    RGBA16,
+    TF_R16,
+    TF_RG16,
+    TF_RGB16,
+    TF_RGBA16,
 
-    R32,
-    RG32,
-    RGB32,
-    RGBA32,
+    TF_R32,
+    TF_RG32,
+    TF_RGB32,
+    TF_RGBA32,
 
-    R32_,
-    RG16_,
-    R11G11B10F,
-    R10G10B10A2,
+    TF_R32_,
+    TF_RG16_,
+    TF_R11G11B10F,
+    TF_R10G10B10A2,
 
-    R16F,
-    RG16F,
-    RGB16F,
-    RGBA16F,
+    TF_R16F,
+    TF_RG16F,
+    TF_RGB16F,
+    TF_RGBA16F,
 
-    R32F,
-    RG32F,
-    RGB32F,
-    RGBA32F,
+    TF_R32F,
+    TF_RG32F,
+    TF_RGB32F,
+    TF_RGBA32F,
 
-    SRGB, /* begin srgb */
+    TF_SRGB, /* begin srgb */
 
-    R8_SRGB,
-    RG8_SRGB,
-    RGB8_SRGB,
-    RGBA8_SRGB,
+    TF_R8_SRGB,
+    TF_RG8_SRGB,
+    TF_RGB8_SRGB,
+    TF_RGBA8_SRGB,
 
-    B8_SRGB,
-    BG8_SRGB,
-    BGR8_SRGB,
-    BGRA8_SRGB,
+    TF_B8_SRGB,
+    TF_BG8_SRGB,
+    TF_BGR8_SRGB,
+    TF_BGRA8_SRGB,
 
-    DEPTH, /* begin depth */
+    TF_DEPTH, /* begin depth */
 
-    DEPTH_16 = DEPTH,
-    DEPTH_24,
-    DEPTH_32F
+    TF_DEPTH_16 = TF_DEPTH,
+    TF_DEPTH_24,
+    TF_DEPTH_32F
 };
 
-enum class FilterMode : uint32
+enum TextureFilterMode : uint32
 {
-    TEXTURE_FILTER_NEAREST,
-    TEXTURE_FILTER_LINEAR,
-    TEXTURE_FILTER_NEAREST_LINEAR,
-    TEXTURE_FILTER_NEAREST_MIPMAP,
-    TEXTURE_FILTER_LINEAR_MIPMAP,
-    TEXTURE_FILTER_MINMAX_MIPMAP
+    TFM_NEAREST,
+    TFM_LINEAR,
+    TFM_NEAREST_LINEAR,
+    TFM_NEAREST_MIPMAP,
+    TFM_LINEAR_MIPMAP,
+    TFM_MINMAX_MIPMAP
 };
 
-enum class WrapMode : uint32
+enum TextureWrapMode : uint32
 {
-    TEXTURE_WRAP_CLAMP_TO_EDGE,
-    TEXTURE_WRAP_CLAMP_TO_BORDER,
-    TEXTURE_WRAP_REPEAT
+    TWM_CLAMP_TO_EDGE,
+    TWM_CLAMP_TO_BORDER,
+    TWM_REPEAT
 };
 
-enum class TextureMode : uint32
+enum ResourceState : uint32
 {
-    SAMPLED,
-    STORAGE
+    RS_UNDEFINED,
+    RS_PRE_INITIALIZED,
+    RS_COMMON,
+    RS_VERTEX_BUFFER,
+    RS_CONSTANT_BUFFER,
+    RS_INDEX_BUFFER,
+    RS_RENDER_TARGET,
+    RS_UNORDERED_ACCESS,
+    RS_DEPTH_STENCIL,
+    RS_SHADER_RESOURCE,
+    RS_STREAM_OUT,
+    RS_INDIRECT_ARG,
+    RS_COPY_DST,
+    RS_COPY_SRC,
+    RS_RESOLVE_DST,
+    RS_RESOLVE_SRC,
+    RS_PRESENT,
+    RS_READ_GENERIC,
+    RS_PREDICATION
 };
 
-enum class ResourceState : uint32
-{
-    UNDEFINED,
-    PRE_INITIALIZED,
-    COMMON,
-    VERTEX_BUFFER,
-    CONSTANT_BUFFER,
-    INDEX_BUFFER,
-    RENDER_TARGET,
-    UNORDERED_ACCESS,
-    DEPTH_STENCIL,
-    SHADER_RESOURCE,
-    STREAM_OUT,
-    INDIRECT_ARG,
-    COPY_DST,
-    COPY_SRC,
-    RESOLVE_DST,
-    RESOLVE_SRC,
-    PRESENT,
-    READ_GENERIC,
-    PREDICATION
-};
-
-static inline constexpr BaseFormat GetBaseFormat(InternalFormat fmt)
+static inline constexpr TextureFormatBase GetBaseFormat(TextureFormat fmt)
 {
     switch (fmt)
     {
-    case InternalFormat::R8:
-    case InternalFormat::R8_SRGB:
-    case InternalFormat::R32_:
-    case InternalFormat::R16:
-    case InternalFormat::R32:
-    case InternalFormat::R16F:
-    case InternalFormat::R32F:
-        return BaseFormat::TEXTURE_FORMAT_R;
-    case InternalFormat::RG8:
-    case InternalFormat::RG8_SRGB:
-    case InternalFormat::RG16_:
-    case InternalFormat::RG16:
-    case InternalFormat::RG32:
-    case InternalFormat::RG16F:
-    case InternalFormat::RG32F:
-        return BaseFormat::TEXTURE_FORMAT_RG;
-    case InternalFormat::RGB8:
-    case InternalFormat::RGB8_SRGB:
-    case InternalFormat::R11G11B10F:
-    case InternalFormat::RGB16:
-    case InternalFormat::RGB32:
-    case InternalFormat::RGB16F:
-    case InternalFormat::RGB32F:
-        return BaseFormat::TEXTURE_FORMAT_RGB;
-    case InternalFormat::RGBA8:
-    case InternalFormat::RGBA8_SRGB:
-    case InternalFormat::R10G10B10A2:
-    case InternalFormat::RGBA16:
-    case InternalFormat::RGBA32:
-    case InternalFormat::RGBA16F:
-    case InternalFormat::RGBA32F:
-        return BaseFormat::TEXTURE_FORMAT_RGBA;
-    case InternalFormat::BGR8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGR;
-    case InternalFormat::BGRA8:
-    case InternalFormat::BGRA8_SRGB:
-        return BaseFormat::TEXTURE_FORMAT_BGRA;
-    case InternalFormat::DEPTH_16:
-    case InternalFormat::DEPTH_24:
-    case InternalFormat::DEPTH_32F:
-        return BaseFormat::TEXTURE_FORMAT_DEPTH;
+    case TF_R8:
+    case TF_R8_SRGB:
+    case TF_R32_:
+    case TF_R16:
+    case TF_R32:
+    case TF_R16F:
+    case TF_R32F:
+        return TFB_R;
+    case TF_RG8:
+    case TF_RG8_SRGB:
+    case TF_RG16_:
+    case TF_RG16:
+    case TF_RG32:
+    case TF_RG16F:
+    case TF_RG32F:
+        return TFB_RG;
+    case TF_RGB8:
+    case TF_RGB8_SRGB:
+    case TF_R11G11B10F:
+    case TF_RGB16:
+    case TF_RGB32:
+    case TF_RGB16F:
+    case TF_RGB32F:
+        return TFB_RGB;
+    case TF_RGBA8:
+    case TF_RGBA8_SRGB:
+    case TF_R10G10B10A2:
+    case TF_RGBA16:
+    case TF_RGBA32:
+    case TF_RGBA16F:
+    case TF_RGBA32F:
+        return TFB_RGBA;
+    case TF_BGR8_SRGB:
+        return TFB_BGR;
+    case TF_BGRA8:
+    case TF_BGRA8_SRGB:
+        return TFB_BGRA;
+    case TF_DEPTH_16:
+    case TF_DEPTH_24:
+    case TF_DEPTH_32F:
+        return TFB_DEPTH;
     default:
         // undefined result
-        return BaseFormat::TEXTURE_FORMAT_NONE;
+        return TFB_NONE;
     }
 }
 
-static inline constexpr uint32 NumComponents(BaseFormat format)
+static inline constexpr uint32 NumComponents(TextureFormatBase format)
 {
     switch (format)
     {
-    case BaseFormat::TEXTURE_FORMAT_NONE:
+    case TFB_NONE:
         return 0;
-    case BaseFormat::TEXTURE_FORMAT_R:
+    case TFB_R:
         return 1;
-    case BaseFormat::TEXTURE_FORMAT_RG:
+    case TFB_RG:
         return 2;
-    case BaseFormat::TEXTURE_FORMAT_RGB:
+    case TFB_RGB:
         return 3;
-    case BaseFormat::TEXTURE_FORMAT_BGR:
+    case TFB_BGR:
         return 3;
-    case BaseFormat::TEXTURE_FORMAT_RGBA:
+    case TFB_RGBA:
         return 4;
-    case BaseFormat::TEXTURE_FORMAT_BGRA:
+    case TFB_BGRA:
         return 4;
-    case BaseFormat::TEXTURE_FORMAT_DEPTH:
+    case TFB_DEPTH:
         return 1;
     default:
         return 0; // undefined result
     }
 }
 
-static inline constexpr uint32 NumComponents(InternalFormat format)
+static inline constexpr uint32 NumComponents(TextureFormat format)
 {
     return NumComponents(GetBaseFormat(format));
 }
 
-static inline constexpr uint32 NumBytes(InternalFormat format)
+static inline constexpr uint32 NumBytes(TextureFormat format)
 {
     switch (format)
     {
-    case InternalFormat::R8:
-    case InternalFormat::R8_SRGB:
-    case InternalFormat::RG8:
-    case InternalFormat::RG8_SRGB:
-    case InternalFormat::RGB8:
-    case InternalFormat::RGB8_SRGB:
-    case InternalFormat::BGR8_SRGB:
-    case InternalFormat::RGBA8:
-    case InternalFormat::RGBA8_SRGB:
-    case InternalFormat::R10G10B10A2:
-    case InternalFormat::BGRA8:
-    case InternalFormat::BGRA8_SRGB:
+    case TF_R8:
+    case TF_R8_SRGB:
+    case TF_RG8:
+    case TF_RG8_SRGB:
+    case TF_RGB8:
+    case TF_RGB8_SRGB:
+    case TF_BGR8_SRGB:
+    case TF_RGBA8:
+    case TF_RGBA8_SRGB:
+    case TF_R10G10B10A2:
+    case TF_BGRA8:
+    case TF_BGRA8_SRGB:
         return 1;
-    case InternalFormat::R16:
-    case InternalFormat::RG16:
-    case InternalFormat::RGB16:
-    case InternalFormat::RGBA16:
-    case InternalFormat::DEPTH_16:
+    case TF_R16:
+    case TF_RG16:
+    case TF_RGB16:
+    case TF_RGBA16:
+    case TF_DEPTH_16:
         return 2;
-    case InternalFormat::R32:
-    case InternalFormat::RG32:
-    case InternalFormat::RGB32:
-    case InternalFormat::RGBA32:
-    case InternalFormat::R32_:
-    case InternalFormat::RG16_:
-    case InternalFormat::R11G11B10F:
-    case InternalFormat::DEPTH_24:
-    case InternalFormat::DEPTH_32F:
+    case TF_R32:
+    case TF_RG32:
+    case TF_RGB32:
+    case TF_RGBA32:
+    case TF_R32_:
+    case TF_RG16_:
+    case TF_R11G11B10F:
+    case TF_DEPTH_24:
+    case TF_DEPTH_32F:
         return 4;
-    case InternalFormat::R16F:
-    case InternalFormat::RG16F:
-    case InternalFormat::RGB16F:
-    case InternalFormat::RGBA16F:
+    case TF_R16F:
+    case TF_RG16F:
+    case TF_RGB16F:
+    case TF_RGBA16F:
         return 2;
-    case InternalFormat::R32F:
-    case InternalFormat::RG32F:
-    case InternalFormat::RGB32F:
-    case InternalFormat::RGBA32F:
+    case TF_R32F:
+    case TF_RG32F:
+    case TF_RGB32F:
+    case TF_RGBA32F:
         return 4;
     default:
         return 0; // undefined result
@@ -312,71 +300,70 @@ static inline constexpr uint32 NumBytes(InternalFormat format)
 
 /*! \brief returns a texture format that has a shifted bytes-per-pixel count
  * e.g calling with RGB16 and num components = 4 --> RGBA16 */
-static inline constexpr InternalFormat FormatChangeNumComponents(InternalFormat fmt, uint8 new_num_components)
+static inline constexpr TextureFormat FormatChangeNumComponents(TextureFormat fmt, uint8 new_num_components)
 {
     if (new_num_components == 0)
     {
-        return InternalFormat::NONE;
+        return TF_NONE;
     }
 
     new_num_components = MathUtil::Clamp(new_num_components, static_cast<uint8>(1), static_cast<uint8>(4));
 
     int current_num_components = int(NumComponents(fmt));
 
-    return InternalFormat(int(fmt) + int(new_num_components) - current_num_components);
+    return TextureFormat(int(fmt) + int(new_num_components) - current_num_components);
 }
 
-static inline constexpr bool IsDepthFormat(BaseFormat fmt)
+static inline constexpr bool IsDepthFormat(TextureFormatBase fmt)
 {
-    return fmt == BaseFormat::TEXTURE_FORMAT_DEPTH;
+    return fmt == TFB_DEPTH;
 }
 
-static inline constexpr bool IsDepthFormat(InternalFormat fmt)
+static inline constexpr bool IsDepthFormat(TextureFormat fmt)
 {
     return IsDepthFormat(GetBaseFormat(fmt));
 }
 
-static inline constexpr bool IsSRGBFormat(InternalFormat fmt)
+static inline constexpr bool IsSRGBFormat(TextureFormat fmt)
 {
-    return fmt >= InternalFormat::SRGB && fmt < InternalFormat::DEPTH;
+    return fmt >= TF_SRGB && fmt < TF_DEPTH;
 }
 
 HYP_STRUCT()
-
 struct TextureDesc
 {
     HYP_FIELD(Serialize, Property = "Type")
-    ImageType type = ImageType::TEXTURE_TYPE_2D;
+    TextureType type = TT_TEX2D;
 
     HYP_FIELD(Serialize, Property = "Format")
-    InternalFormat format = InternalFormat::RGBA8;
+    TextureFormat format = TF_RGBA8;
 
     HYP_FIELD(Serialize, Property = "Extent")
     Vec3u extent = Vec3u::One();
 
     HYP_FIELD(Serialize, Property = "MinFilterMode")
-    FilterMode filter_mode_min = FilterMode::TEXTURE_FILTER_NEAREST;
+    TextureFilterMode filter_mode_min = TFM_NEAREST;
 
     HYP_FIELD(Serialize, Property = "MagFilterMode")
-    FilterMode filter_mode_mag = FilterMode::TEXTURE_FILTER_NEAREST;
+    TextureFilterMode filter_mode_mag = TFM_NEAREST;
 
-    HYP_FIELD(Serialize, Property = "WrapMode")
-    WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    HYP_FIELD(Serialize, Property = "TextureWrapMode")
+    TextureWrapMode wrap_mode = TWM_CLAMP_TO_EDGE;
 
     HYP_FIELD(Serialize, Property = "NumLayers")
     uint32 num_layers = 1;
 
-    HYP_FIELD(Serialize, Property = "ImageFormatCapabilities")
-    EnumFlags<ImageFormatCapabilities> image_format_capabilities = ImageFormatCapabilities::SAMPLED;
+    HYP_FIELD(Serialize, Property = "ImageUsage")
+    EnumFlags<ImageUsage> image_usage = IU_SAMPLED;
 
     HYP_FORCE_INLINE bool operator==(const TextureDesc& other) const = default;
     HYP_FORCE_INLINE bool operator!=(const TextureDesc& other) const = default;
 
     HYP_FORCE_INLINE bool HasMipmaps() const
     {
-        return filter_mode_min == FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP
-            || filter_mode_min == FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP
-            || filter_mode_min == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP;
+        return filter_mode_min == TFM_NEAREST_MIPMAP
+            || filter_mode_min == TFM_LINEAR_MIPMAP
+            || filter_mode_min == TFM_MINMAX_MIPMAP;
     }
 
     HYP_FORCE_INLINE uint32 NumMipmaps() const
@@ -398,39 +385,39 @@ struct TextureDesc
 
     HYP_FORCE_INLINE bool IsBlended() const
     {
-        return image_format_capabilities[ImageFormatCapabilities::BLENDED];
+        return image_usage[IU_BLENDED];
     }
 
     HYP_FORCE_INLINE bool IsTextureCube() const
     {
-        return type == ImageType::TEXTURE_TYPE_CUBEMAP;
+        return type == TT_CUBEMAP;
     }
 
     HYP_FORCE_INLINE bool IsPanorama() const
     {
-        return type == ImageType::TEXTURE_TYPE_2D
+        return type == TT_TEX2D
             && extent.x == extent.y * 2
             && extent.z == 1;
     }
 
     HYP_FORCE_INLINE bool IsTexture2DArray() const
     {
-        return type == ImageType::TEXTURE_TYPE_2D_ARRAY;
+        return type == TT_TEX2D_ARRAY;
     }
 
     HYP_FORCE_INLINE bool IsTextureCubeArray() const
     {
-        return type == ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY;
+        return type == TT_CUBEMAP_ARRAY;
     }
 
     HYP_FORCE_INLINE bool IsTexture3D() const
     {
-        return type == ImageType::TEXTURE_TYPE_3D;
+        return type == TT_TEX3D;
     }
 
     HYP_FORCE_INLINE bool IsTexture2D() const
     {
-        return type == ImageType::TEXTURE_TYPE_2D;
+        return type == TT_TEX2D;
     }
 
     HYP_FORCE_INLINE uint32 NumFaces() const
@@ -502,74 +489,67 @@ struct alignas(16) PackedVertex
 
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 
-enum class DatumType : uint32
+enum GPUElemType : uint32
 {
-    UNSIGNED_BYTE,
-    SIGNED_BYTE,
-    UNSIGNED_SHORT,
-    SIGNED_SHORT,
-    UNSIGNED_INT,
-    SIGNED_INT,
-    FLOAT
+    GET_UNSIGNED_BYTE,
+    GET_SIGNED_BYTE,
+    GET_UNSIGNED_SHORT,
+    GET_SIGNED_SHORT,
+    GET_UNSIGNED_INT,
+    GET_SIGNED_INT,
+    GET_FLOAT
 };
 
-enum class FaceCullMode : uint32
+enum FaceCullMode : uint32
 {
-    NONE,
-    BACK,
-    FRONT
+    FCM_NONE,
+    FCM_BACK,
+    FCM_FRONT
 };
 
-enum class FillMode : uint32
+enum FillMode : uint32
 {
-    FILL,
-    LINE
+    FM_FILL,
+    FM_LINE
 };
 
-enum class Topology : uint32
+enum Topology : uint32
 {
-    TRIANGLES,
-    TRIANGLE_FAN,
-    TRIANGLE_STRIP,
+    TOP_TRIANGLES,
+    TOP_TRIANGLE_FAN,
+    TOP_TRIANGLE_STRIP,
 
-    LINES,
+    TOP_LINES,
 
-    POINTS
+    TOP_POINTS
 };
 
-enum class StencilMode : uint8
+enum BlendModeFactor : uint32
 {
-    NONE,
-    FILL,
-    OUTLINE
+    BMF_NONE,
+
+    BMF_ONE,
+    BMF_ZERO,
+    BMF_SRC_COLOR,
+    BMF_SRC_ALPHA,
+    BMF_DST_COLOR,
+    BMF_DST_ALPHA,
+    BMF_ONE_MINUS_SRC_COLOR,
+    BMF_ONE_MINUS_SRC_ALPHA,
+    BMF_ONE_MINUS_DST_COLOR,
+    BMF_ONE_MINUS_DST_ALPHA,
+
+    BMF_MAX
 };
 
-enum class BlendModeFactor : uint32
-{
-    NONE,
-
-    ONE,
-    ZERO,
-    SRC_COLOR,
-    SRC_ALPHA,
-    DST_COLOR,
-    DST_ALPHA,
-    ONE_MINUS_SRC_COLOR,
-    ONE_MINUS_SRC_ALPHA,
-    ONE_MINUS_DST_COLOR,
-    ONE_MINUS_DST_ALPHA,
-
-    MAX
-};
-
-static_assert(uint32(BlendModeFactor::MAX) <= 15, "BlendModeFactor enum too large to fit in 4 bits");
+static_assert(uint32(BMF_MAX) <= 15, "BlendModeFactor enum too large to fit in 4 bits");
 
 struct BlendFunction
 {
     uint32 value;
 
     BlendFunction()
-        : BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO)
+        : BlendFunction(BMF_ONE, BMF_ZERO)
     {
     }
 
@@ -651,40 +631,40 @@ struct BlendFunction
 
     HYP_FORCE_INLINE static BlendFunction None()
     {
-        return BlendFunction(BlendModeFactor::NONE, BlendModeFactor::NONE);
+        return BlendFunction(BMF_NONE, BMF_NONE);
     }
 
     HYP_FORCE_INLINE static BlendFunction Default()
     {
-        return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ZERO);
+        return BlendFunction(BMF_ONE, BMF_ZERO);
     }
 
     HYP_FORCE_INLINE static BlendFunction AlphaBlending()
     {
-        return BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA, BlendModeFactor::ONE, BlendModeFactor::ZERO);
+        return BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA, BMF_ONE, BMF_ZERO);
     }
 
     HYP_FORCE_INLINE static BlendFunction Additive()
     {
-        return BlendFunction(BlendModeFactor::ONE, BlendModeFactor::ONE);
+        return BlendFunction(BMF_ONE, BMF_ONE);
     }
 };
 
-enum class StencilCompareOp : uint8
+enum StencilCompareOp : uint8
 {
-    ALWAYS,
-    NEVER,
-    EQUAL,
-    NOT_EQUAL
+    SCO_ALWAYS,
+    SCO_NEVER,
+    SCO_EQUAL,
+    SCO_NOT_EQUAL
 };
 
-enum class StencilOp : uint8
+enum StencilOp : uint8
 {
-    KEEP,
-    ZERO,
-    REPLACE,
-    INCREMENT,
-    DECREMENT
+    SO_KEEP,
+    SO_ZERO,
+    SO_REPLACE,
+    SO_INCREMENT,
+    SO_DECREMENT
 };
 
 HYP_STRUCT()
@@ -692,16 +672,16 @@ HYP_STRUCT()
 struct StencilFunction
 {
     HYP_FIELD()
-    StencilOp pass_op = StencilOp::KEEP;
+    StencilOp pass_op = SO_KEEP;
 
     HYP_FIELD()
-    StencilOp fail_op = StencilOp::REPLACE;
+    StencilOp fail_op = SO_REPLACE;
 
     HYP_FIELD()
-    StencilOp depth_fail_op = StencilOp::REPLACE;
+    StencilOp depth_fail_op = SO_REPLACE;
 
     HYP_FIELD()
-    StencilCompareOp compare_op = StencilCompareOp::ALWAYS;
+    StencilCompareOp compare_op = SCO_ALWAYS;
 
     HYP_FIELD()
     uint8 mask = 0x0;
@@ -780,7 +760,7 @@ struct PushConstantData
     }
 };
 
-} // namespace hyperion::renderer
+} // namespace hyperion
 
 #if HYP_VULKAN
 #include <rendering/backend/vulkan/RendererStructs.hpp>
@@ -793,8 +773,6 @@ struct PushConstantData
 #include <core/math/Matrix4.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 struct alignas(16) MeshDescription
 {
     uint64 vertex_buffer_address;
@@ -882,20 +860,6 @@ struct Viewport
         return position != other.position || extent != other.extent;
     }
 };
-
-} // namespace renderer
-
-using renderer::BaseFormat;
-using renderer::FilterMode;
-using renderer::ImageType;
-using renderer::InternalFormat;
-using renderer::ResourceState;
-using renderer::StencilFunction;
-using renderer::TextureData;
-using renderer::TextureDesc;
-using renderer::TextureMode;
-using renderer::Viewport;
-using renderer::WrapMode;
 
 } // namespace hyperion
 

@@ -28,8 +28,6 @@ namespace hyperion {
 class Entity;
 class Material;
 
-namespace renderer {
-
 class VulkanAccelerationGeometry final : public RenderObject<VulkanAccelerationGeometry>
 {
 public:
@@ -232,7 +230,6 @@ private:
     VulkanGPUBufferRef m_instances_buffer;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

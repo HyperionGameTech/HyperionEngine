@@ -21,8 +21,6 @@ class AppContextBase;
 } // namespace sys
 
 using sys::AppContextBase;
-
-namespace renderer {
 namespace platform {
 
 template <>
@@ -88,7 +86,7 @@ private:
 };
 
 } // namespace platform
-} // namespace renderer
+
 } // namespace hyperion
 
 #endif //! RENDERER_INSTANCE

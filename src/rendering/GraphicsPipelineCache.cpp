@@ -106,7 +106,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         attributes);
 
     struct RENDER_COMMAND(CreateGraphicsPipelineAndAddToCache)
-        : renderer::RenderCommand
+        : RenderCommand
     {
         GraphicsPipelineRef graphics_pipeline;
         Proc<void(const GraphicsPipelineRef&)> callback;

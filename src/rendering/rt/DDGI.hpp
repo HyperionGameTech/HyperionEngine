@@ -17,8 +17,6 @@
 
 namespace hyperion {
 
-using renderer::RTUpdateStateFlags;
-
 struct RenderSetup;
 
 class Engine;

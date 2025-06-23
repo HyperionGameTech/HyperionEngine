@@ -116,7 +116,7 @@ void SDLApplicationWindow::Initialize(WindowOptions window_options)
 }
 
 #ifdef HYP_VULKAN
-VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(renderer::Instance* instance)
+VkSurfaceKHR SDLApplicationWindow::CreateVkSurface(Instance* instance)
 {
     VkSurfaceKHR surface;
     SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window*>(m_window_handle), instance->GetInstance(), &surface);

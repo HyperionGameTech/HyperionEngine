@@ -10,8 +10,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 enum class AccelerationStructureType : uint8
 {
     BOTTOM_LEVEL,
@@ -82,7 +80,6 @@ public:
     HYP_API virtual void SetTransform(const Matrix4& transform) = 0;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

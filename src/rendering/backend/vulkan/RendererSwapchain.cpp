@@ -17,8 +17,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -112,7 +110,7 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
     for (const ImageRef& image : m_images)
     {
         AssertThrow(image.IsValid());
-        AssertThrow(image->GetResourceState() == ResourceState::PRESENT);
+        AssertThrow(image->GetResourceState() == RS_PRESENT);
     }
 #endif
 
@@ -216,7 +214,7 @@ RendererResult VulkanSwapchain::Create()
             HYPERION_BUBBLE_ERRORS(HYP_MAKE_ERROR(RendererError, "Image is not created!"));
         }
 
-        if (image->GetResourceState() != ResourceState::PRESENT)
+        if (image->GetResourceState() != RS_PRESENT)
         {
             HYPERION_BUBBLE_ERRORS(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
         }
@@ -274,7 +272,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         /* look for srgb format */
         m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_support_details,
-            { { InternalFormat::RGBA8_SRGB, InternalFormat::BGRA8_SRGB } },
+            { { TF_RGBA8_SRGB, TF_BGRA8_SRGB } },
             [this](auto&& format)
             {
                 if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
@@ -287,7 +285,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
                 return true;
             });
 
-        if (m_image_format != InternalFormat::NONE)
+        if (m_image_format != TF_NONE)
         {
             HYPERION_RETURN_OK;
         }
@@ -296,7 +294,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     /* look for non-srgb format */
     m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_support_details,
-        { { InternalFormat::R11G11B10F, InternalFormat::RGBA16F, InternalFormat::RGBA8 } },
+        { { TF_R11G11B10F, TF_RGBA16F, TF_RGBA8 } },
         [this](auto&& format)
         {
             m_surface_format = format;
@@ -304,7 +302,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
             return true;
         });
 
-    if (m_image_format == InternalFormat::NONE)
+    if (m_image_format == TF_NONE)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format");
     }
@@ -343,7 +341,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     for (uint32 i = 0; i < image_count; i++)
     {
         const TextureDesc desc {
-            ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             m_image_format,
             Vec3u { m_extent.x, m_extent.y, 1 }
         };
@@ -359,7 +357,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     }
 
     // Transition each image to PRESENT state
-    renderer::SingleTimeCommands commands;
+    SingleTimeCommands commands;
 
     commands.Push([&](RHICommandList& cmd)
         {
@@ -367,7 +365,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
             {
                 AssertThrow(image.IsValid());
 
-                cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+                cmd.Add<InsertBarrier>(image, RS_PRESENT);
             }
         });
 
@@ -377,7 +375,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     for (const ImageRef& image : m_images)
     {
         AssertThrow(image.IsValid());
-        AssertThrow(image->GetResourceState() == ResourceState::PRESENT);
+        AssertThrow(image->GetResourceState() == RS_PRESENT);
     }
 
     HYP_LOG(RenderingBackend, Info, "Created swapchain with {} images", m_images.Size());
@@ -387,5 +385,4 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
 #pragma endregion Swapchain
 
-} // namespace renderer
 } // namespace hyperion

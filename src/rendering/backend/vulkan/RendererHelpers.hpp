@@ -18,19 +18,17 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 enum class DescriptorSetElementType : uint32;
 
 namespace helpers {
 
-VkIndexType ToVkIndexType(DatumType);
-VkFormat ToVkFormat(InternalFormat);
-VkFilter ToVkFilter(FilterMode);
-VkSamplerAddressMode ToVkSamplerAddressMode(WrapMode);
-VkImageAspectFlags ToVkImageAspect(InternalFormat internal_format);
-VkImageType ToVkImageType(ImageType);
-VkImageViewType ToVkImageViewType(ImageType type);
+VkIndexType ToVkIndexType(GPUElemType);
+VkFormat ToVkFormat(TextureFormat);
+VkFilter ToVkFilter(TextureFilterMode);
+VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode);
+VkImageAspectFlags ToVkImageAspect(TextureFormat internal_format);
+VkImageType ToVkImageType(TextureType);
+VkImageViewType ToVkImageViewType(TextureType type);
 VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type);
 
 } // namespace helpers
@@ -47,7 +45,6 @@ struct SingleTimeCommandsPlatformImpl<Platform::vulkan>
 
 } // namespace platform
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

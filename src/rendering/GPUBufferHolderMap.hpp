@@ -13,8 +13,6 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
 class GPUBufferHolderBase;
 
 template <class StructType, GPUBufferType BufferType>

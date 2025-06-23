@@ -18,8 +18,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanSemaphoreChain;
 class VulkanRenderPass;
 
@@ -61,7 +59,7 @@ public:
     HYP_API RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 
     HYP_API virtual void BindVertexBuffer(const GPUBufferBase* buffer) override;
-    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, DatumType datum_type = DatumType::UNSIGNED_INT) override;
+    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, GPUElemType datum_type = GET_UNSIGNED_INT) override;
 
     HYP_API virtual void DrawIndexed(
         uint32 num_indices,
@@ -93,7 +91,6 @@ private:
     VkCommandPool m_command_pool;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

@@ -73,11 +73,11 @@ static bool ResizeIndirectDrawCommandsBuffer(
 
     frame->GetCommandList().Add<InsertBarrier>(
         staging_buffer,
-        renderer::ResourceState::COPY_SRC);
+        RS_COPY_SRC);
 
     frame->GetCommandList().Add<InsertBarrier>(
         indirect_buffer,
-        renderer::ResourceState::COPY_DST);
+        RS_COPY_DST);
 
     frame->GetCommandList().Add<CopyBuffer>(
         staging_buffer,
@@ -86,7 +86,7 @@ static bool ResizeIndirectDrawCommandsBuffer(
 
     frame->GetCommandList().Add<InsertBarrier>(
         indirect_buffer,
-        renderer::ResourceState::INDIRECT_ARG);
+        RS_INDIRECT_ARG);
 
     return true;
 }
@@ -141,7 +141,7 @@ static bool ResizeIfNeeded(
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateIndirectDrawStateBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     FixedArray<GPUBufferRef, max_frames_in_flight> indirect_buffers;
     FixedArray<GPUBufferRef, max_frames_in_flight> instance_buffers;
@@ -172,7 +172,7 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers)
 
     virtual RendererResult operator()() override
     {
-        renderer::SingleTimeCommands commands;
+        SingleTimeCommands commands;
 
         commands.Push([this](RHICommandList& cmd)
             {
@@ -211,9 +211,9 @@ IndirectDrawState::IndirectDrawState()
     // Allocate used buffers so they can be set in descriptor sets
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_indirect_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
-        m_staging_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
+        m_indirect_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
+        m_staging_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
     }
 }
 
@@ -328,11 +328,11 @@ void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* out_was_resized
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_staging_buffers[frame_index],
-            renderer::ResourceState::COPY_SRC);
+            RS_COPY_SRC);
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_indirect_buffers[frame_index],
-            renderer::ResourceState::COPY_DST);
+            RS_COPY_DST);
 
         frame->GetCommandList().Add<CopyBuffer>(
             m_staging_buffers[frame_index],
@@ -341,7 +341,7 @@ void IndirectDrawState::UpdateBufferData(FrameBase* frame, bool* out_was_resized
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_indirect_buffers[frame_index],
-            renderer::ResourceState::INDIRECT_ARG);
+            RS_INDIRECT_ARG);
     }
 
     AssertThrow(m_instance_buffers[frame_index]->Size() >= m_object_instances.Size() * sizeof(ObjectInstance));
@@ -375,7 +375,7 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
     ShaderRef object_visibility_shader = g_shader_manager->GetOrCreate(NAME("ObjectVisibility"));
     AssertThrow(object_visibility_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -511,7 +511,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_indirect_draw_state.GetIndirectBuffer(frame_index),
-        renderer::ResourceState::INDIRECT_ARG);
+        RS_INDIRECT_ARG);
 
     struct
     {
@@ -534,7 +534,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_indirect_draw_state.GetIndirectBuffer(frame_index),
-        renderer::ResourceState::INDIRECT_ARG);
+        RS_INDIRECT_ARG);
 }
 
 void IndirectRenderer::RebuildDescriptors(FrameBase* frame)

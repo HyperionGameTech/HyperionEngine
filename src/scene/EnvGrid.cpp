@@ -33,7 +33,7 @@ namespace hyperion {
 static const Vec2u sh_probe_dimensions { 256, 256 };
 static const Vec2u light_field_probe_dimensions { 32, 32 };
 
-static const InternalFormat ambient_probe_format = InternalFormat::RGBA8;
+static const TextureFormat ambient_probe_format = TF_RGBA8;
 
 static const Vec2u framebuffer_dimensions { 256, 256 };
 
@@ -151,25 +151,25 @@ void EnvGrid::Init()
         .attachments = {
             ViewOutputTargetAttachmentDesc {
                 ambient_probe_format,
-                ImageType::TEXTURE_TYPE_CUBEMAP,
-                renderer::LoadOperation::CLEAR,
-                renderer::StoreOperation::STORE },
+                TT_CUBEMAP,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE },
             ViewOutputTargetAttachmentDesc {
-                InternalFormat::RG16F,
-                ImageType::TEXTURE_TYPE_CUBEMAP,
-                renderer::LoadOperation::CLEAR,
-                renderer::StoreOperation::STORE },
+                TF_RG16F,
+                TT_CUBEMAP,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE },
             ViewOutputTargetAttachmentDesc {
-                InternalFormat::RG16F,
-                ImageType::TEXTURE_TYPE_CUBEMAP,
-                renderer::LoadOperation::CLEAR,
-                renderer::StoreOperation::STORE,
+                TF_RG16F,
+                TT_CUBEMAP,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE,
                 MathUtil::Infinity<Vec4f>() },
             ViewOutputTargetAttachmentDesc {
-                g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-                ImageType::TEXTURE_TYPE_CUBEMAP,
-                renderer::LoadOperation::CLEAR,
-                renderer::StoreOperation::STORE } },
+                g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+                TT_CUBEMAP,
+                LoadOperation::CLEAR,
+                StoreOperation::STORE } },
         .num_views = 6
     };
 
@@ -186,7 +186,7 @@ void EnvGrid::Init()
             MeshAttributes {},
             MaterialAttributes {
                 .shader_definition = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                .cull_faces = FaceCullMode::BACK }) });
+                .cull_faces = FCM_BACK }) });
 
     InitObject(m_view);
 

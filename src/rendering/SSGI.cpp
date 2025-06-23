@@ -29,11 +29,9 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
 static constexpr bool use_temporal_blending = true;
 
-static constexpr InternalFormat ssgi_format = InternalFormat::RGBA8;
+static constexpr TextureFormat ssgi_format = TF_RGBA8;
 
 struct SSGIUniforms
 {
@@ -55,7 +53,7 @@ struct SSGIUniforms
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateSSGIUniformBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     SSGIUniforms uniforms;
     FixedArray<GPUBufferRef, max_frames_in_flight> uniform_buffers;
@@ -111,14 +109,14 @@ SSGI::~SSGI()
 void SSGI::Create()
 {
     m_result_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         ssgi_format,
         Vec3u(m_config.extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_result_texture);
 
@@ -155,13 +153,13 @@ ShaderProperties SSGI::GetShaderProperties() const
 
     switch (ssgi_format)
     {
-    case InternalFormat::RGBA8:
+    case TF_RGBA8:
         shader_properties.Set("OUTPUT_RGBA8");
         break;
-    case InternalFormat::RGBA16F:
+    case TF_RGBA16F:
         shader_properties.Set("OUTPUT_RGBA16F");
         break;
-    case InternalFormat::RGBA32F:
+    case TF_RGBA32F:
         shader_properties.Set("OUTPUT_RGBA32F");
         break;
     }
@@ -189,7 +187,7 @@ void SSGI::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("SSGI"), shader_properties);
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -228,7 +226,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
     const uint32 num_dispatch_calls = (total_pixels_in_image + 255) / 256;
 
     // put sample image in writeable state
-    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(m_compute_pipeline);
 
@@ -258,7 +256,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
     frame->GetCommandList().Add<DispatchCompute>(m_compute_pipeline, Vec3u { num_dispatch_calls, 1, 1 });
 
     // transition sample image back into read state
-    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_result_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 
     if (use_temporal_blending && m_temporal_blending != nullptr)
     {

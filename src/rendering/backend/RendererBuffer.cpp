@@ -3,7 +3,5 @@
 #include <rendering/backend/RendererBuffer.hpp>
 
 namespace hyperion {
-namespace renderer {
 
-} // namespace renderer
 } // namespace hyperion

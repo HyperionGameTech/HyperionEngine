@@ -13,8 +13,6 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -90,7 +88,7 @@ public:
     virtual ImageViewRef MakeImageView(const ImageRef& image) override;
     virtual ImageViewRef MakeImageView(const ImageRef& image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces) override;
 
-    virtual SamplerRef MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode) override;
+    virtual SamplerRef MakeSampler(TextureFilterMode filter_mode_min, TextureFilterMode filter_mode_mag, TextureWrapMode wrap_mode) override;
 
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, uint32 num_views = 1) override;
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 num_views = 1) override;
@@ -106,10 +104,10 @@ public:
         const Matrix4& transform) override;
     virtual TLASRef MakeTLAS() override;
 
-    virtual InternalFormat GetDefaultFormat(DefaultImageFormatType type) const override;
+    virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const override;
 
-    virtual bool IsSupportedFormat(InternalFormat format, ImageSupportType support_type) const override;
-    virtual InternalFormat FindSupportedFormat(Span<InternalFormat> possible_formats, ImageSupportType support_type) const override;
+    virtual bool IsSupportedFormat(TextureFormat format, ImageSupport support_type) const override;
+    virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const override;
 
     virtual QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& texture_desc) const override;
 
@@ -135,12 +133,11 @@ private:
 
     AsyncComputeBase* m_async_compute;
 
-    HashMap<DefaultImageFormatType, InternalFormat> m_default_formats;
+    HashMap<DefaultImageFormat, TextureFormat> m_default_formats;
 
     bool m_should_recreate_swapchain;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

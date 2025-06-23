@@ -8,8 +8,6 @@
 #include <rendering/backend/RendererHelpers.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 #pragma region Helpers
 
 static VkImageLayout GetInitialLayout(LoadOperation load_operation)
@@ -158,5 +156,4 @@ VkAttachmentReference VulkanAttachment::GetVulkanHandle() const
 
 #pragma endregion VulkanAttachment
 
-} // namespace renderer
 } // namespace hyperion

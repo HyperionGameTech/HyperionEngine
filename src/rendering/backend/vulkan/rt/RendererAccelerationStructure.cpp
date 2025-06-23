@@ -21,8 +21,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -1019,5 +1017,4 @@ RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags& out_update_state_flags)
 
 #pragma endregion BLAS
 
-} // namespace renderer
 } // namespace hyperion

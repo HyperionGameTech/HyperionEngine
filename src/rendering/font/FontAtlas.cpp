@@ -19,12 +19,10 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Font);
 
-using renderer::GPUBufferType;
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(FontAtlas_RenderCharacter)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     Handle<Texture> atlas_texture;
     Handle<Texture> glyph_texture;
@@ -49,7 +47,7 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter)
 
     virtual RendererResult operator()() override
     {
-        renderer::SingleTimeCommands commands;
+        SingleTimeCommands commands;
 
         const ImageRef& image = glyph_texture->GetRenderResource().GetImage();
         AssertThrow(image.IsValid());
@@ -75,10 +73,10 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter)
         commands.Push([&](RHICommandList& cmd)
             {
                 // put src image in state for copying from
-                cmd.Add<InsertBarrier>(image, renderer::ResourceState::COPY_SRC);
+                cmd.Add<InsertBarrier>(image, RS_COPY_SRC);
 
                 // put dst image in state for copying to
-                cmd.Add<InsertBarrier>(atlas_texture->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+                cmd.Add<InsertBarrier>(atlas_texture->GetRenderResource().GetImage(), RS_COPY_DST);
 
                 cmd.Add<BlitRect>(
                     image,
@@ -216,12 +214,12 @@ void FontAtlas::Render()
         HYP_LOG(Font, Info, "Rendering font atlas for pixel size {}", scaled_extent.y);
 
         Handle<Texture> texture = CreateObject<Texture>(TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RGBA8,
+            TT_TEX2D,
+            TF_RGBA8,
             Vec3u { uint32(scaled_extent.x * s_symbol_columns), uint32(scaled_extent.y * s_symbol_rows), 1 },
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE });
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE });
 
         InitObject(texture);
 
@@ -337,7 +335,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
     buffer.SetSize(buffer_size);
 
     struct RENDER_COMMAND(FontAtlas_WriteToBuffer)
-        : renderer::RenderCommand
+        : RenderCommand
     {
         Handle<Texture> atlas;
         ByteBuffer& out_buffer;
@@ -371,7 +369,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
                 return result;
             }
 
-            renderer::SingleTimeCommands commands;
+            SingleTimeCommands commands;
 
             AssertThrow(atlas);
             AssertThrow(atlas->IsReady());
@@ -379,14 +377,14 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
             commands.Push([&](RHICommandList& cmd)
                 {
                     // put src image in state for copying from
-                    cmd.Add<InsertBarrier>(atlas->GetRenderResource().GetImage(), renderer::ResourceState::COPY_SRC);
+                    cmd.Add<InsertBarrier>(atlas->GetRenderResource().GetImage(), RS_COPY_SRC);
 
                     // put dst buffer in state for copying to
-                    cmd.Add<InsertBarrier>(buffer, renderer::ResourceState::COPY_DST);
+                    cmd.Add<InsertBarrier>(buffer, RS_COPY_DST);
 
                     cmd.Add<CopyImageToBuffer>(atlas->GetRenderResource().GetImage(), buffer);
 
-                    cmd.Add<InsertBarrier>(buffer, renderer::ResourceState::COPY_SRC);
+                    cmd.Add<InsertBarrier>(buffer, RS_COPY_SRC);
                 });
 
             HYPERION_PASS_ERRORS(commands.Execute(), result);

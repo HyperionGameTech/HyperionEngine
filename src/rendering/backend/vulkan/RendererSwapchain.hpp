@@ -19,8 +19,6 @@
 #define HYP_ENABLE_VSYNC 0
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanSwapchain final : public SwapchainBase
 {
 public:
@@ -75,7 +73,6 @@ private:
     SwapchainSupportDetails m_support_details;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_SWAPCHAIN_HPP

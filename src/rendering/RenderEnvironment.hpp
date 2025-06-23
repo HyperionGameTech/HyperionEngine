@@ -25,8 +25,6 @@ class Engine;
 class RenderWorld;
 class RenderView;
 
-using renderer::RTUpdateStateFlags;
-
 using RenderEnvironmentUpdates = uint64;
 
 enum RenderEnvironmentUpdateBits : RenderEnvironmentUpdates

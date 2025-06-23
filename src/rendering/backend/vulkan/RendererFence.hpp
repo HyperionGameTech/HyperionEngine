@@ -9,8 +9,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanFence : public RenderObject<VulkanFence>
 {
 public:
@@ -40,7 +38,6 @@ private:
 using VulkanFenceRef = RenderObjectHandle_Strong<VulkanFence>;
 using VulkanFenceWeakRef = RenderObjectHandle_Weak<VulkanFence>;
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

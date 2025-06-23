@@ -9,8 +9,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout);
 
 template <class PipelineType>
@@ -64,7 +62,6 @@ protected:
     PushConstantData m_push_constants;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

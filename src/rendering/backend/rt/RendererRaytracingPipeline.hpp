@@ -8,8 +8,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class RaytracingPipelineBase : public RenderObject<RaytracingPipelineBase>
 {
 public:
@@ -60,7 +58,6 @@ protected:
     DescriptorTableRef m_descriptor_table;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

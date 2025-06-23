@@ -17,8 +17,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -209,7 +207,7 @@ void VulkanCommandBuffer::BindVertexBuffer(const GPUBufferBase* buffer)
     vkCmdBindVertexBuffers(m_handle, 0, 1, vertex_buffers, offsets);
 }
 
-void VulkanCommandBuffer::BindIndexBuffer(const GPUBufferBase* buffer, DatumType datum_type)
+void VulkanCommandBuffer::BindIndexBuffer(const GPUBufferBase* buffer, GPUElemType datum_type)
 {
     AssertThrow(buffer != nullptr);
     AssertThrowMsg(buffer->GetBufferType() == GPUBufferType::MESH_INDEX_BUFFER, "Not an index buffer! Got buffer type: %u", uint32(buffer->GetBufferType()));
@@ -269,5 +267,4 @@ void VulkanCommandBuffer::DebugMarkerEnd() const
     }
 }
 
-} // namespace renderer
 } // namespace hyperion

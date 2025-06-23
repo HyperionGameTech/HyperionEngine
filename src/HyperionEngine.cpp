@@ -144,7 +144,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     AudioManager::GetInstance().Initialize();
 
 #ifdef HYP_VULKAN
-    g_rendering_api = new renderer::VulkanRenderingAPI();
+    g_rendering_api = new VulkanRenderingAPI();
 #else
 #error Unsupported rendering backend
 #endif

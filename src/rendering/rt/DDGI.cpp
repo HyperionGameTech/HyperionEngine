@@ -26,21 +26,19 @@
 
 namespace hyperion {
 
-using renderer::ResourceState;
-
 enum ProbeSystemUpdates : uint32
 {
     PROBE_SYSTEM_UPDATES_NONE = 0x0,
     PROBE_SYSTEM_UPDATES_TLAS = 0x1
 };
 
-static constexpr InternalFormat ddgi_irradiance_format = InternalFormat::RGBA16F;
-static constexpr InternalFormat ddgi_depth_format = InternalFormat::RG16F;
+static constexpr TextureFormat ddgi_irradiance_format = TF_RGBA16F;
+static constexpr TextureFormat ddgi_depth_format = TF_RG16F;
 
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetDDGIDescriptors)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef uniform_buffer;
     ImageViewRef irradiance_image_view;
@@ -74,7 +72,7 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
 };
 
 struct RENDER_COMMAND(UnsetDDGIDescriptors)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     RENDER_COMMAND(UnsetDDGIDescriptors)()
     {
@@ -97,7 +95,7 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors)
 };
 
 struct RENDER_COMMAND(CreateDDGIUniformBuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef uniform_buffer;
     DDGIUniforms uniforms;
@@ -120,7 +118,7 @@ struct RENDER_COMMAND(CreateDDGIUniformBuffer)
 };
 
 struct RENDER_COMMAND(CreateDDGIRadianceBuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef radiance_buffer;
     DDGIInfo grid_info;
@@ -331,14 +329,14 @@ void DDGI::CreateStorageBuffers()
         };
 
         m_irradiance_image = g_rendering_api->MakeImage(TextureDesc {
-            renderer::ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             ddgi_irradiance_format,
             extent,
-            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
         DeferCreate(m_irradiance_image);
     }
@@ -357,14 +355,14 @@ void DDGI::CreateStorageBuffers()
         };
 
         m_depth_image = g_rendering_api->MakeImage(TextureDesc {
-            renderer::ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             ddgi_depth_format,
             extent,
-            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
         DeferCreate(m_depth_image);
     }
@@ -388,13 +386,13 @@ void DDGI::ApplyTLASUpdates(RTUpdateStateFlags flags)
         const DescriptorSetRef& descriptor_set = m_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DDGIDescriptorSet"), frame_index);
         AssertThrow(descriptor_set != nullptr);
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE)
+        if (flags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE)
         {
             // update acceleration structure in descriptor set
             descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         }
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS)
+        if (flags & RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS)
         {
             // update mesh descriptions buffer in descriptor set
             descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
@@ -434,7 +432,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     UpdateUniforms(frame);
 
-    frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_radiance_buffer, RS_UNORDERED_ACCESS);
 
     m_random_generator.Next();
 
@@ -476,7 +474,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_radiance_buffer,
-        ResourceState::UNORDERED_ACCESS);
+        RS_UNORDERED_ACCESS);
 
     // Compute irradiance for ray traced probes
 
@@ -484,11 +482,11 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_irradiance_image,
-        ResourceState::UNORDERED_ACCESS);
+        RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_depth_image,
-        ResourceState::UNORDERED_ACCESS);
+        RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(m_update_irradiance);
 
@@ -528,12 +526,12 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
     m_irradiance_image->InsertBarrier(
         frame->GetCommandList(),
-        ResourceState::UNORDERED_ACCESS
+        RS_UNORDERED_ACCESS
     );
 
     m_depth_image->InsertBarrier(
         frame->GetCommandList(),
-        ResourceState::UNORDERED_ACCESS
+        RS_UNORDERED_ACCESS
     );
 
     // now copy border texels
@@ -593,22 +591,18 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     m_irradiance_image->InsertBarrier(
         frame->GetCommandList(),
-        ResourceState::SHADER_RESOURCE
+        RS_SHADER_RESOURCE
     );
 
     m_depth_image->InsertBarrier(
         frame->GetCommandList(),
-        ResourceState::SHADER_RESOURCE
+        RS_SHADER_RESOURCE
     );
 #endif
 }
 
-namespace renderer {
-
 HYP_DESCRIPTOR_CBUFF(Global, DDGIUniforms, 1, sizeof(DDGIUniforms), false);
 HYP_DESCRIPTOR_SRV(Global, DDGIIrradianceTexture, 1);
 HYP_DESCRIPTOR_SRV(Global, DDGIDepthTexture, 1);
-
-} // namespace renderer
 
 } // namespace hyperion

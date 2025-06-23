@@ -16,8 +16,6 @@
 
 namespace hyperion {
 
-using renderer::RTUpdateStateFlags;
-
 class Engine;
 class GBuffer;
 class RenderView;

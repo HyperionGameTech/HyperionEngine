@@ -19,10 +19,6 @@
 
 namespace hyperion {
 
-using renderer::FaceCullMode;
-using renderer::FillMode;
-using renderer::Topology;
-
 class Engine;
 class Mesh;
 class Material;

@@ -7,7 +7,7 @@
 namespace hyperion {
 
 FXAAEffect::FXAAEffect(GBuffer* gbuffer)
-    : PostProcessingEffect(stage, index, InternalFormat::RGBA8, gbuffer)
+    : PostProcessingEffect(stage, index, TF_RGBA8, gbuffer)
 {
 }
 

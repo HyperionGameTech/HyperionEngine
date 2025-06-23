@@ -13,14 +13,12 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
 }
 
-VulkanSampler::VulkanSampler(FilterMode min_filter_mode, FilterMode mag_filter_mode, WrapMode wrap_mode)
+VulkanSampler::VulkanSampler(TextureFilterMode min_filter_mode, TextureFilterMode mag_filter_mode, TextureWrapMode wrap_mode)
     : m_handle(VK_NULL_HANDLE)
 {
     m_min_filter_mode = min_filter_mode;
@@ -64,13 +62,13 @@ RendererResult VulkanSampler::Create()
 
     switch (m_min_filter_mode)
     {
-    case FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP:
+    case TFM_NEAREST_MIPMAP:
         sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         break;
-    case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
+    case TFM_LINEAR_MIPMAP:
         sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         break;
-    case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
+    case TFM_MINMAX_MIPMAP:
         sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         break;
     default:
@@ -84,7 +82,7 @@ RendererResult VulkanSampler::Create()
 
     VkSamplerReductionModeCreateInfoEXT reduction_info { VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT };
 
-    if (m_min_filter_mode == FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP)
+    if (m_min_filter_mode == TFM_MINMAX_MIPMAP)
     {
         if (!GetRenderingAPI()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
         {
@@ -114,5 +112,4 @@ RendererResult VulkanSampler::Destroy()
     HYPERION_RETURN_OK;
 }
 
-} // namespace renderer
 } // namespace hyperion

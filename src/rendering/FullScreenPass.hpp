@@ -20,9 +20,6 @@
 
 namespace hyperion {
 
-using renderer::BlendFunction;
-using renderer::PushConstantData;
-
 class Engine;
 class Mesh;
 class Texture;
@@ -38,24 +35,24 @@ public:
     friend struct RenderCommand_RecreateFullScreenPassFramebuffer;
 
     FullScreenPass(
-        InternalFormat image_format,
+        TextureFormat image_format,
         GBuffer* gbuffer);
 
     FullScreenPass(
-        InternalFormat image_format,
+        TextureFormat image_format,
         Vec2u extent,
         GBuffer* gbuffer);
 
     FullScreenPass(
         const ShaderRef& shader,
-        InternalFormat image_format,
+        TextureFormat image_format,
         Vec2u extent,
         GBuffer* gbuffer);
 
     FullScreenPass(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table,
-        InternalFormat image_format,
+        TextureFormat image_format,
         Vec2u extent,
         GBuffer* gbuffer);
 
@@ -63,7 +60,7 @@ public:
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table,
         const FramebufferRef& framebuffer,
-        InternalFormat image_format,
+        TextureFormat image_format,
         Vec2u extent,
         GBuffer* gbuffer);
 
@@ -76,7 +73,7 @@ public:
         return m_extent;
     }
 
-    HYP_FORCE_INLINE InternalFormat GetFormat() const
+    HYP_FORCE_INLINE TextureFormat GetFormat() const
     {
         return m_image_format;
     }
@@ -178,7 +175,7 @@ protected:
 
     PushConstantData m_push_constant_data;
 
-    InternalFormat m_image_format;
+    TextureFormat m_image_format;
 
     BlendFunction m_blend_function;
 

@@ -50,7 +50,7 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
-        Topology topology = Topology::TRIANGLES;
+        Topology topology = TOP_TRIANGLES;
 
         if (FBOMResult err = in.GetProperty("Topology").ReadUInt32(&topology))
         {

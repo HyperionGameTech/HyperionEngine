@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace Hyperion
 {
-    public enum InternalFormat : uint
+    public enum TextureFormat : uint
     {
         None,
 
@@ -61,7 +61,7 @@ namespace Hyperion
         DEPTH_32F
     }
 
-    public enum FilterMode : uint
+    public enum TextureFilterMode : uint
     {
         Nearest,
         Linear,
@@ -70,7 +70,7 @@ namespace Hyperion
         MinMaxMipmap
     }
 
-    public enum ImageType : uint
+    public enum TextureType : uint
     {
         Image2D,
         Image3D,

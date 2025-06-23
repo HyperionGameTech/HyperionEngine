@@ -63,9 +63,9 @@ void DepthPyramidRenderer::Create()
         Threads::AssertOnThread(g_render_thread);
 
         m_depth_pyramid_sampler = g_rendering_api->MakeSampler(
-            FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE);
+            TFM_NEAREST_MIPMAP,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE);
 
         HYPERION_ASSERT_RESULT(m_depth_pyramid_sampler->Create());
 
@@ -74,17 +74,17 @@ void DepthPyramidRenderer::Create()
 
         // create depth pyramid image
         m_depth_pyramid = g_rendering_api->MakeImage(TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::R32F,
+            TT_TEX2D,
+            TF_R32F,
             Vec3u {
                 depth_image->GetExtent().x > 1 ? uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().x)) : 1,
                 depth_image->GetExtent().y > 1 ? uint32(MathUtil::NextPowerOf2(depth_image->GetExtent().y)) : 1,
                 1 },
-            FilterMode::TEXTURE_FILTER_NEAREST_MIPMAP,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST_MIPMAP,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE });
+            IU_SAMPLED | IU_STORAGE });
 
         m_depth_pyramid->Create();
 
@@ -129,9 +129,9 @@ void DepthPyramidRenderer::Create()
         ShaderRef shader = g_shader_manager->GetOrCreate(NAME("GenerateDepthPyramid"), {});
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        const renderer::DescriptorSetDeclaration* depth_pyramid_descriptor_set_decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("DepthPyramidDescriptorSet"));
+        const DescriptorSetDeclaration* depth_pyramid_descriptor_set_decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("DepthPyramidDescriptorSet"));
         AssertThrow(depth_pyramid_descriptor_set_decl != nullptr);
 
         while (m_mip_descriptor_tables.Size() > num_mip_levels)
@@ -234,8 +234,8 @@ void DepthPyramidRenderer::Render(FrameBase* frame)
         // put the mip into writeable state
         frame->GetCommandList().Add<InsertBarrier>(
             m_depth_pyramid,
-            renderer::ResourceState::UNORDERED_ACCESS,
-            renderer::ImageSubResource { .base_mip_level = mip_level });
+            RS_UNORDERED_ACCESS,
+            ImageSubResource { .base_mip_level = mip_level });
 
         const uint32 prev_mip_width = mip_width,
                      prev_mip_height = mip_height;
@@ -262,13 +262,13 @@ void DepthPyramidRenderer::Render(FrameBase* frame)
         // put this mip into readable state
         frame->GetCommandList().Add<InsertBarrier>(
             m_depth_pyramid,
-            renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_mip_level = mip_level });
+            RS_SHADER_RESOURCE,
+            ImageSubResource { .base_mip_level = mip_level });
     }
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_depth_pyramid,
-        renderer::ResourceState::SHADER_RESOURCE);
+        RS_SHADER_RESOURCE);
 
     m_is_rendered = true;
 }

@@ -8,8 +8,6 @@
 #include <system/vma/VmaUsage.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanGPUBuffer final : public GPUBufferBase
 {
 public:
@@ -81,7 +79,6 @@ private:
     mutable void* m_mapping = nullptr;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP

@@ -37,14 +37,11 @@
 
 namespace hyperion {
 
-using renderer::LoadOperation;
-using renderer::StoreOperation;
-
-static const InternalFormat shadow_map_formats[uint32(ShadowMapFilterMode::MAX)] = {
-    InternalFormat::R32F, // STANDARD
-    InternalFormat::R32F, // PCF
-    InternalFormat::R32F, // CONTACT_HARDENED
-    InternalFormat::RG32F // VSM
+static const TextureFormat shadow_map_formats[uint32(ShadowMapFilterMode::MAX)] = {
+    TF_R32F, // STANDARD
+    TF_R32F, // PCF
+    TF_R32F, // CONTACT_HARDENED
+    TF_RG32F // VSM
 };
 
 #pragma region ShadowPass
@@ -89,7 +86,7 @@ void ShadowPass::CreateFramebuffer()
     AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
         0,
         GetFormat(),
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
@@ -98,8 +95,8 @@ void ShadowPass::CreateFramebuffer()
     // standard depth texture
     m_framebuffer->AddAttachment(
         1,
-        g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-        ImageType::TEXTURE_TYPE_2D,
+        g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+        TT_TEX2D,
         LoadOperation::CLEAR,
         StoreOperation::STORE);
 
@@ -123,14 +120,14 @@ void ShadowPass::CreateShadowMap()
         Handle<Texture>& texture = *texture_ptr;
 
         texture = CreateObject<Texture>(TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             GetFormat(),
             Vec3u { GetExtent().x, GetExtent().y, 1 },
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
         InitObject(texture);
 
@@ -167,7 +164,7 @@ void ShadowPass::CreateComputePipelines()
     ShaderRef blur_shadow_map_shader = g_shader_manager->GetOrCreate(NAME("BlurShadowMap"));
     AssertThrow(blur_shadow_map_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -232,13 +229,13 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy static framebuffer image
-            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
-            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_statics->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_COPY_SRC);
+            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_statics->GetRenderResource().GetImage(), RS_COPY_DST);
 
             frame->GetCommandList().Add<Blit>(framebuffer_image, m_shadow_map_statics->GetRenderResource().GetImage());
 
-            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
-            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_statics->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_statics->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 
             m_rerender_semaphore->Release(1);
         }
@@ -251,13 +248,13 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
                 ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy dynamic framebuffer image
-            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
-            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_dynamics->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_COPY_SRC);
+            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_dynamics->GetRenderResource().GetImage(), RS_COPY_DST);
 
             frame->GetCommandList().Add<Blit>(framebuffer_image, m_shadow_map_dynamics->GetRenderResource().GetImage());
 
-            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
-            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_dynamics->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(m_shadow_map_dynamics->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
         }
     }
 
@@ -276,11 +273,11 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         m_combine_shadow_maps_pass->Render(frame, render_setup_statics);
 
         // Copy combined shadow map to the final shadow map
-        frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), RS_COPY_SRC);
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::COPY_DST,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index });
+            RS_COPY_DST,
+            ImageSubResource { .base_array_layer = atlas_element.atlas_index });
 
         // copy the image
         frame->GetCommandList().Add<Blit>(
@@ -299,11 +296,11 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         );
 
         // put the images back into a state for reading
-        frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), RS_SHADER_RESOURCE);
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index });
+            RS_SHADER_RESOURCE,
+            ImageSubResource { .base_array_layer = atlas_element.atlas_index });
     }
 
     if (m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM)
@@ -334,8 +331,8 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         // put our shadow map in a state for writing
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::UNORDERED_ACCESS,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index });
+            RS_UNORDERED_ACCESS,
+            ImageSubResource { .base_array_layer = atlas_element.atlas_index });
 
         frame->GetCommandList().Add<DispatchCompute>(
             m_blur_shadow_map_pipeline,
@@ -347,8 +344,8 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
         // put shadow map back into readable state
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.atlas_index });
+            RS_SHADER_RESOURCE,
+            ImageSubResource { .base_array_layer = atlas_element.atlas_index });
     }
 }
 
@@ -372,7 +369,7 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scen
         MeshAttributes {},
         MaterialAttributes {
             .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FaceCullMode::BACK : FaceCullMode::FRONT });
+            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FCM_BACK : FCM_FRONT });
 
     m_view_statics = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES,
@@ -464,7 +461,7 @@ void DirectionalLightShadowRenderer::Update(float delta)
     Threads::AssertOnThread(g_game_thread);
 
     struct RENDER_COMMAND(RenderShadowPass)
-        : public renderer::RenderCommand
+        : public RenderCommand
     {
         RenderWorld* world;
         ShadowPass* shadow_pass;

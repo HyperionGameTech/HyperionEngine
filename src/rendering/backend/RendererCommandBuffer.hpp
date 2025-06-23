@@ -12,8 +12,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 enum CommandBufferType
 {
     COMMAND_BUFFER_PRIMARY,
@@ -31,7 +29,7 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
     HYP_API virtual void BindVertexBuffer(const GPUBufferBase* buffer) = 0;
-    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, DatumType datum_type = DatumType::UNSIGNED_INT) = 0;
+    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, GPUElemType datum_type = GET_UNSIGNED_INT) = 0;
 
     HYP_API virtual void DrawIndexed(
         uint32 num_indices,
@@ -43,7 +41,6 @@ public:
         uint32 buffer_offset) const = 0;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

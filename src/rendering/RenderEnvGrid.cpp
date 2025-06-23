@@ -123,12 +123,12 @@ static const bool sh_parallel_reduce = false;
 static const uint32 max_queued_probes_for_render = 1;
 
 static const Vec3u voxel_grid_dimensions { 256, 256, 256 };
-static const InternalFormat voxel_grid_format = InternalFormat::RGBA8;
+static const TextureFormat voxel_grid_format = TF_RGBA8;
 
 static const EnvProbeGridIndex invalid_probe_index = EnvProbeGridIndex();
 
-const InternalFormat light_field_color_format = InternalFormat::RGBA8;
-const InternalFormat light_field_depth_format = InternalFormat::RG16F;
+const TextureFormat light_field_color_format = TF_RGBA8;
+const TextureFormat light_field_depth_format = TF_RG16F;
 static const uint32 irradiance_octahedron_size = 8;
 
 #pragma endregion Globals Constants
@@ -181,16 +181,16 @@ struct LightFieldUniforms
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetElementInGlobalDescriptorSet)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     Name set_name;
     Name element_name;
-    renderer::DescriptorSetElement::ValueType value;
+    DescriptorSetElement::ValueType value;
 
     RENDER_COMMAND(SetElementInGlobalDescriptorSet)(
         Name set_name,
         Name element_name,
-        renderer::DescriptorSetElement::ValueType value)
+        DescriptorSetElement::ValueType value)
         : set_name(set_name),
           element_name(element_name),
           value(std::move(value))
@@ -410,14 +410,14 @@ void RenderEnvGrid::CreateVoxelGridData()
     // Create our voxel grid texture
     m_voxel_grid_texture = CreateObject<Texture>(
         TextureDesc {
-            ImageType::TEXTURE_TYPE_3D,
+            TT_TEX3D,
             voxel_grid_format,
             voxel_grid_dimensions,
-            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_LINEAR_MIPMAP,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_voxel_grid_texture);
 
@@ -440,7 +440,7 @@ void RenderEnvGrid::CreateVoxelGridData()
     AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = framebuffer->GetAttachment(2);
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -495,7 +495,7 @@ void RenderEnvGrid::CreateVoxelGridData()
         ShaderRef generate_voxel_grid_mipmaps_shader = g_shader_manager->GetOrCreate(NAME("VCTGenerateMipmap"));
         AssertThrow(generate_voxel_grid_mipmaps_shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         const uint32 num_voxel_grid_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
         m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
@@ -569,7 +569,7 @@ void RenderEnvGrid::CreateSphericalHarmonicsData()
         AssertThrow(shader.IsValid());
     }
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     m_compute_sh_descriptor_tables.Resize(sh_num_levels);
 
@@ -628,17 +628,17 @@ void RenderEnvGrid::CreateLightFieldData()
 
     m_irradiance_texture = CreateObject<Texture>(
         TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             light_field_color_format,
             Vec3u {
                 (irradiance_octahedron_size + 2) * options.density.x * options.density.y + 2,
                 (irradiance_octahedron_size + 2) * options.density.z + 2,
                 1 },
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_irradiance_texture);
 
@@ -652,17 +652,17 @@ void RenderEnvGrid::CreateLightFieldData()
 
     m_depth_texture = CreateObject<Texture>(
         TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             light_field_depth_format,
             Vec3u {
                 (irradiance_octahedron_size + 2) * options.density.x * options.density.y + 2,
                 (irradiance_octahedron_size + 2) * options.density.z + 2,
                 1 },
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_LINEAR,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+            IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_depth_texture);
 
@@ -700,7 +700,7 @@ void RenderEnvGrid::CreateLightFieldData()
 
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -994,15 +994,8 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 
     RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
 
-    async_compute_command_list.Add<InsertBarrier>(
-        m_sh_tiles_buffers[0],
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
-
-    async_compute_command_list.Add<InsertBarrier>(
-        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
         m_compute_sh_descriptor_tables[0],
@@ -1017,10 +1010,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     async_compute_command_list.Add<BindComputePipeline>(m_clear_sh);
     async_compute_command_list.Add<DispatchCompute>(m_clear_sh, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(
-        m_sh_tiles_buffers[0],
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
         m_compute_sh_descriptor_tables[0],
@@ -1040,10 +1030,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     {
         for (uint32 i = 1; i < sh_num_levels; i++)
         {
-            async_compute_command_list.Add<InsertBarrier>(
-                m_sh_tiles_buffers[i - 1],
-                renderer::ResourceState::UNORDERED_ACCESS,
-                renderer::ShaderModuleType::COMPUTE);
+            async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[i - 1], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
             const Vec2u prev_dimensions {
                 MathUtil::Max(1u, sh_num_samples.x >> (i - 1)),
@@ -1086,15 +1073,8 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     const uint32 finalize_sh_buffer_index = sh_parallel_reduce ? sh_num_levels - 1 : 0;
 
     // Finalize - build into final buffer
-    async_compute_command_list.Add<InsertBarrier>(
-        m_sh_tiles_buffers[finalize_sh_buffer_index],
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
-
-    async_compute_command_list.Add<InsertBarrier>(
-        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[finalize_sh_buffer_index], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     m_finalize_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -1111,10 +1091,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
     async_compute_command_list.Add<BindComputePipeline>(m_finalize_sh);
     async_compute_command_list.Add<DispatchCompute>(m_finalize_sh, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(
-        g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()),
-        renderer::ResourceState::UNORDERED_ACCESS,
-        renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind(
@@ -1199,7 +1176,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
     }
 
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
     frame->GetCommandList().Add<BindComputePipeline>(m_compute_irradiance);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
@@ -1236,7 +1213,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
             (irradiance_octahedron_size + 7) / 8,
             1 });
 
-    frame->GetCommandList().Add<InsertBarrier>(m_depth_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_depth_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(m_copy_border_texels);
     frame->GetCommandList().Add<BindDescriptorTable>(
@@ -1252,8 +1229,8 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         m_copy_border_texels,
         Vec3u { ((irradiance_octahedron_size * 4) + 255) / 256, 1, 1 });
 
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 }
 
 void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
@@ -1275,10 +1252,7 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
 
     m_offset_voxel_grid->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    frame->GetCommandList().Add<InsertBarrier>(
-        m_voxel_grid_texture->GetRenderResource().GetImage(),
-        renderer::ResourceState::UNORDERED_ACCESS);
-
+    frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
     frame->GetCommandList().Add<BindComputePipeline>(m_offset_voxel_grid);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
@@ -1289,13 +1263,8 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<DispatchCompute>(
-        m_offset_voxel_grid,
-        (m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8));
-
-    frame->GetCommandList().Add<InsertBarrier>(
-        m_voxel_grid_texture->GetRenderResource().GetImage(),
-        renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<DispatchCompute>(m_offset_voxel_grid, (m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8));
+    frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 }
 
 void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
@@ -1341,17 +1310,13 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
     push_constants.cubemap_dimensions = Vec4u(cubemap_dimensions, 0);
     push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
-    frame->GetCommandList().Add<InsertBarrier>(
-        color_image,
-        renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(color_image, RS_SHADER_RESOURCE);
 
     if (false)
     { // Clear our voxel grid at the start of each probe
         m_clear_voxels->SetPushConstants(&push_constants, sizeof(push_constants));
 
-        frame->GetCommandList().Add<InsertBarrier>(
-            m_voxel_grid_texture->GetRenderResource().GetImage(),
-            renderer::ResourceState::UNORDERED_ACCESS);
+        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
         frame->GetCommandList().Add<BindComputePipeline>(m_clear_voxels);
 
@@ -1363,18 +1328,13 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
                     { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) } } } },
             frame->GetFrameIndex());
 
-        frame->GetCommandList().Add<DispatchCompute>(
-            m_clear_voxels,
-            (probe_voxel_extent + Vec3u(7)) / Vec3u(8));
+        frame->GetCommandList().Add<DispatchCompute>(m_clear_voxels, (probe_voxel_extent + Vec3u(7)) / Vec3u(8));
     }
 
     { // Voxelize probe
         m_voxelize_probe->SetPushConstants(&push_constants, sizeof(push_constants));
 
-        frame->GetCommandList().Add<InsertBarrier>(
-            m_voxel_grid_texture->GetRenderResource().GetImage(),
-            renderer::ResourceState::UNORDERED_ACCESS);
-
+        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
         frame->GetCommandList().Add<BindComputePipeline>(m_voxelize_probe);
 
         frame->GetCommandList().Add<BindDescriptorTable>(
@@ -1394,9 +1354,7 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
     }
 
     { // Generate mipmaps for the voxel grid
-        frame->GetCommandList().Add<InsertBarrier>(
-            m_voxel_grid_texture->GetRenderResource().GetImage(),
-            renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 
         const uint32 num_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
 
@@ -1427,8 +1385,8 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
                 // put the mip into writeable state
                 frame->GetCommandList().Add<InsertBarrier>(
                     m_voxel_grid_texture->GetRenderResource().GetImage(),
-                    renderer::ResourceState::UNORDERED_ACCESS,
-                    renderer::ImageSubResource { .base_mip_level = mip_level });
+                    RS_UNORDERED_ACCESS,
+                    ImageSubResource { .base_mip_level = mip_level });
             }
 
             frame->GetCommandList().Add<BindDescriptorTable>(
@@ -1441,30 +1399,22 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
 
             frame->GetCommandList().Add<BindComputePipeline>(m_generate_voxel_grid_mipmaps);
 
-            frame->GetCommandList().Add<DispatchCompute>(
-                m_generate_voxel_grid_mipmaps,
-                (mip_extent + Vec3u(7)) / Vec3u(8));
+            frame->GetCommandList().Add<DispatchCompute>(m_generate_voxel_grid_mipmaps, (mip_extent + Vec3u(7)) / Vec3u(8));
 
             // put this mip into readable state
             frame->GetCommandList().Add<InsertBarrier>(
                 m_voxel_grid_texture->GetRenderResource().GetImage(),
-                renderer::ResourceState::SHADER_RESOURCE,
-                renderer::ImageSubResource { .base_mip_level = mip_level });
+                RS_SHADER_RESOURCE,
+                ImageSubResource { .base_mip_level = mip_level });
         }
 
         // all mip levels have been transitioned into this state
-        frame->GetCommandList().Add<InsertBarrier>(
-            m_voxel_grid_texture->GetRenderResource().GetImage(),
-            renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
     }
 }
 
 #pragma endregion RenderEnvGrid
 
-namespace renderer {
-
 HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
-
-} // namespace renderer
 
 } // namespace hyperion

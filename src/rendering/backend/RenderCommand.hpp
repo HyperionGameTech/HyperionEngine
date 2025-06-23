@@ -22,8 +22,6 @@
 #include <condition_variable>
 
 namespace hyperion {
-namespace renderer {
-
 enum RenderCommandExecuteStage : uint32
 {
     EXECUTE_STAGE_BEFORE_BUFFERS,
@@ -43,14 +41,14 @@ enum RenderCommandExecuteStage : uint32
     }                                                                                                                                                                \
     else                                                                                                                                                             \
     {                                                                                                                                                                \
-        ::hyperion::renderer::RenderCommands::Push<RENDER_COMMAND(name)>(__VA_ARGS__);                                                                               \
+        ::hyperion::RenderCommands::Push<RENDER_COMMAND(name)>(__VA_ARGS__);                                                                                         \
     }
 
 /*! \brief If not on the render thread, waits for the render thread to finish executing all render commands. */
 #define HYP_SYNC_RENDER(...)                                           \
     if (!::hyperion::Threads::IsOnThread(::hyperion::g_render_thread)) \
     {                                                                  \
-        ::hyperion::renderer::RenderCommands::Wait();                  \
+        ::hyperion::RenderCommands::Wait();                            \
     }
 
 constexpr uint32 max_render_command_types = 128;
@@ -263,7 +261,7 @@ public:
         };
 
         static_cast<MyCustomRenderCommand *> command = hyperion::Memory::AllocateAndConstruct<MyCustomRenderCommand>(...);
-        hyperion::renderer::RenderCommands::PushCustomRenderCommand(command);
+        hyperion::RenderCommands::PushCustomRenderCommand(command);
 
         // ... elsewhere, after the command has been executed
         HYP_FREE_ALIGNED(command);
@@ -342,7 +340,6 @@ private:
     static void Rewind(uint32 buffer_index);
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

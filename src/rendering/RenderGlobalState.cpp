@@ -68,20 +68,6 @@ static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // g
 // Shared allocator for reflection probes and sky probes.
 static ObjectBindingAllocator<16> g_envprobe_bindings_allocator;
 
-struct DrawCallCollectionAllocation;
-
-using DrawCallCollectionPool = MemoryPool<DrawCallCollectionAllocation>;
-
-struct DrawCallCollectionAllocation
-{
-    uint32 index;
-    uint8 alive_frames : 4; // number of frames since this allocation was last used or 0 if it is not used
-
-    ValueStorage<DrawCallCollection> storage;
-};
-
-static_assert(std::is_trivial_v<DrawCallCollectionAllocation>, "DrawCallCollectionAllocation must be trivial");
-
 struct ViewData
 {
     RenderProxyList render_proxy_list;
@@ -341,7 +327,7 @@ RenderGlobalState::RenderGlobalState()
     EnvGrids = GPUBufferHolderMap->GetOrCreate<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER>();
     LightmapVolumes = GPUBufferHolderMap->GetOrCreate<LightmapVolumeShaderData, GPUBufferType::STORAGE_BUFFER>();
 
-    GlobalDescriptorTable = g_rendering_api->MakeDescriptorTable(&renderer::GetStaticDescriptorTableDeclaration());
+    GlobalDescriptorTable = g_rendering_api->MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
 
     PlaceholderData->Create();
     ShadowMapAllocator->Initialize();

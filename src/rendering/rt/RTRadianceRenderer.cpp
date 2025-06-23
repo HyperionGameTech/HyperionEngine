@@ -25,8 +25,6 @@
 
 namespace hyperion {
 
-using renderer::ResourceState;
-
 enum RTRadianceUpdates : uint32
 {
     RT_RADIANCE_UPDATES_NONE = 0x0,
@@ -37,7 +35,7 @@ enum RTRadianceUpdates : uint32
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetRTRadianceImageInGlobalDescriptorSet)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     FixedArray<ImageViewRef, max_frames_in_flight> image_views;
 
@@ -61,7 +59,7 @@ struct RENDER_COMMAND(SetRTRadianceImageInGlobalDescriptorSet)
 };
 
 struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     virtual ~RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)() override = default;
 
@@ -186,7 +184,7 @@ void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setu
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
     const Vec3u image_extent = m_texture->GetRenderResource().GetImage()->GetExtent();
 
@@ -199,7 +197,7 @@ void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setu
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_texture->GetRenderResource().GetImage(),
-        ResourceState::SHADER_RESOURCE);
+        RS_SHADER_RESOURCE);
 
     // Reset progressive blending if the camera view matrix has changed (for path tracing)
     if (IsPathTracer() && render_setup.view->GetCamera()->GetBufferData().view != m_previous_view_matrix)
@@ -215,14 +213,14 @@ void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setu
 void RTRadianceRenderer::CreateImages()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA16F,
+        TT_TEX2D,
+        TF_RGBA16F,
         Vec3u { m_config.extent, 1 },
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE });
+        IU_SAMPLED | IU_STORAGE });
 
     InitObject(m_texture);
 
@@ -260,13 +258,13 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
 
         AssertThrow(descriptor_set != nullptr);
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE)
+        if (flags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE)
         {
             // update acceleration structure in descriptor set
             descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
         }
 
-        if (flags & renderer::RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS)
+        if (flags & RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS)
         {
             // update mesh descriptions buffer in descriptor set
             descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
@@ -289,7 +287,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
     AssertThrow(m_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -329,7 +327,7 @@ void RTRadianceRenderer::CreateTemporalBlending()
 {
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_config.extent,
-        InternalFormat::RGBA16F,
+        TF_RGBA16F,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,

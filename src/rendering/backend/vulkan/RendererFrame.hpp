@@ -11,8 +11,6 @@
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanFence;
 using VulkanFenceRef = RenderObjectHandle_Strong<VulkanFence>;
 
@@ -52,7 +50,6 @@ private:
     VulkanFenceRef m_queue_submit_fence;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

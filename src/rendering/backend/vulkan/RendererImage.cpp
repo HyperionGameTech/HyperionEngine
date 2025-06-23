@@ -31,8 +31,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -66,7 +64,7 @@ RendererResult ImagePlatformImpl<Platform::vulkan>::ConvertTo32BPP(
     const uint32 new_size = num_faces * new_bpp * current_desc.extent.x * current_desc.extent.y * current_desc.extent.z;
     const uint32 new_face_offset_step = new_size / num_faces;
     
-    const InternalFormat new_format = FormatChangeNumComponents(current_desc.format, new_bpp);
+    const TextureFormat new_format = FormatChangeNumComponents(current_desc.format, new_bpp);
 
     if (in_texture_data != nullptr) {
         AssertThrow(in_texture_data->buffer.Size() == size);
@@ -171,8 +169,8 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase* command_buffer)
             InsertBarrier(
                 command_buffer,
                 src,
-                ResourceState::COPY_SRC,
-                ShaderModuleType::UNSET);
+                RS_COPY_SRC,
+                SMT_UNSET);
 
             if (i == int32(num_mipmaps))
             {
@@ -180,7 +178,7 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase* command_buffer)
                 {
                     /* all individual subresources have been set so we mark the whole
                      * resource as being int his state */
-                    SetResourceState(ResourceState::COPY_SRC);
+                    SetResourceState(RS_COPY_SRC);
                 }
 
                 break;
@@ -209,9 +207,9 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase* command_buffer)
             vkCmdBlitImage(
                 static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
                 m_handle,
-                GetVkImageLayout(ResourceState::COPY_SRC),
+                GetVkImageLayout(RS_COPY_SRC),
                 m_handle,
-                GetVkImageLayout(ResourceState::COPY_DST),
+                GetVkImageLayout(RS_COPY_DST),
                 1, &blit,
                 m_texture_desc.IsDepthStencil() ? VK_FILTER_NEAREST : VK_FILTER_LINEAR // TODO: base on filter mode
             );
@@ -228,7 +226,7 @@ RendererResult VulkanImage::Create()
         HYPERION_RETURN_OK;
     }
 
-    return Create(ResourceState::UNDEFINED);
+    return Create(RS_UNDEFINED);
 }
 
 RendererResult VulkanImage::Create(ResourceState initial_state)
@@ -248,11 +246,11 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
     }
 
     const Vec3u extent = GetExtent();
-    const InternalFormat format = GetTextureFormat();
-    const ImageType type = GetType();
+    const TextureFormat format = GetTextureFormat();
+    const TextureType type = GetType();
 
-    const bool is_attachment_texture = m_texture_desc.image_format_capabilities[ImageFormatCapabilities::ATTACHMENT];
-    const bool is_rw_texture = m_texture_desc.image_format_capabilities[ImageFormatCapabilities::STORAGE];
+    const bool is_attachment_texture = m_texture_desc.image_usage[IU_ATTACHMENT];
+    const bool is_rw_texture = m_texture_desc.image_usage[IU_STORAGE];
     const bool is_depth_stencil = m_texture_desc.IsDepthStencil();
     const bool is_blended = m_texture_desc.IsBlended();
     const bool is_srgb = m_texture_desc.IsSRGB();
@@ -301,11 +299,11 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
 
         switch (GetMinFilterMode())
         {
-        case FilterMode::TEXTURE_FILTER_LINEAR: // fallthrough
-        case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
+        case TFM_LINEAR: // fallthrough
+        case TFM_LINEAR_MIPMAP:
             vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
             break;
-        case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
+        case TFM_MINMAX_MIPMAP:
             vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
             break;
         default:
@@ -396,7 +394,7 @@ RendererResult VulkanImage::Destroy()
         // reset back to default
         m_is_handle_owned = true;
 
-        m_resource_state = ResourceState::UNDEFINED;
+        m_resource_state = RS_UNDEFINED;
         m_sub_resource_states.Clear();
 
         HYPERION_RETURN_OK;
@@ -438,11 +436,11 @@ RendererResult VulkanImage::Resize(const Vec3u& extent)
         HYPERION_BUBBLE_ERRORS(Destroy());
         HYPERION_BUBBLE_ERRORS(Create());
 
-        if (previous_resource_state != ResourceState::UNDEFINED)
+        if (previous_resource_state != RS_UNDEFINED)
         {
-            SetResourceState(ResourceState::UNDEFINED);
+            SetResourceState(RS_UNDEFINED);
 
-            renderer::SingleTimeCommands commands;
+            SingleTimeCommands commands;
 
             commands.Push([this, previous_resource_state](RHICommandList& cmd)
                 {
@@ -868,5 +866,4 @@ ImageViewRef VulkanImage::MakeLayerImageView(uint32 layer_index) const
 
 #pragma endregion VulkanImage
 
-} // namespace renderer
 } // namespace hyperion

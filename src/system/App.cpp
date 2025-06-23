@@ -86,7 +86,7 @@ void App::LaunchGame(const Handle<Game>& game)
     AssertThrow(g_rendering_api != nullptr);
     HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*app_context));
 
-    RenderObjectDeleter<renderer::Platform::current>::Initialize();
+    RenderObjectDeleter<Platform::current>::Initialize();
 
     g_render_global_state = new RenderGlobalState();
 
@@ -103,7 +103,7 @@ void App::LaunchGame(const Handle<Game>& game)
     delete g_render_global_state;
     g_render_global_state = nullptr;
 
-    RenderObjectDeleter<renderer::Platform::current>::RemoveAllNow(/* force */ true);
+    RenderObjectDeleter<Platform::current>::RemoveAllNow(/* force */ true);
 
     HYPERION_ASSERT_RESULT(g_rendering_api->Destroy());
 }

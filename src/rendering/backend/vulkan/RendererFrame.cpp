@@ -15,8 +15,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -123,5 +121,4 @@ RendererResult VulkanFrame::RecreateFence()
     return m_queue_submit_fence->Create();
 }
 
-} // namespace renderer
 } // namespace hyperion

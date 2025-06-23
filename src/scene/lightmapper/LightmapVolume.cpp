@@ -96,12 +96,12 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uv_map, uint32 in
 
         Handle<Texture> texture = CreateObject<Texture>(TextureData {
             TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA32F,
+                TT_TEX2D,
+                TF_RGBA32F,
                 Vec3u { element_dimensions, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_REPEAT },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_REPEAT },
             ByteBuffer(bitmaps[i].GetUnpackedFloats().ToByteView()) });
 
         texture->SetName(NAME_FMT("LightmapVolumeTexture_{}_{}_{}", m_uuid, element.index, texture_type_names[i]));
@@ -177,12 +177,12 @@ void LightmapVolume::UpdateAtlasTextures()
         if (!atlas_texture.IsValid())
         {
             atlas_texture = CreateObject<Texture>(TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA8,
+                TT_TEX2D,
+                TF_RGBA8,
                 Vec3u { m_atlas.atlas_dimensions, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE });
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE });
 
             atlas_texture->SetName(NAME_FMT("LightmapVolumeAtlasTexture_{}_{}_{}", m_uuid, uint32(texture_type), texture_type_names[i]));
         }

@@ -5,7 +5,6 @@
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
-namespace renderer {
 namespace helpers {
 
 uint32 MipmapSize(uint32 src_size, int lod)
@@ -19,5 +18,4 @@ namespace platform {
 
 } // namespace platform
 
-} // namespace renderer
 } // namespace hyperion

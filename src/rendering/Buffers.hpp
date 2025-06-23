@@ -23,7 +23,7 @@
 
 #include <mutex>
 
-namespace hyperion::renderer {
+namespace hyperion {
 
 namespace platform {
 template <PlatformType PLATFORM>
@@ -32,11 +32,9 @@ class Device;
 
 using Device = platform::Device<Platform::current>;
 
-} // namespace hyperion::renderer
+} // namespace hyperion
 
 namespace hyperion {
-
-using renderer::GPUBufferType;
 
 static constexpr SizeType max_probes_in_sh_grid_buffer = max_bound_ambient_probes;
 

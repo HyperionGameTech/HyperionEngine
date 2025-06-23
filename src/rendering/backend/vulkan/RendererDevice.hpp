@@ -19,8 +19,6 @@
 #include <system/vma/VmaUsage.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class Features;
 class DescriptorPool;
 
@@ -151,7 +149,7 @@ private:
 };
 
 } // namespace platform
-} // namespace renderer
+
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_DEVICE_HPP

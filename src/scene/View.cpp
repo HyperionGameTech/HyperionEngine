@@ -252,8 +252,6 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    HYP_LOG(Scene, Debug, "Update view {} for frame {}", GetID(), GetGameThreadFrameIndex());
-
     RenderProxyList& rpl = GetProducerRenderProxyList(this);
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;

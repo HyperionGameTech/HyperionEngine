@@ -18,8 +18,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 enum RenderPassMode
 {
     RENDER_PASS_INLINE = 0,
@@ -90,7 +88,6 @@ private:
 using VulkanRenderPassRef = RenderObjectHandle_Strong<VulkanRenderPass>;
 using VulkanRenderPassWeakRef = RenderObjectHandle_Weak<VulkanRenderPass>;
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

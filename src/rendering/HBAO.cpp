@@ -39,7 +39,7 @@ struct HBAOUniforms
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateHBAOUniformBuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     HBAOUniforms uniforms;
     GPUBufferRef uniform_buffer;
@@ -69,7 +69,7 @@ struct RENDER_COMMAND(CreateHBAOUniformBuffer)
 #pragma endregion Render commands
 
 HBAO::HBAO(HBAOConfig&& config, GBuffer* gbuffer)
-    : FullScreenPass(InternalFormat::RGBA8, gbuffer),
+    : FullScreenPass(TF_RGBA8, gbuffer),
       m_config(std::move(config))
 {
 }
@@ -99,7 +99,7 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderable_attributes)
 {
     HYP_SCOPE;
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 

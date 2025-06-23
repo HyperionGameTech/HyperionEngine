@@ -8,8 +8,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanImage;
 
 class VulkanImageView final : public ImageViewBase
@@ -41,7 +39,6 @@ private:
     VkImageView m_handle;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

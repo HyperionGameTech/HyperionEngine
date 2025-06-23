@@ -21,8 +21,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -176,5 +174,4 @@ void VulkanComputePipeline::SetPushConstants(const void* data, SizeType size)
     VulkanPipelineBase::SetPushConstants(data, size);
 }
 
-} // namespace renderer
 } // namespace hyperion

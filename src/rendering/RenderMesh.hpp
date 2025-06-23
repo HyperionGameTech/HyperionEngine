@@ -27,10 +27,6 @@
 
 namespace hyperion {
 
-using renderer::IndirectDrawCommand;
-using renderer::PackedVertex;
-using renderer::Topology;
-
 class Mesh;
 class Material;
 class RHICommandList;

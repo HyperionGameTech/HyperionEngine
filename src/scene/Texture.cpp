@@ -35,12 +35,12 @@ const FixedArray<Pair<Vec3f, Vec3f>, 6> Texture::cubemap_directions = {
 
 Texture::Texture()
     : Texture(TextureDesc {
-          ImageType::TEXTURE_TYPE_2D,
-          InternalFormat::RGBA8,
+          TT_TEX2D,
+          TF_RGBA8,
           Vec3u { 1, 1, 1 },
-          FilterMode::TEXTURE_FILTER_NEAREST,
-          FilterMode::TEXTURE_FILTER_NEAREST,
-          WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE })
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE })
 {
 }
 
@@ -311,7 +311,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 face_index)
         uint32(uvw.z * float(texture_data->desc.extent.z - 1) + 0.5f)
     };
 
-    const uint32 bytes_per_pixel = renderer::NumBytes(texture_data->desc.format);
+    const uint32 bytes_per_pixel = NumBytes(texture_data->desc.format);
 
     if (bytes_per_pixel != 1)
     {
@@ -322,7 +322,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 face_index)
         return Vec4f::Zero();
     }
 
-    const uint32 num_components = renderer::NumComponents(texture_data->desc.format);
+    const uint32 num_components = NumComponents(texture_data->desc.format);
 
     const uint32 index = face_index * (texture_data->desc.extent.x * texture_data->desc.extent.y * texture_data->desc.extent.z * bytes_per_pixel * num_components)
         + coord.z * (texture_data->desc.extent.x * texture_data->desc.extent.y * bytes_per_pixel * num_components)
@@ -358,7 +358,7 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 face_index)
 
 Vec4f Texture::Sample2D(Vec2f uv)
 {
-    if (GetType() != ImageType::TEXTURE_TYPE_2D)
+    if (GetType() != TT_TEX2D)
     {
         HYP_LOG(Texture, Warning, "Unsupported texture type to use with Sample2D(): {}", GetType());
 
@@ -371,7 +371,7 @@ Vec4f Texture::Sample2D(Vec2f uv)
 /// https://www.gamedev.net/forums/topic/687535-implementing-a-cube-map-lookup-function/5337472/
 Vec4f Texture::SampleCube(Vec3f direction)
 {
-    if (GetType() != ImageType::TEXTURE_TYPE_CUBEMAP)
+    if (GetType() != TT_CUBEMAP)
     {
         HYP_LOG(Texture, Warning, "Unsupported texture type to use with SampleCube(): {}", GetType());
 

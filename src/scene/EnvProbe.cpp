@@ -25,13 +25,13 @@
 
 namespace hyperion {
 
-static const InternalFormat reflection_probe_format = InternalFormat::RGBA16F;
-static const InternalFormat shadow_probe_format = InternalFormat::RG32F;
+static const TextureFormat reflection_probe_format = TF_RGBA16F;
+static const TextureFormat shadow_probe_format = TF_RG32F;
 
 #pragma region Render commands
 
 struct RENDER_COMMAND(RenderPointLightShadow)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     RenderWorld* world;
     RenderEnvProbe* env_probe;
@@ -150,14 +150,14 @@ void EnvProbe::Init()
         if (!m_prefiltered_env_map)
         {
             m_prefiltered_env_map = CreateObject<Texture>(TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA16F,
+                TT_TEX2D,
+                TF_RGBA16F,
                 Vec3u { 1024, 1024, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+                TFM_LINEAR_MIPMAP,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE,
                 1,
-                ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+                IU_STORAGE | IU_SAMPLED });
 
             AssertThrow(InitObject(m_prefiltered_env_map));
 
@@ -235,37 +235,37 @@ void EnvProbe::CreateView()
     {
         output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
             .format = reflection_probe_format,
-            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
-            .load_op = renderer::LoadOperation::CLEAR,
-            .store_op = renderer::StoreOperation::STORE });
+            .image_type = TT_CUBEMAP,
+            .load_op = LoadOperation::CLEAR,
+            .store_op = StoreOperation::STORE });
 
         output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = InternalFormat::RG16F,
-            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
-            .load_op = renderer::LoadOperation::CLEAR,
-            .store_op = renderer::StoreOperation::STORE });
+            .format = TF_RG16F,
+            .image_type = TT_CUBEMAP,
+            .load_op = LoadOperation::CLEAR,
+            .store_op = StoreOperation::STORE });
 
         output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-            .format = InternalFormat::RGBA16F,
-            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
-            .load_op = renderer::LoadOperation::CLEAR,
-            .store_op = renderer::StoreOperation::STORE,
+            .format = TF_RGBA16F,
+            .image_type = TT_CUBEMAP,
+            .load_op = LoadOperation::CLEAR,
+            .store_op = StoreOperation::STORE,
             .clear_color = MathUtil::Infinity<Vec4f>() });
     }
     else if (IsShadowProbe())
     {
         output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
             .format = shadow_probe_format,
-            .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
-            .load_op = renderer::LoadOperation::CLEAR,
-            .store_op = renderer::StoreOperation::STORE });
+            .image_type = TT_CUBEMAP,
+            .load_op = LoadOperation::CLEAR,
+            .store_op = StoreOperation::STORE });
     }
 
     output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-        .format = g_rendering_api->GetDefaultFormat(renderer::DefaultImageFormatType::DEPTH),
-        .image_type = ImageType::TEXTURE_TYPE_CUBEMAP,
-        .load_op = renderer::LoadOperation::CLEAR,
-        .store_op = renderer::StoreOperation::STORE });
+        .format = g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+        .image_type = TT_CUBEMAP,
+        .load_op = LoadOperation::CLEAR,
+        .store_op = StoreOperation::STORE });
 
     m_view = CreateObject<View>(ViewDesc {
         .flags = (OnlyCollectStaticEntities() ? ViewFlags::COLLECT_STATIC_ENTITIES : ViewFlags::COLLECT_ALL_ENTITIES)
@@ -281,7 +281,7 @@ void EnvProbe::CreateView()
             MaterialAttributes {
                 .shader_definition = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
                 .blend_function = BlendFunction::AlphaBlending(),
-                .cull_faces = FaceCullMode::NONE }) });
+                .cull_faces = FCM_NONE }) });
 
     InitObject(m_view);
 }

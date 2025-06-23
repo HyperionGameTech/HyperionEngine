@@ -6,8 +6,6 @@
 #include <rendering/Buffers.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 #pragma region DescriptorSetDeclaration
 
 DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakName name) const
@@ -277,5 +275,4 @@ void DescriptorSetBase::SetElement(Name name, const TLASRef& ref)
 
 #pragma endregion DescriptorSetBase
 
-} // namespace renderer
 } // namespace hyperion

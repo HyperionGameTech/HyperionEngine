@@ -168,11 +168,7 @@ void RenderLight::SetShadowMap(TResourceHandle<RenderShadowMap>&& shadow_map)
 
 #pragma endregion RenderLight
 
-namespace renderer {
-
 HYP_DESCRIPTOR_SSBO(Global, CurrentLight, 1, sizeof(LightShaderData), true);
 HYP_DESCRIPTOR_SSBO(Global, LightsBuffer, 1, sizeof(LightShaderData), false);
-
-} // namespace renderer
 
 } // namespace hyperion

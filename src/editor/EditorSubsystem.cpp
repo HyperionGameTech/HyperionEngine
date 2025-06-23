@@ -591,10 +591,10 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                 // testing
                 material_attributes.stencil_function = StencilFunction {
-                    .pass_op = StencilOp::REPLACE,
-                    .fail_op = StencilOp::REPLACE,
-                    .depth_fail_op = StencilOp::REPLACE,
-                    .compare_op = StencilCompareOp::ALWAYS,
+                    .pass_op = SO_REPLACE,
+                    .fail_op = SO_REPLACE,
+                    .depth_fail_op = SO_REPLACE,
+                    .compare_op = SCO_ALWAYS,
                     .mask = 0xff,
                     .value = 0x1
                 };
@@ -1108,14 +1108,14 @@ void EditorSubsystem::Update(float delta)
             },
             MaterialAttributes {
                 .bucket             = RB_TRANSLUCENT,
-                .fill_mode          = FillMode::FILL,
+                .fill_mode          = FM_FILL,
                 .blend_function     = BlendFunction::None(),
                 .flags              = MaterialAttributeFlags::DEPTH_TEST,
                 .stencil_function   = StencilFunction {
-                    .pass_op        = StencilOp::REPLACE,
-                    .fail_op        = StencilOp::REPLACE,
-                    .depth_fail_op  = StencilOp::REPLACE,
-                    .compare_op     = StencilCompareOp::NEVER,
+                    .pass_op        = SO_REPLACE,
+                    .fail_op        = SO_REPLACE,
+                    .depth_fail_op  = SO_REPLACE,
+                    .compare_op     = SCO_NEVER,
                     .mask           = 0xFF,
                     .value          = 0x1
                 }
@@ -1173,10 +1173,10 @@ void EditorSubsystem::CreateHighlightNode()
     //         .bucket = RB_TRANSLUCENT,
     //         // .flags = MaterialAttributeFlags::NONE, // temp
     //         .stencil_function = StencilFunction {
-    //             .pass_op        = StencilOp::REPLACE,
-    //             .fail_op        = StencilOp::KEEP,
-    //             .depth_fail_op  = StencilOp::KEEP,
-    //             .compare_op     = StencilCompareOp::NOT_EQUAL,
+    //             .pass_op        = SO_REPLACE,
+    //             .fail_op        = SO_KEEP,
+    //             .depth_fail_op  = SO_KEEP,
+    //             .compare_op     = SCO_NOT_EQUAL,
     //             .mask           = 0xff,
     //             .value          = 0x1
     //         }

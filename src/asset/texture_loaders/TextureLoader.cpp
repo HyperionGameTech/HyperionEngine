@@ -17,7 +17,7 @@ struct LoadedTextureData
     int width;
     int height;
     int num_components;
-    InternalFormat format;
+    TextureFormat format;
 };
 
 static const stbi_io_callbacks callbacks {
@@ -66,16 +66,16 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
     switch (data.num_components)
     {
     case STBI_rgb_alpha:
-        data.format = InternalFormat::RGBA8;
+        data.format = TF_RGBA8;
         break;
     case STBI_rgb:
-        data.format = InternalFormat::RGB8;
+        data.format = TF_RGB8;
         break;
     case STBI_grey_alpha:
-        data.format = InternalFormat::RG8;
+        data.format = TF_RG8;
         break;
     case STBI_grey:
-        data.format = InternalFormat::R8;
+        data.format = TF_R8;
         break;
     default:
         return HYP_MAKE_ERROR(AssetLoadError, "Invalid format -- invalid number of components returned");
@@ -90,12 +90,12 @@ AssetLoadResult TextureLoader::LoadAsset(LoaderState& state) const
 
     Handle<Texture> texture = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
+            TT_TEX2D,
             data.format,
             Vec3u { uint32(data.width), uint32(data.height), 1 },
-            FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-            FilterMode::TEXTURE_FILTER_LINEAR,
-            WrapMode::TEXTURE_WRAP_REPEAT },
+            TFM_LINEAR_MIPMAP,
+            TFM_LINEAR,
+            TWM_REPEAT },
         ByteBuffer(image_bytes_count, image_bytes) });
 
     stbi_image_free(image_bytes);

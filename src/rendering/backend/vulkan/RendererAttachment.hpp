@@ -14,8 +14,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanAttachment final : public AttachmentBase
 {
 public:
@@ -45,7 +43,6 @@ private:
     RenderPassStage m_stage;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

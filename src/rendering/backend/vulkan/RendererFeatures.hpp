@@ -19,12 +19,10 @@
 #include <array>
 
 #if defined(HYP_MOLTENVK) && HYP_MOLTENVK
-    #include <MoltenVK/vk_mvk_moltenvk.h>
+#include <MoltenVK/vk_mvk_moltenvk.h>
 #endif
 
 namespace hyperion {
-namespace renderer {
-
 class Features
 {
 public:
@@ -279,8 +277,8 @@ public:
     }
 
     bool IsSupportedFormat(
-        InternalFormat format,
-        ImageSupportType support_type) const
+        TextureFormat format,
+        ImageSupport support_type) const
     {
         if (m_physical_device == nullptr)
         {
@@ -299,13 +297,13 @@ public:
 
         switch (support_type)
         {
-        case ImageSupportType::SRV:
+        case IS_SRV:
             feature_flags |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
             break;
-        case ImageSupportType::UAV:
+        case IS_UAV:
             feature_flags |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
             break;
-        case ImageSupportType::DEPTH:
+        case IS_DEPTH:
             feature_flags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
             break;
         default:
@@ -350,7 +348,7 @@ public:
     }
 
     /* get the first supported format out of the provided list of format choices. */
-    InternalFormat FindSupportedFormat(Span<InternalFormat> possible_formats, ImageSupportType support_type) const
+    TextureFormat FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const
     {
         AssertThrowMsg(possible_formats.Size() > 0, "Size must be greater than zero!");
 
@@ -364,7 +362,7 @@ public:
         {
             DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
 
-            return InternalFormat::NONE;
+            return TF_NONE;
         }
 
         for (SizeType i = 0; i < possible_formats.Size(); i++)
@@ -375,12 +373,12 @@ public:
             }
         }
 
-        return InternalFormat::NONE;
+        return TF_NONE;
     }
 
     /* get the first supported format out of the provided list of format choices. */
     template <class Predicate>
-    InternalFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails& details, Span<InternalFormat> possible_formats, Predicate&& predicate) const
+    TextureFormat FindSupportedSurfaceFormat(const SwapchainSupportDetails& details, Span<TextureFormat> possible_formats, Predicate&& predicate) const
     {
         AssertThrowMsg(possible_formats.Size() != 0, "Size must be greater than zero!");
 
@@ -393,7 +391,7 @@ public:
                 surface_format.colorSpace);
         }
 
-        for (InternalFormat format : possible_formats)
+        for (TextureFormat format : possible_formats)
         {
             DebugLog(
                 LogType::Debug,
@@ -420,7 +418,7 @@ public:
             LogType::Debug,
             "No surface format found out of the selected options!\n");
 
-        return InternalFormat::NONE;
+        return TF_NONE;
     }
 
     RendererResult GetImageFormatProperties(
@@ -521,7 +519,6 @@ private:
     bool m_is_raytracing_disabled { false };
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

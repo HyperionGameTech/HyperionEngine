@@ -26,8 +26,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanFramebuffer;
 using VulkanFramebufferRef = RenderObjectHandle_Strong<VulkanFramebuffer>;
 using VulkanFramebufferWeakRef = RenderObjectHandle_Weak<VulkanFramebuffer>;
@@ -86,7 +84,6 @@ private:
     Viewport m_viewport;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_GRAPHICS_PIPELINE_HPP

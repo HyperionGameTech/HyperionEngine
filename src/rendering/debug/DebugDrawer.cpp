@@ -42,14 +42,14 @@ static RenderableAttributeSet GetRenderableAttributes()
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
             .bucket = RB_TRANSLUCENT,
-            .fill_mode = FillMode::FILL,
+            .fill_mode = FM_FILL,
             .blend_function = BlendFunction::None(),
             .flags = MaterialAttributeFlags::DEPTH_TEST,
             .stencil_function = StencilFunction {
-                .pass_op = StencilOp::KEEP,
-                .fail_op = StencilOp::KEEP,
-                .depth_fail_op = StencilOp::KEEP,
-                .compare_op = StencilCompareOp::NOT_EQUAL,
+                .pass_op = SO_KEEP,
+                .fail_op = SO_KEEP,
+                .depth_fail_op = SO_KEEP,
+                .compare_op = SCO_NOT_EQUAL,
                 .mask = 0x0,
                 .value = 0x1 } });
 }
@@ -238,7 +238,7 @@ void DebugDrawer::Initialize()
 
     AssertThrow(m_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
     AssertThrow(m_descriptor_table != nullptr);

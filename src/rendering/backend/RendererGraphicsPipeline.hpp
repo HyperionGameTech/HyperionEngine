@@ -15,8 +15,6 @@ namespace hyperion {
 
 class RenderableAttributeSet;
 
-namespace renderer {
-
 class GraphicsPipelineBase : public RenderObject<GraphicsPipelineBase>
 {
 public:
@@ -148,9 +146,9 @@ protected:
 
     VertexAttributeSet m_vertex_attributes;
 
-    Topology m_topology = Topology::TRIANGLES;
-    FaceCullMode m_face_cull_mode = FaceCullMode::BACK;
-    FillMode m_fill_mode = FillMode::FILL;
+    Topology m_topology = TOP_TRIANGLES;
+    FaceCullMode m_face_cull_mode = FCM_BACK;
+    FillMode m_fill_mode = FM_FILL;
     BlendFunction m_blend_function = BlendFunction::None();
 
     StencilFunction m_stencil_function;
@@ -162,7 +160,6 @@ protected:
     DescriptorTableRef m_descriptor_table;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

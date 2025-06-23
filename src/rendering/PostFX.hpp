@@ -39,19 +39,19 @@ class HYP_API PostFXPass final : public FullScreenPass
 {
 public:
     PostFXPass(
-        InternalFormat image_format,
+        TextureFormat image_format,
         GBuffer* gbuffer);
 
     PostFXPass(
         const ShaderRef& shader,
-        InternalFormat image_format,
+        TextureFormat image_format,
         GBuffer* gbuffer);
 
     PostFXPass(
         const ShaderRef& shader,
         PostProcessingStage stage,
         uint32 effect_index,
-        InternalFormat image_format,
+        TextureFormat image_format,
         GBuffer* gbuffer);
 
     PostFXPass(const PostFXPass&) = delete;
@@ -82,7 +82,7 @@ public:
     PostProcessingEffect(
         PostProcessingStage stage,
         uint32 effect_index,
-        InternalFormat image_format,
+        TextureFormat image_format,
         GBuffer* gbuffer);
     PostProcessingEffect(const PostProcessingEffect& other) = delete;
     PostProcessingEffect& operator=(const PostProcessingEffect& other) = delete;

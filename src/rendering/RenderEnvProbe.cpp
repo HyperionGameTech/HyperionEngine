@@ -325,11 +325,11 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         const ShadowMapAtlasElement& atlas_element = m_shadow_map->GetAtlasElement();
 
         // Copy combined shadow map to the final shadow map
-        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_COPY_SRC);
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::COPY_DST,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 });
+            RS_COPY_DST,
+            ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 });
 
         // copy the image
         for (uint32 i = 0; i < 6; i++)
@@ -351,11 +351,11 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         }
 
         // put the images back into a state for reading
-        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_SHADER_RESOURCE);
         frame->GetCommandList().Add<InsertBarrier>(
             shadow_map_image,
-            renderer::ResourceState::SHADER_RESOURCE,
-            renderer::ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 });
+            RS_SHADER_RESOURCE,
+            ImageSubResource { .base_array_layer = atlas_element.point_light_index * 6, .num_layers = 6 });
     }
 
     // Temp; refactor
@@ -570,7 +570,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     AssertThrow(normals_attachment != nullptr);
     AssertThrow(moments_attachment != nullptr);
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
     descriptor_table->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", env_probe->GetID().Value()));
@@ -594,7 +594,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
-    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<BindComputePipeline>(convolve_probe_compute_pipeline);
 
@@ -611,11 +611,11 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     if (prefiltered_env_map->GetTextureDesc().HasMipmaps())
     {
-        frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::COPY_DST);
+        frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), RS_COPY_DST);
         frame->GetCommandList().Add<GenerateMipmaps>(prefiltered_env_map->GetRenderResource().GetImage());
     }
 
-    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 
     // for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     // {
@@ -695,7 +695,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         }
     }
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = first_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = first_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     Array<DescriptorTableRef> compute_sh_descriptor_tables;
     compute_sh_descriptor_tables.Resize(sh_num_levels);
@@ -775,8 +775,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
 
-    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
         compute_sh_descriptor_tables[0],
@@ -790,7 +790,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Clear")].second);
     async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Clear")].second, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
         compute_sh_descriptor_tables[0],
@@ -811,8 +811,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         {
             async_compute_command_list.Add<InsertBarrier>(
                 sh_tiles_buffers[i - 1],
-                renderer::ResourceState::UNORDERED_ACCESS,
-                renderer::ShaderModuleType::COMPUTE);
+                RS_UNORDERED_ACCESS,
+                SMT_COMPUTE);
 
             const Vec2u prev_dimensions {
                 MathUtil::Max(1u, sh_num_samples.x >> (i - 1)),
@@ -854,8 +854,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     const uint32 finalize_sh_buffer_index = sh_parallel_reduce ? sh_num_levels - 1 : 0;
 
     // Finalize - build into final buffer
-    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[finalize_sh_buffer_index], renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[finalize_sh_buffer_index], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     pipelines[NAME("Finalize")].second->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -871,7 +871,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);
     async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Finalize")].second, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), renderer::ResourceState::UNORDERED_ACCESS, renderer::ShaderModuleType::COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind([render_env_probe = TResourceHandle<RenderEnvProbe>(env_probe->GetRenderResource()), pipelines = std::move(pipelines), descriptor_tables = std::move(compute_sh_descriptor_tables), delegate_handle](FrameBase* frame) mutable
@@ -911,11 +911,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
 #pragma endregion ReflectionProbeRenderer
 
-namespace renderer {
-
 HYP_DESCRIPTOR_SSBO(Global, EnvProbesBuffer, 1, ~0u, false);
 HYP_DESCRIPTOR_SSBO(Global, CurrentEnvProbe, 1, sizeof(EnvProbeShaderData), true);
-
-} // namespace renderer
 
 } // namespace hyperion

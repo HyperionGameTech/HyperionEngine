@@ -192,7 +192,7 @@ struct FBXMesh
             auto handle = CreateObject<Mesh>(
                 vertices_and_indices.first,
                 vertices_and_indices.second,
-                Topology::TRIANGLES,
+                TOP_TRIANGLES,
                 attributes);
 
             result.Set(std::move(handle));

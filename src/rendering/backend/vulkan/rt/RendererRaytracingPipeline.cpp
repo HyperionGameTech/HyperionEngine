@@ -19,8 +19,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -291,9 +289,9 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
     }                                                                                      \
     while (0)
 
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_GEN, ray_gen);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_MISS, ray_miss);
-    GET_STRIDED_DEVICE_ADDRESS_REGION(ShaderModuleType::RAY_CLOSEST_HIT, closest_hit);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_GEN, ray_gen);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_MISS, ray_miss);
+    GET_STRIDED_DEVICE_ADDRESS_REGION(SMT_RAY_CLOSEST_HIT, closest_hit);
 
 #undef GET_STRIDED_DEVICE_ADDRESS_REGION
 
@@ -343,5 +341,4 @@ void VulkanRaytracingPipeline::SetPushConstants(const void* data, SizeType size)
     VulkanPipelineBase::SetPushConstants(data, size);
 }
 
-} // namespace renderer
 } // namespace hyperion

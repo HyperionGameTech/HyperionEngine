@@ -93,7 +93,7 @@ public:
 
     void SetTextureDesc(const TextureDesc& texture_desc);
 
-    HYP_FORCE_INLINE ImageType GetType() const
+    HYP_FORCE_INLINE TextureType GetType() const
     {
         return m_texture_desc.type;
     }
@@ -118,22 +118,22 @@ public:
         return m_texture_desc.extent;
     }
 
-    HYP_FORCE_INLINE InternalFormat GetFormat() const
+    HYP_FORCE_INLINE TextureFormat GetFormat() const
     {
         return m_texture_desc.format;
     }
 
-    HYP_FORCE_INLINE HYP_DEPRECATED FilterMode GetFilterMode() const
+    HYP_FORCE_INLINE HYP_DEPRECATED TextureFilterMode GetFilterMode() const
     {
         return m_texture_desc.filter_mode_min;
     }
 
-    HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMinFilterMode() const
     {
         return m_texture_desc.filter_mode_min;
     }
 
-    HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMagFilterMode() const
     {
         return m_texture_desc.filter_mode_mag;
     }
@@ -143,7 +143,7 @@ public:
         return m_texture_desc.HasMipmaps();
     }
 
-    HYP_FORCE_INLINE WrapMode GetWrapMode() const
+    HYP_FORCE_INLINE TextureWrapMode GetWrapMode() const
     {
         return m_texture_desc.wrap_mode;
     }

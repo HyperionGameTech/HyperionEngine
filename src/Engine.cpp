@@ -70,10 +70,6 @@
 
 namespace hyperion {
 
-using renderer::FillMode;
-using renderer::GPUBufferType;
-
-namespace renderer {
 static struct GlobalDescriptorSetsDeclarations
 {
     GlobalDescriptorSetsDeclarations()
@@ -81,7 +77,6 @@ static struct GlobalDescriptorSetsDeclarations
 #include <rendering/inl/DescriptorSets.inl>
     }
 } g_global_descriptor_sets_declarations;
-} // namespace renderer
 
 class RenderThread final : public Thread<Scheduler>
 {
@@ -161,7 +156,7 @@ private:
 #pragma region Render commands
 
 struct RENDER_COMMAND(RecreateSwapchain)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     WeakHandle<Engine> engine_weak;
 
@@ -465,12 +460,12 @@ void Engine::PreFrameUpdate(FrameBase* frame)
     m_material_descriptor_set_manager->UpdatePendingDescriptorSets(frame);
     m_material_descriptor_set_manager->Update(frame);
 
-    HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
+    HYPERION_ASSERT_RESULT(RenderCommands::Flush());
 
     if (m_world->IsReady())
         m_world->GetRenderResource().PreRender(frame);
 
-    RenderObjectDeleter<renderer::Platform::current>::Iterate();
+    RenderObjectDeleter<Platform::current>::Iterate();
 
     g_safe_deleter->PerformEnqueuedDeletions();
 }

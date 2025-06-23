@@ -56,10 +56,8 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
-static const InternalFormat env_grid_radiance_format = InternalFormat::RGBA8;
-static const InternalFormat env_grid_irradiance_format = InternalFormat::R11G11B10F;
+static const TextureFormat env_grid_radiance_format = TF_RGBA8;
+static const TextureFormat env_grid_irradiance_format = TF_R11G11B10F;
 static const Vec2u env_grid_irradiance_extent { 1024, 768 };
 static const Vec2u env_grid_radiance_extent { 1024, 768 };
 
@@ -100,7 +98,7 @@ void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
 #pragma region Deferred pass
 
 DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer* gbuffer)
-    : FullScreenPass(InternalFormat::RGBA16F, gbuffer),
+    : FullScreenPass(TF_RGBA16F, gbuffer),
       m_mode(mode)
 {
     SetBlendFunction(BlendFunction::Additive());
@@ -168,9 +166,9 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
 
     { // linear transform cosines texture data
         m_ltc_sampler = g_rendering_api->MakeSampler(
-            renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-            renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-            renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE);
+            TFM_NEAREST,
+            TFM_LINEAR,
+            TWM_CLAMP_TO_EDGE);
 
         DeferCreate(m_ltc_sampler);
 
@@ -178,12 +176,12 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
 
         m_ltc_matrix_texture = CreateObject<Texture>(TextureData {
             TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA16F,
+                TT_TEX2D,
+                TF_RGBA16F,
                 Vec3u { 64, 64, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE },
             std::move(ltc_matrix_data) });
 
         InitObject(m_ltc_matrix_texture);
@@ -194,12 +192,12 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
 
         m_ltc_brdf_texture = CreateObject<Texture>(TextureData {
             TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA16F,
+                TT_TEX2D,
+                TF_RGBA16F,
                 Vec3u { 64, 64, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE },
             std::move(ltc_brdf_data) });
 
         InitObject(m_ltc_brdf_texture);
@@ -212,7 +210,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
         ShaderRef& shader = m_direct_light_shaders[i];
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -362,7 +360,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 TonemapPass::TonemapPass(GBuffer* gbuffer)
     : FullScreenPass(
-          InternalFormat::R11G11B10F,
+          TF_R11G11B10F,
           gbuffer)
 {
 }
@@ -387,7 +385,7 @@ void TonemapPass::CreatePipeline()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode = FillMode::FILL,
+            .fill_mode = FM_FILL,
             .blend_function = BlendFunction::None(),
             .flags = MaterialAttributeFlags::NONE });
 
@@ -415,7 +413,7 @@ LightmapPass::LightmapPass(const FramebufferRef& framebuffer, GBuffer* gbuffer)
           ShaderRef::Null(),
           DescriptorTableRef::Null(),
           framebuffer,
-          InternalFormat::RGBA8,
+          TF_RGBA8,
           framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
           gbuffer)
 {
@@ -441,9 +439,9 @@ void LightmapPass::CreatePipeline()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode = FillMode::FILL,
-            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .fill_mode = FM_FILL,
+            .blend_function = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
             .flags = MaterialAttributeFlags::NONE });
 
     m_shader = g_shader_manager->GetOrCreate(NAME("ApplyLightmap"));
@@ -495,8 +493,8 @@ EnvGridPass::EnvGridPass(EnvGridPassMode mode, GBuffer* gbuffer)
     if (mode == EnvGridPassMode::RADIANCE)
     {
         SetBlendFunction(BlendFunction(
-            BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
+            BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
     }
 }
 
@@ -520,9 +518,9 @@ void EnvGridPass::CreatePipeline()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode = FillMode::FILL,
-            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .fill_mode = FM_FILL,
+            .blend_function = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
             .flags = MaterialAttributeFlags::NONE });
 
     if (m_mode == EnvGridPassMode::RADIANCE)
@@ -551,7 +549,7 @@ void EnvGridPass::CreatePipeline()
         ShaderRef shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), it.second);
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
@@ -669,14 +667,14 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 #pragma region ReflectionsPass
 
 ReflectionsPass::ReflectionsPass(GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view)
-    : FullScreenPass(InternalFormat::R10G10B10A2, gbuffer),
+    : FullScreenPass(TF_R10G10B10A2, gbuffer),
       m_mip_chain_image_view(mip_chain_image_view),
       m_deferred_result_image_view(deferred_result_image_view),
       m_is_first_frame(true)
 {
     SetBlendFunction(BlendFunction(
-        BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 }
 
 ReflectionsPass::~ReflectionsPass()
@@ -701,9 +699,9 @@ void ReflectionsPass::CreatePipeline()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode = FillMode::FILL,
-            .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-                BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
+            .fill_mode = FM_FILL,
+            .blend_function = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+                BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
             .flags = MaterialAttributeFlags::NONE }));
 }
 
@@ -731,7 +729,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderable_at
 
         AssertThrow(shader.IsValid());
 
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
@@ -788,8 +786,8 @@ void ReflectionsPass::CreateSSRRenderer()
 
     // Use alpha blending to blend SSR into the reflection probes
     m_render_ssr_to_screen_pass->SetBlendFunction(BlendFunction(
-        BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
     m_render_ssr_to_screen_pass->Create();
 }
@@ -903,10 +901,6 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            HYP_LOG(Rendering, Debug, "Applying reflection probe {} (type: {}) with texture slot : {}", env_probe->GetEnvProbe()->GetID(),
-                env_probe->GetEnvProbe()->GetEnvProbeType(),
-                env_probe->GetTextureSlot());
-
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
                 render_group->GetPipeline(),
@@ -994,7 +988,7 @@ DeferredPassData::~DeferredPassData()
 #pragma region DeferredRenderer
 
 constexpr Vec2u mip_chain_extent { 512, 512 };
-constexpr InternalFormat mip_chain_format = InternalFormat::R10G10B10A2;
+constexpr TextureFormat mip_chain_format = TF_R10G10B10A2;
 
 DeferredRenderer::DeferredRenderer()
     : m_renderer_config(RendererConfig::FromConfig())
@@ -1060,12 +1054,12 @@ void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_dat
     pass_data.cull_data.depth_pyramid_dimensions = pass_data.depth_pyramid_renderer->GetExtent();
 
     pass_data.mip_chain = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         mip_chain_format,
         Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE });
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR_MIPMAP,
+        TWM_CLAMP_TO_EDGE });
 
     InitObject(pass_data.mip_chain);
 
@@ -1109,12 +1103,12 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
 
     AssertThrow(input_image_view.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    renderer::DescriptorSetDeclaration* decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("RenderTextureToScreenDescriptorSet"));
+    DescriptorSetDeclaration* decl = descriptor_table_decl.FindDescriptorSetDeclaration(NAME("RenderTextureToScreenDescriptorSet"));
     AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout { decl };
+    const DescriptorSetLayout layout { decl };
 
     DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
     descriptor_set->SetDebugName(NAME("FinalPassDescriptorSet"));
@@ -1129,10 +1123,10 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
 {
     HYP_SCOPE;
 
-    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
+    const DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
     AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout { decl };
+    const DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -1250,7 +1244,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& pass_
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -1794,8 +1788,8 @@ void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs,
     const ImageRef& mipmapped_result = pd->mip_chain->GetRenderResource().GetImage();
     AssertThrow(mipmapped_result.IsValid());
 
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
-    frame->GetCommandList().Add<InsertBarrier>(mipmapped_result, renderer::ResourceState::COPY_DST);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, RS_COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(mipmapped_result, RS_COPY_DST);
 
     // Blit into the mipmap chain img
     frame->GetCommandList().Add<BlitRect>(
@@ -1806,7 +1800,7 @@ void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs,
 
     frame->GetCommandList().Add<GenerateMipmaps>(mipmapped_result);
 
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, RS_SHADER_RESOURCE);
 }
 
 #pragma endregion DeferredRenderer

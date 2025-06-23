@@ -10,8 +10,6 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class RendererError final : public Error
 {
 public:
@@ -48,37 +46,37 @@ private:
 
 using RendererResult = TResult<void, RendererError>;
 
-#define HYPERION_RETURN_OK                              \
-    do                                                  \
-    {                                                   \
-        return ::hyperion::renderer::RendererResult {}; \
-    }                                                   \
+#define HYPERION_RETURN_OK                    \
+    do                                        \
+    {                                         \
+        return ::hyperion::RendererResult {}; \
+    }                                         \
     while (0)
 
-#define HYPERION_PASS_ERRORS(result, out_result)                 \
-    do                                                           \
-    {                                                            \
-        ::hyperion::renderer::RendererResult _result = (result); \
-        if ((out_result) && !_result)                            \
-            (out_result) = _result;                              \
-    }                                                            \
+#define HYPERION_PASS_ERRORS(result, out_result)       \
+    do                                                 \
+    {                                                  \
+        ::hyperion::RendererResult _result = (result); \
+        if ((out_result) && !_result)                  \
+            (out_result) = _result;                    \
+    }                                                  \
     while (0)
 
-#define HYPERION_BUBBLE_ERRORS(result)                           \
-    do                                                           \
-    {                                                            \
-        ::hyperion::renderer::RendererResult _result = (result); \
-        if (!_result)                                            \
-            return _result;                                      \
-    }                                                            \
+#define HYPERION_BUBBLE_ERRORS(result)                 \
+    do                                                 \
+    {                                                  \
+        ::hyperion::RendererResult _result = (result); \
+        if (!_result)                                  \
+            return _result;                            \
+    }                                                  \
     while (0)
 
-#define HYPERION_IGNORE_ERRORS(result)                           \
-    do                                                           \
-    {                                                            \
-        ::hyperion::renderer::RendererResult _result = (result); \
-        (void)_result;                                           \
-    }                                                            \
+#define HYPERION_IGNORE_ERRORS(result)                 \
+    do                                                 \
+    {                                                  \
+        ::hyperion::RendererResult _result = (result); \
+        (void)_result;                                 \
+    }                                                  \
     while (0)
 
 #define HYPERION_ASSERT_RESULT(result)                                                                                              \
@@ -89,17 +87,12 @@ using RendererResult = TResult<void, RendererError>;
     }                                                                                                                               \
     while (0)
 
-} // namespace renderer
-
-using renderer::RendererError;
-using renderer::RendererResult;
-
 } // namespace hyperion
 
 #if HYP_VULKAN
-    #include <rendering/backend/vulkan/RendererResult.hpp>
+#include <rendering/backend/vulkan/RendererResult.hpp>
 #else
-    #error Unsupported rendering backend
+#error Unsupported rendering backend
 #endif
 
 #endif

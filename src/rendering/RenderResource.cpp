@@ -76,13 +76,13 @@ bool RenderResourceBase::CanExecuteInline() const
 void RenderResourceBase::FlushScheduledTasks() const
 {
     HYP_FAIL("Cannot flush scheduled tasks in RenderResourceBase!");
-    // HYPERION_ASSERT_RESULT(renderer::RenderCommands::Flush());
+    // HYPERION_ASSERT_RESULT(RenderCommands::Flush());
 }
 
 void RenderResourceBase::EnqueueOp(Proc<void()>&& proc)
 {
     struct RENDER_COMMAND(RenderResourceOperation)
-        : renderer::RenderCommand
+        : RenderCommand
     {
         Proc<void()> proc;
 

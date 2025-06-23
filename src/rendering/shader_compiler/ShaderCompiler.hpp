@@ -27,12 +27,6 @@ namespace hyperion {
 
 class Engine;
 
-using renderer::DescriptorDeclaration;
-using renderer::DescriptorSetDeclaration;
-using renderer::DescriptorTableDeclaration;
-using renderer::IsRaytracingShaderModule;
-using renderer::ShaderModuleType;
-
 using ShaderPropertyFlags = uint32;
 
 enum ShaderPropertyFlagBits : ShaderPropertyFlags
@@ -779,7 +773,7 @@ HYP_STRUCT()
 struct DescriptorUsage
 {
     HYP_FIELD(Property = "Slot", Serialize = true)
-    renderer::DescriptorSlot slot;
+    DescriptorSlot slot;
 
     HYP_FIELD(Property = "SetName", Serialize = true)
     Name set_name;
@@ -797,13 +791,13 @@ struct DescriptorUsage
     HashMap<String, String> params;
 
     DescriptorUsage()
-        : slot(renderer::DESCRIPTOR_SLOT_NONE),
+        : slot(DESCRIPTOR_SLOT_NONE),
           set_name(Name::Invalid()),
           flags(DESCRIPTOR_USAGE_FLAG_NONE)
     {
     }
 
-    DescriptorUsage(renderer::DescriptorSlot slot, Name set_name, Name descriptor_name, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE, HashMap<String, String> params = {})
+    DescriptorUsage(DescriptorSlot slot, Name set_name, Name descriptor_name, DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE, HashMap<String, String> params = {})
         : slot(slot),
           set_name(set_name),
           descriptor_name(descriptor_name),
@@ -1131,7 +1125,7 @@ struct CompiledShader
     String entry_point_name = "main";
 
     HYP_FIELD(Property = "Modules", Serialize = false) // custom serialization used
-    HeapArray<ByteBuffer, ShaderModuleType::MAX> modules;
+    HeapArray<ByteBuffer, SMT_MAX> modules;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
@@ -1174,7 +1168,7 @@ struct CompiledShader
         return definition.properties;
     }
 
-    HYP_FORCE_INLINE const HeapArray<ByteBuffer, ShaderModuleType::MAX>& GetModules() const
+    HYP_FORCE_INLINE const HeapArray<ByteBuffer, SMT_MAX>& GetModules() const
     {
         return modules;
     }
@@ -1383,7 +1377,7 @@ public:
         {
             return Every(sources, [](const KeyValuePair<ShaderModuleType, SourceFile>& item)
                 {
-                    return item.first == ShaderModuleType::COMPUTE;
+                    return item.first == SMT_COMPUTE;
                 });
         }
 
@@ -1391,7 +1385,7 @@ public:
         {
             return AnyOf(sources, [](const KeyValuePair<ShaderModuleType, SourceFile>& item)
                 {
-                    return item.first == ShaderModuleType::VERTEX;
+                    return item.first == SMT_VERTEX;
                 });
         }
     };

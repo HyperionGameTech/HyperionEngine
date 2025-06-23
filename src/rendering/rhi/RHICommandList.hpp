@@ -445,21 +445,21 @@ private:
 class InsertBarrier final : public RHICommandBase
 {
 public:
-    InsertBarrier(const GPUBufferRef& buffer, const renderer::ResourceState& state, renderer::ShaderModuleType shader_module_type = renderer::ShaderModuleType::UNSET)
+    InsertBarrier(const GPUBufferRef& buffer, const ResourceState& state, ShaderModuleType shader_module_type = SMT_UNSET)
         : m_buffer(buffer),
           m_state(state),
           m_shader_module_type(shader_module_type)
     {
     }
 
-    InsertBarrier(const ImageRef& image, const renderer::ResourceState& state, renderer::ShaderModuleType shader_module_type = renderer::ShaderModuleType::UNSET)
+    InsertBarrier(const ImageRef& image, const ResourceState& state, ShaderModuleType shader_module_type = SMT_UNSET)
         : m_image(image),
           m_state(state),
           m_shader_module_type(shader_module_type)
     {
     }
 
-    InsertBarrier(const ImageRef& image, const renderer::ResourceState& state, const renderer::ImageSubResource& sub_resource, renderer::ShaderModuleType shader_module_type = renderer::ShaderModuleType::UNSET)
+    InsertBarrier(const ImageRef& image, const ResourceState& state, const ImageSubResource& sub_resource, ShaderModuleType shader_module_type = SMT_UNSET)
         : m_image(image),
           m_state(state),
           m_sub_resource(sub_resource),
@@ -489,9 +489,9 @@ public:
 private:
     GPUBufferRef m_buffer;
     ImageRef m_image;
-    renderer::ResourceState m_state;
-    Optional<renderer::ImageSubResource> m_sub_resource;
-    renderer::ShaderModuleType m_shader_module_type;
+    ResourceState m_state;
+    Optional<ImageSubResource> m_sub_resource;
+    ShaderModuleType m_shader_module_type;
 };
 
 class Blit final : public RHICommandBase

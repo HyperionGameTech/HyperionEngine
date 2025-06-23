@@ -49,14 +49,10 @@
 
 namespace hyperion {
 
-using renderer::CommandBufferType;
-using renderer::GPUBufferType;
-using renderer::IndirectDrawCommand;
-
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef particle_buffer;
     GPUBufferRef indirect_buffer;
@@ -111,7 +107,7 @@ struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
 };
 
 struct RENDER_COMMAND(DestroyParticleSystem)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     ThreadSafeContainer<ParticleSpawner>* spawners;
 
@@ -139,7 +135,7 @@ struct RENDER_COMMAND(DestroyParticleSystem)
 };
 
 struct RENDER_COMMAND(CreateParticleSystemBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef staging_buffer;
     Handle<Mesh> quad_mesh;
@@ -228,7 +224,7 @@ void ParticleSpawner::CreateRenderGroup()
     m_shader = g_shader_manager->GetOrCreate(NAME("Particle"));
     AssertThrow(m_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -251,7 +247,7 @@ void ParticleSpawner::CreateRenderGroup()
             MaterialAttributes {
                 .bucket = RB_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
-                .cull_faces = FaceCullMode::FRONT,
+                .cull_faces = FCM_FRONT,
                 .flags = MaterialAttributeFlags::DEPTH_TEST }),
         descriptor_table,
         RenderGroupFlags::NONE);
@@ -270,7 +266,7 @@ void ParticleSpawner::CreateComputePipelines()
     ShaderRef update_particles_shader = g_shader_manager->GetOrCreate(NAME("UpdateParticles"), properties);
     AssertThrow(update_particles_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -332,7 +328,7 @@ void ParticleSystem::Init()
 
 void ParticleSystem::CreateBuffers()
 {
-    m_staging_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
+    m_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(
         CreateParticleSystemBuffers,
@@ -359,7 +355,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
         return;
     }
 
-    frame->GetCommandList().Add<InsertBarrier>(m_staging_buffer, renderer::ResourceState::COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(m_staging_buffer, RS_COPY_SRC);
 
     for (auto& spawner : m_particle_spawners)
     {
@@ -370,7 +366,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
 
         frame->GetCommandList().Add<InsertBarrier>(
             spawner->GetIndirectBuffer(),
-            renderer::ResourceState::COPY_DST);
+            RS_COPY_DST);
 
         // copy zeros to buffer (to reset instance count)
         frame->GetCommandList().Add<CopyBuffer>(
@@ -380,7 +376,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
 
         frame->GetCommandList().Add<InsertBarrier>(
             spawner->GetIndirectBuffer(),
-            renderer::ResourceState::INDIRECT_ARG);
+            RS_INDIRECT_ARG);
 
         // @FIXME: frustum needs to be added to buffer data
         // if (active_camera != nullptr && !(*active_camera)->GetBufferData().frustum.ContainsBoundingSphere(spawner->GetBoundingSphere())) {
@@ -440,7 +436,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
 
         frame->GetCommandList().Add<InsertBarrier>(
             spawner->GetIndirectBuffer(),
-            renderer::ResourceState::INDIRECT_ARG);
+            RS_INDIRECT_ARG);
     }
 
     ++m_counter;

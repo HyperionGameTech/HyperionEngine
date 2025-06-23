@@ -25,40 +25,40 @@ namespace hyperion {
 #pragma region GBuffer
 
 const FixedArray<GBufferResource, GBUFFER_RESOURCE_MAX> GBuffer::gbuffer_resources = {
-    GBufferResource { GBufferFormat(DefaultImageFormatType::COLOR) },   // color
-    GBufferResource { GBufferFormat(DefaultImageFormatType::NORMALS) }, // normal
-    GBufferResource { GBufferFormat(InternalFormat::RGBA8) },           // material
-    GBufferResource {                                                   // lightmap
-        GBufferFormat(Array<InternalFormat> {
-            InternalFormat::R11G11B10F,
-            InternalFormat::RGBA16F }) },
-    GBufferResource { GBufferFormat(InternalFormat::RG16F) }, // velocity
-    GBufferResource {                                         // objects mask
-        GBufferFormat(Array<InternalFormat> {
-            InternalFormat::R16 }) },
-    GBufferResource { GBufferFormat(DefaultImageFormatType::NORMALS) }, // world-space normals (untextured)
-    GBufferResource { GBufferFormat(DefaultImageFormatType::DEPTH) }    // depth
+    GBufferResource { GBufferFormat(DIF_COLOR) },   // color
+    GBufferResource { GBufferFormat(DIF_NORMALS) }, // normal
+    GBufferResource { GBufferFormat(TF_RGBA8) },    // material
+    GBufferResource {                               // lightmap
+        GBufferFormat(Array<TextureFormat> {
+            TF_R11G11B10F,
+            TF_RGBA16F }) },
+    GBufferResource { GBufferFormat(TF_RG16F) }, // velocity
+    GBufferResource {                            // objects mask
+        GBufferFormat(Array<TextureFormat> {
+            TF_R16 }) },
+    GBufferResource { GBufferFormat(DIF_NORMALS) }, // world-space normals (untextured)
+    GBufferResource { GBufferFormat(DIF_DEPTH) }    // depth
 };
 
-static InternalFormat GetImageFormat(GBufferResourceName resource)
+static TextureFormat GetImageFormat(GBufferResourceName resource)
 {
     HYP_SCOPE;
 
-    InternalFormat color_format = InternalFormat::NONE;
+    TextureFormat color_format = TF_NONE;
 
-    if (const InternalFormat* format = GBuffer::gbuffer_resources[resource].format.TryGet<InternalFormat>())
+    if (const TextureFormat* format = GBuffer::gbuffer_resources[resource].format.TryGet<TextureFormat>())
     {
         color_format = *format;
     }
-    else if (const DefaultImageFormatType* default_format = GBuffer::gbuffer_resources[resource].format.TryGet<DefaultImageFormatType>())
+    else if (const DefaultImageFormat* default_format = GBuffer::gbuffer_resources[resource].format.TryGet<DefaultImageFormat>())
     {
         color_format = g_rendering_api->GetDefaultFormat(*default_format);
     }
-    else if (const Array<InternalFormat>* default_formats = GBuffer::gbuffer_resources[resource].format.TryGet<Array<InternalFormat>>())
+    else if (const Array<TextureFormat>* default_formats = GBuffer::gbuffer_resources[resource].format.TryGet<Array<TextureFormat>>())
     {
-        for (const InternalFormat format : *default_formats)
+        for (const TextureFormat format : *default_formats)
         {
-            if (g_rendering_api->IsSupportedFormat(format, renderer::ImageSupportType::SRV))
+            if (g_rendering_api->IsSupportedFormat(format, IS_SRV))
             {
                 color_format = format;
 
@@ -67,7 +67,7 @@ static InternalFormat GetImageFormat(GBufferResourceName resource)
         }
     }
 
-    AssertThrowMsg(color_format != InternalFormat::NONE, "Invalid value set for gbuffer image format");
+    AssertThrowMsg(color_format != TF_NONE, "Invalid value set for gbuffer image format");
 
     return color_format;
 }
@@ -180,22 +180,22 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
 
     FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(resolution);
 
-    auto add_owned_attachment = [&](uint32 binding, InternalFormat format)
+    auto add_owned_attachment = [&](uint32 binding, TextureFormat format)
     {
         TextureDesc texture_desc;
-        texture_desc.type = ImageType::TEXTURE_TYPE_2D;
+        texture_desc.type = TT_TEX2D;
         texture_desc.format = format;
         texture_desc.extent = Vec3u { resolution, 1 };
-        texture_desc.filter_mode_min = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
-        texture_desc.filter_mode_mag = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
-        texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
-        texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
+        texture_desc.filter_mode_min = TFM_NEAREST;
+        texture_desc.filter_mode_mag = TFM_NEAREST;
+        texture_desc.wrap_mode = TWM_CLAMP_TO_EDGE;
+        texture_desc.image_usage = IU_ATTACHMENT | IU_SAMPLED;
 
         framebuffer->AddAttachment(
             binding,
             g_rendering_api->MakeImage(texture_desc),
-            renderer::LoadOperation::CLEAR,
-            renderer::StoreOperation::STORE);
+            LoadOperation::CLEAR,
+            StoreOperation::STORE);
     };
 
     auto add_shared_attachment = [&](uint32 binding)
@@ -206,8 +206,8 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
         framebuffer->AddAttachment(
             binding,
             parent_attachment->GetImage(),
-            renderer::LoadOperation::LOAD,
-            renderer::StoreOperation::STORE);
+            LoadOperation::LOAD,
+            StoreOperation::STORE);
     };
 
     // add gbuffer attachments
@@ -229,7 +229,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
     }
     else
     {
-        add_owned_attachment(0, InternalFormat::RGBA16F);
+        add_owned_attachment(0, TF_RGBA16F);
     }
 
     // opaque creates the main non-color gbuffer attachments,
@@ -238,7 +238,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
     {
         for (uint32 i = 1; i < GBUFFER_RESOURCE_MAX; i++)
         {
-            const InternalFormat format = GetImageFormat(GBufferResourceName(i));
+            const TextureFormat format = GetImageFormat(GBufferResourceName(i));
 
             add_owned_attachment(i, format);
         }

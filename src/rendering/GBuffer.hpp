@@ -22,9 +22,7 @@ namespace hyperion {
 
 class Engine;
 
-using renderer::DefaultImageFormatType;
-
-using GBufferFormat = Variant<DefaultImageFormatType, InternalFormat, Array<InternalFormat>>;
+using GBufferFormat = Variant<DefaultImageFormat, TextureFormat, Array<TextureFormat>>;
 
 enum GBufferResourceName : uint32
 {

@@ -24,8 +24,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 #ifdef HYP_DEBUG_MODE
 static constexpr bool g_use_debug_layers = true;
 #else
@@ -404,28 +402,28 @@ RendererResult VulkanRenderingAPI::Initialize(AppContextBase& app_context)
     m_async_compute = async_compute;
 
     m_default_formats.Set(
-        DefaultImageFormatType::COLOR,
+        DIF_COLOR,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { InternalFormat::RGBA8, InternalFormat::R10G10B10A2, InternalFormat::RGBA16F } },
-            ImageSupportType::SRV));
+            { { TF_RGBA8, TF_R10G10B10A2, TF_RGBA16F } },
+            IS_SRV));
 
     m_default_formats.Set(
-        DefaultImageFormatType::DEPTH,
+        DIF_DEPTH,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { InternalFormat::DEPTH_24, InternalFormat::DEPTH_32F, InternalFormat::DEPTH_16 } },
-            ImageSupportType::DEPTH));
+            { { TF_DEPTH_24, TF_DEPTH_32F, TF_DEPTH_16 } },
+            IS_DEPTH));
 
     m_default_formats.Set(
-        DefaultImageFormatType::NORMALS,
+        DIF_NORMALS,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { InternalFormat::RGBA16F, InternalFormat::RGBA32F, InternalFormat::RGBA8 } },
-            ImageSupportType::SRV));
+            { { TF_RGBA16F, TF_RGBA32F, TF_RGBA8 } },
+            IS_SRV));
 
     m_default_formats.Set(
-        DefaultImageFormatType::STORAGE,
+        DIF_STORAGE,
         m_instance->GetDevice()->GetFeatures().FindSupportedFormat(
-            { { InternalFormat::RGBA16F } },
-            ImageSupportType::UAV));
+            { { TF_RGBA16F } },
+            IS_UAV));
 
     return {};
 }
@@ -618,7 +616,7 @@ ImageViewRef VulkanRenderingAPI::MakeImageView(const ImageRef& image, uint32 mip
     return MakeRenderObject<VulkanImageView>(VulkanImageRef(image), mip_index, num_mips, face_index, num_faces);
 }
 
-SamplerRef VulkanRenderingAPI::MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode)
+SamplerRef VulkanRenderingAPI::MakeSampler(TextureFilterMode filter_mode_min, TextureFilterMode filter_mode_mag, TextureWrapMode wrap_mode)
 {
     return MakeRenderObject<VulkanSampler>(filter_mode_min, filter_mode_mag, wrap_mode);
 }
@@ -667,7 +665,7 @@ TLASRef VulkanRenderingAPI::MakeTLAS()
     return MakeRenderObject<VulkanTLAS>();
 }
 
-InternalFormat VulkanRenderingAPI::GetDefaultFormat(DefaultImageFormatType type) const
+TextureFormat VulkanRenderingAPI::GetDefaultFormat(DefaultImageFormat type) const
 {
     auto it = m_default_formats.Find(type);
     if (it != m_default_formats.End())
@@ -675,15 +673,15 @@ InternalFormat VulkanRenderingAPI::GetDefaultFormat(DefaultImageFormatType type)
         return it->second;
     }
 
-    return InternalFormat::NONE;
+    return TF_NONE;
 }
 
-bool VulkanRenderingAPI::IsSupportedFormat(InternalFormat format, ImageSupportType support_type) const
+bool VulkanRenderingAPI::IsSupportedFormat(TextureFormat format, ImageSupport support_type) const
 {
     return m_instance->GetDevice()->GetFeatures().IsSupportedFormat(format, support_type);
 }
 
-InternalFormat VulkanRenderingAPI::FindSupportedFormat(Span<InternalFormat> possible_formats, ImageSupportType support_type) const
+TextureFormat VulkanRenderingAPI::FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const
 {
     return m_instance->GetDevice()->GetFeatures().FindSupportedFormat(possible_formats, support_type);
 }
@@ -692,15 +690,15 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
 {
     QueryImageCapabilitiesResult result;
 
-    const InternalFormat format = texture_desc.format;
-    const ImageType type = texture_desc.type;
+    const TextureFormat format = texture_desc.format;
+    const TextureType type = texture_desc.type;
 
-    const bool is_attachment_texture = texture_desc.image_format_capabilities[ImageFormatCapabilities::ATTACHMENT];
-    const bool is_rw_texture = texture_desc.image_format_capabilities[ImageFormatCapabilities::STORAGE];
+    const bool is_attachment_texture = texture_desc.image_usage[IU_ATTACHMENT];
+    const bool is_rw_texture = texture_desc.image_usage[IU_STORAGE];
 
     const bool is_depth_stencil = texture_desc.IsDepthStencil();
     const bool is_srgb = texture_desc.IsSRGB();
-    const bool is_blended = texture_desc.image_format_capabilities[ImageFormatCapabilities::BLENDED];
+    const bool is_blended = texture_desc.image_usage[IU_BLENDED];
 
     const bool has_mipmaps = texture_desc.HasMipmaps();
     const uint32 num_mipmaps = texture_desc.NumMipmaps();
@@ -741,11 +739,11 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
 
         switch (texture_desc.filter_mode_min)
         {
-        case FilterMode::TEXTURE_FILTER_LINEAR: // fallthrough
-        case FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP:
+        case TFM_LINEAR: // fallthrough
+        case TFM_LINEAR_MIPMAP:
             vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
             break;
-        case FilterMode::TEXTURE_FILTER_MINMAX_MIPMAP:
+        case TFM_MINMAX_MIPMAP:
             vk_format_features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
             break;
         default:
@@ -797,5 +795,4 @@ HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSet
     return layout.GetVulkanHandle();
 }
 
-} // namespace renderer
 } // namespace hyperion

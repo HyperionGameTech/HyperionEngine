@@ -3,8 +3,6 @@
 #include <rendering/backend/RendererFeatures.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 Features::DynamicFunctions Features::dyn_functions = {};
 
 Features::Features()
@@ -186,9 +184,9 @@ void Features::SetDeviceFeatures(Device* device)
 
     for (size_t i = 0; i < sz; i++)
     {
-    #ifdef HYP_DEBUG_MODE
+#ifdef HYP_DEBUG_MODE
         mvk_config[i].debugMode = true;
-    #endif
+#endif
     }
 
     dyn_functions.vkSetMoltenVKConfigurationMVK(VK_NULL_HANDLE, mvk_config, &sz);
@@ -197,5 +195,4 @@ void Features::SetDeviceFeatures(Device* device)
 #endif
 }
 
-} // namespace renderer
 } // namespace hyperion

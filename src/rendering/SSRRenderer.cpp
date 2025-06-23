@@ -27,11 +27,9 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
 static constexpr bool use_temporal_blending = true;
 
-static constexpr InternalFormat ssr_format = InternalFormat::RGBA16F;
+static constexpr TextureFormat ssr_format = TF_RGBA16F;
 
 struct SSRUniforms
 {
@@ -50,7 +48,7 @@ struct SSRUniforms
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateSSRUniformBuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     SSRUniforms uniforms;
     GPUBufferRef uniform_buffer;
@@ -111,28 +109,28 @@ SSRRenderer::~SSRRenderer()
 void SSRRenderer::Create()
 {
     m_uvs_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA16F,
+        TT_TEX2D,
+        TF_RGBA16F,
         Vec3u(m_config.extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_uvs_texture);
 
     m_uvs_texture->SetPersistentRenderResourceEnabled(true);
 
     m_sampled_result_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         ssr_format,
         Vec3u(m_config.extent, 1),
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_sampled_result_texture);
 
@@ -144,7 +142,7 @@ void SSRRenderer::Create()
     {
         m_temporal_blending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            InternalFormat::RGBA16F,
+            TF_RGBA16F,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             m_sampled_result_texture->GetRenderResource().GetImageView(),
@@ -179,13 +177,13 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
 
     switch (ssr_format)
     {
-    case InternalFormat::RGBA8:
+    case TF_RGBA8:
         shader_properties.Set("OUTPUT_RGBA8");
         break;
-    case InternalFormat::RGBA16F:
+    case TF_RGBA16F:
         shader_properties.Set("OUTPUT_RGBA16F");
         break;
-    case InternalFormat::RGBA32F:
+    case TF_RGBA32F:
         shader_properties.Set("OUTPUT_RGBA32F");
         break;
     }
@@ -221,7 +219,7 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef write_uvs_shader = g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties);
     AssertThrow(write_uvs_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&write_uvs_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -253,7 +251,7 @@ void SSRRenderer::CreateComputePipelines()
     ShaderRef sample_gbuffer_shader = g_shader_manager->GetOrCreate(NAME("SSRSampleGBuffer"), shader_properties);
     AssertThrow(sample_gbuffer_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&sample_gbuffer_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -298,7 +296,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     { // PASS 1 -- write UVs
 
-        frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+        frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
         frame->GetCommandList().Add<BindComputePipeline>(m_write_uvs);
 
@@ -327,12 +325,12 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
         frame->GetCommandList().Add<DispatchCompute>(m_write_uvs, Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition the UV image back into read state
-        frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_uvs_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
     }
 
     { // PASS 2 - sample textures
         // put sample image in writeable state
-        frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::UNORDERED_ACCESS);
+        frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
         frame->GetCommandList().Add<BindComputePipeline>(m_sample_gbuffer);
 
@@ -361,7 +359,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
         frame->GetCommandList().Add<DispatchCompute>(m_sample_gbuffer, Vec3u { num_dispatch_calls, 1, 1 });
 
         // transition sample image back into read state
-        frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), renderer::ResourceState::SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(m_sampled_result_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
     }
 
     if (use_temporal_blending && m_temporal_blending != nullptr)

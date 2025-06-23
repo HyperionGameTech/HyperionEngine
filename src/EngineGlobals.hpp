@@ -15,12 +15,7 @@ class SafeDeleter;
 class ShaderManager;
 class MaterialCache;
 class RenderGlobalState;
-
-namespace renderer {
 class IRenderingAPI;
-} // namespace renderer
-
-using renderer::IRenderingAPI;
 
 extern Handle<Engine> g_engine;
 extern Handle<AssetManager> g_asset_manager;

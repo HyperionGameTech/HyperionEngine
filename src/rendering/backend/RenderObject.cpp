@@ -15,11 +15,9 @@
 
 namespace hyperion {
 
-using renderer::Platform;
-
 #pragma region RenderObjectContainerBase
 
-renderer::RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView render_object_type_name)
+RenderObjectContainerBase::RenderObjectContainerBase(ANSIStringView render_object_type_name)
 {
 }
 

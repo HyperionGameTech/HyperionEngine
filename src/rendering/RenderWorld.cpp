@@ -286,10 +286,6 @@ void RenderWorld::PostRender(FrameBase* frame)
 
 #pragma endregion RenderWorld
 
-namespace renderer {
-
 HYP_DESCRIPTOR_CBUFF(Global, WorldsBuffer, 1, sizeof(WorldShaderData), true);
-
-} // namespace renderer
 
 } // namespace hyperion

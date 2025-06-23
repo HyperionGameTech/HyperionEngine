@@ -15,8 +15,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanCommandBuffer;
 
 struct VulkanAttachmentDef
@@ -90,8 +88,8 @@ struct VulkanAttachmentMap
     HYP_FORCE_INLINE VulkanAttachmentRef AddAttachment(
         uint32 binding,
         Vec2u extent,
-        InternalFormat format,
-        ImageType type,
+        TextureFormat format,
+        TextureType type,
         RenderPassStage stage,
         LoadOperation load_op,
         StoreOperation store_op)
@@ -100,7 +98,7 @@ struct VulkanAttachmentMap
         texture_desc.type = type;
         texture_desc.format = format;
         texture_desc.extent = Vec3u { extent.x, extent.y, 1 };
-        texture_desc.image_format_capabilities = ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::ATTACHMENT;
+        texture_desc.image_usage = IU_SAMPLED | IU_ATTACHMENT;
 
         VulkanImageRef image = MakeRenderObject<VulkanImage>(texture_desc);
 
@@ -144,8 +142,8 @@ public:
 
     HYP_API virtual AttachmentRef AddAttachment(
         uint32 binding,
-        InternalFormat format,
-        ImageType type,
+        TextureFormat format,
+        TextureType type,
         LoadOperation load_op,
         StoreOperation store_op) override;
 
@@ -174,7 +172,6 @@ private:
     VulkanAttachmentMap m_attachment_map;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // RENDERER_FBO_HPP

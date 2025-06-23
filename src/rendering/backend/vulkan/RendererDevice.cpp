@@ -17,7 +17,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
 namespace platform {
 
 Device<Platform::vulkan>::Device(VkPhysicalDevice physical, VkSurfaceKHR surface)
@@ -569,5 +568,5 @@ void Device<Platform::vulkan>::Destroy()
 }
 
 } // namespace platform
-} // namespace renderer
+
 } // namespace hyperion

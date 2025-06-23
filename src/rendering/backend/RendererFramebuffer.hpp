@@ -12,8 +12,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class FramebufferBase : public RenderObject<FramebufferBase>
 {
 public:
@@ -45,8 +43,8 @@ public:
     HYP_API virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef& image, LoadOperation load_op, StoreOperation store_op) = 0;
     HYP_API virtual AttachmentRef AddAttachment(
         uint32 binding,
-        InternalFormat format,
-        ImageType type,
+        TextureFormat format,
+        TextureType type,
         LoadOperation load_op,
         StoreOperation store_op) = 0;
 
@@ -65,7 +63,6 @@ protected:
     Vec2u m_extent;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

@@ -6,8 +6,6 @@
 #include <core/debug/Debug.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 #define HYPERION_VK_CHECK(vk_result)                                                           \
     do                                                                                         \
     {                                                                                          \
@@ -40,7 +38,6 @@ namespace renderer {
     }                                                                          \
     while (0)
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

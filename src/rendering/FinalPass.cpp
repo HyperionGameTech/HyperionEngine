@@ -38,7 +38,7 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 #pragma region Render commands
 
 struct RENDER_COMMAND(SetUILayerImageView)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     FinalPass& final_pass;
     ImageViewRef image_view;
@@ -140,7 +140,7 @@ void FinalPass::Create()
     ShaderRef render_texture_to_screen_shader = g_shader_manager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -168,8 +168,8 @@ void FinalPass::Create()
         nullptr);
 
     m_render_texture_to_screen_pass->SetBlendFunction(BlendFunction(
-        BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-        BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA));
+        BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+        BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA));
 
     m_render_texture_to_screen_pass->Create();
 }

@@ -1835,9 +1835,9 @@ MaterialAttributes UIObject::GetMaterialAttributes() const
 
     return MaterialAttributes {
         .shader_definition = ShaderDefinition { NAME("UIObject"), ShaderProperties(static_mesh_vertex_attributes) },
-        .blend_function = BlendFunction(BlendModeFactor::SRC_ALPHA, BlendModeFactor::ONE_MINUS_SRC_ALPHA,
-            BlendModeFactor::ONE, BlendModeFactor::ONE_MINUS_SRC_ALPHA),
-        .cull_faces = FaceCullMode::BACK,
+        .blend_function = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
+        .cull_faces = FCM_BACK,
         .flags = MaterialAttributeFlags::NONE
     };
 }

@@ -134,6 +134,8 @@ struct InstancedDrawCall : DrawCallBase
     ID<Entity> entity_ids[max_entities_per_instance_batch];
 };
 
+/// TODO: Refactor to a basic desc struct for Batch size info,
+/// and use g_render_global_state to acquire batch holder / acquire and release batches.
 class IDrawCallCollectionImpl
 {
 public:

@@ -43,7 +43,7 @@ public:
 private:
     SwapchainRef m_swapchain;
     Vec2u m_extent;
-    InternalFormat m_image_format;
+    TextureFormat m_image_format;
     Handle<Mesh> m_quad_mesh;
     ImageViewRef m_ui_layer_image_view;
     UniquePtr<FullScreenPass> m_render_texture_to_screen_pass;

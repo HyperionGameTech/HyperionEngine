@@ -8,8 +8,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class ComputePipelineBase : public RenderObject<ComputePipelineBase>
 {
 public:
@@ -62,7 +60,6 @@ protected:
     DescriptorTableRef m_descriptor_table;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

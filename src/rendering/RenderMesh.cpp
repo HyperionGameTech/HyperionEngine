@@ -30,8 +30,6 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
 #pragma region RenderMesh
 
 RenderMesh::RenderMesh(Mesh* mesh)
@@ -160,15 +158,15 @@ void RenderMesh::UploadMeshData()
         HYPERION_ASSERT_RESULT(m_ibo->Create());
     }
 
-    GPUBufferRef staging_buffer_vertices = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, packed_buffer_size);
+    GPUBufferRef staging_buffer_vertices = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_buffer_size);
     HYPERION_ASSERT_RESULT(staging_buffer_vertices->Create());
     staging_buffer_vertices->Copy(packed_buffer_size, vertex_buffer.Data());
 
-    GPUBufferRef staging_buffer_indices = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, packed_indices_size);
+    GPUBufferRef staging_buffer_indices = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_indices_size);
     HYPERION_ASSERT_RESULT(staging_buffer_indices->Create());
     staging_buffer_indices->Copy(packed_indices_size, index_buffer.Data());
 
-    renderer::SingleTimeCommands commands;
+    SingleTimeCommands commands;
 
     commands.Push([&](RHICommandList& cmd)
         {
@@ -356,7 +354,7 @@ BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
     }
 
     struct RENDER_COMMAND(BuildBLAS)
-        : public renderer::RenderCommand
+        : public RenderCommand
     {
         Task<BLASRef>* task;
         Array<PackedVertex> packed_vertices;
@@ -420,7 +418,7 @@ BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
             indices_staging_buffer->Memset(packed_indices_size, 0); // zero out
             indices_staging_buffer->Copy(packed_indices.Size() * sizeof(uint32), packed_indices.Data());
 
-            renderer::SingleTimeCommands commands;
+            SingleTimeCommands commands;
 
             commands.Push([&](RHICommandList& cmd)
                 {

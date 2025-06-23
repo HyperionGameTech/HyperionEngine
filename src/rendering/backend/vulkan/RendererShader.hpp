@@ -6,8 +6,6 @@
 #include <rendering/backend/RendererShader.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 struct VulkanShaderModule
 {
     ShaderModuleType type;
@@ -112,7 +110,6 @@ private:
     Array<VkPipelineShaderStageCreateInfo> m_vk_shader_stages;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif // HYPERION_RENDERER_BACKEND_VULKAN_SHADER_HPP

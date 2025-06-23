@@ -21,9 +21,6 @@
 
 namespace hyperion {
 
-using renderer::Device;
-using renderer::GPUBufferType;
-
 class Texture;
 
 class HYP_API PlaceholderData

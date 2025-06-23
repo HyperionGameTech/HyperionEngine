@@ -41,11 +41,11 @@ SkydomeRenderer::~SkydomeRenderer()
 void SkydomeRenderer::Init()
 {
     m_cubemap = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_CUBEMAP,
-        InternalFormat::R11G11B10F,
+        TT_CUBEMAP,
+        TF_R11G11B10F,
         Vec3u { m_dimensions.x, m_dimensions.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-        FilterMode::TEXTURE_FILTER_LINEAR });
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR });
 
     InitObject(m_cubemap);
     m_cubemap->SetPersistentRenderResourceEnabled(true);
@@ -117,7 +117,7 @@ void SkydomeRenderer::OnRemovedFromWorld()
 void SkydomeRenderer::Update(float delta)
 {
     struct RENDER_COMMAND(RenderSky)
-        : public renderer::RenderCommand
+        : public RenderCommand
     {
         RenderWorld* world;
         RenderTexture* cubemap;
@@ -156,15 +156,15 @@ void SkydomeRenderer::Update(float delta)
 
             const ImageRef& dst_image = cubemap->GetImage();
 
-            frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
-            frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
+            frame->GetCommandList().Add<InsertBarrier>(src_image, RS_COPY_SRC);
+            frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_COPY_DST);
 
             frame->GetCommandList().Add<Blit>(src_image, dst_image);
 
             frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
 
-            frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
-            frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(src_image, RS_SHADER_RESOURCE);
+            frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_SHADER_RESOURCE);
 
             HYPERION_RETURN_OK;
         }

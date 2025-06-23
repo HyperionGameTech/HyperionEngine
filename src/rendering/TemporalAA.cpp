@@ -69,28 +69,28 @@ void TemporalAA::Create()
 void TemporalAA::CreateImages()
 {
     m_result_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA16F,
+        TT_TEX2D,
+        TF_RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_result_texture);
 
     m_result_texture->SetPersistentRenderResourceEnabled(true);
 
     m_history_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
-        InternalFormat::RGBA16F,
+        TT_TEX2D,
+        TF_RGBA16F,
         Vec3u { m_extent.x, m_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         1,
-        ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED });
+        IU_STORAGE | IU_SAMPLED });
 
     InitObject(m_history_texture);
 
@@ -102,7 +102,7 @@ void TemporalAA::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalAA"));
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -152,7 +152,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
         ? m_result_texture->GetRenderResource().GetImage()
         : m_history_texture->GetRenderResource().GetImage();
 
-    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, RS_UNORDERED_ACCESS);
 
     struct
     {
@@ -181,7 +181,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& render_setup)
         frame_index);
 
     frame->GetCommandList().Add<DispatchCompute>(m_compute_taa, Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
-    frame->GetCommandList().Add<InsertBarrier>(active_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(active_image, RS_SHADER_RESOURCE);
 }
 
 } // namespace hyperion

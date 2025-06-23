@@ -32,87 +32,87 @@ static auto CreatePlaceholderBitmap(Vec2u dimensions)
 
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_2D,
-          renderer::InternalFormat::R8,
+          TT_TEX2D,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED })),
+          IU_SAMPLED })),
       m_image_view_2d_1x1_r8(g_rendering_api->MakeImageView(m_image_2d_1x1_r8)),
       m_image_2d_1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_2D,
-          renderer::InternalFormat::R8,
+          TT_TEX2D,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED })),
+          IU_STORAGE | IU_SAMPLED })),
       m_image_view_2d_1x1_r8_storage(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_storage)),
       m_image_3d_1x1x1_r8(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_3D,
-          renderer::InternalFormat::R8,
+          TT_TEX3D,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED })),
+          IU_SAMPLED })),
       m_image_view_3d_1x1x1_r8(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8)),
       m_image_3d_1x1x1_r8_storage(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_3D,
-          renderer::InternalFormat::R8,
+          TT_TEX3D,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::STORAGE | ImageFormatCapabilities::SAMPLED })),
+          IU_STORAGE | IU_SAMPLED })),
       m_image_view_3d_1x1x1_r8_storage(g_rendering_api->MakeImageView(m_image_3d_1x1x1_r8_storage)),
       m_image_cube_1x1_r8(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_CUBEMAP,
-          renderer::InternalFormat::R8,
+          TT_CUBEMAP,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED })),
+          IU_SAMPLED })),
       m_image_view_cube_1x1_r8(g_rendering_api->MakeImageView(m_image_cube_1x1_r8)),
       m_image_2d_1x1_r8_array(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_2D_ARRAY,
-          renderer::InternalFormat::R8,
+          TT_TEX2D_ARRAY,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED })),
+          IU_SAMPLED })),
       m_image_view_2d_1x1_r8_array(g_rendering_api->MakeImageView(m_image_2d_1x1_r8_array)),
       m_image_cube_1x1_r8_array(g_rendering_api->MakeImage(TextureDesc {
-          renderer::ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY,
-          renderer::InternalFormat::R8,
+          TT_CUBEMAP_ARRAY,
+          TF_R8,
           Vec3u::One(),
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE,
           1,
-          ImageFormatCapabilities::SAMPLED })),
+          IU_SAMPLED })),
       m_image_view_cube_1x1_r8_array(g_rendering_api->MakeImageView(m_image_cube_1x1_r8_array)),
       m_sampler_linear(g_rendering_api->MakeSampler(
-          renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::WrapMode::TEXTURE_WRAP_REPEAT)),
+          TFM_LINEAR,
+          TFM_LINEAR,
+          TWM_REPEAT)),
       m_sampler_linear_mipmap(g_rendering_api->MakeSampler(
-          renderer::FilterMode::TEXTURE_FILTER_LINEAR_MIPMAP,
-          renderer::FilterMode::TEXTURE_FILTER_LINEAR,
-          renderer::WrapMode::TEXTURE_WRAP_REPEAT)),
+          TFM_LINEAR_MIPMAP,
+          TFM_LINEAR,
+          TWM_REPEAT)),
       m_sampler_nearest(g_rendering_api->MakeSampler(
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::FilterMode::TEXTURE_FILTER_NEAREST,
-          renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE))
+          TFM_NEAREST,
+          TFM_NEAREST,
+          TWM_CLAMP_TO_EDGE))
 {
 }
 
@@ -173,14 +173,14 @@ void PlaceholderData::Create()
 
     DefaultTexture2D = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_2D,
-            InternalFormat::RGBA8,
+            TT_TEX2D,
+            TF_RGBA8,
             Vec3u::One(),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE },
+            IU_SAMPLED | IU_STORAGE },
         CreatePlaceholderBitmap<4>(Vec2u::One()).GetUnpackedBytes(4) });
 
     DefaultTexture2D->SetName(NAME("Placeholder_Texture_2D_1x1_R8"));
@@ -189,14 +189,14 @@ void PlaceholderData::Create()
 
     DefaultTexture3D = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_3D,
-            InternalFormat::R8,
+            TT_TEX3D,
+            TF_R8,
             Vec3u::One(),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE } });
+            IU_SAMPLED | IU_STORAGE } });
 
     DefaultTexture3D->SetName(NAME("Placeholder_Texture_3D_1x1x1_R8"));
     InitObject(DefaultTexture3D);
@@ -204,14 +204,14 @@ void PlaceholderData::Create()
 
     DefaultCubemap = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_CUBEMAP,
-            InternalFormat::R8,
+            TT_CUBEMAP,
+            TF_R8,
             Vec3u::One(),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE } });
+            IU_SAMPLED | IU_STORAGE } });
 
     DefaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
     InitObject(DefaultCubemap);
@@ -219,14 +219,14 @@ void PlaceholderData::Create()
 
     DefaultTexture2DArray = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_2D_ARRAY,
-            InternalFormat::R8,
+            TT_TEX2D_ARRAY,
+            TF_R8,
             Vec3u::One(),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE } });
+            IU_SAMPLED | IU_STORAGE } });
 
     DefaultTexture2DArray->SetName(NAME("Placeholder_Texture_2D_1x1_R8_Array"));
     InitObject(DefaultTexture2DArray);
@@ -234,14 +234,14 @@ void PlaceholderData::Create()
 
     DefaultCubemapArray = CreateObject<Texture>(TextureData {
         TextureDesc {
-            ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY,
-            InternalFormat::R8,
+            TT_CUBEMAP_ARRAY,
+            TF_R8,
             Vec3u::One(),
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            FilterMode::TEXTURE_FILTER_NEAREST,
-            WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+            TFM_NEAREST,
+            TFM_NEAREST,
+            TWM_CLAMP_TO_EDGE,
             1,
-            ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE } });
+            IU_SAMPLED | IU_STORAGE } });
 
     DefaultCubemapArray->SetName(NAME("Placeholder_Texture_Cube_1x1_R8_Array"));
     InitObject(DefaultCubemapArray);

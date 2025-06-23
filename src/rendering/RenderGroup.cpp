@@ -43,8 +43,6 @@
 
 namespace hyperion {
 
-using renderer::CommandBufferType;
-
 #pragma region RenderGroup
 
 RenderGroup::RenderGroup()
@@ -185,7 +183,7 @@ void RenderGroup::CreateGraphicsPipeline()
 
     if (!m_descriptor_table.IsValid())
     {
-        const renderer::DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+        const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
         m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
         m_descriptor_table->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));

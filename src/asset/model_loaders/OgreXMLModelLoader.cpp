@@ -292,7 +292,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
         scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
 
-        Handle<Mesh> mesh = CreateObject<Mesh>(model.vertices, sub_mesh.indices, Topology::TRIANGLES);
+        Handle<Mesh> mesh = CreateObject<Mesh>(model.vertices, sub_mesh.indices, TOP_TRIANGLES);
         mesh->CalculateNormals();
 
         MaterialAttributes material_attributes {};

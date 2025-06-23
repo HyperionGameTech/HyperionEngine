@@ -8,15 +8,13 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanSampler final : public SamplerBase
 {
 public:
     HYP_API VulkanSampler(
-        FilterMode min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE);
+        TextureFilterMode min_filter_mode = TFM_NEAREST,
+        TextureFilterMode mag_filter_mode = TFM_NEAREST,
+        TextureWrapMode wrap_mode = TWM_CLAMP_TO_EDGE);
 
     HYP_API virtual ~VulkanSampler() override;
 
@@ -34,7 +32,6 @@ private:
     VkSampler m_handle;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

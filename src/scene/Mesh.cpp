@@ -20,8 +20,6 @@
 
 namespace hyperion {
 
-using renderer::GPUBufferType;
-
 #pragma region Mesh
 
 Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& vertices)
@@ -62,7 +60,7 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& v
 
 Mesh::Mesh()
     : HypObject(),
-      m_mesh_attributes { .vertex_attributes = static_mesh_vertex_attributes, .topology = Topology::TRIANGLES },
+      m_mesh_attributes { .vertex_attributes = static_mesh_vertex_attributes, .topology = TOP_TRIANGLES },
       m_aabb(BoundingBox::Empty()),
       m_render_resource(nullptr)
 {

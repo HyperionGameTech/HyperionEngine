@@ -115,9 +115,10 @@ template <class T>
 struct ID : IDBase
 {
     static const ID invalid;
+    static constexpr TypeID type_id_static = TypeID::ForType<T>();
 
     constexpr ID()
-        : IDBase { TypeID::ForType<T>(), 0 }
+        : IDBase { type_id_static, 0 }
     {
     }
 
@@ -136,7 +137,7 @@ struct ID : IDBase
 
     static ID FromIndex(uint32 index)
     {
-        return ID { IDBase { TypeID::ForType<T>(), index + 1 } };
+        return ID { IDBase { type_id_static, index + 1 } };
     }
 
     /*! \brief Allows implicit conversion to ID<Ty> where T is convertible to Ty.

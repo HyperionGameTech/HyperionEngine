@@ -4,6 +4,6 @@
 
 #include <utility>
 
-namespace hyperion::renderer {
+namespace hyperion {
 
-} // namespace hyperion::renderer
+} // namespace hyperion

@@ -13,8 +13,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -65,5 +63,4 @@ void VulkanPipelineBase::SetPushConstants(const void* data, SizeType size)
 
 #pragma endregion VulkanPipelineBase
 
-} // namespace renderer
 } // namespace hyperion

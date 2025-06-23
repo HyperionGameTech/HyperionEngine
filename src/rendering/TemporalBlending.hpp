@@ -50,7 +50,7 @@ public:
 
     TemporalBlending(
         const Vec2u& extent,
-        InternalFormat image_format,
+        TextureFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
         const FramebufferRef& input_framebuffer,
@@ -58,7 +58,7 @@ public:
 
     TemporalBlending(
         const Vec2u& extent,
-        InternalFormat image_format,
+        TextureFormat image_format,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
         const ImageViewRef& input_image_view,
@@ -105,7 +105,7 @@ private:
     void CreateComputePipelines();
 
     Vec2u m_extent;
-    InternalFormat m_image_format;
+    TextureFormat m_image_format;
     TemporalBlendTechnique m_technique;
     TemporalBlendFeedback m_feedback;
     GBuffer* m_gbuffer;

@@ -63,14 +63,14 @@ void ShadowMapAllocator::Initialize()
     Threads::AssertOnThread(g_render_thread);
 
     m_atlas_image = g_rendering_api->MakeImage(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D_ARRAY,
-        InternalFormat::RG32F,
+        TT_TEX2D_ARRAY,
+        TF_RG32F,
         Vec3u { m_atlas_dimensions, 1 },
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         uint32(m_atlases.Size()),
-        ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE });
+        IU_SAMPLED | IU_STORAGE });
 
     HYPERION_ASSERT_RESULT(m_atlas_image->Create());
 
@@ -78,14 +78,14 @@ void ShadowMapAllocator::Initialize()
     HYPERION_ASSERT_RESULT(m_atlas_image_view->Create());
 
     m_point_light_shadow_map_image = g_rendering_api->MakeImage(TextureDesc {
-        ImageType::TEXTURE_TYPE_CUBEMAP_ARRAY,
-        InternalFormat::RG32F,
+        TT_CUBEMAP_ARRAY,
+        TF_RG32F,
         Vec3u { 512, 512, 1 },
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        FilterMode::TEXTURE_FILTER_NEAREST,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE,
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
         max_bound_point_shadow_maps * 6,
-        ImageFormatCapabilities::SAMPLED | ImageFormatCapabilities::STORAGE });
+        IU_SAMPLED | IU_STORAGE });
 
     HYPERION_ASSERT_RESULT(m_point_light_shadow_map_image->Create());
 
@@ -306,12 +306,8 @@ void RenderShadowMap::UpdateBufferData()
 
 #pragma endregion RenderShadowMap
 
-namespace renderer {
-
 HYP_DESCRIPTOR_SRV(Global, ShadowMapsTextureArray, 1);
 HYP_DESCRIPTOR_SRV(Global, PointLightShadowMapsTextureArray, 1);
 HYP_DESCRIPTOR_SSBO(Global, ShadowMapsBuffer, 1, ~0u, false);
-
-} // namespace renderer
 
 } // namespace hyperion

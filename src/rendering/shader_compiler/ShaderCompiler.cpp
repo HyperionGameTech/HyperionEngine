@@ -72,7 +72,7 @@ static String BuildDescriptorTableDefines(const DescriptorTableDeclaration& desc
 
         if (descriptor_set_declaration.flags[DescriptorSetDeclarationFlags::REFERENCE])
         {
-            const DescriptorSetDeclaration* referenced_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
+            const DescriptorSetDeclaration* referenced_descriptor_set_declaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_set_declaration.name);
             AssertThrow(referenced_descriptor_set_declaration != nullptr);
 
             descriptor_set_declaration_ptr = referenced_descriptor_set_declaration;
@@ -133,7 +133,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
 
     for (const DescriptorUsage& descriptor_usage : elements)
     {
-        AssertThrowMsg(descriptor_usage.slot != renderer::DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptor_usage.slot < renderer::DescriptorSlot::DESCRIPTOR_SLOT_MAX,
+        AssertThrowMsg(descriptor_usage.slot != DescriptorSlot::DESCRIPTOR_SLOT_NONE && descriptor_usage.slot < DescriptorSlot::DESCRIPTOR_SLOT_MAX,
             "Descriptor usage %s has invalid slot %d", descriptor_usage.descriptor_name.LookupString(), descriptor_usage.slot);
 
         DescriptorSetDeclaration* descriptor_set_declaration = table.FindDescriptorSetDeclaration(descriptor_usage.set_name);
@@ -141,7 +141,7 @@ DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration()
         // check if this descriptor set is defined in the static descriptor table
         // if it is, we can use those definitions
         // otherwise, it is a 'custom' descriptor set
-        DescriptorSetDeclaration* static_descriptor_set_declaration = renderer::GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_usage.set_name);
+        DescriptorSetDeclaration* static_descriptor_set_declaration = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(descriptor_usage.set_name);
 
         if (static_descriptor_set_declaration != nullptr)
         {
@@ -342,55 +342,55 @@ static bool PreprocessShaderSource(
 
     switch (type)
     {
-    case ShaderModuleType::VERTEX:
+    case SMT_VERTEX:
         stage = GLSLANG_STAGE_VERTEX;
         stage_string = "VERTEX_SHADER";
         break;
-    case ShaderModuleType::FRAGMENT:
+    case SMT_FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
         stage_string = "FRAGMENT_SHADER";
         break;
-    case ShaderModuleType::GEOMETRY:
+    case SMT_GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
         stage_string = "GEOMETRY_SHADER";
         break;
-    case ShaderModuleType::COMPUTE:
+    case SMT_COMPUTE:
         stage = GLSLANG_STAGE_COMPUTE;
         stage_string = "COMPUTE_SHADER";
         break;
-    case ShaderModuleType::TASK:
+    case SMT_TASK:
         stage = GLSLANG_STAGE_TASK_NV;
         stage_string = "TASK_SHADER";
         break;
-    case ShaderModuleType::MESH:
+    case SMT_MESH:
         stage = GLSLANG_STAGE_MESH_NV;
         stage_string = "MESH_SHADER";
         break;
-    case ShaderModuleType::TESS_CONTROL:
+    case SMT_TESS_CONTROL:
         stage = GLSLANG_STAGE_TESSCONTROL;
         stage_string = "TESS_CONTROL_SHADER";
         break;
-    case ShaderModuleType::TESS_EVAL:
+    case SMT_TESS_EVAL:
         stage = GLSLANG_STAGE_TESSEVALUATION;
         stage_string = "TESS_EVAL_SHADER";
         break;
-    case ShaderModuleType::RAY_GEN:
+    case SMT_RAY_GEN:
         stage = GLSLANG_STAGE_RAYGEN_NV;
         stage_string = "RAY_GEN_SHADER";
         break;
-    case ShaderModuleType::RAY_INTERSECT:
+    case SMT_RAY_INTERSECT:
         stage = GLSLANG_STAGE_INTERSECT_NV;
         stage_string = "RAY_INTERSECT_SHADER";
         break;
-    case ShaderModuleType::RAY_ANY_HIT:
+    case SMT_RAY_ANY_HIT:
         stage = GLSLANG_STAGE_ANYHIT_NV;
         stage_string = "RAY_ANY_HIT_SHADER";
         break;
-    case ShaderModuleType::RAY_CLOSEST_HIT:
+    case SMT_RAY_CLOSEST_HIT:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
         stage_string = "RAY_CLOSEST_HIT_SHADER";
         break;
-    case ShaderModuleType::RAY_MISS:
+    case SMT_RAY_MISS:
         stage = GLSLANG_STAGE_MISS_NV;
         stage_string = "RAY_MISS_SHADER";
         break;
@@ -552,55 +552,55 @@ static ByteBuffer CompileToSPIRV(
 
     switch (type)
     {
-    case ShaderModuleType::VERTEX:
+    case SMT_VERTEX:
         stage = GLSLANG_STAGE_VERTEX;
         stage_string = "VERTEX_SHADER";
         break;
-    case ShaderModuleType::FRAGMENT:
+    case SMT_FRAGMENT:
         stage = GLSLANG_STAGE_FRAGMENT;
         stage_string = "FRAGMENT_SHADER";
         break;
-    case ShaderModuleType::GEOMETRY:
+    case SMT_GEOMETRY:
         stage = GLSLANG_STAGE_GEOMETRY;
         stage_string = "GEOMETRY_SHADER";
         break;
-    case ShaderModuleType::COMPUTE:
+    case SMT_COMPUTE:
         stage = GLSLANG_STAGE_COMPUTE;
         stage_string = "COMPUTE_SHADER";
         break;
-    case ShaderModuleType::TASK:
+    case SMT_TASK:
         stage = GLSLANG_STAGE_TASK_NV;
         stage_string = "TASK_SHADER";
         break;
-    case ShaderModuleType::MESH:
+    case SMT_MESH:
         stage = GLSLANG_STAGE_MESH_NV;
         stage_string = "MESH_SHADER";
         break;
-    case ShaderModuleType::TESS_CONTROL:
+    case SMT_TESS_CONTROL:
         stage = GLSLANG_STAGE_TESSCONTROL;
         stage_string = "TESS_CONTROL_SHADER";
         break;
-    case ShaderModuleType::TESS_EVAL:
+    case SMT_TESS_EVAL:
         stage = GLSLANG_STAGE_TESSEVALUATION;
         stage_string = "TESS_EVAL_SHADER";
         break;
-    case ShaderModuleType::RAY_GEN:
+    case SMT_RAY_GEN:
         stage = GLSLANG_STAGE_RAYGEN_NV;
         stage_string = "RAY_GEN_SHADER";
         break;
-    case ShaderModuleType::RAY_INTERSECT:
+    case SMT_RAY_INTERSECT:
         stage = GLSLANG_STAGE_INTERSECT_NV;
         stage_string = "RAY_INTERSECT_SHADER";
         break;
-    case ShaderModuleType::RAY_ANY_HIT:
+    case SMT_RAY_ANY_HIT:
         stage = GLSLANG_STAGE_ANYHIT_NV;
         stage_string = "RAY_ANY_HIT_SHADER";
         break;
-    case ShaderModuleType::RAY_CLOSEST_HIT:
+    case SMT_RAY_CLOSEST_HIT:
         stage = GLSLANG_STAGE_CLOSESTHIT_NV;
         stage_string = "RAY_CLOSEST_HIT_SHADER";
         break;
-    case ShaderModuleType::RAY_MISS:
+    case SMT_RAY_MISS:
         stage = GLSLANG_STAGE_MISS_NV;
         stage_string = "RAY_MISS_SHADER";
         break;
@@ -821,18 +821,18 @@ struct LoadedSourceFile
 };
 
 static const FlatMap<String, ShaderModuleType> shader_type_names = {
-    { "vert", ShaderModuleType::VERTEX },
-    { "frag", ShaderModuleType::FRAGMENT },
-    { "geom", ShaderModuleType::GEOMETRY },
-    { "comp", ShaderModuleType::COMPUTE },
-    { "rgen", ShaderModuleType::RAY_GEN },
-    { "rchit", ShaderModuleType::RAY_CLOSEST_HIT },
-    { "rahit", ShaderModuleType::RAY_ANY_HIT },
-    { "rmiss", ShaderModuleType::RAY_MISS },
-    { "rint", ShaderModuleType::RAY_INTERSECT },
-    { "tesc", ShaderModuleType::TESS_CONTROL },
-    { "mesh", ShaderModuleType::MESH },
-    { "task", ShaderModuleType::TASK }
+    { "vert", SMT_VERTEX },
+    { "frag", SMT_FRAGMENT },
+    { "geom", SMT_GEOMETRY },
+    { "comp", SMT_COMPUTE },
+    { "rgen", SMT_RAY_GEN },
+    { "rchit", SMT_RAY_CLOSEST_HIT },
+    { "rahit", SMT_RAY_ANY_HIT },
+    { "rmiss", SMT_RAY_MISS },
+    { "rint", SMT_RAY_INTERSECT },
+    { "tesc", SMT_TESS_CONTROL },
+    { "mesh", SMT_MESH },
+    { "task", SMT_TASK }
 };
 
 static bool FindVertexAttributeForDefinition(const String& name, VertexAttribute::Type& out_type)
@@ -1855,20 +1855,20 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                     }
                 }
 
-                renderer::DescriptorSlot slot = renderer::DESCRIPTOR_SLOT_NONE;
+                DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
                 DescriptorUsageFlags flags = DESCRIPTOR_USAGE_FLAG_NONE;
 
                 if (command_str == "HYP_DESCRIPTOR_SRV")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_SRV;
+                    slot = DESCRIPTOR_SLOT_SRV;
                 }
                 else if (command_str == "HYP_DESCRIPTOR_UAV")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_UAV;
+                    slot = DESCRIPTOR_SLOT_UAV;
                 }
                 else if (command_str == "HYP_DESCRIPTOR_CBUFF" || command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_CBUFF;
+                    slot = DESCRIPTOR_SLOT_CBUFF;
 
                     if (command_str == "HYP_DESCRIPTOR_CBUFF_DYNAMIC")
                     {
@@ -1877,7 +1877,7 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 }
                 else if (command_str == "HYP_DESCRIPTOR_SSBO" || command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_SSBO;
+                    slot = DESCRIPTOR_SLOT_SSBO;
 
                     if (command_str == "HYP_DESCRIPTOR_SSBO_DYNAMIC")
                     {
@@ -1886,11 +1886,11 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 }
                 else if (command_str == "HYP_DESCRIPTOR_ACCELERATION_STRUCTURE")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
+                    slot = DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE;
                 }
                 else if (command_str == "HYP_DESCRIPTOR_SAMPLER")
                 {
-                    slot = renderer::DESCRIPTOR_SLOT_SAMPLER;
+                    slot = DESCRIPTOR_SLOT_SAMPLER;
                 }
                 else
                 {
@@ -1969,8 +1969,8 @@ ShaderCompiler::ProcessResult ShaderCompiler::ProcessShaderSource(
                 // add std140, std430 etc. for buffer types.
                 switch (usage.slot)
                 {
-                case renderer::DESCRIPTOR_SLOT_CBUFF: // fallthrough
-                case renderer::DESCRIPTOR_SLOT_SSBO:  // fallthrough
+                case DESCRIPTOR_SLOT_CBUFF: // fallthrough
+                case DESCRIPTOR_SLOT_SSBO:  // fallthrough
                     if (usage.params.Contains("matrix_mode"))
                     {
                         additional_params.PushBack(usage.params.At("matrix_mode"));

@@ -77,7 +77,7 @@ Handle<Mesh> MeshBuilder::Quad()
     Handle<Mesh> mesh = CreateObject<Mesh>(
         quad_vertices,
         quad_indices,
-        renderer::Topology::TRIANGLES,
+        TOP_TRIANGLES,
         vertex_attributes);
 
     mesh->SetName(NAME("MeshBuilder_Quad"));
@@ -98,7 +98,7 @@ Handle<Mesh> MeshBuilder::Cube()
     mesh = CreateObject<Mesh>(
         mesh_data.first,
         mesh_data.second,
-        Topology::TRIANGLES,
+        TOP_TRIANGLES,
         vertex_attributes);
     mesh->SetName(NAME("MeshBuilder_Cube"));
 
@@ -206,7 +206,7 @@ Handle<Mesh> MeshBuilder::NormalizedCubeSphere(uint32 num_divisions)
     Handle<Mesh> mesh = CreateObject<Mesh>(
         vertices,
         indices,
-        Topology::TRIANGLES,
+        TOP_TRIANGLES,
         static_mesh_vertex_attributes);
 
     mesh->SetName(NAME("MeshBuilder_NormalizedCubeSphere"));

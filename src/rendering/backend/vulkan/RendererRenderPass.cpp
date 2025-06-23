@@ -11,8 +11,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -238,5 +236,4 @@ void VulkanRenderPass::End(VulkanCommandBuffer* cmd)
     vkCmdEndRenderPass(cmd->GetVulkanHandle());
 }
 
-} // namespace renderer
 } // namespace hyperion

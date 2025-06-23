@@ -127,9 +127,6 @@ void RenderCamera::ApplyJitter(const RenderSetup& render_setup)
 
 #pragma endregion RenderCamera
 
-namespace renderer {
-
 HYP_DESCRIPTOR_CBUFF(Global, CamerasBuffer, 1, sizeof(CameraShaderData), true);
 
-} // namespace renderer
 } // namespace hyperion

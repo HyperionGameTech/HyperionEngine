@@ -9,7 +9,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
 namespace platform {
 
 template <PlatformType PLATFORM>
@@ -20,21 +19,18 @@ public:
 };
 
 } // namespace platform
-} // namespace renderer
+
 } // namespace hyperion
 
 #if HYP_VULKAN
-    #include <rendering/backend/vulkan/RendererDevice.hpp>
+#include <rendering/backend/vulkan/RendererDevice.hpp>
 #else
-    #error Unsupported rendering backend
+#error Unsupported rendering backend
 #endif
 
 namespace hyperion {
-namespace renderer {
-
 using Device = platform::Device<Platform::current>;
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

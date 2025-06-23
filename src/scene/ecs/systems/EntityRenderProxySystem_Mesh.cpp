@@ -31,7 +31,7 @@ namespace hyperion {
 #pragma region Render commands
 
 struct RENDER_COMMAND(UpdateEntityDrawData)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     Array<RenderProxy> render_proxies;
 

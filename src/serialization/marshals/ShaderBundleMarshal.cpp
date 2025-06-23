@@ -29,7 +29,7 @@ public:
         }
 
         // Set global descriptor table version - if this hashcode changes, the shader is invalid and must be recompiled
-        out.SetProperty("global_descriptor_table_version", FBOMData::FromUInt64(renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value()));
+        out.SetProperty("global_descriptor_table_version", FBOMData::FromUInt64(GetStaticDescriptorTableDeclaration().GetHashCode().Value()));
 
         out.SetProperty("name", FBOMData::FromName(in_object.definition.name));
 
@@ -118,7 +118,7 @@ public:
             return err;
         }
 
-        if (global_descriptor_table_version != renderer::GetStaticDescriptorTableDeclaration().GetHashCode().Value())
+        if (global_descriptor_table_version != GetStaticDescriptorTableDeclaration().GetHashCode().Value())
         {
             HYP_LOG(ShaderCompiler, Info, "The global descriptor table version does not match. This shader will need to be recompiled.");
 
@@ -211,7 +211,7 @@ public:
             compiled_shader.definition.properties.Set(property);
         }
 
-        for (SizeType index = 0; index < ShaderModuleType::MAX; index++)
+        for (SizeType index = 0; index < SMT_MAX; index++)
         {
             const ANSIString module_property_name = ANSIString("module[") + ANSIString::ToString(index) + "]";
 

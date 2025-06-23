@@ -9,9 +9,7 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

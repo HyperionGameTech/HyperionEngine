@@ -26,8 +26,6 @@
 
 namespace hyperion {
 
-using renderer::Instance;
-
 namespace sys {
 class AppContextBase;
 } // namespace sys

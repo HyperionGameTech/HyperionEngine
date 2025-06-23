@@ -13,8 +13,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanSemaphoreChain;
 
 enum class VulkanSemaphoreType
@@ -259,7 +257,6 @@ private:
     VulkanSemaphoreStageView m_wait_semaphores_stage_view;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

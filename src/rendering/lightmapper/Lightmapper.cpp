@@ -65,7 +65,7 @@ namespace hyperion {
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef uniform_buffer;
 
@@ -86,7 +86,7 @@ struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
 };
 
 struct RENDER_COMMAND(LightmapRender)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     LightmapJob* job;
     RenderView* view;
@@ -526,11 +526,11 @@ private:
 LightmapGPUPathTracer::LightmapGPUPathTracer(const Handle<Scene>& scene, LightmapShadingType shading_type)
     : m_scene(scene),
       m_shading_type(shading_type),
-      m_uniform_buffers({ g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
-          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)) }),
-      m_rays_buffers({ g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)),
-          g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)) }),
-      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STORAGE_BUFFER, sizeof(LightmapHit) * (512 * 512)))
+      m_uniform_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
+          g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)) }),
+      m_rays_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)),
+          g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)) }),
+      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(LightmapHit) * (512 * 512)))
 {
 }
 
@@ -585,7 +585,7 @@ void LightmapGPUPathTracer::Create()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("LightmapGPUPathTracer"), shader_properties);
     AssertThrow(shader.IsValid());
 
-    const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -671,21 +671,21 @@ void LightmapGPUPathTracer::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> o
     HYPERION_ASSERT_RESULT(staging_buffer->Create());
     staging_buffer->Memset(out_hits.Size() * sizeof(LightmapHit), 0);
 
-    renderer::SingleTimeCommands commands;
+    SingleTimeCommands commands;
 
     commands.Push([&](RHICommandList& cmd)
         {
-            const renderer::ResourceState previous_resource_state = hits_buffer->GetResourceState();
+            const ResourceState previous_resource_state = hits_buffer->GetResourceState();
 
             // put src image in state for copying from
-            cmd.Add<InsertBarrier>(hits_buffer, renderer::ResourceState::COPY_SRC);
+            cmd.Add<InsertBarrier>(hits_buffer, RS_COPY_SRC);
 
             // put dst buffer in state for copying to
-            cmd.Add<InsertBarrier>(staging_buffer, renderer::ResourceState::COPY_DST);
+            cmd.Add<InsertBarrier>(staging_buffer, RS_COPY_DST);
 
             cmd.Add<CopyBuffer>(staging_buffer, hits_buffer, out_hits.Size() * sizeof(LightmapHit));
 
-            cmd.Add<InsertBarrier>(staging_buffer, renderer::ResourceState::COPY_SRC);
+            cmd.Add<InsertBarrier>(staging_buffer, RS_COPY_SRC);
 
             cmd.Add<InsertBarrier>(hits_buffer, previous_resource_state);
         });
@@ -757,13 +757,13 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, RS_UNORDERED_ACCESS);
 
     frame->GetCommandList().Add<TraceRays>(
         m_raytracing_pipeline,
         Vec3u { uint32(rays.Size()), 1, 1 });
 
-    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, renderer::ResourceState::UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, RS_UNORDERED_ACCESS);
 }
 
 #pragma endregion LightmapGPUPathTracer
@@ -1729,23 +1729,23 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
 
         Handle<Texture> irradiance_texture = CreateObject<Texture>(TextureData {
             TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA32F,
+                TT_TEX2D,
+                TF_RGBA32F,
                 Vec3u { uv_map.width, uv_map.height, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_REPEAT },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_REPEAT },
             ByteBuffer(irradiance_bitmap.GetUnpackedFloats().ToByteView()) });
         InitObject(irradiance_texture);
 
         Handle<Texture> radiance_texture = CreateObject<Texture>(TextureData {
             TextureDesc {
-                ImageType::TEXTURE_TYPE_2D,
-                InternalFormat::RGBA32F,
+                TT_TEX2D,
+                TF_RGBA32F,
                 Vec3u { uv_map.width, uv_map.height, 1 },
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                FilterMode::TEXTURE_FILTER_LINEAR,
-                WrapMode::TEXTURE_WRAP_REPEAT },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_REPEAT },
             ByteBuffer(radiance_bitmap.GetUnpackedFloats().ToByteView()) });
         InitObject(radiance_texture);
 

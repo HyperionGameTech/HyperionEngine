@@ -14,8 +14,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 enum class RenderPassStage : uint8
 {
     NONE,
@@ -53,9 +51,9 @@ public:
         return m_image_view;
     }
 
-    HYP_FORCE_INLINE InternalFormat GetFormat() const
+    HYP_FORCE_INLINE TextureFormat GetFormat() const
     {
-        return m_image ? m_image->GetTextureFormat() : InternalFormat::NONE;
+        return m_image ? m_image->GetTextureFormat() : TF_NONE;
     }
 
     HYP_FORCE_INLINE bool IsDepthAttachment() const
@@ -161,7 +159,6 @@ protected:
     bool m_allow_blending = true;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

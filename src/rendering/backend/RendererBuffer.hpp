@@ -19,8 +19,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 enum class GPUBufferType : uint8
 {
     NONE = 0,
@@ -105,7 +103,7 @@ protected:
         : m_type(type),
           m_size(size),
           m_alignment(alignment),
-          m_resource_state(ResourceState::UNDEFINED)
+          m_resource_state(RS_UNDEFINED)
     {
     }
 
@@ -116,7 +114,6 @@ protected:
     mutable ResourceState m_resource_state;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

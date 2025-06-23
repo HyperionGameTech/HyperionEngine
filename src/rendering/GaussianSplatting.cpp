@@ -42,10 +42,6 @@
 
 namespace hyperion {
 
-using renderer::CommandBufferType;
-using renderer::GPUBufferType;
-using renderer::IndirectDrawCommand;
-
 enum BitonicSortStage : uint32
 {
     STAGE_LOCAL_BMS,
@@ -61,7 +57,7 @@ struct alignas(8) GaussianSplatIndex
 };
 
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef splat_buffer;
     GPUBufferRef splat_indices_buffer;
@@ -140,7 +136,7 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
 };
 
 struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     GPUBufferRef staging_buffer;
     Handle<Mesh> quad_mesh;
@@ -258,7 +254,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_splat_indices_buffer,
-            renderer::ResourceState::UNORDERED_ACCESS);
+            RS_UNORDERED_ACCESS);
     }
 
 #ifdef HYP_GAUSSIAN_SPLATTING_CPU_SORT
@@ -304,7 +300,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_splat_indices_buffer,
-            renderer::ResourceState::UNORDERED_ACCESS);
+            RS_UNORDERED_ACCESS);
 
         static constexpr uint32 max_workgroup_size = 512;
         uint32 workgroup_size_x = 1;
@@ -350,7 +346,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
             frame->GetCommandList().Add<InsertBarrier>(
                 m_splat_indices_buffer,
-                renderer::ResourceState::UNORDERED_ACCESS);
+                RS_UNORDERED_ACCESS);
         };
 
         do_pass(STAGE_LOCAL_BMS, h);
@@ -407,7 +403,7 @@ void GaussianSplattingInstance::Record(FrameBase* frame, const RenderSetup& rend
 
         frame->GetCommandList().Add<InsertBarrier>(
             m_indirect_buffer,
-            renderer::ResourceState::INDIRECT_ARG);
+            RS_INDIRECT_ARG);
     }
 }
 
@@ -459,7 +455,7 @@ void GaussianSplattingInstance::CreateRenderGroup()
             MaterialAttributes {
                 .bucket = RB_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
-                .cull_faces = FaceCullMode::NONE,
+                .cull_faces = FCM_NONE,
                 .flags = MaterialAttributeFlags::NONE }),
         descriptor_table,
         RenderGroupFlags::NONE);
@@ -599,7 +595,7 @@ void GaussianSplatting::Init()
     m_quad_mesh = CreateObject<Mesh>(
         vertices,
         indices,
-        renderer::Topology::TRIANGLES,
+        TOP_TRIANGLES,
         static_mesh_vertex_attributes);
 
     InitObject(m_quad_mesh);
@@ -644,11 +640,11 @@ void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& render
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_staging_buffer,
-        renderer::ResourceState::COPY_SRC);
+        RS_COPY_SRC);
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_gaussian_splatting_instance->GetIndirectBuffer(),
-        renderer::ResourceState::COPY_DST);
+        RS_COPY_DST);
 
     frame->GetCommandList().Add<CopyBuffer>(
         m_staging_buffer,
@@ -657,7 +653,7 @@ void GaussianSplatting::UpdateSplats(FrameBase* frame, const RenderSetup& render
 
     frame->GetCommandList().Add<InsertBarrier>(
         m_gaussian_splatting_instance->GetIndirectBuffer(),
-        renderer::ResourceState::INDIRECT_ARG);
+        RS_INDIRECT_ARG);
 
     m_gaussian_splatting_instance->Record(frame, render_setup);
 }

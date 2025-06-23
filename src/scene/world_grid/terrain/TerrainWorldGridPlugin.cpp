@@ -217,7 +217,7 @@ Handle<Mesh> TerrainMeshBuilder::BuildMesh() const
     Handle<Mesh> mesh = CreateObject<Mesh>(
         vertices,
         indices,
-        Topology::TRIANGLES,
+        TOP_TRIANGLES,
         static_mesh_vertex_attributes);
 
     mesh->CalculateNormals();
@@ -451,7 +451,7 @@ void TerrainWorldGridLayer::Init()
     //     Handle<Texture> albedo_texture = albedo_texture_asset->Result();
 
     //     TextureDesc texture_desc = albedo_texture->GetTextureDesc();
-    //     texture_desc.format = InternalFormat::RGBA8_SRGB;
+    //     texture_desc.format = TF_RGBA8_SRGB;
     //     albedo_texture->SetTextureDesc(texture_desc);
 
     //     m_material->SetTexture(MaterialTextureKey::ALBEDO_MAP, albedo_texture);

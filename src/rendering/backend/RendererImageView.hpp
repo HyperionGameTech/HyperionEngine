@@ -9,8 +9,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class ImageViewBase : public RenderObject<ImageViewBase>
 {
 public:
@@ -58,7 +56,6 @@ protected:
     uint32 m_num_faces;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

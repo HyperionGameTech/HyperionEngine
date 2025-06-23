@@ -21,8 +21,6 @@
 // #define HYP_DEBUG_USED_DESCRIPTOR_SETS
 
 namespace hyperion {
-namespace renderer {
-
 class FrameBase : public RenderObject<FrameBase>
 {
 public:
@@ -66,7 +64,6 @@ protected:
     HashSet<DescriptorSetBase*> m_used_descriptor_sets;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

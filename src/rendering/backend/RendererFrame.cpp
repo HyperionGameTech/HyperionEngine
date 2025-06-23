@@ -10,8 +10,6 @@
 #include <core/logging/LogChannels.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 void FrameBase::MarkDescriptorSetUsed(DescriptorSetBase* descriptor_set)
 {
     AssertThrow(descriptor_set != nullptr);
@@ -73,5 +71,4 @@ void FrameBase::UpdateUsedDescriptorSets()
     }
 }
 
-} // namespace renderer
 } // namespace hyperion

@@ -51,9 +51,9 @@ Material::Material()
     : m_render_attributes {
           .shader_definition = ShaderDefinition { NAME("Forward"), static_mesh_vertex_attributes },
           .bucket = RB_OPAQUE,
-          .fill_mode = FillMode::FILL,
+          .fill_mode = FM_FILL,
           .blend_function = BlendFunction::None(),
-          .cull_faces = FaceCullMode::BACK,
+          .cull_faces = FCM_BACK,
           .flags = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST
       },
       m_is_dynamic(false),

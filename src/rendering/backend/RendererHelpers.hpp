@@ -14,8 +14,6 @@
 namespace hyperion {
 
 class RHICommandList;
-
-namespace renderer {
 namespace helpers {
 
 uint32 MipmapSize(uint32 src_size, int lod);
@@ -57,21 +55,17 @@ private:
 
 } // namespace platform
 
-} // namespace renderer
 } // namespace hyperion
 
 #if HYP_VULKAN
-    #include <rendering/backend/vulkan/RendererHelpers.hpp>
+#include <rendering/backend/vulkan/RendererHelpers.hpp>
 #else
-    #error Unsupported rendering backend
+#error Unsupported rendering backend
 #endif
 
 namespace hyperion {
-namespace renderer {
-
 using SingleTimeCommands = platform::SingleTimeCommands<Platform::current>;
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

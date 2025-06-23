@@ -19,8 +19,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanDescriptorSetLayoutWrapper;
 using VulkanDescriptorSetLayoutWrapperRef = RenderObjectHandle_Strong<VulkanDescriptorSetLayoutWrapper>;
 
@@ -87,7 +85,6 @@ public:
     HYP_API virtual ~VulkanDescriptorTable() override = default;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

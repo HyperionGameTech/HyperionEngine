@@ -23,8 +23,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -36,25 +34,25 @@ static VkBlendFactor ToVkBlendFactor(BlendModeFactor blend_mode)
 {
     switch (blend_mode)
     {
-    case BlendModeFactor::ONE:
+    case BMF_ONE:
         return VK_BLEND_FACTOR_ONE;
-    case BlendModeFactor::ZERO:
+    case BMF_ZERO:
         return VK_BLEND_FACTOR_ZERO;
-    case BlendModeFactor::SRC_COLOR:
+    case BMF_SRC_COLOR:
         return VK_BLEND_FACTOR_SRC_COLOR;
-    case BlendModeFactor::SRC_ALPHA:
+    case BMF_SRC_ALPHA:
         return VK_BLEND_FACTOR_SRC_ALPHA;
-    case BlendModeFactor::DST_COLOR:
+    case BMF_DST_COLOR:
         return VK_BLEND_FACTOR_DST_COLOR;
-    case BlendModeFactor::DST_ALPHA:
+    case BMF_DST_ALPHA:
         return VK_BLEND_FACTOR_DST_ALPHA;
-    case BlendModeFactor::ONE_MINUS_SRC_COLOR:
+    case BMF_ONE_MINUS_SRC_COLOR:
         return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-    case BlendModeFactor::ONE_MINUS_SRC_ALPHA:
+    case BMF_ONE_MINUS_SRC_ALPHA:
         return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    case BlendModeFactor::ONE_MINUS_DST_COLOR:
+    case BMF_ONE_MINUS_DST_COLOR:
         return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-    case BlendModeFactor::ONE_MINUS_DST_ALPHA:
+    case BMF_ONE_MINUS_DST_ALPHA:
         return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
     default:
         return VK_BLEND_FACTOR_ONE;
@@ -65,15 +63,15 @@ static VkStencilOp ToVkStencilOp(StencilOp stencil_op)
 {
     switch (stencil_op)
     {
-    case StencilOp::KEEP:
+    case SO_KEEP:
         return VK_STENCIL_OP_KEEP;
-    case StencilOp::ZERO:
+    case SO_ZERO:
         return VK_STENCIL_OP_ZERO;
-    case StencilOp::REPLACE:
+    case SO_REPLACE:
         return VK_STENCIL_OP_REPLACE;
-    case StencilOp::INCREMENT:
+    case SO_INCREMENT:
         return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-    case StencilOp::DECREMENT:
+    case SO_DECREMENT:
         return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
     default:
         return VK_STENCIL_OP_KEEP;
@@ -84,13 +82,13 @@ static VkCompareOp ToVkCompareOp(StencilCompareOp compare_op)
 {
     switch (compare_op)
     {
-    case StencilCompareOp::ALWAYS:
+    case SCO_ALWAYS:
         return VK_COMPARE_OP_ALWAYS;
-    case StencilCompareOp::NEVER:
+    case SCO_NEVER:
         return VK_COMPARE_OP_NEVER;
-    case StencilCompareOp::EQUAL:
+    case SCO_EQUAL:
         return VK_COMPARE_OP_EQUAL;
-    case StencilCompareOp::NOT_EQUAL:
+    case SCO_NOT_EQUAL:
         return VK_COMPARE_OP_NOT_EQUAL;
     default:
         return VK_COMPARE_OP_ALWAYS;
@@ -176,21 +174,21 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     switch (m_topology)
     {
-    case Topology::TRIANGLES:
+    case TOP_TRIANGLES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         break;
 #ifndef HYP_APPLE
-    case Topology::TRIANGLE_FAN:
+    case TOP_TRIANGLE_FAN:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN; // not supported on metal
         break;
 #endif
-    case Topology::TRIANGLE_STRIP:
+    case TOP_TRIANGLE_STRIP:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
         break;
-    case Topology::LINES:
+    case TOP_LINES:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
         break;
-    case Topology::POINTS:
+    case TOP_POINTS:
         input_asm_info.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
         break;
     default:
@@ -225,13 +223,13 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     switch (m_face_cull_mode)
     {
-    case FaceCullMode::BACK:
+    case FCM_BACK:
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
         break;
-    case FaceCullMode::FRONT:
+    case FCM_FRONT:
         rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
         break;
-    case FaceCullMode::NONE:
+    case FCM_NONE:
         rasterizer.cullMode = VK_CULL_MODE_NONE;
         break;
     default:
@@ -240,11 +238,11 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     switch (m_fill_mode)
     {
-    case FillMode::LINE:
+    case FM_LINE:
         rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
         rasterizer.lineWidth = 1.0f; // 2.5f; // have to set VK_DYNAMIC_STATE_LINE_WIDTH and wideLines feature to use any non-1.0 value
         break;
-    case FillMode::FILL: // fallthrough
+    case FM_FILL: // fallthrough
     default:
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
         rasterizer.lineWidth = 1.0f;
@@ -603,5 +601,4 @@ void VulkanGraphicsPipeline::BuildVertexAttributes(
 
 #pragma endregion GraphicsPipeline
 
-} // namespace renderer
 } // namespace hyperion

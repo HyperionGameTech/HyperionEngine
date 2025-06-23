@@ -10,24 +10,22 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class SamplerBase : public RenderObject<SamplerBase>
 {
 public:
     virtual ~SamplerBase() override = default;
 
-    HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMinFilterMode() const
     {
         return m_min_filter_mode;
     }
 
-    HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMagFilterMode() const
     {
         return m_mag_filter_mode;
     }
 
-    HYP_FORCE_INLINE WrapMode GetWrapMode() const
+    HYP_FORCE_INLINE TextureWrapMode GetWrapMode() const
     {
         return m_wrap_mode;
     }
@@ -38,12 +36,11 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
 protected:
-    FilterMode m_min_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
-    FilterMode m_mag_filter_mode = FilterMode::TEXTURE_FILTER_NEAREST;
-    WrapMode m_wrap_mode = WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
+    TextureFilterMode m_min_filter_mode = TFM_NEAREST;
+    TextureFilterMode m_mag_filter_mode = TFM_NEAREST;
+    TextureWrapMode m_wrap_mode = TWM_CLAMP_TO_EDGE;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

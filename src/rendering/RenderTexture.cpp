@@ -39,18 +39,18 @@ namespace hyperion {
 #pragma region Render commands
 
 struct RENDER_COMMAND(CreateTexture)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     WeakHandle<Texture> texture_weak;
     TResourceHandle<StreamedTextureData> streamed_texture_data_handle;
-    renderer::ResourceState initial_state;
+    ResourceState initial_state;
     ImageRef image;
     ImageViewRef image_view;
 
     RENDER_COMMAND(CreateTexture)(
         const WeakHandle<Texture>& texture_weak,
         TResourceHandle<StreamedTextureData>&& streamed_texture_data_handle,
-        renderer::ResourceState initial_state,
+        ResourceState initial_state,
         ImageRef image,
         ImageViewRef image_view)
         : texture_weak(texture_weak),
@@ -96,13 +96,13 @@ struct RENDER_COMMAND(CreateTexture)
 
                     // @FIXME add back ConvertTo32BPP
 
-                    renderer::SingleTimeCommands commands;
+                    SingleTimeCommands commands;
 
                     commands.Push([&](RHICommandList& cmd)
                         {
                             cmd.Add<InsertBarrier>(
                                 image,
-                                renderer::ResourceState::COPY_DST);
+                                RS_COPY_DST);
 
                             cmd.Add<CopyBufferToImage>(staging_buffer, image);
 
@@ -121,9 +121,9 @@ struct RENDER_COMMAND(CreateTexture)
                         return result;
                     }
                 }
-                else if (initial_state != renderer::ResourceState::UNDEFINED)
+                else if (initial_state != RS_UNDEFINED)
                 {
-                    renderer::SingleTimeCommands commands;
+                    SingleTimeCommands commands;
 
                     commands.Push([&](RHICommandList& cmd)
                         {
@@ -154,7 +154,7 @@ struct RENDER_COMMAND(CreateTexture)
 };
 
 struct RENDER_COMMAND(DestroyTexture)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     // Keep weak handle around to ensure the ID persists
     WeakHandle<Texture> texture;
@@ -186,7 +186,7 @@ struct RENDER_COMMAND(DestroyTexture)
 };
 
 struct RENDER_COMMAND(RenderTextureMipmapLevels)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     ImageRef m_image;
     ImageViewRef m_image_view;
@@ -218,7 +218,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
     virtual RendererResult operator()() override
     {
         // draw a quad for each level
-        renderer::SingleTimeCommands commands;
+        SingleTimeCommands commands;
 
         commands.Push([this](RHICommandList& cmd)
             {
@@ -276,13 +276,13 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                     // Blit into mip level
                     cmd.Add<InsertBarrier>(
                         dst_image,
-                        renderer::ResourceState::COPY_DST,
-                        renderer::ImageSubResource { .base_mip_level = mip_level });
+                        RS_COPY_DST,
+                        ImageSubResource { .base_mip_level = mip_level });
 
                     cmd.Add<InsertBarrier>(
                         src_image,
-                        renderer::ResourceState::COPY_SRC,
-                        renderer::ImageSubResource { .base_mip_level = mip_level });
+                        RS_COPY_SRC,
+                        ImageSubResource { .base_mip_level = mip_level });
 
                     cmd.Add<BlitRect>(
                         src_image,
@@ -300,19 +300,19 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
 
                     cmd.Add<InsertBarrier>(
                         src_image,
-                        renderer::ResourceState::SHADER_RESOURCE,
-                        renderer::ImageSubResource { .base_mip_level = mip_level });
+                        RS_SHADER_RESOURCE,
+                        ImageSubResource { .base_mip_level = mip_level });
 
                     cmd.Add<InsertBarrier>(
                         dst_image,
-                        renderer::ResourceState::SHADER_RESOURCE,
-                        renderer::ImageSubResource { .base_mip_level = mip_level });
+                        RS_SHADER_RESOURCE,
+                        ImageSubResource { .base_mip_level = mip_level });
                 }
 
                 // all mip levels have been transitioned into this state
                 cmd.Add<InsertBarrier>(
                     dst_image,
-                    renderer::ResourceState::SHADER_RESOURCE);
+                    RS_SHADER_RESOURCE);
 
                 HYPERION_RETURN_OK;
             });
@@ -349,7 +349,7 @@ public:
 
         for (uint32 mip_level = 0; mip_level < num_mip_levels; mip_level++)
         {
-            const renderer::DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+            const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
             DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
@@ -432,7 +432,7 @@ void RenderTexture::Initialize_Internal()
         CreateTexture,
         m_texture->WeakHandleFromThis(),
         m_texture->GetStreamedTextureData() ? TResourceHandle<StreamedTextureData>(*m_texture->GetStreamedTextureData()) : TResourceHandle<StreamedTextureData>(),
-        renderer::ResourceState::SHADER_RESOURCE,
+        RS_SHADER_RESOURCE,
         m_image,
         m_image_view);
 }
@@ -479,22 +479,22 @@ void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
         {
             Threads::AssertOnThread(g_render_thread);
 
-            GPUBufferRef gpu_buffer = g_rendering_api->MakeGPUBuffer(renderer::GPUBufferType::STAGING_BUFFER, m_image->GetByteSize());
+            GPUBufferRef gpu_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, m_image->GetByteSize());
             HYPERION_ASSERT_RESULT(gpu_buffer->Create());
             gpu_buffer->Map();
 
-            renderer::SingleTimeCommands commands;
+            SingleTimeCommands commands;
 
             commands.Push([this, &gpu_buffer](RHICommandList& cmd)
                 {
-                    const renderer::ResourceState previous_resource_state = m_image->GetResourceState();
+                    const ResourceState previous_resource_state = m_image->GetResourceState();
 
-                    cmd.Add<InsertBarrier>(m_image, renderer::ResourceState::COPY_SRC);
-                    cmd.Add<InsertBarrier>(gpu_buffer, renderer::ResourceState::COPY_DST);
+                    cmd.Add<InsertBarrier>(m_image, RS_COPY_SRC);
+                    cmd.Add<InsertBarrier>(gpu_buffer, RS_COPY_DST);
 
                     cmd.Add<CopyImageToBuffer>(m_image, gpu_buffer);
 
-                    cmd.Add<InsertBarrier>(gpu_buffer, renderer::ResourceState::COPY_SRC);
+                    cmd.Add<InsertBarrier>(gpu_buffer, RS_COPY_SRC);
                     cmd.Add<InsertBarrier>(m_image, previous_resource_state);
                 });
 

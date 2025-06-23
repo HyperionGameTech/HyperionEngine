@@ -77,8 +77,6 @@ struct ShaderDataOffset
     uint32 index;
 };
 
-namespace renderer {
-
 struct DescriptorSetDeclaration;
 struct DescriptorTableDeclaration;
 
@@ -254,7 +252,7 @@ struct DescriptorSetDeclaration
     DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
     ~DescriptorSetDeclaration() = default;
 
-    HYP_FORCE_INLINE void AddDescriptorDeclaration(renderer::DescriptorDeclaration decl)
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
     {
         AssertThrow(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
 
@@ -986,17 +984,6 @@ protected:
     const DescriptorTableDeclaration* m_decl;
     FixedArray<Array<DescriptorSetRef>, max_frames_in_flight> m_sets;
 };
-
-} // namespace renderer
-
-using renderer::DescriptorDeclaration;
-using renderer::DescriptorSetDeclaration;
-using renderer::DescriptorSetElement;
-using renderer::DescriptorSetElementType;
-using renderer::DescriptorSetElementTypeInfo;
-using renderer::DescriptorSetLayout;
-using renderer::DescriptorSetLayoutElement;
-using renderer::DescriptorTableDeclaration;
 
 } // namespace hyperion
 

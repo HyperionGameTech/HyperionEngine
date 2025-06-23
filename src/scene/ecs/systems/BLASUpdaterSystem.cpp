@@ -31,7 +31,7 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 #pragma region Render commands
 
 struct RENDER_COMMAND(UpdateBLASTransform)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
     Matrix4 transform;
@@ -63,7 +63,7 @@ struct RENDER_COMMAND(UpdateBLASTransform)
 };
 
 struct RENDER_COMMAND(AddBLASToTLAS)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     TResourceHandle<RenderWorld> render_world;
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
@@ -96,7 +96,7 @@ struct RENDER_COMMAND(AddBLASToTLAS)
 };
 
 struct RENDER_COMMAND(RemoveBLASFromTLAS)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     TResourceHandle<RenderWorld> render_world;
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;

@@ -10,8 +10,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanImage final : public ImageBase
 {
 public:
@@ -113,7 +111,6 @@ private:
     SizeType m_bpp; // bytes per pixel
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

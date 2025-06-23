@@ -351,10 +351,10 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
         return;
     }
 
-    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    const DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout { decl };
+    const DescriptorSetLayout layout { decl };
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -398,10 +398,10 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
         return {};
     }
 
-    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    const DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(decl != nullptr);
 
-    renderer::DescriptorSetLayout layout { decl };
+    DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -451,10 +451,10 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
         return {};
     }
 
-    const renderer::DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
+    const DescriptorSetDeclaration* decl = g_render_global_state->GlobalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("Material"));
     AssertThrow(decl != nullptr);
 
-    const renderer::DescriptorSetLayout layout { decl };
+    const DescriptorSetLayout layout { decl };
 
     FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
 
@@ -642,11 +642,7 @@ void MaterialDescriptorSetManager::Update(FrameBase* frame)
 
 #pragma endregion MaterialDescriptorSetManager
 
-namespace renderer {
-
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
 HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
-
-} // namespace renderer
 
 } // namespace hyperion

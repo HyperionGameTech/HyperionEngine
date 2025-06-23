@@ -48,8 +48,6 @@ class ReflectionProbe;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
-using renderer::PushConstantData;
-
 struct ParallelRenderingState
 {
     static constexpr uint32 max_batches = num_async_rendering_command_buffers;

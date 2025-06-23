@@ -8,8 +8,6 @@
 #include <Types.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 using PlatformType = int;
 
 class Platform
@@ -27,7 +25,7 @@ public:
     static constexpr PlatformType current = unknown;
 #endif
 };
-} // namespace renderer
+
 } // namespace hyperion
 
 #endif

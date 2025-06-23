@@ -27,8 +27,6 @@ class RenderableAttributeSet;
 struct CompiledShader;
 class Material;
 
-namespace renderer {
-
 class IRenderingAPI;
 class FrameBase;
 class SwapchainBase;
@@ -101,7 +99,7 @@ public:
     virtual ImageViewRef MakeImageView(const ImageRef& image) = 0;
     virtual ImageViewRef MakeImageView(const ImageRef& image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces) = 0;
 
-    virtual SamplerRef MakeSampler(FilterMode filter_mode_min, FilterMode filter_mode_mag, WrapMode wrap_mode) = 0;
+    virtual SamplerRef MakeSampler(TextureFilterMode filter_mode_min, TextureFilterMode filter_mode_mag, TextureWrapMode wrap_mode) = 0;
 
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, uint32 num_views = 1) = 0;
     virtual FramebufferRef MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 num_views = 1) = 0;
@@ -117,19 +115,15 @@ public:
         const Matrix4& transform) = 0;
     virtual TLASRef MakeTLAS() = 0;
 
-    virtual InternalFormat GetDefaultFormat(DefaultImageFormatType type) const = 0;
+    virtual TextureFormat GetDefaultFormat(DefaultImageFormat type) const = 0;
 
-    virtual bool IsSupportedFormat(InternalFormat format, ImageSupportType support_type) const = 0;
-    virtual InternalFormat FindSupportedFormat(Span<InternalFormat> possible_formats, ImageSupportType support_type) const = 0;
+    virtual bool IsSupportedFormat(TextureFormat format, ImageSupport support_type) const = 0;
+    virtual TextureFormat FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const = 0;
 
     virtual QueryImageCapabilitiesResult QueryImageCapabilities(const TextureDesc& texture_desc) const = 0;
 
     virtual Delegate<void, SwapchainBase*>& GetOnSwapchainRecreatedDelegate() = 0;
 };
-
-} // namespace renderer
-
-using renderer::IRenderingAPI;
 
 } // namespace hyperion
 

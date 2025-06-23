@@ -20,7 +20,7 @@
 
 #include <Types.hpp>
 
-namespace hyperion::renderer {
+namespace hyperion {
 
 class AsyncComputeBase
 {
@@ -43,6 +43,6 @@ protected:
     RHICommandList m_command_list;
 };
 
-} // namespace hyperion::renderer
+} // namespace hyperion
 
 #endif

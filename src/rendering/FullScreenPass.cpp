@@ -33,9 +33,6 @@
 
 namespace hyperion {
 
-using renderer::CommandBufferType;
-using renderer::FillMode;
-
 struct MergeHalfResTexturesUniforms
 {
     Vec2u dimensions;
@@ -44,7 +41,7 @@ struct MergeHalfResTexturesUniforms
 #pragma region Render commands
 
 struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     FullScreenPass& full_screen_pass;
     Vec2u new_size;
@@ -74,12 +71,12 @@ struct RENDER_COMMAND(RecreateFullScreenPassFramebuffer)
 
 #pragma endregion Render commands
 
-FullScreenPass::FullScreenPass(InternalFormat image_format, GBuffer* gbuffer)
+FullScreenPass::FullScreenPass(TextureFormat image_format, GBuffer* gbuffer)
     : FullScreenPass(nullptr, image_format, Vec2u::Zero(), gbuffer)
 {
 }
 
-FullScreenPass::FullScreenPass(InternalFormat image_format, Vec2u extent, GBuffer* gbuffer)
+FullScreenPass::FullScreenPass(TextureFormat image_format, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(nullptr, image_format, extent, gbuffer)
 {
 }
@@ -87,7 +84,7 @@ FullScreenPass::FullScreenPass(InternalFormat image_format, Vec2u extent, GBuffe
 FullScreenPass::FullScreenPass(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table,
-    InternalFormat image_format,
+    TextureFormat image_format,
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
@@ -102,7 +99,7 @@ FullScreenPass::FullScreenPass(
 
 FullScreenPass::FullScreenPass(
     const ShaderRef& shader,
-    InternalFormat image_format,
+    TextureFormat image_format,
     Vec2u extent,
     GBuffer* gbuffer)
     : FullScreenPass(
@@ -119,7 +116,7 @@ FullScreenPass::FullScreenPass(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table,
     const FramebufferRef& framebuffer,
-    InternalFormat image_format,
+    TextureFormat image_format,
     Vec2u extent,
     GBuffer* gbuffer)
     : m_shader(shader),
@@ -210,7 +207,7 @@ void FullScreenPass::Create()
     AssertThrow(!m_is_initialized);
 
     AssertThrowMsg(
-        m_image_format != InternalFormat::NONE,
+        m_image_format != TF_NONE,
         "Image format must be set before creating the full screen pass");
 
     CreateQuad();
@@ -340,13 +337,13 @@ void FullScreenPass::CreateFramebuffer()
     m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_extent);
 
     TextureDesc texture_desc;
-    texture_desc.type = ImageType::TEXTURE_TYPE_2D;
+    texture_desc.type = TT_TEX2D;
     texture_desc.format = m_image_format;
     texture_desc.extent = Vec3u { framebuffer_extent, 1 };
-    texture_desc.filter_mode_min = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
-    texture_desc.filter_mode_mag = renderer::FilterMode::TEXTURE_FILTER_NEAREST;
-    texture_desc.wrap_mode = renderer::WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE;
-    texture_desc.image_format_capabilities = ImageFormatCapabilities::ATTACHMENT | ImageFormatCapabilities::SAMPLED;
+    texture_desc.filter_mode_min = TFM_NEAREST;
+    texture_desc.filter_mode_mag = TFM_NEAREST;
+    texture_desc.wrap_mode = TWM_CLAMP_TO_EDGE;
+    texture_desc.image_usage = IU_ATTACHMENT | IU_SAMPLED;
 
     ImageRef attachment_image = g_rendering_api->MakeImage(texture_desc);
     DeferCreate(attachment_image);
@@ -354,8 +351,8 @@ void FullScreenPass::CreateFramebuffer()
     AttachmentRef attachment = m_framebuffer->AddAttachment(
         0,
         attachment_image,
-        ShouldRenderHalfRes() ? renderer::LoadOperation::LOAD : renderer::LoadOperation::CLEAR,
-        renderer::StoreOperation::STORE);
+        ShouldRenderHalfRes() ? LoadOperation::LOAD : LoadOperation::CLEAR,
+        StoreOperation::STORE);
 
     if (m_blend_function != BlendFunction::None())
     {
@@ -375,7 +372,7 @@ void FullScreenPass::CreatePipeline()
         MeshAttributes {
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
-            .fill_mode = FillMode::FILL,
+            .fill_mode = FM_FILL,
             .blend_function = m_blend_function,
             .flags = MaterialAttributeFlags::NONE }));
 }
@@ -416,7 +413,7 @@ void FullScreenPass::CreateTemporalBlending()
 
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_extent,
-        InternalFormat::RGBA8,
+        TF_RGBA8,
         TemporalBlendTechnique::TECHNIQUE_3,
         TemporalBlendFeedback::LOW,
         ShouldRenderHalfRes()
@@ -431,12 +428,12 @@ void FullScreenPass::CreatePreviousTexture()
 {
     // Create previous image
     m_previous_texture = CreateObject<Texture>(TextureDesc {
-        ImageType::TEXTURE_TYPE_2D,
+        TT_TEX2D,
         m_image_format,
         Vec3u { m_extent.x, m_extent.y, 1 },
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        FilterMode::TEXTURE_FILTER_LINEAR,
-        WrapMode::TEXTURE_WRAP_CLAMP_TO_EDGE });
+        TFM_LINEAR,
+        TFM_LINEAR,
+        TWM_CLAMP_TO_EDGE });
 
     InitObject(m_previous_texture);
 
@@ -611,13 +608,13 @@ void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderS
     const ImageRef& src_image = m_framebuffer->GetAttachment(0)->GetImage();
     const ImageRef& dst_image = m_previous_texture->GetRenderResource().GetImage();
 
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::COPY_SRC);
-    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::COPY_DST);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, RS_COPY_SRC);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_COPY_DST);
 
     frame->GetCommandList().Add<Blit>(src_image, dst_image);
 
-    frame->GetCommandList().Add<InsertBarrier>(src_image, renderer::ResourceState::SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(dst_image, renderer::ResourceState::SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(src_image, RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_SHADER_RESOURCE);
 }
 
 void FullScreenPass::MergeHalfResTextures(FrameBase* frame, const RenderSetup& render_setup)

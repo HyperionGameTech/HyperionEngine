@@ -7,8 +7,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class IRenderConfig
 {
 public:
@@ -35,7 +33,6 @@ public:
     virtual bool IsDynamicDescriptorIndexingSupported() const = 0;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

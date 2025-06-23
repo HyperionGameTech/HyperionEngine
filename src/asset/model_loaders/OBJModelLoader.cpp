@@ -410,7 +410,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
         Handle<Mesh> mesh = CreateObject<Mesh>(
             vertices,
             indices,
-            Topology::TRIANGLES);
+            TOP_TRIANGLES);
 
         mesh->SetName(CreateNameFromDynamicString(obj_mesh.name));
 

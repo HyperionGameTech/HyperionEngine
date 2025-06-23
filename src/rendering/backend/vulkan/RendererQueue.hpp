@@ -9,8 +9,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 enum class VulkanDeviceQueueType : uint8
 {
     GRAPHICS,
@@ -26,7 +24,6 @@ struct VulkanDeviceQueue
     FixedArray<VkCommandPool, 8> command_pools;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

@@ -15,17 +15,6 @@
 
 namespace hyperion {
 
-using renderer::FaceCullMode;
-using renderer::FillMode;
-using renderer::Topology;
-
-using renderer::StencilCompareOp;
-using renderer::StencilFunction;
-using renderer::StencilOp;
-
-using renderer::BlendFunction;
-using renderer::BlendModeFactor;
-
 enum class MaterialAttributeFlags : uint32
 {
     NONE = 0x0,
@@ -46,13 +35,13 @@ struct MaterialAttributes
     RenderBucket bucket = RB_OPAQUE;
 
     HYP_FIELD()
-    FillMode fill_mode = FillMode::FILL;
+    FillMode fill_mode = FM_FILL;
 
     HYP_FIELD()
     BlendFunction blend_function = BlendFunction::None();
 
     HYP_FIELD()
-    FaceCullMode cull_faces = FaceCullMode::BACK;
+    FaceCullMode cull_faces = FCM_BACK;
 
     HYP_FIELD()
     EnumFlags<MaterialAttributeFlags> flags = MaterialAttributeFlags::DEPTH_WRITE | MaterialAttributeFlags::DEPTH_TEST;
@@ -105,7 +94,7 @@ struct MeshAttributes
     VertexAttributeSet vertex_attributes = static_mesh_vertex_attributes;
 
     HYP_FIELD(Property = "Topology", Serialize = true)
-    Topology topology = Topology::TRIANGLES;
+    Topology topology = TOP_TRIANGLES;
 
     HYP_FORCE_INLINE bool operator==(const MeshAttributes& other) const
     {

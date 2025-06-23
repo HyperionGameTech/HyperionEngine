@@ -49,7 +49,7 @@ void ReflectionProbeRenderer::OnRemoved()
 void ReflectionProbeRenderer::OnUpdate(float delta)
 {
     struct RENDER_COMMAND(RenderReflectionProbe)
-        : renderer::RenderCommand
+        : RenderCommand
     {
         RenderWorld* world;
         RenderEnvProbe* env_probe;

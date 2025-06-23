@@ -16,7 +16,7 @@
 
 #include <Types.hpp>
 
-namespace hyperion::renderer {
+namespace hyperion {
 
 enum ShaderModuleType : uint32;
 
@@ -35,7 +35,7 @@ public:
         return m_resource_state;
     }
 
-    HYP_FORCE_INLINE ImageType GetType() const
+    HYP_FORCE_INLINE TextureType GetType() const
     {
         return m_texture_desc.type;
     }
@@ -50,22 +50,22 @@ public:
         return m_texture_desc.NumFaces();
     }
 
-    HYP_FORCE_INLINE FilterMode GetMinFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMinFilterMode() const
     {
         return m_texture_desc.filter_mode_min;
     }
 
-    HYP_FORCE_INLINE void SetMinFilterMode(FilterMode filter_mode)
+    HYP_FORCE_INLINE void SetMinFilterMode(TextureFilterMode filter_mode)
     {
         m_texture_desc.filter_mode_min = filter_mode;
     }
 
-    HYP_FORCE_INLINE FilterMode GetMagFilterMode() const
+    HYP_FORCE_INLINE TextureFilterMode GetMagFilterMode() const
     {
         return m_texture_desc.filter_mode_mag;
     }
 
-    HYP_FORCE_INLINE void SetMagFilterMode(FilterMode filter_mode)
+    HYP_FORCE_INLINE void SetMagFilterMode(TextureFilterMode filter_mode)
     {
         m_texture_desc.filter_mode_mag = filter_mode;
     }
@@ -75,12 +75,12 @@ public:
         return m_texture_desc.extent;
     }
 
-    HYP_FORCE_INLINE InternalFormat GetTextureFormat() const
+    HYP_FORCE_INLINE TextureFormat GetTextureFormat() const
     {
         return m_texture_desc.format;
     }
 
-    HYP_FORCE_INLINE void SetTextureFormat(InternalFormat format)
+    HYP_FORCE_INLINE void SetTextureFormat(TextureFormat format)
     {
         m_texture_desc.format = format;
     }
@@ -167,13 +167,13 @@ public:
 
 protected:
     ImageBase()
-        : m_resource_state(ResourceState::UNDEFINED)
+        : m_resource_state(RS_UNDEFINED)
     {
     }
 
     ImageBase(const TextureDesc& texture_desc)
         : m_texture_desc(texture_desc),
-          m_resource_state(ResourceState::UNDEFINED)
+          m_resource_state(RS_UNDEFINED)
     {
     }
 
@@ -181,6 +181,6 @@ protected:
     mutable ResourceState m_resource_state;
 };
 
-} // namespace hyperion::renderer
+} // namespace hyperion
 
 #endif

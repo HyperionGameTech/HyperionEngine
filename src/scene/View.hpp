@@ -67,10 +67,10 @@ HYP_MAKE_ENUM_FLAGS(ViewFlags)
 
 struct ViewOutputTargetAttachmentDesc
 {
-    InternalFormat format = InternalFormat::RGBA8;
-    ImageType image_type = ImageType::TEXTURE_TYPE_2D;
-    renderer::LoadOperation load_op = renderer::LoadOperation::LOAD;
-    renderer::StoreOperation store_op = renderer::StoreOperation::STORE;
+    TextureFormat format = TF_RGBA8;
+    TextureType image_type = TT_TEX2D;
+    LoadOperation load_op = LoadOperation::LOAD;
+    StoreOperation store_op = StoreOperation::STORE;
     Vec4f clear_color = Vec4f::Zero();
 };
 

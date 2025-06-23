@@ -15,8 +15,6 @@ namespace hyperion {
 
 extern IRenderingAPI* g_rendering_api;
 
-namespace renderer {
-
 static inline VulkanRenderingAPI* GetRenderingAPI()
 {
     return static_cast<VulkanRenderingAPI*>(g_rendering_api);
@@ -58,7 +56,7 @@ RendererResult VulkanAttachmentMap::Create()
     // Transition image layout immediately on creation
     if (images_to_transition.Any())
     {
-        renderer::SingleTimeCommands commands;
+        SingleTimeCommands commands;
 
         commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
             {
@@ -68,11 +66,11 @@ RendererResult VulkanAttachmentMap::Create()
 
                     if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
                     {
-                        cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+                        cmd.Add<InsertBarrier>(image, RS_PRESENT);
                     }
                     else
                     {
-                        cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                        cmd.Add<InsertBarrier>(image, RS_SHADER_RESOURCE);
                     }
                 }
             });
@@ -150,7 +148,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
     // Transition image layout immediately on resize
     if (images_to_transition.Any())
     {
-        renderer::SingleTimeCommands commands;
+        SingleTimeCommands commands;
 
         commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
             {
@@ -160,11 +158,11 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
 
                     if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
                     {
-                        cmd.Add<InsertBarrier>(image, ResourceState::PRESENT);
+                        cmd.Add<InsertBarrier>(image, RS_PRESENT);
                     }
                     else
                     {
-                        cmd.Add<InsertBarrier>(image, ResourceState::SHADER_RESOURCE);
+                        cmd.Add<InsertBarrier>(image, RS_SHADER_RESOURCE);
                     }
                 }
             });
@@ -366,8 +364,8 @@ AttachmentRef VulkanFramebuffer::AddAttachment(
 
 AttachmentRef VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    InternalFormat format,
-    ImageType type,
+    TextureFormat format,
+    TextureType type,
     LoadOperation load_op,
     StoreOperation store_op)
 {
@@ -414,5 +412,4 @@ void VulkanFramebuffer::EndCapture(CommandBufferBase* command_buffer, uint32 fra
 
 #pragma endregion VulkanFramebuffer
 
-} // namespace renderer
 } // namespace hyperion

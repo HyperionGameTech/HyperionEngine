@@ -18,8 +18,6 @@
 
 namespace hyperion {
 
-using renderer::Device;
-
 class DeletionEntryBase
 {
 public:
@@ -83,10 +81,10 @@ private:
 };
 
 template <class T>
-class DeletionEntry<renderer::RenderObjectHandle_Strong<T>> : public DeletionEntryBase
+class DeletionEntry<RenderObjectHandle_Strong<T>> : public DeletionEntryBase
 {
 public:
-    DeletionEntry(renderer::RenderObjectHandle_Strong<T>&& handle)
+    DeletionEntry(RenderObjectHandle_Strong<T>&& handle)
         : m_handle(std::move(handle))
     {
     }
@@ -114,7 +112,7 @@ private:
         m_handle.Reset();
     }
 
-    renderer::RenderObjectHandle_Strong<T> m_handle;
+    RenderObjectHandle_Strong<T> m_handle;
 };
 
 class SafeDeleter

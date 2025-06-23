@@ -18,8 +18,6 @@
 
 #include <Types.hpp>
 
-#include <vector>
-#include <optional>
 #include <cstring>
 
 #ifdef HYP_IOS
@@ -33,7 +31,6 @@
 #endif
 
 namespace hyperion {
-namespace renderer {
 namespace platform {
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
@@ -455,5 +452,5 @@ RendererResult Instance<Platform::vulkan>::RecreateSwapchain()
 }
 
 } // namespace platform
-} // namespace renderer
+
 } // namespace hyperion

@@ -9,8 +9,6 @@
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-namespace renderer {
-
 class VulkanAsyncCompute final : public AsyncComputeBase
 {
 public:
@@ -35,7 +33,6 @@ private:
     bool m_is_fallback;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

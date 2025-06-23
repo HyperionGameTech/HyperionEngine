@@ -14,8 +14,6 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-namespace renderer {
-
 class SwapchainBase : public RenderObject<SwapchainBase>
 {
 public:
@@ -38,7 +36,7 @@ public:
         return m_extent;
     }
 
-    HYP_FORCE_INLINE InternalFormat GetImageFormat() const
+    HYP_FORCE_INLINE TextureFormat GetImageFormat() const
     {
         return m_image_format;
     }
@@ -67,12 +65,11 @@ protected:
     Array<ImageRef> m_images;
     Array<FramebufferRef> m_framebuffers;
     Vec2u m_extent;
-    InternalFormat m_image_format = InternalFormat::NONE;
+    TextureFormat m_image_format = TF_NONE;
     uint32 m_acquired_image_index;
     uint32 m_current_frame_index;
 };
 
-} // namespace renderer
 } // namespace hyperion
 
 #endif

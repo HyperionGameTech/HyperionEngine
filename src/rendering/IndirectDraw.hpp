@@ -15,8 +15,6 @@
 
 namespace hyperion {
 
-using renderer::IndirectDrawCommand;
-
 class Mesh;
 class Material;
 class Engine;

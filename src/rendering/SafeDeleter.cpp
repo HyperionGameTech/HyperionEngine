@@ -13,7 +13,7 @@ namespace hyperion {
 #pragma region Render commands
 
 struct RENDER_COMMAND(RemoveTextureFromBindlessStorage)
-    : renderer::RenderCommand
+    : RenderCommand
 {
     ID<Texture> id;
 
