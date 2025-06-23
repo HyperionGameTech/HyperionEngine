@@ -53,6 +53,9 @@ struct EnvProbeShaderData
 class RenderEnvProbe final : public RenderResourceBase
 {
 public:
+    friend class EnvProbeRenderer;
+    friend class ReflectionProbeRenderer;
+
     RenderEnvProbe(EnvProbe* env_probe);
     virtual ~RenderEnvProbe() override;
 
@@ -125,10 +128,6 @@ private:
 
     void UpdateBufferData();
 
-    void ComputePrefilteredEnvMap(FrameBase* frame, const RenderSetup& render_setup);
-
-    void ComputeSH(FrameBase* frame, const RenderSetup& render_setup);
-
     EnvProbe* m_env_probe;
 
     EnvProbeShaderData m_buffer_data;
@@ -139,6 +138,7 @@ private:
 
     ShaderRef m_shader;
 
+    // temp
     EnvProbeSphericalHarmonics m_spherical_harmonics;
 
     TResourceHandle<RenderView> m_render_view;

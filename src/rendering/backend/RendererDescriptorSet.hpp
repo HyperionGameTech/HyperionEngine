@@ -611,7 +611,7 @@ public:
     HYP_API virtual RendererResult Create() = 0;
     HYP_API virtual RendererResult Destroy() = 0;
     HYP_API virtual void UpdateDirtyState(bool* out_is_dirty = nullptr) = 0;
-    HYP_API virtual void Update() = 0;
+    HYP_API virtual void Update(bool force = false) = 0;
     HYP_API virtual DescriptorSetRef Clone() const = 0;
 
     bool HasElement(Name name) const;
@@ -900,10 +900,10 @@ public:
     }
 
     /*! \brief Apply updates to all descriptor sets in the table
-        \param device The device to update the descriptor sets on
         \param frame_index The index of the frame to update the descriptor sets for
+        \param force If true, will update descriptor sets even if they are not marked as dirty
         \return The result of the operation */
-    void Update(uint32 frame_index)
+    void Update(uint32 frame_index, bool force = false)
     {
         if (!IsValid())
         {
@@ -921,7 +921,15 @@ public:
                 continue;
             }
 
-            set->Update();
+            bool is_dirty = false;
+            set->UpdateDirtyState(&is_dirty);
+
+            if (!is_dirty & !force)
+            {
+                continue;
+            }
+
+            set->Update(force);
         }
     }
 

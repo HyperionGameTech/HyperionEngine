@@ -151,43 +151,6 @@ struct HYP_API RenderProxyList
         return num_env_probes;
     }
 
-    void BeginWrite()
-    {
-        AssertDebug(state != CS_READING);
-
-        state = CS_WRITING;
-    }
-
-    void EndWrite()
-    {
-        AssertDebug(state == CS_WRITING);
-
-        state = CS_WRITTEN;
-    }
-
-    void BeginRead()
-    {
-#ifdef HYP_DEBUG_MODE
-        AssertDebug(state != CS_WRITING);
-        if (state < CS_WRITTEN)
-        {
-            DebugLog(LogType::Warn, "RenderProxyList reading before it has been written!\n\t"
-                                    "This may result in flickering artifacts or missing objects in the render pass\n");
-        }
-#endif
-
-        state = CS_READING;
-    }
-
-    /*! \brief Call on the consumer (render) thread when finished reading the render proxy list for the current frame.
-     *  This will mark all proxies that are not written again in the next frame as cleared so they can be removed. */
-    void EndRead()
-    {
-        AssertDebug(state == CS_READING);
-
-        state = CS_DONE;
-    }
-
     void Clear();
     void RemoveEmptyRenderGroups();
 

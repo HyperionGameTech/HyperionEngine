@@ -157,6 +157,17 @@ HYP_API void BeginFrame_GameThread()
     HYP_SCOPE;
 
     g_free_semaphore.acquire();
+
+    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& frame_data = g_frame_data[slot];
+
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
+    {
+        ViewData& vd = *it;
+        AssertDebug(vd.render_proxy_list.state != RenderProxyList::CS_READING);
+        vd.render_proxy_list.state = RenderProxyList::CS_WRITING;
+    }
 }
 
 HYP_API void EndFrame_GameThread()
@@ -165,6 +176,17 @@ HYP_API void EndFrame_GameThread()
 #ifdef HYP_DEBUG_MODE
     Threads::AssertOnThread(g_game_thread);
 #endif
+
+    uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& frame_data = g_frame_data[slot];
+
+    for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
+    {
+        ViewData& vd = *it;
+        AssertDebug(vd.render_proxy_list.state == RenderProxyList::CS_WRITING);
+        vd.render_proxy_list.state = RenderProxyList::CS_WRITTEN;
+    }
 
     g_producer_index.store((g_producer_index.load(std::memory_order_relaxed) + 1) % num_frames, std::memory_order_relaxed);
     g_frame_counter.fetch_add(1, std::memory_order_release); // publish the new frame #
@@ -188,7 +210,7 @@ HYP_API void BeginFrame_RenderThread()
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
     {
         ViewData& vd = *it;
-        vd.render_proxy_list.BeginRead();
+        vd.render_proxy_list.state = RenderProxyList::CS_READING;
     }
 
     // Reset binding allocators at the end of the frame
@@ -210,7 +232,9 @@ HYP_API void EndFrame_RenderThread()
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End();)
     {
         ViewData& vd = *it;
-        vd.render_proxy_list.EndRead();
+        AssertDebug(vd.render_proxy_list.state == RenderProxyList::CS_READING);
+        vd.render_proxy_list.state = RenderProxyList::CS_DONE;
+
         vd.render_proxy_list.RemoveEmptyRenderGroups();
 
         // Clear out data for views that haven't been written to for a while
@@ -556,8 +580,8 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
     }
     else
     {
-        // env_probe->GetRenderResource().DecRef();
-        // env_probe->GetPrefilteredEnvMap()->GetRenderResource().DecRef();
+        env_probe->GetRenderResource().DecRef();
+        env_probe->GetPrefilteredEnvMap()->GetRenderResource().DecRef();
     }
 }
 

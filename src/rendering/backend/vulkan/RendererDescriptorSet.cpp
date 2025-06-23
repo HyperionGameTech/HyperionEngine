@@ -285,11 +285,17 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
     }
 }
 
-void VulkanDescriptorSet::Update()
+void VulkanDescriptorSet::Update(bool force)
 {
     static_assert(std::is_trivial_v<VulkanDescriptorElementInfo>, "VulkanDescriptorElementInfo should be a trivial type for fast copy and move operations");
 
     AssertThrow(m_handle != VK_NULL_HANDLE);
+
+    if (force)
+    {
+        m_cached_elements.Clear();
+        UpdateDirtyState();
+    }
 
     if (m_vk_descriptor_element_infos.Empty())
     {

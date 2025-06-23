@@ -1460,8 +1460,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                             HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
                         }
 
-                        // // Temp; refactor
-                        // env_probe->GetEnvProbe()->SetNeedsRender(false);
+                        env_probe->GetEnvProbe()->SetNeedsRender(false);
                     }
                 }
             }

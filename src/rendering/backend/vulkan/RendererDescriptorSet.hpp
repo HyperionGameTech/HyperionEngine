@@ -62,7 +62,7 @@ public:
     HYP_API virtual RendererResult Destroy() override;
 
     HYP_API virtual void UpdateDirtyState(bool* out_is_dirty = nullptr) override;
-    HYP_API virtual void Update() override;
+    HYP_API virtual void Update(bool force = false) override;
 
     HYP_API virtual DescriptorSetRef Clone() const override;
 
