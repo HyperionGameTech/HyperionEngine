@@ -309,5 +309,49 @@ Bitset::BitIndex Bitset::NextSetBitIndex(BitIndex offset) const
     return not_found;
 }
 
+Bitset::BitIndex Bitset::FirstZeroBitIndex() const
+{
+    for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++)
+    {
+        const Bitset::BlockType inverted = ~m_blocks[block_index];
+
+        if (inverted != 0)
+        {
+#ifdef HYP_CLANG_OR_GCC
+            const uint32 bit_index = __builtin_ffs(inverted) - 1;
+#elif defined(HYP_MSVC)
+            unsigned long bit_index = 0;
+            _BitScanForward(&bit_index, inverted);
+#endif
+
+            return (block_index * num_bits_per_block) + bit_index;
+        }
+    }
+
+    return not_found;
+}
+
+Bitset::BitIndex Bitset::LastZeroBitIndex() const
+{
+    for (uint32 block_index = m_blocks.Size(); block_index != 0; block_index--)
+    {
+        const Bitset::BlockType inverted = ~m_blocks[block_index - 1];
+
+        if (inverted != 0)
+        {
+#ifdef HYP_CLANG_OR_GCC
+            const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clz(inverted) - 1;
+#elif defined(HYP_MSVC)
+            unsigned long bit_index = 0;
+            _BitScanReverse(&bit_index, inverted);
+#endif
+
+            return ((block_index - 1) * num_bits_per_block) + bit_index;
+        }
+    }
+
+    return not_found;
+}
+
 } // namespace containers
 } // namespace hyperion

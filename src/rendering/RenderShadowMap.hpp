@@ -45,33 +45,31 @@ static const SizeType max_shadow_maps = (4ull * 1024ull) / sizeof(ShadowMapShade
 class RenderWorld;
 class RenderShadowMap;
 
-enum class ShadowMapFilterMode : uint32
+enum ShadowMapFilter : uint32
 {
-    STANDARD,
-    PCF,
-    CONTACT_HARDENED,
-    VSM,
+    SMF_STANDARD,
+    SMF_PCF,
+    SMF_CONTACT_HARDENED,
+    SMF_VSM,
 
-    MAX
+    SMF_MAX
 };
 
-enum class ShadowFlags : uint32
+enum ShadowFlags : uint32
 {
-    NONE = 0x0,
-    PCF = 0x1,
-    VSM = 0x2,
-    CONTACT_HARDENED = 0x4
+    SF_NONE = 0x0,
+    SF_PCF = 0x1,
+    SF_VSM = 0x2,
+    SF_CONTACT_HARDENED = 0x4
 };
 
 HYP_MAKE_ENUM_FLAGS(ShadowFlags)
 
-enum class ShadowMapType : uint32
+enum ShadowMapType : uint32
 {
-    DIRECTIONAL_SHADOW_MAP,
-    SPOT_SHADOW_MAP,
-    POINT_SHADOW_MAP,
-
-    MAX
+    SMT_DIRECTIONAL,
+    SMT_SPOT,
+    SMT_OMNI
 };
 
 struct ShadowMapAtlasElement
@@ -215,7 +213,7 @@ public:
     void Initialize();
     void Destroy();
 
-    RenderShadowMap* AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions);
+    RenderShadowMap* AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilter filter_mode, const Vec2u& dimensions);
     bool FreeShadowMap(RenderShadowMap* shadow_map);
 
 private:
@@ -234,7 +232,7 @@ private:
 class RenderShadowMap final : public RenderResourceBase
 {
 public:
-    RenderShadowMap(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view);
+    RenderShadowMap(ShadowMapType type, ShadowMapFilter filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view);
     RenderShadowMap(RenderShadowMap&& other) noexcept;
     virtual ~RenderShadowMap() override;
 
@@ -243,7 +241,7 @@ public:
         return m_type;
     }
 
-    HYP_FORCE_INLINE ShadowMapFilterMode GetFilterMode() const
+    HYP_FORCE_INLINE ShadowMapFilter GetFilterMode() const
     {
         return m_filter_mode;
     }
@@ -276,7 +274,7 @@ private:
     void UpdateBufferData();
 
     ShadowMapType m_type;
-    ShadowMapFilterMode m_filter_mode;
+    ShadowMapFilter m_filter_mode;
     ShadowMapAtlasElement m_atlas_element;
     ImageViewRef m_image_view;
     ShadowMapShaderData m_buffer_data;

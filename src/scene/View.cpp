@@ -278,26 +278,6 @@ void View::Update(float delta)
     rpl.BuildRenderGroups(m_render_resource, m_override_attributes.TryGet());
 
     RenderCollector::CollectDrawCalls(rpl, bucket_mask);
-
-    // HYP_LOG(Scene, Debug, "Acquired proxy list : {} \t total count : {}", (void*)&rpl, rpl.NumRenderProxies());
-
-    // constexpr uint32 bucket_mask = (1 << RB_OPAQUE)
-    //     | (1 << RB_LIGHTMAP)
-    //     | (1 << RB_SKYBOX)
-    //     | (1 << RB_TRANSLUCENT)
-    //     | (1 << RB_DEBUG);
-
-    // RenderCollector::CollectDrawCalls(m_render_resource->GetRenderProxyList(), bucket_mask);
-
-    // HYP_LOG(Scene, Debug, "View #{} Update : Has {} scenes: {}, EnvGrids: {}, EnvProbes: {}, Lights: {}, Lightmap Volumes: {}",
-    //     GetID().Value(),
-    //     m_scenes.Size(),
-    //     String::Join(Map(m_scenes, [](const Handle<Scene>& scene)
-    //                      {
-    //                          return HYP_FORMAT("(Name: {}, Nodes: {})", scene->GetName(), scene->GetRoot()->GetDescendants().Size());
-    //                      }),
-    //         ", "),
-    //     m_tracked_env_grids.GetCurrentBits().Count(), m_tracked_env_probes.GetCurrentBits().Count(), m_tracked_lights.GetCurrentBits().Count(), m_tracked_lightmap_volumes.GetCurrentBits().Count());
 }
 
 void View::SetViewport(const Viewport& viewport)
@@ -714,17 +694,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>::ResourceTrackState track_state;
-
-            rpl.tracked_lightmap_volumes.Track(
-                lightmap_volume_component.volume->GetID(),
-                &lightmap_volume_component.volume->GetRenderResource(),
-                &track_state);
-
-            if (track_state & ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*>::CHANGED)
-            {
-                HYP_LOG(Scene, Debug, "Lightmap volume {} changed in view {}", lightmap_volume_component.volume->GetID(), GetID());
-            }
+            rpl.tracked_lightmap_volumes.Track(lightmap_volume_component.volume->GetID(), &lightmap_volume_component.volume->GetRenderResource());
         }
     }
 
@@ -874,8 +844,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 continue;
             }
 
-            ResourceTracker<ID<ReflectionProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
-            rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource(), &track_state);
+            rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource());
         }
 
         // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))

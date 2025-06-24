@@ -82,6 +82,24 @@ HYP_API const HypClass* GetClass(WeakName type_name);
 HYP_API const HypEnum* GetEnum(TypeID type_id);
 HYP_API const HypEnum* GetEnum(WeakName type_name);
 
+HYP_API SizeType GetNumDescendants(TypeID type_id);
+
+template <class T>
+static inline SizeType GetNumDescendants()
+{
+    return GetNumDescendants(TypeID::ForType<T>());
+}
+
+HYP_API int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+
+template <class T, class U>
+static inline int GetSubclassIndex()
+{
+    static const int idx = GetSubclassIndex(TypeID::ForType<T>(), TypeID::ForType<U>());
+
+    return idx;
+}
+
 template <class T>
 HYP_FORCE_INLINE const HypClass* GetClass()
 {

@@ -51,6 +51,9 @@ HYP_API extern RenderProxyList& GetProducerRenderProxyList(View* view);
  *  \note This is only valid to call from the render thread, or from a task that is initiated by the render thread. */
 HYP_API extern RenderProxyList& GetConsumerRenderProxyList(View* view);
 
+HYP_API extern SizeType GetNumDescendants(TypeID type_id);
+HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+
 struct ObjectBindingAllocatorBase
 {
     static constexpr uint32 invalid_binding = ~0u;
@@ -121,18 +124,6 @@ public:
 
 protected:
     ObjectBinderBase(RenderGlobalState* rgs);
-
-    static int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
-
-    template <class T, class U>
-    static int GetSubclassIndex()
-    {
-        static const int idx = GetSubclassIndex(TypeID::ForType<T>(), TypeID::ForType<U>());
-
-        return idx;
-    }
-
-    static SizeType GetNumDescendants(TypeID type_id);
 };
 
 /*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
@@ -383,7 +374,7 @@ public:
                 return;
             }
 
-            Impl& impl = m_subclass_impls[type_id].Get();
+            Impl& impl = m_subclass_impls[subclass_index].Get();
             impl.Unbind(m_allocator, object);
         }
     }

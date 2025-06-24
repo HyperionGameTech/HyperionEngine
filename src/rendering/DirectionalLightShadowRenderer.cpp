@@ -37,7 +37,7 @@
 
 namespace hyperion {
 
-static const TextureFormat shadow_map_formats[uint32(ShadowMapFilterMode::MAX)] = {
+static const TextureFormat shadow_map_formats[uint32(SMF_MAX)] = {
     TF_R32F, // STANDARD
     TF_R32F, // PCF
     TF_R32F, // CONTACT_HARDENED
@@ -303,7 +303,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
             ImageSubResource { .base_array_layer = atlas_element.atlas_index });
     }
 
-    if (m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM)
+    if (m_shadow_map_resource_handle->GetFilterMode() == SMF_VSM)
     {
         struct
         {
@@ -353,7 +353,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
 #pragma region DirectionalLightShadowRenderer
 
-DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scene>& parent_scene, const Handle<Light>& light, Vec2u resolution, ShadowMapFilterMode filter_mode)
+DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scene>& parent_scene, const Handle<Light>& light, Vec2u resolution, ShadowMapFilter filter_mode)
     : m_parent_scene(parent_scene),
       m_light(light),
       m_resolution(resolution),
@@ -369,7 +369,7 @@ DirectionalLightShadowRenderer::DirectionalLightShadowRenderer(const Handle<Scen
         MeshAttributes {},
         MaterialAttributes {
             .shader_definition = m_shadow_pass->GetShader()->GetCompiledShader()->GetDefinition(),
-            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == ShadowMapFilterMode::VSM ? FCM_BACK : FCM_FRONT });
+            .cull_faces = m_shadow_map_resource_handle->GetFilterMode() == SMF_VSM ? FCM_BACK : FCM_FRONT });
 
     m_view_statics = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES,
@@ -407,7 +407,7 @@ void DirectionalLightShadowRenderer::Init()
 void DirectionalLightShadowRenderer::OnAddedToWorld()
 {
 
-    RenderShadowMap* shadow_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(ShadowMapType::DIRECTIONAL_SHADOW_MAP, m_filter_mode, m_resolution);
+    RenderShadowMap* shadow_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(SMT_DIRECTIONAL, m_filter_mode, m_resolution);
     AssertThrowMsg(shadow_map != nullptr, "Failed to allocate shadow map");
 
     m_shadow_map_resource_handle = TResourceHandle<RenderShadowMap>(*shadow_map);
@@ -545,16 +545,16 @@ void DirectionalLightShadowRenderer::CreateShader()
 
     switch (m_filter_mode)
     {
-    case ShadowMapFilterMode::VSM:
+    case SMF_VSM:
         properties.Set("MODE_VSM");
         break;
-    case ShadowMapFilterMode::CONTACT_HARDENED:
+    case SMF_CONTACT_HARDENED:
         properties.Set("MODE_CONTACT_HARDENED");
         break;
-    case ShadowMapFilterMode::PCF:
+    case SMF_PCF:
         properties.Set("MODE_PCF");
         break;
-    case ShadowMapFilterMode::STANDARD: // fallthrough
+    case SMF_STANDARD: // fallthrough
     default:
         properties.Set("MODE_STANDARD");
         break;

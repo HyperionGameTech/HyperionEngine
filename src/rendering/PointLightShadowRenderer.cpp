@@ -50,8 +50,8 @@ void PointLightShadowRenderer::Init()
     AssertThrow(m_parent_scene->IsReady());
 
     RenderShadowMap* shadow_map = g_render_global_state->ShadowMapAllocator->AllocateShadowMap(
-        ShadowMapType::POINT_SHADOW_MAP,
-        ShadowMapFilterMode::VSM,
+        SMT_OMNI,
+        SMF_VSM,
         m_extent);
     AssertThrowMsg(shadow_map != nullptr, "Failed to allocate shadow map");
 

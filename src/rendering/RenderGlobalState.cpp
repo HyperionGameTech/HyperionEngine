@@ -270,41 +270,6 @@ ObjectBinderBase::ObjectBinderBase(RenderGlobalState* rgs)
     HYP_FAIL("Failed to find a free slot in the RenderGlobalState's ObjectBinders array!");
 }
 
-int ObjectBinderBase::GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id)
-{
-    const HypClass* base = GetClass(base_type_id);
-    if (!base)
-    {
-        return -1;
-    }
-
-    const HypClass* subclass = GetClass(subclass_type_id);
-
-    if (!subclass)
-    {
-        return -1;
-    }
-
-    int subclass_static_index = subclass->GetStaticIndex();
-    if (subclass_static_index < 0)
-    {
-        return -1; // subclass is not a static class
-    }
-
-    return (subclass_static_index - base->GetStaticIndex()) <= base->GetNumDescendants();
-}
-
-SizeType ObjectBinderBase::GetNumDescendants(TypeID type_id)
-{
-    const HypClass* base = GetClass(type_id);
-    if (!base)
-    {
-        return 0;
-    }
-
-    return base->GetNumDescendants();
-}
-
 #pragma endregion ObjectBinderBase
 
 #pragma region RenderGlobalState

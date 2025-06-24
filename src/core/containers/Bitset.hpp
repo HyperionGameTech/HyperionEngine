@@ -154,6 +154,9 @@ public:
         \returns The index of the next set bit after the given index. */
     HYP_API BitIndex NextSetBitIndex(BitIndex offset) const;
 
+    HYP_API BitIndex FirstZeroBitIndex() const;
+    HYP_API BitIndex LastZeroBitIndex() const;
+
     /*! \brief Get the value of the bit at the given index.
         \param index The index of the bit to get.
         \returns True if the bit is set, false otherwise. */

@@ -280,9 +280,9 @@ RenderProxyList::~RenderProxyList()
     Clear();
 
 #define DO_FINALIZATION_CHECK(tracker)                                                                                                    \
-    AssertThrowMsg(tracker.GetCurrentBits().Count() == 0,                                                                                 \
+    AssertThrowMsg(tracker.NumCurrent() == 0,                                                                                             \
         HYP_STR(tracker) " still has %u bits set. This means that there are still render proxies that have not been removed or cleared.", \
-        tracker.GetCurrentBits().Count())
+        tracker.NumCurrent())
 
     DO_FINALIZATION_CHECK(render_proxy_tracker);
     DO_FINALIZATION_CHECK(tracked_lights);

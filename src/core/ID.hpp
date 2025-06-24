@@ -114,6 +114,8 @@ struct IDBase
 template <class T>
 struct ID : IDBase
 {
+    using ObjectType = T;
+
     static const ID invalid;
     static constexpr TypeID type_id_static = TypeID::ForType<T>();
 

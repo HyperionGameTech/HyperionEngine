@@ -213,7 +213,6 @@ protected:
     void CollectEnvProbes(RenderProxyList& rpl);
 
     typename RenderProxyTracker::Diff CollectEntities(RenderProxyList& rpl);
-
     typename RenderProxyTracker::Diff CollectAllEntities(RenderProxyList& rpl);
     typename RenderProxyTracker::Diff CollectDynamicEntities(RenderProxyList& rpl);
     typename RenderProxyTracker::Diff CollectStaticEntities(RenderProxyList& rpl);

@@ -294,9 +294,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
 
-        // Reserve to prevent iterator invalidation
-        render_proxy_tracker.Reserve(added_proxies.Size());
-
         // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
         // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
         for (RenderProxy& proxy : added_proxies)

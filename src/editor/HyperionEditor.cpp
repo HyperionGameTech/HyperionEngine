@@ -206,7 +206,7 @@ void HyperionEditor::Init()
 
     sun_entity->Attach(sun_node);
 
-    scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent { .mode = ShadowMapFilterMode::PCF, .radius = 80.0f, .resolution = { 1024, 1024 } });
+    scene->GetEntityManager()->AddComponent<ShadowMapComponent>(sun_entity, ShadowMapComponent { .mode = SMF_PCF, .radius = 80.0f, .resolution = { 1024, 1024 } });
 #endif
 
     // Add Skybox

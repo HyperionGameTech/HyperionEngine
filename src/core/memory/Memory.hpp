@@ -271,6 +271,26 @@ public:
             return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T), alignof(T)));
         }
     }
+
+    template <class T>
+    HYP_FORCE_INLINE static T* Allocate(SizeType count)
+    {
+        if (count == 0)
+        {
+            return nullptr;
+        }
+
+        if constexpr (alignof(T) <= alignof(std::max_align_t))
+        {
+            // Use standard allocation if alignment is not greater than max alignment
+            return static_cast<T*>(Memory::Allocate(sizeof(T) * count));
+        }
+        else
+        {
+            // Use aligned allocation if alignment is greater than max alignment
+            return static_cast<T*>(HYP_ALLOC_ALIGNED(sizeof(T) * count, alignof(T)));
+        }
+    }
 };
 
 } // namespace memory

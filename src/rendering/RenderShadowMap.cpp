@@ -111,9 +111,9 @@ void ShadowMapAllocator::Destroy()
     SafeRelease(std::move(m_point_light_shadow_map_image_view));
 }
 
-RenderShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilterMode filter_mode, const Vec2u& dimensions)
+RenderShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadow_map_type, ShadowMapFilter filter_mode, const Vec2u& dimensions)
 {
-    if (shadow_map_type == ShadowMapType::POINT_SHADOW_MAP)
+    if (shadow_map_type == SMT_OMNI)
     {
         const uint32 point_light_index = m_point_light_shadow_map_id_generator.NextID() - 1;
 
@@ -208,7 +208,7 @@ bool ShadowMapAllocator::FreeShadowMap(RenderShadowMap* shadow_map)
 
 #pragma region RenderShadowMap
 
-RenderShadowMap::RenderShadowMap(ShadowMapType type, ShadowMapFilterMode filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view)
+RenderShadowMap::RenderShadowMap(ShadowMapType type, ShadowMapFilter filter_mode, const ShadowMapAtlasElement& atlas_element, const ImageViewRef& image_view)
     : m_type(type),
       m_filter_mode(filter_mode),
       m_atlas_element(atlas_element),
@@ -282,19 +282,19 @@ void RenderShadowMap::UpdateBufferData()
 
     m_buffer_data.dimensions_scale = Vec4f(Vec2f(m_atlas_element.dimensions), m_atlas_element.scale);
     m_buffer_data.offset_uv = m_atlas_element.offset_uv;
-    m_buffer_data.layer_index = m_type == ShadowMapType::POINT_SHADOW_MAP ? m_atlas_element.point_light_index : m_atlas_element.atlas_index;
-    m_buffer_data.flags = uint32(ShadowFlags::NONE);
+    m_buffer_data.layer_index = m_type == SMT_OMNI ? m_atlas_element.point_light_index : m_atlas_element.atlas_index;
+    m_buffer_data.flags = uint32(SF_NONE);
 
     switch (m_filter_mode)
     {
-    case ShadowMapFilterMode::VSM:
-        m_buffer_data.flags |= uint32(ShadowFlags::VSM);
+    case SMF_VSM:
+        m_buffer_data.flags |= uint32(SF_VSM);
         break;
-    case ShadowMapFilterMode::CONTACT_HARDENED:
-        m_buffer_data.flags |= uint32(ShadowFlags::CONTACT_HARDENED);
+    case SMF_CONTACT_HARDENED:
+        m_buffer_data.flags |= uint32(SF_CONTACT_HARDENED);
         break;
-    case ShadowMapFilterMode::PCF:
-        m_buffer_data.flags |= uint32(ShadowFlags::PCF);
+    case SMF_PCF:
+        m_buffer_data.flags |= uint32(SF_PCF);
         break;
     default:
         break;

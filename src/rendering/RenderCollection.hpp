@@ -181,10 +181,10 @@ struct HYP_API RenderProxyList
     int priority;
 
     RenderProxyTracker render_proxy_tracker;
-    ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
-    ResourceTracker<ID<ReflectionProbe>, RenderEnvProbe*> tracked_env_probes;
-    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
-    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
+    PolymorphicResourceTracker<ID<Light>, RenderLight*> tracked_lights;
+    PolymorphicResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
+    PolymorphicResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
+    PolymorphicResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
     Array<RenderProxy*> render_proxies;
     Array<Array<RenderLight*>> lights;
