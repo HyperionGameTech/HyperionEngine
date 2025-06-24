@@ -255,7 +255,7 @@ void View::Update(float delta)
     RenderProxyList& rpl = GetProducerRenderProxyList(this);
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;
-    rpl.render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+    rpl.meshes.Advance(AdvanceAction::CLEAR);
     rpl.tracked_lights.Advance(AdvanceAction::CLEAR);
     rpl.tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
     rpl.tracked_env_grids.Advance(AdvanceAction::CLEAR);
@@ -339,7 +339,7 @@ void View::RemoveScene(const Handle<Scene>& scene)
     m_scenes.Erase(scene);
 }
 
-typename RenderProxyTracker::Diff View::CollectEntities(RenderProxyList& rpl)
+typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectEntities(RenderProxyList& rpl)
 {
     AssertReady();
 
@@ -356,7 +356,7 @@ typename RenderProxyTracker::Diff View::CollectEntities(RenderProxyList& rpl)
     }
 }
 
-typename RenderProxyTracker::Diff View::CollectAllEntities(RenderProxyList& rpl)
+typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -366,7 +366,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities(RenderProxyList& rpl)
     {
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
 
-        return rpl.render_proxy_tracker.GetDiff();
+        return rpl.meshes.GetDiff();
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -422,7 +422,7 @@ typename RenderProxyTracker::Diff View::CollectAllEntities(RenderProxyList& rpl)
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
@@ -430,10 +430,10 @@ typename RenderProxyTracker::Diff View::CollectAllEntities(RenderProxyList& rpl)
 #endif
     }
 
-    return rpl.render_proxy_tracker.GetDiff();
+    return rpl.meshes.GetDiff();
 }
 
-typename RenderProxyTracker::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
+typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -445,7 +445,7 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities(RenderProxyList& 
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect dynamic entities!", GetID().Value());
         // if camera is invalid, update without adding any entities
 
-        return rpl.render_proxy_tracker.GetDiff();
+        return rpl.meshes.GetDiff();
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -494,14 +494,14 @@ typename RenderProxyTracker::Diff View::CollectDynamicEntities(RenderProxyList& 
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
         }
     }
 
-    return rpl.render_proxy_tracker.GetDiff();
+    return rpl.meshes.GetDiff();
 }
 
-typename RenderProxyTracker::Diff View::CollectStaticEntities(RenderProxyList& rpl)
+typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -513,7 +513,7 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities(RenderProxyList& r
         // if camera is invalid, update without adding any entities
         HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect static entities!", GetID().Value());
 
-        return rpl.render_proxy_tracker.GetDiff();
+        return rpl.meshes.GetDiff();
     }
 
     const ID<Camera> camera_id = m_camera->GetID();
@@ -562,11 +562,11 @@ typename RenderProxyTracker::Diff View::CollectStaticEntities(RenderProxyList& r
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.render_proxy_tracker.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
         }
     }
 
-    return rpl.render_proxy_tracker.GetDiff();
+    return rpl.meshes.GetDiff();
 }
 
 void View::CollectLights(RenderProxyList& rpl)

@@ -369,7 +369,7 @@ void EnvProbe::Update(float delta)
         m_view->UpdateVisibility();
         m_view->Update(delta);
 
-        typename RenderProxyTracker::Diff diff = m_view->GetLastCollectionResult();
+        auto diff = m_view->GetLastCollectionResult();
 
         if (diff.NeedsUpdate() || m_octant_hash_code != octant_hash_code)
         {

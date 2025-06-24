@@ -146,7 +146,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
 }
 
 HYP_ENABLE_OPTIMIZATION;
-static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, RenderBucket rb)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -201,9 +201,6 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
         InitObject(rg);
     }
 
-    AssertDebug(!render_proxy_list->render_proxies.Contains(proxy));
-    render_proxy_list->render_proxies.PushBack(proxy);
-
     auto insert_result = mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
     volatile void* ptr = insert_result.first->second; // for debugging purposes
     AssertDebugMsg(insert_result.second,
@@ -215,7 +212,7 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracke
 }
 HYP_ENABLE_OPTIMIZATION;
 
-static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTracker& render_proxy_tracker, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -235,10 +232,6 @@ static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, RenderProxyTra
         return false;
     }
 
-    auto rp_it = render_proxy_list->render_proxies.Find(proxy_iter->second);
-    AssertDebug(rp_it != render_proxy_list->render_proxies.End());
-
-    render_proxy_list->render_proxies.Erase(rp_it);
     mapping.render_proxies.Erase(proxy_iter);
 
     return true;
@@ -284,7 +277,7 @@ RenderProxyList::~RenderProxyList()
         HYP_STR(tracker) " still has %u bits set. This means that there are still render proxies that have not been removed or cleared.", \
         tracker.NumCurrent())
 
-    DO_FINALIZATION_CHECK(render_proxy_tracker);
+    DO_FINALIZATION_CHECK(meshes);
     DO_FINALIZATION_CHECK(tracked_lights);
     DO_FINALIZATION_CHECK(tracked_lightmap_volumes);
     DO_FINALIZATION_CHECK(tracked_env_grids);
@@ -313,8 +306,6 @@ void RenderProxyList::Clear()
             }
         }
     }
-
-    render_proxies.Clear();
 }
 
 void RenderProxyList::RemoveEmptyRenderGroups()
@@ -367,11 +358,6 @@ uint32 RenderProxyList::NumRenderGroups() const
     return count;
 }
 
-uint32 RenderProxyList::NumRenderProxies() const
-{
-    return render_proxies.Size();
-}
-
 void RenderProxyList::BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes)
 {
     HYP_SCOPE;
@@ -380,15 +366,15 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
     // should be in this state - this should be called from the game thread when the render proxy list is being built
     AssertDebug(state == CS_WRITING);
 
-    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
+    auto diff = meshes.GetDiff();
 
     if (diff.NeedsUpdate())
     {
         Array<RenderProxy*> removed_proxies;
-        render_proxy_tracker.GetRemoved(removed_proxies, true /* include_changed */);
+        meshes.GetRemoved(removed_proxies, true /* include_changed */);
 
         Array<RenderProxy*> added_proxy_ptrs;
-        render_proxy_tracker.GetAdded(added_proxy_ptrs, true /* include_changed */);
+        meshes.GetAdded(added_proxy_ptrs, true /* include_changed */);
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any())
         {
@@ -411,7 +397,7 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
                 const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                AssertThrow(RemoveRenderProxy(this, render_proxy_tracker, proxy, attributes, rb));
+                AssertThrow(RemoveRenderProxy(this, meshes, proxy, attributes, rb));
             }
 
             for (RenderProxy* proxy : added_proxy_ptrs)
@@ -428,15 +414,7 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
                 const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                // sanity check
-                AssertDebug(!render_proxies.Contains(proxy));
-                AssertDebug(render_proxies.FindIf([&](const RenderProxy* p)
-                                {
-                                    return p->entity.GetID() == proxy->entity.GetID();
-                                })
-                    == render_proxies.End());
-
-                AddRenderProxy(this, render_proxy_tracker, proxy, render_view, attributes, rb);
+                AddRenderProxy(this, meshes, proxy, render_view, attributes, rb);
             }
         }
     }

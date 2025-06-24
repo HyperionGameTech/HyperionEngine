@@ -71,6 +71,8 @@
 
 #include <core/config/Config.hpp>
 
+#include <core/containers/SparsePagedArray.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <HyperionEngine.hpp>

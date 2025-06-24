@@ -155,10 +155,6 @@ struct HYP_API RenderProxyList
     /*! \brief Counts the number of render groups in the list. */
     uint32 NumRenderGroups() const;
 
-    /*! \brief Counts the total number of render proxies in all render groups.
-     *  really only useful for debugging purposes. */
-    uint32 NumRenderProxies() const;
-
     /*! \brief Creates RenderGroups and adds/removes RenderProxies based on the renderable attributes of the render proxies.
      *  If override_attributes is provided, it will be used instead of the renderable attributes of the render proxies. */
     void BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes = nullptr);
@@ -180,13 +176,12 @@ struct HYP_API RenderProxyList
     Viewport viewport;
     int priority;
 
-    RenderProxyTracker render_proxy_tracker;
-    PolymorphicResourceTracker<ID<Light>, RenderLight*> tracked_lights;
-    PolymorphicResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
-    PolymorphicResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
-    PolymorphicResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
+    ResourceTracker<ID<Entity>, RenderProxy> meshes;
+    ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
+    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
+    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
+    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
-    Array<RenderProxy*> render_proxies;
     Array<Array<RenderLight*>> lights;
     Array<Array<RenderEnvProbe*>> env_probes;
     Array<RenderEnvGrid*> env_grids;

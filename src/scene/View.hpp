@@ -194,7 +194,7 @@ public:
         return m_override_attributes;
     }
 
-    HYP_FORCE_INLINE const typename RenderProxyTracker::Diff& GetLastCollectionResult() const
+    HYP_FORCE_INLINE const typename ResourceTracker<ID<Entity>, RenderProxy>::Diff& GetLastCollectionResult() const
     {
         return m_last_collection_result;
     }
@@ -212,10 +212,10 @@ protected:
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
 
-    typename RenderProxyTracker::Diff CollectEntities(RenderProxyList& rpl);
-    typename RenderProxyTracker::Diff CollectAllEntities(RenderProxyList& rpl);
-    typename RenderProxyTracker::Diff CollectDynamicEntities(RenderProxyList& rpl);
-    typename RenderProxyTracker::Diff CollectStaticEntities(RenderProxyList& rpl);
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectEntities(RenderProxyList& rpl);
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectAllEntities(RenderProxyList& rpl);
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectDynamicEntities(RenderProxyList& rpl);
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectStaticEntities(RenderProxyList& rpl);
 
     ViewDesc m_view_desc;
 
@@ -235,7 +235,7 @@ protected:
 
     Optional<RenderableAttributeSet> m_override_attributes;
 
-    typename RenderProxyTracker::Diff m_last_collection_result;
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff m_last_collection_result;
 };
 
 } // namespace hyperion

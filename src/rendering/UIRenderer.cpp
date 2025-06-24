@@ -174,11 +174,11 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         render_proxy_list->Clear();
 
-        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
+        ResourceTracker<ID<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
 
         for (const Pair<ID<Entity>, int>& pair : proxy_depths)
         {
-            RenderProxy* proxy = render_proxy_tracker.GetElement(pair.first);
+            RenderProxy* proxy = meshes.GetElement(pair.first);
 
             if (!proxy)
             {
@@ -245,9 +245,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
                 }
             }
 
-            AssertDebug(!render_proxy_list->render_proxies.Contains(proxy));
-            render_proxy_list->render_proxies.PushBack(proxy);
-
             auto insert_result = mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
             AssertDebug(insert_result.second);
         }
@@ -255,7 +252,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
         render_proxy_list->RemoveEmptyRenderGroups();
     }
 
-    bool RemoveRenderProxy(RenderProxyTracker& render_proxy_tracker, ID<Entity> entity)
+    bool RemoveRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>& meshes, ID<Entity> entity)
     {
         HYP_SCOPE;
 
@@ -272,8 +269,6 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
                 if (proxy_iter != mapping.render_proxies.End())
                 {
-                    AssertThrow(render_proxy_list->render_proxies.Erase(proxy_iter->second));
-
                     mapping.render_proxies.Erase(proxy_iter);
 
                     removed = true;
@@ -283,7 +278,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
             }
         }
 
-        render_proxy_tracker.MarkToRemove(entity);
+        meshes.MarkToRemove(entity);
 
         return removed;
     }
@@ -292,7 +287,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        RenderProxyTracker& render_proxy_tracker = render_proxy_list->render_proxy_tracker;
+        ResourceTracker<ID<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
 
         // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
         // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
@@ -303,20 +298,20 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         for (ID<Entity> entity : removed_entities)
         {
-            const RenderProxy* proxy = render_proxy_tracker.GetElement(entity);
+            const RenderProxy* proxy = meshes.GetElement(entity);
             AssertThrow(proxy != nullptr);
 
             proxy->DecRefs();
 
-            render_proxy_tracker.MarkToRemove(entity);
+            meshes.MarkToRemove(entity);
         }
 
         for (RenderProxy& proxy : added_proxies)
         {
-            render_proxy_tracker.Track(proxy.entity.GetID(), std::move(proxy));
+            meshes.Track(proxy.entity.GetID(), std::move(proxy));
         }
 
-        render_proxy_tracker.Advance(AdvanceAction::PERSIST);
+        meshes.Advance(AdvanceAction::PERSIST);
 
         BuildProxyGroupsInOrder();
 
@@ -383,33 +378,33 @@ void UIRenderCollector::ResetOrdering()
     m_proxy_depths.Clear();
 }
 
-void UIRenderCollector::PushRenderProxy(RenderProxyTracker& render_proxy_tracker, const RenderProxy& render_proxy, int computed_depth)
+void UIRenderCollector::PushRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth)
 {
     AssertThrow(render_proxy.entity.IsValid());
     AssertThrow(render_proxy.mesh.IsValid());
     AssertThrow(render_proxy.material.IsValid());
 
-    render_proxy_tracker.Track(render_proxy.entity, render_proxy);
+    meshes.Track(render_proxy.entity, render_proxy);
 
     m_proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(RenderProxyTracker& render_proxy_tracker, const FramebufferRef& framebuffer, const Optional<RenderableAttributeSet>& override_attributes)
+typename ResourceTracker<ID<Entity>, RenderProxy>::Diff UIRenderCollector::PushUpdatesToRenderThread(ResourceTracker<ID<Entity>, RenderProxy>& meshes, const FramebufferRef& framebuffer, const Optional<RenderableAttributeSet>& override_attributes)
 {
     HYP_SCOPE;
 
     // UISubsystem can have Update() called on a task thread.
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    typename RenderProxyTracker::Diff diff = render_proxy_tracker.GetDiff();
+    auto diff = meshes.GetDiff();
 
     if (diff.NeedsUpdate())
     {
         Array<ID<Entity>> removed_entities;
-        render_proxy_tracker.GetRemoved(removed_entities, true /* include_changed */);
+        meshes.GetRemoved(removed_entities, true /* include_changed */);
 
         Array<RenderProxy*> added_proxies_ptrs;
-        render_proxy_tracker.GetAdded(added_proxies_ptrs, true /* include_changed */);
+        meshes.GetAdded(added_proxies_ptrs, true /* include_changed */);
 
         if (added_proxies_ptrs.Any() || removed_entities.Any())
         {
@@ -424,7 +419,7 @@ typename RenderProxyTracker::Diff UIRenderCollector::PushUpdatesToRenderThread(R
         }
     }
 
-    render_proxy_tracker.Advance(AdvanceAction::CLEAR);
+    meshes.Advance(AdvanceAction::CLEAR);
 
     return diff;
 }

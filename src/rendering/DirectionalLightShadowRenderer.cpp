@@ -497,7 +497,7 @@ void DirectionalLightShadowRenderer::Update(float delta)
 
     Octree& octree = m_parent_scene->GetOctree();
 
-    typename RenderProxyTracker::Diff statics_collection_result = m_view_statics->GetLastCollectionResult();
+    auto statics_collection_result = m_view_statics->GetLastCollectionResult();
 
     Octree const* fitting_octant = nullptr;
     octree.GetFittingOctant(m_aabb, fitting_octant);

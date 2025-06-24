@@ -42,10 +42,10 @@ public:
 
     void ResetOrdering();
 
-    void PushRenderProxy(RenderProxyTracker& render_proxy_tracker, const RenderProxy& render_proxy, int computed_depth);
+    void PushRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth);
 
-    typename RenderProxyTracker::Diff PushUpdatesToRenderThread(
-        RenderProxyTracker& render_proxy_tracker,
+    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff PushUpdatesToRenderThread(
+        ResourceTracker<ID<Entity>, RenderProxy>& meshes,
         const FramebufferRef& framebuffer,
         const Optional<RenderableAttributeSet>& override_attributes = {});
 
@@ -88,12 +88,12 @@ public:
         return m_render_collector;
     }
 
-    HYP_FORCE_INLINE RenderProxyTracker& GetRenderProxyTracker()
+    HYP_FORCE_INLINE ResourceTracker<ID<Entity>, RenderProxy>& GetRenderProxyTracker()
     {
         return m_render_proxy_tracker;
     }
 
-    HYP_FORCE_INLINE const RenderProxyTracker& GetRenderProxyTracker() const
+    HYP_FORCE_INLINE const ResourceTracker<ID<Entity>, RenderProxy>& GetRenderProxyTracker() const
     {
         return m_render_proxy_tracker;
     }
@@ -115,7 +115,7 @@ private:
     UIRenderCollector m_render_collector;
 
     // Game thread side list, used for collecting UI objects
-    RenderProxyTracker m_render_proxy_tracker;
+    ResourceTracker<ID<Entity>, RenderProxy> m_render_proxy_tracker;
 
     TResourceHandle<RenderCamera> m_camera_resource_handle;
 
