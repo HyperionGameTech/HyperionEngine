@@ -87,6 +87,37 @@ namespace editor {
 HyperionEditor::HyperionEditor()
     : Game()
 {
+    /*// paged array testing
+
+     Array<int*> tmp_ptrs;
+
+     Pool<int, 2048> pool;
+     for (int i = 0; i < 5000; i++)
+     {
+         int& j = pool.PushBack(100 + i);
+
+         if (i % 2 == 0)
+         {
+             tmp_ptrs.PushBack(&j);
+         }
+     }
+
+     for (int i = 0; i < tmp_ptrs.Size(); i++)
+     {
+         pool.Free(tmp_ptrs[i]);
+     }
+
+     for (int i = 0; i < 3000; i++)
+     {
+         pool.PushBack(100 + i);
+     }
+
+     for (auto&& it : pool)
+     {
+         HYP_LOG(Editor, Debug, "item : {}", it);
+     }
+
+     HYP_BREAKPOINT;*/
 }
 
 HyperionEditor::~HyperionEditor()
