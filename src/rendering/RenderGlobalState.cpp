@@ -12,6 +12,7 @@
 #include <rendering/RenderEnvGrid.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/Renderer.hpp>
+#include <rendering/SafeDeleter.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/DrawCall.hpp>
 #include <rendering/GPUBufferHolderMap.hpp>
@@ -75,14 +76,40 @@ struct RenderResourceLock_Impl
     AtomicSemaphore semaphore;
 };
 
-#pragma region RenderResourceLockContainer
+#pragma region ResourceContainer
 
-class RenderResourceLockContainer
+struct ResourceContainer
 {
-public:
-    ~RenderResourceLockContainer() = default;
+    struct ResourceData final
+    {
+        AnyHandle resource;
+        AtomicVar<uint32> count;
 
-    SparsePagedArray<RenderResourceLock, 256>& GetLocksForType(TypeID type_id)
+        ResourceData(AnyHandle&& resource)
+            : resource(std::move(resource)),
+              count(0)
+        {
+        }
+    };
+
+    struct SubtypeData final
+    {
+        TypeID type_id;
+        SparsePagedArray<ResourceData, 256> data;
+        Bitset indices_pending_delete;
+
+        SubtypeData(TypeID type_id)
+            : type_id(type_id)
+        {
+        }
+
+        SubtypeData(const SubtypeData& other) = delete;
+        SubtypeData& operator=(const SubtypeData& other) = delete;
+        SubtypeData(SubtypeData&& other) noexcept = default;
+        SubtypeData& operator=(SubtypeData&& other) noexcept = default;
+    };
+
+    SubtypeData& GetSubtypeData(TypeID type_id)
     {
         const HypClass* hyp_class = GetClass(type_id);
         AssertDebugMsg(hyp_class != nullptr, "TypeID %u does not have a HypClass!", type_id.Value());
@@ -90,45 +117,18 @@ public:
         const int static_index = hyp_class->GetStaticIndex();
         AssertDebugMsg(static_index >= 0, "Invalid class to use with render resource lock: '%s' has no assigned static index!", *hyp_class->GetName());
 
-        if (!m_subclass_impls.HasIndex(static_index))
+        if (!data_by_type.HasIndex(static_index))
         {
-            m_subclass_impls.Set(static_index, SubtypeImpl(type_id));
+            data_by_type.Emplace(static_index, type_id);
         }
 
-        return m_subclass_impls[static_index].locks;
+        return data_by_type[static_index];
     }
 
-    // // Call me on the game thread at the start before adding new items!
-    // // the items should all be signalled as complete
-    // void ResetAllLocks()
-    // {
-    //     for (SubtypeImpl& impl : m_subclass_impls)
-    //     {
-    //         impl.locks.Clear();
-    //     }
-    // }
-
-    struct SubtypeImpl final
-    {
-        TypeID type_id;
-        SparsePagedArray<RenderResourceLock, 256> locks;
-
-        SubtypeImpl(TypeID type_id)
-            : type_id(type_id)
-        {
-        }
-
-        SubtypeImpl(const SubtypeImpl& other) = delete;
-        SubtypeImpl& operator=(const SubtypeImpl& other) = delete;
-        SubtypeImpl(SubtypeImpl&& other) noexcept = default;
-        SubtypeImpl& operator=(SubtypeImpl&& other) noexcept = default;
-    };
-
-private:
-    SparsePagedArray<SubtypeImpl, 16> m_subclass_impls;
+    SparsePagedArray<SubtypeData, 16> data_by_type;
 };
 
-#pragma endregion RenderResourceLockContainer
+#pragma endregion ResourceContainer
 
 struct ViewData
 {
@@ -140,28 +140,22 @@ struct FrameData
 {
     LinkedList<ViewData> per_view_data;
     HashMap<View*, ViewData*> views;
-
-    // global lock all the per-resource locks reference underneath
-    // unlock happens on render thread after frame is rendered
-    RenderResourceLock_Impl global_resource_lock;
-
-    // per-resource lock states, cleared on game thread
-    RenderResourceLockContainer resource_locks;
+    ResourceContainer resources;
 };
 
 static FrameData g_frame_data[num_frames];
 
-HYP_API uint32 GetRenderThreadFrameIndex()
+HYP_API uint32 RendererAPI_GetFrameIndex_RenderThread()
 {
     return g_consumer_index.load(std::memory_order_relaxed);
 }
 
-HYP_API uint32 GetGameThreadFrameIndex()
+HYP_API uint32 RendererAPI_GetFrameIndex_GameThread()
 {
     return g_producer_index.load(std::memory_order_relaxed);
 }
 
-HYP_API RenderProxyList& GetProducerRenderProxyList(View* view)
+HYP_API RenderProxyList& RendererAPI_GetProducerProxyList(View* view)
 {
     HYP_SCOPE;
 
@@ -184,7 +178,7 @@ HYP_API RenderProxyList& GetProducerRenderProxyList(View* view)
     return vd->render_proxy_list;
 }
 
-HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
+HYP_API RenderProxyList& RendererAPI_GetConsumerProxyList(View* view)
 {
     HYP_SCOPE;
 
@@ -204,28 +198,65 @@ HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
     return vd->render_proxy_list;
 }
 
-HYP_API RenderResourceLock* GetProducerResourceLock(IDBase id)
+HYP_API void RendererAPI_AddRefForView(View* view, AnyHandle resource)
 {
-    if (!id.IsValid())
+    AssertDebug(view != nullptr);
+
+    if (!resource.IsValid())
     {
-        return nullptr;
+        return;
     }
+
+    Threads::AssertOnThread(g_game_thread);
+
+    const IDBase resource_id = resource.GetID();
 
     const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
 
     FrameData& fd = g_frame_data[slot];
 
-    auto& locks = fd.resource_locks.GetLocksForType(id.GetTypeID());
+    ResourceContainer::SubtypeData& subtype_data = fd.resources.GetSubtypeData(resource_id.GetTypeID());
 
-    if (!locks.HasIndex(id.ToIndex()))
+    if (!subtype_data.data.HasIndex(resource_id.ToIndex()))
     {
-        return nullptr;
+        subtype_data.data.Emplace(resource_id.ToIndex(), std::move(resource));
     }
 
-    return &locks[id.ToIndex()];
+    subtype_data.data[resource_id.ToIndex()].count.Increment(1, MemoryOrder::RELEASE);
+    subtype_data.indices_pending_delete.Set(resource_id.ToIndex(), false);
 }
 
-HYP_API void BeginFrame_GameThread()
+HYP_API void RendererAPI_ReleaseRefForView(View* view, IDBase resource_id)
+{
+    AssertDebug(view != nullptr);
+
+    if (!resource_id.IsValid())
+    {
+        return;
+    }
+
+    Threads::AssertOnThread(g_game_thread);
+
+    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& fd = g_frame_data[slot];
+
+    ResourceContainer::SubtypeData& subtype_data = fd.resources.GetSubtypeData(resource_id.GetTypeID());
+
+    if (!subtype_data.data.HasIndex(resource_id.ToIndex()))
+    {
+        return; // no ref count for this resource
+    }
+
+    ResourceContainer::ResourceData& data = subtype_data.data[resource_id.ToIndex()];
+
+    if (data.count.Decrement(1, MemoryOrder::ACQUIRE_RELEASE) == 1)
+    {
+        subtype_data.indices_pending_delete.Set(resource_id.ToIndex(), true);
+    }
+}
+
+HYP_API void RendererAPI_BeginFrame_GameThread()
 {
     HYP_SCOPE;
 
@@ -245,7 +276,7 @@ HYP_API void BeginFrame_GameThread()
     }
 }
 
-HYP_API void EndFrame_GameThread()
+HYP_API void RendererAPI_EndFrame_GameThread()
 {
     HYP_SCOPE;
 #ifdef HYP_DEBUG_MODE
@@ -269,7 +300,7 @@ HYP_API void EndFrame_GameThread()
     g_full_semaphore.release(); // a frame is ready for the renderer
 }
 
-HYP_API void BeginFrame_RenderThread()
+HYP_API void RendererAPI_BeginFrame_RenderThread()
 {
     HYP_SCOPE;
 #ifdef HYP_DEBUG_MODE
@@ -282,8 +313,6 @@ HYP_API void BeginFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
-    frame_data.global_resource_lock.semaphore.Produce();
-
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
     {
         ViewData& vd = *it;
@@ -294,7 +323,7 @@ HYP_API void BeginFrame_RenderThread()
     g_envprobe_bindings_allocator.Reset();
 }
 
-HYP_API void EndFrame_RenderThread()
+HYP_API void RendererAPI_EndFrame_RenderThread()
 {
     HYP_SCOPE;
 #ifdef HYP_DEBUG_MODE
@@ -338,7 +367,24 @@ HYP_API void EndFrame_RenderThread()
         ++it;
     }
 
-    frame_data.global_resource_lock.semaphore.Release();
+    // Remove resources pending deletion via SafeDelete() for indices marked for deletion from the game thread
+    for (ResourceContainer::SubtypeData& subtype_data : frame_data.resources.data_by_type)
+    {
+        for (Bitset::BitIndex bit : subtype_data.indices_pending_delete)
+        {
+            ResourceContainer::ResourceData& resource_data = subtype_data.data[bit];
+            AssertDebug(resource_data.count.Get(MemoryOrder::ACQUIRE) == 0);
+
+            HYP_LOG(Rendering, Debug, "Deleting resource of type {} with ID {}\n",
+                *GetClass(subtype_data.type_id)->GetName(), resource_data.resource.GetID().Value());
+
+            g_safe_deleter->SafeRelease(std::move(resource_data.resource));
+
+            subtype_data.data.EraseAt(bit);
+        }
+
+        subtype_data.indices_pending_delete.Clear();
+    }
 
     g_consumer_index.store((slot + 1) % num_frames, std::memory_order_relaxed);
 
@@ -364,65 +410,6 @@ ObjectBinderBase::ObjectBinderBase(RenderGlobalState* rgs)
 }
 
 #pragma endregion ObjectBinderBase
-
-#pragma region RenderResourceLock
-
-HYP_API void RenderResourceLock::WaitForRelease() const
-{
-    HYP_SCOPE;
-
-    AssertDebug(m_impl != nullptr);
-
-    // Wait for the lock to be released on the render thread!
-    m_impl->semaphore.Acquire();
-}
-
-#pragma region RenderResourceLock
-
-#pragma region RenderResourceLocker
-
-RenderResourceLocker::RenderResourceLocker(RenderResourceLockContainer& container, TypeID type_id, RenderResourceLock_Impl* lock)
-    : m_container(&container),
-      m_subtype_container(&container.GetLocksForType(type_id)),
-      m_lock(lock)
-{
-}
-
-void RenderResourceLocker::LockResource(IDBase id) const
-{
-    RenderResourceLockContainer::SubtypeImpl& subtype_impl = *static_cast<RenderResourceLockContainer::SubtypeImpl*>(m_subtype_container);
-
-    // exact type match - no need to check if we have to create the container
-    if (id.GetTypeID() == subtype_impl.type_id)
-    {
-        subtype_impl.locks.Set(id.ToIndex(), RenderResourceLock { m_lock });
-
-        return;
-    }
-
-    // otherwise, we need to find the right subtype impl
-    m_container->GetLocksForType(id.GetTypeID()).Set(id.ToIndex(), RenderResourceLock { m_lock });
-}
-
-void RenderResourceLocker::UnlockResource(IDBase id) const
-{
-    RenderResourceLockContainer::SubtypeImpl& subtype_impl = *static_cast<RenderResourceLockContainer::SubtypeImpl*>(m_subtype_container);
-
-    HYP_NOT_IMPLEMENTED();
-}
-
-HYP_API RenderResourceLocker GetRenderResourceLocker(TypeID type_id)
-{
-    Threads::AssertOnThread(g_game_thread);
-
-    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
-
-    FrameData& fd = g_frame_data[slot];
-
-    return RenderResourceLocker(fd.resource_locks, type_id, &fd.global_resource_lock);
-}
-
-#pragma endregion RenderResourceLocker
 
 #pragma region RenderGlobalState
 

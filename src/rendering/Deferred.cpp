@@ -267,7 +267,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
         return;
     }
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
 
     // no lights bound, do not render direct shading at all
     if (rpl.NumLights() == 0)
@@ -584,7 +584,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.pass_data != nullptr);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
 
     // shouldn't be called if no env grids are present
     AssertDebug(rpl.GetEnvGrids().Size() != 0);
@@ -815,7 +815,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
 
     if (ShouldRenderSSR())
     {
@@ -1345,7 +1345,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             continue;
         }
 
-        RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
         render_proxy_lists.PushBack(&rpl);
 
         DeferredPassData*& pd = m_view_pass_data[view];
@@ -1494,7 +1494,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         new_rs.pass_data = nullptr;
 
 #ifdef HYP_ENABLE_RENDER_STATS
-        RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
         counts[ERS_VIEWS]++;
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
@@ -1514,7 +1514,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     AssertThrow(rs.IsValid());
     AssertThrow(rs.HasView());
 
-    uint32 global_frame_index = GetRenderThreadFrameIndex();
+    uint32 global_frame_index = RendererAPI_GetFrameIndex_RenderThread();
     if (m_last_frame_data.frame_id != global_frame_index)
     {
         m_last_frame_data.frame_id = global_frame_index;
@@ -1528,7 +1528,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         return;
     }
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
     DeferredPassData* pd = static_cast<DeferredPassData*>(rs.pass_data);
     AssertDebug(pd != nullptr);
@@ -1771,14 +1771,14 @@ void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSet
         | (1 << RB_TRANSLUCENT)
         | (1 << RB_DEBUG);
 
-    RenderCollector::PerformOcclusionCulling(frame, rs, GetConsumerRenderProxyList(rs.view->GetView()), bucket_mask);
+    RenderCollector::PerformOcclusionCulling(frame, rs, RendererAPI_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
 }
 
 void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, uint32 bucket_mask)
 {
     HYP_SCOPE;
 
-    RenderCollector::ExecuteDrawCalls(frame, rs, GetConsumerRenderProxyList(rs.view->GetView()), bucket_mask);
+    RenderCollector::ExecuteDrawCalls(frame, rs, RendererAPI_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
 }
 
 void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs, const ImageRef& src_image)

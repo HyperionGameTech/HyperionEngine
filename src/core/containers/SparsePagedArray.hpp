@@ -369,6 +369,26 @@ public:
         return Iterator(this, page_index, element_index);
     }
 
+    template <class... Args>
+    Iterator Emplace(SizeType index, Args&&... args)
+    {
+        SizeType page_index = PageIndex(index);
+        SizeType element_index = ElementIndex(index);
+
+        Page* page = GetOrAllocatePage(page_index);
+        AssertDebug(page != nullptr);
+
+        if (page->initialized_bits.Test(element_index))
+        {
+            page->storage.DestructElement(element_index);
+        }
+
+        page->storage.ConstructElement(element_index, std::forward<Args>(args)...);
+        page->initialized_bits.Set(element_index, true);
+
+        return Iterator(this, page_index, element_index);
+    }
+
     Iterator EraseAt(SizeType index)
     {
         SizeType page_index = PageIndex(index);

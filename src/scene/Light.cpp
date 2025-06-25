@@ -64,16 +64,6 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
 
 Light::~Light()
 {
-    if (!Threads::IsOnThread(g_render_thread))
-    {
-        HYP_LOG(Scene, Debug, "Light {} is being destroyed on a non-render thread, waiting for resource lock to be released", GetID());
-
-        if (RenderResourceLock* lock = GetProducerResourceLock(GetID()))
-        {
-            lock->WaitForRelease();
-        }
-    }
-
     if (m_render_resource != nullptr)
     {
         FreeResource(m_render_resource);

@@ -80,6 +80,41 @@ private:
     Handle<T> m_handle;
 };
 
+template <>
+class DeletionEntry<AnyHandle> : public DeletionEntryBase
+{
+public:
+    DeletionEntry(AnyHandle&& handle)
+        : m_handle(std::move(handle))
+    {
+    }
+
+    DeletionEntry(const DeletionEntry& other) = delete;
+    DeletionEntry& operator=(const DeletionEntry& other) = delete;
+
+    DeletionEntry(DeletionEntry&& other) noexcept
+        : m_handle(std::move(other.m_handle))
+    {
+    }
+
+    DeletionEntry& operator=(DeletionEntry&& other) noexcept
+    {
+        m_handle = std::move(other.m_handle);
+
+        return *this;
+    }
+
+    virtual ~DeletionEntry() override = default;
+
+private:
+    virtual void PerformDeletion_Internal() override
+    {
+        m_handle.Reset();
+    }
+
+    AnyHandle m_handle;
+};
+
 template <class T>
 class DeletionEntry<RenderObjectHandle_Strong<T>> : public DeletionEntryBase
 {

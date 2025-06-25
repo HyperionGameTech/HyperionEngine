@@ -285,7 +285,7 @@ void SSGI::FillUniformBufferData(RenderView* view, SSGIUniforms& out_uniforms) c
     // Can only fill the lights if we have a view ready
     if (view)
     {
-        RenderProxyList& rpl = GetConsumerRenderProxyList(view->GetView());
+        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view->GetView());
 
         const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 

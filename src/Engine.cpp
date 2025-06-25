@@ -131,7 +131,7 @@ private:
                 m_app_context->GetMainWindow()->GetInputEventSink().Push(std::move(event));
             }
 
-            BeginFrame_RenderThread();
+            RendererAPI_BeginFrame_RenderThread();
 
             if (uint32 num_enqueued = m_scheduler.NumEnqueued())
             {
@@ -145,7 +145,7 @@ private:
 
             g_engine->RenderNextFrame();
 
-            EndFrame_RenderThread();
+            RendererAPI_EndFrame_RenderThread();
         }
     }
 

@@ -760,7 +760,7 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
 
     const BoundingBox grid_aabb = BoundingBox(
         m_buffer_data.aabb_min.GetXYZ(),
@@ -887,7 +887,7 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
 
     AssertDebug(render_setup.IsValid());
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
 
     const EnvGridOptions& options = m_env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
@@ -1123,7 +1123,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
 
     AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
 
     const EnvGridOptions& options = m_env_grid->GetOptions();
 

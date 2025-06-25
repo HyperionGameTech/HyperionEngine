@@ -107,16 +107,6 @@ EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
 
 EnvGrid::~EnvGrid()
 {
-    if (!Threads::IsOnThread(g_render_thread))
-    {
-        HYP_LOG(Scene, Debug, "EnvGrid {} is being destroyed on a non-render thread, waiting for resource lock to be released", GetID());
-
-        if (RenderResourceLock* lock = GetProducerResourceLock(GetID()))
-        {
-            lock->WaitForRelease();
-        }
-    }
-
     if (m_render_resource != nullptr)
     {
         FreeResource(m_render_resource);

@@ -253,7 +253,7 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    RenderProxyList& rpl = GetProducerRenderProxyList(this);
+    RenderProxyList& rpl = RendererAPI_GetProducerProxyList(this);
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;
     rpl.meshes.Advance(AdvanceAction::CLEAR);
@@ -431,7 +431,32 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities
 #endif
     }
 
-    return rpl.meshes.GetDiff();
+    auto diff = rpl.meshes.GetDiff();
+
+    if (diff.NeedsUpdate())
+    {
+        Array<RenderProxy*> removed;
+        rpl.meshes.GetRemoved(removed, false);
+
+        Array<RenderProxy*> added;
+        rpl.meshes.GetAdded(added, false);
+
+        for (RenderProxy* proxy : added)
+        {
+            RendererAPI_AddRefForView(this, proxy->mesh);
+            RendererAPI_AddRefForView(this, proxy->material);
+            RendererAPI_AddRefForView(this, proxy->skeleton);
+        }
+
+        for (RenderProxy* proxy : removed)
+        {
+            RendererAPI_ReleaseRefForView(this, proxy->mesh);
+            RendererAPI_ReleaseRefForView(this, proxy->material);
+            RendererAPI_ReleaseRefForView(this, proxy->skeleton);
+        }
+    }
+
+    return diff;
 }
 
 typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
@@ -496,18 +521,35 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
             AssertDebug(mesh_component.proxy->material.IsValid());
 
             rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
-
-            locker.LockResource(mesh_component.mesh.GetID());
-            locker.LockResource(mesh_component.material.GetID());
-
-            if (mesh_component.skeleton.IsValid())
-            {
-                locker.LockResource(mesh_component.skeleton->GetID());
-            }
         }
     }
 
-    return rpl.meshes.GetDiff();
+    auto diff = rpl.meshes.GetDiff();
+
+    if (diff.NeedsUpdate())
+    {
+        Array<RenderProxy*> removed;
+        rpl.meshes.GetRemoved(removed, false);
+
+        Array<RenderProxy*> added;
+        rpl.meshes.GetAdded(added, false);
+
+        for (RenderProxy* proxy : added)
+        {
+            RendererAPI_AddRefForView(this, proxy->mesh);
+            RendererAPI_AddRefForView(this, proxy->material);
+            RendererAPI_AddRefForView(this, proxy->skeleton);
+        }
+
+        for (RenderProxy* proxy : removed)
+        {
+            RendererAPI_ReleaseRefForView(this, proxy->mesh);
+            RendererAPI_ReleaseRefForView(this, proxy->material);
+            RendererAPI_ReleaseRefForView(this, proxy->skeleton);
+        }
+    }
+
+    return diff;
 }
 
 typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
@@ -524,8 +566,6 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
 
         return rpl.meshes.GetDiff();
     }
-
-    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<Entity>());
 
     const ID<Camera> camera_id = m_camera->GetID();
 
@@ -574,18 +614,35 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
             AssertDebug(mesh_component.proxy->material.IsValid());
 
             rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
-
-            locker.LockResource(mesh_component.mesh.GetID());
-            locker.LockResource(mesh_component.material.GetID());
-
-            if (mesh_component.skeleton.IsValid())
-            {
-                locker.LockResource(mesh_component.skeleton->GetID());
-            }
         }
     }
 
-    return rpl.meshes.GetDiff();
+    auto diff = rpl.meshes.GetDiff();
+
+    if (diff.NeedsUpdate())
+    {
+        Array<RenderProxy*> removed;
+        rpl.meshes.GetRemoved(removed, false);
+
+        Array<RenderProxy*> added;
+        rpl.meshes.GetAdded(added, false);
+
+        for (RenderProxy* proxy : added)
+        {
+            RendererAPI_AddRefForView(this, proxy->mesh);
+            RendererAPI_AddRefForView(this, proxy->material);
+            RendererAPI_AddRefForView(this, proxy->skeleton);
+        }
+
+        for (RenderProxy* proxy : removed)
+        {
+            RendererAPI_ReleaseRefForView(this, proxy->mesh);
+            RendererAPI_ReleaseRefForView(this, proxy->material);
+            RendererAPI_ReleaseRefForView(this, proxy->skeleton);
+        }
+    }
+
+    return diff;
 }
 
 void View::CollectLights(RenderProxyList& rpl)
@@ -596,8 +653,6 @@ void View::CollectLights(RenderProxyList& rpl)
     {
         return;
     }
-
-    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<EnvProbe>());
 
     for (const Handle<Scene>& scene : m_scenes)
     {
@@ -641,8 +696,6 @@ void View::CollectLights(RenderProxyList& rpl)
             {
                 light->EnqueueRenderUpdates();
             }
-
-            locker.LockResource(light->GetID());
         }
     }
 
@@ -656,28 +709,14 @@ void View::CollectLights(RenderProxyList& rpl)
         Array<RenderLight*> added;
         rpl.tracked_lights.GetAdded(added, false);
 
-        for (RenderLight* light : added)
+        for (RenderLight* proxy : added)
         {
-            HYP_LOG(Scene, Debug, "Added light {} to view {}", light->GetLight()->GetID(), GetID());
-
-            light->IncRef();
-
-            rpl.lights[light->GetLight()->GetLightType()].PushBack(light);
+            RendererAPI_AddRefForView(this, proxy->GetLight()->HandleFromThis());
         }
 
-        for (RenderLight* light : removed)
+        for (RenderLight* proxy : removed)
         {
-            HYP_LOG(Scene, Debug, "Removed light {} from view {}", light->GetLight()->GetID(), GetID());
-
-            light->DecRef();
-
-            auto it = rpl.lights[light->GetLight()->GetLightType()].Find(light);
-            AssertDebug(it != rpl.lights[light->GetLight()->GetLightType()].End());
-
-            if (it != rpl.lights[light->GetLight()->GetLightType()].End())
-            {
-                rpl.lights[light->GetLight()->GetLightType()].Erase(it);
-            }
+            RendererAPI_ReleaseRefForView(this, proxy->GetLight()->HandleFromThis());
         }
     }
 }
@@ -731,28 +770,14 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
         Array<RenderLightmapVolume*> added;
         rpl.tracked_lightmap_volumes.GetAdded(added, false);
 
-        for (RenderLightmapVolume* volume : added)
+        for (RenderLightmapVolume* proxy : added)
         {
-            HYP_LOG(Scene, Debug, "Added lightmap volume {} to view {}", volume->GetLightmapVolume()->GetID(), GetID());
-
-            volume->IncRef();
-
-            rpl.lightmap_volumes.PushBack(volume);
+            RendererAPI_AddRefForView(this, proxy->GetLightmapVolume()->HandleFromThis());
         }
 
-        for (RenderLightmapVolume* volume : removed)
+        for (RenderLightmapVolume* proxy : removed)
         {
-            HYP_LOG(Scene, Debug, "Removed lightmap volume {} from view {}", volume->GetLightmapVolume()->GetID(), GetID());
-
-            volume->DecRef();
-
-            auto it = rpl.lightmap_volumes.Find(volume);
-            AssertDebug(it != rpl.lightmap_volumes.End());
-
-            if (it != rpl.lightmap_volumes.End())
-            {
-                rpl.lightmap_volumes.Erase(it);
-            }
+            RendererAPI_ReleaseRefForView(this, proxy->GetLightmapVolume()->HandleFromThis());
         }
     }
 }
@@ -809,28 +834,14 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
         Array<RenderEnvGrid*> added;
         rpl.tracked_env_grids.GetAdded(added, false);
 
-        for (RenderEnvGrid* env_grid : added)
+        for (RenderEnvGrid* proxy : added)
         {
-            HYP_LOG(Scene, Debug, "Added EnvGrid {} to view {}", env_grid->GetEnvGrid()->GetID(), GetID());
-
-            env_grid->IncRef();
-
-            rpl.env_grids.PushBack(env_grid);
+            RendererAPI_AddRefForView(this, proxy->GetEnvGrid()->HandleFromThis());
         }
 
-        for (RenderEnvGrid* env_grid : removed)
+        for (RenderEnvGrid* proxy : removed)
         {
-            HYP_LOG(Scene, Debug, "Removed EnvGrid {} from view {}", env_grid->GetEnvGrid()->GetID(), GetID());
-
-            env_grid->DecRef();
-
-            auto it = rpl.env_grids.Find(env_grid);
-            AssertDebug(it != rpl.env_grids.End());
-
-            if (it != rpl.env_grids.End())
-            {
-                rpl.env_grids.Erase(it);
-            }
+            RendererAPI_ReleaseRefForView(this, proxy->GetEnvGrid()->HandleFromThis());
         }
     }
 }
@@ -843,8 +854,6 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
     {
         return;
     }
-
-    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<EnvProbe>());
 
     for (const Handle<Scene>& scene : m_scenes)
     {
@@ -874,42 +883,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
             // rpl.tracked_env_probes.Track(probe->GetID(), probe_data);
 
             rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource());
-
-            locker.LockResource(probe->GetID());
         }
-
-        // if (auto diff = rpl.tracked_env_probes.GetDiff(); diff.NeedsUpdate())
-        // {
-        //     Array<RenderLight*> removed;
-        //     rpl.tracked_lights.GetRemoved(removed, false);
-
-        //     Array<RenderLight*> added;
-        //     rpl.tracked_lights.GetAdded(added, false);
-
-        //     for (RenderLight* light : added)
-        //     {
-        //         HYP_LOG(Scene, Debug, "Added light {} to view {}", light->GetLight()->GetID(), GetID());
-
-        //         light->IncRef();
-
-        //         rpl.lights[light->GetLight()->GetLightType()].PushBack(light);
-        //     }
-
-        //     for (RenderLight* light : removed)
-        //     {
-        //         HYP_LOG(Scene, Debug, "Removed light {} from view {}", light->GetLight()->GetID(), GetID());
-
-        //         light->DecRef();
-
-        //         auto it = rpl.lights[light->GetLight()->GetLightType()].Find(light);
-        //         AssertDebug(it != rpl.lights[light->GetLight()->GetLightType()].End());
-
-        //         if (it != rpl.lights[light->GetLight()->GetLightType()].End())
-        //         {
-        //             rpl.lights[light->GetLight()->GetLightType()].Erase(it);
-        //         }
-        //     }
-        // }
 
         // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         // {
@@ -924,6 +898,27 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
     }
 
     /// TODO: point light Shadow maps
+
+    auto diff = rpl.tracked_env_probes.GetDiff();
+
+    if (diff.NeedsUpdate())
+    {
+        Array<RenderEnvProbe*> removed;
+        rpl.tracked_env_probes.GetRemoved(removed, false);
+
+        Array<RenderEnvProbe*> added;
+        rpl.tracked_env_probes.GetAdded(added, false);
+
+        for (RenderEnvProbe* proxy : added)
+        {
+            RendererAPI_AddRefForView(this, proxy->GetEnvProbe()->HandleFromThis());
+        }
+
+        for (RenderEnvProbe* proxy : removed)
+        {
+            RendererAPI_ReleaseRefForView(this, proxy->GetEnvProbe()->HandleFromThis());
+        }
+    }
 }
 
 #pragma endregion View

@@ -127,7 +127,7 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (view)
         {
-            rpl = &GetConsumerRenderProxyList(view->GetView());
+            rpl = &RendererAPI_GetConsumerProxyList(view->GetView());
         }
 
         const uint32 frame_index = frame->GetFrameIndex();

@@ -33,74 +33,31 @@ class SkyProbe;
 class RenderGlobalState;
 class RenderResourceLock;
 
-HYP_API extern uint32 GetRenderThreadFrameIndex();
-HYP_API extern uint32 GetGameThreadFrameIndex();
+HYP_API extern SizeType GetNumDescendants(TypeID type_id);
+HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
 
-HYP_API extern void BeginFrame_GameThread();
-HYP_API extern void EndFrame_GameThread();
+HYP_API extern uint32 RendererAPI_GetFrameIndex_RenderThread();
+HYP_API extern uint32 RendererAPI_GetFrameIndex_GameThread();
 
-HYP_API extern void BeginFrame_RenderThread();
-HYP_API extern void EndFrame_RenderThread();
+HYP_API extern void RendererAPI_BeginFrame_GameThread();
+HYP_API extern void RendererAPI_EndFrame_GameThread();
+
+HYP_API extern void RendererAPI_BeginFrame_RenderThread();
+HYP_API extern void RendererAPI_EndFrame_RenderThread();
 
 /*! \brief Get the RenderProxyList for the Game thread to write to for the current frame, for the given view.
  *  The game thread adds proxies of entities, lights, envprobes, etc. to this list, which the render thread will
  *  use when rendering the frame.
  *  \note This is only valid to call from the game thread, or from a task that is initiated by the game thread. */
-HYP_API extern RenderProxyList& GetProducerRenderProxyList(View* view);
+HYP_API extern RenderProxyList& RendererAPI_GetProducerProxyList(View* view);
 
 /*! \brief Get the RenderProxyList for the Render thread to read from for the current frame, for the given view.
  *  \note This is only valid to call from the render thread, or from a task that is initiated by the render thread. */
-HYP_API extern RenderProxyList& GetConsumerRenderProxyList(View* view);
+HYP_API extern RenderProxyList& RendererAPI_GetConsumerProxyList(View* view);
 
-/*! \brief Attempt to get a RenderResourceLock for the given HypObject ID, if one exists.
- *  If none is active, nullptr is returned. */
-HYP_API extern RenderResourceLock* GetProducerResourceLock(IDBase id);
-
-HYP_API extern SizeType GetNumDescendants(TypeID type_id);
-HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
-
-// Tells us that an object is actively being used during a frame,
-// so when a resource is deleted on a thread other than the rendering thread,
-// it can wait until the lock clears
-class RenderResourceLock final
-{
-    friend class RenderResourceLocker;
-
-public:
-    // Blocks the current thread until the lock is signalled as released (the frame is complete)
-    HYP_API void WaitForRelease() const;
-
-protected:
-    RenderResourceLock(struct RenderResourceLock_Impl* impl)
-        : m_impl(impl)
-    {
-    }
-
-private:
-    struct RenderResourceLock_Impl* m_impl;
-};
-
-class RenderResourceLocker final
-{
-public:
-    friend RenderResourceLocker GetRenderResourceLocker(TypeID type_id);
-
-    /*! \brief Lock the resource with the given ID so the renderer can use it without
-     *  it being destroyed. Any objects that are used with this need to manually check if
-     *  the lock is active and wait on it to be released in their destructor */
-    HYP_API void LockResource(IDBase id) const;
-    HYP_API void UnlockResource(IDBase id) const;
-
-protected:
-    RenderResourceLocker(class RenderResourceLockContainer& container, TypeID type_id, struct RenderResourceLock_Impl* lock);
-
-    class RenderResourceLockContainer* m_container;
-    void* m_subtype_container;
-    struct RenderResourceLock_Impl* m_lock;
-};
-
-/*! \brief Use on the game thread only before frame is submitted */
-HYP_API extern RenderResourceLocker GetRenderResourceLocker(TypeID type_id);
+// Call on game (producer) thread
+HYP_API extern void RendererAPI_AddRefForView(View* view, AnyHandle resource);
+HYP_API extern void RendererAPI_ReleaseRefForView(View* view, IDBase resource_id);
 
 struct ObjectBindingAllocatorBase
 {

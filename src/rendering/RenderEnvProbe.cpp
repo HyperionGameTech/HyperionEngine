@@ -270,7 +270,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(m_buffer_index != ~0u);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(m_render_view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
 
     if (!m_env_probe->NeedsRender())
     {
@@ -460,7 +460,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
     // HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
     //     env_probe->GetID(), env_probe->GetEnvProbeType());
@@ -496,7 +496,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
     struct ConvolveProbeUniforms
     {
@@ -642,7 +642,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = GetConsumerRenderProxyList(view);
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
     const ViewOutputTarget& output_target = env_probe->GetView()->GetOutputTarget();
 

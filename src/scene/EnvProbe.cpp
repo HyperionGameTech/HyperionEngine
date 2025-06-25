@@ -104,15 +104,6 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 
 EnvProbe::~EnvProbe()
 {
-    if (!Threads::IsOnThread(g_render_thread))
-    {
-        if (RenderResourceLock* lock = GetProducerResourceLock(GetID()))
-        {
-            HYP_LOG(Scene, Debug, "EnvProbe {} is being destroyed on a non-render thread, waiting for resource lock to be released", GetID());
-            lock->WaitForRelease();
-        }
-    }
-
     if (m_render_resource != nullptr)
     {
         FreeResource(m_render_resource);

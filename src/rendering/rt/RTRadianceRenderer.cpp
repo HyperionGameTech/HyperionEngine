@@ -116,7 +116,7 @@ void RTRadianceRenderer::Destroy()
 
 void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup)
 {
-    RenderProxyList& rpl = GetConsumerRenderProxyList(render_setup.view->GetView());
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(render_setup.view->GetView());
 
     RTRadianceUniforms uniforms {};
 

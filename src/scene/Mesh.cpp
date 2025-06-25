@@ -152,16 +152,6 @@ Mesh::~Mesh()
 {
     if (IsInitCalled())
     {
-        if (!Threads::IsOnThread(g_render_thread))
-        {
-            HYP_LOG(Scene, Debug, "Mesh {} is being destroyed on a non-render thread, waiting for resource lock to be released", GetID());
-
-            if (RenderResourceLock* lock = GetProducerResourceLock(GetID()))
-            {
-                lock->WaitForRelease();
-            }
-        }
-
         SetReady(false);
 
         m_render_persistent.Reset();
