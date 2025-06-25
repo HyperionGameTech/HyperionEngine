@@ -79,6 +79,8 @@ public:
     HYP_METHOD()
     virtual void Detach();
 
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) { }
+
 protected:
     virtual void Init() override;
 

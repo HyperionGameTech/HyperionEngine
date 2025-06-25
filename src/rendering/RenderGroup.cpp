@@ -26,6 +26,7 @@
 #include <scene/Entity.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
+#include <scene/EnvProbe.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -306,6 +307,16 @@ static void RenderAll(
 
     if (global_descriptor_set_index != ~0u)
     {
+        RenderProxyEnvProbe* env_probe_proxy = nullptr;
+
+        if (render_setup.env_probe)
+        {
+            if (IRenderProxy* proxy = RendererAPI_GetRenderProxy(render_setup.env_probe->GetID()))
+            {
+                env_probe_proxy = static_cast<RenderProxyEnvProbe*>(proxy);
+            }
+        }
+
         frame->GetCommandList().Add<BindDescriptorSet>(
             global_descriptor_set,
             pipeline,
@@ -314,7 +325,7 @@ static void RenderAll(
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_proxy ? env_probe_proxy->bound_index : 0) } },
             global_descriptor_set_index);
     }
 
@@ -494,6 +505,16 @@ static void RenderAll_Parallel(
 
     if (global_descriptor_set_index != ~0u)
     {
+        RenderProxyEnvProbe* env_probe_proxy = nullptr;
+
+        if (render_setup.env_probe)
+        {
+            if (IRenderProxy* proxy = RendererAPI_GetRenderProxy(render_setup.env_probe->GetID()))
+            {
+                env_probe_proxy = static_cast<RenderProxyEnvProbe*>(proxy);
+            }
+        }
+
         base_command_list.Add<BindDescriptorSet>(
             global_descriptor_set,
             pipeline,
@@ -502,7 +523,7 @@ static void RenderAll_Parallel(
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
                 { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe_proxy ? env_probe_proxy->bound_index : 0) } },
             global_descriptor_set_index);
     }
 

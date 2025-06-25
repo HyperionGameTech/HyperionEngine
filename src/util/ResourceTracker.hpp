@@ -121,7 +121,7 @@ public:
 
     const ElementArrayType& GetElements(TypeID type_id) const
     {
-        static ElementArrayType& empty_array {};
+        static const ElementArrayType empty_array {};
 
         if (type_id == IDType::type_id_static)
         {
@@ -328,6 +328,45 @@ public:
         for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
         {
             m_subclass_impls[bit_index].Get().GetAdded(out, include_changed);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetChanged(Array<IDType, AllocatorType>& out_ids) const
+    {
+        HYP_SCOPE;
+
+        m_impl.GetChanged(out_ids);
+
+        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        {
+            m_subclass_impls[bit_index].Get().GetChanged(out_ids);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetChanged(Array<ElementType, AllocatorType>& out) const
+    {
+        HYP_SCOPE;
+
+        m_impl.GetChanged(out);
+
+        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        {
+            m_subclass_impls[bit_index].Get().GetChanged(out);
+        }
+    }
+
+    template <class AllocatorType>
+    void GetChanged(Array<ElementType*, AllocatorType>& out) const
+    {
+        HYP_SCOPE;
+
+        m_impl.GetChanged(out);
+
+        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        {
+            m_subclass_impls[bit_index].Get().GetChanged(out);
         }
     }
 
@@ -695,6 +734,71 @@ protected:
                 out.PushBack(const_cast<ElementType*>(&elements[id.ToIndex()]));
 
                 newly_added_bits.Set(first_set_bit_index, false);
+            }
+        }
+
+        template <class AllocatorType>
+        void GetChanged(Array<IDType, AllocatorType>& out_ids) const
+        {
+            HYP_SCOPE;
+
+            Bitset changed_bits = GetChanged();
+
+            out_ids.Reserve(changed_bits.Count());
+
+            SizeType first_set_bit_index;
+
+            while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != -1)
+            {
+                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+
+                out_ids.PushBack(id);
+
+                changed_bits.Set(first_set_bit_index, false);
+            }
+        }
+
+        template <class AllocatorType>
+        void GetChanged(Array<ElementType, AllocatorType>& out) const
+        {
+            HYP_SCOPE;
+
+            Bitset changed_bits = GetChanged();
+
+            out.Reserve(out.Size() + changed_bits.Count());
+
+            Bitset::BitIndex first_set_bit_index;
+
+            while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
+            {
+                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+
+                AssertThrow(elements.HasIndex(id.ToIndex()));
+                out.PushBack(elements[id.ToIndex()]);
+
+                changed_bits.Set(first_set_bit_index, false);
+            }
+        }
+
+        template <class AllocatorType>
+        void GetChanged(Array<ElementType*, AllocatorType>& out) const
+        {
+            HYP_SCOPE;
+
+            Bitset changed_bits = GetChanged();
+
+            out.Reserve(out.Size() + changed_bits.Count());
+
+            Bitset::BitIndex first_set_bit_index;
+
+            while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
+            {
+                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+
+                AssertThrow(elements.HasIndex(id.ToIndex()));
+                out.PushBack(const_cast<ElementType*>(&elements[id.ToIndex()]));
+
+                changed_bits.Set(first_set_bit_index, false);
             }
         }
 

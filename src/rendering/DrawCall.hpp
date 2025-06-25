@@ -23,7 +23,7 @@ class Material;
 class Skeleton;
 class Entity;
 class RenderGroup;
-struct RenderProxy;
+class RenderProxy;
 struct DrawCommandData;
 class IndirectDrawState;
 class GPUBufferHolderBase;

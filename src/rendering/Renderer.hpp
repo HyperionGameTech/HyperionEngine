@@ -18,9 +18,9 @@ namespace hyperion {
 
 class RenderView;
 class RenderWorld;
-class RenderEnvProbe;
 class RenderEnvGrid;
 class RenderLight;
+class EnvProbe;
 struct CullData;
 struct DrawCall;
 struct InstancedDrawCall;
@@ -74,7 +74,7 @@ struct HYP_API RenderSetup
 
     RenderWorld* world;
     RenderView* view;
-    RenderEnvProbe* env_probe;
+    EnvProbe* env_probe;
     RenderEnvGrid* env_grid;
     RenderLight* light;
     PassData* pass_data;

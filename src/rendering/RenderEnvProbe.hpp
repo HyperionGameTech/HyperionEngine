@@ -25,31 +25,6 @@ class RenderScene;
 class RenderShadowMap;
 class RenderView;
 
-struct EnvProbeSphericalHarmonics
-{
-    Vec4f values[9];
-};
-
-struct EnvProbeShaderData
-{
-    Matrix4 face_view_matrices[6];
-
-    Vec4f aabb_max;
-    Vec4f aabb_min;
-    Vec4f world_position;
-
-    uint32 texture_index;
-    uint32 flags;
-    float camera_near;
-    float camera_far;
-
-    Vec2u dimensions;
-    uint64 visibility_bits;
-    Vec4i position_in_grid;
-
-    EnvProbeSphericalHarmonics sh;
-};
-
 class RenderEnvProbe final : public RenderResourceBase
 {
 public:

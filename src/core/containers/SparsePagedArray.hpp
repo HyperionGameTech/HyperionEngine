@@ -46,13 +46,18 @@ class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize>, Siz
 public:
     static constexpr bool is_contiguous = false;
 
-    struct Iterator
+    using KeyType = SizeType;
+    using ValueType = T;
+
+    template <class Derived, bool IsConst>
+    struct IteratorBase
     {
-        SparsePagedArray* array;
+        std::conditional_t<IsConst, const SparsePagedArray*, SparsePagedArray*> array;
         uint32 page;
         uint32 elem;
 
-        Iterator(SparsePagedArray* array, uint32 page_index, uint32 element_index)
+        template <class ArrayType>
+        IteratorBase(ArrayType* array, uint32 page_index, uint32 element_index)
             : array(array),
               page(page_index),
               elem(element_index)
@@ -95,25 +100,6 @@ public:
                 // reset for next iter
                 elem = 0;
             }
-
-            // do
-            // {
-            //     if (*pg)
-            //     {
-            //         Bitset::BitIndex next_bit = (*pg)->initialized_bits.NextSetBitIndex(elem);
-
-            //         if (next_bit < PageSize)
-            //         {
-            //             elem = next_bit;
-
-            //             break;
-            //         }
-            //     }
-
-            //     ++pg;
-            //     elem = 0;
-            // }
-            // while (pg != array->m_pages.End());
         }
 
         T& operator*() const
@@ -132,7 +118,7 @@ public:
             return &array->m_pages[page]->storage.GetPointer()[elem];
         }
 
-        Iterator& operator++()
+        Derived& operator++()
         {
             AssertDebug(page < array->m_pages.Size());
 
@@ -165,32 +151,97 @@ public:
                 elem = ~0u;
             }
 
-            return *this;
+            return static_cast<Derived&>(*this);
         }
 
-        Iterator operator++(int)
+        Derived operator++(int)
         {
-            Iterator tmp = *this;
+            Derived tmp = static_cast<Derived&>(*this);
             ++(*this);
             return tmp;
         }
 
-        bool operator==(const Iterator& other) const
+        bool operator==(const Derived& other) const
         {
             return page == other.page && elem == other.elem;
         }
 
-        bool operator!=(const Iterator& other) const
+        bool operator!=(const Derived& other) const
         {
             return !(*this == other);
         }
     };
 
-    // No real difference between ConstIterator and Iterator in this case
-    using ConstIterator = Iterator;
+    struct Iterator : IteratorBase<Iterator, false>
+    {
+        template <class ArrayType>
+        Iterator(ArrayType* array, uint32 page_index, uint32 element_index)
+            : IteratorBase<Iterator, false>(array, page_index, element_index)
+        {
+        }
+
+        Iterator(const Iterator& other)
+            : IteratorBase<Iterator, false>(other.array, other.page, other.elem)
+        {
+        }
+
+        Iterator& operator=(const Iterator& other)
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+
+            AssertDebug(other.array == this->array);
+
+            this->page = other.page;
+            this->elem = other.elem;
+
+            return *this;
+        }
+    };
+
+    struct ConstIterator : IteratorBase<ConstIterator, true>
+    {
+        template <class ArrayType>
+        ConstIterator(const ArrayType* array, uint32 page_index, uint32 element_index)
+            : IteratorBase<ConstIterator, true>(array, page_index, element_index)
+        {
+        }
+
+        template <class OtherIteratorType, bool OtherIsConst>
+        ConstIterator(const IteratorBase<OtherIteratorType, OtherIsConst>& other)
+            : IteratorBase<ConstIterator, true>(other.array, other.page, other.elem)
+        {
+        }
+
+        template <class OtherIteratorType, bool OtherIsConst>
+        ConstIterator& operator=(const IteratorBase<OtherIteratorType, OtherIsConst>& other)
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+
+            AssertDebug(other.array == this->array);
+
+            this->page = other.page;
+            this->elem = other.elem;
+
+            return *this;
+        }
+    };
 
     SparsePagedArray()
     {
+    }
+
+    SparsePagedArray(std::initializer_list<KeyValuePair<KeyType, T>> initializer_list)
+    {
+        for (const auto& item : initializer_list)
+        {
+            Set(item.first, item.second);
+        }
     }
 
     SparsePagedArray(const SparsePagedArray& other) = delete;
@@ -492,7 +543,9 @@ public:
         }
     }
 
-    HYP_DEF_STL_BEGIN_END(Iterator(this, 0, 0), Iterator(this, m_pages.Size(), PageSize));
+    // Don't worry about the const casts -- we return ConstIterator if this is const this will be const again
+
+    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<SparsePagedArray*>(this), 0, 0), Iterator(const_cast<SparsePagedArray*>(this), m_pages.Size(), PageSize));
 
 private:
     HYP_FORCE_INLINE static constexpr SizeType PageIndex(SizeType index)

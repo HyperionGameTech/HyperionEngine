@@ -28,6 +28,7 @@ class Entity;
 class Mesh;
 class Material;
 class Skeleton;
+class EnvProbe;
 struct MeshInstanceData;
 
 HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
@@ -113,9 +114,16 @@ struct MeshRaytracingData
     FixedArray<BLASRef, max_frames_in_flight> bottom_level_acceleration_structures;
 };
 
-/*! \brief Proxy for a renderable Entity with a valid Mesh and Material assigned */
-struct RenderProxy
+class IRenderProxy
 {
+public:
+    virtual ~IRenderProxy() = default;
+};
+
+/*! \brief Proxy for a renderable Entity with a valid Mesh and Material assigned */
+class RenderProxy : public IRenderProxy
+{
+public:
     WeakHandle<Entity> entity;
     Handle<Mesh> mesh;
     Handle<Material> material;
@@ -127,7 +135,7 @@ struct RenderProxy
     MeshInstanceData instance_data;
     uint32 version = 0;
 
-    ~RenderProxy() = default;
+    ~RenderProxy() override = default;
 
     void IncRefs() const;
     void DecRefs() const;
@@ -161,6 +169,41 @@ struct RenderProxy
             || user_data != other.user_data
             || instance_data != other.instance_data;
     }
+};
+
+struct EnvProbeSphericalHarmonics
+{
+    Vec4f values[9];
+};
+
+struct EnvProbeShaderData
+{
+    Matrix4 face_view_matrices[6];
+
+    Vec4f aabb_max;
+    Vec4f aabb_min;
+    Vec4f world_position;
+
+    uint32 texture_index;
+    uint32 flags;
+    float camera_near;
+    float camera_far;
+
+    Vec2u dimensions;
+    uint64 visibility_bits;
+    Vec4i position_in_grid;
+
+    EnvProbeSphericalHarmonics sh;
+};
+
+class RenderProxyEnvProbe : public IRenderProxy
+{
+public:
+    ~RenderProxyEnvProbe() override = default;
+
+    WeakHandle<EnvProbe> env_probe;
+    EnvProbeShaderData buffer_data {};
+    uint32 bound_index = ~0u;
 };
 
 } // namespace hyperion

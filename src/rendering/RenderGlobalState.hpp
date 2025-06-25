@@ -14,6 +14,8 @@
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererBuffer.hpp>
 
+#include <rendering/util/ResourceBinder.hpp>
+
 namespace hyperion {
 
 class Engine;
@@ -26,6 +28,7 @@ class RenderView;
 class View;
 class DrawCallCollection;
 class IRenderer;
+class IRenderProxy;
 class EnvProbeRenderer;
 class EnvProbe;
 class ReflectionProbe;
@@ -35,6 +38,10 @@ class RenderResourceLock;
 
 HYP_API extern SizeType GetNumDescendants(TypeID type_id);
 HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+
+// Call at start of engine before render / game thread start ticking.
+// Allocates containers declared in RenderGlobalState.cpp via DECLARE_RENDER_DATA_CONTAINER
+HYP_API extern void RendererAPI_InitResourceContainers();
 
 HYP_API extern uint32 RendererAPI_GetFrameIndex_RenderThread();
 HYP_API extern uint32 RendererAPI_GetFrameIndex_GameThread();
@@ -56,359 +63,19 @@ HYP_API extern RenderProxyList& RendererAPI_GetProducerProxyList(View* view);
 HYP_API extern RenderProxyList& RendererAPI_GetConsumerProxyList(View* view);
 
 // Call on game (producer) thread
-HYP_API extern void RendererAPI_AddRefForView(View* view, AnyHandle resource);
-HYP_API extern void RendererAPI_ReleaseRefForView(View* view, IDBase resource_id);
-
-struct ObjectBindingAllocatorBase
-{
-    static constexpr uint32 invalid_binding = ~0u;
-
-    ObjectBindingAllocatorBase(uint32 max_size)
-        : max_size(max_size)
-    {
-        used_indices.Resize(max_size);
-    }
-
-    uint32 AllocateIndex()
-    {
-        for (uint32 i = 0; i < max_size; ++i)
-        {
-            if (!used_indices.Get(i))
-            {
-                used_indices.Set(i, true);
-
-                return i;
-            }
-        }
-
-        return invalid_binding; // No free index found
-    }
-
-    void FreeIndex(uint32 index)
-    {
-        if (index >= max_size || index == invalid_binding)
-        {
-            return;
-        }
-
-        used_indices.Set(index, false);
-    }
-
-    void Reset()
-    {
-        current_frame_count = 0;
-    }
-
-    // the maximum size of this allocator, i.e. the maximum number of bindings that can be allocated in a single frame
-    const uint32 max_size;
-
-    // number of claims for the current from
-    // NOTE: not same as bindings (bindings are set after UpdateBoundResources() is called so we can calculate reuse)
-    uint32 current_frame_count = 0;
-
-    // Bits representing whether an index is allocated or not.
-    // we find free indices by iterating over this bitset to find the first unset bit.
-    Bitset used_indices;
-};
-
-template <uint32 MaxSize>
-struct ObjectBindingAllocator : ObjectBindingAllocatorBase
-{
-    ObjectBindingAllocator()
-        : ObjectBindingAllocatorBase(MaxSize)
-    {
-    }
-};
-
-class HYP_API ObjectBinderBase
-{
-public:
-    virtual ~ObjectBinderBase() = default;
-
-    virtual void UpdateBoundResources() = 0;
-
-protected:
-    ObjectBinderBase(RenderGlobalState* rgs);
-};
-
-/*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
- *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
- *  Only static subclasses are supported so using types extended only from managed code will not work. (See HypClass::GetStaticIndex)
- *  \note This system is not thread safe and should only be used from a single thread at any given time */
-template <class T, auto OnBindingChanged>
-class ObjectBinder final : public ObjectBinderBase
-{
-    struct Impl final
-    {
-        Impl(TypeID type_id)
-            : type_id(type_id)
-        {
-        }
-
-        void ReleaseBindings(ObjectBindingAllocatorBase* allocator)
-        {
-            // Unbind all objects that were bound in the last frame
-            for (Bitset::BitIndex bit_index : last_frame_ids)
-            {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
-
-                const auto it = bindings.FindAs(id);
-                AssertDebug(it != bindings.End());
-
-                if (it != bindings.End())
-                {
-                    T* object = it->first.GetUnsafe();
-                    const uint32 binding = it->second;
-
-                    OnBindingChanged(object, binding, ObjectBindingAllocatorBase::invalid_binding);
-                    allocator->FreeIndex(binding);
-                    bindings.Erase(it);
-                }
-            }
-        }
-
-        bool Bind(ObjectBindingAllocatorBase* allocator, T* object)
-        {
-            IDBase id = object->GetID();
-
-            if (!id.IsValid())
-            {
-                return false;
-            }
-
-            if (allocator->current_frame_count >= allocator->max_size)
-            {
-                DebugLog(LogType::Warn, "ObjectBinder<%s>: Maximum size of %u reached, cannot bind more objects!\n", TypeNameWithoutNamespace<T>().Data(), allocator->max_size);
-                return false; // maximum size reached
-            }
-
-            ++allocator->current_frame_count;
-
-            current_frame_ids.Set(id.ToIndex(), true);
-
-            return true;
-        }
-
-        void Unbind(ObjectBindingAllocatorBase* allocator, T* object)
-        {
-            IDBase id = object->GetID();
-
-            if (!id.IsValid())
-            {
-                return;
-            }
-
-            current_frame_ids.Set(id.ToIndex(), false);
-        }
-
-        void UpdateBoundResources(ObjectBindingAllocatorBase* allocator)
-        {
-            const Bitset removed = GetRemoved();
-            const Bitset newly_added = GetNewlyAdded();
-            const Bitset after = (last_frame_ids & ~removed) | newly_added;
-
-            AssertDebug(after.Count() <= allocator->max_size);
-
-            for (Bitset::BitIndex bit_index : removed)
-            {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
-
-                const auto it = bindings.FindAs(id);
-                AssertDebug(it != bindings.End());
-
-                if (it != bindings.End())
-                {
-                    T* object = it->first.GetUnsafe();
-                    const uint32 binding = it->second;
-
-                    OnBindingChanged(object, binding, ObjectBindingAllocatorBase::invalid_binding);
-                    allocator->FreeIndex(binding);
-                    bindings.Erase(it);
-                }
-            }
-
-            for (Bitset::BitIndex bit_index : newly_added)
-            {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
-
-                const auto it = bindings.FindAs(id);
-                if (it != bindings.End())
-                {
-                    // already bound
-                    continue;
-                }
-
-                const uint32 index = allocator->AllocateIndex();
-                if (index == ObjectBindingAllocatorBase::invalid_binding)
-                {
-                    DebugLog(LogType::Warn, "ObjectBinder<%s>: Maximum size of %u reached, cannot bind more objects!\n",
-                        TypeNameWithoutNamespace<T>().Data(),
-                        allocator->max_size);
-
-                    continue; // no more space to bind
-                }
-
-                auto insert_result = bindings.Insert(WeakHandle<T> { id }, index);
-                AssertDebugMsg(insert_result.second, "Failed to insert binding for object with ID %u - it should not already exist!", id.Value());
-
-                OnBindingChanged(insert_result.first->first.GetUnsafe(), ObjectBindingAllocatorBase::invalid_binding, index);
-            }
-
-            if (newly_added.Count() != 0 || removed.Count() != 0)
-            {
-                DebugLog(LogType::Debug, "ObjectBinder<%s>: %u objects added, %u objects removed, %u total bindings\n",
-                    TypeNameWithoutNamespace<T>().Data(),
-                    newly_added.Count(),
-                    removed.Count(),
-                    after.Count());
-            }
-
-            last_frame_ids = current_frame_ids;
-            current_frame_ids.Clear();
-        }
-
-        HYP_FORCE_INLINE Bitset GetNewlyAdded() const
-        {
-            const SizeType count = MathUtil::Max(last_frame_ids.NumBits(), current_frame_ids.NumBits());
-
-            return Bitset(current_frame_ids).Resize(count) & ~Bitset(last_frame_ids).Resize(count);
-        }
-
-        HYP_FORCE_INLINE Bitset GetRemoved() const
-        {
-            const SizeType count = MathUtil::Max(last_frame_ids.NumBits(), current_frame_ids.NumBits());
-
-            return Bitset(last_frame_ids).Resize(count) & ~Bitset(current_frame_ids).Resize(count);
-        }
-
-        TypeID type_id;
-        // these bitsets are used to track which objects were bound in the last frame with bitwise operations
-        Bitset last_frame_ids;
-        Bitset current_frame_ids;
-        HashMap<WeakHandle<T>, uint32> bindings;
-    };
-
-public:
-    ObjectBinder(RenderGlobalState* rgs, ObjectBindingAllocatorBase* allocator)
-        : ObjectBinderBase(rgs),
-          m_allocator(allocator),
-          m_impl(TypeID::ForType<T>())
-    {
-        AssertDebug(m_allocator != nullptr);
-
-        const SizeType num_descendants = GetNumDescendants(TypeID::ForType<T>());
-
-        // Create storage for subclass implementations
-        // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
-        m_subclass_impls.Resize(num_descendants);
-        m_subclass_impls_initialized.Resize(num_descendants);
-    }
-
-    ObjectBinder(const ObjectBinder&) = delete;
-    ObjectBinder& operator=(const ObjectBinder&) = delete;
-    ObjectBinder(ObjectBinder&&) = delete;
-    ObjectBinder& operator=(ObjectBinder&&) = delete;
-
-    ~ObjectBinder() override
-    {
-        m_impl.ReleaseBindings(m_allocator);
-
-        // Loop over the set bits and destruct subclass impls
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
-        {
-            AssertDebug(bit_index < m_subclass_impls.Size());
-
-            Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.ReleaseBindings(m_allocator);
-            m_subclass_impls[bit_index].Destruct();
-        }
-    }
-
-    bool Bind(T* object)
-    {
-        if (!object)
-        {
-            return false;
-        }
-
-        constexpr TypeID base_type_id = TypeID::ForType<T>();
-        const TypeID object_type_id = object->GetTypeID();
-
-        if (object_type_id == base_type_id)
-        {
-            return m_impl.Bind(m_allocator, object);
-        }
-        else
-        {
-            const int subclass_index = GetSubclassIndex(base_type_id, object_type_id);
-            AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
-                "ObjectBinder<%s>: Attempted to bind object with TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), object_type_id.Value(), base_type_id.Value());
-
-            if (!m_subclass_impls_initialized.Test(subclass_index))
-            {
-                m_subclass_impls[subclass_index].Construct(object_type_id);
-                m_subclass_impls_initialized.Set(subclass_index, true);
-            }
-
-            Impl& impl = m_subclass_impls[subclass_index].Get();
-
-            return impl.Bind(m_allocator, object);
-        }
-    }
-
-    void Unbind(T* object)
-    {
-        AssertDebug(object != nullptr);
-
-        constexpr TypeID type_id = TypeID::ForType<T>();
-        if (object->GetTypeID() == type_id)
-        {
-            m_impl.Unbind(m_allocator, object);
-        }
-        else
-        {
-            const int subclass_index = GetSubclassIndex(type_id, object->GetTypeID());
-            AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
-                "ObjectBinder<%s>: Attempted to unbind object with TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), object->GetTypeID().Value(), type_id.Value());
-
-            if (!m_subclass_impls_initialized.Test(subclass_index))
-            {
-                // don't do anything if not set here since we're just unbinding
-                return;
-            }
-
-            Impl& impl = m_subclass_impls[subclass_index].Get();
-            impl.Unbind(m_allocator, object);
-        }
-    }
-
-    virtual void UpdateBoundResources() override
-    {
-        m_impl.UpdateBoundResources(m_allocator);
-
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
-        {
-            Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.UpdateBoundResources(m_allocator);
-        }
-    }
-
-protected:
-    ObjectBindingAllocatorBase* m_allocator;
-
-    // base class impl
-    Impl m_impl;
-
-    // per-subtype implementations (only constructed and setup on first Bind() call with that type)
-    Array<ValueStorage<Impl>> m_subclass_impls;
-    Bitset m_subclass_impls_initialized;
-};
+HYP_API extern void RendererAPI_AddRef(HypObjectBase* resource);
+HYP_API extern void RendererAPI_AddRef(IDBase id, HypObjectBase** resources, uint32 num_resources);
+HYP_API extern void RendererAPI_ReleaseRef(IDBase id);
+
+HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id);
+HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id, IRenderProxy* proxy);
+
+// Call on render thread or render thread tasks only (consumer)
+HYP_API extern IRenderProxy* RendererAPI_GetRenderProxy(IDBase id);
 
 class RenderGlobalState
 {
-    friend class ObjectBinderBase;
+    friend class ResourceBinderBase;
 
     static void OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next);
 
@@ -446,8 +113,8 @@ public:
     IRenderer* Renderer;
     EnvProbeRenderer** EnvProbeRenderers;
 
-    ObjectBinderBase* ObjectBinders[max_binders] { nullptr };
-    ObjectBinder<EnvProbe, &OnEnvProbeBindingChanged> EnvProbeBinder;
+    ResourceBinderBase* ResourceBinders[max_binders] { nullptr };
+    ResourceBinder<EnvProbe, &OnEnvProbeBindingChanged> EnvProbeBinder;
 
 private:
     void CreateBlueNoiseBuffer();

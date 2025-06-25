@@ -95,6 +95,13 @@ void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
     out_shader_properties = std::move(properties);
 }
 
+static constexpr TypeID g_env_probe_type_to_type_id[EPT_MAX] = {
+    TypeID::ForType<SkyProbe>(),        // EPT_SKY
+    TypeID::ForType<ReflectionProbe>(), // EPT_REFLECTION
+    TypeID::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
+    TypeID::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
+};
+
 #pragma region Deferred pass
 
 DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer* gbuffer)
@@ -833,7 +840,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         ApplyReflectionProbeMode::PARALLAX_CORRECTED // ENV_PROBE_TYPE_REFLECTION
     };
 
-    FixedArray<Pair<Handle<RenderGroup>*, Array<RenderEnvProbe*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
+    FixedArray<Pair<Handle<RenderGroup>*, Array<EnvProbe*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
 
     for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++)
     {
@@ -844,9 +851,9 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
-        for (RenderEnvProbe* render_env_probe : rpl.GetEnvProbes(env_probe_type))
+        for (EnvProbe* env_probe : rpl.env_probes.GetElements(g_env_probe_type_to_type_id[env_probe_type]))
         {
-            pass_ptrs[mode_index].second.PushBack(render_env_probe);
+            pass_ptrs[mode_index].second.PushBack(env_probe);
         }
     }
 
@@ -865,7 +872,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         const EnvProbeType env_probe_type = reflection_probe_types[reflection_probe_type_index];
         const ApplyReflectionProbeMode mode = reflection_probe_modes[reflection_probe_type_index];
 
-        const Pair<Handle<RenderGroup>*, Array<RenderEnvProbe*>>& it = pass_ptrs[mode];
+        const Pair<Handle<RenderGroup>*, Array<EnvProbe*>>& it = pass_ptrs[mode];
 
         if (it.second.Empty())
         {
@@ -873,7 +880,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         }
 
         const Handle<RenderGroup>& render_group = *it.first;
-        const Array<RenderEnvProbe*>& env_render_probes = it.second;
+        const Array<EnvProbe*>& env_probes = it.second;
 
         render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
@@ -892,7 +899,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
         const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
-        for (RenderEnvProbe* env_probe : env_render_probes)
+        for (EnvProbe* env_probe : env_probes)
         {
             if (num_rendered_env_probes >= max_bound_reflection_probes)
             {
@@ -901,13 +908,16 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
+            RenderProxyEnvProbe* proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
+            AssertThrow(proxy->bound_index != ~0u);
+
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
                 render_group->GetPipeline(),
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe->GetBufferIndex()) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(proxy->bound_index) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -1330,8 +1340,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     Array<RenderProxyList*> render_proxy_lists;
 
     // Collect view-independent renderable types from all views
-    FixedArray<Array<RenderLight*>, uint32(LT_MAX)> lights;
-    FixedArray<Array<RenderEnvProbe*>, uint32(EPT_REFLECTION) + 1> env_probes;
+    FixedArray<Array<RenderLight*>, LT_MAX> lights;
+    FixedArray<Array<EnvProbe*>, EPT_REFLECTION + 1> env_probes;
     Array<RenderEnvGrid*> env_grids;
 
     for (const TResourceHandle<RenderView>& render_view : rs.world->GetViews())
@@ -1387,19 +1397,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
             env_grids.PushBack(env_grid);
         }
-
-        for (uint32 env_probe_type = 0; env_probe_type <= uint32(EPT_REFLECTION); env_probe_type++)
-        {
-            for (RenderEnvProbe* env_probe : rpl.GetEnvProbes(EnvProbeType(env_probe_type)))
-            {
-                if (env_probes[env_probe_type].Contains(env_probe))
-                {
-                    continue;
-                }
-
-                env_probes[env_probe_type].PushBack(env_probe);
-            }
-        }
     }
 
     // Render global environment probes and grids and set fallbacks
@@ -1427,16 +1424,16 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         {
             for (uint32 env_probe_type = 0; env_probe_type <= EPT_REFLECTION; env_probe_type++)
             {
-                for (RenderEnvProbe* env_probe : env_probes[env_probe_type])
+                for (EnvProbe* env_probe : env_probes[env_probe_type])
                 {
                     // Acquire binding slot for the env probe
-                    if (!g_render_global_state->EnvProbeBinder.Bind(env_probe->GetEnvProbe()))
+                    if (!g_render_global_state->EnvProbeBinder.Bind(env_probe))
                     {
-                        HYP_LOG(Rendering, Warning, "Failed to bind EnvProbe {}! Skipping rendering of env probes of this type.", env_probe->GetEnvProbe()->GetID());
+                        HYP_LOG(Rendering, Warning, "Failed to bind EnvProbe {}! Skipping rendering of env probes of this type.", env_probe->GetID());
                         continue;
                     }
 
-                    if (env_probe->GetEnvProbe()->NeedsRender())
+                    if (env_probe->NeedsRender())
                     {
                         EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
 
@@ -1454,7 +1451,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                             HYP_LOG(Rendering, Warning, "No EnvProbeRenderer found for EnvProbeType {}! Skipping rendering of env probes of this type.", EPT_REFLECTION);
                         }
 
-                        env_probe->GetEnvProbe()->SetNeedsRender(false);
+                        env_probe->SetNeedsRender(false);
                     }
                 }
             }
@@ -1500,7 +1497,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
         counts[ERS_LIGHTS] += rpl.NumLights();
         counts[ERS_ENV_GRIDS] += rpl.env_grids.Size();
-        counts[ERS_ENV_PROBES] += rpl.NumEnvProbes();
+        counts[ERS_ENV_PROBES] += rpl.env_probes.NumCurrent();
 #endif
     }
 
@@ -1559,7 +1556,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     // const bool use_reflection_probes = rpl.tracked_env_probes.NumCurrent(TypeID::ForType<SkyProbe>()) != 0
     //     || rpl.tracked_env_probes.NumCurrent(TypeID::ForType<ReflectionProbe>()) != 0;
 
-    const bool use_reflection_probes = rpl.env_probes[uint32(EPT_SKY)].Any() || rpl.env_probes[uint32(EPT_REFLECTION)].Any();
+    const bool use_reflection_probes = rpl.env_probes.GetElements<SkyProbe>().Any()
+        || rpl.env_probes.GetElements<ReflectionProbe>().Any();
 
     if (use_temporal_aa)
     {
@@ -1651,9 +1649,9 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         RenderSetup new_render_setup = rs;
 
         // if (const auto& sky_probes = rpl.tracked_env_probes.GetElements<SkyProbe>(); sky_probes.Any())
-        if (const Array<RenderEnvProbe*>& sky_env_probes = rpl.env_probes[uint32(EPT_SKY)]; sky_env_probes.Any())
+        if (const auto& sky_probes = rpl.env_probes.GetElements<SkyProbe>(); sky_probes.Any())
         {
-            new_render_setup.env_probe = sky_env_probes.Front();
+            new_render_setup.env_probe = sky_probes.Front();
         }
 
         pd->ssgi->Render(frame, rs);

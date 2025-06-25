@@ -130,25 +130,6 @@ struct HYP_API RenderProxyList
         return env_grids;
     }
 
-    HYP_FORCE_INLINE const Array<RenderEnvProbe*>& GetEnvProbes(EnvProbeType type) const
-    {
-        AssertDebug(type < env_probes.Size());
-
-        return env_probes[type];
-    }
-
-    HYP_FORCE_INLINE SizeType NumEnvProbes() const
-    {
-        SizeType num_env_probes = 0;
-
-        for (const auto& it : env_probes)
-        {
-            num_env_probes += it.Size();
-        }
-
-        return num_env_probes;
-    }
-
     void Clear();
     void RemoveEmptyRenderGroups();
 
@@ -177,13 +158,12 @@ struct HYP_API RenderProxyList
     int priority;
 
     ResourceTracker<ID<Entity>, RenderProxy> meshes;
+    ResourceTracker<ID<EnvProbe>, EnvProbe*> env_probes;
     ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
-    ResourceTracker<ID<EnvProbe>, RenderEnvProbe*> tracked_env_probes;
     ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
     Array<Array<RenderLight*>> lights;
-    Array<Array<RenderEnvProbe*>> env_probes;
     Array<RenderEnvGrid*> env_grids;
     Array<RenderLightmapVolume*> lightmap_volumes;
 

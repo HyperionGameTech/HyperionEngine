@@ -329,81 +329,81 @@ private:
     ManagedObjectResource* m_managed_object_resource;
 };
 
-#define HYP_OBJECT_BODY(T, ...)                                                               \
-private:                                                                                      \
-    friend class HypObjectInitializer<T>;                                                     \
-    friend struct HypClassInitializer_##T;                                                    \
-    friend class HypClassInstance<T>;                                                         \
-    friend struct HypClassRegistration<T>;                                                    \
-                                                                                              \
-    HypObjectInitializer<T> m_hyp_object_initializer { this };                                \
-    IHypObjectInitializer* m_hyp_object_initializer_ptr = &m_hyp_object_initializer;          \
-                                                                                              \
-public:                                                                                       \
-    struct HypObjectData                                                                      \
-    {                                                                                         \
-        using Type = T;                                                                       \
-                                                                                              \
-        static constexpr bool is_hyp_object = true;                                           \
-    };                                                                                        \
-                                                                                              \
-    HYP_FORCE_INLINE ID<T> GetID() const                                                      \
-    {                                                                                         \
-        return ID<T>(IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 }); \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer() const                      \
-    {                                                                                         \
-        return m_hyp_object_initializer_ptr;                                                  \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE ManagedObjectResource* GetManagedObjectResource() const                  \
-    {                                                                                         \
-        return m_hyp_object_initializer_ptr->GetManagedObjectResource();                      \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE TypeID GetTypeID() const                                                 \
-    {                                                                                         \
-        return m_header->container->GetObjectTypeID();                                        \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE const HypClass* InstanceClass() const                                    \
-    {                                                                                         \
-        return m_header->container->GetHypClass();                                            \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE static const HypClass* Class()                                           \
-    {                                                                                         \
-        return HypObjectInitializer<T>::GetClass_Static();                                    \
-    }                                                                                         \
-                                                                                              \
-    template <class TOther>                                                                   \
-    HYP_FORCE_INLINE bool IsInstanceOf() const                                                \
-    {                                                                                         \
-        if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>)              \
-        {                                                                                     \
-            return true;                                                                      \
-        }                                                                                     \
-        else                                                                                  \
-        {                                                                                     \
-            const HypClass* other_hyp_class = GetClass(TypeID::ForType<TOther>());            \
-            if (!other_hyp_class)                                                             \
-            {                                                                                 \
-                return false;                                                                 \
-            }                                                                                 \
-            return IsInstanceOfHypClass(other_hyp_class, InstanceClass());                    \
-        }                                                                                     \
-    }                                                                                         \
-                                                                                              \
-    HYP_FORCE_INLINE bool IsInstanceOf(const HypClass* other_hyp_class) const                 \
-    {                                                                                         \
-        if (!other_hyp_class)                                                                 \
-        {                                                                                     \
-            return false;                                                                     \
-        }                                                                                     \
-        return IsInstanceOfHypClass(other_hyp_class, InstanceClass());                        \
-    }                                                                                         \
-                                                                                              \
+#define HYP_OBJECT_BODY(T, ...)                                                      \
+private:                                                                             \
+    friend class HypObjectInitializer<T>;                                            \
+    friend struct HypClassInitializer_##T;                                           \
+    friend class HypClassInstance<T>;                                                \
+    friend struct HypClassRegistration<T>;                                           \
+                                                                                     \
+    HypObjectInitializer<T> m_hyp_object_initializer { this };                       \
+    IHypObjectInitializer* m_hyp_object_initializer_ptr = &m_hyp_object_initializer; \
+                                                                                     \
+public:                                                                              \
+    struct HypObjectData                                                             \
+    {                                                                                \
+        using Type = T;                                                              \
+                                                                                     \
+        static constexpr bool is_hyp_object = true;                                  \
+    };                                                                               \
+                                                                                     \
+    HYP_FORCE_INLINE ID<T> GetID() const                                             \
+    {                                                                                \
+        return ID<T>(HypObjectBase::GetID());                                        \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer() const             \
+    {                                                                                \
+        return m_hyp_object_initializer_ptr;                                         \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE ManagedObjectResource* GetManagedObjectResource() const         \
+    {                                                                                \
+        return m_hyp_object_initializer_ptr->GetManagedObjectResource();             \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE TypeID GetTypeID() const                                        \
+    {                                                                                \
+        return m_header->container->GetObjectTypeID();                               \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE const HypClass* InstanceClass() const                           \
+    {                                                                                \
+        return m_header->container->GetHypClass();                                   \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE static const HypClass* Class()                                  \
+    {                                                                                \
+        return HypObjectInitializer<T>::GetClass_Static();                           \
+    }                                                                                \
+                                                                                     \
+    template <class TOther>                                                          \
+    HYP_FORCE_INLINE bool IsInstanceOf() const                                       \
+    {                                                                                \
+        if constexpr (std::is_same_v<T, TOther> || std::is_base_of_v<TOther, T>)     \
+        {                                                                            \
+            return true;                                                             \
+        }                                                                            \
+        else                                                                         \
+        {                                                                            \
+            const HypClass* other_hyp_class = GetClass(TypeID::ForType<TOther>());   \
+            if (!other_hyp_class)                                                    \
+            {                                                                        \
+                return false;                                                        \
+            }                                                                        \
+            return IsInstanceOfHypClass(other_hyp_class, InstanceClass());           \
+        }                                                                            \
+    }                                                                                \
+                                                                                     \
+    HYP_FORCE_INLINE bool IsInstanceOf(const HypClass* other_hyp_class) const        \
+    {                                                                                \
+        if (!other_hyp_class)                                                        \
+        {                                                                            \
+            return false;                                                            \
+        }                                                                            \
+        return IsInstanceOfHypClass(other_hyp_class, InstanceClass());               \
+    }                                                                                \
+                                                                                     \
 private:
 
 template <class T, class... Args>
@@ -433,6 +433,11 @@ class HYP_API HypObjectBase
 
 public:
     virtual ~HypObjectBase();
+
+    HYP_FORCE_INLINE IDBase GetID() const
+    {
+        return IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };
+    }
 
     HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const
     {

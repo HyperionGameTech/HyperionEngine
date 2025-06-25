@@ -629,16 +629,28 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
 
         for (RenderProxy* proxy : added)
         {
-            RendererAPI_AddRefForView(this, proxy->mesh);
-            RendererAPI_AddRefForView(this, proxy->material);
-            RendererAPI_AddRefForView(this, proxy->skeleton);
+            HypObjectBase* resources[] = {
+                static_cast<HypObjectBase*>(proxy->mesh.Get()),
+                static_cast<HypObjectBase*>(proxy->material.Get()),
+                static_cast<HypObjectBase*>(proxy->skeleton.Get())
+            };
+
+            RendererAPI_AddRef(proxy->entity.GetID(), resources, ArraySize(resources));
         }
 
         for (RenderProxy* proxy : removed)
         {
-            RendererAPI_ReleaseRefForView(this, proxy->mesh);
-            RendererAPI_ReleaseRefForView(this, proxy->material);
-            RendererAPI_ReleaseRefForView(this, proxy->skeleton);
+            RendererAPI_ReleaseRef(proxy->entity.GetID(), proxy->mesh);
+            RendererAPI_ReleaseRef(proxy->entity.GetID(), proxy->material);
+            RendererAPI_ReleaseRef(proxy->entity.GetID(), proxy->skeleton);
+        }
+
+        Array<RenderProxy*> changed;
+        rpl.meshes.GetChanged(changed);
+
+        for (RenderProxy* proxy : changed)
+        {
+            RendererAPI_UpdateRenderProxy(proxy->entity.GetID(), proxy);
         }
     }
 
@@ -878,11 +890,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 continue;
             }
 
-            // EnvProbeShaderData probe_data;
-            // probe->FillBufferData(probe_data);
-            // rpl.tracked_env_probes.Track(probe->GetID(), probe_data);
-
-            rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource());
+            rpl.env_probes.Track(probe->GetID(), probe);
         }
 
         // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
@@ -899,24 +907,32 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
     /// TODO: point light Shadow maps
 
-    auto diff = rpl.tracked_env_probes.GetDiff();
+    auto diff = rpl.env_probes.GetDiff();
 
     if (diff.NeedsUpdate())
     {
-        Array<RenderEnvProbe*> removed;
-        rpl.tracked_env_probes.GetRemoved(removed, false);
+        Array<EnvProbe*> removed;
+        rpl.env_probes.GetRemoved(removed, false);
 
-        Array<RenderEnvProbe*> added;
-        rpl.tracked_env_probes.GetAdded(added, false);
+        Array<EnvProbe*> added;
+        rpl.env_probes.GetAdded(added, false);
 
-        for (RenderEnvProbe* proxy : added)
+        for (EnvProbe* probe : added)
         {
-            RendererAPI_AddRefForView(this, proxy->GetEnvProbe()->HandleFromThis());
+            RendererAPI_AddRef(probe);
         }
 
-        for (RenderEnvProbe* proxy : removed)
+        for (EnvProbe* probe : removed)
         {
-            RendererAPI_ReleaseRefForView(this, proxy->GetEnvProbe()->HandleFromThis());
+            RendererAPI_ReleaseRef(probe->GetID());
+        }
+
+        Array<ID<EnvProbe>> changed_ids;
+        rpl.env_probes.GetChanged(changed_ids);
+
+        for (ID<EnvProbe> id : changed_ids)
+        {
+            RendererAPI_UpdateResource(id);
         }
     }
 }

@@ -739,7 +739,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     }
 
     // Bind a directional light and sky envprobe if available
-    RenderEnvProbe* sky_env_probe = nullptr;
+    EnvProbe* sky_probe = nullptr;
+    RenderProxyEnvProbe* sky_probe_proxy = nullptr;
+
     RenderLight* render_light = nullptr;
 
     if (const Array<RenderLight*>& directional_lights = rpl.GetLights(LT_DIRECTIONAL); directional_lights.Any())
@@ -747,9 +749,15 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         render_light = directional_lights.Front();
     }
 
-    if (const Array<RenderEnvProbe*>& sky_env_probes = rpl.GetEnvProbes(EPT_SKY); sky_env_probes.Any())
+    if (const auto& sky_probes = rpl.env_probes.GetElements<SkyProbe>(); sky_probes.Any())
     {
-        sky_env_probe = sky_env_probes.Front();
+        sky_probe = sky_probes.Front();
+        AssertDebug(sky_probe != nullptr);
+        AssertDebug(sky_probe->IsInstanceOf<SkyProbe>());
+
+        sky_probe_proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(sky_probe->GetID()));
+        AssertDebug(sky_probe_proxy != nullptr);
+        AssertDebug(sky_probe_proxy->bound_index != ~0u);
     }
 
     const Vec2u cubemap_dimensions = color_attachment->GetImage()->GetExtent().GetXY();
@@ -784,7 +792,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe_proxy->bound_index != ~0u ? sky_probe_proxy->bound_index : 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Clear")].second);
@@ -798,7 +806,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe_proxy->bound_index != ~0u ? sky_probe_proxy->bound_index : 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("BuildCoeffs")].second);
@@ -843,7 +851,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
                         { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe_proxy->bound_index != ~0u ? sky_probe_proxy->bound_index : 0) } } } },
                 frame->GetFrameIndex());
 
             async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Reduce")].second);
@@ -865,7 +873,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_env_probe, 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe_proxy->bound_index != ~0u ? sky_probe_proxy->bound_index : 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);

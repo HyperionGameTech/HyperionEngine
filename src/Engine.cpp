@@ -213,6 +213,7 @@ HYP_API void Engine::Init()
     AssertThrowMsg(m_app_context != nullptr, "App context must be set before initializing the engine!");
 
     m_render_thread = MakeUnique<RenderThread>(m_app_context);
+    RendererAPI_InitResourceContainers();
 
     AssertThrow(m_app_context->GetMainWindow() != nullptr);
 
@@ -435,7 +436,7 @@ HYP_API void Engine::RenderNextFrame()
     // Update renderable bindings
     for (uint32 i = 0; i < RenderGlobalState::max_binders; i++)
     {
-        ObjectBinderBase* binder = g_render_global_state->ObjectBinders[i];
+        ResourceBinderBase* binder = g_render_global_state->ResourceBinders[i];
         if (!binder)
         {
             break; // stop at first empty slot
