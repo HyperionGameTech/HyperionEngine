@@ -224,7 +224,7 @@ public:
 
     virtual void Update(float delta) override;
 
-    void FillBufferData(struct EnvProbeShaderData& out) const;
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     uint32 m_grid_slot = ~0u; // temp
 

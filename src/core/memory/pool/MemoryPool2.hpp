@@ -80,26 +80,28 @@ public:
         other.m_size = 0;
     }
 
-    Pool& operator=(Pool&& other) noexcept
-    {
-        if (this == &other)
-        {
-            return *this;
-        }
+    Pool& operator=(Pool&& other) noexcept = delete;
 
-        Clear();
+    // Pool& operator=(Pool&& other) noexcept
+    // {
+    //     if (this == &other)
+    //     {
+    //         return *this;
+    //     }
 
-        m_pages = std::move(other.m_pages);
-        m_size = other.m_size;
+    //     Clear();
 
-        other.m_size = 0;
+    //     m_pages = std::move(other.m_pages);
+    //     m_size = other.m_size;
 
-        return *this;
-    }
+    //     other.m_size = 0;
+
+    //     return *this;
+    // }
 
     ~Pool()
     {
-        Clear();
+        FreeMemory();
     }
 
     void* Alloc(uint32 size, uint32 alignment)
@@ -204,42 +206,8 @@ public:
         return m_size;
     }
 
-    void Clear(bool keep_pages = false)
-    {
-        for (SizeType i = m_pages.Size(); i != 0; i--)
-        {
-            PageBody* body = m_pages[i - 1];
-            PageFooter* footer = body->GetFooter();
-
-            void* ptr_aligned = HYP_ALIGN_ADDRESS(body->storage.GetPointer(), m_elem_alignment);
-
-            Bitset::BitIndex bit_index = Bitset::not_found;
-            while ((bit_index = footer->used_indices.LastSetBitIndex()) != Bitset::not_found)
-            {
-                // (ptr_aligned + bit_index)->~T();
-                footer->used_indices.Set(bit_index, false);
-            }
-
-            if (!keep_pages)
-            {
-                // Only have to destruct footer; PageBody is trivial and we destruct each element
-                footer->~PageFooter();
-
-                // Free the page (body is the start of the allocation)
-                HYP_FREE_ALIGNED(body);
-            }
-        }
-
-        if (!keep_pages)
-        {
-            m_pages.Clear();
-        }
-
-        m_size = 0;
-    }
-
 private:
-    HYP_FORCE_INLINE static PageFooter* GetBodyFromPointer(void* ptr)
+    HYP_FORCE_INLINE static PageBody* GetBodyFromPointer(void* ptr)
     {
         static constexpr uintptr_t mask = ~(uintptr_t(PageSize) - 1);
         return reinterpret_cast<PageBody*>((reinterpret_cast<uintptr_t>(ptr) & mask));
@@ -288,6 +256,40 @@ private:
         AssertDebug(uintptr_t(ptr) < (reinterpret_cast<uintptr_t>(GetStorageAddress(body)) + (MaxElementsPerPage() * m_elem_size)));
 
         return ptr;
+    }
+
+    void FreeMemory(bool keep_pages = false)
+    {
+        for (SizeType i = m_pages.Size(); i != 0; i--)
+        {
+            PageBody* body = m_pages[i - 1];
+            PageFooter* footer = body->GetFooter();
+
+            // void* ptr_aligned = reinterpret_cast<void*>(HYP_ALIGN_ADDRESS(body->storage.GetPointer(), m_elem_alignment));
+
+            Bitset::BitIndex bit_index = Bitset::not_found;
+            while ((bit_index = footer->used_indices.LastSetBitIndex()) != Bitset::not_found)
+            {
+                // (ptr_aligned + bit_index)->~T();
+                footer->used_indices.Set(bit_index, false);
+            }
+
+            if (!keep_pages)
+            {
+                // Only have to destruct footer; PageBody is trivial and we destruct each element
+                footer->~PageFooter();
+
+                // Free the page (body is the start of the allocation)
+                HYP_FREE_ALIGNED(body);
+            }
+        }
+
+        if (!keep_pages)
+        {
+            m_pages.Clear();
+        }
+
+        m_size = 0;
     }
 
     HYP_FORCE_INLINE uintptr_t GetStorageAddress(PageBody* body) const

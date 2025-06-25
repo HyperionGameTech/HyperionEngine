@@ -108,18 +108,17 @@ void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)
 
     if (mesh_component.mesh.IsValid() && mesh_component.material.IsValid())
     {
-        mesh_component.proxy = new RenderProxy {
-            entity->WeakHandleFromThis(),
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            Matrix4::Identity(),
-            Matrix4::Identity(),
-            BoundingBox::Empty(),
-            mesh_component.user_data,
-            mesh_component.instance_data,
-            /* version */ 0
-        };
+        mesh_component.proxy = new RenderProxy;
+        mesh_component.proxy->entity = entity->WeakHandleFromThis();
+        mesh_component.proxy->mesh = mesh_component.mesh;
+        mesh_component.proxy->material = mesh_component.material;
+        mesh_component.proxy->skeleton = mesh_component.skeleton;
+        mesh_component.proxy->model_matrix = Matrix4::Identity();
+        mesh_component.proxy->previous_model_matrix = Matrix4::Identity();
+        mesh_component.proxy->aabb = BoundingBox::Empty();
+        mesh_component.proxy->user_data = mesh_component.user_data;
+        mesh_component.proxy->instance_data = mesh_component.instance_data;
+        mesh_component.proxy->version = 0;
 
         PUSH_RENDER_COMMAND(UpdateEntityDrawData, Array<RenderProxy*> { mesh_component.proxy });
 
@@ -186,18 +185,17 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
         // Update MeshComponent's proxy
         // @TODO: Include RT info on RenderProxy, add a system that will update BLAS on the render thread.
         // @TODO Add Lightmap volume info
-        *mesh_component.proxy = RenderProxy {
-            entity->WeakHandleFromThis(),
-            mesh_component.mesh,
-            mesh_component.material,
-            mesh_component.skeleton,
-            transform_component.transform.GetMatrix(),
-            mesh_component.previous_model_matrix,
-            bounding_box_component.world_aabb,
-            mesh_component.user_data,
-            mesh_component.instance_data,
-            render_proxy_version
-        };
+        RenderProxy& proxy = *mesh_component.proxy;
+        proxy.entity = entity->WeakHandleFromThis();
+        proxy.mesh = mesh_component.mesh;
+        proxy.material = mesh_component.material;
+        proxy.skeleton = mesh_component.skeleton;
+        proxy.model_matrix = transform_component.transform.GetMatrix();
+        proxy.previous_model_matrix = mesh_component.previous_model_matrix;
+        proxy.aabb = bounding_box_component.world_aabb;
+        proxy.user_data = mesh_component.user_data;
+        proxy.instance_data = mesh_component.instance_data;
+        proxy.version = render_proxy_version;
 
         render_proxy_ptrs.PushBack(mesh_component.proxy);
 

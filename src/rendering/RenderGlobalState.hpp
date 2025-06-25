@@ -64,9 +64,9 @@ HYP_API extern RenderProxyList& RendererAPI_GetConsumerProxyList(View* view);
 
 // Call on game (producer) thread
 HYP_API extern void RendererAPI_AddRef(HypObjectBase* resource);
-HYP_API extern void RendererAPI_AddRef(IDBase id, HypObjectBase** resources, uint32 num_resources);
 HYP_API extern void RendererAPI_ReleaseRef(IDBase id);
 
+HYP_API extern IRenderProxy* RendererAPI_AllocRenderProxy(IDBase id);
 HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id);
 HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id, IRenderProxy* proxy);
 

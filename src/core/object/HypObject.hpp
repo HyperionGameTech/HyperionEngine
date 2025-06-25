@@ -362,16 +362,6 @@ public:                                                                         
         return m_hyp_object_initializer_ptr->GetManagedObjectResource();             \
     }                                                                                \
                                                                                      \
-    HYP_FORCE_INLINE TypeID GetTypeID() const                                        \
-    {                                                                                \
-        return m_header->container->GetObjectTypeID();                               \
-    }                                                                                \
-                                                                                     \
-    HYP_FORCE_INLINE const HypClass* InstanceClass() const                           \
-    {                                                                                \
-        return m_header->container->GetHypClass();                                   \
-    }                                                                                \
-                                                                                     \
     HYP_FORCE_INLINE static const HypClass* Class()                                  \
     {                                                                                \
         return HypObjectInitializer<T>::GetClass_Static();                           \
@@ -436,7 +426,24 @@ public:
 
     HYP_FORCE_INLINE IDBase GetID() const
     {
+        AssertDebugMsg(m_header, "Invalid HypObject!");
+
         return IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };
+    }
+
+    HYP_FORCE_INLINE TypeID GetTypeID() const
+    {
+        AssertDebugMsg(m_header, "Invalid HypObject!");
+
+        return m_header->container->GetObjectTypeID();
+    }
+
+    HYP_FORCE_INLINE const HypClass* InstanceClass() const
+    {
+        AssertDebugMsg(m_header, "Invalid HypObject!");
+        AssertDebugMsg(m_header->container->GetHypClass(), "No HypClass defined for type");
+
+        return m_header->container->GetHypClass();
     }
 
     HYP_FORCE_INLINE HypObjectHeader* GetObjectHeader_Internal() const

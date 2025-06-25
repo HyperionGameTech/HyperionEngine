@@ -181,6 +181,15 @@ struct Formatter<StringType, ID<T>>
     }
 };
 
+template <class StringType>
+struct Formatter<StringType, IDBase>
+{
+    auto operator()(const IDBase& value) const
+    {
+        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeID())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+    }
+};
+
 } // namespace utilities
 
 } // namespace hyperion

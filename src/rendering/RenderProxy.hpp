@@ -118,6 +118,14 @@ class IRenderProxy
 {
 public:
     virtual ~IRenderProxy() = default;
+
+    virtual void SafeRelease()
+    {
+    }
+
+#ifdef HYP_DEBUG_MODE
+    uint16 state = 0x1;
+#endif
 };
 
 /*! \brief Proxy for a renderable Entity with a valid Mesh and Material assigned */
@@ -136,6 +144,8 @@ public:
     uint32 version = 0;
 
     ~RenderProxy() override = default;
+
+    HYP_API virtual void SafeRelease() override;
 
     void IncRefs() const;
     void DecRefs() const;
@@ -203,7 +213,7 @@ public:
 
     WeakHandle<EnvProbe> env_probe;
     EnvProbeShaderData buffer_data {};
-    uint32 bound_index = ~0u;
+    uint32 bound_index = ~0u; /// @TODO
 };
 
 } // namespace hyperion

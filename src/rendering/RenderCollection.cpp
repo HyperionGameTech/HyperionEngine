@@ -245,7 +245,6 @@ RenderProxyList::RenderProxyList()
 {
     // these are buckets per type (fixed size)
     lights.Resize(LT_MAX);
-    env_probes.Resize(EPT_MAX);
 }
 
 RenderProxyList::~RenderProxyList()
@@ -278,10 +277,10 @@ RenderProxyList::~RenderProxyList()
         tracker.NumCurrent())
 
     DO_FINALIZATION_CHECK(meshes);
+    DO_FINALIZATION_CHECK(env_probes);
     DO_FINALIZATION_CHECK(tracked_lights);
     DO_FINALIZATION_CHECK(tracked_lightmap_volumes);
     DO_FINALIZATION_CHECK(tracked_env_grids);
-    DO_FINALIZATION_CHECK(tracked_env_probes);
 
 #undef DO_FINALIZATION_CHECK
 }
@@ -378,19 +377,19 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any())
         {
-            // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
-            for (RenderProxy* proxy : added_proxy_ptrs)
-            {
-                AssertDebug(proxy != nullptr);
+            // // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
+            // for (RenderProxy* proxy : added_proxy_ptrs)
+            // {
+            //     AssertDebug(proxy != nullptr);
 
-                proxy->IncRefs();
-            }
+            //     proxy->IncRefs();
+            // }
 
             for (RenderProxy* proxy : removed_proxies)
             {
                 AssertDebug(proxy != nullptr);
 
-                proxy->DecRefs();
+                // proxy->DecRefs();
 
                 RenderableAttributeSet attributes = GetRenderableAttributesForProxy(*proxy, override_attributes);
                 UpdateRenderableAttributesDynamic(proxy, attributes);

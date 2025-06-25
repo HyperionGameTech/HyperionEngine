@@ -106,6 +106,9 @@ EnvProbe::~EnvProbe()
 {
     if (m_render_resource != nullptr)
     {
+        // TEMP!
+        m_render_resource->DecRef();
+
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
@@ -178,6 +181,9 @@ void EnvProbe::Init()
         | EnvProbeFlags::DIRTY;
 
     m_render_resource->SetBufferData(buffer_data);
+
+    // TEMP! Need to keep it alive since for right now we are reading renderresource's BufferData - will change w/ new proxy binding system!
+    m_render_resource->IncRef();
 
     SetReady(true);
 }
@@ -404,16 +410,20 @@ void EnvProbe::Update(float delta)
     }
 }
 
-void EnvProbe::FillBufferData(struct EnvProbeShaderData& out) const
+void EnvProbe::UpdateRenderProxy(IRenderProxy* proxy)
 {
-    out.aabb_min = Vec4f(m_aabb.min, 1.0f);
-    out.aabb_max = Vec4f(m_aabb.max, 1.0f);
-    out.world_position = Vec4f(GetOrigin(), 1.0f);
-    out.camera_near = m_camera_near;
-    out.camera_far = m_camera_far;
-    out.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
-    out.visibility_bits = m_visibility_bits.ToUInt64();
-    out.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+    RenderProxyEnvProbe* proxy_casted = static_cast<RenderProxyEnvProbe*>(proxy);
+    proxy_casted->env_probe = WeakHandle<EnvProbe>(WeakHandleFromThis());
+
+    EnvProbeShaderData& buffer_data = proxy_casted->buffer_data;
+    buffer_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.max, 1.0f);
+    buffer_data.world_position = Vec4f(GetOrigin(), 1.0f);
+    buffer_data.camera_near = m_camera_near;
+    buffer_data.camera_far = m_camera_far;
+    buffer_data.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    buffer_data.visibility_bits = m_visibility_bits.ToUInt64();
+    buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
         | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
         | EnvProbeFlags::DIRTY;
 }

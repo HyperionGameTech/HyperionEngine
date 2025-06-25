@@ -73,6 +73,8 @@ protected:
         : m_type_id(type_id),
           m_hyp_class(hyp_class)
     {
+        AssertDebug(type_id != TypeID::Void());
+        // AssertDebug(hyp_class != nullptr);
     }
 
     TypeID m_type_id;

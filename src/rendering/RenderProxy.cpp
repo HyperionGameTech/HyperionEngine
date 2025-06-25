@@ -45,6 +45,13 @@ void MeshInstanceData_PostLoad(MeshInstanceData& mesh_instance_data)
 
 #pragma region RenderProxy
 
+void RenderProxy::SafeRelease()
+{
+    g_safe_deleter->SafeRelease(std::move(mesh));
+    g_safe_deleter->SafeRelease(std::move(material));
+    g_safe_deleter->SafeRelease(std::move(skeleton));
+}
+
 void RenderProxy::IncRefs() const
 {
     if (material.IsValid())

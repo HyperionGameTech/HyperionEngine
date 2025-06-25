@@ -135,9 +135,9 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (rpl)
         {
-            if (const Array<RenderEnvProbe*>& sky_env_probes = rpl->GetEnvProbes(EPT_SKY); sky_env_probes.Any())
+            if (const auto& sky_probes = rpl->env_probes.GetElements<SkyProbe>(); sky_probes.Any())
             {
-                render_setup.env_probe = sky_env_probes[0];
+                render_setup.env_probe = sky_probes.Front();
             }
         }
 
@@ -754,7 +754,7 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<InsertBarrier>(m_hits_buffer_gpu, RS_UNORDERED_ACCESS);
@@ -860,7 +860,7 @@ void LightmapCPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
     if (render_setup.env_probe)
     {
         // prepare env probe texture to be sampled on the CPU in the tasks
-        env_probe_texture = render_setup.env_probe->GetEnvProbe()->GetPrefilteredEnvMap();
+        env_probe_texture = render_setup.env_probe->GetPrefilteredEnvMap();
         env_probe_texture->Readback();
     }
 

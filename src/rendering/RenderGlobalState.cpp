@@ -88,20 +88,14 @@ class NullProxyType : public IRenderProxy
  *  the render thread to ensure no frames are currently using it for rendering as it gets deleted */
 struct ResourceData final
 {
-    HashSet<HypObjectBase*> resources;
+    HypObjectBase* resource;
     AtomicVar<uint32> count;
 
-    ResourceData()
-        : count(0)
-    {
-    }
-
     ResourceData(HypObjectBase* resource)
-        : count(0)
+        : resource(resource),
+          count(0)
     {
         AssertDebug(resource);
-
-        resources.Insert(resource);
 
         resource->GetObjectHeader_Internal()->IncRefStrong();
     }
@@ -114,60 +108,9 @@ struct ResourceData final
 
     ~ResourceData()
     {
-        if (resources.Any())
-        {
-            for (HypObjectBase* resource : resources)
-            {
-                AssertDebug(resource);
-                resource->GetObjectHeader_Internal()->DecRefStrong();
-            }
-        }
-    }
-
-    void AddResources(HypObjectBase** resources, uint32 num_resources)
-    {
-        if (num_resources == 0)
-        {
-            return;
-        }
-
-        AssertDebug(resources);
-
-        for (uint32 i = 0; i < num_resources; i++)
-        {
-            if (!resources[i])
-            {
-                continue;
-            }
-
-            if (!this->resources.Contains(resources[i]))
-            {
-                resources[i]->GetObjectHeader_Internal()->DecRefStrong();
-                this->resources.Insert(resources[i]);
-            }
-        }
-    }
-
-    void AddResource(HypObjectBase* resource)
-    {
-        AssertDebug(resource);
-
-        if (!resources.Contains(resource))
+        if (resource)
         {
             resource->GetObjectHeader_Internal()->DecRefStrong();
-            resources.Insert(resource);
-        }
-    }
-
-    void RemoveResource(HypObjectBase* resource)
-    {
-        AssertDebug(resource);
-
-        auto it = resources.Find(resource);
-        if (it != resources.End())
-        {
-            resource->GetObjectHeader_Internal()->DecRefStrong();
-            resources.Erase(it);
         }
     }
 };
@@ -193,16 +136,22 @@ struct ResourceSubtypeData final
     ValueStorage<Pool<pool_page_size>> proxy_pool;
     // and a map (sparse array) from ID -> proxy ptr (allocated from that pool)
     SparsePagedArray<IRenderProxy*, 256> proxies;
+    void (*proxy_ctor)(IRenderProxy* proxy);
     bool has_proxy_pool : 1;
 
     template <class ResourceType, class ProxyType>
     ResourceSubtypeData(TypeWrapper<ResourceType>, TypeWrapper<ProxyType>)
         : type_id(TypeID::ForType<ResourceType>()),
-          has_proxy_pool(!std::is_same_v<ProxyType, NullProxyType>) // if ProxyType != NullProxyType then we setup proxy pool
+          has_proxy_pool(!std::is_same_v<ProxyType, NullProxyType>), // if ProxyType != NullProxyType then we setup proxy pool
+          proxy_ctor(nullptr)
     {
         if (has_proxy_pool)
         {
             proxy_pool.Construct(sizeof(ProxyType), alignof(ProxyType));
+            proxy_ctor = [](IRenderProxy* proxy)
+            {
+                new (proxy) ProxyType;
+            };
         }
     }
 
@@ -291,7 +240,7 @@ struct ResourceContainerFactory
                     "SubtypeData container already exists for TypeID %u (HypClass: %s)! Duplicate DECLARE_RENDER_DATA_CONTAINER() macro invocation for type?",
                     type_id.Value(), *GetClass(type_id)->GetName());
 
-                container.data_by_type.Emplace(static_index, TypeWrapper<ResourceType>(), TypeWrapper<NullProxyType>());
+                container.data_by_type.Emplace(static_index, TypeWrapper<ResourceType>(), TypeWrapper<ProxyType>());
             });
     }
 };
@@ -409,32 +358,6 @@ HYP_API void RendererAPI_AddRef(HypObjectBase* resource)
     subtype_data.indices_pending_delete.Set(resource_id.ToIndex(), false);
 }
 
-HYP_API void RendererAPI_AddRef(IDBase id, HypObjectBase** resources, uint32 num_resources)
-{
-    if (!resources)
-    {
-        return;
-    }
-
-    Threads::AssertOnThread(g_game_thread);
-
-    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
-
-    FrameData& fd = g_frame_data[slot];
-
-    ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeID());
-
-    if (!subtype_data.data.HasIndex(id.ToIndex()))
-    {
-        subtype_data.data.Emplace(id.ToIndex());
-    }
-
-    subtype_data.data[id.ToIndex()].AddResources(resources, num_resources);
-
-    subtype_data.data[id.ToIndex()].count.Increment(1, MemoryOrder::RELAXED);
-    subtype_data.indices_pending_delete.Set(id.ToIndex(), false);
-}
-
 HYP_API void RendererAPI_ReleaseRef(IDBase id)
 {
     if (!id.IsValid())
@@ -493,20 +416,28 @@ HYP_API void RendererAPI_UpdateRenderProxy(IDBase id)
         proxy = static_cast<IRenderProxy*>(subtype_data.proxy_pool.Get().Alloc());
         AssertThrowMsg(proxy != nullptr, "Failed to allocate render proxy!");
 
-        /// FIXME: Need to invoke proxy ctor
+        // construct proxy object
+        AssertDebug(subtype_data.proxy_ctor != nullptr);
+        subtype_data.proxy_ctor(proxy);
 
         subtype_data.proxies.Emplace(id.ToIndex(), proxy);
     }
 
     AssertDebug(proxy);
+    AssertDebug(data.resource);
 
-    HYP_LOG(Rendering, Debug, "UPDATING NOT IMPLEMENTED!!! FIXME!!!");
+    if (IsInstanceOfHypClass(Entity::Class(), data.resource->InstanceClass()))
+    {
+        Entity* entity = static_cast<Entity*>(data.resource);
+        entity->UpdateRenderProxy(proxy);
+    }
+    else
+    {
+        HYP_LOG(Rendering, Warning, "UpdateRenderProxy called for resource ID {} of type {} which is not an Entity! Skipping proxy update.\n",
+            id, GetClass(subtype_data.type_id)->GetName());
+    }
 
-    // AssertDebug(data.entity);
-
-    // entity->UpdateRenderProxy(proxy);
-
-    // mark for buffer data update from render thread!
+    // mark for buffer data update from render thread
     subtype_data.indices_pending_buffer_update.Set(id.ToIndex(), true);
 }
 
@@ -551,6 +482,7 @@ HYP_API void RendererAPI_UpdateRenderProxy(IDBase id, IRenderProxy* proxy)
 HYP_API IRenderProxy* RendererAPI_GetRenderProxy(IDBase id)
 {
     AssertDebug(id.IsValid());
+    AssertDebug(id.GetTypeID() != TypeID::Void());
 
     Threads::AssertOnThread(g_render_thread);
 
@@ -559,13 +491,13 @@ HYP_API IRenderProxy* RendererAPI_GetRenderProxy(IDBase id)
     FrameData& frame_data = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = frame_data.resources.GetSubtypeData(id.GetTypeID());
-    AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use GetResourceRenderProxy() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
+    AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use GetRenderProxy() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
 
     if (!subtype_data.proxies.HasIndex(id.ToIndex()))
     {
-        HYP_LOG(Rendering, Warning, "No render proxy found for resource ID %u of type %s in frame %u!\n",
-            id.Value(), *GetClass(subtype_data.type_id)->GetName(), slot);
+        HYP_LOG(Rendering, Warning, "No render proxy found for resource ID {} of type {} in frame {}!\n",
+            id, GetClass(subtype_data.type_id)->GetName(), slot);
 
         return nullptr; // no proxy for this resource
     }
@@ -700,11 +632,12 @@ HYP_API void RendererAPI_EndFrame_RenderThread()
 
             /// @TODO Handle buffer update into global GPU buffer data...
             HYP_LOG(Rendering, Debug, "Updating resource of type {} with ID {} on GPU thread..\n",
-                *GetClass(subtype_data.type_id)->GetName(), IDBase { subtype_data.type_id, uint32(bit) + 1 });
+                *GetClass(subtype_data.type_id)->GetName(), IDBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
         }
 
         subtype_data.indices_pending_buffer_update.Clear();
 
+        // @TODO: for deletion, have a fixed number to iterate over per frame so we don't spend too much time on it.
         // Remove resources pending deletion via SafeDelete() for indices marked for deletion from the game thread
         for (Bitset::BitIndex bit : subtype_data.indices_pending_delete)
         {
@@ -714,18 +647,37 @@ HYP_API void RendererAPI_EndFrame_RenderThread()
             HYP_LOG(Rendering, Debug, "Deleting resource of type {} with ID {}\n",
                 *GetClass(subtype_data.type_id)->GetName(), IDBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
 
-            // safely release all the held resources:
-            for (HypObjectBase* resource : resource_data.resources)
-            {
-                if (!resource)
-                {
-                    continue;
-                }
+            AnyHandle resource { resource_data.resource };
+            subtype_data.data.EraseAt(bit);
 
-                g_safe_deleter->SafeRelease(AnyHandle(resource));
+            if (subtype_data.has_proxy_pool)
+            {
+                AssertDebugMsg(subtype_data.proxies.HasIndex(bit), "proxy missing at index: %u", bit);
+
+                IRenderProxy* proxy = subtype_data.proxies[bit];
+                AssertDebug(proxy);
+
+                subtype_data.proxies.EraseAt(bit);
+
+                // safely release the proxy's resources before we destruct it:
+                proxy->SafeRelease();
+
+                // pool doesnt call destructors so invoke manually
+                proxy->~IRenderProxy();
+
+#ifdef HYP_DEBUG_MODE
+                // :)
+                proxy->state = 0xDEAD;
+#endif
+
+                subtype_data.proxy_pool.Get().Free(proxy);
             }
 
-            subtype_data.data.EraseAt(bit);
+            // safely release all the held resources:
+            if (resource.IsValid())
+            {
+                g_safe_deleter->SafeRelease(std::move(resource));
+            }
         }
 
         subtype_data.indices_pending_delete.Clear();
@@ -975,11 +927,11 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
     }
     else
     {
-        // env_probe->GetRenderResource().IncRef();
-        // env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
+        env_probe->GetRenderResource().IncRef();
+        env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
     }
 
-    // temp solution
+    // temp shit
     env_probe->GetRenderResource().SetTextureSlot(next);
 
     if (next != ~0u)
@@ -1002,9 +954,9 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
 
 #pragma endregion RenderGlobalState
 
+// @NOTE: Not declaring for proxy Entity atm, since we are allocating them with new rather than
+// the pool.. come back and FIXME
+DECLARE_RENDER_DATA_CONTAINER(Entity); // RenderProxy);
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe);
-DECLARE_RENDER_DATA_CONTAINER(Mesh);
-DECLARE_RENDER_DATA_CONTAINER(Material);
-DECLARE_RENDER_DATA_CONTAINER(Skeleton);
 
 } // namespace hyperion

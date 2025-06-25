@@ -908,8 +908,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            RenderProxyEnvProbe* proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
-            AssertThrow(proxy->bound_index != ~0u);
+            // RenderProxyEnvProbe* proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
+            // AssertThrow(proxy->bound_index != ~0u);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
@@ -917,7 +917,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(proxy->bound_index) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe->GetRenderResource().GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(

@@ -9,14 +9,14 @@ ResourceBinderBase::ResourceBinderBase(RenderGlobalState* rgs)
 
     for (uint32 i = 0; i < RenderGlobalState::max_binders; i++)
     {
-        if (rgs->ObjectBinders[i] == nullptr)
+        if (rgs->ResourceBinders[i] == nullptr)
         {
-            rgs->ObjectBinders[i] = this;
+            rgs->ResourceBinders[i] = this;
             return;
         }
     }
 
-    HYP_FAIL("Failed to find a free slot in the RenderGlobalState's ObjectBinders array!");
+    HYP_FAIL("Failed to find a free slot!");
 }
 
 } // namespace hyperion
