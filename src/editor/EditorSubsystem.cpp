@@ -14,6 +14,7 @@
 #include <scene/World.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/View.hpp>
+#include <scene/Light.hpp>
 #include <scene/Texture.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
@@ -2410,26 +2411,58 @@ void EditorSubsystem::InitContentBrowser()
         import_button->OnClick
             .Bind([this, stage_weak = ui_subsystem->GetUIStage().ToWeak()](...)
                 {
-                    if (Handle<UIStage> stage = stage_weak.Lock())
+                    // temp deebugging:
+
+                    // remove a light!
+                    Light* light_entity = nullptr;
+                    for (auto [entity, _] : m_active_scene.GetUnsafe()->GetEntityManager()->GetEntitySet<EntityType<Light>>())
                     {
-                        auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
+                        Light* l = static_cast<Light*>(entity);
 
-                        if (loaded_ui_asset.HasValue())
+                        if (l->GetLightType() == LT_POINT)
                         {
-                            Handle<UIObject> loaded_ui = loaded_ui_asset->Result();
-
-                            if (Handle<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog"))
-                            {
-                                stage->AddChildUIObject(file_browser_dialog);
-
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            }
+                            light_entity = l;
+                            break;
                         }
-
-                        HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
                     }
 
-                    return UIEventHandlerResult::ERR;
+                    if (light_entity != nullptr)
+                    {
+                        NodeLinkComponent* nlc = light_entity->GetEntityManager()->TryGetComponent<NodeLinkComponent>(light_entity);
+
+                        if (nlc)
+                        {
+                            if (Handle<Node> node = nlc->node.Lock())
+                            {
+                                node->Remove();
+
+                                HYP_LOG(Editor, Debug, "Removed light node: {}", *node->GetName());
+                            }
+                        }
+                    }
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+
+                    // if (Handle<UIStage> stage = stage_weak.Lock())
+                    // {
+                    //     auto loaded_ui_asset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
+
+                    //     if (loaded_ui_asset.HasValue())
+                    //     {
+                    //         Handle<UIObject> loaded_ui = loaded_ui_asset->Result();
+
+                    //         if (Handle<UIObject> file_browser_dialog = loaded_ui->FindChildUIObject("File_Browser_Dialog"))
+                    //         {
+                    //             stage->AddChildUIObject(file_browser_dialog);
+
+                    //             return UIEventHandlerResult::STOP_BUBBLING;
+                    //         }
+                    //     }
+
+                    //     HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loaded_ui_asset.GetError().GetMessage());
+                    // }
+
+                    // return UIEventHandlerResult::ERR;
                 }));
 }
 

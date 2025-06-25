@@ -26,9 +26,11 @@ struct DrawCall;
 struct InstancedDrawCall;
 struct PassData;
 class IRenderer;
+
 namespace threading {
 class TaskBatch;
 } // namespace threading
+
 using threading::TaskBatch;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering")

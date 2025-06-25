@@ -104,6 +104,15 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 
 EnvProbe::~EnvProbe()
 {
+    if (!Threads::IsOnThread(g_render_thread))
+    {
+        if (RenderResourceLock* lock = GetProducerResourceLock(GetID()))
+        {
+            HYP_LOG(Scene, Debug, "EnvProbe {} is being destroyed on a non-render thread, waiting for resource lock to be released", GetID());
+            lock->WaitForRelease();
+        }
+    }
+
     if (m_render_resource != nullptr)
     {
         FreeResource(m_render_resource);
@@ -402,6 +411,20 @@ void EnvProbe::Update(float delta)
         m_render_resource->IncRef();
         PUSH_RENDER_COMMAND(RenderPointLightShadow, &GetWorld()->GetRenderResource(), m_render_resource);
     }
+}
+
+void EnvProbe::FillBufferData(struct EnvProbeShaderData& out) const
+{
+    out.aabb_min = Vec4f(m_aabb.min, 1.0f);
+    out.aabb_max = Vec4f(m_aabb.max, 1.0f);
+    out.world_position = Vec4f(GetOrigin(), 1.0f);
+    out.camera_near = m_camera_near;
+    out.camera_far = m_camera_far;
+    out.dimensions = Vec2u { m_dimensions.x, m_dimensions.y };
+    out.visibility_bits = m_visibility_bits.ToUInt64();
+    out.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
+        | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
+        | EnvProbeFlags::DIRTY;
 }
 
 } // namespace hyperion

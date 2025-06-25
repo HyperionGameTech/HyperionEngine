@@ -524,8 +524,13 @@ private:
     Impl m_impl;
 };
 
+using AtomicSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, AtomicSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+using ConditionVarSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
+
 } // namespace threading
 
+using threading::AtomicSemaphore;
+using threading::ConditionVarSemaphore;
 using threading::Semaphore;
 using threading::SemaphoreDirection;
 

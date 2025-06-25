@@ -244,6 +244,62 @@ public:
         return m_valid_pages.Count() != 0;
     }
 
+    HYP_FORCE_INLINE SizeType Size() const
+    {
+        SizeType size = 0;
+
+        for (Bitset::BitIndex bit : m_valid_pages)
+        {
+            size += m_pages[bit]->initialized_bits.Count();
+        }
+
+        return size;
+    }
+
+    HYP_FORCE_INLINE T& Front()
+    {
+        AssertDebug(m_valid_pages.Count() != 0);
+
+        return *Begin();
+    }
+
+    HYP_FORCE_INLINE const T& Front() const
+    {
+        AssertDebug(m_valid_pages.Count() != 0);
+
+        return *Begin();
+    }
+
+    HYP_FORCE_INLINE T& Back()
+    {
+        AssertDebug(m_valid_pages.Count() != 0);
+
+        Page* last_page = m_pages[m_valid_pages.LastSetBitIndex()];
+
+        AssertDebug(last_page != nullptr);
+        AssertDebug(last_page->initialized_bits.Count() > 0);
+
+        SizeType last_index = last_page->initialized_bits.LastSetBitIndex();
+        AssertDebug(last_index < PageSize);
+
+        return last_page->storage.GetPointer()[last_index];
+    }
+
+    HYP_FORCE_INLINE const T& Back() const
+    {
+        AssertDebug(m_valid_pages.Count() != 0);
+
+        Page* last_page = m_pages[m_valid_pages.LastSetBitIndex()];
+
+        AssertDebug(last_page != nullptr);
+        AssertDebug(last_page->initialized_bits.Count() > 0);
+
+        SizeType last_index = last_page->initialized_bits.LastSetBitIndex();
+        AssertDebug(last_index < PageSize);
+
+        return last_page->storage.GetPointer()[last_index];
+    }
+
     HYP_FORCE_INLINE bool HasIndex(SizeType index) const
     {
         const SizeType page_index = PageIndex(index);
@@ -380,7 +436,7 @@ public:
         return const_cast<SparsePagedArray&>(*this).FindIf(std::forward<Predicate>(predicate));
     }
 
-    void Clear()
+    void Clear(bool delete_pages = true)
     {
         for (Bitset::BitIndex bit : m_valid_pages)
         {
@@ -389,12 +445,31 @@ public:
             Page* page = m_pages[bit];
             AssertDebug(page != nullptr);
 
-            delete page;
-            m_pages[bit] = nullptr;
+            if (delete_pages)
+            {
+                delete page;
+                m_pages[bit] = nullptr;
+            }
+            else
+            {
+                // Just destruct the elements in the page, without freeing the allocated memory.
+                // we want to reuse this page later, to avoid additional reallocs!
+                for (Bitset::BitIndex elem_bit : page->initialized_bits)
+                {
+                    AssertDebug(elem_bit < PageSize);
+                    page->storage.DestructElement(elem_bit);
+                }
+
+                page->initialized_bits.Clear();
+            }
         }
 
         m_valid_pages.Clear();
-        m_pages.Clear();
+
+        if (delete_pages)
+        {
+            m_pages.Clear();
+        }
     }
 
     HYP_DEF_STL_BEGIN_END(Iterator(this, 0, 0), Iterator(this, m_pages.Size(), PageSize));
@@ -426,7 +501,7 @@ private:
         return m_pages[page_index];
     }
 
-    Array<Page*, InlineAllocator<32>> m_pages;
+    Array<Page*, InlineAllocator<8>> m_pages;
     Bitset m_valid_pages;
 };
 

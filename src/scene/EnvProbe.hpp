@@ -224,6 +224,8 @@ public:
 
     virtual void Update(float delta) override;
 
+    void FillBufferData(struct EnvProbeShaderData& out) const;
+
     uint32 m_grid_slot = ~0u; // temp
 
 protected:

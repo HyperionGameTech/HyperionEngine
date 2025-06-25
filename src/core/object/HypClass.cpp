@@ -127,13 +127,26 @@ int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id)
         return -1;
     }
 
-    int subclass_static_index = subclass->GetStaticIndex();
+    const int subclass_static_index = subclass->GetStaticIndex();
     if (subclass_static_index < 0)
     {
         return -1; // subclass is not a static class
     }
 
-    return (subclass_static_index - base->GetStaticIndex()) <= base->GetNumDescendants();
+    const int base_static_index = base->GetStaticIndex();
+
+    if (subclass_static_index == base_static_index)
+    {
+        return -1; // not subclass
+    }
+
+    if (uint32(subclass_static_index - base->GetStaticIndex()) <= base->GetNumDescendants())
+    {
+        // subtract one to get subclass index (has to fit within base's num descendants)
+        return subclass_static_index - base->GetStaticIndex() - 1;
+    }
+
+    return -1;
 }
 
 SizeType GetNumDescendants(TypeID type_id)

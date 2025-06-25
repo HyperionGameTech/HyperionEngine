@@ -35,6 +35,7 @@
 
 #include <core/containers/LinkedList.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <core/threading/Semaphore.hpp>
 #include <core/threading/Threads.hpp>
@@ -68,6 +69,67 @@ static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // g
 // Shared allocator for reflection probes and sky probes.
 static ObjectBindingAllocator<16> g_envprobe_bindings_allocator;
 
+// globally lock resources from being destroyed while the frame is rendering
+struct RenderResourceLock_Impl
+{
+    AtomicSemaphore semaphore;
+};
+
+#pragma region RenderResourceLockContainer
+
+class RenderResourceLockContainer
+{
+public:
+    ~RenderResourceLockContainer() = default;
+
+    SparsePagedArray<RenderResourceLock, 256>& GetLocksForType(TypeID type_id)
+    {
+        const HypClass* hyp_class = GetClass(type_id);
+        AssertDebugMsg(hyp_class != nullptr, "TypeID %u does not have a HypClass!", type_id.Value());
+
+        const int static_index = hyp_class->GetStaticIndex();
+        AssertDebugMsg(static_index >= 0, "Invalid class to use with render resource lock: '%s' has no assigned static index!", *hyp_class->GetName());
+
+        if (!m_subclass_impls.HasIndex(static_index))
+        {
+            m_subclass_impls.Set(static_index, SubtypeImpl(type_id));
+        }
+
+        return m_subclass_impls[static_index].locks;
+    }
+
+    // // Call me on the game thread at the start before adding new items!
+    // // the items should all be signalled as complete
+    // void ResetAllLocks()
+    // {
+    //     for (SubtypeImpl& impl : m_subclass_impls)
+    //     {
+    //         impl.locks.Clear();
+    //     }
+    // }
+
+    struct SubtypeImpl final
+    {
+        TypeID type_id;
+        SparsePagedArray<RenderResourceLock, 256> locks;
+
+        SubtypeImpl(TypeID type_id)
+            : type_id(type_id)
+        {
+        }
+
+        SubtypeImpl(const SubtypeImpl& other) = delete;
+        SubtypeImpl& operator=(const SubtypeImpl& other) = delete;
+        SubtypeImpl(SubtypeImpl&& other) noexcept = default;
+        SubtypeImpl& operator=(SubtypeImpl&& other) noexcept = default;
+    };
+
+private:
+    SparsePagedArray<SubtypeImpl, 16> m_subclass_impls;
+};
+
+#pragma endregion RenderResourceLockContainer
+
 struct ViewData
 {
     RenderProxyList render_proxy_list;
@@ -79,8 +141,12 @@ struct FrameData
     LinkedList<ViewData> per_view_data;
     HashMap<View*, ViewData*> views;
 
-    // FixedArray<ViewData*, max_views_per_frame> views;
-    // uint32 view_id_counter = 0;
+    // global lock all the per-resource locks reference underneath
+    // unlock happens on render thread after frame is rendered
+    RenderResourceLock_Impl global_resource_lock;
+
+    // per-resource lock states, cleared on game thread
+    RenderResourceLockContainer resource_locks;
 };
 
 static FrameData g_frame_data[num_frames];
@@ -138,6 +204,27 @@ HYP_API RenderProxyList& GetConsumerRenderProxyList(View* view)
     return vd->render_proxy_list;
 }
 
+HYP_API RenderResourceLock* GetProducerResourceLock(IDBase id)
+{
+    if (!id.IsValid())
+    {
+        return nullptr;
+    }
+
+    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& fd = g_frame_data[slot];
+
+    auto& locks = fd.resource_locks.GetLocksForType(id.GetTypeID());
+
+    if (!locks.HasIndex(id.ToIndex()))
+    {
+        return nullptr;
+    }
+
+    return &locks[id.ToIndex()];
+}
+
 HYP_API void BeginFrame_GameThread()
 {
     HYP_SCOPE;
@@ -147,6 +234,8 @@ HYP_API void BeginFrame_GameThread()
     uint32 slot = g_producer_index.load(std::memory_order_relaxed);
 
     FrameData& frame_data = g_frame_data[slot];
+
+    // frame_data.resource_locks.ResetAllLocks();
 
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
     {
@@ -192,6 +281,8 @@ HYP_API void BeginFrame_RenderThread()
     uint32 slot = g_consumer_index.load(std::memory_order_relaxed);
 
     FrameData& frame_data = g_frame_data[slot];
+
+    frame_data.global_resource_lock.semaphore.Produce();
 
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
     {
@@ -247,6 +338,8 @@ HYP_API void EndFrame_RenderThread()
         ++it;
     }
 
+    frame_data.global_resource_lock.semaphore.Release();
+
     g_consumer_index.store((slot + 1) % num_frames, std::memory_order_relaxed);
 
     g_free_semaphore.release();
@@ -271,6 +364,65 @@ ObjectBinderBase::ObjectBinderBase(RenderGlobalState* rgs)
 }
 
 #pragma endregion ObjectBinderBase
+
+#pragma region RenderResourceLock
+
+HYP_API void RenderResourceLock::WaitForRelease() const
+{
+    HYP_SCOPE;
+
+    AssertDebug(m_impl != nullptr);
+
+    // Wait for the lock to be released on the render thread!
+    m_impl->semaphore.Acquire();
+}
+
+#pragma region RenderResourceLock
+
+#pragma region RenderResourceLocker
+
+RenderResourceLocker::RenderResourceLocker(RenderResourceLockContainer& container, TypeID type_id, RenderResourceLock_Impl* lock)
+    : m_container(&container),
+      m_subtype_container(&container.GetLocksForType(type_id)),
+      m_lock(lock)
+{
+}
+
+void RenderResourceLocker::LockResource(IDBase id) const
+{
+    RenderResourceLockContainer::SubtypeImpl& subtype_impl = *static_cast<RenderResourceLockContainer::SubtypeImpl*>(m_subtype_container);
+
+    // exact type match - no need to check if we have to create the container
+    if (id.GetTypeID() == subtype_impl.type_id)
+    {
+        subtype_impl.locks.Set(id.ToIndex(), RenderResourceLock { m_lock });
+
+        return;
+    }
+
+    // otherwise, we need to find the right subtype impl
+    m_container->GetLocksForType(id.GetTypeID()).Set(id.ToIndex(), RenderResourceLock { m_lock });
+}
+
+void RenderResourceLocker::UnlockResource(IDBase id) const
+{
+    RenderResourceLockContainer::SubtypeImpl& subtype_impl = *static_cast<RenderResourceLockContainer::SubtypeImpl*>(m_subtype_container);
+
+    HYP_NOT_IMPLEMENTED();
+}
+
+HYP_API RenderResourceLocker GetRenderResourceLocker(TypeID type_id)
+{
+    Threads::AssertOnThread(g_game_thread);
+
+    const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
+
+    FrameData& fd = g_frame_data[slot];
+
+    return RenderResourceLocker(fd.resource_locks, type_id, &fd.global_resource_lock);
+}
+
+#pragma endregion RenderResourceLocker
 
 #pragma region RenderGlobalState
 

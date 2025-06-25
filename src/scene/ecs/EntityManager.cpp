@@ -476,7 +476,7 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
     // Create tag to track TypeID of the entity.
     /// TODO: Recursively add tags for parent classes if they are also Entity subclasses.
 
-    EntityTag entity_type_tag = MakeEntityTagFromTypeID(entity.GetTypeID());
+    EntityTag entity_type_tag = MakeEntityTypeTag(entity.GetTypeID());
     AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
 
     if (entity_type_tag != EntityTag::TYPE_ID)
@@ -545,7 +545,7 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     }
 
     // Create tag to track TypeID of the entity.
-    EntityTag entity_type_tag = MakeEntityTagFromTypeID(entity.GetTypeID());
+    EntityTag entity_type_tag = MakeEntityTypeTag(entity.GetTypeID());
     AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
 
     if (entity_type_tag != EntityTag::TYPE_ID)
@@ -1126,7 +1126,7 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
         return false;
     }
 
-    if (IsTypeIDEntityTag(tag))
+    if (IsEntityTypeTag(tag))
     {
         const EntityData* entity_data = m_entities.TryGetEntityData(entity);
 
@@ -1135,7 +1135,16 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
             return false;
         }
 
-        return GetTypeIDFromEntityTag(tag) == entity_data->type_id;
+        const TypeID type_id = GetTypeIDFromEntityTag(tag);
+
+        // quick check w/ equality for faster compare
+        if (type_id == entity_data->type_id)
+        {
+            return true;
+        }
+
+        // allow derived types with an extra check via subclass index
+        return GetSubclassIndex(entity_data->type_id, type_id) != -1;
     }
 
     const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);

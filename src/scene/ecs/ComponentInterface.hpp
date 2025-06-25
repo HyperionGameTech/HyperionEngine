@@ -355,7 +355,7 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
     }
 
 #define HYP_REGISTER_ENTITY_TYPE(T, ...)                                                                                                                     \
-    static ComponentInterfaceRegistration<EntityTagComponent<EntityTagTypeID<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
+    static ComponentInterfaceRegistration<EntityTagComponent<EntityType_Impl<T>::value>, false, ##__VA_ARGS__> T##_EntityTag_ComponentInterface_Registration \
     {                                                                                                                                                        \
     }
 

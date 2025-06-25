@@ -18,5 +18,10 @@ namespace Hyperion
         public Light()
         {
         }
+
+        ~Light()
+        {
+            Logger.Log(LogType.Warn, "Destroying Light with ID: {0}", this.ID);
+        }
     }
 }

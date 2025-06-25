@@ -52,8 +52,10 @@ public:
         }
     };
 
-    // Uses dynamic node allocator for the hash table to prevent iterator invalidation.
-    using MapType = HashMap<IDType, ElementType, HashTable_DynamicNodeAllocator<KeyValuePair<IDType, ElementType>>>;
+    // use a sparse array so we can use IDs as indices
+    // without worring about hashing for lookups and allowing us to
+    // still iterate over the elements (mostly) linearly.
+    using ElementArrayType = SparsePagedArray<ElementType, 256>;
 
     static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
 
@@ -96,6 +98,54 @@ public:
         }
 
         return count;
+    }
+
+    uint32 NumCurrent(TypeID type_id) const
+    {
+        if (type_id == IDType::type_id_static)
+        {
+            return m_impl.GetCurrentBits().Count();
+        }
+
+        const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
+        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
+
+        if (m_subclass_impls_initialized.Test(subclass_index))
+        {
+            return m_subclass_impls[subclass_index].Get().GetCurrent().Count();
+        }
+
+        return 0;
+    }
+
+    const ElementArrayType& GetElements(TypeID type_id) const
+    {
+        static ElementArrayType& empty_array {};
+
+        if (type_id == IDType::type_id_static)
+        {
+            return m_impl.elements;
+        }
+
+        const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
+        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
+
+        if (m_subclass_impls_initialized.Test(subclass_index))
+        {
+            return m_subclass_impls[subclass_index].Get().elements;
+        }
+
+        return empty_array;
+    }
+
+    template <class T>
+    const ElementArrayType& GetElements() const
+    {
+        static constexpr TypeID type_id = TypeID::ForType<T>();
+
+        return GetElements(type_id);
     }
 
     Diff GetDiff() const
@@ -753,10 +803,7 @@ protected:
 
         TypeID type_id;
 
-        // use a sparse array so we can use IDs as indices
-        // without worring about hashing for lookups and allowing us to
-        // still iterate over the elements (mostly) linearly.
-        SparsePagedArray<ElementType, 256> elements;
+        ElementArrayType elements;
 
         Bitset previous;
         Bitset next;

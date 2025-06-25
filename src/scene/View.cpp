@@ -7,6 +7,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/lightmapper/LightmapVolume.hpp>
 #include <scene/camera/Camera.hpp>
+#include <scene/animation/Skeleton.hpp>
 
 #include <scene/ecs/EntityManager.hpp>
 #include <scene/ecs/EntityTag.hpp>
@@ -495,6 +496,14 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
             AssertDebug(mesh_component.proxy->material.IsValid());
 
             rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
+
+            locker.LockResource(mesh_component.mesh.GetID());
+            locker.LockResource(mesh_component.material.GetID());
+
+            if (mesh_component.skeleton.IsValid())
+            {
+                locker.LockResource(mesh_component.skeleton->GetID());
+            }
         }
     }
 
@@ -515,6 +524,8 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
 
         return rpl.meshes.GetDiff();
     }
+
+    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<Entity>());
 
     const ID<Camera> camera_id = m_camera->GetID();
 
@@ -563,6 +574,14 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
             AssertDebug(mesh_component.proxy->material.IsValid());
 
             rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
+
+            locker.LockResource(mesh_component.mesh.GetID());
+            locker.LockResource(mesh_component.material.GetID());
+
+            if (mesh_component.skeleton.IsValid())
+            {
+                locker.LockResource(mesh_component.skeleton->GetID());
+            }
         }
     }
 
@@ -577,6 +596,8 @@ void View::CollectLights(RenderProxyList& rpl)
     {
         return;
     }
+
+    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<EnvProbe>());
 
     for (const Handle<Scene>& scene : m_scenes)
     {
@@ -620,6 +641,8 @@ void View::CollectLights(RenderProxyList& rpl)
             {
                 light->EnqueueRenderUpdates();
             }
+
+            locker.LockResource(light->GetID());
         }
     }
 
@@ -821,14 +844,16 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         return;
     }
 
+    RenderResourceLocker locker = GetRenderResourceLocker(TypeID::ForType<EnvProbe>());
+
     for (const Handle<Scene>& scene : m_scenes)
     {
         AssertThrow(scene.IsValid());
         AssertThrow(scene->IsReady());
 
-        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<ReflectionProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            ReflectionProbe* probe = static_cast<ReflectionProbe*>(entity);
+            EnvProbe* probe = static_cast<EnvProbe*>(entity);
 
             const BoundingBox& probe_aabb = probe->GetAABB();
 
@@ -844,8 +869,47 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 continue;
             }
 
+            // EnvProbeShaderData probe_data;
+            // probe->FillBufferData(probe_data);
+            // rpl.tracked_env_probes.Track(probe->GetID(), probe_data);
+
             rpl.tracked_env_probes.Track(probe->GetID(), &probe->GetRenderResource());
+
+            locker.LockResource(probe->GetID());
         }
+
+        // if (auto diff = rpl.tracked_env_probes.GetDiff(); diff.NeedsUpdate())
+        // {
+        //     Array<RenderLight*> removed;
+        //     rpl.tracked_lights.GetRemoved(removed, false);
+
+        //     Array<RenderLight*> added;
+        //     rpl.tracked_lights.GetAdded(added, false);
+
+        //     for (RenderLight* light : added)
+        //     {
+        //         HYP_LOG(Scene, Debug, "Added light {} to view {}", light->GetLight()->GetID(), GetID());
+
+        //         light->IncRef();
+
+        //         rpl.lights[light->GetLight()->GetLightType()].PushBack(light);
+        //     }
+
+        //     for (RenderLight* light : removed)
+        //     {
+        //         HYP_LOG(Scene, Debug, "Removed light {} from view {}", light->GetLight()->GetID(), GetID());
+
+        //         light->DecRef();
+
+        //         auto it = rpl.lights[light->GetLight()->GetLightType()].Find(light);
+        //         AssertDebug(it != rpl.lights[light->GetLight()->GetLightType()].End());
+
+        //         if (it != rpl.lights[light->GetLight()->GetLightType()].End())
+        //         {
+        //             rpl.lights[light->GetLight()->GetLightType()].Erase(it);
+        //         }
+        //     }
+        // }
 
         // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         // {
@@ -860,41 +924,6 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
     }
 
     /// TODO: point light Shadow maps
-
-    auto diff = rpl.tracked_env_probes.GetDiff();
-
-    if (diff.NeedsUpdate())
-    {
-        Array<RenderEnvProbe*> removed;
-        rpl.tracked_env_probes.GetRemoved(removed, false);
-
-        Array<RenderEnvProbe*> added;
-        rpl.tracked_env_probes.GetAdded(added, false);
-
-        for (RenderEnvProbe* env_probe : added)
-        {
-            HYP_LOG(Scene, Debug, "Added EnvProbe {} to view {}", env_probe->GetEnvProbe()->GetID(), GetID());
-
-            env_probe->IncRef();
-
-            rpl.env_probes[env_probe->GetEnvProbe()->GetEnvProbeType()].PushBack(env_probe);
-        }
-
-        for (RenderEnvProbe* env_probe : removed)
-        {
-            HYP_LOG(Scene, Debug, "Removed EnvProbe {} from view {}", env_probe->GetEnvProbe()->GetID(), GetID());
-
-            env_probe->DecRef();
-
-            auto it = rpl.env_probes[env_probe->GetEnvProbe()->GetEnvProbeType()].Find(env_probe);
-            AssertDebug(it != rpl.env_probes[env_probe->GetEnvProbe()->GetEnvProbeType()].End());
-
-            if (it != rpl.env_probes[env_probe->GetEnvProbe()->GetEnvProbeType()].End())
-            {
-                rpl.env_probes[env_probe->GetEnvProbe()->GetEnvProbeType()].Erase(it);
-            }
-        }
-    }
 }
 
 #pragma endregion View

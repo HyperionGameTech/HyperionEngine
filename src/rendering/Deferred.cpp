@@ -1407,9 +1407,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     {
         // Set global directional light as fallback
-        if (lights[uint32(LT_DIRECTIONAL)].Any())
+        if (lights[LT_DIRECTIONAL].Any())
         {
-            new_rs.light = lights[uint32(LT_DIRECTIONAL)][0];
+            new_rs.light = lights[LT_DIRECTIONAL][0];
         }
         else
         {
@@ -1418,9 +1418,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         }
 
         // Set sky as fallback probe
-        if (env_probes[uint32(EPT_SKY)].Any())
+        if (env_probes[EPT_SKY].Any())
         {
-            new_rs.env_probe = env_probes[uint32(EPT_SKY)][0];
+            new_rs.env_probe = env_probes[EPT_SKY][0];
         }
 
         if (env_probes.Any())
@@ -1556,6 +1556,9 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const bool use_temporal_aa = pd->temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
+    // const bool use_reflection_probes = rpl.tracked_env_probes.NumCurrent(TypeID::ForType<SkyProbe>()) != 0
+    //     || rpl.tracked_env_probes.NumCurrent(TypeID::ForType<ReflectionProbe>()) != 0;
+
     const bool use_reflection_probes = rpl.env_probes[uint32(EPT_SKY)].Any() || rpl.env_probes[uint32(EPT_REFLECTION)].Any();
 
     if (use_temporal_aa)
@@ -1647,6 +1650,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     {
         RenderSetup new_render_setup = rs;
 
+        // if (const auto& sky_probes = rpl.tracked_env_probes.GetElements<SkyProbe>(); sky_probes.Any())
         if (const Array<RenderEnvProbe*>& sky_env_probes = rpl.env_probes[uint32(EPT_SKY)]; sky_env_probes.Any())
         {
             new_render_setup.env_probe = sky_env_probes.Front();
