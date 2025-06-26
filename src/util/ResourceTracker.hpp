@@ -30,7 +30,247 @@ enum class AdvanceAction : uint32
 template <class IDType, class ElementType>
 class ResourceTracker
 {
+    template <class Derived, bool IsConst>
+    struct IteratorBase
+    {
+        using Element = std::conditional_t<IsConst, const ElementType, ElementType>;
+        using ResourceTrackerType = std::conditional_t<IsConst, const ResourceTracker, ResourceTracker>;
+
+        ResourceTrackerType* tracker;
+
+        // Current phase:
+        // 0 : iterating primary elements (m_impl)
+        // 1 : iterating subclass elements
+        // 2 : end iterator
+        int phase;
+        SizeType primary_index;
+
+        // For subclass iteration (phase 1)
+        SizeType subclass_impl_index;    // index into m_subclass_impls (and m_subclass_impls_initialized)
+        SizeType subclass_element_index; // index into the elements array of the current subclass impl
+
+        IteratorBase(ResourceTrackerType* tracker, bool is_end)
+            : tracker(tracker),
+              phase(0),
+              primary_index(0),
+              subclass_impl_index(0),
+              subclass_element_index(0)
+        {
+            if (is_end)
+            {
+                phase = 2;
+                primary_index = Bitset::not_found;
+                subclass_impl_index = Bitset::not_found;
+                subclass_element_index = Bitset::not_found;
+            }
+            else
+            {
+                primary_index = FindNextSet(tracker->m_impl.GetCurrentBits(), 0);
+
+                if (primary_index == Bitset::not_found)
+                {
+                    // No primary elements, move to subclass iteration.
+                    InitSubclass();
+                }
+            }
+        }
+
+        IteratorBase(
+            ResourceTrackerType* tracker,
+            bool is_end,
+            SizeType primary_index,
+            SizeType subclass_impl_index,
+            SizeType subclass_element_index)
+            : tracker(tracker),
+              phase(is_end ? 2 : 0),
+              primary_index(primary_index),
+              subclass_impl_index(subclass_impl_index),
+              subclass_element_index(subclass_element_index)
+        {
+            if (phase == 0 && primary_index == Bitset::not_found)
+            {
+                InitSubclass();
+            }
+            else if (is_end)
+            {
+                primary_index = Bitset::not_found;
+                subclass_impl_index = Bitset::not_found;
+                subclass_element_index = Bitset::not_found;
+            }
+        }
+
+        Derived& operator++()
+        {
+            if (phase == 0)
+            {
+                primary_index = FindNextSet(tracker->m_impl.GetCurrentBits(), primary_index + 1);
+
+                if (primary_index == Bitset::not_found)
+                {
+                    InitSubclass();
+                }
+            }
+            else if (phase == 1) // in subclass impl searching
+            {
+                while (subclass_impl_index != Bitset::not_found)
+                {
+                    AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
+
+                    // If we are at the end of the current subclass impl, move to the next one.
+                    if (subclass_element_index == Bitset::not_found)
+                    {
+                        subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, subclass_impl_index + 1);
+                        if (subclass_impl_index == Bitset::not_found)
+                        {
+                            break;
+                        }
+
+                        AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
+                        auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
+                        subclass_element_index = FindNextSet(impl.GetCurrentBits(), 0);
+
+                        if (subclass_element_index != Bitset::not_found)
+                        {
+                            // Found a valid subclass element, continue the iteration.
+                            return static_cast<Derived&>(*this);
+                        }
+                    }
+                }
+
+                // exhausted all subclass elements
+                phase = 2;
+                primary_index = Bitset::not_found;
+                subclass_impl_index = Bitset::not_found;
+                subclass_element_index = Bitset::not_found;
+            }
+
+            return static_cast<Derived&>(*this);
+        }
+
+        Derived operator++(int)
+        {
+            Derived tmp = static_cast<Derived>(*this);
+            ++(*this);
+            return tmp;
+        }
+
+        Element& operator*() const
+        {
+            if (phase == 0)
+            {
+                return tracker->m_impl.elements[primary_index];
+            }
+            else if (phase == 1)
+            {
+                return tracker->m_subclass_impls[subclass_impl_index].Get().elements[subclass_element_index];
+            }
+
+            HYP_FAIL("Invalid iterator phase");
+        }
+
+        Element* operator->() const
+        {
+            return &(**this);
+        }
+
+        bool operator==(const Derived& other) const
+        {
+            return tracker == other.tracker
+                && phase == other.phase
+                && primary_index == other.primary_index
+                && subclass_impl_index == other.subclass_impl_index
+                && subclass_element_index == other.subclass_element_index;
+        }
+
+        bool operator!=(const Derived& other) const
+        {
+            return tracker != other.tracker
+                || phase != other.phase
+                || primary_index != other.primary_index
+                || subclass_impl_index != other.subclass_impl_index
+                || subclass_element_index != other.subclass_element_index;
+        }
+
+    private:
+        HYP_FORCE_INLINE static Bitset::BitIndex FindNextSet(const Bitset& bs, Bitset::BitIndex idx)
+        {
+            return bs.NextSetBitIndex(idx);
+        }
+
+        void InitSubclass()
+        {
+            for (Bitset::BitIndex bit : tracker->m_subclass_impls_initialized)
+            {
+                AssertDebug(bit < tracker->m_subclass_impls.Size());
+
+                auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
+                subclass_element_index = FindNextSet(impl.GetCurrentBits(), 0);
+
+                if (subclass_element_index != Bitset::not_found)
+                {
+                    phase = 1;
+                    return;
+                }
+            }
+
+            // No subclass element found: reached the end.
+            phase = 2;
+            primary_index = Bitset::not_found;
+            subclass_impl_index = Bitset::not_found;
+            subclass_element_index = Bitset::not_found;
+        }
+    };
+
 public:
+    struct ConstIterator;
+
+    struct Iterator : IteratorBase<Iterator, false>
+    {
+        Iterator(ResourceTracker* tracker, bool is_end = false)
+            : IteratorBase<Iterator, false>(tracker, is_end)
+        {
+        }
+
+        Iterator(
+            ResourceTracker* tracker,
+            bool is_end,
+            SizeType primary_index,
+            SizeType subclass_impl_index,
+            SizeType subclass_element_index)
+            : IteratorBase<Iterator, false>(tracker, is_end, primary_index, subclass_impl_index, subclass_element_index)
+        {
+        }
+
+        // Allow implicit conversion to ConstIterator
+        operator ConstIterator() const
+        {
+            return ConstIterator(
+                IteratorBase<Iterator, false>::tracker,
+                IteratorBase<Iterator, false>::phase == 2,
+                IteratorBase<Iterator, false>::primary_index,
+                IteratorBase<Iterator, false>::subclass_impl_index,
+                IteratorBase<Iterator, false>::subclass_element_index);
+        }
+    };
+
+    struct ConstIterator : IteratorBase<ConstIterator, true>
+    {
+        ConstIterator(const ResourceTracker* tracker, bool is_end = false)
+            : IteratorBase<ConstIterator, true>(tracker, is_end)
+        {
+        }
+
+        ConstIterator(
+            const ResourceTracker* tracker,
+            bool is_end,
+            SizeType primary_index,
+            SizeType subclass_impl_index,
+            SizeType subclass_element_index)
+            : IteratorBase<ConstIterator, true>(tracker, is_end, primary_index, subclass_impl_index, subclass_element_index)
+        {
+        }
+    };
+
     enum ResourceTrackState : uint8
     {
         UNCHANGED = 0x0,
@@ -440,6 +680,8 @@ public:
             m_subclass_impls[bit_index].Get().Reset();
         }
     }
+
+    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), false), Iterator(const_cast<ResourceTracker*>(this), true))
 
 protected:
     struct Impl final

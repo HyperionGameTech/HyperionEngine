@@ -20,6 +20,7 @@ class RenderView;
 class RenderWorld;
 class RenderEnvGrid;
 class RenderLight;
+class Light;
 class EnvProbe;
 struct CullData;
 struct DrawCall;
@@ -76,7 +77,7 @@ struct HYP_API RenderSetup
     RenderView* view;
     EnvProbe* env_probe;
     RenderEnvGrid* env_grid;
-    RenderLight* light;
+    Light* light;
     PassData* pass_data;
 
 private:

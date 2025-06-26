@@ -329,6 +329,8 @@ public:
     BoundingSphere GetBoundingSphere() const;
 
     void EnqueueRenderUpdates();
+
+    void UpdateRenderProxy(IRenderProxy* proxy) override;
     
 protected:
     void Init() override;

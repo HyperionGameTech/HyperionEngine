@@ -260,7 +260,7 @@ void View::Update(float delta)
     rpl.priority = m_priority;
     rpl.meshes.Advance(AdvanceAction::CLEAR);
     rpl.env_probes.Advance(AdvanceAction::CLEAR);
-    rpl.tracked_lights.Advance(AdvanceAction::CLEAR);
+    rpl.lights.Advance(AdvanceAction::CLEAR);
     rpl.tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
     rpl.tracked_env_grids.Advance(AdvanceAction::CLEAR);
 
@@ -700,7 +700,7 @@ void View::CollectLights(RenderProxyList& rpl)
 
             if (is_light_in_frustum)
             {
-                rpl.tracked_lights.Track(light->GetID(), &light->GetRenderResource());
+                rpl.lights.Track(light->GetID(), light);
             }
 
             /// TODO: Move this
@@ -711,38 +711,39 @@ void View::CollectLights(RenderProxyList& rpl)
         }
     }
 
-    auto diff = rpl.tracked_lights.GetDiff();
+    auto diff = rpl.lights.GetDiff();
 
     if (diff.NeedsUpdate())
     {
-        Array<RenderLight*> removed;
-        rpl.tracked_lights.GetRemoved(removed, false);
+        Array<Light*> removed;
+        rpl.lights.GetRemoved(removed, false);
 
-        Array<RenderLight*> added;
-        rpl.tracked_lights.GetAdded(added, false);
+        Array<Light*> added;
+        rpl.lights.GetAdded(added, false);
 
-        for (RenderLight* light : added)
+        for (Light* light : added)
         {
-            HYP_LOG(Scene, Debug, "Added light {} to view {}", light->GetLight()->GetID(), GetID());
+            // temp shit
+            light->GetRenderResource().IncRef();
 
-            light->IncRef();
-
-            rpl.lights[light->GetLight()->GetLightType()].PushBack(light);
+            RendererAPI_AddRef(light);
+            RendererAPI_UpdateRenderProxy(light->GetID());
         }
 
-        for (RenderLight* light : removed)
+        for (Light* light : removed)
         {
-            HYP_LOG(Scene, Debug, "Removed light {} from view {}", light->GetLight()->GetID(), GetID());
+            // temp shit
+            light->GetRenderResource().DecRef();
 
-            light->DecRef();
+            RendererAPI_ReleaseRef(light->GetID());
+        }
 
-            auto it = rpl.lights[light->GetLight()->GetLightType()].Find(light);
-            AssertDebug(it != rpl.lights[light->GetLight()->GetLightType()].End());
+        Array<ID<Light>> changed_ids;
+        rpl.lights.GetChanged(changed_ids);
 
-            if (it != rpl.lights[light->GetLight()->GetLightType()].End())
-            {
-                rpl.lights[light->GetLight()->GetLightType()].Erase(it);
-            }
+        for (ID<Light> id : changed_ids)
+        {
+            RendererAPI_UpdateRenderProxy(id);
         }
     }
 }

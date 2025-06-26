@@ -2,6 +2,7 @@
 
 #include <scene/Light.hpp>
 #include <scene/Material.hpp>
+#include <scene/ecs/EntityTag.hpp>
 
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderGlobalState.hpp>
@@ -42,6 +43,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
     m_entity_init_info.can_ever_update = false;
     m_entity_init_info.receives_update = false;
     m_entity_init_info.bvh_depth = 0; // No BVH for lights
+    m_entity_init_info.initial_tags = { EntityTag::LIGHT };
 }
 
 Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const Vec2f& area_size, const Color& color, float intensity, float radius)
@@ -60,12 +62,15 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
     m_entity_init_info.can_ever_update = false;
     m_entity_init_info.receives_update = false;
     m_entity_init_info.bvh_depth = 0; // No BVH for lights
+    m_entity_init_info.initial_tags = { EntityTag::LIGHT };
 }
 
 Light::~Light()
 {
     if (m_render_resource != nullptr)
     {
+        // temp shit
+        m_render_resource->DecRef();
         FreeResource(m_render_resource);
     }
 }
@@ -80,6 +85,9 @@ void Light::Init()
 
         m_render_resource->SetMaterial(m_material);
     }
+
+    // temp shit
+    m_render_resource->IncRef();
 
     m_mutation_state |= DataMutationState::DIRTY;
 
@@ -106,6 +114,7 @@ void Light::EnqueueRenderUpdates()
 
     const BoundingBox aabb = GetAABB();
 
+    // temp shit
     LightShaderData buffer_data {
         .light_id = GetID().Value(),
         .light_type = uint32(m_type),
@@ -197,6 +206,28 @@ BoundingSphere Light::GetBoundingSphere() const
     }
 
     return BoundingSphere(m_position, m_radius);
+}
+
+void Light::UpdateRenderProxy(IRenderProxy* proxy)
+{
+    RenderProxyLight* proxy_casted = static_cast<RenderProxyLight*>(proxy);
+    proxy_casted->light = WeakHandle<Light>(WeakHandleFromThis());
+
+    const BoundingBox aabb = GetAABB();
+
+    LightShaderData& buffer_data = proxy_casted->buffer_data;
+    buffer_data.light_id = GetID().Value();
+    buffer_data.light_type = uint32(m_type);
+    buffer_data.color_packed = uint32(m_color);
+    buffer_data.radius = m_radius;
+    buffer_data.falloff = m_falloff;
+    buffer_data.area_size = m_area_size;
+    buffer_data.position_intensity = Vec4f(m_position, m_intensity);
+    buffer_data.normal = Vec4f(m_normal, 0.0f);
+    buffer_data.spot_angles = m_spot_angles;
+    buffer_data.material_index = ~0u; // set in RenderLight, TODO: Refactor so it is set when light is bound
+    buffer_data.aabb_min = Vec4f(aabb.min, 1.0f);
+    buffer_data.aabb_max = Vec4f(aabb.max, 1.0f);
 }
 
 #pragma endregion Light

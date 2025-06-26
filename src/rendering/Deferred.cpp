@@ -277,7 +277,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
 
     // no lights bound, do not render direct shading at all
-    if (rpl.NumLights() == 0)
+    if (rpl.lights.NumCurrent() == 0)
     {
         return;
     }
@@ -321,9 +321,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 deferred_direct_descriptor_set_index);
         }
 
-        const auto& lights = rpl.GetLights(light_type);
-
-        for (RenderLight* render_light : lights)
+        for (Light* light : rpl.lights)
         {
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
@@ -331,7 +329,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(*render_light) } },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light->GetRenderResource().GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -343,8 +341,8 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             // Bind material descriptor set (for area lights)
             if (material_descriptor_set_index != ~0u && !use_bindless_textures)
             {
-                const DescriptorSetRef& material_descriptor_set = render_light->GetMaterial().IsValid()
-                    ? render_light->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
+                const DescriptorSetRef& material_descriptor_set = light->GetMaterial().IsValid()
+                    ? light->GetMaterial()->GetRenderResource().GetDescriptorSets()[frame->GetFrameIndex()]
                     : g_engine->GetMaterialDescriptorSetManager()->GetInvalidMaterialDescriptorSet(frame->GetFrameIndex());
 
                 AssertThrow(material_descriptor_set != nullptr);
@@ -1340,10 +1338,16 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     Array<RenderProxyList*> render_proxy_lists;
 
     // Collect view-independent renderable types from all views
-    FixedArray<Array<RenderLight*>, LT_MAX> lights;
-    FixedArray<Array<EnvProbe*>, EPT_REFLECTION + 1> env_probes;
+    FixedArray<Array<EnvProbe*>, EPT_MAX> env_probes;
     Array<RenderEnvGrid*> env_grids;
 
+    // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
+    /// TODO: This could be a little bit more robust.
+    HashMap<RenderEnvGrid*, Light*> env_grid_lights;
+    HashMap<EnvProbe*, Light*> env_probe_lights;
+
+    // init view pass data and collect global rendering resources
+    // (env probes, env grids)
     for (const TResourceHandle<RenderView>& render_view : rs.world->GetViews())
     {
         AssertThrow(render_view);
@@ -1375,21 +1379,50 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         pd->priority = view->GetRenderResource().GetPriority();
 
-        for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
+        for (EnvProbe* env_probe : rpl.env_probes)
         {
-            for (RenderLight* light : rpl.GetLights(LightType(light_type)))
+            if (env_probe->IsControlledByEnvGrid())
             {
-                if (lights[light_type].Contains(light))
-                {
-                    continue;
-                }
-
-                lights[light_type].PushBack(light);
+                // skip it if it is controlled by an EnvGrid, we don't handle them here
+                continue;
             }
+
+            if (!env_probe_lights.Contains(env_probe))
+            {
+                for (Light* light : rpl.lights)
+                {
+                    if (light->GetLightType() == LT_DIRECTIONAL)
+                    {
+                        env_probe_lights[env_probe] = light;
+
+                        break;
+                    }
+                }
+            }
+
+            if (env_probes[env_probe->GetEnvProbeType()].Contains(env_probe))
+            {
+                continue;
+            }
+
+            env_probes[env_probe->GetEnvProbeType()].PushBack(env_probe);
         }
 
         for (RenderEnvGrid* env_grid : rpl.GetEnvGrids())
         {
+            if (!env_grid_lights.Contains(env_grid))
+            {
+                for (Light* light : rpl.lights)
+                {
+                    if (light->GetLightType() == LT_DIRECTIONAL)
+                    {
+                        env_grid_lights[env_grid] = light;
+
+                        break;
+                    }
+                }
+            }
+
             if (env_grids.Contains(env_grid))
             {
                 continue;
@@ -1403,17 +1436,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     RenderSetup new_rs = rs;
 
     {
-        // Set global directional light as fallback
-        if (lights[LT_DIRECTIONAL].Any())
-        {
-            new_rs.light = lights[LT_DIRECTIONAL][0];
-        }
-        else
-        {
-            HYP_LOG(Rendering, Warning, "No directional light found in the world! EnvGrid and EnvProbe will have no fallback light set.");
-            new_rs.light = nullptr;
-        }
-
         // Set sky as fallback probe
         if (env_probes[EPT_SKY].Any())
         {
@@ -1461,7 +1483,15 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         {
             for (RenderEnvGrid* env_grid : env_grids)
             {
+                // Set global directional light as fallback
+                if (env_grid_lights.Contains(env_grid))
+                {
+                    new_rs.light = env_grid_lights[env_grid];
+                }
+
                 env_grid->Render(frame, new_rs);
+
+                new_rs.light = nullptr;
 
                 counts[ERS_ENV_GRIDS]++;
             }
@@ -1495,7 +1525,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         counts[ERS_VIEWS]++;
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
-        counts[ERS_LIGHTS] += rpl.NumLights();
+        counts[ERS_LIGHTS] += rpl.lights.NumCurrent();
         counts[ERS_ENV_GRIDS] += rpl.env_grids.Size();
         counts[ERS_ENV_PROBES] += rpl.env_probes.NumCurrent();
 #endif

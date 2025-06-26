@@ -443,7 +443,8 @@ void EnvGrid::Update(float delta)
     m_view->UpdateVisibility();
     m_view->Update(delta);
 
-    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes", GetID(), m_env_probe_collection.num_probes);
+    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes\t lights: {}", GetID(), m_env_probe_collection.num_probes,
+        RendererAPI_GetProducerProxyList(m_view).lights.NumCurrent());
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)
     {

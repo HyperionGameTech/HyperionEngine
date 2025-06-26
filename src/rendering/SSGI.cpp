@@ -25,6 +25,7 @@
 
 #include <scene/Texture.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/Light.hpp>
 
 #include <Engine.hpp>
 
@@ -290,22 +291,21 @@ void SSGI::FillUniformBufferData(RenderView* view, SSGIUniforms& out_uniforms) c
 
         const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 
-        for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
+        for (Light* light : rpl.lights)
         {
+            const LightType light_type = light->GetLightType();
+
+            if (light_type != LT_DIRECTIONAL && light_type != LT_POINT)
+            {
+                continue;
+            }
+
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
             }
 
-            for (const auto& it : rpl.GetLights(LightType(light_type)))
-            {
-                if (num_bound_lights >= max_bound_lights)
-                {
-                    break;
-                }
-
-                out_uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
-            }
+            out_uniforms.light_indices[num_bound_lights++] = light->GetRenderResource().GetBufferIndex();
         }
     }
 

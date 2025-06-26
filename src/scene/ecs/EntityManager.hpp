@@ -441,6 +441,19 @@ public:
         (AddTag<Tag>(entity), ...);
     }
 
+    HYP_FORCE_INLINE void AddTags(Entity* entity, Span<const EntityTag> tags)
+    {
+        for (EntityTag tag : tags)
+        {
+            if (tag == EntityTag::NONE || uint32(tag) >= uint32(EntityTag::TYPE_ID))
+            {
+                continue;
+            }
+
+            AddTag(entity, tag);
+        }
+    }
+
     template <EntityTag Tag>
     HYP_FORCE_INLINE bool RemoveTag(Entity* entity)
     {

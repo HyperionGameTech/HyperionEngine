@@ -79,10 +79,37 @@ struct LoadedAsset
     }
 
     template <class T>
-    HYP_NODISCARD HYP_FORCE_INLINE auto& ExtractAs()
+    HYP_NODISCARD HYP_FORCE_INLINE auto&& ExtractAs() const&
     {
-        // Type punning. asan may throw a dynamic type mismatch here
-        return reinterpret_cast<Asset<T>*>(static_cast<void*>(this))->Result();
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        {
+            return value.Get<RC<T>>();
+        }
+        else if constexpr (IsHypObject<T>::value)
+        {
+            return value.Get<Handle<T>>();
+        }
+        else
+        {
+            return value.Get<T>();
+        }
+    }
+
+    template <class T>
+    HYP_NODISCARD HYP_FORCE_INLINE auto&& ExtractAs() &&
+    {
+        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
+        {
+            return std::move(value).Get<RC<T>>();
+        }
+        else if constexpr (IsHypObject<T>::value)
+        {
+            return std::move(value).Get<Handle<T>>();
+        }
+        else
+        {
+            return std::move(value).Get<T>();
+        }
     }
 
     HYP_API void OnPostLoad();
@@ -126,20 +153,14 @@ struct Asset final : LoadedAsset
 
     virtual ~Asset() override = default;
 
-    auto&& Result()
+    decltype(auto) Result() const&
     {
-        if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
-        {
-            return value.Get<RC<T>>();
-        }
-        else if constexpr (IsHypObject<T>::value)
-        {
-            return value.Get<Handle<T>>();
-        }
-        else
-        {
-            return value.Get<T>();
-        }
+        return LoadedAsset::template ExtractAs<T>();
+    }
+
+    decltype(auto) Result() &&
+    {
+        return LoadedAsset::template ExtractAs<T>();
     }
 };
 

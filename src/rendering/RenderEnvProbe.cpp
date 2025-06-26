@@ -20,6 +20,7 @@
 #include <scene/Texture.hpp>
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/Light.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -532,23 +533,21 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
     uint32 num_bound_lights = 0;
 
-    for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
+    for (Light* light : rpl.lights)
     {
+        const LightType light_type = light->GetLightType();
+
+        if (light_type != LT_DIRECTIONAL && light_type != LT_POINT)
+        {
+            continue;
+        }
+
         if (num_bound_lights >= max_bound_lights)
         {
             break;
         }
 
-        for (const auto& it : rpl.GetLights(LightType(light_type)))
-        {
-            HYP_LOG(Rendering, Debug, "Rendering env probe {} : Light bound : {}", env_probe->GetID(), it->GetLight()->GetID());
-            if (num_bound_lights >= max_bound_lights)
-            {
-                break;
-            }
-
-            uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
-        }
+        uniforms.light_indices[num_bound_lights++] = light->GetRenderResource().GetBufferIndex();
     }
 
     uniforms.num_bound_lights = num_bound_lights;
@@ -742,12 +741,18 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     // Bind a directional light and sky envprobe if available
     EnvProbe* sky_probe = nullptr;
+    Light* directional_light = nullptr;
 
-    RenderLight* render_light = nullptr;
-
-    if (const Array<RenderLight*>& directional_lights = rpl.GetLights(LT_DIRECTIONAL); directional_lights.Any())
+    for (Light* light : rpl.lights)
     {
-        render_light = directional_lights.Front();
+        if (light->GetLightType() == LT_DIRECTIONAL)
+        {
+            AssertDebug(light->GetRenderResource().GetBufferIndex() != ~0u);
+
+            directional_light = light;
+
+            break;
+        }
     }
 
     if (const auto& sky_probes = rpl.env_probes.GetElements<SkyProbe>(); sky_probes.Any())
@@ -788,7 +793,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("Clear")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -802,7 +807,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("BuildCoeffs")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -847,7 +852,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
                 pipelines[NAME("Reduce")].second,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
-                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
+                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
                 frame->GetFrameIndex());
 
@@ -869,7 +874,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("Finalize")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_light, 0) },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 

@@ -243,8 +243,6 @@ RenderProxyList::RenderProxyList()
       parallel_rendering_state_head(nullptr),
       parallel_rendering_state_tail(nullptr)
 {
-    // these are buckets per type (fixed size)
-    lights.Resize(LT_MAX);
 }
 
 RenderProxyList::~RenderProxyList()
@@ -278,7 +276,7 @@ RenderProxyList::~RenderProxyList()
 
     DO_FINALIZATION_CHECK(meshes);
     DO_FINALIZATION_CHECK(env_probes);
-    DO_FINALIZATION_CHECK(tracked_lights);
+    DO_FINALIZATION_CHECK(lights);
     DO_FINALIZATION_CHECK(tracked_lightmap_volumes);
     DO_FINALIZATION_CHECK(tracked_env_grids);
 

@@ -103,28 +103,6 @@ struct HYP_API RenderProxyList
 
     ~RenderProxyList();
 
-    /*! \brief Get the currently bound Lights with the given LightType.
-     *  \note Only call from render thread or from task on a task thread that is initiated by the render thread.
-     *  \param type The type of light to get. */
-    HYP_FORCE_INLINE const Array<RenderLight*>& GetLights(LightType type) const
-    {
-        AssertDebug(type < lights.Size());
-
-        return lights[type];
-    }
-
-    HYP_FORCE_INLINE SizeType NumLights() const
-    {
-        SizeType num_lights = 0;
-
-        for (const auto& it : lights)
-        {
-            num_lights += it.Size();
-        }
-
-        return num_lights;
-    }
-
     HYP_FORCE_INLINE const Array<RenderEnvGrid*>& GetEnvGrids() const
     {
         return env_grids;
@@ -159,11 +137,10 @@ struct HYP_API RenderProxyList
 
     ResourceTracker<ID<Entity>, RenderProxy> meshes;
     ResourceTracker<ID<EnvProbe>, EnvProbe*> env_probes;
-    ResourceTracker<ID<Light>, RenderLight*> tracked_lights;
+    ResourceTracker<ID<Light>, Light*> lights;
     ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
-    Array<Array<RenderLight*>> lights;
     Array<RenderEnvGrid*> env_grids;
     Array<RenderLightmapVolume*> lightmap_volumes;
 

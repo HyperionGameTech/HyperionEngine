@@ -7,6 +7,7 @@
 #include <core/Handle.hpp>
 
 #include <core/containers/Array.hpp>
+#include <core/containers/HashSet.hpp>
 
 #include <core/memory/AnyRef.hpp>
 
@@ -29,6 +30,9 @@ struct EntityInitInfo
     bool receives_update : 1 = false;
     bool can_ever_update : 1 = true;
     uint8 bvh_depth : 3 = 3; // 0 means no BVH, 1 means 1 level deep, etc.
+
+    // Initial tags to add to the Entity when it is created
+    Array<EntityTag, InlineAllocator<4>> initial_tags;
 };
 
 HYP_CLASS()

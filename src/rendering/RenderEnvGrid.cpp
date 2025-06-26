@@ -24,6 +24,7 @@
 #include <scene/EnvProbe.hpp>
 #include <scene/Texture.hpp>
 #include <scene/View.hpp>
+#include <scene/Light.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -1003,7 +1004,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -1018,7 +1019,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -1061,7 +1062,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
                         { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
+                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
                 frame->GetFrameIndex());
 
@@ -1084,7 +1085,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light, 0) },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -1153,22 +1154,24 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         const uint32 max_bound_lights = ArraySize(uniforms.light_indices);
         uint32 num_bound_lights = 0;
 
-        for (uint32 light_type = 0; light_type < uint32(LT_MAX); light_type++)
+        for (Light* light : rpl.lights)
         {
+            HYP_LOG(EnvGrid, Debug, "Checking light {} for EnvGrid light binding, type: {}",
+                light->GetID(),
+                light->GetLightType());
+            const LightType light_type = light->GetLightType();
+
+            if (light_type != LT_DIRECTIONAL && light_type != LT_POINT)
+            {
+                continue;
+            }
+
             if (num_bound_lights >= max_bound_lights)
             {
                 break;
             }
 
-            for (const auto& it : rpl.GetLights(LightType(light_type)))
-            {
-                if (num_bound_lights >= max_bound_lights)
-                {
-                    break;
-                }
-
-                uniforms.light_indices[num_bound_lights++] = it->GetBufferIndex();
-            }
+            uniforms.light_indices[num_bound_lights++] = light->GetRenderResource().GetBufferIndex();
         }
 
         uniforms.num_bound_lights = num_bound_lights;
@@ -1188,12 +1191,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<DispatchCompute>(
-        m_compute_irradiance,
-        Vec3u {
-            (irradiance_octahedron_size + 7) / 8,
-            (irradiance_octahedron_size + 7) / 8,
-            1 });
+    frame->GetCommandList().Add<DispatchCompute>(m_compute_irradiance, Vec3u { (irradiance_octahedron_size + 7) / 8, (irradiance_octahedron_size + 7) / 8, 1 });
 
     frame->GetCommandList().Add<BindComputePipeline>(m_compute_filtered_depth);
 
@@ -1230,7 +1228,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
         Vec3u { ((irradiance_octahedron_size * 4) + 255) / 256, 1, 1 });
 
     frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(m_depth_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 }
 
 void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)

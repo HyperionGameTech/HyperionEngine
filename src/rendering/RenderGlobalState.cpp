@@ -958,5 +958,6 @@ void RenderGlobalState::OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 pre
 // the pool.. come back and FIXME
 DECLARE_RENDER_DATA_CONTAINER(Entity); // RenderProxy);
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe);
+DECLARE_RENDER_DATA_CONTAINER(Light, RenderProxyLight);
 
 } // namespace hyperion

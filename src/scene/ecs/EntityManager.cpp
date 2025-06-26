@@ -423,6 +423,11 @@ Handle<Entity> EntityManager::AddBasicEntity()
     // Use basic TypeID tag for the entity, as the type is just Entity
     AddTag<EntityTag::TYPE_ID>(entity);
 
+    if (entity->m_entity_init_info.initial_tags.Any())
+    {
+        AddTags(entity, entity->m_entity_init_info.initial_tags);
+    }
+
     if (IsInitCalled())
     {
         entity->OnAddedToScene(m_scene);
@@ -489,6 +494,11 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
     else
     {
         AddTag<EntityTag::TYPE_ID>(entity);
+    }
+
+    if (entity->m_entity_init_info.initial_tags.Any())
+    {
+        AddTags(entity, entity->m_entity_init_info.initial_tags);
     }
 
     if (IsInitCalled())
@@ -558,6 +568,11 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     else
     {
         AddTag<EntityTag::TYPE_ID>(entity);
+    }
+
+    if (entity->m_entity_init_info.initial_tags.Any())
+    {
+        AddTags(entity, entity->m_entity_init_info.initial_tags);
     }
 
     if (IsInitCalled())

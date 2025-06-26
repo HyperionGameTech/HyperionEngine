@@ -16,6 +16,7 @@
 #include <core/math/BoundingSphere.hpp>
 
 #include <rendering/RenderResource.hpp>
+#include <rendering/RenderProxy.hpp> // tmp
 
 #include <Types.hpp>
 
@@ -26,35 +27,6 @@ class Camera;
 class Material;
 class RenderMaterial;
 class RenderShadowMap;
-
-struct LightShaderData
-{
-    uint32 light_id;
-    uint32 light_type;
-    uint32 color_packed;
-    float radius;
-    // 16
-
-    float falloff;
-    uint32 shadow_map_index;
-    Vec2f area_size;
-    // 32
-
-    Vec4f position_intensity;
-    Vec4f normal;
-    // 64
-
-    Vec2f spot_angles;
-    uint32 material_index;
-    uint32 _pad2;
-
-    Vec4f aabb_min;
-    Vec4f aabb_max;
-
-    Vec4u pad5;
-};
-
-static_assert(sizeof(LightShaderData) == 128);
 
 class RenderLight final : public RenderResourceBase
 {

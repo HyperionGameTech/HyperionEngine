@@ -680,7 +680,7 @@ static ByteBuffer CompileToSPIRV(
         return ByteBuffer();
     }
 
-#if 1
+#if 0
     glslang::TProgram* cpp_program = glslang_get_cpp_program(program);
     if (!cpp_program->buildReflection())
     {
@@ -693,7 +693,7 @@ static ByteBuffer CompileToSPIRV(
     spv_options.validate = true;
 
     glslang_program_SPIRV_generate_with_options(program, stage, &spv_options);
-#if 1
+#if 0
     for (int i = 0; i < cpp_program->getNumUniformBlocks(); i++)
     {
         const auto& uniform_block = cpp_program->getUniformBlock(i);
