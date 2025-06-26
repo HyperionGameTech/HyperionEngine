@@ -38,111 +38,110 @@ class ResourceTracker
 
         ResourceTrackerType* tracker;
 
-        // Current phase:
-        // 0 : iterating primary elements (m_impl)
-        // 1 : iterating subclass elements
-        // 2 : end iterator
-        int phase;
-        SizeType primary_index;
+        // index into m_subclass_impls (and m_subclass_impls_initialized)
+        SizeType subclass_impl_index;
+        SizeType element_index;
 
-        // For subclass iteration (phase 1)
-        SizeType subclass_impl_index;    // index into m_subclass_impls (and m_subclass_impls_initialized)
-        SizeType subclass_element_index; // index into the elements array of the current subclass impl
-
-        IteratorBase(ResourceTrackerType* tracker, bool is_end)
+        IteratorBase(ResourceTrackerType* tracker, SizeType subclass_idx, SizeType elem_idx)
             : tracker(tracker),
-              phase(0),
-              primary_index(0),
-              subclass_impl_index(0),
-              subclass_element_index(0)
+              subclass_impl_index(subclass_idx),
+              element_index(elem_idx)
         {
-            if (is_end)
+            if (subclass_impl_index == Bitset::not_found && element_index == Bitset::not_found)
             {
-                phase = 2;
-                primary_index = Bitset::not_found;
-                subclass_impl_index = Bitset::not_found;
-                subclass_element_index = Bitset::not_found;
+                // both set to not_found : at end
+                return;
             }
-            else
-            {
-                primary_index = FindNextSet(tracker->m_impl.GetCurrentBits(), 0);
 
-                if (primary_index == Bitset::not_found)
+            // find valid element - first check m_impl then try subclasses if not found
+            if (subclass_impl_index == Bitset::not_found)
+            {
+                element_index = FindNextSet(tracker->m_impl.GetCurrentBits(), element_index);
+
+                if (element_index != Bitset::not_found)
                 {
-                    // No primary elements, move to subclass iteration.
-                    InitSubclass();
+                    // We found an element at the given index in our main impl.
+                    return;
                 }
-            }
-        }
 
-        IteratorBase(
-            ResourceTrackerType* tracker,
-            bool is_end,
-            SizeType primary_index,
-            SizeType subclass_impl_index,
-            SizeType subclass_element_index)
-            : tracker(tracker),
-              phase(is_end ? 2 : 0),
-              primary_index(primary_index),
-              subclass_impl_index(subclass_impl_index),
-              subclass_element_index(subclass_element_index)
-        {
-            if (phase == 0 && primary_index == Bitset::not_found)
-            {
-                InitSubclass();
+                // Need to search subclasses - set indices to zero so we land on the first subclass that is valid and has a valid element
+                subclass_impl_index = 0;
+                element_index = 0;
             }
-            else if (is_end)
+
+            // Find first subclass that is set (if it exists),
+            // next part will handle finding the element index.
+            subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, subclass_impl_index);
+
+            while (subclass_impl_index != Bitset::not_found)
             {
-                primary_index = Bitset::not_found;
-                subclass_impl_index = Bitset::not_found;
-                subclass_element_index = Bitset::not_found;
+                AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
+
+                auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
+                element_index = FindNextSet(impl.GetCurrentBits(), element_index);
+
+                // Found valid element in subclass impl.
+                if (element_index != Bitset::not_found)
+                {
+                    return;
+                }
+
+                // If we are at the end of the current subclass impl, move to the next one.
+                subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, subclass_impl_index + 1);
+                element_index = 0;
             }
+
+            // exhausted all subclass elements
+            subclass_impl_index = Bitset::not_found;
+            element_index = Bitset::not_found;
         }
 
         Derived& operator++()
         {
-            if (phase == 0)
+            // at the end check
+            if (subclass_impl_index == Bitset::not_found && element_index == Bitset::not_found)
             {
-                primary_index = FindNextSet(tracker->m_impl.GetCurrentBits(), primary_index + 1);
-
-                if (primary_index == Bitset::not_found)
-                {
-                    InitSubclass();
-                }
+                HYP_FAIL("At end! cannot increment");
             }
-            else if (phase == 1) // in subclass impl searching
+
+            if (subclass_impl_index == Bitset::not_found)
             {
-                while (subclass_impl_index != Bitset::not_found)
+                element_index = FindNextSet(tracker->m_impl.GetCurrentBits(), element_index + 1);
+
+                if (element_index != Bitset::not_found)
                 {
-                    AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
-
-                    // If we are at the end of the current subclass impl, move to the next one.
-                    if (subclass_element_index == Bitset::not_found)
-                    {
-                        subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, subclass_impl_index + 1);
-                        if (subclass_impl_index == Bitset::not_found)
-                        {
-                            break;
-                        }
-
-                        AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
-                        auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
-                        subclass_element_index = FindNextSet(impl.GetCurrentBits(), 0);
-
-                        if (subclass_element_index != Bitset::not_found)
-                        {
-                            // Found a valid subclass element, continue the iteration.
-                            return static_cast<Derived&>(*this);
-                        }
-                    }
+                    // We found an element at the given index in our main impl.
+                    return static_cast<Derived&>(*this);
                 }
 
-                // exhausted all subclass elements
-                phase = 2;
-                primary_index = Bitset::not_found;
-                subclass_impl_index = Bitset::not_found;
-                subclass_element_index = Bitset::not_found;
+                // Find first subclass that is set (if it exists),
+                // next part will handle finding the element index.
+                subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, 0);
+                element_index = SizeType(-1); // wrap around for next
             }
+
+            while (subclass_impl_index != Bitset::not_found)
+            {
+                AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
+
+                auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
+
+                element_index = FindNextSet(impl.GetCurrentBits(), element_index + 1);
+
+                if (element_index != Bitset::not_found)
+                {
+                    // Found a valid subclass element with valid element
+                    return static_cast<Derived&>(*this);
+                }
+
+                // If we are at the end of the current subclass impl, move to the next one.
+                subclass_impl_index = FindNextSet(tracker->m_subclass_impls_initialized, subclass_impl_index + 1);
+                element_index = SizeType(-1); // wrap around for next
+            }
+
+            // exhausted all subclass elements
+            subclass_impl_index = Bitset::not_found;
+            element_index = Bitset::not_found;
 
             return static_cast<Derived&>(*this);
         }
@@ -156,13 +155,20 @@ class ResourceTracker
 
         Element& operator*() const
         {
-            if (phase == 0)
+            if (subclass_impl_index == Bitset::not_found && element_index == Bitset::not_found)
             {
-                return tracker->m_impl.elements[primary_index];
+                HYP_FAIL("At end! cannot dereference!");
             }
-            else if (phase == 1)
+
+            if (subclass_impl_index == Bitset::not_found) // primary search phase
             {
-                return tracker->m_subclass_impls[subclass_impl_index].Get().elements[subclass_element_index];
+                return tracker->m_impl.elements[element_index];
+            }
+            else
+            {
+                AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
+
+                return tracker->m_subclass_impls[subclass_impl_index].Get().elements[element_index];
             }
 
             HYP_FAIL("Invalid iterator phase");
@@ -176,48 +182,27 @@ class ResourceTracker
         bool operator==(const Derived& other) const
         {
             return tracker == other.tracker
-                && phase == other.phase
-                && primary_index == other.primary_index
                 && subclass_impl_index == other.subclass_impl_index
-                && subclass_element_index == other.subclass_element_index;
+                && element_index == other.element_index;
         }
 
         bool operator!=(const Derived& other) const
         {
             return tracker != other.tracker
-                || phase != other.phase
-                || primary_index != other.primary_index
                 || subclass_impl_index != other.subclass_impl_index
-                || subclass_element_index != other.subclass_element_index;
+                || element_index != other.element_index;
         }
 
     private:
+        HYP_FORCE_INLINE bool IsAtEnd() const
+        {
+            return subclass_impl_index == Bitset::not_found
+                && element_index == Bitset::not_found;
+        }
+
         HYP_FORCE_INLINE static Bitset::BitIndex FindNextSet(const Bitset& bs, Bitset::BitIndex idx)
         {
             return bs.NextSetBitIndex(idx);
-        }
-
-        void InitSubclass()
-        {
-            for (Bitset::BitIndex bit : tracker->m_subclass_impls_initialized)
-            {
-                AssertDebug(bit < tracker->m_subclass_impls.Size());
-
-                auto& impl = tracker->m_subclass_impls[subclass_impl_index].Get();
-                subclass_element_index = FindNextSet(impl.GetCurrentBits(), 0);
-
-                if (subclass_element_index != Bitset::not_found)
-                {
-                    phase = 1;
-                    return;
-                }
-            }
-
-            // No subclass element found: reached the end.
-            phase = 2;
-            primary_index = Bitset::not_found;
-            subclass_impl_index = Bitset::not_found;
-            subclass_element_index = Bitset::not_found;
         }
     };
 
@@ -226,18 +211,10 @@ public:
 
     struct Iterator : IteratorBase<Iterator, false>
     {
-        Iterator(ResourceTracker* tracker, bool is_end = false)
-            : IteratorBase<Iterator, false>(tracker, is_end)
-        {
-        }
+        Iterator() = delete;
 
-        Iterator(
-            ResourceTracker* tracker,
-            bool is_end,
-            SizeType primary_index,
-            SizeType subclass_impl_index,
-            SizeType subclass_element_index)
-            : IteratorBase<Iterator, false>(tracker, is_end, primary_index, subclass_impl_index, subclass_element_index)
+        Iterator(ResourceTracker* tracker, SizeType subclass_impl_index, SizeType element_index)
+            : IteratorBase<Iterator, false>(tracker, subclass_impl_index, element_index)
         {
         }
 
@@ -246,27 +223,17 @@ public:
         {
             return ConstIterator(
                 IteratorBase<Iterator, false>::tracker,
-                IteratorBase<Iterator, false>::phase == 2,
-                IteratorBase<Iterator, false>::primary_index,
                 IteratorBase<Iterator, false>::subclass_impl_index,
-                IteratorBase<Iterator, false>::subclass_element_index);
+                IteratorBase<Iterator, false>::element_index);
         }
     };
 
     struct ConstIterator : IteratorBase<ConstIterator, true>
     {
-        ConstIterator(const ResourceTracker* tracker, bool is_end = false)
-            : IteratorBase<ConstIterator, true>(tracker, is_end)
-        {
-        }
+        ConstIterator() = delete;
 
-        ConstIterator(
-            const ResourceTracker* tracker,
-            bool is_end,
-            SizeType primary_index,
-            SizeType subclass_impl_index,
-            SizeType subclass_element_index)
-            : IteratorBase<ConstIterator, true>(tracker, is_end, primary_index, subclass_impl_index, subclass_element_index)
+        ConstIterator(const ResourceTracker* tracker, SizeType subclass_impl_index, SizeType element_index)
+            : IteratorBase<ConstIterator, true>(tracker, subclass_impl_index, element_index)
         {
         }
     };
@@ -386,6 +353,11 @@ public:
         static constexpr TypeID type_id = TypeID::ForType<T>();
 
         return GetElements(type_id);
+    }
+
+    HYP_FORCE_INLINE const Bitset& GetSubclassBits() const
+    {
+        return m_subclass_impls_initialized;
     }
 
     Diff GetDiff() const
@@ -681,9 +653,9 @@ public:
         }
     }
 
-    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), false), Iterator(const_cast<ResourceTracker*>(this), true))
+    HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), Bitset::not_found, 0), Iterator(const_cast<ResourceTracker*>(this), Bitset::not_found, Bitset::not_found))
 
-protected:
+    // protected:
     struct Impl final
     {
         /*! \brief Checks if the ResourceTracker<ID<Entity>, RenderProxy> already has a proxy for the given ID from the previous frame */
@@ -891,8 +863,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(elements[id.ToIndex()]);
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(*elem);
 
                 removed_bits.Set(first_set_bit_index, false);
             }
@@ -918,8 +892,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(const_cast<ElementType*>(&elements[id.ToIndex()]));
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(const_cast<ElementType*>(elem));
 
                 removed_bits.Set(first_set_bit_index, false);
             }
@@ -945,8 +921,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(elements[id.ToIndex()]);
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(*elem);
 
                 newly_added_bits.Set(first_set_bit_index, false);
             }
@@ -972,8 +950,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(const_cast<ElementType*>(&elements[id.ToIndex()]));
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(const_cast<ElementType*>(elem));
 
                 newly_added_bits.Set(first_set_bit_index, false);
             }
@@ -1015,8 +995,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(elements[id.ToIndex()]);
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(*elem);
 
                 changed_bits.Set(first_set_bit_index, false);
             }
@@ -1037,8 +1019,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(const_cast<ElementType*>(&elements[id.ToIndex()]));
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(const_cast<ElementType*>(elem));
 
                 changed_bits.Set(first_set_bit_index, false);
             }
@@ -1059,8 +1043,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(elements[id.ToIndex()]);
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(*elem);
 
                 current_bits.Set(first_set_bit_index, false);
             }
@@ -1081,8 +1067,10 @@ protected:
             {
                 const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
 
-                AssertThrow(elements.HasIndex(id.ToIndex()));
-                out.PushBack(&elements[id.ToIndex()]);
+                const ElementType* elem = elements.TryGet(id.ToIndex());
+                AssertDebug(elem != nullptr);
+
+                out.PushBack(const_cast<ElementType*>(elem));
 
                 current_bits.Set(first_set_bit_index, false);
             }
@@ -1097,12 +1085,7 @@ protected:
                 return nullptr;
             }
 
-            if (!elements.HasIndex(id.ToIndex()))
-            {
-                return nullptr;
-            }
-
-            return &elements[id.ToIndex()];
+            return elements.TryGet(id.ToIndex());
         }
 
         void Advance(AdvanceAction action)

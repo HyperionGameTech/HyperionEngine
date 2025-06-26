@@ -1337,8 +1337,10 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
     Array<RenderProxyList*> render_proxy_lists;
 
-    // Collect view-independent renderable types from all views
+    // Collect view-independent renderable types from all views, binned
+    /// @TODO: We could use the existing binning by subclass that ResourceTracker now provides.
     FixedArray<Array<EnvProbe*>, EPT_MAX> env_probes;
+    FixedArray<Array<Light*>, LT_MAX> lights;
     Array<RenderEnvGrid*> env_grids;
 
     // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
@@ -1379,6 +1381,13 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         pd->priority = view->GetRenderResource().GetPriority();
 
+        for (Light* light : rpl.lights)
+        {
+            AssertDebug(light != nullptr);
+
+            lights[light->GetLightType()].PushBack(light);
+        }
+
         for (EnvProbe* env_probe : rpl.env_probes)
         {
             if (env_probe->IsControlledByEnvGrid())
@@ -1391,6 +1400,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             {
                 for (Light* light : rpl.lights)
                 {
+                    AssertDebug(light != nullptr);
+
                     if (light->GetLightType() == LT_DIRECTIONAL)
                     {
                         env_probe_lights[env_probe] = light;
@@ -1440,6 +1451,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         if (env_probes[EPT_SKY].Any())
         {
             new_rs.env_probe = env_probes[EPT_SKY][0];
+        }
+
+        if (lights[LT_DIRECTIONAL].Any())
+        {
+            new_rs.light = lights[LT_DIRECTIONAL][0];
         }
 
         if (env_probes.Any())
@@ -1497,6 +1513,9 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             }
         }
     }
+
+    // reset renderer state back to what it was before
+    new_rs = rs;
 
     for (const TResourceHandle<RenderView>& render_view : rs.world->GetViews())
     {

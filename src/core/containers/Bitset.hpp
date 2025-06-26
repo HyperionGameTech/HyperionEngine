@@ -28,6 +28,7 @@ public:
 
     static constexpr uint32 num_preallocated_blocks = 2;
     static constexpr uint32 num_bits_per_block = sizeof(BlockType) * CHAR_BIT;
+    static constexpr uint32 num_bits_per_block_log2 = MathUtil::FastLog2(num_bits_per_block);
 
     static constexpr BitIndex not_found = BitIndex(-1);
 
@@ -143,19 +144,139 @@ public:
 
     /*! \brief Returns the index of the first set bit. If no bit is set, -1 is returned.
         \returns The index of the first set bit. */
-    HYP_API BitIndex FirstSetBitIndex() const;
+    inline BitIndex FirstSetBitIndex() const
+    {
+        const BlockType* blocks_begin = m_blocks.Begin();
+        const BlockType* blocks_end = m_blocks.End();
+
+        const BlockType* blocks_iter = blocks_begin;
+
+        while (blocks_iter != blocks_end)
+        {
+            if (*blocks_iter != 0)
+            {
+#ifdef HYP_CLANG_OR_GCC
+                const uint32 bit_index = __builtin_ffs(*blocks_iter) - 1;
+#elif defined(HYP_MSVC)
+                unsigned long bit_index = 0;
+                _BitScanForward(&bit_index, *blocks_iter);
+#endif
+
+                return (uint64(blocks_iter - blocks_begin) << num_bits_per_block_log2) + uint64(bit_index);
+            }
+
+            ++blocks_iter;
+        }
+
+        return not_found;
+    }
 
     /*! \brief Returns the index of the last set bit. If no bit is set, -1 is returned.
         \returns The index of the last set bit. */
-    HYP_API BitIndex LastSetBitIndex() const;
+    inline BitIndex LastSetBitIndex() const
+    {
+        const BlockType* blocks_begin = m_blocks.Begin();
+        const BlockType* blocks_end = m_blocks.End();
+
+        const BlockType* blocks_iter = blocks_end;
+
+        while (blocks_iter != blocks_begin)
+        {
+            if (*(--blocks_iter) != 0)
+            {
+#ifdef HYP_CLANG_OR_GCC
+                const uint32 bit_index = num_bits_per_block - __builtin_clz(*blocks_iter) - 1;
+#elif defined(HYP_MSVC)
+                unsigned long bit_index = 0;
+                _BitScanReverse(&bit_index, *blocks_iter);
+#endif
+
+                return (uint64(blocks_iter - blocks_begin) << num_bits_per_block_log2) + uint64(bit_index);
+            }
+        }
+
+        return not_found;
+    }
 
     /*! \brief Returns the index of the next set bit after or including the given index.
         \param offset The index to start searching from.
         \returns The index of the next set bit after the given index. */
-    HYP_API BitIndex NextSetBitIndex(BitIndex offset) const;
+    inline BitIndex NextSetBitIndex(BitIndex offset) const
+    {
+        const BlockType* blocks_begin = m_blocks.Begin();
+        const BlockType* blocks_end = m_blocks.End();
 
-    HYP_API BitIndex FirstZeroBitIndex() const;
-    HYP_API BitIndex LastZeroBitIndex() const;
+        const BlockType* blocks_iter = blocks_begin + GetBlockIndex(offset);
+
+        uint32 mask = ~(GetBitMask(offset) - 1);
+
+        while (blocks_iter != blocks_end)
+        {
+            if ((*blocks_iter & mask))
+            {
+#ifdef HYP_CLANG_OR_GCC
+                const uint32 bit_index = __builtin_ffs(*blocks_iter & mask) - 1;
+#elif defined(HYP_MSVC)
+                unsigned long bit_index = 0;
+                _BitScanForward(&bit_index, *blocks_iter & mask);
+#endif
+
+                return (uint64(blocks_iter - blocks_begin) << num_bits_per_block_log2) + uint64(bit_index);
+            }
+
+            // use all bits in next iteration of loop
+            mask = ~0u;
+            ++blocks_iter;
+        }
+
+        return not_found;
+    }
+
+    inline BitIndex FirstZeroBitIndex() const
+    {
+        const uint32 num_blocks = uint32(m_blocks.Size());
+
+        for (uint32 block_index = 0; block_index < num_blocks; block_index++)
+        {
+            const BlockType inverted = ~m_blocks[block_index];
+
+            if (inverted != 0)
+            {
+#ifdef HYP_CLANG_OR_GCC
+                const uint32 bit_index = __builtin_ffs(inverted) - 1;
+#elif defined(HYP_MSVC)
+                unsigned long bit_index = 0;
+                _BitScanForward(&bit_index, inverted);
+#endif
+
+                return (block_index << num_bits_per_block_log2) + bit_index;
+            }
+        }
+
+        return not_found;
+    }
+
+    inline BitIndex LastZeroBitIndex() const
+    {
+        for (uint32 block_index = uint32(m_blocks.Size()); block_index != 0; block_index--)
+        {
+            const BlockType inverted = ~m_blocks[block_index - 1];
+
+            if (inverted != 0)
+            {
+#ifdef HYP_CLANG_OR_GCC
+                const uint32 bit_index = num_bits_per_block - __builtin_clz(inverted) - 1;
+#elif defined(HYP_MSVC)
+                unsigned long bit_index = 0;
+                _BitScanReverse(&bit_index, inverted);
+#endif
+
+                return ((block_index - 1) << num_bits_per_block_log2) + bit_index;
+            }
+        }
+
+        return not_found;
+    }
 
     /*! \brief Get the value of the bit at the given index.
         \param index The index of the bit to get.

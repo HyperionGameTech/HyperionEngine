@@ -104,6 +104,15 @@ void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
 
 EnvProbe::~EnvProbe()
 {
+    // temp!
+    if (IsInitCalled())
+    {
+        if (m_view.IsValid())
+        {
+            m_view->GetRenderResource().DecRef();
+        }
+    }
+
     if (m_render_resource != nullptr)
     {
         // TEMP!
@@ -290,6 +299,9 @@ void EnvProbe::CreateView()
                 .cull_faces = FCM_NONE }) });
 
     InitObject(m_view);
+
+    // temp shit
+    m_view->GetRenderResource().IncRef();
 }
 
 void EnvProbe::SetAABB(const BoundingBox& aabb)
@@ -427,5 +439,24 @@ void EnvProbe::UpdateRenderProxy(IRenderProxy* proxy)
         | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
         | EnvProbeFlags::DIRTY;
 }
+
+#pragma region SkyProbe
+
+void SkyProbe::Init()
+{
+    EnvProbe::Init();
+
+    m_skybox_cubemap = CreateObject<Texture>(TextureDesc {
+        TT_CUBEMAP,
+        TF_R11G11B10F,
+        Vec3u { m_dimensions.x, m_dimensions.y, 1 },
+        TFM_LINEAR_MIPMAP,
+        TFM_LINEAR });
+
+    InitObject(m_skybox_cubemap);
+    m_skybox_cubemap->SetPersistentRenderResourceEnabled(true);
+}
+
+#pragma endregion SkyProbe
 
 } // namespace hyperion

@@ -74,7 +74,7 @@ void SkydomeRenderer::Init()
 
     camera_node->SetEntity(camera_entity);
 
-    m_env_probe = m_virtual_scene->GetEntityManager()->AddEntity<EnvProbe>(EPT_SKY, BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
+    m_env_probe = m_virtual_scene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
     InitObject(m_env_probe);
 
     auto dome_node_asset = g_asset_manager->Load<Node>("models/inv_sphere.obj");
@@ -144,12 +144,12 @@ void SkydomeRenderer::Update(float delta)
 
             RenderSetup render_setup { world, nullptr };
 
-            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}", env_probe->GetID());
-
-            env_probe->GetRenderResource().Render(frame, render_setup);
+            // env_probe->GetRenderResource().Render(frame, render_setup);
 
             // Copy cubemap from env probe to cubemap texture
             const ImageRef& src_image = env_probe->GetView()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImage();
+
+            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}  src image dimensions : {}", env_probe->GetID(), src_image->GetExtent());
 
             AssertThrow(src_image.IsValid());
             AssertThrow(src_image->IsCreated());
@@ -178,18 +178,18 @@ void SkydomeRenderer::Update(float delta)
     m_env_probe->Update(delta);
     m_env_probe->SetNeedsRender(true);
 
-    if (m_env_probe->NeedsRender())
-    {
-        g_engine->GetWorld()->GetRenderResource().IncRef();
-        m_cubemap->GetRenderResource().IncRef();
-        m_env_probe->GetRenderResource().IncRef();
+    // if (m_env_probe->NeedsRender())
+    // {
+    //     g_engine->GetWorld()->GetRenderResource().IncRef();
+    //     m_cubemap->GetRenderResource().IncRef();
+    //     m_env_probe->GetRenderResource().IncRef();
 
-        PUSH_RENDER_COMMAND(
-            RenderSky,
-            &g_engine->GetWorld()->GetRenderResource(),
-            &m_cubemap->GetRenderResource(),
-            m_env_probe);
-    }
+    //     PUSH_RENDER_COMMAND(
+    //         RenderSky,
+    //         &g_engine->GetWorld()->GetRenderResource(),
+    //         &m_cubemap->GetRenderResource(),
+    //         m_env_probe);
+    // }
 
     m_env_probe->SetReceivesUpdate(false);
 }

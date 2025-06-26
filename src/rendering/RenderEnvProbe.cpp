@@ -288,7 +288,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     new_render_setup.view = m_render_view.Get();
 
     {
-        new_render_setup.env_probe = this;
+        new_render_setup.env_probe = m_env_probe;
 
         RenderCollector::ExecuteDrawCalls(
             frame,
@@ -308,6 +308,9 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
+        // HYP_LOG(EnvProbe, Debug, "Render sky/reflection probe {} (type: {})",
+        //     m_env_probe->GetID(), m_env_probe->GetEnvProbeType());
+
         return; // now handled by ReflectionProbeRenderer
     }
     else if (m_env_probe->IsShadowProbe())
@@ -369,10 +372,8 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
 #pragma region EnvProbeRenderer
 
-EnvProbeRenderer::EnvProbeRenderer(EnvProbeType env_probe_type)
-    : m_env_probe_type(env_probe_type)
+EnvProbeRenderer::EnvProbeRenderer()
 {
-    AssertDebug(env_probe_type < EPT_MAX && env_probe_type != EPT_INVALID);
 }
 
 EnvProbeRenderer::~EnvProbeRenderer()
@@ -398,8 +399,6 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
     EnvProbe* env_probe = render_setup.env_probe;
     AssertDebug(env_probe != nullptr);
 
-    AssertDebug(env_probe->GetEnvProbeType() == m_env_probe_type);
-
     RenderSetup rs = render_setup;
     rs.view = env_probe->GetRenderResource().GetViewRenderResourceHandle().Get();
 
@@ -413,7 +412,6 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
 #pragma region ReflectionProbeRenderer
 
 ReflectionProbeRenderer::ReflectionProbeRenderer()
-    : EnvProbeRenderer(EPT_REFLECTION)
 {
 }
 
@@ -465,8 +463,20 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
     RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
-    // HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
-    //     env_probe->GetID(), env_probe->GetEnvProbeType());
+    HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
+        env_probe->GetID(), env_probe->GetEnvProbeType());
+
+    if (env_probe->IsInstanceOf(SkyProbe::Class()))
+    {
+        if (!render_setup.light)
+        {
+            HYP_LOG(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", env_probe->GetID(), view->GetID());
+        }
+        else if (render_setup.light->GetLightType() != LT_DIRECTIONAL)
+        {
+            HYP_LOG(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}", render_setup.light->GetID(), view->GetID());
+        }
+    }
 
     RenderCollector::ExecuteDrawCalls(frame, render_setup, rpl, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
@@ -486,6 +496,29 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     if (env_probe->ShouldComputeSphericalHarmonics())
     {
         ComputeSH(frame, render_setup, env_probe);
+    }
+
+    if (env_probe->IsInstanceOf(SkyProbe::Class()))
+    {
+        SkyProbe* sky_probe = static_cast<SkyProbe*>(env_probe);
+        AssertThrow(sky_probe->GetSkyboxCubemap().IsValid());
+
+        const ImageRef& dst_image = sky_probe->GetSkyboxCubemap()->GetRenderResource().GetImage();
+        AssertThrow(dst_image.IsValid());
+        AssertThrow(dst_image->IsCreated());
+
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_COPY_SRC);
+        frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_COPY_DST);
+
+        frame->GetCommandList().Add<Blit>(framebuffer_image, dst_image);
+
+        if (dst_image->HasMipmaps())
+        {
+            frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
+        }
+
+        frame->GetCommandList().Add<InsertBarrier>(framebuffer_image, RS_SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_SHADER_RESOURCE);
     }
 }
 

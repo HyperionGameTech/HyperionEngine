@@ -675,12 +675,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(
-    FrameBase* frame,
-    const RenderSetup& render_setup,
-    RenderProxyList& render_proxy_list,
-    uint32 bucket_bits,
-    PushConstantData push_constant)
+void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits, PushConstantData push_constant)
 {
     AssertDebug(render_setup.IsValid());
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
@@ -699,13 +694,7 @@ void RenderCollector::ExecuteDrawCalls(
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(
-    FrameBase* frame,
-    const RenderSetup& render_setup,
-    RenderProxyList& render_proxy_list,
-    const FramebufferRef& framebuffer,
-    uint32 bucket_bits,
-    PushConstantData push_constant)
+void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, const FramebufferRef& framebuffer, uint32 bucket_bits, PushConstantData push_constant)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);

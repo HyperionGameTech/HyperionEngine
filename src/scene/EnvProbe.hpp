@@ -244,7 +244,7 @@ protected:
         m_octant_hash_code = HashCode();
     }
 
-    void Init() override;
+    virtual void Init() override;
 
     void CreateView();
 
@@ -279,6 +279,7 @@ HYP_CLASS()
 class HYP_API ReflectionProbe : public EnvProbe
 {
     HYP_OBJECT_BODY(ReflectionProbe);
+
 public:
     ReflectionProbe()
         : EnvProbe(EPT_REFLECTION)
@@ -299,9 +300,12 @@ HYP_CLASS()
 class HYP_API SkyProbe : public EnvProbe
 {
     HYP_OBJECT_BODY(SkyProbe);
+
+    friend class ReflectionProbeRenderer;
+
 public:
     SkyProbe()
-        : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-1.0f), Vec3f(1.0f)), Vec2u(1, 1))
+        : EnvProbe(EPT_SKY, BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), Vec2u(1, 1))
     {
     }
 
@@ -313,6 +317,16 @@ public:
     SkyProbe(const SkyProbe& other) = delete;
     SkyProbe& operator=(const SkyProbe& other) = delete;
     ~SkyProbe() override = default;
+
+    const Handle<Texture>& GetSkyboxCubemap() const
+    {
+        return m_skybox_cubemap;
+    }
+
+private:
+    void Init() override;
+
+    Handle<Texture> m_skybox_cubemap;
 };
 
 } // namespace hyperion

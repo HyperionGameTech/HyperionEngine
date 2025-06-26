@@ -15,8 +15,8 @@ namespace containers {
 
 /*! \brief SparsePagedArray defines a container that stores elements in pages of a fixed size, allowing for sparse storage.
  *  \details This container is useful when you have a large number of elements, but only a small subset of them are initialized.
- *  Another useful feature of this container: pointers to elements will become dangling, even if the container grows and shrinks.
- *  (as long as the elements themselves are not removed) */
+ *  Another useful feature of this container: pointers to elements will not be invalidated as the container grows and shrinks.
+ *  (as long as the elements themselves being pointed to are not removed from the container) */
 template <class T, uint32 PageSize>
 class SparsePagedArray : public ContainerBase<SparsePagedArray<T, PageSize>, SizeType>
 {
@@ -295,7 +295,11 @@ public:
         return m_valid_pages.Count() != 0;
     }
 
-    HYP_FORCE_INLINE SizeType Size() const
+    /*! \brief Counts the total number of set elements in each valid page.
+     *  \note This is different than Array::Size(). Don't use this method to check if an index is valid the same way you would with a standard array.
+     *  Because this is a sparse array type, indices that are still < Count() may be invalid! Additionally, you may have indices that are far >= Count().
+     *  Only use this as a means of tracking the number of elements set! */
+    HYP_FORCE_INLINE SizeType Count() const
     {
         SizeType size = 0;
 
@@ -371,15 +375,60 @@ public:
         const SizeType page_index = PageIndex(index);
         const SizeType element_index = ElementIndex(index);
 
-        AssertDebug(page_index < m_pages.Size());
-        AssertDebug(m_pages[page_index] != nullptr);
+        Page* page = GetOrAllocatePage(page_index);
 
-        return m_pages[page_index]->storage.GetPointer()[element_index];
+        if (!page->initialized_bits.Test(element_index))
+        {
+            page->storage.ConstructElement(element_index);
+            page->initialized_bits.Set(element_index, true);
+        }
+
+        return page->storage.GetPointer()[element_index];
     }
 
-    const T& operator[](SizeType index) const
+    T& Get(SizeType index)
     {
-        return const_cast<SparsePagedArray&>(*this)[index];
+        const SizeType page_index = PageIndex(index);
+        const SizeType element_index = ElementIndex(index);
+
+        AssertDebug(m_valid_pages.Test(page_index));
+
+        Page* page = m_pages[page_index];
+        AssertDebug(page != nullptr);
+
+        AssertDebug(page->initialized_bits.Test(element_index));
+
+        return page->storage.GetPointer()[element_index];
+    }
+
+    const T& Get(SizeType index) const
+    {
+        return const_cast<SparsePagedArray&>(*this).Get(index);
+    }
+
+    T* TryGet(SizeType index)
+    {
+        const SizeType page_index = PageIndex(index);
+        const SizeType element_index = ElementIndex(index);
+
+        if (!m_valid_pages.Test(page_index))
+        {
+            return nullptr;
+        }
+
+        AssertDebug(m_pages[page_index] != nullptr);
+
+        if (!m_pages[page_index]->initialized_bits.Test(element_index))
+        {
+            return nullptr;
+        }
+
+        return &m_pages[page_index]->storage.GetPointer()[element_index];
+    }
+
+    const T* TryGet(SizeType index) const
+    {
+        return const_cast<SparsePagedArray&>(*this).TryGet(index);
     }
 
     Iterator Set(SizeType index, const T& value)
@@ -562,6 +611,8 @@ private:
     {
         if (!m_valid_pages.Test(page_index))
         {
+            AssertDebugMsg(page_index < UINT32_MAX, "Invalid page index requested - will cause OOM crash!");
+
             if (m_pages.Size() <= page_index)
             {
                 m_pages.Resize(page_index + 1);

@@ -187,19 +187,39 @@ struct ResourceContainer
 {
     ResourceSubtypeData& GetSubtypeData(TypeID type_id)
     {
+        auto cache_it = cache.Find(type_id);
+        if (cache_it != cache.End())
+        {
+            return *cache_it->second;
+        }
+
         const HypClass* hyp_class = GetClass(type_id);
         AssertDebugMsg(hyp_class != nullptr, "TypeID %u does not have a HypClass!", type_id.Value());
 
-        const int static_index = hyp_class->GetStaticIndex();
-        AssertDebugMsg(static_index >= 0, "Invalid class to use with render resource lock: '%s' has no assigned static index!", *hyp_class->GetName());
+        int static_index = -1;
 
-        AssertDebugMsg(data_by_type.HasIndex(static_index), "No SubtypeData container found for TypeID %u (HypClass: %s)! Missing DECLARE_RENDER_DATA_CONTAINER() macro invocation for type?",
-            type_id.Value(), *GetClass(type_id)->GetName());
+        do
+        {
+            static_index = hyp_class->GetStaticIndex();
+            AssertDebugMsg(static_index >= 0, "Invalid class to use with render resource lock: '%s' has no assigned static index!", *hyp_class->GetName());
 
-        return data_by_type[static_index];
+            if (ResourceSubtypeData* subtype_data = data_by_type.TryGet(static_index))
+            {
+                // found the subtype data for this type_id - cache it for O(1) retrieval next time
+                cache[type_id] = subtype_data;
+
+                return *subtype_data;
+            }
+
+            hyp_class = hyp_class->GetParent();
+        }
+        while (hyp_class);
+
+        HYP_FAIL("No SubtypeData container found for TypeID %u (HypClass: %s)! Missing DECLARE_RENDER_DATA_CONTAINER() macro invocation for type?", type_id.Value(), *GetClass(type_id)->GetName());
     }
 
     SparsePagedArray<ResourceSubtypeData, 16> data_by_type;
+    HashMap<TypeID, ResourceSubtypeData*> cache;
 };
 
 struct ResourceContainerFactoryRegistry
@@ -348,13 +368,15 @@ HYP_API void RendererAPI_AddRef(HypObjectBase* resource)
     FrameData& fd = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(resource_id.GetTypeID());
+    ResourceData* rd = subtype_data.data.TryGet(resource_id.ToIndex());
 
-    if (!subtype_data.data.HasIndex(resource_id.ToIndex()))
+    if (!rd)
     {
-        subtype_data.data.Emplace(resource_id.ToIndex(), resource);
+        rd = &*subtype_data.data.Emplace(resource_id.ToIndex(), resource);
     }
 
-    subtype_data.data[resource_id.ToIndex()].count.Increment(1, MemoryOrder::RELAXED);
+    rd->count.Increment(1, MemoryOrder::RELAXED);
+
     subtype_data.indices_pending_delete.Set(resource_id.ToIndex(), false);
 }
 
@@ -372,15 +394,14 @@ HYP_API void RendererAPI_ReleaseRef(IDBase id)
     FrameData& fd = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeID());
+    ResourceData* rd = subtype_data.data.TryGet(id.ToIndex());
 
-    if (!subtype_data.data.HasIndex(id.ToIndex()))
+    if (!rd)
     {
         return; // no ref count for this resource
     }
 
-    ResourceData& data = subtype_data.data[id.ToIndex()];
-
-    if (data.count.Decrement(1, MemoryOrder::RELAXED) == 1)
+    if (rd->count.Decrement(1, MemoryOrder::RELAXED) == 1)
     {
         subtype_data.indices_pending_delete.Set(id.ToIndex(), true);
     }
@@ -400,16 +421,16 @@ HYP_API void RendererAPI_UpdateRenderProxy(IDBase id)
     FrameData& fd = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeID());
-    ResourceData& data = subtype_data.data[id.ToIndex()];
+    ResourceData& data = subtype_data.data.Get(id.ToIndex());
 
     AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use UpdateResource() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
 
     IRenderProxy* proxy;
 
-    if (subtype_data.proxies.HasIndex(id.ToIndex()))
+    if (IRenderProxy** p = subtype_data.proxies.TryGet(id.ToIndex()))
     {
-        proxy = subtype_data.proxies[id.ToIndex()];
+        proxy = *p;
     }
     else
     {
@@ -457,7 +478,7 @@ HYP_API void RendererAPI_UpdateRenderProxy(IDBase id, IRenderProxy* proxy)
     FrameData& fd = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeID());
-    ResourceData& data = subtype_data.data[id.ToIndex()];
+    ResourceData& data = subtype_data.data.Get(id.ToIndex());
 
     AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use UpdateResource() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
@@ -624,10 +645,11 @@ HYP_API void RendererAPI_EndFrame_RenderThread()
         // Handle proxies that were updated on game thread
         for (Bitset::BitIndex bit : subtype_data.indices_pending_buffer_update)
         {
-            ResourceData& resource_data = subtype_data.data[bit];
-            AssertDebug(resource_data.count.Get(MemoryOrder::RELAXED) > 0);
+            // sanity check:
+            ResourceData& rd = subtype_data.data.Get(bit);
+            AssertDebug(rd.count.Get(MemoryOrder::RELAXED) > 0);
 
-            IRenderProxy* proxy = subtype_data.proxies[bit];
+            IRenderProxy* proxy = subtype_data.proxies.Get(bit);
             AssertDebug(proxy != nullptr);
 
             /// @TODO Handle buffer update into global GPU buffer data...
@@ -641,20 +663,21 @@ HYP_API void RendererAPI_EndFrame_RenderThread()
         // Remove resources pending deletion via SafeDelete() for indices marked for deletion from the game thread
         for (Bitset::BitIndex bit : subtype_data.indices_pending_delete)
         {
-            ResourceData& resource_data = subtype_data.data[bit];
-            AssertDebug(resource_data.count.Get(MemoryOrder::RELAXED) == 0);
+            ResourceData& rd = subtype_data.data.Get(bit);
+            AssertDebug(rd.count.Get(MemoryOrder::RELAXED) == 0);
 
             HYP_LOG(Rendering, Debug, "Deleting resource of type {} with ID {}\n",
                 *GetClass(subtype_data.type_id)->GetName(), IDBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
 
-            AnyHandle resource { resource_data.resource };
+            // Swap refcount owner over to the Handle
+            AnyHandle resource { rd.resource };
             subtype_data.data.EraseAt(bit);
 
             if (subtype_data.has_proxy_pool)
             {
                 AssertDebugMsg(subtype_data.proxies.HasIndex(bit), "proxy missing at index: %u", bit);
 
-                IRenderProxy* proxy = subtype_data.proxies[bit];
+                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
                 AssertDebug(proxy);
 
                 subtype_data.proxies.EraseAt(bit);
@@ -730,8 +753,9 @@ RenderGlobalState::RenderGlobalState()
 
     EnvProbeRenderers = new EnvProbeRenderer*[EPT_MAX];
     Memory::MemSet(EnvProbeRenderers, 0, sizeof(EnvProbeRenderer*) * EPT_MAX);
+
     EnvProbeRenderers[EPT_REFLECTION] = new ReflectionProbeRenderer();
-    // EnvProbeRenderers[EPT_SKY] = new SkyEnvProbeRenderer();
+    EnvProbeRenderers[EPT_SKY] = new ReflectionProbeRenderer();
 }
 
 RenderGlobalState::~RenderGlobalState()

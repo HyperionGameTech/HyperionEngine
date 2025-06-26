@@ -921,33 +921,35 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         {
             EnvProbe* probe = static_cast<EnvProbe*>(entity);
 
-            const BoundingBox& probe_aabb = probe->GetAABB();
-
-            if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
+            if (!probe->IsSkyProbe())
             {
-                HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->GetID(), GetID());
+                const BoundingBox& probe_aabb = probe->GetAABB();
 
-                continue;
-            }
+                if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
+                {
+                    HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->GetID(), GetID());
 
-            if (!m_camera->GetFrustum().ContainsAABB(probe_aabb))
-            {
-                continue;
+                    continue;
+                }
+
+                if (!m_camera->GetFrustum().ContainsAABB(probe_aabb))
+                {
+                    continue;
+                }
             }
 
             rpl.env_probes.Track(probe->GetID(), probe);
         }
 
-        // for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<SkyProbe>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
-        // {
-        //     SkyProbe* sky_probe = static_cast<SkyProbe*>(entity);
-
-        //     ResourceTracker<ID<EnvProbe>, RenderEnvProbe*>::ResourceTrackState track_state;
-        //     rpl.tracked_env_probes.Track(
-        //         sky_probe->GetID(),
-        //         &sky_probe->GetRenderResource(),
-        //         &track_state);
-        // }
+        // TEMP SHIT
+        for (auto [entity, sky_component] : scene->GetEntityManager()->GetEntitySet<SkyComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
+        {
+            if (sky_component.subsystem)
+            {
+                AssertThrow(sky_component.subsystem->GetEnvProbe()->IsInstanceOf<SkyProbe>());
+                rpl.env_probes.Track(sky_component.subsystem->GetEnvProbe()->GetID(), sky_component.subsystem->GetEnvProbe());
+            }
+        }
     }
 
     /// TODO: point light Shadow maps

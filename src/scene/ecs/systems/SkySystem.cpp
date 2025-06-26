@@ -6,11 +6,15 @@
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/World.hpp>
+#include <scene/Texture.hpp>
 
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/Shader.hpp>
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/RenderGlobalState.hpp>
+#include <rendering/PlaceholderData.hpp>
+#include <rendering/RenderTexture.hpp>
 
 #include <rendering/subsystems/sky/SkydomeRenderer.hpp>
 
@@ -20,6 +24,8 @@
 #include <core/logging/LogChannels.hpp>
 
 #include <util/MeshBuilder.hpp>
+
+#include <Engine.hpp>
 
 namespace hyperion {
 
@@ -89,10 +95,7 @@ void SkySystem::Process(float delta)
 
 void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr, Entity* entity, SkyComponent& sky_component, MeshComponent* mesh_component)
 {
-    if (!world)
-    {
-        return;
-    }
+    AssertThrow(world != nullptr);
 
     if (sky_component.subsystem)
     {
@@ -124,7 +127,7 @@ void SkySystem::AddRenderSubsystemToEnvironment(World* world, EntityManager& mgr
             material_attributes.flags = MaterialAttributeFlags::DEPTH_TEST;
 
             material = CreateObject<Material>(NAME("SkyboxMaterial"), material_attributes);
-            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, sky_component.subsystem->GetCubemap());
+            material->SetTexture(MaterialTextureKey::ALBEDO_MAP, Handle<SkyProbe>(sky_component.subsystem->GetEnvProbe())->GetSkyboxCubemap());
 
             InitObject(material);
         }

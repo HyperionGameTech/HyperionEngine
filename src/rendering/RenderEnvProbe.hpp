@@ -131,12 +131,9 @@ public:
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override final;
 
 protected:
-    EnvProbeRenderer(EnvProbeType env_probe_type);
+    EnvProbeRenderer();
 
     virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) = 0;
-
-private:
-    EnvProbeType m_env_probe_type;
 };
 
 class ReflectionProbeRenderer : public EnvProbeRenderer

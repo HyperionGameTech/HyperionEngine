@@ -415,13 +415,13 @@ Handle<Entity> EntityManager::AddBasicEntity()
     entity->m_scene = m_scene;
     InitObject(entity);
 
+    // Use basic TypeID tag for the entity, as the type is just Entity
+    AddTag<EntityTag::TYPE_ID>(entity);
+
     if (entity->m_entity_init_info.receives_update)
     {
         AddTag<EntityTag::RECEIVES_UPDATE>(entity);
     }
-
-    // Use basic TypeID tag for the entity, as the type is just Entity
-    AddTag<EntityTag::TYPE_ID>(entity);
 
     if (entity->m_entity_init_info.initial_tags.Any())
     {
@@ -478,22 +478,21 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hyp_class)
         AddTag<EntityTag::RECEIVES_UPDATE>(entity);
     }
 
-    // Create tag to track TypeID of the entity.
-    /// TODO: Recursively add tags for parent classes if they are also Entity subclasses.
+    // Create tag to track class of the entity.
 
-    EntityTag entity_type_tag = MakeEntityTypeTag(entity.GetTypeID());
-    AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
+    AddTag<EntityTag::TYPE_ID>(entity);
 
-    if (entity_type_tag != EntityTag::TYPE_ID)
+    while (hyp_class != nullptr && hyp_class != Entity::Class())
     {
-        if (const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entity_type_tag))
-        {
-            AddTag(entity, entity_type_tag);
-        }
-    }
-    else
-    {
-        AddTag<EntityTag::TYPE_ID>(entity);
+        EntityTag entity_type_tag = MakeEntityTypeTag(hyp_class->GetTypeID());
+        AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
+
+        const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entity_type_tag);
+        AssertDebug(component_interface);
+
+        AddTag(entity, entity_type_tag);
+
+        hyp_class = hyp_class->GetParent();
     }
 
     if (entity->m_entity_init_info.initial_tags.Any())
@@ -549,25 +548,26 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     entity->m_scene = m_scene;
     InitObject(entity);
 
+    AddTag<EntityTag::TYPE_ID>(entity);
+
+    const HypClass* hyp_class = entity->InstanceClass();
+
+    while (hyp_class != nullptr && hyp_class != Entity::Class())
+    {
+        EntityTag entity_type_tag = MakeEntityTypeTag(hyp_class->GetTypeID());
+        AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
+
+        const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entity_type_tag);
+        AssertDebug(component_interface);
+
+        AddTag(entity, entity_type_tag);
+
+        hyp_class = hyp_class->GetParent();
+    }
+
     if (entity->m_entity_init_info.receives_update)
     {
         AddTag<EntityTag::RECEIVES_UPDATE>(entity);
-    }
-
-    // Create tag to track TypeID of the entity.
-    EntityTag entity_type_tag = MakeEntityTypeTag(entity.GetTypeID());
-    AssertDebug(uint64(entity_type_tag) & uint64(EntityTag::TYPE_ID));
-
-    if (entity_type_tag != EntityTag::TYPE_ID)
-    {
-        if (const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(entity_type_tag))
-        {
-            AddTag(entity, entity_type_tag);
-        }
-    }
-    else
-    {
-        AddTag<EntityTag::TYPE_ID>(entity);
     }
 
     if (entity->m_entity_init_info.initial_tags.Any())
@@ -1150,16 +1150,7 @@ bool EntityManager::HasTag(const Entity* entity, EntityTag tag) const
             return false;
         }
 
-        const TypeID type_id = GetTypeIDFromEntityTag(tag);
-
-        // quick check w/ equality for faster compare
-        if (type_id == entity_data->type_id)
-        {
-            return true;
-        }
-
-        // allow derived types with an extra check via subclass index
-        return GetSubclassIndex(entity_data->type_id, type_id) != -1;
+        return GetTypeIDFromEntityTag(tag) == entity_data->type_id;
     }
 
     const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetEntityTagComponentInterface(tag);

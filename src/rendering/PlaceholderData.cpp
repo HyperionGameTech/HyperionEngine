@@ -30,6 +30,34 @@ static auto CreatePlaceholderBitmap(Vec2u dimensions)
     return bitmap;
 }
 
+template <uint32 NumComponents, uint32 BytesPerPixel>
+static ByteBuffer CreatePlaceholderCubemap(Vec2u dimensions)
+{
+    ByteBuffer byte_buffer;
+
+    auto bitmap = Bitmap<NumComponents, ubyte>(dimensions.x, dimensions.y);
+
+    // Set to default color to assist in debugging
+    for (uint32 y = 0; y < dimensions.y; y++)
+    {
+        for (uint32 x = 0; x < dimensions.x; x++)
+        {
+            bitmap.SetPixel(x, y, { 0xFF, 0x00, 0xFF, 0xFF });
+        }
+    }
+
+    ByteBuffer face_byte_buffer = bitmap.GetUnpackedBytes(BytesPerPixel);
+
+    byte_buffer.SetSize(face_byte_buffer.Size() * 6);
+
+    for (uint32 i = 0; i < 6; i++)
+    {
+        byte_buffer.Write(face_byte_buffer.Size(), i * face_byte_buffer.Size(), face_byte_buffer.Data());
+    }
+
+    return byte_buffer;
+}
+
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(g_rendering_api->MakeImage(TextureDesc {
           TT_TEX2D,
@@ -205,13 +233,14 @@ void PlaceholderData::Create()
     DefaultCubemap = CreateObject<Texture>(TextureData {
         TextureDesc {
             TT_CUBEMAP,
-            TF_R8,
+            TF_RGBA8,
             Vec3u::One(),
             TFM_NEAREST,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE,
             1,
-            IU_SAMPLED | IU_STORAGE } });
+            IU_SAMPLED | IU_STORAGE },
+        CreatePlaceholderCubemap<4, 4>(Vec2u::One()) });
 
     DefaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
     InitObject(DefaultCubemap);

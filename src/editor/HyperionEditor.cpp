@@ -281,7 +281,7 @@ void HyperionEditor::Init()
 
                 scene->GetRoot()->AddChild(node);
 
-#if 1
+#if 0
                 Handle<Node> env_grid_node = scene->GetRoot()->AddChild();
                 env_grid_node->SetName(NAME("EnvGrid2"));
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
 #include <core/containers/Bitset.hpp>
 #include <core/utilities/Span.hpp>
@@ -57,7 +57,7 @@ Bitset& Bitset::operator=(Bitset&& other) noexcept
 Bitset Bitset::operator~() const
 {
     Bitset result;
-    result.m_blocks.Resize(m_blocks.Size());
+    result.m_blocks.ResizeUninitialized(m_blocks.Size());
 
     for (uint32 index = 0; index < result.m_blocks.Size(); index++)
     {
@@ -240,117 +240,6 @@ Bitset& Bitset::Resize(SizeType num_bits)
     }
 
     return *this;
-}
-
-Bitset::BitIndex Bitset::FirstSetBitIndex() const
-{
-    for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++)
-    {
-        if (m_blocks[block_index] != 0)
-        {
-#ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = __builtin_ffs(m_blocks[block_index]) - 1;
-#elif defined(HYP_MSVC)
-            unsigned long bit_index = 0;
-            _BitScanForward(&bit_index, m_blocks[block_index]);
-#endif
-
-            return (block_index * num_bits_per_block) + bit_index;
-        }
-    }
-
-    return not_found;
-}
-
-Bitset::BitIndex Bitset::LastSetBitIndex() const
-{
-    for (uint32 block_index = m_blocks.Size(); block_index != 0; --block_index)
-    {
-        if (m_blocks[block_index - 1] != 0)
-        {
-#ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clz(m_blocks[block_index - 1]) - 1;
-#elif defined(HYP_MSVC)
-            unsigned long bit_index = 0;
-            _BitScanReverse(&bit_index, m_blocks[block_index - 1]);
-#endif
-
-            return ((block_index - 1) * num_bits_per_block) + bit_index;
-        }
-    }
-
-    return not_found;
-}
-
-Bitset::BitIndex Bitset::NextSetBitIndex(BitIndex offset) const
-{
-    const uint32 block_index = GetBlockIndex(offset);
-
-    uint32 mask = ~(GetBitMask(offset) - 1);
-
-    for (uint32 i = block_index; i < m_blocks.Size(); i++)
-    {
-        if ((m_blocks[i] & mask) != 0)
-        {
-#ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = __builtin_ffs(m_blocks[i] & mask) - 1;
-#elif defined(HYP_MSVC)
-            unsigned long bit_index = 0;
-            _BitScanForward(&bit_index, m_blocks[i] & mask);
-#endif
-
-            return (i * num_bits_per_block) + bit_index;
-        }
-
-        // use all bits in next iteration of loop
-        mask = ~0u;
-    }
-
-    return not_found;
-}
-
-Bitset::BitIndex Bitset::FirstZeroBitIndex() const
-{
-    for (uint32 block_index = 0; block_index < m_blocks.Size(); block_index++)
-    {
-        const Bitset::BlockType inverted = ~m_blocks[block_index];
-
-        if (inverted != 0)
-        {
-#ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = __builtin_ffs(inverted) - 1;
-#elif defined(HYP_MSVC)
-            unsigned long bit_index = 0;
-            _BitScanForward(&bit_index, inverted);
-#endif
-
-            return (block_index * num_bits_per_block) + bit_index;
-        }
-    }
-
-    return not_found;
-}
-
-Bitset::BitIndex Bitset::LastZeroBitIndex() const
-{
-    for (uint32 block_index = m_blocks.Size(); block_index != 0; block_index--)
-    {
-        const Bitset::BlockType inverted = ~m_blocks[block_index - 1];
-
-        if (inverted != 0)
-        {
-#ifdef HYP_CLANG_OR_GCC
-            const uint32 bit_index = Bitset::num_bits_per_block - __builtin_clz(inverted) - 1;
-#elif defined(HYP_MSVC)
-            unsigned long bit_index = 0;
-            _BitScanReverse(&bit_index, inverted);
-#endif
-
-            return ((block_index - 1) * num_bits_per_block) + bit_index;
-        }
-    }
-
-    return not_found;
 }
 
 } // namespace containers
