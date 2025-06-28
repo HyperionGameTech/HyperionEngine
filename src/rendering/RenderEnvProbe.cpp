@@ -290,11 +290,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     {
         new_render_setup.env_probe = m_env_probe;
 
-        RenderCollector::ExecuteDrawCalls(
-            frame,
-            new_render_setup,
-            rpl,
-            ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
+        RenderCollector::ExecuteDrawCalls(frame, new_render_setup, rpl, ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
         new_render_setup.env_probe = nullptr;
     }
@@ -396,6 +392,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.env_probe != nullptr);
 
+#if 0 // temp
     EnvProbe* env_probe = render_setup.env_probe;
     AssertDebug(env_probe != nullptr);
 
@@ -405,6 +402,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
     RenderProbe(frame, rs, env_probe);
 
     rs.view = nullptr;
+#endif
 }
 
 #pragma endregion EnvProbeRenderer

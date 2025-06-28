@@ -63,13 +63,6 @@ public:
         return m_buffer_data;
     }
 
-    HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
-    {
-        return m_framebuffer;
-    }
-
-    void SetFramebuffer(const FramebufferRef& framebuffer);
-
     void ApplyJitter(const RenderSetup& render_setup);
 
 protected:
@@ -84,8 +77,6 @@ private:
 
     Camera* m_camera;
     CameraShaderData m_buffer_data;
-
-    FramebufferRef m_framebuffer;
 };
 
 } // namespace hyperion

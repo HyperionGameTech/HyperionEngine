@@ -428,8 +428,6 @@ void DirectionalLightShadowRenderer::OnAddedToWorld()
         &m_rerender_semaphore);
 
     m_shadow_pass->Create();
-
-    m_camera->GetRenderResource().SetFramebuffer(m_shadow_pass->GetFramebuffer());
 }
 
 void DirectionalLightShadowRenderer::OnRemovedFromWorld()

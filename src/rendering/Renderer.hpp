@@ -3,13 +3,18 @@
 #ifndef HYPERION_RENDERER_HPP
 #define HYPERION_RENDERER_HPP
 
+#include <core/Handle.hpp>
+
 #include <core/config/Config.hpp>
 
 #include <core/debug/Debug.hpp>
 
 #include <core/utilities/Span.hpp>
 
+#include <core/containers/SparsePagedArray.hpp>
+
 #include <rendering/EngineRenderStats.hpp>
+#include <rendering/CullData.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/rhi/RHICommandList.hpp>
@@ -27,6 +32,9 @@ struct DrawCall;
 struct InstancedDrawCall;
 struct PassData;
 class IRenderer;
+class RenderGroup;
+class View;
+class IDrawCallCollectionImpl;
 
 namespace threading {
 class TaskBatch;
@@ -153,6 +161,43 @@ public:
  *  \internal Use sparingly as most rendering tasks should have a valid RenderWorld and using this will cause the IsValid() check to return false */
 extern const RenderSetup& NullRenderSetup();
 
+/*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
+struct HYP_API PassData
+{
+    struct RenderGroupCacheEntry
+    {
+        WeakHandle<RenderGroup> render_group;
+        GraphicsPipelineRef graphics_pipeline;
+    };
+
+    WeakHandle<View> view;
+    Viewport viewport;
+
+    // per-View descriptor sets
+    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
+
+    CullData cull_data;
+
+    // cached by ID<RenderGroup>
+    SparsePagedArray<RenderGroupCacheEntry, 32> render_group_cache;
+    // iterator for removing cache data over frames
+    typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator render_group_cache_iterator;
+
+    virtual ~PassData();
+
+    /*! \brief Safely remove unused graphics pipelines that are no longer used from the cache.
+     *  A graphics pipeline is considered unused if the RenderGroup it is associated with has no more references remaining
+     *  \param max_iter The maximum number of graphics pipelines to iterate over for this frame. */
+    void CullUnusedGraphicsPipelines(uint32 max_iter = 10);
+
+    static GraphicsPipelineRef CreateGraphicsPipeline(
+        PassData* pd,
+        const ShaderRef& shader,
+        const RenderableAttributeSet& renderable_attributes,
+        const DescriptorTableRef& descriptor_table = DescriptorTableRef::Null(),
+        IDrawCallCollectionImpl* impl = nullptr); // @TODO: Make this param part of renderable attributes
+};
+
 class IRenderer
 {
 public:
@@ -162,6 +207,9 @@ public:
     virtual void Shutdown() = 0;
 
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) = 0;
+
+protected:
+    virtual void CreateViewPassData(View* view, PassData& out_pass_data) = 0;
 };
 
 } // namespace hyperion

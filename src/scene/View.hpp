@@ -106,12 +106,20 @@ public:
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return m_impl.HasValue();
+        bool is_valid = false;
+
+        m_impl.Visit([&is_valid](auto&& value)
+            {
+                is_valid = bool(value);
+            });
+
+        return is_valid;
     }
 
     GBuffer* GetGBuffer() const;
     const FramebufferRef& GetFramebuffer() const;
     const FramebufferRef& GetFramebuffer(RenderBucket rb) const;
+    Span<const FramebufferRef> GetFramebuffers() const;
 
 private:
     Variant<FramebufferRef, GBuffer*> m_impl;

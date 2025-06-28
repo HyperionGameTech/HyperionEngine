@@ -18,6 +18,10 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
 {
     using Type = T;
 
+    // For compatibility with ContainerBase interface
+    using KeyType = SizeType;
+    using ValueType = T;
+
     using Iterator = Type*;
     using ConstIterator = Type*;
 
@@ -208,15 +212,17 @@ struct Span<T, std::enable_if_t<!std::is_const_v<T>>>
         return Span<const Type>(first, last);
     }
 
-    HYP_DEF_STL_BEGIN_END_CONSTEXPR(
-        first,
-        last)
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(first, last)
 };
 
 template <class T>
 struct Span<T, std::enable_if_t<std::is_const_v<T>>>
 {
     using Type = std::remove_const_t<T>;
+
+    // For compatibility with ContainerBase interface
+    using KeyType = SizeType;
+    using ValueType = T;
 
     using Iterator = const Type*;
     using ConstIterator = const Type*;
@@ -377,9 +383,7 @@ struct Span<T, std::enable_if_t<std::is_const_v<T>>>
         return HashCode::GetHashCode(reinterpret_cast<const char*>(Begin()), reinterpret_cast<const char*>(End()));
     }
 
-    HYP_DEF_STL_BEGIN_END_CONSTEXPR(
-        first,
-        last)
+    HYP_DEF_STL_BEGIN_END_CONSTEXPR(first, last)
 };
 
 using ByteView = Span<ubyte>;

@@ -254,12 +254,12 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                     {
                         FrameRef temp_frame = g_rendering_api->MakeFrame(0);
 
-                        pass->GetRenderGroup()->GetPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
+                        pass->GetGraphicsPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
                         pass->Begin(temp_frame, NullRenderSetup());
 
                         temp_frame->GetCommandList().Add<BindDescriptorTable>(
-                            pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-                            pass->GetRenderGroup()->GetPipeline(),
+                            pass->GetGraphicsPipeline()->GetDescriptorTable(),
+                            pass->GetGraphicsPipeline(),
                             ArrayMap<Name, ArrayMap<Name, uint32>> {},
                             temp_frame->GetFrameIndex());
 

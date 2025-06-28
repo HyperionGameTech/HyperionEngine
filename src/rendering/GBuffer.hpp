@@ -108,12 +108,21 @@ public:
 
     HYP_FORCE_INLINE GBufferBucket& GetBucket(RenderBucket rb)
     {
+        AssertDebug(rb > RenderBucket::RB_NONE && rb < RenderBucket::RB_MAX);
+
         return m_buckets[int(rb) - 1];
     }
 
     HYP_FORCE_INLINE const GBufferBucket& GetBucket(RenderBucket rb) const
     {
+        AssertDebug(rb > RenderBucket::RB_NONE && rb < RenderBucket::RB_MAX);
+
         return m_buckets[int(rb) - 1];
+    }
+
+    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
+    {
+        return m_framebuffers;
     }
 
     HYP_FORCE_INLINE const Vec2u& GetExtent() const

@@ -901,11 +901,7 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = probe;
 
-    RenderCollector::ExecuteDrawCalls(
-        frame,
-        new_render_setup,
-        rpl,
-        (1u << RB_OPAQUE));
+    RenderCollector::ExecuteDrawCalls(frame, new_render_setup, rpl, (1u << RB_OPAQUE));
 
     switch (m_env_grid->GetEnvGridType())
     {

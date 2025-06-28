@@ -14,6 +14,7 @@
 namespace hyperion {
 
 class RenderableAttributeSet;
+struct DescriptorTableDeclaration;
 
 class GraphicsPipelineBase : public RenderObject<GraphicsPipelineBase>
 {
@@ -105,32 +106,33 @@ public:
         return m_descriptor_table;
     }
 
-    HYP_FORCE_INLINE void SetDescriptorTable(const DescriptorTableRef& descriptor_table)
-    {
-        m_descriptor_table = descriptor_table;
-    }
+    HYP_API void SetDescriptorTable(const DescriptorTableRef& descriptor_table);
 
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
     }
 
-    HYP_FORCE_INLINE void SetShader(const ShaderRef& shader)
+    HYP_API void SetShader(const ShaderRef& shader);
+
+    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
     {
-        m_shader = shader;
+        return m_framebuffers;
     }
 
-    HYP_API virtual RendererResult Create() = 0;
-    HYP_API virtual RendererResult Destroy() = 0;
+    HYP_API void SetFramebuffers(const Array<FramebufferRef>& framebuffers);
+
+    HYP_API virtual RendererResult Create();
+    HYP_API virtual RendererResult Destroy();
 
     HYP_API virtual void Bind(CommandBufferBase* command_buffer) = 0;
     HYP_API virtual void Bind(CommandBufferBase* command_buffer, Vec2i viewport_offset, Vec2u viewport_extent) = 0;
 
     HYP_API virtual bool MatchesSignature(
         const ShaderBase* shader,
-        const DescriptorTableBase* descriptor_table,
+        const DescriptorTableDeclaration& descriptor_table_decl,
         const Array<const FramebufferBase*>& framebuffers,
-        const RenderableAttributeSet& attributes) const = 0;
+        const RenderableAttributeSet& attributes) const;
 
     // Deprecated - will be removed to decouple from vulkan
     HYP_DEPRECATED HYP_API virtual void SetPushConstants(const void* data, SizeType size) = 0;
@@ -143,6 +145,8 @@ protected:
           m_descriptor_table(descriptor_table)
     {
     }
+
+    virtual RendererResult Rebuild() = 0;
 
     VertexAttributeSet m_vertex_attributes;
 
@@ -158,6 +162,7 @@ protected:
 
     ShaderRef m_shader;
     DescriptorTableRef m_descriptor_table;
+    Array<FramebufferRef> m_framebuffers;
 };
 
 } // namespace hyperion

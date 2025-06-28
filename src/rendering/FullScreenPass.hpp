@@ -97,9 +97,9 @@ public:
         return m_full_screen_quad;
     }
 
-    HYP_FORCE_INLINE const Handle<RenderGroup>& GetRenderGroup() const
+    HYP_FORCE_INLINE const GraphicsPipelineRef& GetGraphicsPipeline() const
     {
-        return m_render_group;
+        return m_graphics_pipeline;
     }
 
     HYP_FORCE_INLINE void SetPushConstants(const PushConstantData& pc)
@@ -168,7 +168,7 @@ protected:
 
     FramebufferRef m_framebuffer;
     ShaderRef m_shader;
-    Handle<RenderGroup> m_render_group;
+    GraphicsPipelineRef m_graphics_pipeline;
     Handle<Mesh> m_full_screen_quad;
     Vec2u m_extent;
     GBuffer* m_gbuffer;

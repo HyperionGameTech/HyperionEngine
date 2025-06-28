@@ -35,18 +35,11 @@ void RenderCamera::Initialize_Internal()
     HYP_SCOPE;
 
     UpdateBufferData();
-
-    if (m_framebuffer.IsValid())
-    {
-        DeferCreate(m_framebuffer);
-    }
 }
 
 void RenderCamera::Destroy_Internal()
 {
     HYP_SCOPE;
-
-    SafeRelease(std::move(m_framebuffer));
 }
 
 void RenderCamera::Update_Internal()
@@ -79,23 +72,6 @@ void RenderCamera::SetBufferData(const CameraShaderData& buffer_data)
             if (IsInitialized())
             {
                 UpdateBufferData();
-            }
-        });
-}
-
-void RenderCamera::SetFramebuffer(const FramebufferRef& framebuffer)
-{
-    HYP_SCOPE;
-
-    Execute([this, framebuffer]()
-        {
-            SafeRelease(std::move(m_framebuffer));
-
-            m_framebuffer = framebuffer;
-
-            if (IsInitialized() && m_framebuffer.IsValid())
-            {
-                DeferCreate(m_framebuffer);
             }
         });
 }

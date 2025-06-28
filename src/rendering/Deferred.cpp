@@ -16,6 +16,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderView.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 #include <rendering/SSRRenderer.hpp>
 #include <rendering/SSGI.hpp>
 #include <rendering/PlaceholderData.hpp>
@@ -125,7 +126,7 @@ void DeferredPass::Create()
 
 void DeferredPass::CreateShader()
 {
-    static const FixedArray<ShaderProperties, uint32(LT_MAX)> light_type_properties {
+    static const FixedArray<ShaderProperties, LT_MAX> light_type_properties {
         ShaderProperties { { "LIGHT_TYPE_DIRECTIONAL" } },
         ShaderProperties { { "LIGHT_TYPE_POINT" } },
         ShaderProperties { { "LIGHT_TYPE_SPOT" } },
@@ -145,7 +146,7 @@ void DeferredPass::CreateShader()
         break;
     }
     case DeferredPassMode::DIRECT_LIGHTING:
-        for (uint32 i = 0; i < uint32(LT_MAX); i++)
+        for (uint32 i = 0; i < LT_MAX; i++)
         {
             ShaderProperties shader_properties;
             GetDeferredShaderProperties(shader_properties);
@@ -212,7 +213,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
         m_ltc_brdf_texture->SetPersistentRenderResourceEnabled(true);
     }
 
-    for (uint32 i = 0; i < uint32(LT_MAX); i++)
+    for (uint32 i = 0; i < LT_MAX; i++)
     {
         ShaderRef& shader = m_direct_light_shaders[i];
         AssertThrow(shader.IsValid());
@@ -235,21 +236,17 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
 
         DeferCreate(descriptor_table);
 
-        Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+        GraphicsPipelineRef graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
             shader,
-            renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE);
+            { &m_framebuffer, 1 },
+            renderable_attributes);
 
-        render_group->AddFramebuffer(m_framebuffer);
-
-        InitObject(render_group);
-
-        m_direct_light_render_groups[i] = render_group;
+        m_direct_light_graphics_pipelines[i] = graphics_pipeline;
 
         if (i == 0)
         {
-            m_render_group = render_group;
+            m_graphics_pipeline = graphics_pipeline;
         }
     }
 }
@@ -285,47 +282,57 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
     static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
 
     // render with each light
-    for (uint32 light_type_index = 0; light_type_index < uint32(LT_MAX); light_type_index++)
+    for (uint32 light_type_index = 0; light_type_index < LT_MAX; light_type_index++)
     {
         const LightType light_type = LightType(light_type_index);
 
-        const Handle<RenderGroup>& render_group = m_direct_light_render_groups[light_type_index];
-
-        const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
-        const uint32 material_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
-        const uint32 deferred_direct_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
-
-        render_group->GetPipeline()->SetPushConstants(
-            m_push_constant_data.Data(),
-            m_push_constant_data.Size());
-
-        frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
-
-        // Bind textures globally (bindless)
-        if (material_descriptor_set_index != ~0u && use_bindless_textures)
-        {
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame->GetFrameIndex()),
-                render_group->GetPipeline(),
-                ArrayMap<Name, uint32> {},
-                material_descriptor_set_index);
-        }
-
-        if (deferred_direct_descriptor_set_index != ~0u)
-        {
-            frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame->GetFrameIndex()),
-                render_group->GetPipeline(),
-                ArrayMap<Name, uint32> {},
-                deferred_direct_descriptor_set_index);
-        }
+        bool is_first_light = true;
 
         for (Light* light : rpl.lights)
         {
+            if (light->GetLightType() != light_type_index)
+            {
+                continue;
+            }
+
+            const GraphicsPipelineRef& pipeline = m_direct_light_graphics_pipelines[light_type_index];
+
+            const uint32 global_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+            const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+            const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
+            const uint32 deferred_direct_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
+
+            if (is_first_light)
+            {
+                pipeline->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+
+                frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+
+                // Bind textures globally (bindless)
+                if (material_descriptor_set_index != ~0u && use_bindless_textures)
+                {
+                    frame->GetCommandList().Add<BindDescriptorSet>(
+                        pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame->GetFrameIndex()),
+                        pipeline,
+                        ArrayMap<Name, uint32> {},
+                        material_descriptor_set_index);
+                }
+
+                if (deferred_direct_descriptor_set_index != ~0u)
+                {
+                    frame->GetCommandList().Add<BindDescriptorSet>(
+                        pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame->GetFrameIndex()),
+                        pipeline,
+                        ArrayMap<Name, uint32> {},
+                        deferred_direct_descriptor_set_index);
+                }
+
+                is_first_light = false;
+            }
+
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
-                render_group->GetPipeline(),
+                pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
+                pipeline,
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
@@ -334,7 +341,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 rs.pass_data->descriptor_sets[frame->GetFrameIndex()],
-                render_group->GetPipeline(),
+                pipeline,
                 ArrayMap<Name, uint32> {},
                 view_descriptor_set_index);
 
@@ -349,7 +356,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
                 frame->GetCommandList().Add<BindDescriptorSet>(
                     material_descriptor_set,
-                    render_group->GetPipeline(),
+                    pipeline,
                     ArrayMap<Name, uint32> {},
                     material_descriptor_set_index);
             }
@@ -559,20 +566,16 @@ void EnvGridPass::CreatePipeline()
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
 
-        Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+        GraphicsPipelineRef graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
             shader,
-            renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE);
+            { &m_framebuffer, 1 },
+            renderable_attributes);
 
-        render_group->AddFramebuffer(m_framebuffer);
-
-        InitObject(render_group);
-
-        m_render_groups[uint32(it.first)] = std::move(render_group);
+        m_graphics_pipelines[uint32(it.first)] = std::move(graphics_pipeline);
     }
 
-    m_render_group = m_render_groups[uint32(ApplyEnvGridMode::SH)];
+    m_graphics_pipeline = m_graphics_pipelines[uint32(ApplyEnvGridMode::SH)];
 }
 
 void EnvGridPass::Resize_Internal(Vec2u new_size)
@@ -606,32 +609,32 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     for (RenderEnvGrid* env_grid : rpl.GetEnvGrids())
     {
-        const Handle<RenderGroup>& render_group = m_mode == EnvGridPassMode::RADIANCE
-            ? m_render_group
-            : m_render_groups[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGrid()->GetEnvGridType()))];
+        const GraphicsPipelineRef& graphics_pipeline = m_mode == EnvGridPassMode::RADIANCE
+            ? m_graphics_pipeline
+            : m_graphics_pipelines[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGrid()->GetEnvGridType()))];
 
-        AssertThrow(render_group.IsValid());
+        AssertThrow(graphics_pipeline.IsValid());
 
-        const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 global_descriptor_set_index = graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+        const uint32 view_descriptor_set_index = graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
-        render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+        graphics_pipeline->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
         if (ShouldRenderHalfRes())
         {
             const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (rs.world->GetBufferData().frame_counter & 1);
             const Vec2u viewport_extent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline(), viewport_offset, viewport_extent);
+            frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline, viewport_offset, viewport_extent);
         }
         else
         {
-            frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
+            frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline);
         }
 
         frame->GetCommandList().Add<BindDescriptorSet>(
-            render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
-            render_group->GetPipeline(),
+            graphics_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
+            graphics_pipeline,
             ArrayMap<Name, uint32> {
                 { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
@@ -640,7 +643,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             rs.pass_data->descriptor_sets[frame_index],
-            render_group->GetPipeline(),
+            graphics_pipeline,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
 
@@ -739,20 +742,16 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderable_at
         DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
 
-        Handle<RenderGroup> render_group = CreateObject<RenderGroup>(
+        GraphicsPipelineRef graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
             shader,
-            renderable_attributes,
             descriptor_table,
-            RenderGroupFlags::NONE);
+            { &m_framebuffer, 1 },
+            renderable_attributes);
 
-        render_group->AddFramebuffer(m_framebuffer);
-
-        InitObject(render_group);
-
-        m_render_groups[it.first] = std::move(render_group);
+        m_graphics_pipelines[it.first] = std::move(graphics_pipeline);
     }
 
-    m_render_group = m_render_groups[ApplyReflectionProbeMode::DEFAULT];
+    m_graphics_pipeline = m_graphics_pipelines[ApplyReflectionProbeMode::DEFAULT];
 }
 
 bool ReflectionsPass::ShouldRenderSSR() const
@@ -838,14 +837,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         ApplyReflectionProbeMode::PARALLAX_CORRECTED // ENV_PROBE_TYPE_REFLECTION
     };
 
-    FixedArray<Pair<Handle<RenderGroup>*, Array<EnvProbe*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
+    FixedArray<Pair<GraphicsPipelineRef*, Array<EnvProbe*>>, ApplyReflectionProbeMode::MAX> pass_ptrs;
 
     for (uint32 mode_index = ApplyReflectionProbeMode::DEFAULT; mode_index < ApplyReflectionProbeMode::MAX; mode_index++)
     {
-        pass_ptrs[mode_index] = {
-            &m_render_groups[mode_index],
-            {}
-        };
+        pass_ptrs[mode_index] = { &m_graphics_pipelines[mode_index], {} };
 
         const EnvProbeType env_probe_type = reflection_probe_types[mode_index];
 
@@ -870,32 +866,32 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         const EnvProbeType env_probe_type = reflection_probe_types[reflection_probe_type_index];
         const ApplyReflectionProbeMode mode = reflection_probe_modes[reflection_probe_type_index];
 
-        const Pair<Handle<RenderGroup>*, Array<EnvProbe*>>& it = pass_ptrs[mode];
+        const Pair<GraphicsPipelineRef*, Array<EnvProbe*>>& it = pass_ptrs[mode];
 
         if (it.second.Empty())
         {
             continue;
         }
 
-        const Handle<RenderGroup>& render_group = *it.first;
+        const GraphicsPipelineRef& graphics_pipeline = *it.first;
         const Array<EnvProbe*>& env_probes = it.second;
 
-        render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+        graphics_pipeline->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
         if (ShouldRenderHalfRes())
         {
             const Vec2i viewport_offset = (Vec2i(m_framebuffer->GetExtent().x, 0) / 2) * (rs.world->GetBufferData().frame_counter & 1);
             const Vec2u viewport_extent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
-            frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline(), viewport_offset, viewport_extent);
+            frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline, viewport_offset, viewport_extent);
         }
         else
         {
-            frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
+            frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline);
         }
 
-        const uint32 global_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 view_descriptor_set_index = render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 global_descriptor_set_index = graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
+        const uint32 view_descriptor_set_index = graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         for (EnvProbe* env_probe : env_probes)
         {
@@ -910,8 +906,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             // AssertThrow(proxy->bound_index != ~0u);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
-                render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
-                render_group->GetPipeline(),
+                graphics_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
+                graphics_pipeline,
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
@@ -920,7 +916,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 rs.pass_data->descriptor_sets[frame_index],
-                render_group->GetPipeline(),
+                graphics_pipeline,
                 ArrayMap<Name, uint32> {},
                 view_descriptor_set_index);
 
@@ -962,7 +958,6 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 DeferredPassData::~DeferredPassData()
 {
     SafeRelease(std::move(final_pass_descriptor_set));
-    SafeRelease(std::move(descriptor_sets));
 
     depth_pyramid_renderer.Reset();
 
@@ -1016,12 +1011,18 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_data)
+void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
 {
     HYP_SCOPE;
 
     AssertThrow(view != nullptr);
     AssertThrow(view->GetFlags() & ViewFlags::GBUFFER);
+
+    HYP_LOG(Rendering, Debug, "Creating View pass data for View {}", view->GetID());
+
+    DeferredPassData& pd = static_cast<DeferredPassData&>(pass_data);
+
+    pd.view = view->WeakHandleFromThis();
 
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
     AssertDebug(gbuffer != nullptr);
@@ -1034,34 +1035,34 @@ void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_dat
     const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    pass_data.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, gbuffer);
-    pass_data.env_grid_radiance_pass->Create();
+    pd.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, gbuffer);
+    pd.env_grid_radiance_pass->Create();
 
-    pass_data.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, gbuffer);
-    pass_data.env_grid_irradiance_pass->Create();
+    pd.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, gbuffer);
+    pd.env_grid_irradiance_pass->Create();
 
-    pass_data.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
-    pass_data.ssgi->Create();
+    pd.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
+    pd.ssgi->Create();
 
-    pass_data.post_processing = MakeUnique<PostProcessing>();
-    pass_data.post_processing->Create();
+    pd.post_processing = MakeUnique<PostProcessing>();
+    pd.post_processing->Create();
 
-    pass_data.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, gbuffer);
-    pass_data.indirect_pass->Create();
+    pd.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, gbuffer);
+    pd.indirect_pass->Create();
 
-    pass_data.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, gbuffer);
-    pass_data.direct_pass->Create();
+    pd.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, gbuffer);
+    pd.direct_pass->Create();
 
     AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
     AssertThrow(depth_attachment != nullptr);
 
-    pass_data.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
-    pass_data.depth_pyramid_renderer->Create();
+    pd.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
+    pd.depth_pyramid_renderer->Create();
 
-    pass_data.cull_data.depth_pyramid_image_view = pass_data.depth_pyramid_renderer->GetResultImageView();
-    pass_data.cull_data.depth_pyramid_dimensions = pass_data.depth_pyramid_renderer->GetExtent();
+    pd.cull_data.depth_pyramid_image_view = pd.depth_pyramid_renderer->GetResultImageView();
+    pd.cull_data.depth_pyramid_dimensions = pd.depth_pyramid_renderer->GetExtent();
 
-    pass_data.mip_chain = CreateObject<Texture>(TextureDesc {
+    pd.mip_chain = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
         mip_chain_format,
         Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
@@ -1069,33 +1070,33 @@ void DeferredRenderer::CreateViewPassData(View* view, DeferredPassData& pass_dat
         TFM_LINEAR_MIPMAP,
         TWM_CLAMP_TO_EDGE });
 
-    InitObject(pass_data.mip_chain);
+    InitObject(pd.mip_chain);
 
-    pass_data.mip_chain->SetPersistentRenderResourceEnabled(true);
+    pd.mip_chain->SetPersistentRenderResourceEnabled(true);
 
-    pass_data.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer);
-    pass_data.hbao->Create();
+    pd.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer);
+    pd.hbao->Create();
 
     // m_dof_blur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
     // m_dof_blur->Create();
 
-    CreateViewCombinePass(view, pass_data);
+    CreateViewCombinePass(view, pd);
 
-    pass_data.reflections_pass = MakeUnique<ReflectionsPass>(gbuffer, pass_data.mip_chain->GetRenderResource().GetImageView(), pass_data.combine_pass->GetFinalImageView());
-    pass_data.reflections_pass->Create();
+    pd.reflections_pass = MakeUnique<ReflectionsPass>(gbuffer, pd.mip_chain->GetRenderResource().GetImageView(), pd.combine_pass->GetFinalImageView());
+    pd.reflections_pass->Create();
 
-    pass_data.tonemap_pass = MakeUnique<TonemapPass>(gbuffer);
-    pass_data.tonemap_pass->Create();
+    pd.tonemap_pass = MakeUnique<TonemapPass>(gbuffer);
+    pd.tonemap_pass->Create();
 
     // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-    pass_data.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
-    pass_data.lightmap_pass->Create();
+    pd.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
+    pd.lightmap_pass->Create();
 
-    pass_data.temporal_aa = MakeUnique<TemporalAA>(gbuffer->GetExtent(), pass_data.tonemap_pass->GetFinalImageView(), gbuffer);
-    pass_data.temporal_aa->Create();
+    pd.temporal_aa = MakeUnique<TemporalAA>(gbuffer->GetExtent(), pd.tonemap_pass->GetFinalImageView(), gbuffer);
+    pd.temporal_aa->Create();
 
-    CreateViewDescriptorSets(view, pass_data);
-    CreateViewFinalPassDescriptorSet(view, pass_data);
+    CreateViewDescriptorSets(view, pd);
+    CreateViewFinalPassDescriptorSet(view, pd);
 }
 
 void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data)
@@ -1278,6 +1279,8 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& pass_
 
 void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassData& pass_data)
 {
+    HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->GetID(), viewport.extent.x, viewport.extent.y);
+
     AssertThrow(viewport.extent.Volume() > 0);
 
     const Vec2u new_size = Vec2u(viewport.extent);
@@ -1324,6 +1327,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassDat
     SafeRelease(std::move(pass_data.final_pass_descriptor_set));
     CreateViewFinalPassDescriptorSet(view, pass_data);
 
+    pass_data.view = view->WeakHandleFromThis();
     pass_data.viewport = viewport;
 }
 
@@ -1381,6 +1385,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         pd->priority = view->GetRenderResource().GetPriority();
 
+#if 1 // temp
         for (Light* light : rpl.lights)
         {
             AssertDebug(light != nullptr);
@@ -1441,6 +1446,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
             env_grids.PushBack(env_grid);
         }
+#endif
     }
 
     // Render global environment probes and grids and set fallbacks
@@ -1538,6 +1544,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         new_rs.view = nullptr;
         new_rs.pass_data = nullptr;
+
+        pd->CullUnusedGraphicsPipelines();
 
 #ifdef HYP_ENABLE_RENDER_STATS
         RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
@@ -1739,11 +1747,11 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         frame->GetCommandList().Add<BeginFramebuffer>(translucent_fbo, frame_index);
 
         { // Render the deferred lighting into the translucent pass framebuffer with a full screen quad.
-            frame->GetCommandList().Add<BindGraphicsPipeline>(pd->combine_pass->GetRenderGroup()->GetPipeline());
+            frame->GetCommandList().Add<BindGraphicsPipeline>(pd->combine_pass->GetGraphicsPipeline());
 
             frame->GetCommandList().Add<BindDescriptorTable>(
-                pd->combine_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-                pd->combine_pass->GetRenderGroup()->GetPipeline(),
+                pd->combine_pass->GetGraphicsPipeline()->GetDescriptorTable(),
+                pd->combine_pass->GetGraphicsPipeline(),
                 ArrayMap<Name, ArrayMap<Name, uint32>> {},
                 frame_index);
 

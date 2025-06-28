@@ -135,9 +135,6 @@ void HyperionEditor::Init()
 
     g_engine->GetWorld()->AddSubsystem(m_editor_subsystem);
 
-    // // temp
-    // return;
-
     if (const Handle<WorldGrid>& world_grid = g_engine->GetWorld()->GetWorldGrid())
     {
         // // Initialize the world grid subsystem
@@ -243,7 +240,7 @@ void HyperionEditor::Init()
 #endif
 
     // Add Skybox
-    if (true)
+    if (false)
     {
         Handle<Entity> skybox_entity = scene->GetEntityManager()->AddEntity();
 

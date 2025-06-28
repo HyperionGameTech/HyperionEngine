@@ -26,6 +26,9 @@
 #include <Types.hpp>
 
 namespace hyperion {
+
+struct DescriptorTableDeclaration;
+
 class VulkanFramebuffer;
 using VulkanFramebufferRef = RenderObjectHandle_Strong<VulkanFramebuffer>;
 using VulkanFramebufferWeakRef = RenderObjectHandle_Weak<VulkanFramebuffer>;
@@ -48,29 +51,15 @@ public:
 
     HYP_API void SetRenderPass(const VulkanRenderPassRef& render_pass);
 
-    HYP_FORCE_INLINE const Array<VulkanFramebufferRef>& GetFramebuffers() const
-    {
-        return m_framebuffers;
-    }
-
-    HYP_API void SetFramebuffers(const Array<VulkanFramebufferRef>& framebuffers);
-
-    HYP_API virtual RendererResult Create() override;
-    HYP_API virtual RendererResult Destroy() override;
-
     HYP_API virtual void Bind(CommandBufferBase* cmd) override;
     HYP_API virtual void Bind(CommandBufferBase* cmd, Vec2i viewport_offset, Vec2u viewport_extent) override;
 
-    HYP_API virtual bool MatchesSignature(
-        const ShaderBase* shader,
-        const DescriptorTableBase* descriptor_table,
-        const Array<const FramebufferBase*>& framebuffers,
-        const RenderableAttributeSet& attributes) const override;
-
     HYP_API virtual void SetPushConstants(const void* data, SizeType size) override;
 
+    HYP_API virtual RendererResult Destroy() override;
+
 private:
-    RendererResult Rebuild();
+    HYP_API virtual RendererResult Rebuild() override;
 
     void BuildVertexAttributes(
         const VertexAttributeSet& attribute_set,
@@ -80,7 +69,6 @@ private:
     void UpdateViewport(VulkanCommandBuffer* command_buffer, const Viewport& viewport);
 
     VulkanRenderPassRef m_render_pass;
-    Array<VulkanFramebufferRef> m_framebuffers;
     Viewport m_viewport;
 };
 

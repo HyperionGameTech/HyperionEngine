@@ -29,7 +29,6 @@ public:
     void OnAddedToWorld() override;
     void OnRemovedFromWorld() override;
 
-    void PreUpdate(float delta) override;
     void Update(float delta) override;
 
     void OnSceneAttached(const Handle<Scene>& scene) override;

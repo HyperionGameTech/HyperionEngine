@@ -261,20 +261,22 @@ void Camera::Init()
 
             RemoveDelegateHandler(NAME("HandleWindowSizeChanged"));
 
-            AddDelegateHandler(NAME("HandleWindowSizeChanged"), app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i window_size)
-                                                                    {
-                                                                        HYP_NAMED_SCOPE("Update Camera size based on window size");
+            AddDelegateHandler(
+                NAME("HandleWindowSizeChanged"),
+                app_context->GetMainWindow()->OnWindowSizeChanged.Bind([this](Vec2i window_size)
+                    {
+                        HYP_NAMED_SCOPE("Update Camera size based on window size");
 
-                                                                        Threads::AssertOnThread(g_game_thread);
+                        Threads::AssertOnThread(g_game_thread);
 
-                                                                        window_size = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(window_size) * m_match_window_size_ratio)), Vec2i::One());
+                        window_size = MathUtil::Max(Vec2i(MathUtil::Round(Vec2f(window_size) * m_match_window_size_ratio)), Vec2i::One());
 
-                                                                        m_width = window_size.x;
-                                                                        m_height = window_size.y;
+                        m_width = window_size.x;
+                        m_height = window_size.y;
 
-                                                                        HYP_LOG(Camera, Debug, "Camera window size (change): {}", window_size);
-                                                                    },
-                                                                    /* require_current_thread */ true));
+                        HYP_LOG(Camera, Debug, "Camera window size (change): {}", window_size);
+                    },
+                    /* require_current_thread */ true));
 
             HYP_LOG(Camera, Debug, "Camera window size: {}", window_size);
 

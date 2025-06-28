@@ -9,6 +9,7 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/Deferred.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
@@ -115,15 +116,11 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderable_attributes)
 
     m_descriptor_table = descriptor_table;
 
-    m_render_group = CreateObject<RenderGroup>(
+    m_graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
         m_shader,
-        renderable_attributes,
-        *m_descriptor_table,
-        RenderGroupFlags::NONE);
-
-    m_render_group->AddFramebuffer(m_framebuffer);
-
-    InitObject(m_render_group);
+        descriptor_table,
+        { &m_framebuffer, 1 },
+        renderable_attributes);
 }
 
 void HBAO::CreateDescriptors()
@@ -165,15 +162,15 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
     Begin(frame, render_setup);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-        GetRenderGroup()->GetPipeline(),
+        m_graphics_pipeline->GetDescriptorTable(),
+        m_graphics_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
-    const uint32 view_descriptor_set_index = GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 view_descriptor_set_index = m_graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
     if (view_descriptor_set_index != ~0u)
     {
@@ -182,7 +179,7 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
-            m_render_group->GetPipeline(),
+            m_graphics_pipeline,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
     }

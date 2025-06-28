@@ -66,7 +66,7 @@ struct RENDER_COMMAND(SetUILayerImageView)
 
         if (final_pass.m_render_texture_to_screen_pass != nullptr)
         {
-            const DescriptorTableRef& descriptor_table = final_pass.m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable();
+            const DescriptorTableRef& descriptor_table = final_pass.m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable();
             AssertThrow(descriptor_table.IsValid());
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -80,7 +80,7 @@ struct RENDER_COMMAND(SetUILayerImageView)
                 }
                 else
                 {
-                    descriptor_set->SetElement(NAME("InTexture"), g_render_global_state->PlaceholderData->GetImageView2D1x1R8());
+                    descriptor_set->SetElement(NAME("InTexture"), g_render_global_state->PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView());
                 }
             }
         }
@@ -186,15 +186,15 @@ void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
     AssertDebug(framebuffer != nullptr);
 
     frame->GetCommandList().Add<BeginFramebuffer>(framebuffer, 0);
-    frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline());
+    frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetGraphicsPipeline());
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+        m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable(),
+        m_render_texture_to_screen_pass->GetGraphicsPipeline(),
         ArrayMap<Name, ArrayMap<Name, uint32>> {},
         frame_index);
 
-    const uint32 descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("RenderTextureToScreenDescriptorSet"));
+    const uint32 descriptor_set_index = m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("RenderTextureToScreenDescriptorSet"));
     AssertDebug(descriptor_set_index != ~0u);
 
     // Render each sub-view
@@ -214,7 +214,7 @@ void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             pd->final_pass_descriptor_set,
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            m_render_texture_to_screen_pass->GetGraphicsPipeline(),
             ArrayMap<Name, uint32> {},
             descriptor_set_index);
 
@@ -228,18 +228,20 @@ void FinalPass::Render(FrameBase* frame, RenderWorld* render_world)
         // If the UI pass has needs to be updated for the current frame index, do it
         if (m_dirty_frame_indices & (1u << frame_index))
         {
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->Update(frame_index);
+            m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable()->Update(frame_index);
 
             m_dirty_frame_indices &= ~(1u << frame_index);
         }
 
         frame->GetCommandList().Add<BindDescriptorSet>(
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index),
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frame_index),
+            m_render_texture_to_screen_pass->GetGraphicsPipeline(),
             ArrayMap<Name, uint32> {},
             descriptor_set_index);
 
         m_quad_mesh->GetRenderResource().Render(frame->GetCommandList());
+
+        // DebugLog(LogType::Debug, "Rendering UI layer to screen for frame index %u\n", frame_index);
     }
 #endif
 

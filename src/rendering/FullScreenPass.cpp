@@ -13,6 +13,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 #include <rendering/TemporalBlending.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/backend/RendererSwapchain.hpp> // temp
 #include <rendering/backend/RendererFrame.hpp>
@@ -136,15 +137,10 @@ FullScreenPass::FullScreenPass(
 
 FullScreenPass::~FullScreenPass()
 {
-    if (m_framebuffer.IsValid() && m_render_group.IsValid())
-    {
-        m_render_group->RemoveFramebuffer(m_framebuffer);
-    }
-
-    m_render_group.Reset();
     m_full_screen_quad.Reset();
 
     SafeRelease(std::move(m_framebuffer));
+    SafeRelease(std::move(m_graphics_pipeline));
 
     if (m_is_initialized)
     {
@@ -274,11 +270,10 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
         return;
     }
 
+    SafeRelease(std::move(m_graphics_pipeline));
     SafeRelease(std::move(m_framebuffer));
 
     m_temporal_blending.Reset();
-
-    m_render_group.Reset();
 
     CreateFramebuffer();
     CreateMergeHalfResTexturesPass();
@@ -381,25 +376,11 @@ void FullScreenPass::CreatePipeline(const RenderableAttributeSet& renderable_att
 {
     HYP_SCOPE;
 
-    if (m_descriptor_table.HasValue())
-    {
-        m_render_group = CreateObject<RenderGroup>(
-            m_shader,
-            renderable_attributes,
-            *m_descriptor_table,
-            RenderGroupFlags::NONE);
-    }
-    else
-    {
-        m_render_group = CreateObject<RenderGroup>(
-            m_shader,
-            renderable_attributes,
-            RenderGroupFlags::NONE);
-    }
-
-    m_render_group->AddFramebuffer(m_framebuffer);
-
-    InitObject(m_render_group);
+    m_graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
+        m_shader,
+        m_descriptor_table.GetOr(DescriptorTableRef::Null()),
+        { &m_framebuffer, 1 },
+        renderable_attributes);
 }
 
 void FullScreenPass::CreateTemporalBlending()
@@ -561,26 +542,26 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
         // render previous frame's result to screen
         frame->GetCommandList().Add<BindGraphicsPipeline>(
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            m_render_texture_to_screen_pass->GetGraphicsPipeline(),
             viewport_offset,
             viewport_extent);
     }
     else
     {
         // render previous frame's result to screen
-        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline());
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_texture_to_screen_pass->GetGraphicsPipeline());
     }
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-        m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+        m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable(),
+        m_render_texture_to_screen_pass->GetGraphicsPipeline(),
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame_index);
 
-    const uint32 view_descriptor_set_index = m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 view_descriptor_set_index = m_render_texture_to_screen_pass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
     if (view_descriptor_set_index != ~0u)
     {
@@ -588,7 +569,7 @@ void FullScreenPass::RenderPreviousTextureToScreen(FrameBase* frame, const Rende
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
-            m_render_texture_to_screen_pass->GetRenderGroup()->GetPipeline(),
+            m_render_texture_to_screen_pass->GetGraphicsPipeline(),
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
     }
@@ -675,7 +656,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
         RenderPreviousTextureToScreen(frame, render_setup);
     }
 
-    m_render_group->GetPipeline()->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
+    m_graphics_pipeline->SetPushConstants(m_push_constant_data.Data(), m_push_constant_data.Size());
 
     if (ShouldRenderHalfRes())
     {
@@ -685,25 +666,25 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
         const Vec2u viewport_extent = Vec2u(framebuffer->GetExtent().x / 2, framebuffer->GetExtent().y);
 
         frame->GetCommandList().Add<BindGraphicsPipeline>(
-            m_render_group->GetPipeline(),
+            m_graphics_pipeline,
             viewport_offset,
             viewport_extent);
     }
     else
     {
-        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_graphics_pipeline);
     }
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_render_group->GetPipeline()->GetDescriptorTable(),
-        m_render_group->GetPipeline(),
+        m_graphics_pipeline->GetDescriptorTable(),
+        m_graphics_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
         frame->GetFrameIndex());
 
-    const uint32 view_descriptor_set_index = m_render_group->GetPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 view_descriptor_set_index = m_graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
     if (view_descriptor_set_index != ~0u)
     {
@@ -711,7 +692,7 @@ void FullScreenPass::RenderToFramebuffer(FrameBase* frame, const RenderSetup& re
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             render_setup.pass_data->descriptor_sets[frame->GetFrameIndex()],
-            m_render_group->GetPipeline(),
+            m_graphics_pipeline,
             ArrayMap<Name, uint32> {},
             view_descriptor_set_index);
     }
@@ -739,13 +720,13 @@ void FullScreenPass::Begin(FrameBase* frame, const RenderSetup& render_setup)
         const Vec2u viewport_extent = Vec2u(m_framebuffer->GetExtent().x / 2, m_framebuffer->GetExtent().y);
 
         frame->GetCommandList().Add<BindGraphicsPipeline>(
-            m_render_group->GetPipeline(),
+            m_graphics_pipeline,
             viewport_offset,
             viewport_extent);
     }
     else
     {
-        frame->GetCommandList().Add<BindGraphicsPipeline>(m_render_group->GetPipeline());
+        frame->GetCommandList().Add<BindGraphicsPipeline>(m_graphics_pipeline);
     }
 }
 

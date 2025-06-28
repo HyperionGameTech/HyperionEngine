@@ -116,60 +116,6 @@ void SkydomeRenderer::OnRemovedFromWorld()
 
 void SkydomeRenderer::Update(float delta)
 {
-    struct RENDER_COMMAND(RenderSky)
-        : public RenderCommand
-    {
-        RenderWorld* world;
-        RenderTexture* cubemap;
-
-        Handle<EnvProbe> env_probe;
-
-        RENDER_COMMAND(RenderSky)(RenderWorld* world, RenderTexture* cubemap, const Handle<EnvProbe>& env_probe)
-            : world(world),
-              env_probe(env_probe),
-              cubemap(cubemap)
-        {
-        }
-
-        virtual ~RENDER_COMMAND(RenderSky)() override
-        {
-            world->DecRef();
-            cubemap->DecRef();
-            env_probe->GetRenderResource().DecRef();
-        }
-
-        virtual RendererResult operator()() override
-        {
-            FrameBase* frame = g_rendering_api->GetCurrentFrame();
-
-            RenderSetup render_setup { world, nullptr };
-
-            // env_probe->GetRenderResource().Render(frame, render_setup);
-
-            // Copy cubemap from env probe to cubemap texture
-            const ImageRef& src_image = env_probe->GetView()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImage();
-
-            HYP_LOG(Rendering, Debug, "Rendering sky with env probe: {}  src image dimensions : {}", env_probe->GetID(), src_image->GetExtent());
-
-            AssertThrow(src_image.IsValid());
-            AssertThrow(src_image->IsCreated());
-
-            const ImageRef& dst_image = cubemap->GetImage();
-
-            frame->GetCommandList().Add<InsertBarrier>(src_image, RS_COPY_SRC);
-            frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_COPY_DST);
-
-            frame->GetCommandList().Add<Blit>(src_image, dst_image);
-
-            frame->GetCommandList().Add<GenerateMipmaps>(dst_image);
-
-            frame->GetCommandList().Add<InsertBarrier>(src_image, RS_SHADER_RESOURCE);
-            frame->GetCommandList().Add<InsertBarrier>(dst_image, RS_SHADER_RESOURCE);
-
-            HYPERION_RETURN_OK;
-        }
-    };
-
     if (!m_env_probe->ReceivesUpdate())
     {
         return;
@@ -177,19 +123,6 @@ void SkydomeRenderer::Update(float delta)
 
     m_env_probe->Update(delta);
     m_env_probe->SetNeedsRender(true);
-
-    // if (m_env_probe->NeedsRender())
-    // {
-    //     g_engine->GetWorld()->GetRenderResource().IncRef();
-    //     m_cubemap->GetRenderResource().IncRef();
-    //     m_env_probe->GetRenderResource().IncRef();
-
-    //     PUSH_RENDER_COMMAND(
-    //         RenderSky,
-    //         &g_engine->GetWorld()->GetRenderResource(),
-    //         &m_cubemap->GetRenderResource(),
-    //         m_env_probe);
-    // }
 
     m_env_probe->SetReceivesUpdate(false);
 }

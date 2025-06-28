@@ -62,9 +62,9 @@ public:
         return m_indirect_buffer;
     }
 
-    HYP_FORCE_INLINE const Handle<RenderGroup>& GetRenderGroup() const
+    HYP_FORCE_INLINE const GraphicsPipelineRef& GetGraphicsPipeline() const
     {
-        return m_render_group;
+        return m_graphics_pipeline;
     }
 
     HYP_FORCE_INLINE const ComputePipelineRef& GetComputePipeline() const
@@ -82,16 +82,16 @@ private:
 
     void CreateNoiseMap();
     void CreateBuffers();
-    void CreateRenderGroup();
     void CreateComputePipelines();
+    void CreateGraphicsPipeline();
 
     ParticleSpawnerParams m_params;
     GPUBufferRef m_particle_buffer;
     GPUBufferRef m_indirect_buffer;
     GPUBufferRef m_noise_buffer;
     ComputePipelineRef m_update_particles;
+    GraphicsPipelineRef m_graphics_pipeline;
     ShaderRef m_shader;
-    Handle<RenderGroup> m_render_group;
     Bitmap<1> m_noise_map;
 };
 

@@ -22,7 +22,12 @@ public:
 
     HYP_FORCE_INLINE uint64 Elapsed() const
     {
-        return m_end_time_us - m_start_time_us;
+        return (m_end_time_us == 0 ? Now() : m_end_time_us) - m_start_time_us;
+    }
+
+    HYP_FORCE_INLINE double ElapsedMs() const
+    {
+        return double(Elapsed()) / 1000.0;
     }
 
     void Start();

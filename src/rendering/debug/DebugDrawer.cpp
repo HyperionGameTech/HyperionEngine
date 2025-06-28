@@ -13,6 +13,7 @@
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/RenderWorld.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/UIRenderer.hpp>
 
@@ -363,33 +364,33 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
     struct
     {
         HashCode attributes_hash_code;
-        Handle<RenderGroup> render_group;
+        GraphicsPipelineRef graphics_pipeline;
         uint32 drawable_layer = ~0u;
-    } last_used_render_group;
+    } previous_state;
 
     for (SizeType index = 0; index < m_draw_commands.Size(); index++)
     {
         const DebugDrawCommand& draw_command = *m_draw_commands[index];
 
-        bool is_new_render_group = false;
+        bool is_new_graphics_pipeline = false;
 
-        Handle<RenderGroup>& render_group = last_used_render_group.render_group;
+        GraphicsPipelineRef& graphics_pipeline = previous_state.graphics_pipeline;
 
-        if (!render_group.IsValid() || last_used_render_group.attributes_hash_code != draw_command.attributes.GetHashCode())
+        if (!graphics_pipeline.IsValid() || previous_state.attributes_hash_code != draw_command.attributes.GetHashCode())
         {
-            render_group = GetOrCreateRenderGroup(draw_command.attributes, ++last_used_render_group.drawable_layer);
-            last_used_render_group.attributes_hash_code = draw_command.attributes.GetHashCode();
+            graphics_pipeline = FetchGraphicsPipeline(draw_command.attributes, ++previous_state.drawable_layer);
+            previous_state.attributes_hash_code = draw_command.attributes.GetHashCode();
 
-            is_new_render_group = true;
+            is_new_graphics_pipeline = true;
         }
 
-        if (is_new_render_group)
+        if (is_new_graphics_pipeline)
         {
-            frame->GetCommandList().Add<BindGraphicsPipeline>(render_group->GetPipeline());
+            frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline);
 
             frame->GetCommandList().Add<BindDescriptorTable>(
                 m_descriptor_table,
-                render_group->GetPipeline(),
+                graphics_pipeline,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("DebugDrawerDescriptorSet"),
                         { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
@@ -406,7 +407,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         frame->GetCommandList().Add<BindDescriptorSet>(
             debug_drawer_descriptor_set,
-            render_group->GetPipeline(),
+            graphics_pipeline,
             ArrayMap<Name, uint32> {
                 { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(index) } },
             debug_drawer_descriptor_set_index);
@@ -462,46 +463,44 @@ void DebugDrawer::CommitCommands(DebugDrawCommandList& command_list)
     m_draw_commands_pending_addition.Concat(std::move(command_list.m_draw_commands));
 }
 
-Handle<RenderGroup> DebugDrawer::GetOrCreateRenderGroup(RenderableAttributeSet attributes, uint32 drawable_layer)
+GraphicsPipelineRef DebugDrawer::FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 drawable_layer)
 {
     HYP_SCOPE;
 
     attributes.SetDrawableLayer(drawable_layer);
 
-    Handle<RenderGroup> render_group;
+    GraphicsPipelineRef graphics_pipeline;
 
-    auto it = m_render_groups.Find(attributes);
+    auto it = m_graphics_pipelines.Find(attributes);
 
-    if (it != m_render_groups.End())
+    if (it != m_graphics_pipelines.End())
     {
-        render_group = it->second.Lock();
+        graphics_pipeline = it->second.Lock();
     }
 
-    if (!render_group)
+    if (!graphics_pipeline)
     {
-        render_group = CreateObject<RenderGroup>(
+        graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
             m_shader,
-            attributes,
             m_descriptor_table,
-            RenderGroupFlags::DEFAULT & ~(RenderGroupFlags::OCCLUSION_CULLING | RenderGroupFlags::INDIRECT_RENDERING));
+            {},
+            attributes);
 
         /// FIXME: GetCurrentView() should not be used here
         // const FramebufferRef& framebuffer = g_engine->GetCurrentView()->GetGBuffer()->GetBucket(attributes.GetMaterialAttributes().bucket).GetFramebuffer();
         // render_group->AddFramebuffer(framebuffer);
 
-        InitObject(render_group);
-
-        if (it != m_render_groups.End())
+        if (it != m_graphics_pipelines.End())
         {
-            it->second = render_group.ToWeak();
+            it->second = graphics_pipeline;
         }
         else
         {
-            m_render_groups.Insert(attributes, render_group.ToWeak());
+            m_graphics_pipelines.Insert(attributes, graphics_pipeline);
         }
     }
 
-    return render_group;
+    return graphics_pipeline;
 }
 
 #pragma endregion DebugDrawer

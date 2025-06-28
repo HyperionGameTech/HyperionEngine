@@ -145,8 +145,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
-HYP_ENABLE_OPTIMIZATION;
-static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, RenderView* render_view, const RenderableAttributeSet& attributes, RenderBucket rb)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, View* view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -190,27 +189,11 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<I
             mapping.draw_call_collection.impl = rg->GetDrawCallCollectionImpl();
         }
 
-        AssertThrow(render_view->GetView() != nullptr);
-        const ViewOutputTarget& output_target = render_view->GetView()->GetOutputTarget();
-
-        const FramebufferRef& framebuffer = output_target.GetFramebuffer(attributes.GetMaterialAttributes().bucket);
-        AssertThrow(framebuffer != nullptr);
-
-        rg->AddFramebuffer(framebuffer);
-
         InitObject(rg);
     }
 
-    auto insert_result = mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
-    volatile void* ptr = insert_result.first->second; // for debugging purposes
-    AssertDebugMsg(insert_result.second,
-        "RenderProxyList::AddRenderProxy: Render proxy already exists in mapping for entity #%u : render proxy entity: %u\t address: %p",
-        proxy->entity.GetID().Value(),
-        insert_result.first->second->entity.GetID().Value(),
-        ptr);
-    ptr = 0; // prevent optimization from removing the volatile pointer
+    mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
 }
-HYP_ENABLE_OPTIMIZATION;
 
 static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
@@ -355,13 +338,18 @@ uint32 RenderProxyList::NumRenderGroups() const
     return count;
 }
 
-void RenderProxyList::BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes)
+void RenderProxyList::BuildRenderGroups(View* view)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(~g_render_thread);
 
+    AssertDebug(view != nullptr);
+    AssertDebug(view->GetOutputTarget().IsValid());
+
     // should be in this state - this should be called from the game thread when the render proxy list is being built
     AssertDebug(state == CS_WRITING);
+
+    const RenderableAttributeSet* override_attributes = view->GetOverrideAttributes().TryGet();
 
     auto diff = meshes.GetDiff();
 
@@ -375,14 +363,6 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
         if (added_proxy_ptrs.Any() || removed_proxies.Any())
         {
-            // // Claim the added(+changed) before unclaiming the removed, as we may end up doing extra work for changed entities otherwise (unclaiming then reclaiming)
-            // for (RenderProxy* proxy : added_proxy_ptrs)
-            // {
-            //     AssertDebug(proxy != nullptr);
-
-            //     proxy->IncRefs();
-            // }
-
             for (RenderProxy* proxy : removed_proxies)
             {
                 AssertDebug(proxy != nullptr);
@@ -411,7 +391,7 @@ void RenderProxyList::BuildRenderGroups(RenderView* render_view, const Renderabl
 
                 const RenderBucket rb = attributes.GetMaterialAttributes().bucket;
 
-                AddRenderProxy(this, meshes, proxy, render_view, attributes, rb);
+                AddRenderProxy(this, meshes, proxy, view, attributes, rb);
             }
         }
     }
@@ -675,7 +655,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits, PushConstantData push_constant)
+void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits)
 {
     AssertDebug(render_setup.IsValid());
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a View attached");
@@ -683,18 +663,18 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
     if (render_setup.view->GetView()->GetFlags() & ViewFlags::GBUFFER)
     {
         // Pass NULL framebuffer for GBuffer rendering, as it will be handled by the GBuffer renderer outside of this.
-        ExecuteDrawCalls(frame, render_setup, render_proxy_list, FramebufferRef::Null(), bucket_bits, push_constant);
+        ExecuteDrawCalls(frame, render_setup, render_proxy_list, FramebufferRef::Null(), bucket_bits);
     }
     else
     {
         const FramebufferRef& framebuffer = render_setup.view->GetView()->GetOutputTarget().GetFramebuffer();
         AssertDebugMsg(framebuffer != nullptr, "Must have a valid framebuffer for rendering");
 
-        ExecuteDrawCalls(frame, render_setup, render_proxy_list, framebuffer, bucket_bits, push_constant);
+        ExecuteDrawCalls(frame, render_setup, render_proxy_list, framebuffer, bucket_bits);
     }
 }
 
-void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, const FramebufferRef& framebuffer, uint32 bucket_bits, PushConstantData push_constant)
+void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, const FramebufferRef& framebuffer, uint32 bucket_bits)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
@@ -779,11 +759,6 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
             const DrawCallCollection& draw_call_collection = mapping.draw_call_collection;
 
             IndirectRenderer* indirect_renderer = mapping.indirect_renderer;
-
-            if (push_constant)
-            {
-                render_group->GetPipeline()->SetPushConstants(push_constant.Data(), push_constant.Size());
-            }
 
             ParallelRenderingState* parallel_rendering_state = nullptr;
 

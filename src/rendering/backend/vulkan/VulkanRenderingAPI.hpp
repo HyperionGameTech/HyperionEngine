@@ -70,7 +70,7 @@ public:
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table,
-        const Array<FramebufferRef>& framebuffers,
+        Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) override;
 
     virtual ComputePipelineRef MakeComputePipeline(

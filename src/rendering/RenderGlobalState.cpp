@@ -523,7 +523,7 @@ HYP_API IRenderProxy* RendererAPI_GetRenderProxy(IDBase id)
         return nullptr; // no proxy for this resource
     }
 
-    IRenderProxy* proxy = subtype_data.proxies[id.ToIndex()];
+    IRenderProxy* proxy = subtype_data.proxies.Get(id.ToIndex());
     AssertDebug(proxy != nullptr);
 
     return proxy;

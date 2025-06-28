@@ -74,9 +74,9 @@ public:
         return m_indirect_buffer;
     }
 
-    const Handle<RenderGroup>& GetRenderGroup() const
+    const GraphicsPipelineRef& GetGraphicsPipeline() const
     {
-        return m_render_group;
+        return m_graphics_pipeline;
     }
 
     const ComputePipelineRef& GetUpdateSplatsComputePipeline() const
@@ -96,7 +96,7 @@ private:
 
     void CreateBuffers();
     void CreateShader();
-    void CreateRenderGroup();
+    void CreateGraphicsPipeline();
     void CreateComputePipelines();
 
     RC<GaussianSplattingModelData> m_model;
@@ -110,7 +110,7 @@ private:
     ComputePipelineRef m_sort_splats_transpose;
     Array<DescriptorTableRef> m_sort_stage_descriptor_tables;
     ShaderRef m_shader;
-    Handle<RenderGroup> m_render_group;
+    GraphicsPipelineRef m_graphics_pipeline;
 
     // inefficient cpu-based sort, just to test
     Array<uint32> m_cpu_sorted_indices;

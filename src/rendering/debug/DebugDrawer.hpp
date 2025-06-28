@@ -49,7 +49,7 @@ HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.debug.debug_drawer")
 struct DebugDrawerConfig : public ConfigBase<DebugDrawerConfig>
 {
     HYP_FIELD(Description = "Enable or disable the debug drawer.", JSONPath = "enabled")
-    bool enabled = true;
+    bool enabled = false;
 
     virtual ~DebugDrawerConfig() override = default;
 };
@@ -252,11 +252,11 @@ public: // Shapes
     PlaneDebugDrawShape& Plane;
 
 private:
-    Handle<RenderGroup> GetOrCreateRenderGroup(RenderableAttributeSet attributes, uint32 drawable_layer);
+    GraphicsPipelineRef FetchGraphicsPipeline(RenderableAttributeSet attributes, uint32 drawable_layer);
 
     ShaderRef m_shader;
     DescriptorTableRef m_descriptor_table;
-    HashMap<RenderableAttributeSet, WeakHandle<RenderGroup>> m_render_groups;
+    HashMap<RenderableAttributeSet, GraphicsPipelineWeakRef> m_graphics_pipelines;
 
     Array<UniquePtr<DebugDrawCommand>> m_draw_commands;
     Array<UniquePtr<DebugDrawCommand>> m_draw_commands_pending_addition;

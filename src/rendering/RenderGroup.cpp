@@ -23,11 +23,17 @@
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RenderConfig.hpp>
 
+// temp
+#include <rendering/backend/vulkan/RendererGraphicsPipeline.hpp>
+#include <rendering/backend/vulkan/RendererRenderPass.hpp>
+#include <rendering/backend/vulkan/RendererFramebuffer.hpp>
+
 #include <scene/Entity.hpp>
 #include <scene/Mesh.hpp>
 #include <scene/Material.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/View.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 
@@ -39,6 +45,8 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <core/Defines.hpp>
 
 #include <Engine.hpp>
 #include <Constants.hpp>
@@ -54,10 +62,7 @@ RenderGroup::RenderGroup()
 {
 }
 
-RenderGroup::RenderGroup(
-    const ShaderRef& shader,
-    const RenderableAttributeSet& renderable_attributes,
-    EnumFlags<RenderGroupFlags> flags)
+RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderable_attributes, EnumFlags<RenderGroupFlags> flags)
     : HypObject(),
       m_flags(flags),
       m_shader(shader),
@@ -66,11 +71,7 @@ RenderGroup::RenderGroup(
 {
 }
 
-RenderGroup::RenderGroup(
-    const ShaderRef& shader,
-    const RenderableAttributeSet& renderable_attributes,
-    const DescriptorTableRef& descriptor_table,
-    EnumFlags<RenderGroupFlags> flags)
+RenderGroup::RenderGroup(const ShaderRef& shader, const RenderableAttributeSet& renderable_attributes, const DescriptorTableRef& descriptor_table, EnumFlags<RenderGroupFlags> flags)
     : HypObject(),
       m_flags(flags),
       m_shader(shader),
@@ -88,8 +89,6 @@ RenderGroup::~RenderGroup()
 
     SafeRelease(std::move(m_shader));
     SafeRelease(std::move(m_descriptor_table));
-    SafeRelease(std::move(m_fbos));
-    SafeRelease(std::move(m_pipeline));
 }
 
 void RenderGroup::SetShader(const ShaderRef& shader)
@@ -108,36 +107,6 @@ void RenderGroup::SetRenderableAttributes(const RenderableAttributeSet& renderab
     m_renderable_attributes = renderable_attributes;
 }
 
-void RenderGroup::AddFramebuffer(const FramebufferRef& framebuffer)
-{
-    HYP_SCOPE;
-
-    const auto it = m_fbos.Find(framebuffer);
-
-    if (it != m_fbos.End())
-    {
-        return;
-    }
-
-    m_fbos.PushBack(framebuffer);
-
-    // @TODO Re-create pipeline
-}
-
-void RenderGroup::RemoveFramebuffer(const FramebufferRef& framebuffer)
-{
-    HYP_SCOPE;
-
-    const auto it = m_fbos.Find(framebuffer);
-
-    if (it == m_fbos.End())
-    {
-        return;
-    }
-
-    m_fbos.Erase(it);
-}
-
 void RenderGroup::Init()
 {
     HYP_SCOPE;
@@ -148,8 +117,6 @@ void RenderGroup::Init()
 
             SafeRelease(std::move(m_shader));
             SafeRelease(std::move(m_descriptor_table));
-            SafeRelease(std::move(m_fbos));
-            SafeRelease(std::move(m_pipeline));
         }));
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
@@ -163,35 +130,34 @@ void RenderGroup::Init()
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
 
-    CreateGraphicsPipeline();
-
     SetReady(true);
 }
 
-void RenderGroup::CreateGraphicsPipeline()
+GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd) const
 {
     HYP_SCOPE;
 
-    AssertThrowMsg(m_fbos.Any(), "No framebuffers attached to RenderGroup");
+    AssertThrow(pd != nullptr);
 
-    for (const FramebufferRef& framebuffer : m_fbos)
-    {
-        AssertThrow(framebuffer.IsValid());
+    HYP_LOG(Rendering, Debug, "Creating graphics pipeline for RenderGroup: {}", GetID());
 
-        DeferCreate(framebuffer);
-    }
+    Handle<View> view = pd->view.Lock();
+    AssertThrow(view.IsValid());
+    AssertThrow(view->GetOutputTarget().IsValid());
 
     AssertThrow(m_shader.IsValid());
 
-    if (!m_descriptor_table.IsValid())
+    DescriptorTableRef descriptor_table = m_descriptor_table;
+
+    if (!descriptor_table.IsValid())
     {
         const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
-        m_descriptor_table->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
+        descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        descriptor_table->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists
-        const uint32 instancing_descriptor_set_index = m_descriptor_table->GetDescriptorSetIndex(NAME("Instancing"));
+        const uint32 instancing_descriptor_set_index = descriptor_table->GetDescriptorSetIndex(NAME("Instancing"));
 
         if (instancing_descriptor_set_index != ~0u)
         {
@@ -200,22 +166,22 @@ void RenderGroup::CreateGraphicsPipeline()
                 const GPUBufferRef& gpu_buffer = m_draw_call_collection_impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
                 AssertThrow(gpu_buffer.IsValid());
 
-                const DescriptorSetRef& instancing_descriptor_set = m_descriptor_table->GetDescriptorSet(NAME("Instancing"), frame_index);
+                const DescriptorSetRef& instancing_descriptor_set = descriptor_table->GetDescriptorSet(NAME("Instancing"), frame_index);
                 AssertThrow(instancing_descriptor_set.IsValid());
 
                 instancing_descriptor_set->SetElement(NAME("EntityInstanceBatchesBuffer"), gpu_buffer);
             }
         }
 
-        DeferCreate(m_descriptor_table);
+        DeferCreate(descriptor_table);
     }
 
-    AssertThrow(m_descriptor_table.IsValid());
+    AssertThrow(descriptor_table.IsValid());
 
-    m_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
+    return g_engine->GetGraphicsPipelineCache()->GetOrCreate(
         m_shader,
-        m_descriptor_table,
-        m_fbos,
+        descriptor_table,
+        { &view->GetOutputTarget().GetFramebuffer(m_renderable_attributes.GetMaterialAttributes().bucket), 1 },
         m_renderable_attributes);
 }
 
@@ -261,6 +227,34 @@ static void DivideDrawCalls(Span<const T> draw_calls, uint32 num_batches, OutArr
     }
 }
 
+static void ValidatePipelineState(const RenderSetup& render_setup, const GraphicsPipelineRef& pipeline)
+{
+#if 0
+    HYP_SCOPE;
+
+    AssertThrow(render_setup.IsValid());
+    AssertThrow(pipeline.IsValid());
+
+    AssertThrow(render_setup.pass_data != nullptr);
+
+    const Handle<View> view = render_setup.pass_data->view.Lock();
+    AssertThrow(view.IsValid());
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
+    AssertThrow(output_target.IsValid());
+
+    // Pipeline state validation: Does the pipeline framebuffer match the output target?
+    const Array<FramebufferRef>& pipeline_framebuffers = pipeline->GetFramebuffers();
+
+    for (uint32 i = 0; i < pipeline_framebuffers.Size(); ++i)
+    {
+        AssertDebugMsg(pipeline_framebuffers[i] == output_target.GetFramebuffers()[i],
+            "Pipeline framebuffer at index {} does not match output target framebuffer at index {}",
+            i, i);
+    }
+#endif
+}
+
 template <bool UseIndirectRendering>
 static void RenderAll(
     FrameBase* frame,
@@ -283,6 +277,8 @@ static void RenderAll(
         // No draw calls to render
         return;
     }
+
+    ValidatePipelineState(render_setup, pipeline);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -481,6 +477,8 @@ static void RenderAll_Parallel(
         // No draw calls to render
         return;
     }
+
+    ValidatePipelineState(render_setup, pipeline);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -716,7 +714,34 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
 
     AssertDebugMsg(render_setup.IsValid(), "RenderSetup must be valid for rendering");
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
-    // AssertDebugMsg(render_setup.pass_data != nullptr, "RenderSetup must have valid PassData for rendering");
+    AssertDebugMsg(render_setup.pass_data != nullptr, "RenderSetup must have valid PassData for rendering!");
+
+    auto* cache_entry = render_setup.pass_data->render_group_cache.TryGet(GetID().ToIndex());
+    if (!cache_entry || cache_entry->render_group.GetUnsafe() != this)
+    {
+        cache_entry = &*render_setup.pass_data->render_group_cache.Emplace(GetID().ToIndex());
+
+        if (cache_entry->graphics_pipeline.IsValid())
+        {
+            SafeRelease(std::move(cache_entry->graphics_pipeline));
+        }
+
+        *cache_entry = PassData::RenderGroupCacheEntry {
+            WeakHandleFromThis(),
+            CreateGraphicsPipeline(render_setup.pass_data)
+        };
+    }
+
+    VulkanGraphicsPipeline* vulkan_graphics_pipeline = static_cast<VulkanGraphicsPipeline*>(cache_entry->graphics_pipeline.Get());
+
+    // DebugLog(LogType::Debug, "PerformRendering() for RenderGroup #%u w/ with renderpass format: %u for pipeline %p\tand view renderpass format: %u for renderpass %p\n",
+    //     GetID().Value(),
+    //     vulkan_graphics_pipeline->GetRenderPass()->GetAttachments()[0]->GetFormat(),
+    //     vulkan_graphics_pipeline,
+    //     render_setup.pass_data->view.GetUnsafe()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetFormat(),
+    //     static_cast<VulkanFramebuffer*>(render_setup.pass_data->view.GetUnsafe()->GetOutputTarget().GetFramebuffer().Get())->GetRenderPass().Get());
+
+    // AssertThrow(cache_entry->graphics_pipeline->GetFramebuffers()[0]->GetAttachment(0)->GetFormat() == render_setup.pass_data->view.GetUnsafe()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetFormat());
 
     static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
 
@@ -731,7 +756,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
             RenderAll_Parallel<true>(
                 frame,
                 render_setup,
-                m_pipeline,
+                cache_entry->graphics_pipeline,
                 indirect_renderer,
                 draw_call_collection,
                 parallel_rendering_state);
@@ -741,7 +766,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
             RenderAll<true>(
                 frame,
                 render_setup,
-                m_pipeline,
+                cache_entry->graphics_pipeline,
                 indirect_renderer,
                 draw_call_collection);
         }
@@ -755,7 +780,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
             RenderAll_Parallel<false>(
                 frame,
                 render_setup,
-                m_pipeline,
+                cache_entry->graphics_pipeline,
                 indirect_renderer,
                 draw_call_collection,
                 parallel_rendering_state);
@@ -765,7 +790,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
             RenderAll<false>(
                 frame,
                 render_setup,
-                m_pipeline,
+                cache_entry->graphics_pipeline,
                 indirect_renderer,
                 draw_call_collection);
         }

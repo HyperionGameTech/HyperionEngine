@@ -29,6 +29,7 @@ class GPUBufferHolderBase;
 class IndirectRenderer;
 class RenderView;
 struct RenderSetup;
+struct PassData;
 
 enum class RenderGroupFlags : uint32
 {
@@ -67,11 +68,6 @@ public:
     RenderGroup& operator=(const RenderGroup& other) = delete;
     ~RenderGroup();
 
-    HYP_FORCE_INLINE const GraphicsPipelineRef& GetPipeline() const
-    {
-        return m_pipeline;
-    }
-
     HYP_FORCE_INLINE const ShaderRef& GetShader() const
     {
         return m_shader;
@@ -85,14 +81,6 @@ public:
     }
 
     void SetRenderableAttributes(const RenderableAttributeSet& renderable_attributes);
-
-    void AddFramebuffer(const FramebufferRef& framebuffer);
-    void RemoveFramebuffer(const FramebufferRef& framebuffer);
-
-    HYP_FORCE_INLINE const Array<FramebufferRef>& GetFramebuffers() const
-    {
-        return m_fbos;
-    }
 
     HYP_FORCE_INLINE EnumFlags<RenderGroupFlags> GetFlags() const
     {
@@ -117,19 +105,15 @@ public:
 private:
     void Init() override;
     
-    void CreateGraphicsPipeline();
+    GraphicsPipelineRef CreateGraphicsPipeline(PassData* pd) const;
 
     EnumFlags<RenderGroupFlags> m_flags;
-
-    GraphicsPipelineRef m_pipeline;
 
     ShaderRef m_shader;
 
     DescriptorTableRef m_descriptor_table;
 
     RenderableAttributeSet m_renderable_attributes;
-
-    Array<FramebufferRef> m_fbos;
 
     IDrawCallCollectionImpl* m_draw_call_collection_impl;
 };

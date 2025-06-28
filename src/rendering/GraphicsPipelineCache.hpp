@@ -20,6 +20,7 @@ namespace hyperion {
 
 class RenderableAttributeSet;
 class CachedPipelinesMap;
+struct DescriptorTableDeclaration;
 
 class GraphicsPipelineCache
 {
@@ -37,14 +38,14 @@ public:
     GraphicsPipelineRef GetOrCreate(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table,
-        const Array<FramebufferRef>& framebuffers,
+        Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes);
 
 private:
     GraphicsPipelineRef FindGraphicsPipeline(
         const ShaderRef& shader,
-        const DescriptorTableRef& descriptor_table,
-        const Array<FramebufferRef>& framebuffers,
+        const DescriptorTableDeclaration& descriptor_table_decl,
+        Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes);
 
     CachedPipelinesMap* m_cached_pipelines;

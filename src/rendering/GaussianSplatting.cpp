@@ -12,6 +12,7 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderView.hpp>
 #include <rendering/Renderer.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -190,7 +191,7 @@ void GaussianSplattingInstance::Init()
 {
     CreateBuffers();
     CreateShader();
-    CreateRenderGroup();
+    CreateGraphicsPipeline();
     CreateComputePipelines();
 
 #ifdef HYP_GAUSSIAN_SPLATTING_CPU_SORT
@@ -430,7 +431,7 @@ void GaussianSplattingInstance::CreateShader()
     m_shader = g_shader_manager->GetOrCreate(NAME("GaussianSplatting"));
 }
 
-void GaussianSplattingInstance::CreateRenderGroup()
+void GaussianSplattingInstance::CreateGraphicsPipeline()
 {
     DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
@@ -446,8 +447,12 @@ void GaussianSplattingInstance::CreateRenderGroup()
 
     DeferCreate(descriptor_table);
 
-    m_render_group = CreateObject<RenderGroup>(
+#if 0
+    // FIXME
+    m_graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
         m_shader,
+        descriptor_table,
+        { &m_framebuffer, 1 },
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = static_mesh_vertex_attributes // VertexAttribute::MESH_INPUT_ATTRIBUTE_POSITION
@@ -456,11 +461,8 @@ void GaussianSplattingInstance::CreateRenderGroup()
                 .bucket = RB_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces = FCM_NONE,
-                .flags = MaterialAttributeFlags::NONE }),
-        descriptor_table,
-        RenderGroupFlags::NONE);
-
-    AssertThrow(InitObject(m_render_group));
+                .flags = MaterialAttributeFlags::NONE }));
+#endif
 }
 
 void GaussianSplattingInstance::CreateComputePipelines()
@@ -673,13 +675,13 @@ void GaussianSplatting::Render(FrameBase* frame, const RenderSetup& render_setup
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    const GraphicsPipelineRef& pipeline = m_gaussian_splatting_instance->GetRenderGroup()->GetPipeline();
+    const GraphicsPipelineRef& graphics_pipeline = m_gaussian_splatting_instance->GetGraphicsPipeline();
 
-    frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+    frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_gaussian_splatting_instance->GetRenderGroup()->GetPipeline()->GetDescriptorTable(),
-        pipeline,
+        graphics_pipeline->GetDescriptorTable(),
+        graphics_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },

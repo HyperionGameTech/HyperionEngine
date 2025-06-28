@@ -11,6 +11,8 @@
 #include <core/functional/Proc.hpp>
 #include <core/functional/Delegate.hpp>
 
+#include <core/utilities/Span.hpp>
+
 #include <core/Handle.hpp>
 
 #include <core/Defines.hpp>
@@ -81,7 +83,7 @@ public:
     virtual GraphicsPipelineRef MakeGraphicsPipeline(
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table,
-        const Array<FramebufferRef>& framebuffers,
+        Span<const FramebufferRef> framebuffers,
         const RenderableAttributeSet& attributes) = 0;
 
     virtual ComputePipelineRef MakeComputePipeline(

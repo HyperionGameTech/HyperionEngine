@@ -10,6 +10,8 @@
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>
 
+#include <core/profiling/PerformanceClock.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/utilities/DeferredScope.hpp>
@@ -76,14 +78,37 @@ void GraphicsPipelineCache::Destroy()
 GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table,
-    const Array<FramebufferRef>& framebuffers,
+    Span<const FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
 
+    if (!shader.IsValid())
+    {
+        HYP_LOG(Rendering, Error, "Shader is null or invalid!");
+
+        return nullptr;
+    }
+
+    const DescriptorTableDeclaration* descriptor_table_decl = nullptr;
+
+    DescriptorTableRef table;
+
+    if (descriptor_table)
+    {
+        table = descriptor_table;
+        descriptor_table_decl = table->GetDeclaration();
+
+        AssertThrow(descriptor_table_decl != nullptr);
+    }
+    else
+    {
+        descriptor_table_decl = &shader->GetCompiledShader()->GetDescriptorTableDeclaration();
+    }
+
     GraphicsPipelineRef graphics_pipeline = FindGraphicsPipeline(
         shader,
-        descriptor_table,
+        *descriptor_table_decl,
         framebuffers,
         attributes);
 
@@ -92,16 +117,31 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         return graphics_pipeline;
     }
 
+    if (!table)
+    {
+        table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        if (!table.IsValid())
+        {
+            HYP_LOG(Rendering, Error, "Failed to create descriptor table for shader: {}", shader->GetDebugName());
+
+            return nullptr;
+        }
+
+        DeferCreate(table);
+    }
+
     Proc<void(const GraphicsPipelineRef&)> new_callback = [this, attributes](const GraphicsPipelineRef& graphics_pipeline)
     {
         Mutex::Guard guard(m_mutex);
+
+        HYP_LOG(Rendering, Info, "Adding graphics pipeline to cache ({})", attributes.GetHashCode().Value());
 
         (*m_cached_pipelines)[attributes].PushBack(graphics_pipeline);
     };
 
     graphics_pipeline = g_rendering_api->MakeGraphicsPipeline(
         shader,
-        descriptor_table,
+        table,
         framebuffers,
         attributes);
 
@@ -145,11 +185,14 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
 
 GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
     const ShaderRef& shader,
-    const DescriptorTableRef& descriptor_table,
-    const Array<FramebufferRef>& framebuffers,
+    const DescriptorTableDeclaration& descriptor_table_decl,
+    Span<const FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
     HYP_SCOPE;
+
+    PerformanceClock clock;
+    clock.Start();
 
     Mutex::Guard guard(m_mutex);
 
@@ -159,34 +202,31 @@ GraphicsPipelineRef GraphicsPipelineCache::FindGraphicsPipeline(
 
     if (it == m_cached_pipelines->End())
     {
-        return nullptr;
-    }
-
-    if (!descriptor_table->GetDeclaration())
-    {
-        HYP_LOG(Rendering, Error, "Descriptor table declaration is null for shader: {}", shader->GetCompiledShader()->GetName());
+        HYP_LOG(Rendering, Warning, "GraphicsPipelineCache cache miss ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 
         return nullptr;
     }
 
     const HashCode shader_hash_code = shader->GetCompiledShader()->GetHashCode();
 
-    const HashCode descriptor_table_hash_code = descriptor_table->GetDeclaration()->GetHashCode();
-
     for (const GraphicsPipelineRef& pipeline : it->second)
     {
         if (pipeline->MatchesSignature(
                 shader,
-                descriptor_table,
+                descriptor_table_decl,
                 Map(framebuffers, [](const FramebufferRef& framebuffer)
                     {
                         return static_cast<const FramebufferBase*>(framebuffer.Get());
                     }),
                 attributes))
         {
+            HYP_LOG(Rendering, Info, "GraphicsPipelineCache cache hit ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
+
             return pipeline;
         }
     }
+
+    HYP_LOG(Rendering, Warning, "GraphicsPipelineCache cache miss ({}) ({} ms)", attributes.GetHashCode().Value(), clock.ElapsedMs());
 
     return nullptr;
 }

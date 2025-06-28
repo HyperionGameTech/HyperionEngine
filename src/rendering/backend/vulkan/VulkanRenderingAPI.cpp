@@ -532,20 +532,21 @@ DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTable
 GraphicsPipelineRef VulkanRenderingAPI::MakeGraphicsPipeline(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table,
-    const Array<FramebufferRef>& framebuffers,
+    Span<const FramebufferRef> framebuffers,
     const RenderableAttributeSet& attributes)
 {
     VulkanRenderPassRef render_pass;
-    Array<VulkanFramebufferRef> vulkan_framebuffers = Map(framebuffers, [](const FramebufferRef& framebuffer)
-        {
-            return VulkanFramebufferRef(framebuffer);
-        });
 
-    for (const auto& framebuffer : vulkan_framebuffers)
+    for (const FramebufferRef& framebuffer : framebuffers)
     {
-        if (framebuffer->GetRenderPass() != nullptr)
+        AssertThrow(framebuffer.IsValid());
+
+        VulkanFramebuffer* vulkan_framebuffer = static_cast<VulkanFramebuffer*>(framebuffer.Get());
+
+        if (vulkan_framebuffer->GetRenderPass() != nullptr)
         {
-            render_pass = framebuffer->GetRenderPass();
+            render_pass = vulkan_framebuffer->GetRenderPass();
+
             break;
         }
     }
@@ -577,7 +578,7 @@ GraphicsPipelineRef VulkanRenderingAPI::MakeGraphicsPipeline(
     graphics_pipeline->SetDepthTest(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_TEST));
     graphics_pipeline->SetDepthWrite(bool(attributes.GetMaterialAttributes().flags & MaterialAttributeFlags::DEPTH_WRITE));
     graphics_pipeline->SetRenderPass(render_pass);
-    graphics_pipeline->SetFramebuffers(vulkan_framebuffers);
+    graphics_pipeline->SetFramebuffers(framebuffers);
 
     return graphics_pipeline;
 }

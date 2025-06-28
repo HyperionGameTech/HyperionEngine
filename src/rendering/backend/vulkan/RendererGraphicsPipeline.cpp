@@ -421,34 +421,9 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanGraphicsPipeline::Create()
-{
-    if (!m_shader.IsValid())
-    {
-        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no shader");
-    }
-
-    if (m_framebuffers.Empty())
-    {
-        return HYP_MAKE_ERROR(RendererError, "Cannot create a graphics pipeline with no framebuffers");
-    }
-
-    RendererResult rebuild_result = Rebuild();
-
-    if (!rebuild_result)
-    {
-        return rebuild_result;
-    }
-
-    HYPERION_RETURN_OK;
-}
-
 RendererResult VulkanGraphicsPipeline::Destroy()
 {
-    SafeRelease(std::move(m_framebuffers));
     SafeRelease(std::move(m_render_pass));
-    SafeRelease(std::move(m_shader));
-    SafeRelease(std::move(m_descriptor_table));
 
     return VulkanPipelineBase::Destroy();
 }
@@ -458,71 +433,6 @@ void VulkanGraphicsPipeline::SetRenderPass(const VulkanRenderPassRef& render_pas
     SafeRelease(std::move(m_render_pass));
 
     m_render_pass = render_pass;
-}
-
-void VulkanGraphicsPipeline::SetFramebuffers(const Array<VulkanFramebufferRef>& framebuffers)
-{
-    SafeRelease(std::move(m_framebuffers));
-
-    m_framebuffers = framebuffers;
-}
-
-bool VulkanGraphicsPipeline::MatchesSignature(
-    const ShaderBase* shader,
-    const DescriptorTableBase* descriptor_table,
-    const Array<const FramebufferBase*>& framebuffers,
-    const RenderableAttributeSet& attributes) const
-{
-    if (!shader != !m_shader)
-    {
-        return false;
-    }
-
-    if (!descriptor_table != !m_descriptor_table)
-    {
-        return false;
-    }
-
-    if (m_framebuffers.Size() != framebuffers.Size())
-    {
-        return false;
-    }
-
-    if (shader != nullptr)
-    {
-        if (shader->GetCompiledShader()->GetHashCode() != m_shader->GetCompiledShader()->GetHashCode())
-        {
-            return false;
-        }
-    }
-
-    if (descriptor_table != nullptr)
-    {
-        if (!m_descriptor_table.IsValid())
-        {
-            return false;
-        }
-
-        if (!descriptor_table->GetDeclaration())
-        {
-            return false;
-        }
-
-        if (descriptor_table->GetDeclaration()->GetHashCode() != m_descriptor_table->GetDeclaration()->GetHashCode())
-        {
-            return false;
-        }
-    }
-
-    for (SizeType i = 0; i < m_framebuffers.Size(); i++)
-    {
-        if (m_framebuffers[i].Get() != framebuffers[i])
-        {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 void VulkanGraphicsPipeline::SetPushConstants(const void* data, SizeType size)

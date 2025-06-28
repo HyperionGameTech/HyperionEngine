@@ -18,6 +18,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/GraphicsPipelineCache.hpp>
 
 #include <rendering/rhi/RHICommandList.hpp>
 
@@ -180,8 +181,7 @@ ParticleSpawner::ParticleSpawner(const ParticleSpawnerParams& params)
 
 ParticleSpawner::~ParticleSpawner()
 {
-    m_render_group.Reset();
-
+    SafeRelease(std::move(m_graphics_pipeline));
     SafeRelease(std::move(m_update_particles));
     SafeRelease(std::move(m_particle_buffer));
     SafeRelease(std::move(m_indirect_buffer));
@@ -199,8 +199,8 @@ void ParticleSpawner::Init()
     }
 
     CreateBuffers();
-    CreateRenderGroup();
     CreateComputePipelines();
+    CreateGraphicsPipeline();
 
     SetReady(true);
 }
@@ -219,7 +219,7 @@ void ParticleSpawner::CreateBuffers()
         m_params);
 }
 
-void ParticleSpawner::CreateRenderGroup()
+void ParticleSpawner::CreateGraphicsPipeline()
 {
     m_shader = g_shader_manager->GetOrCreate(NAME("Particle"));
     AssertThrow(m_shader.IsValid());
@@ -239,8 +239,11 @@ void ParticleSpawner::CreateRenderGroup()
 
     DeferCreate(descriptor_table);
 
-    m_render_group = CreateObject<RenderGroup>(
+#if 0
+    m_graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
         m_shader,
+        descriptor_table,
+        { &m_framebuffer, 1 },
         RenderableAttributeSet(
             MeshAttributes {
                 .vertex_attributes = static_mesh_vertex_attributes },
@@ -248,14 +251,11 @@ void ParticleSpawner::CreateRenderGroup()
                 .bucket = RB_TRANSLUCENT,
                 .blend_function = BlendFunction::Additive(),
                 .cull_faces = FCM_FRONT,
-                .flags = MaterialAttributeFlags::DEPTH_TEST }),
-        descriptor_table,
-        RenderGroupFlags::NONE);
+                .flags = MaterialAttributeFlags::DEPTH_TEST }));
+#endif
 
     // // @FIXME: needs to be per view!
     // m_render_group->AddFramebuffer(g_engine->GetCurrentView()->GetGBuffer()->GetBucket(RB_TRANSLUCENT).GetFramebuffer());
-
-    AssertThrow(InitObject(m_render_group));
 }
 
 void ParticleSpawner::CreateComputePipelines()
@@ -462,20 +462,20 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     for (const Handle<ParticleSpawner>& particle_spawner : m_particle_spawners.GetItems())
     {
-        const GraphicsPipelineRef& pipeline = particle_spawner->GetRenderGroup()->GetPipeline();
+        const GraphicsPipelineRef& graphics_pipeline = particle_spawner->GetGraphicsPipeline();
 
-        frame->GetCommandList().Add<BindGraphicsPipeline>(pipeline);
+        frame->GetCommandList().Add<BindGraphicsPipeline>(graphics_pipeline);
 
         frame->GetCommandList().Add<BindDescriptorTable>(
-            pipeline->GetDescriptorTable(),
-            pipeline,
+            graphics_pipeline->GetDescriptorTable(),
+            graphics_pipeline,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
                     { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                         { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) } } } },
             frame_index);
 
-        const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 view_descriptor_set_index = graphics_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
 
         if (view_descriptor_set_index != ~0u)
         {
@@ -483,7 +483,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& render_setup)
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 render_setup.pass_data->descriptor_sets[frame_index],
-                pipeline,
+                graphics_pipeline,
                 ArrayMap<Name, uint32> {},
                 view_descriptor_set_index);
         }

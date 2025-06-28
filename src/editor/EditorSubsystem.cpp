@@ -177,6 +177,8 @@ void GenerateLightmapsEditorTask::Tick(float delta)
             m_task = nullptr;
         }
     }
+
+    HYP_LOG(Editor, Info, "GenerateLightmapsEditorTask ticked");
 }
 
 #pragma endregion GenerateLightmapsEditorTask
@@ -1233,416 +1235,433 @@ void EditorSubsystem::InitViewport()
     UISubsystem* ui_subsystem = GetWorld()->GetSubsystem<UISubsystem>();
     AssertThrow(ui_subsystem != nullptr);
 
-    if (Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image")))
+    Handle<UIObject> scene_image_object = ui_subsystem->GetUIStage()->FindChildUIObject(NAME("Scene_Image"));
+    if (!scene_image_object)
     {
-        Vec2u viewport_size = MathUtil::Max(Vec2u(g_engine->GetAppContext()->GetMainWindow()->GetDimensions()), Vec2u::One());
+        HYP_LOG(Editor, Error, "Scene image object not found in UI stage!");
+        return;
+    }
 
-        Handle<View> view = CreateObject<View>(ViewDesc {
-            .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
-            .viewport = Viewport { .extent = viewport_size, .position = Vec2i::Zero() },
-            .camera = m_camera });
+    ui_subsystem->GetUIStage()->UpdateSize(true);
 
-        InitObject(view);
+    HYP_LOG(Editor, Debug, "scene surface : {}", ui_subsystem->GetUIStage()->GetSurfaceSize());
+    HYP_LOG(Editor, Debug, "scene image object size : {}", scene_image_object->GetActualSize());
 
-        Handle<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->AddSubsystem<ScreenCaptureRenderSubsystem>(view);
-        // m_delegate_handlers.Add(
-        //     screen_capture_render_subsystem->OnTextureResize.Bind([this, scene_image_object_weak = scene_image_object.ToWeak()](const Handle<Texture>& texture)
-        //         {
-        //             if (Handle<UIObject> scene_image_object = scene_image_object_weak.Lock())
-        //             {
-        //                 if (Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>())
-        //                 {
-        //                     ui_image->SetTexture(Handle<Texture>::empty);
-        //                     ui_image->SetTexture(texture);
-        //                 }
-        //             }
-        //         },
-        //         g_game_thread));
+    Vec2u viewport_size = MathUtil::Max(Vec2u(scene_image_object->GetActualSize()), Vec2u::One());
 
-        GetWorld()->AddView(view);
+    Handle<View> view = CreateObject<View>(ViewDesc {
+        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
+        .viewport = Viewport { .extent = viewport_size, .position = Vec2i::Zero() },
+        .camera = m_camera });
 
-        m_views.PushBack(view);
+    InitObject(view);
 
-        m_delegate_handlers.Remove(&scene_image_object->OnSizeChange);
-        m_delegate_handlers.Add(scene_image_object->OnSizeChange.Bind([this, scene_image_object_weak = scene_image_object.ToWeak(), view_weak = view.ToWeak()]()
+    HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewport_size);
+
+    Handle<ScreenCaptureRenderSubsystem> screen_capture_render_subsystem = GetWorld()->AddSubsystem<ScreenCaptureRenderSubsystem>(view);
+    // m_delegate_handlers.Add(
+    //     screen_capture_render_subsystem->OnTextureResize.Bind([this, scene_image_object_weak = scene_image_object.ToWeak()](const Handle<Texture>& texture)
+    //         {
+    //             if (Handle<UIObject> scene_image_object = scene_image_object_weak.Lock())
+    //             {
+    //                 if (Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>())
+    //                 {
+    //                     ui_image->SetTexture(Handle<Texture>::empty);
+    //                     ui_image->SetTexture(texture);
+    //                 }
+    //             }
+    //         },
+    //         g_game_thread));
+
+    GetWorld()->AddView(view);
+
+    m_views.PushBack(view);
+
+    m_delegate_handlers.Remove(&scene_image_object->OnSizeChange);
+    m_delegate_handlers.Add(scene_image_object->OnSizeChange.Bind([this, scene_image_object_weak = scene_image_object.ToWeak(), view_weak = view.ToWeak()]()
+        {
+            Handle<UIObject> scene_image_object = scene_image_object_weak.Lock();
+            if (!scene_image_object)
             {
-                if (Handle<UIObject> scene_image_object = scene_image_object_weak.Lock())
-                {
-                    if (Handle<View> view = view_weak.Lock())
-                    {
-                        Vec2u viewport_size = MathUtil::Max(Vec2u(scene_image_object->GetActualSize()), Vec2u::One());
+                HYP_LOG(Editor, Warning, "Scene image object is no longer valid!");
+                return UIEventHandlerResult::ERR;
+            }
 
-                        view->SetViewport(Viewport { .extent = viewport_size, .position = Vec2i::Zero() });
-
-                        // HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewport_size);
-                    }
-                }
-
-                return UIEventHandlerResult::OK;
-            }));
-
-        Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>();
-        AssertThrow(ui_image != nullptr);
-
-        m_scene_texture.Reset();
-
-        m_scene_texture = screen_capture_render_subsystem->GetTexture();
-        AssertThrow(m_scene_texture.IsValid());
-
-        m_delegate_handlers.Remove(&ui_image->OnClick);
-        m_delegate_handlers.Add(ui_image->OnClick.Bind([this](const MouseEvent& event)
+            Handle<View> view = view_weak.Lock();
+            if (!view)
             {
-                if (m_should_cancel_next_click)
+                HYP_LOG(Editor, Warning, "View is no longer valid!");
+                return UIEventHandlerResult::ERR;
+            }
+
+            Vec2u viewport_size = MathUtil::Max(Vec2u(scene_image_object->GetActualSize()), Vec2u::One());
+
+            view->SetViewport(Viewport { .extent = viewport_size, .position = Vec2i::Zero() });
+
+            HYP_LOG(Editor, Info, "Main editor view viewport size changed to {}", viewport_size);
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    Handle<UIImage> ui_image = scene_image_object.Cast<UIImage>();
+    AssertThrow(ui_image != nullptr);
+
+    m_scene_texture.Reset();
+
+    m_scene_texture = screen_capture_render_subsystem->GetTexture();
+    AssertThrow(m_scene_texture.IsValid());
+
+    m_delegate_handlers.Remove(&ui_image->OnClick);
+    m_delegate_handlers.Add(ui_image->OnClick.Bind([this](const MouseEvent& event)
+        {
+            if (m_should_cancel_next_click)
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
+            if (m_camera->GetCameraController()->GetInputHandler()->OnClick(event))
+            {
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
+
+            if (GetWorld()->GetGameState().IsEditor())
+            {
+                if (IsHoveringManipulationWidget())
                 {
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
 
-                if (m_camera->GetCameraController()->GetInputHandler()->OnClick(event))
+                const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
+                const Vec4f ray_direction = mouse_world.Normalized();
+
+                const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
+
+                RayTestResults results;
+
+                bool has_hits = false;
+                for (const Handle<View>& view : m_views)
                 {
-                    return UIEventHandlerResult::STOP_BUBBLING;
+                    if (view->TestRay(ray, results, /* use_bvh */ true))
+                    {
+                        has_hits = true;
+                    }
                 }
 
-                if (GetWorld()->GetGameState().IsEditor())
+                if (has_hits)
                 {
-                    if (IsHoveringManipulationWidget())
+                    for (const RayHit& hit : results)
                     {
-                        return UIEventHandlerResult::STOP_BUBBLING;
-                    }
-
-                    const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
-                    const Vec4f ray_direction = mouse_world.Normalized();
-
-                    const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
-
-                    RayTestResults results;
-
-                    bool has_hits = false;
-                    for (const Handle<View>& view : m_views)
-                    {
-                        if (view->TestRay(ray, results, /* use_bvh */ true))
+                        /// \FIXME: Can't do TypeID::ForType<Entity>, there may be derived types of Entity
+                        if (ID<Entity> entity_id = ID<Entity>(IDBase { TypeID::ForType<Entity>(), hit.id }))
                         {
-                            has_hits = true;
-                        }
-                    }
+                            Handle<Entity> entity { entity_id };
+                            EntityManager* entity_manager = entity->GetEntityManager();
 
-                    if (has_hits)
-                    {
-                        for (const RayHit& hit : results)
-                        {
-                            /// \FIXME: Can't do TypeID::ForType<Entity>, there may be derived types of Entity
-                            if (ID<Entity> entity_id = ID<Entity>(IDBase { TypeID::ForType<Entity>(), hit.id }))
+                            if (!entity_manager)
                             {
-                                Handle<Entity> entity { entity_id };
-                                EntityManager* entity_manager = entity->GetEntityManager();
+                                continue;
+                            }
 
-                                if (!entity_manager)
+                            if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity))
+                            {
+                                if (Handle<Node> node = node_link_component->node.Lock())
                                 {
-                                    continue;
-                                }
+                                    SetFocusedNode(Handle<Node>(node), true);
 
-                                if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity))
-                                {
-                                    if (Handle<Node> node = node_link_component->node.Lock())
-                                    {
-                                        SetFocusedNode(Handle<Node>(node), true);
-
-                                        break;
-                                    }
+                                    break;
                                 }
                             }
                         }
-
-                        return UIEventHandlerResult::STOP_BUBBLING;
                     }
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                }
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    m_delegate_handlers.Remove(&ui_image->OnMouseLeave);
+    m_delegate_handlers.Add(ui_image->OnMouseLeave.Bind([this](const MouseEvent& event)
+        {
+            if (IsHoveringManipulationWidget())
+            {
+                SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+            }
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    m_delegate_handlers.Remove(&ui_image->OnMouseDrag);
+    m_delegate_handlers.Add(ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent& event)
+        {
+            // prevent click being triggered on release once mouse has been dragged
+            m_should_cancel_next_click = true;
+
+            // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
+            if (IsHoveringManipulationWidget())
+            {
+                Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
+
+                if (!manipulation_widget || !node)
+                {
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+
+                    return UIEventHandlerResult::ERR;
                 }
 
-                return UIEventHandlerResult::OK;
-            }));
-
-        m_delegate_handlers.Remove(&ui_image->OnMouseLeave);
-        m_delegate_handlers.Add(ui_image->OnMouseLeave.Bind([this](const MouseEvent& event)
-            {
-                if (IsHoveringManipulationWidget())
+                if (manipulation_widget->OnMouseMove(m_camera, event, Handle<Node>(node)))
                 {
-                    SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+                    return UIEventHandlerResult::STOP_BUBBLING;
                 }
+            }
+
+            m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    m_delegate_handlers.Remove(&ui_image->OnMouseMove);
+    m_delegate_handlers.Add(ui_image->OnMouseMove.Bind([this, ui_image = ui_image.Get()](const MouseEvent& event)
+        {
+            HYP_LOG(Editor, Debug, "Mouse moved in editor viewport: {}, {}", event.position.x, event.position.y);
+
+            m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
+
+            if (event.input_manager->IsMouseLocked())
+            {
+                const Vec2f position = ui_image->GetAbsolutePosition();
+                const Vec2i size = ui_image->GetActualSize();
+
+                // Set mouse position to previous position to keep it stationary while rotating
+                event.input_manager->SetMousePosition(Vec2i(position + event.previous_position * Vec2f(size)));
 
                 return UIEventHandlerResult::OK;
-            }));
+            }
 
-        m_delegate_handlers.Remove(&ui_image->OnMouseDrag);
-        m_delegate_handlers.Add(ui_image->OnMouseDrag.Bind([this, ui_image = ui_image.Get()](const MouseEvent& event)
+            // Hover over a manipulation widget when mouse is not down
+            if (!event.mouse_buttons[MouseButtonState::LEFT]
+                && GetWorld()->GetGameState().IsEditor()
+                && m_manipulation_widget_holder.GetSelectedManipulationMode() != EditorManipulationMode::NONE)
             {
-                // prevent click being triggered on release once mouse has been dragged
-                m_should_cancel_next_click = true;
+                // Ray test the widget
 
-                // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
-                if (IsHoveringManipulationWidget())
+                const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
+                const Vec4f ray_direction = mouse_world.Normalized();
+
+                const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
+
+                RayTestResults results;
+
+                EditorManipulationWidgetBase& manipulation_widget = m_manipulation_widget_holder.GetSelectedManipulationWidget();
+                bool hit_manipulation_widget = false;
+
+                if (manipulation_widget.GetNode()->TestRay(ray, results, /* use_bvh */ true))
                 {
-                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
-                    Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
-
-                    if (!manipulation_widget || !node)
+                    for (const RayHit& ray_hit : results)
                     {
-                        HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+                        ID<Entity> entity_id = ID<Entity>(IDBase { TypeID::ForType<Entity>(), ray_hit.id });
 
-                        return UIEventHandlerResult::ERR;
-                    }
+                        if (!entity_id.IsValid())
+                        {
+                            continue;
+                        }
 
-                    if (manipulation_widget->OnMouseMove(m_camera, event, Handle<Node>(node)))
-                    {
-                        return UIEventHandlerResult::STOP_BUBBLING;
+                        Handle<Entity> entity { entity_id };
+                        AssertThrow(entity.IsValid());
+
+                        NodeLinkComponent* node_link_component = m_editor_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity);
+
+                        if (!node_link_component)
+                        {
+                            continue;
+                        }
+
+                        Handle<Node> node = node_link_component->node.Lock();
+
+                        if (!node)
+                        {
+                            continue;
+                        }
+
+                        if (node == m_hovered_manipulation_widget_node)
+                        {
+                            return UIEventHandlerResult::STOP_BUBBLING;
+                        }
+
+                        if (manipulation_widget.OnMouseHover(m_camera, event, Handle<Node>(node)))
+                        {
+                            SetHoveredManipulationWidget(event, &manipulation_widget, Handle<Node>(node));
+
+                            return UIEventHandlerResult::STOP_BUBBLING;
+                        }
                     }
                 }
 
-                m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+                SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+            }
 
-                return UIEventHandlerResult::OK;
-            }));
+            return UIEventHandlerResult::OK;
+        }));
 
-        m_delegate_handlers.Remove(&ui_image->OnMouseMove);
-        m_delegate_handlers.Add(ui_image->OnMouseMove.Bind([this, ui_image = ui_image.Get()](const MouseEvent& event)
+    m_delegate_handlers.Remove(&ui_image->OnMouseDown);
+    m_delegate_handlers.Add(ui_image->OnMouseDown.Bind([this, ui_image_weak = ui_image.ToWeak()](const MouseEvent& event)
+        {
+            if (IsHoveringManipulationWidget())
             {
-                m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
+                Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
 
-                if (event.input_manager->IsMouseLocked())
+                if (!manipulation_widget || !node)
                 {
-                    const Vec2f position = ui_image->GetAbsolutePosition();
-                    const Vec2i size = ui_image->GetActualSize();
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
 
-                    // Set mouse position to previous position to keep it stationary while rotating
-                    event.input_manager->SetMousePosition(Vec2i(position + event.previous_position * Vec2f(size)));
-
-                    return UIEventHandlerResult::OK;
+                    return UIEventHandlerResult::ERR;
                 }
 
-                // Hover over a manipulation widget when mouse is not down
-                if (!event.mouse_buttons[MouseButtonState::LEFT]
-                    && GetWorld()->GetGameState().IsEditor()
-                    && m_manipulation_widget_holder.GetSelectedManipulationMode() != EditorManipulationMode::NONE)
+                if (!manipulation_widget->IsDragging())
                 {
-                    // Ray test the widget
 
                     const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
                     const Vec4f ray_direction = mouse_world.Normalized();
 
                     const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
 
+                    Vec3f hitpoint;
+
                     RayTestResults results;
 
-                    EditorManipulationWidgetBase& manipulation_widget = m_manipulation_widget_holder.GetSelectedManipulationWidget();
-                    bool hit_manipulation_widget = false;
-
-                    if (manipulation_widget.GetNode()->TestRay(ray, results, /* use_bvh */ true))
+                    if (manipulation_widget->GetNode()->TestRay(ray, results, /* use_bvh */ true))
                     {
                         for (const RayHit& ray_hit : results)
                         {
-                            ID<Entity> entity_id = ID<Entity>(IDBase { TypeID::ForType<Entity>(), ray_hit.id });
+                            hitpoint = ray_hit.hitpoint;
 
-                            if (!entity_id.IsValid())
-                            {
-                                continue;
-                            }
-
-                            Handle<Entity> entity { entity_id };
-                            AssertThrow(entity.IsValid());
-
-                            NodeLinkComponent* node_link_component = m_editor_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity);
-
-                            if (!node_link_component)
-                            {
-                                continue;
-                            }
-
-                            Handle<Node> node = node_link_component->node.Lock();
-
-                            if (!node)
-                            {
-                                continue;
-                            }
-
-                            if (node == m_hovered_manipulation_widget_node)
-                            {
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            }
-
-                            if (manipulation_widget.OnMouseHover(m_camera, event, Handle<Node>(node)))
-                            {
-                                SetHoveredManipulationWidget(event, &manipulation_widget, Handle<Node>(node));
-
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            }
+                            break;
                         }
                     }
 
-                    SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
+                    manipulation_widget->OnDragStart(m_camera, event, node, hitpoint);
                 }
 
-                return UIEventHandlerResult::OK;
-            }));
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-        m_delegate_handlers.Remove(&ui_image->OnMouseDown);
-        m_delegate_handlers.Add(ui_image->OnMouseDown.Bind([this, ui_image_weak = ui_image.ToWeak()](const MouseEvent& event)
+            m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
+
+            m_should_cancel_next_click = false;
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    m_delegate_handlers.Remove(&ui_image->OnMouseUp);
+    m_delegate_handlers.Add(ui_image->OnMouseUp.Bind([this](const MouseEvent& event)
+        {
+            if (IsHoveringManipulationWidget())
             {
-                if (IsHoveringManipulationWidget())
+                Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
+                Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
+
+                if (!manipulation_widget || !node)
                 {
-                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
-                    Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
+                    HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
 
-                    if (!manipulation_widget || !node)
-                    {
-                        HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
-
-                        return UIEventHandlerResult::ERR;
-                    }
-
-                    if (!manipulation_widget->IsDragging())
-                    {
-
-                        const Vec4f mouse_world = m_camera->TransformScreenToWorld(event.position);
-                        const Vec4f ray_direction = mouse_world.Normalized();
-
-                        const Ray ray { m_camera->GetTranslation(), ray_direction.GetXYZ() };
-
-                        Vec3f hitpoint;
-
-                        RayTestResults results;
-
-                        if (manipulation_widget->GetNode()->TestRay(ray, results, /* use_bvh */ true))
-                        {
-                            for (const RayHit& ray_hit : results)
-                            {
-                                hitpoint = ray_hit.hitpoint;
-
-                                break;
-                            }
-                        }
-
-                        manipulation_widget->OnDragStart(m_camera, event, node, hitpoint);
-                    }
-
-                    return UIEventHandlerResult::STOP_BUBBLING;
+                    return UIEventHandlerResult::ERR;
                 }
 
-                m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
+                if (manipulation_widget->IsDragging())
+                {
+                    manipulation_widget->OnDragEnd(m_camera, event, Handle<Node>(node));
+                }
 
-                m_should_cancel_next_click = false;
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-                return UIEventHandlerResult::OK;
-            }));
+            m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
 
-        m_delegate_handlers.Remove(&ui_image->OnMouseUp);
-        m_delegate_handlers.Add(ui_image->OnMouseUp.Bind([this](const MouseEvent& event)
+            m_should_cancel_next_click = false;
+
+            return UIEventHandlerResult::OK;
+        }));
+
+    m_delegate_handlers.Remove(&ui_image->OnKeyDown);
+    m_delegate_handlers.Add(ui_image->OnKeyDown.Bind([this](const KeyboardEvent& event)
+        {
+            // On escape press, stop simulating if we're currently simulating
+            if (event.key_code == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating())
             {
-                if (IsHoveringManipulationWidget())
-                {
-                    Handle<EditorManipulationWidgetBase> manipulation_widget = m_hovered_manipulation_widget.Lock();
-                    Handle<Node> node = m_hovered_manipulation_widget_node.Lock();
+                GetWorld()->StopSimulating();
 
-                    if (!manipulation_widget || !node)
-                    {
-                        HYP_LOG(Editor, Warning, "Failed to lock hovered manipulation widget or node");
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-                        return UIEventHandlerResult::ERR;
-                    }
-
-                    if (manipulation_widget->IsDragging())
-                    {
-                        manipulation_widget->OnDragEnd(m_camera, event, Handle<Node>(node));
-                    }
-
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
-
-                m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
-
-                m_should_cancel_next_click = false;
-
-                return UIEventHandlerResult::OK;
-            }));
-
-        m_delegate_handlers.Remove(&ui_image->OnKeyDown);
-        m_delegate_handlers.Add(ui_image->OnKeyDown.Bind([this](const KeyboardEvent& event)
+            if (event.key_code == KeyCode::TILDE)
             {
-                // On escape press, stop simulating if we're currently simulating
-                if (event.key_code == KeyCode::ESC && GetWorld()->GetGameState().IsSimulating())
+                const bool is_console_open = m_console_ui && m_console_ui->IsVisible();
+
+                if (is_console_open)
                 {
-                    GetWorld()->StopSimulating();
+                    m_console_ui->SetIsVisible(false);
 
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
-
-                if (event.key_code == KeyCode::TILDE)
-                {
-                    const bool is_console_open = m_console_ui && m_console_ui->IsVisible();
-
-                    if (is_console_open)
+                    if (m_debug_overlay_ui_object)
                     {
-                        m_console_ui->SetIsVisible(false);
-
-                        if (m_debug_overlay_ui_object)
-                        {
-                            m_debug_overlay_ui_object->SetIsVisible(true);
-                        }
+                        m_debug_overlay_ui_object->SetIsVisible(true);
                     }
-                    else
+                }
+                else
+                {
+                    m_console_ui->SetIsVisible(true);
+
+                    if (m_debug_overlay_ui_object)
                     {
-                        m_console_ui->SetIsVisible(true);
-
-                        if (m_debug_overlay_ui_object)
-                        {
-                            m_debug_overlay_ui_object->SetIsVisible(false);
-                        }
+                        m_debug_overlay_ui_object->SetIsVisible(false);
                     }
-
-                    return UIEventHandlerResult::STOP_BUBBLING;
                 }
 
-                if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event))
-                {
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-                return UIEventHandlerResult::OK;
-            }));
-
-        m_delegate_handlers.Remove(&ui_image->OnKeyUp);
-        m_delegate_handlers.Add(ui_image->OnKeyUp.Bind([this](const KeyboardEvent& event)
+            if (m_camera->GetCameraController()->GetInputHandler()->OnKeyDown(event))
             {
-                if (m_camera->GetCameraController()->GetInputHandler()->OnKeyUp(event))
-                {
-                    return UIEventHandlerResult::STOP_BUBBLING;
-                }
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-                return UIEventHandlerResult::OK;
-            }));
+            return UIEventHandlerResult::OK;
+        }));
 
-        m_delegate_handlers.Remove(&ui_image->OnGainFocus);
-        m_delegate_handlers.Add(ui_image->OnGainFocus.Bind([this](const MouseEvent& event)
+    m_delegate_handlers.Remove(&ui_image->OnKeyUp);
+    m_delegate_handlers.Add(ui_image->OnKeyUp.Bind([this](const KeyboardEvent& event)
+        {
+            if (m_camera->GetCameraController()->GetInputHandler()->OnKeyUp(event))
             {
-                m_editor_camera_enabled = true;
+                return UIEventHandlerResult::STOP_BUBBLING;
+            }
 
-                return UIEventHandlerResult::OK;
-            }));
+            return UIEventHandlerResult::OK;
+        }));
 
-        m_delegate_handlers.Remove(&ui_image->OnLoseFocus);
-        m_delegate_handlers.Add(ui_image->OnLoseFocus.Bind([this](const MouseEvent& event)
-            {
-                m_editor_camera_enabled = false;
+    m_delegate_handlers.Remove(&ui_image->OnGainFocus);
+    m_delegate_handlers.Add(ui_image->OnGainFocus.Bind([this](const MouseEvent& event)
+        {
+            m_editor_camera_enabled = true;
 
-                return UIEventHandlerResult::OK;
-            }));
+            return UIEventHandlerResult::OK;
+        }));
 
-        ui_image->SetTexture(m_scene_texture);
+    m_delegate_handlers.Remove(&ui_image->OnLoseFocus);
+    m_delegate_handlers.Add(ui_image->OnLoseFocus.Bind([this](const MouseEvent& event)
+        {
+            m_editor_camera_enabled = false;
 
-        InitConsoleUI();
-        InitDebugOverlays();
-        InitManipulationWidgetSelection();
-    }
-    else
-    {
-        HYP_FAIL("Failed to find Scene_Image element");
-    }
+            return UIEventHandlerResult::OK;
+        }));
+
+    ui_image->SetTexture(m_scene_texture);
+
+    InitConsoleUI();
+    InitDebugOverlays();
+    InitManipulationWidgetSelection();
 }
 
 void EditorSubsystem::InitSceneOutline()
@@ -2673,16 +2692,17 @@ void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)
 
             Handle<UIButton> cancel_button = context.CreateUIObject<UIButton>(NAME("Task_Cancel"), Vec2i::Zero(), UIObjectSize({ 100, UIObjectSize::PERCENT }, { 0, UIObjectSize::AUTO }));
             cancel_button->SetText("Cancel");
-            cancel_button->OnClick.Bind(
-                                      [task_weak = task.ToWeak()](...)
-                                      {
-                                          if (Handle<EditorTaskBase> task = task_weak.Lock())
-                                          {
-                                              task->Cancel();
-                                          }
+            cancel_button->OnClick
+                .Bind(
+                    [task_weak = task.ToWeak()](...)
+                    {
+                        if (Handle<EditorTaskBase> task = task_weak.Lock())
+                        {
+                            task->Cancel();
+                        }
 
-                                          return UIEventHandlerResult::OK;
-                                      })
+                        return UIEventHandlerResult::OK;
+                    })
                 .Detach();
             task_grid_column_right->AddChildUIObject(cancel_button);
 

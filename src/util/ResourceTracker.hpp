@@ -162,13 +162,13 @@ class ResourceTracker
 
             if (subclass_impl_index == Bitset::not_found) // primary search phase
             {
-                return tracker->m_impl.elements[element_index];
+                return tracker->m_impl.elements.Get(element_index);
             }
             else
             {
                 AssertDebug(subclass_impl_index < tracker->m_subclass_impls.Size());
 
-                return tracker->m_subclass_impls[subclass_impl_index].Get().elements[element_index];
+                return tracker->m_subclass_impls[subclass_impl_index].Get().elements.Get(element_index);
             }
 
             HYP_FAIL("Invalid iterator phase");
@@ -700,7 +700,7 @@ public:
             {
                 AssertDebug(elements.HasIndex(id.ToIndex()));
 
-                ptr = &elements[id.ToIndex()];
+                ptr = &elements.Get(id.ToIndex());
             }
 
             if (ptr)
@@ -755,7 +755,7 @@ public:
             {
                 AssertDebug(elements.HasIndex(id.ToIndex()));
 
-                ptr = &elements[id.ToIndex()];
+                ptr = &elements.Get(id.ToIndex());
             }
 
             if (ptr)

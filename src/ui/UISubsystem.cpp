@@ -50,14 +50,6 @@ void UISubsystem::OnRemovedFromWorld()
     }
 }
 
-void UISubsystem::PreUpdate(float delta)
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(g_game_thread);
-
-    m_ui_stage->Update(delta);
-}
-
 void UISubsystem::Update(float delta)
 {
     HYP_SCOPE;
@@ -65,35 +57,6 @@ void UISubsystem::Update(float delta)
 
     AssertThrow(m_ui_stage != nullptr);
     AssertThrow(m_ui_render_subsystem != nullptr);
-
-    UIRenderCollector& render_collector = m_ui_render_subsystem->GetRenderCollector();
-    render_collector.ResetOrdering();
-
-    ResourceTracker<ID<Entity>, RenderProxy>& meshes = m_ui_render_subsystem->GetRenderProxyTracker();
-
-    m_ui_stage->CollectObjects([&render_collector, &meshes](UIObject* ui_object)
-        {
-            AssertThrow(ui_object != nullptr);
-
-            const Handle<Node>& node = ui_object->GetNode();
-            AssertThrow(node.IsValid());
-
-            const Handle<Entity>& entity = node->GetEntity();
-
-            MeshComponent& mesh_component = node->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(entity);
-
-            if (!mesh_component.proxy)
-            {
-                return;
-            }
-
-            // @TODO Include a way to determine the parent tree of the UI Object because some objects will
-            // have the same depth but should be rendered in a different order.
-            render_collector.PushRenderProxy(meshes, *mesh_component.proxy, ui_object->GetComputedDepth());
-        },
-        /* only_visible */ true);
-
-    render_collector.PushUpdatesToRenderThread(meshes, m_ui_render_subsystem->GetFramebuffer());
 }
 
 void UISubsystem::OnSceneAttached(const Handle<Scene>& scene)

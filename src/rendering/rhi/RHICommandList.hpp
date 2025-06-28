@@ -71,7 +71,7 @@ private:
     RHICommandPoolHandle m_pool_handle;
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
-    FixedArray<char, 1024> m_stack_trace;
+    char* m_stack_trace = "";
 #endif
 };
 
@@ -99,8 +99,11 @@ public:
         command_storage->Get().m_pool_handle = { static_cast<RHICommandMemoryPoolBase*>(this), index };
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
-        std::strncpy(command_storage->Get().m_stack_trace.Data(), StackDump(5).ToString().Data(), command_storage->Get().m_stack_trace.Size() - 1);
-        command_storage->Get().m_stack_trace[command_storage->Get().m_stack_trace.Size() - 1] = '\0';
+        // Allocate string and copy stack trace (creating stack trace is extremely SLOW, enable for debugging only!)
+        String dump = StackDump(10, 2).ToString();
+        command_storage->Get().m_stack_trace = (char*)std::malloc(dump.Size() + 1);
+        std::strncpy(command_storage->Get().m_stack_trace, dump.Data(), dump.Size());
+        command_storage->Get().m_stack_trace[dump.Size()] = '\0';
 #endif
 
         return &command_storage->Get();
@@ -110,6 +113,14 @@ public:
     {
         AssertDebug(command != nullptr);
         AssertDebug(command->m_pool_handle.pool == this);
+
+#ifdef HYP_RHI_COMMAND_STACK_TRACE
+        if (command->m_stack_trace != nullptr)
+        {
+            std::free(command->m_stack_trace);
+            command->m_stack_trace = nullptr;
+        }
+#endif
 
         command->~RHICommandBase();
 
@@ -242,6 +253,10 @@ private:
 class BindGraphicsPipeline final : public RHICommandBase
 {
 public:
+#ifdef HYP_DEBUG_MODE
+    HYP_API BindGraphicsPipeline(const GraphicsPipelineRef& pipeline, Vec2i viewport_offset, Vec2u viewport_extent);
+    HYP_API BindGraphicsPipeline(const GraphicsPipelineRef& pipeline);
+#else
     BindGraphicsPipeline(const GraphicsPipelineRef& pipeline, Vec2i viewport_offset, Vec2u viewport_extent)
         : m_pipeline(pipeline),
           m_viewport_offset(viewport_offset),
@@ -253,6 +268,7 @@ public:
         : m_pipeline(pipeline)
     {
     }
+#endif
 
     virtual void Execute(const CommandBufferRef& cmd) override
     {

@@ -56,6 +56,13 @@ public:
         uint32 page;
         uint32 elem;
 
+        IteratorBase()
+            : array(nullptr),
+              page(~0u),
+              elem(PageSize)
+        {
+        }
+
         template <class ArrayType>
         IteratorBase(ArrayType* array, uint32 page_index, uint32 element_index)
             : array(array),
@@ -174,6 +181,8 @@ public:
 
     struct Iterator : IteratorBase<Iterator, false>
     {
+        Iterator() = default;
+
         template <class ArrayType>
         Iterator(ArrayType* array, uint32 page_index, uint32 element_index)
             : IteratorBase<Iterator, false>(array, page_index, element_index)
@@ -185,24 +194,13 @@ public:
         {
         }
 
-        Iterator& operator=(const Iterator& other)
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-
-            AssertDebug(other.array == this->array);
-
-            this->page = other.page;
-            this->elem = other.elem;
-
-            return *this;
-        }
+        Iterator& operator=(const Iterator& other) = default;
     };
 
     struct ConstIterator : IteratorBase<ConstIterator, true>
     {
+        ConstIterator() = default;
+
         template <class ArrayType>
         ConstIterator(const ArrayType* array, uint32 page_index, uint32 element_index)
             : IteratorBase<ConstIterator, true>(array, page_index, element_index)
@@ -223,8 +221,7 @@ public:
                 return *this;
             }
 
-            AssertDebug(other.array == this->array);
-
+            this->array = other.array;
             this->page = other.page;
             this->elem = other.elem;
 
@@ -370,7 +367,7 @@ public:
         return m_pages[page_index]->initialized_bits.Test(element_index);
     }
 
-    T& operator[](SizeType index)
+    /*T& operator[](SizeType index)
     {
         const SizeType page_index = PageIndex(index);
         const SizeType element_index = ElementIndex(index);
@@ -384,7 +381,7 @@ public:
         }
 
         return page->storage.GetPointer()[element_index];
-    }
+    }*/
 
     T& Get(SizeType index)
     {
@@ -487,6 +484,16 @@ public:
         page->initialized_bits.Set(element_index, true);
 
         return Iterator(this, page_index, element_index);
+    }
+
+    Iterator Erase(ConstIterator iter)
+    {
+        if (iter == End())
+        {
+            return End();
+        }
+
+        return EraseAt(SizeType(iter.page * PageSize + iter.elem));
     }
 
     Iterator EraseAt(SizeType index)

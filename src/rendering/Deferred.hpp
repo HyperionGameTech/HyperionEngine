@@ -8,7 +8,6 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/CullData.hpp>
 #include <rendering/rt/RTRadianceRenderer.hpp>
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
@@ -53,6 +52,8 @@ class DOFBlur;
 class Texture;
 class RTRadianceRenderer;
 struct RenderSetup;
+class RenderGroup;
+class IDrawCallCollectionImpl;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
@@ -100,8 +101,8 @@ protected:
 private:
     const DeferredPassMode m_mode;
 
-    FixedArray<ShaderRef, uint32(LT_MAX)> m_direct_light_shaders;
-    FixedArray<Handle<RenderGroup>, uint32(LT_MAX)> m_direct_light_render_groups;
+    FixedArray<ShaderRef, LT_MAX> m_direct_light_shaders;
+    FixedArray<GraphicsPipelineRef, LT_MAX> m_direct_light_graphics_pipelines;
 
     Handle<Texture> m_ltc_matrix_texture;
     Handle<Texture> m_ltc_brdf_texture;
@@ -212,7 +213,7 @@ private:
     virtual void Resize_Internal(Vec2u new_size) override;
 
     const EnvGridPassMode m_mode;
-    FixedArray<Handle<RenderGroup>, uint32(ApplyEnvGridMode::MAX)> m_render_groups;
+    FixedArray<GraphicsPipelineRef, uint32(ApplyEnvGridMode::MAX)> m_graphics_pipelines;
     bool m_is_first_frame;
 };
 
@@ -278,26 +279,13 @@ private:
     ImageViewRef m_mip_chain_image_view;
     ImageViewRef m_deferred_result_image_view;
 
-    FixedArray<Handle<RenderGroup>, ApplyReflectionProbeMode::MAX> m_render_groups;
+    FixedArray<GraphicsPipelineRef, ApplyReflectionProbeMode::MAX> m_graphics_pipelines;
 
     UniquePtr<SSRRenderer> m_ssr_renderer;
 
     UniquePtr<FullScreenPass> m_render_ssr_to_screen_pass;
 
     bool m_is_first_frame;
-};
-
-/*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
-struct PassData
-{
-    Viewport viewport;
-
-    // per-View descriptor sets
-    FixedArray<DescriptorSetRef, max_frames_in_flight> descriptor_sets;
-
-    CullData cull_data;
-
-    virtual ~PassData() = default;
 };
 
 struct DeferredPassData : PassData
@@ -376,7 +364,7 @@ private:
     void RenderFrameForView(FrameBase* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
-    void CreateViewPassData(View* view, DeferredPassData& pass_data);
+    virtual void CreateViewPassData(View* view, PassData& pass_data) override;
     void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data);
     void CreateViewDescriptorSets(View* view, DeferredPassData& pass_data);
     void CreateViewCombinePass(View* view, DeferredPassData& pass_data);

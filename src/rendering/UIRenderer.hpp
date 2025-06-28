@@ -13,7 +13,7 @@
 
 #include <core/object/HypObject.hpp>
 
-#include <rendering/RenderSubsystem.hpp>
+#include <rendering/Renderer.hpp>
 #include <rendering/RenderCollection.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -29,6 +29,7 @@ class RenderCamera;
 class View;
 class RenderView;
 struct RenderSetup;
+struct UIPassData;
 
 class UIRenderCollector : RenderCollector
 {
@@ -46,15 +47,41 @@ public:
 
     typename ResourceTracker<ID<Entity>, RenderProxy>::Diff PushUpdatesToRenderThread(
         ResourceTracker<ID<Entity>, RenderProxy>& meshes,
-        const FramebufferRef& framebuffer,
         const Optional<RenderableAttributeSet>& override_attributes = {});
 
     void CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup);
     void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) const;
 
-private:
-    Array<Pair<ID<Entity>, int>> m_proxy_depths;
-    RC<RenderProxyList> m_rpl;
+    Array<Pair<ID<Entity>, int>> proxy_depths;
+    RC<RenderProxyList> rpl;
+};
+
+class UIRenderer : public IRenderer
+{
+public:
+    virtual ~UIRenderer() = default;
+
+    HYP_FORCE_INLINE UIRenderCollector& GetRenderCollector()
+    {
+        return m_render_collector;
+    }
+
+    HYP_FORCE_INLINE const UIRenderCollector& GetRenderCollector() const
+    {
+        return m_render_collector;
+    }
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override;
+
+protected:
+    void CreateViewPassData(View* view, PassData& pass_data) override;
+
+    LinkedList<UIPassData> m_pass_data;
+    HashMap<View*, UIPassData*> m_view_pass_data;
+    UIRenderCollector m_render_collector;
 };
 
 HYP_CLASS(NoScriptBindings)
@@ -73,21 +100,6 @@ public:
         return m_ui_stage;
     }
 
-    HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
-    {
-        return m_framebuffer;
-    }
-
-    HYP_FORCE_INLINE UIRenderCollector& GetRenderCollector()
-    {
-        return m_render_collector;
-    }
-
-    HYP_FORCE_INLINE const UIRenderCollector& GetRenderCollector() const
-    {
-        return m_render_collector;
-    }
-
     HYP_FORCE_INLINE ResourceTracker<ID<Entity>, RenderProxy>& GetRenderProxyTracker()
     {
         return m_render_proxy_tracker;
@@ -98,6 +110,7 @@ public:
         return m_render_proxy_tracker;
     }
 
+    virtual void PreUpdate(float delta) override;
     virtual void Update(float delta) override;
 
 private:
@@ -110,9 +123,7 @@ private:
 
     Handle<UIStage> m_ui_stage;
 
-    FramebufferRef m_framebuffer;
     ShaderRef m_shader;
-    UIRenderCollector m_render_collector;
 
     // Game thread side list, used for collecting UI objects
     ResourceTracker<ID<Entity>, RenderProxy> m_render_proxy_tracker;
@@ -120,6 +131,8 @@ private:
     TResourceHandle<RenderCamera> m_camera_resource_handle;
 
     Handle<View> m_view;
+
+    UIRenderer* m_ui_renderer;
 
     DelegateHandler m_on_gbuffer_resolution_changed_handle;
 };

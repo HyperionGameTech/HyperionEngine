@@ -50,7 +50,6 @@ namespace hyperion {
 #pragma region ViewOutputTarget
 
 ViewOutputTarget::ViewOutputTarget()
-    : m_impl(FramebufferRef::Null())
 {
 }
 
@@ -100,6 +99,21 @@ const FramebufferRef& ViewOutputTarget::GetFramebuffer(RenderBucket rb) const
     return m_impl.Get<FramebufferRef>();
 }
 
+Span<const FramebufferRef> ViewOutputTarget::GetFramebuffers() const
+{
+    if (!m_impl.IsValid())
+    {
+        return {};
+    }
+
+    if (m_impl.Is<GBuffer*>())
+    {
+        return m_impl.Get<GBuffer*>()->GetFramebuffers();
+    }
+
+    return { &m_impl.Get<FramebufferRef>(), 1 };
+}
+
 #pragma endregion ViewOutputTarget
 
 #pragma region View
@@ -138,6 +152,8 @@ View::~View()
 
     if (m_render_resource)
     {
+        // temp shit
+        m_render_resource->DecRef();
         FreeResource(m_render_resource);
         m_render_resource = nullptr;
     }
@@ -192,6 +208,8 @@ void View::Init()
         m_output_target = ViewOutputTarget(framebuffer);
     }
 
+    AssertThrowMsg(m_output_target.IsValid(), "View with ID #%u must have a valid output target!", GetID().Value());
+
     Array<TResourceHandle<RenderScene>> render_scenes;
     render_scenes.Reserve(m_scenes.Size());
 
@@ -207,6 +225,11 @@ void View::Init()
 
     m_render_resource = AllocateResource<RenderView>(this);
     m_render_resource->SetViewport(m_viewport);
+
+    // temp shit
+    m_render_resource->IncRef();
+
+    AssertDebug(m_output_target.IsValid());
 
     SetReady(true);
 }
@@ -278,7 +301,7 @@ void View::Update(float delta)
         | (1 << RB_TRANSLUCENT)
         | (1 << RB_DEBUG);
 
-    rpl.BuildRenderGroups(m_render_resource, m_override_attributes.TryGet());
+    rpl.BuildRenderGroups(this);
 
     RenderCollector::CollectDrawCalls(rpl, bucket_mask);
 }

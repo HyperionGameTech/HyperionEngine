@@ -134,6 +134,11 @@ protected:
     EnvProbeRenderer();
 
     virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) = 0;
+
+    void CreateViewPassData(View* view, PassData& pass_data) override
+    {
+        HYP_NOT_IMPLEMENTED();
+    }
 };
 
 class ReflectionProbeRenderer : public EnvProbeRenderer

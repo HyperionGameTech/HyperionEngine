@@ -108,15 +108,34 @@ struct HYP_API RenderProxyList
         return env_grids;
     }
 
+#ifdef HYP_DEBUG_MODE
+    HYP_FORCE_INLINE SizeType NumDrawCallsCollected() const
+    {
+        SizeType num_draw_calls = 0;
+
+        for (const auto& mappings : mappings_by_bucket)
+        {
+            for (const KeyValuePair<RenderableAttributeSet, DrawCallCollectionMapping>& it : mappings)
+            {
+                const DrawCallCollectionMapping& mapping = it.second;
+
+                num_draw_calls += mapping.draw_call_collection.draw_calls.Size()
+                    + mapping.draw_call_collection.instanced_draw_calls.Size();
+            }
+        }
+
+        return num_draw_calls;
+    }
+#endif
+
     void Clear();
     void RemoveEmptyRenderGroups();
 
     /*! \brief Counts the number of render groups in the list. */
     uint32 NumRenderGroups() const;
 
-    /*! \brief Creates RenderGroups and adds/removes RenderProxies based on the renderable attributes of the render proxies.
-     *  If override_attributes is provided, it will be used instead of the renderable attributes of the render proxies. */
-    void BuildRenderGroups(RenderView* render_view, const RenderableAttributeSet* override_attributes = nullptr);
+    /*! \brief Builds RenderGroups for proxies, based on renderable attributes */
+    void BuildRenderGroups(View* view);
 
     ParallelRenderingState* AcquireNextParallelRenderingState();
     void CommitParallelRenderingState(RHICommandList& out_command_list);
@@ -162,16 +181,10 @@ public:
     static void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
-    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits, PushConstantData push_constant = {});
+    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, uint32 bucket_bits);
 
     // Writes commands into the frame's command list to execute the draw calls in the given bucket mask.
-    static void ExecuteDrawCalls(
-        FrameBase* frame,
-        const RenderSetup& render_setup,
-        RenderProxyList& render_proxy_list,
-        const FramebufferRef& framebuffer,
-        uint32 bucket_bits,
-        PushConstantData push_constant = {});
+    static void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, RenderProxyList& render_proxy_list, const FramebufferRef& framebuffer, uint32 bucket_bits);
 };
 
 } // namespace hyperion
