@@ -41,7 +41,7 @@ struct HBAOConfig : public ConfigBase<HBAOConfig>
 class HBAO final : public FullScreenPass
 {
 public:
-    HBAO(HBAOConfig&& config, GBuffer* gbuffer);
+    HBAO(HBAOConfig&& config, Vec2u extent, GBuffer* gbuffer);
     HBAO(const HBAO& other) = delete;
     HBAO& operator=(const HBAO& other) = delete;
     virtual ~HBAO() override;

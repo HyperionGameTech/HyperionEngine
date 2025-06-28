@@ -29,7 +29,7 @@ public:
     friend struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
     friend struct RenderCommand_CreateTemporalAAImageOutputs;
 
-    TemporalAA(const Vec2u& extent, const ImageViewRef& input_image_view, GBuffer* gbuffer);
+    TemporalAA(const ImageViewRef& input_image_view, const Vec2u& extent, GBuffer* gbuffer);
     TemporalAA(const TemporalAA& other) = delete;
     TemporalAA& operator=(const TemporalAA& other) = delete;
     ~TemporalAA();

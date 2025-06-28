@@ -57,10 +57,13 @@
 
 namespace hyperion {
 
-static const TextureFormat env_grid_radiance_format = TF_RGBA8;
-static const TextureFormat env_grid_irradiance_format = TF_R11G11B10F;
-static const Vec2u env_grid_irradiance_extent { 1024, 768 };
-static const Vec2u env_grid_radiance_extent { 1024, 768 };
+static constexpr TextureFormat env_grid_radiance_format = TF_RGBA8;
+static constexpr TextureFormat env_grid_irradiance_format = TF_R11G11B10F;
+
+static constexpr TextureFormat env_grid_pass_formats[EGPM_MAX] = {
+    env_grid_radiance_format,  // EGPM_RADIANCE
+    env_grid_irradiance_format // EGPM_IRRADIANCE
+};
 
 static const Float16 s_ltc_matrix[] = {
 #include <rendering/inl/LTCMatrix.inl>
@@ -105,8 +108,8 @@ static constexpr TypeID g_env_probe_type_to_type_id[EPT_MAX] = {
 
 #pragma region Deferred pass
 
-DeferredPass::DeferredPass(DeferredPassMode mode, GBuffer* gbuffer)
-    : FullScreenPass(TF_RGBA16F, gbuffer),
+DeferredPass::DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer)
+    : FullScreenPass(TF_RGBA16F, extent, gbuffer),
       m_mode(mode)
 {
     SetBlendFunction(BlendFunction::Additive());
@@ -370,10 +373,8 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region TonemapPass
 
-TonemapPass::TonemapPass(GBuffer* gbuffer)
-    : FullScreenPass(
-          TF_R11G11B10F,
-          gbuffer)
+TonemapPass::TonemapPass(Vec2u extent, GBuffer* gbuffer)
+    : FullScreenPass(TF_R11G11B10F, extent, gbuffer)
 {
 }
 
@@ -420,13 +421,13 @@ void TonemapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region TonemapPass
 
-LightmapPass::LightmapPass(const FramebufferRef& framebuffer, GBuffer* gbuffer)
+LightmapPass::LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer)
     : FullScreenPass(
           ShaderRef::Null(),
           DescriptorTableRef::Null(),
           framebuffer,
           TF_RGBA8,
-          framebuffer ? framebuffer->GetExtent() : Vec2u::Zero(),
+          extent,
           gbuffer)
 {
 }
@@ -452,7 +453,8 @@ void LightmapPass::CreatePipeline()
             .vertex_attributes = static_mesh_vertex_attributes },
         MaterialAttributes {
             .fill_mode = FM_FILL,
-            .blend_function = BlendFunction(BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
+            .blend_function = BlendFunction(
+                BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
                 BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
             .flags = MaterialAttributeFlags::NONE });
 
@@ -475,34 +477,27 @@ void LightmapPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region Env grid pass
 
-static ApplyEnvGridMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
+static EnvGridApplyMode EnvGridTypeToApplyEnvGridMode(EnvGridType type)
 {
     switch (type)
     {
     case EnvGridType::ENV_GRID_TYPE_SH:
-        return ApplyEnvGridMode::SH;
+        return EGAM_SH;
     case EnvGridType::ENV_GRID_TYPE_VOXEL:
-        return ApplyEnvGridMode::VOXEL;
+        return EGAM_VOXEL;
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-        return ApplyEnvGridMode::LIGHT_FIELD;
+        return EGAM_LIGHT_FIELD;
     default:
         HYP_FAIL("Invalid EnvGridType");
     }
 }
 
-EnvGridPass::EnvGridPass(EnvGridPassMode mode, GBuffer* gbuffer)
-    : FullScreenPass(
-          mode == EnvGridPassMode::RADIANCE
-              ? env_grid_radiance_format
-              : env_grid_irradiance_format,
-          mode == EnvGridPassMode::RADIANCE
-              ? env_grid_radiance_extent
-              : env_grid_irradiance_extent,
-          gbuffer),
+EnvGridPass::EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer)
+    : FullScreenPass(env_grid_pass_formats[mode], extent, gbuffer),
       m_mode(mode),
       m_is_first_frame(true)
 {
-    if (mode == EnvGridPassMode::RADIANCE)
+    if (mode == EGPM_RADIANCE)
     {
         SetBlendFunction(BlendFunction(
             BMF_SRC_ALPHA, BMF_ONE_MINUS_SRC_ALPHA,
@@ -535,7 +530,7 @@ void EnvGridPass::CreatePipeline()
                 BMF_ONE, BMF_ONE_MINUS_SRC_ALPHA),
             .flags = MaterialAttributeFlags::NONE });
 
-    if (m_mode == EnvGridPassMode::RADIANCE)
+    if (m_mode == EGPM_RADIANCE)
     {
         m_shader = g_shader_manager->GetOrCreate(NAME("ApplyEnvGrid"), ShaderProperties { { "MODE_RADIANCE" } });
 
@@ -544,16 +539,10 @@ void EnvGridPass::CreatePipeline()
         return;
     }
 
-    static const FixedArray<Pair<ApplyEnvGridMode, ShaderProperties>, uint32(ApplyEnvGridMode::MAX)> apply_env_grid_passes = {
-        Pair<ApplyEnvGridMode, ShaderProperties> {
-            ApplyEnvGridMode::SH,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_SH" } } },
-        Pair<ApplyEnvGridMode, ShaderProperties> {
-            ApplyEnvGridMode::VOXEL,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_VOXEL" } } },
-        Pair<ApplyEnvGridMode, ShaderProperties> {
-            ApplyEnvGridMode::LIGHT_FIELD,
-            ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_LIGHT_FIELD" } } }
+    static const FixedArray<Pair<EnvGridApplyMode, ShaderProperties>, EGAM_MAX> apply_env_grid_passes = {
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_SH, ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_SH" } } },
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_VOXEL, ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_VOXEL" } } },
+        Pair<EnvGridApplyMode, ShaderProperties> { EGAM_LIGHT_FIELD, ShaderProperties { { "MODE_IRRADIANCE", "IRRADIANCE_MODE_LIGHT_FIELD" } } }
     };
 
     for (const auto& it : apply_env_grid_passes)
@@ -575,7 +564,7 @@ void EnvGridPass::CreatePipeline()
         m_graphics_pipelines[uint32(it.first)] = std::move(graphics_pipeline);
     }
 
-    m_graphics_pipeline = m_graphics_pipelines[uint32(ApplyEnvGridMode::SH)];
+    m_graphics_pipeline = m_graphics_pipelines[EGAM_SH];
 }
 
 void EnvGridPass::Resize_Internal(Vec2u new_size)
@@ -609,7 +598,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     for (RenderEnvGrid* env_grid : rpl.GetEnvGrids())
     {
-        const GraphicsPipelineRef& graphics_pipeline = m_mode == EnvGridPassMode::RADIANCE
+        const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
             ? m_graphics_pipeline
             : m_graphics_pipelines[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGrid()->GetEnvGridType()))];
 
@@ -674,8 +663,8 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region ReflectionsPass
 
-ReflectionsPass::ReflectionsPass(GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view)
-    : FullScreenPass(TF_R10G10B10A2, gbuffer),
+ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view)
+    : FullScreenPass(TF_R10G10B10A2, extent, gbuffer),
       m_mip_chain_image_view(mip_chain_image_view),
       m_deferred_result_image_view(deferred_result_image_view),
       m_is_first_frame(true)
@@ -1023,6 +1012,7 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
     DeferredPassData& pd = static_cast<DeferredPassData&>(pass_data);
 
     pd.view = view->WeakHandleFromThis();
+    pd.viewport = view->GetRenderResource().GetViewport();
 
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
     AssertDebug(gbuffer != nullptr);
@@ -1035,10 +1025,10 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
     const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    pd.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::RADIANCE, gbuffer);
+    pd.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EGPM_RADIANCE, pd.viewport.extent, gbuffer);
     pd.env_grid_radiance_pass->Create();
 
-    pd.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EnvGridPassMode::IRRADIANCE, gbuffer);
+    pd.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EGPM_IRRADIANCE, pd.viewport.extent, gbuffer);
     pd.env_grid_irradiance_pass->Create();
 
     pd.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
@@ -1047,16 +1037,13 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
     pd.post_processing = MakeUnique<PostProcessing>();
     pd.post_processing->Create();
 
-    pd.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, gbuffer);
+    pd.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, pd.viewport.extent, gbuffer);
     pd.indirect_pass->Create();
 
-    pd.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, gbuffer);
+    pd.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, pd.viewport.extent, gbuffer);
     pd.direct_pass->Create();
 
-    AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-    AssertThrow(depth_attachment != nullptr);
-
-    pd.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
+    pd.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     pd.depth_pyramid_renderer->Create();
 
     pd.cull_data.depth_pyramid_image_view = pd.depth_pyramid_renderer->GetResultImageView();
@@ -1074,7 +1061,7 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
 
     pd.mip_chain->SetPersistentRenderResourceEnabled(true);
 
-    pd.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), gbuffer);
+    pd.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), pd.viewport.extent, gbuffer);
     pd.hbao->Create();
 
     // m_dof_blur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
@@ -1082,17 +1069,17 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
 
     CreateViewCombinePass(view, pd);
 
-    pd.reflections_pass = MakeUnique<ReflectionsPass>(gbuffer, pd.mip_chain->GetRenderResource().GetImageView(), pd.combine_pass->GetFinalImageView());
+    pd.reflections_pass = MakeUnique<ReflectionsPass>(pd.viewport.extent, gbuffer, pd.mip_chain->GetRenderResource().GetImageView(), pd.combine_pass->GetFinalImageView());
     pd.reflections_pass->Create();
 
-    pd.tonemap_pass = MakeUnique<TonemapPass>(gbuffer);
+    pd.tonemap_pass = MakeUnique<TonemapPass>(pd.viewport.extent, gbuffer);
     pd.tonemap_pass->Create();
 
     // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-    pd.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
+    pd.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, pd.viewport.extent, gbuffer);
     pd.lightmap_pass->Create();
 
-    pd.temporal_aa = MakeUnique<TemporalAA>(gbuffer->GetExtent(), pd.tonemap_pass->GetFinalImageView(), gbuffer);
+    pd.temporal_aa = MakeUnique<TemporalAA>(pd.tonemap_pass->GetFinalImageView(), pd.viewport.extent, gbuffer);
     pd.temporal_aa->Create();
 
     CreateViewDescriptorSets(view, pd);
@@ -1279,6 +1266,9 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& pass_
 
 void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassData& pass_data)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_render_thread);
+
     HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->GetID(), viewport.extent.x, viewport.extent.y);
 
     AssertThrow(viewport.extent.Volume() > 0);
@@ -1309,16 +1299,13 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassDat
 
     pass_data.tonemap_pass->Resize(new_size);
 
-    pass_data.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, gbuffer);
+    pass_data.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, new_size, gbuffer);
     pass_data.lightmap_pass->Create();
 
-    pass_data.temporal_aa = MakeUnique<TemporalAA>(new_size, pass_data.tonemap_pass->GetFinalImageView(), gbuffer);
+    pass_data.temporal_aa = MakeUnique<TemporalAA>(pass_data.tonemap_pass->GetFinalImageView(), new_size, gbuffer);
     pass_data.temporal_aa->Create();
 
-    AttachmentBase* depth_attachment = opaque_fbo->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
-    AssertThrow(depth_attachment != nullptr);
-
-    pass_data.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(depth_attachment->GetImageView());
+    pass_data.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
     pass_data.depth_pyramid_renderer->Create();
 
     SafeRelease(std::move(pass_data.descriptor_sets));
@@ -1375,8 +1362,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             pd = &m_pass_data.EmplaceBack();
 
             CreateViewPassData(view, *pd);
-
-            pd->viewport = view->GetRenderResource().GetViewport(); // rpl.viewport;
         }
         else if (pd->viewport != view->GetRenderResource().GetViewport())
         {
@@ -1565,6 +1550,12 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 #endif
 }
 
+#define CHECK_FRAMEBUFFER_SIZE(fb)                                                                    \
+    AssertDebugMsg(fb->GetExtent() == pd->viewport.extent,                                            \
+        "Deferred pass framebuffer extent does not match viewport extent! Expected %ux%u, got %ux%u", \
+        pd->viewport.extent.x, pd->viewport.extent.y,                                                 \
+        fb->GetExtent().x, fb->GetExtent().y)
+
 void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
@@ -1591,6 +1582,9 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     DeferredPassData* pd = static_cast<DeferredPassData*>(rs.pass_data);
     AssertDebug(pd != nullptr);
 
+    HYP_LOG(Rendering, Debug, "Render deferred : main deferred lighting pass has extent : {}",
+        pd->indirect_pass->GetFramebuffer()->GetExtent());
+
     const uint32 frame_index = frame->GetFrameIndex();
 
     // @TODO: Refactor to put this in the RenderWorld
@@ -1599,6 +1593,10 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
+
+    CHECK_FRAMEBUFFER_SIZE(opaque_fbo);
+    CHECK_FRAMEBUFFER_SIZE(lightmap_fbo);
+    CHECK_FRAMEBUFFER_SIZE(translucent_fbo);
 
     const bool do_particles = true;
     const bool do_gaussian_splatting = false; // environment && environment->IsReady();
@@ -1722,6 +1720,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     // render indirect and direct lighting into the same framebuffer
     const FramebufferRef& deferred_pass_framebuffer = pd->indirect_pass->GetFramebuffer();
+    CHECK_FRAMEBUFFER_SIZE(deferred_pass_framebuffer);
 
     { // deferred lighting on opaque objects
         frame->GetCommandList().Add<BeginFramebuffer>(deferred_pass_framebuffer, frame_index);
@@ -1819,6 +1818,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     m_last_frame_data.pass_data.Insert(last_frame_data_it, Pair<View*, DeferredPassData*> { view, pd });
 }
+
+#undef CHECK_FRAMEBUFFER_SIZE
 
 void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs)
 {

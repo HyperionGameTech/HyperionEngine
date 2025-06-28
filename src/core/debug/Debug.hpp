@@ -25,14 +25,14 @@ enum class LogType : int
 };
 
 #ifdef HYP_DEBUG_MODE
-    // #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
-    #define DebugLog(type, ...) \
-        debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
+// #define DebugLog(type, fmt) DebugLog(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, fmt)
+#define DebugLog(type, ...) \
+    debug::DebugLog_Write(type, HYP_DEBUG_FUNC_SHORT, HYP_DEBUG_LINE, __VA_ARGS__)
 
 extern HYP_API void DebugLog_Write(LogType type, const char* callee, unsigned int line, const char* fmt, ...);
 #else
-    #define DebugLog(type, ...) \
-        debug::DebugLog_Write(type, __VA_ARGS__)
+#define DebugLog(type, ...) \
+    debug::DebugLog_Write(type, __VA_ARGS__)
 
 extern HYP_API void DebugLog_Write(LogType type, const char* fmt, ...);
 #endif
@@ -50,35 +50,35 @@ using debug::LogType;
 } // namespace hyperion
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-    #define HYP_THROW(msg) throw ::std::runtime_error(msg)
+#define HYP_THROW(msg) throw ::std::runtime_error(msg)
 #else
-    #ifdef HYP_DEBUG_MODE
-        #define HYP_THROW(msg)                        \
-            do                                        \
-            {                                         \
-                debug::WriteToStandardError(&msg[0]); \
-                HYP_PRINT_STACK_TRACE();              \
-                std::terminate();                     \
-            }                                         \
-            while (0)
-    #else
-        #define HYP_THROW(msg) std::terminate()
-    #endif
+#ifdef HYP_DEBUG_MODE
+#define HYP_THROW(msg)                        \
+    do                                        \
+    {                                         \
+        debug::WriteToStandardError(&msg[0]); \
+        HYP_PRINT_STACK_TRACE();              \
+        std::terminate();                     \
+    }                                         \
+    while (0)
+#else
+#define HYP_THROW(msg) std::terminate()
+#endif
 #endif
 
 #define HYP_UNREACHABLE() \
     HYP_THROW("Unreachable code hit in function " HYP_STR(HYP_DEBUG_FUNC))
 
 #if defined(HYP_USE_EXCEPTIONS) && HYP_USE_EXCEPTIONS
-    #define HYP_NOT_IMPLEMENTED()                                            \
-        do                                                                   \
-        {                                                                    \
-            HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); \
-            std::terminate();                                                \
-        }                                                                    \
-        while (0)
+#define HYP_NOT_IMPLEMENTED()                                            \
+    do                                                                   \
+    {                                                                    \
+        HYP_THROW("Function not implemented: " HYP_STR(HYP_DEBUG_FUNC)); \
+        std::terminate();                                                \
+    }                                                                    \
+    while (0)
 #else
-    #define HYP_NOT_IMPLEMENTED() HYP_THROW("Not implemented: " HYP_STR(HYP_DEBUG_FUNC))
+#define HYP_NOT_IMPLEMENTED() HYP_THROW("Not implemented: " HYP_STR(HYP_DEBUG_FUNC))
 #endif
 
 // obsolete
@@ -112,9 +112,9 @@ using debug::LogType;
 #define AssertThrow(cond) AssertOrElse(LogType::Error, cond, HYP_THROW("Assertion failed"))
 
 #ifdef HYP_DEBUG_MODE
-    #define AssertDebug(cond) AssertThrow(cond)
+#define AssertDebug(cond) AssertThrow(cond)
 #else
-    #define AssertDebug(...)
+#define AssertDebug(...)
 #endif
 
 #define DebugLogAssertionMsg(level, cond, msg, ...)                                            \
@@ -140,16 +140,16 @@ using debug::LogType;
 #define AssertThrowMsg(cond, msg, ...) AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg, ##__VA_ARGS__)
 
 #ifdef HYP_DEBUG_MODE
-    #define AssertDebugMsg(cond, msg, ...) AssertThrowMsg(cond, msg, ##__VA_ARGS__)
+#define AssertDebugMsg(cond, msg, ...) AssertThrowMsg(cond, msg, ##__VA_ARGS__)
 #else
-    #define AssertDebugMsg(...)
+#define AssertDebugMsg(...)
 #endif
 
 #ifdef HYP_DEBUG_MODE
-    #define HYP_PRINT_STACK_TRACE() \
-        debug::LogStackTrace()
+#define HYP_PRINT_STACK_TRACE() \
+    debug::LogStackTrace()
 #else
-    #define HYP_PRINT_STACK_TRACE()
+#define HYP_PRINT_STACK_TRACE()
 #endif
 
 #define HYP_FAIL(msg, ...) AssertOrElseMsg(LogType::Error, false, HYP_THROW("Fatal error"), msg, ##__VA_ARGS__)

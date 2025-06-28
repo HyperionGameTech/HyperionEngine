@@ -13,10 +13,12 @@
 
 namespace hyperion {
 
+class GBuffer;
+
 class DepthPyramidRenderer
 {
 public:
-    DepthPyramidRenderer(const ImageViewRef& depth_image_view);
+    DepthPyramidRenderer(GBuffer* gbuffer);
     ~DepthPyramidRenderer();
 
     HYP_FORCE_INLINE const ImageViewRef& GetResultImageView() const
@@ -36,8 +38,9 @@ public:
     void Render(FrameBase* frame);
 
 private:
-    ImageViewRef m_depth_image_view;
+    GBuffer* m_gbuffer;
 
+    ImageViewRef m_depth_image_view;
     ImageRef m_depth_pyramid;
     ImageViewRef m_depth_pyramid_view;
     Array<ImageViewRef> m_mip_image_views;

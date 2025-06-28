@@ -44,52 +44,6 @@ public:
     {
     }
 
-    auto& Get(KeyType key)
-    {
-        const auto it = static_cast<const Container*>(this)->Find(key);
-        AssertThrowMsg(it != static_cast<const Container*>(this)->End(), "Cannot Get(): value not found");
-
-        return *it;
-    }
-
-    const auto& Get(KeyType key) const
-    {
-        const auto it = static_cast<const Container*>(this)->Find(key);
-        AssertThrowMsg(it != static_cast<const Container*>(this)->End(), "Cannot Get(): value not found");
-
-        return *it;
-    }
-
-    auto* TryGet(KeyType key)
-    {
-        const auto it = static_cast<Container*>(this)->Find(key);
-        return it != static_cast<Container*>(this)->End()
-            ? &(*it)
-            : nullptr;
-    }
-
-    const auto* TryGet(KeyType key) const
-    {
-        const auto it = static_cast<const Container*>(this)->Find(key);
-        return it != static_cast<const Container*>(this)->End()
-            ? &(*it)
-            : nullptr;
-    }
-
-    template <class ValueType>
-    void Set(KeyType index, const ValueType& value)
-    {
-        AssertThrow(index < static_cast<KeyType>(static_cast<const Container*>(this)->Size()));
-        static_cast<Container*>(this)->operator[](index) = value;
-    }
-
-    template <class ValueType>
-    void Set(KeyType index, ValueType&& value)
-    {
-        AssertThrow(index < static_cast<KeyType>(static_cast<const Container*>(this)->Size()));
-        static_cast<Container*>(this)->operator[](index) = std::forward<ValueType>(value);
-    }
-
     template <class T>
     auto Find(const T& value)
     {

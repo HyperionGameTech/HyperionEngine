@@ -145,6 +145,20 @@ public:
     Iterator FindByHashCode(HashCode hash_code);
     ConstIterator FindByHashCode(HashCode hash_code) const;
 
+    KeyValuePair<Key, Value>* TryGet(const KeyType& key)
+    {
+        const auto it = Find(key);
+
+        return it != End() ? &(*it) : nullptr;
+    }
+
+    const KeyValuePair<Key, Value>* TryGet(const KeyType& key) const
+    {
+        const auto it = Find(key);
+
+        return it != End() ? &(*it) : nullptr;
+    }
+
     InsertResult Set(const Key& key, const Value& value);
     InsertResult Set(const Key& key, Value&& value);
     InsertResult Set(Key&& key, const Value& value);

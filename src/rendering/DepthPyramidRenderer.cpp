@@ -30,8 +30,8 @@ struct DepthPyramidUniforms
     uint32 mip_level;
 };
 
-DepthPyramidRenderer::DepthPyramidRenderer(const ImageViewRef& depth_image_view)
-    : m_depth_image_view(depth_image_view),
+DepthPyramidRenderer::DepthPyramidRenderer(GBuffer* gbuffer)
+    : m_gbuffer(gbuffer),
       m_is_rendered(false)
 {
 }
@@ -56,6 +56,17 @@ void DepthPyramidRenderer::Create()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
+
+    AssertThrow(m_gbuffer != nullptr);
+
+    const FramebufferRef& opaque_framebuffer = m_gbuffer->GetBucket(RB_OPAQUE).GetFramebuffer();
+    AssertThrow(opaque_framebuffer.IsValid());
+
+    AttachmentBase* depth_attachment = opaque_framebuffer->GetAttachment(GBUFFER_RESOURCE_MAX - 1);
+    AssertThrow(depth_attachment != nullptr);
+
+    m_depth_image_view = depth_attachment->GetImageView();
+    AssertThrow(m_depth_image_view.IsValid());
 
     auto create_depth_pyramid_resources = [this]()
     {

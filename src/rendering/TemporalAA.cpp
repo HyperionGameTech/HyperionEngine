@@ -30,9 +30,9 @@
 
 namespace hyperion {
 
-TemporalAA::TemporalAA(const Vec2u& extent, const ImageViewRef& input_image_view, GBuffer* gbuffer)
-    : m_extent(extent),
-      m_input_image_view(input_image_view),
+TemporalAA::TemporalAA(const ImageViewRef& input_image_view, const Vec2u& extent, GBuffer* gbuffer)
+    : m_input_image_view(input_image_view),
+      m_extent(extent),
       m_gbuffer(gbuffer),
       m_is_initialized(false)
 {

@@ -254,14 +254,9 @@ void FullScreenPass::Resize_Internal(Vec2u new_size)
         return;
     }
 
-    if (new_size.x * new_size.y == 0)
-    {
-        // AssertThrow(m_gbuffer != nullptr);
-        // new_size = m_gbuffer->GetExtent();
-        // TEMP HACK
-        m_extent = g_rendering_api->GetSwapchain()->GetExtent();
-    }
+    AssertDebugMsg(new_size.Volume() != 0, "Cannot resize FullScreenPass to zero size!");
 
+    new_size = MathUtil::Max(new_size, Vec2u::One());
     m_extent = new_size;
 
     if (!m_framebuffer.IsValid())

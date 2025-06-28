@@ -83,7 +83,7 @@ class DeferredPass final : public FullScreenPass
     friend class DeferredRenderer;
 
 public:
-    DeferredPass(DeferredPassMode mode, GBuffer* gbuffer);
+    DeferredPass(DeferredPassMode mode, Vec2u extent, GBuffer* gbuffer);
     DeferredPass(const DeferredPass& other) = delete;
     DeferredPass& operator=(const DeferredPass& other) = delete;
     virtual ~DeferredPass() override;
@@ -109,25 +109,27 @@ private:
     SamplerRef m_ltc_sampler;
 };
 
-enum class EnvGridPassMode
+enum EnvGridPassMode : uint8
 {
-    RADIANCE,
-    IRRADIANCE
+    EGPM_RADIANCE,
+    EGPM_IRRADIANCE,
+
+    EGPM_MAX
 };
 
-enum class ApplyEnvGridMode : uint32
+enum EnvGridApplyMode : uint8
 {
-    SH,
-    VOXEL,
-    LIGHT_FIELD,
+    EGAM_SH,
+    EGAM_VOXEL,
+    EGAM_LIGHT_FIELD,
 
-    MAX
+    EGAM_MAX
 };
 
 class TonemapPass final : public FullScreenPass
 {
 public:
-    TonemapPass(GBuffer* gbuffer);
+    TonemapPass(Vec2u extent, GBuffer* gbuffer);
     TonemapPass(const TonemapPass& other) = delete;
     TonemapPass& operator=(const TonemapPass& other) = delete;
     virtual ~TonemapPass() override;
@@ -155,7 +157,7 @@ private:
 class LightmapPass final : public FullScreenPass
 {
 public:
-    LightmapPass(const FramebufferRef& framebuffer, GBuffer* gbuffer);
+    LightmapPass(const FramebufferRef& framebuffer, Vec2u extent, GBuffer* gbuffer);
     LightmapPass(const LightmapPass& other) = delete;
     LightmapPass& operator=(const LightmapPass& other) = delete;
     virtual ~LightmapPass() override;
@@ -183,7 +185,7 @@ private:
 class EnvGridPass final : public FullScreenPass
 {
 public:
-    EnvGridPass(EnvGridPassMode mode, GBuffer* gbuffer);
+    EnvGridPass(EnvGridPassMode mode, Vec2u extent, GBuffer* gbuffer);
     EnvGridPass(const EnvGridPass& other) = delete;
     EnvGridPass& operator=(const EnvGridPass& other) = delete;
     virtual ~EnvGridPass() override;
@@ -202,7 +204,7 @@ protected:
 private:
     virtual bool UsesTemporalBlending() const override
     {
-        return m_mode == EnvGridPassMode::RADIANCE;
+        return m_mode == EGPM_RADIANCE;
     }
 
     virtual bool ShouldRenderHalfRes() const override
@@ -213,7 +215,7 @@ private:
     virtual void Resize_Internal(Vec2u new_size) override;
 
     const EnvGridPassMode m_mode;
-    FixedArray<GraphicsPipelineRef, uint32(ApplyEnvGridMode::MAX)> m_graphics_pipelines;
+    FixedArray<GraphicsPipelineRef, EGAM_MAX> m_graphics_pipelines;
     bool m_is_first_frame;
 };
 
@@ -228,7 +230,7 @@ class ReflectionsPass final : public FullScreenPass
     };
 
 public:
-    ReflectionsPass(GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view);
+    ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const ImageViewRef& mip_chain_image_view, const ImageViewRef& deferred_result_image_view);
     ReflectionsPass(const ReflectionsPass& other) = delete;
     ReflectionsPass& operator=(const ReflectionsPass& other) = delete;
     virtual ~ReflectionsPass() override;
