@@ -1452,6 +1452,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     // Render global environment probes and grids and set fallbacks
     RenderSetup new_rs = rs;
 
+#if 1
     {
         // Set sky as fallback probe
         if (env_probes[EPT_SKY].Any())
@@ -1519,10 +1520,12 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             }
         }
     }
+#endif
 
     // reset renderer state back to what it was before
     new_rs = rs;
 
+#if 1
     for (const TResourceHandle<RenderView>& render_view : rs.world->GetViews())
     {
         AssertThrow(render_view);
@@ -1559,6 +1562,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     }
 
     g_engine->GetRenderStatsCalculator().AddCounts(counts);
+#endif
 }
 
 void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& rs)

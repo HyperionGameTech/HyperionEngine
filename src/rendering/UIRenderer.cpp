@@ -620,6 +620,28 @@ void UIRenderSubsystem::Init()
 
     m_camera_resource_handle = TResourceHandle<RenderCamera>(m_ui_stage->GetCamera()->GetRenderResource());
 
+    const Vec2u surface_size = Vec2u(m_ui_stage->GetSurfaceSize());
+    HYP_LOG(UI, Debug, "UIRenderSubsystem: surface size is {}", surface_size);
+
+    ViewOutputTargetDesc output_target_desc {
+        .extent = surface_size * 2,
+        .attachments = { { TF_RGBA8 }, { g_rendering_api->GetDefaultFormat(DIF_DEPTH) } }
+    };
+
+    ViewDesc view_desc {
+        .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
+        .viewport = Viewport { .extent = surface_size, .position = Vec2i::Zero() },
+        .output_target_desc = output_target_desc,
+        .scenes = { m_ui_stage->GetScene()->HandleFromThis() },
+        .camera = m_ui_stage->GetCamera()
+    };
+
+    m_view = CreateObject<View>(view_desc);
+    InitObject(m_view);
+
+    // temp shit
+    m_view->GetRenderResource().IncRef();
+
     CreateFramebuffer();
 }
 
@@ -707,34 +729,9 @@ void UIRenderSubsystem::CreateFramebuffer()
 
         const Vec2u surface_size = Vec2u(g_engine->GetAppContext()->GetMainWindow()->GetDimensions());
 
-        // temp shit
-        if (subsystem->m_view)
-        {
-            subsystem->m_view->GetRenderResource().DecRef();
-        }
+        // subsystem->m_view->SetViewport(Viewport { .extent = surface_size, .position = Vec2i::Zero() });
 
-        HYP_LOG(UI, Debug, "Creating UI Render Subsystem view with surface size {}", surface_size);
-
-        ViewOutputTargetDesc output_target_desc {
-            .extent = surface_size * 2,
-            .attachments = { { TF_RGBA8 }, { g_rendering_api->GetDefaultFormat(DIF_DEPTH) } }
-        };
-
-        ViewDesc view_desc {
-            .flags = ViewFlags::DEFAULT & ~ViewFlags::ALL_WORLD_SCENES,
-            .viewport = Viewport { .extent = surface_size, .position = Vec2i::Zero() },
-            .output_target_desc = output_target_desc,
-            .scenes = { subsystem->m_ui_stage->GetScene()->HandleFromThis() },
-            .camera = subsystem->m_ui_stage->GetCamera()
-        };
-
-        subsystem->m_view = CreateObject<View>(view_desc);
-        InitObject(subsystem->m_view);
-
-        subsystem->m_view->GetRenderResource().IncRef();
-        // temp shit
-
-        subsystem->m_ui_stage->SetSurfaceSize(Vec2i(surface_size));
+        // subsystem->m_ui_stage->SetSurfaceSize(Vec2i(surface_size));
 
         HYP_LOG(UI, Debug, "Created UI Render Subsystem view with ID {} and surface size {}",
             subsystem->m_view->GetID().Value(), surface_size);

@@ -250,8 +250,6 @@ void World::Update(float delta)
 
     m_physics_world.Tick(delta);
 
-    HYP_LOG(Core, Debug, "World::Update() - num views: {}", m_views.Size());
-
 #ifdef HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
     Array<Task<void>> update_subsystem_tasks;
 

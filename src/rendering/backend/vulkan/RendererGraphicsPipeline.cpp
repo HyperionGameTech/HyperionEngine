@@ -12,6 +12,9 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <core/math/MathUtil.hpp>
 #include <core/math/Transform.hpp>
 
@@ -156,8 +159,10 @@ void VulkanGraphicsPipeline::Bind(CommandBufferBase* cmd, Vec2i viewport_offset,
     }
 }
 
+static int g_tmp_num_graphics_pipelines = 0;
 RendererResult VulkanGraphicsPipeline::Rebuild()
 {
+    ++g_tmp_num_graphics_pipelines;
     Array<VkVertexInputAttributeDescription> vk_vertex_attributes;
     Array<VkVertexInputBindingDescription> vk_vertex_binding_descriptions;
 
@@ -418,12 +423,17 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
         vkCreateGraphicsPipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
+    HYP_LOG(Rendering, Debug, "Created graphics pipeline #{}", g_tmp_num_graphics_pipelines);
+
     HYPERION_RETURN_OK;
 }
 
 RendererResult VulkanGraphicsPipeline::Destroy()
 {
     SafeRelease(std::move(m_render_pass));
+
+    HYP_LOG(Rendering, Debug, "Deleting graphics pipeline, now #{}", g_tmp_num_graphics_pipelines);
+    --g_tmp_num_graphics_pipelines;
 
     return VulkanPipelineBase::Destroy();
 }
