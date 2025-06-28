@@ -154,7 +154,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
                 }
                 else
                 {
-                    AddElement(descriptor.name, DescriptorSetElementType::STORAGE_BUFFER, descriptor_index, descriptor.count, descriptor.size);
+                    AddElement(descriptor.name, DescriptorSetElementType::SSBO, descriptor_index, descriptor.count, descriptor.size);
                 }
                 break;
             case DescriptorSlot::DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE:

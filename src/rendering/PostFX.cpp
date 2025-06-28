@@ -237,7 +237,7 @@ void PostProcessing::CreateUniformBuffer()
 
     const PostProcessingUniforms post_processing_uniforms = GetUniforms();
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(post_processing_uniforms));
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(post_processing_uniforms));
     HYPERION_ASSERT_RESULT(m_uniform_buffer->Create());
     m_uniform_buffer->Copy(sizeof(PostProcessingUniforms), &post_processing_uniforms);
 }

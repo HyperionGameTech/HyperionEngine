@@ -720,16 +720,16 @@ RenderGlobalState::RenderGlobalState()
       GPUBufferHolderMap(MakeUnique<class GPUBufferHolderMap>()),
       PlaceholderData(MakeUnique<class PlaceholderData>())
 {
-    Worlds = GPUBufferHolderMap->GetOrCreate<WorldShaderData, GPUBufferType::CONSTANT_BUFFER>();
-    Cameras = GPUBufferHolderMap->GetOrCreate<CameraShaderData, GPUBufferType::CONSTANT_BUFFER>();
-    Lights = GPUBufferHolderMap->GetOrCreate<LightShaderData, GPUBufferType::STORAGE_BUFFER>();
-    Entities = GPUBufferHolderMap->GetOrCreate<EntityShaderData, GPUBufferType::STORAGE_BUFFER>();
-    Materials = GPUBufferHolderMap->GetOrCreate<MaterialShaderData, GPUBufferType::STORAGE_BUFFER>();
-    Skeletons = GPUBufferHolderMap->GetOrCreate<SkeletonShaderData, GPUBufferType::STORAGE_BUFFER>();
-    ShadowMaps = GPUBufferHolderMap->GetOrCreate<ShadowMapShaderData, GPUBufferType::STORAGE_BUFFER>();
-    EnvProbes = GPUBufferHolderMap->GetOrCreate<EnvProbeShaderData, GPUBufferType::STORAGE_BUFFER>();
-    EnvGrids = GPUBufferHolderMap->GetOrCreate<EnvGridShaderData, GPUBufferType::CONSTANT_BUFFER>();
-    LightmapVolumes = GPUBufferHolderMap->GetOrCreate<LightmapVolumeShaderData, GPUBufferType::STORAGE_BUFFER>();
+    Worlds = GPUBufferHolderMap->GetOrCreate<WorldShaderData, GPUBufferType::CBUFF>();
+    Cameras = GPUBufferHolderMap->GetOrCreate<CameraShaderData, GPUBufferType::CBUFF>();
+    Lights = GPUBufferHolderMap->GetOrCreate<LightShaderData, GPUBufferType::SSBO>();
+    Entities = GPUBufferHolderMap->GetOrCreate<EntityShaderData, GPUBufferType::SSBO>();
+    Materials = GPUBufferHolderMap->GetOrCreate<MaterialShaderData, GPUBufferType::SSBO>();
+    Skeletons = GPUBufferHolderMap->GetOrCreate<SkeletonShaderData, GPUBufferType::SSBO>();
+    ShadowMaps = GPUBufferHolderMap->GetOrCreate<ShadowMapShaderData, GPUBufferType::SSBO>();
+    EnvProbes = GPUBufferHolderMap->GetOrCreate<EnvProbeShaderData, GPUBufferType::SSBO>();
+    EnvGrids = GPUBufferHolderMap->GetOrCreate<EnvGridShaderData, GPUBufferType::CBUFF>();
+    LightmapVolumes = GPUBufferHolderMap->GetOrCreate<LightmapVolumeShaderData, GPUBufferType::SSBO>();
 
     GlobalDescriptorTable = g_rendering_api->MakeDescriptorTable(&GetStaticDescriptorTableDeclaration());
 
@@ -812,7 +812,7 @@ void RenderGlobalState::CreateBlueNoiseBuffer()
 
     static_assert(blue_noise_buffer_size == (sobol_256spp_256d_offset + sobol_256spp_256d_size) + ((scrambling_tile_offset - (sobol_256spp_256d_offset + sobol_256spp_256d_size)) + scrambling_tile_size) + ((ranking_tile_offset - (scrambling_tile_offset + scrambling_tile_size)) + ranking_tile_size));
 
-    GPUBufferRef blue_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(BlueNoiseBuffer));
+    GPUBufferRef blue_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(BlueNoiseBuffer));
     HYPERION_ASSERT_RESULT(blue_noise_buffer->Create());
     blue_noise_buffer->Copy(sobol_256spp_256d_offset, sobol_256spp_256d_size, &BlueNoise::sobol_256spp_256d[0]);
     blue_noise_buffer->Copy(scrambling_tile_offset, scrambling_tile_size, &BlueNoise::scrambling_tile[0]);
@@ -829,7 +829,7 @@ void RenderGlobalState::CreateSphereSamplesBuffer()
 {
     HYP_SCOPE;
 
-    GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(Vec4f) * 4096);
+    GPUBufferRef sphere_samples_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(Vec4f) * 4096);
     HYPERION_ASSERT_RESULT(sphere_samples_buffer->Create());
 
     Vec4f* sphere_samples = new Vec4f[4096];
@@ -890,7 +890,7 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frame_index)
         GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), i, PlaceholderData->DefaultTexture2D->GetRenderResource().GetImageView());
     }
 
-    GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), PlaceholderData->GetOrCreateBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms), true /* exact size */));
+    GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIUniforms"), PlaceholderData->GetOrCreateBuffer(GPUBufferType::CBUFF, sizeof(DDGIUniforms), true /* exact size */));
     GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIIrradianceTexture"), PlaceholderData->GetImageView2D1x1R8());
     GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("DDGIDepthTexture"), PlaceholderData->GetImageView2D1x1R8());
 

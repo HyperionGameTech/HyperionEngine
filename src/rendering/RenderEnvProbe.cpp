@@ -392,17 +392,23 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.env_probe != nullptr);
 
-#if 0 // temp
     EnvProbe* env_probe = render_setup.env_probe;
     AssertDebug(env_probe != nullptr);
 
     RenderSetup rs = render_setup;
     rs.view = env_probe->GetRenderResource().GetViewRenderResourceHandle().Get();
+    rs.pass_data = FetchViewPassData(rs.view->GetView());
 
     RenderProbe(frame, rs, env_probe);
+}
 
-    rs.view = nullptr;
-#endif
+PassData* EnvProbeRenderer::CreateViewPassData(View* view)
+{
+    PassData* pd = new PassData;
+    pd->view = view->WeakHandleFromThis();
+    pd->viewport = view->GetRenderResource().GetViewport();
+
+    return pd;
 }
 
 #pragma endregion EnvProbeRenderer
@@ -583,7 +589,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     uniforms.num_bound_lights = num_bound_lights;
 
-    GPUBufferRef uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+    GPUBufferRef uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
     HYPERION_ASSERT_RESULT(uniform_buffer->Create());
     uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
@@ -697,7 +703,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     {
         const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
 
-        sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, size);
+        sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
         HYPERION_ASSERT_RESULT(sh_tiles_buffers[i]->Create());
     }
 

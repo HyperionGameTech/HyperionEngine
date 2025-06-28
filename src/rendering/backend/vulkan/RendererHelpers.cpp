@@ -207,7 +207,7 @@ VkDescriptorType ToVkDescriptorType(DescriptorSetElementType type)
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    case DescriptorSetElementType::STORAGE_BUFFER:
+    case DescriptorSetElementType::SSBO:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;

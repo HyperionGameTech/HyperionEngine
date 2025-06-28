@@ -176,7 +176,7 @@ void SSGI::CreateUniformBuffers()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
     }
 
     PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniform_buffers);

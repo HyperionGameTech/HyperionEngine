@@ -212,7 +212,7 @@ IndirectDrawState::IndirectDrawState()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         m_indirect_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(ObjectInstance));
+        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(ObjectInstance));
         m_staging_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
     }
 }

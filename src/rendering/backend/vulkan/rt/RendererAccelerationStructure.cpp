@@ -676,7 +676,7 @@ RendererResult VulkanTLAS::CreateMeshDescriptionsBuffer()
         min_mesh_descriptions_buffer_size,
         sizeof(MeshDescription) * m_blas.Size());
 
-    m_mesh_descriptions_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::STORAGE_BUFFER, mesh_descriptions_buffer_size);
+    m_mesh_descriptions_buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::SSBO, mesh_descriptions_buffer_size);
     HYPERION_BUBBLE_ERRORS(m_mesh_descriptions_buffer->Create());
 
     // zero out buffer

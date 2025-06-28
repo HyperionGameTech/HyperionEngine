@@ -508,17 +508,10 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
     View* view = render_setup.view->GetView();
     AssertThrow(view != nullptr);
 
-    UIPassData*& pd = m_view_pass_data[view];
+    UIPassData* pd = static_cast<UIPassData*>(FetchViewPassData(view));
+    AssertDebug(pd != nullptr);
 
-    if (!pd)
-    {
-        pd = &m_pass_data.EmplaceBack();
-
-        CreateViewPassData(view, *pd);
-
-        pd->viewport = view->GetRenderResource().GetViewport(); // rpl.viewport;
-    }
-    else if (pd->viewport != view->GetRenderResource().GetViewport())
+    if (pd->viewport != view->GetRenderResource().GetViewport())
     {
         /// @TODO: Implement me!
 
@@ -538,14 +531,16 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
     m_render_collector.ExecuteDrawCalls(frame, rs, output_target.GetFramebuffer());
 }
 
-void UIRenderer::CreateViewPassData(View* view, PassData& pass_data)
+PassData* UIRenderer::CreateViewPassData(View* view)
 {
-    UIPassData& pd = static_cast<UIPassData&>(pass_data);
+    UIPassData* pd = new UIPassData;
 
-    pd.view = view->WeakHandleFromThis();
-    pd.viewport = view->GetRenderResource().GetViewport();
+    pd->view = view->WeakHandleFromThis();
+    pd->viewport = view->GetRenderResource().GetViewport();
 
-    HYP_LOG(UI, Debug, "Creating UI pass data with viewport size {}", pd.viewport.extent);
+    HYP_LOG(UI, Debug, "Creating UI pass data with viewport size {}", pd->viewport.extent);
+
+    return pd;
 }
 
 #pragma endregion UIRenderer

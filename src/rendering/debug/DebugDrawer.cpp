@@ -227,7 +227,7 @@ void DebugDrawer::Initialize()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
+        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
         DeferCreate(m_instance_buffers[frame_index]);
     }
 

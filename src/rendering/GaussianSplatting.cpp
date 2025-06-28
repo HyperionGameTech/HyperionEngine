@@ -412,9 +412,9 @@ void GaussianSplattingInstance::CreateBuffers()
 {
     const SizeType num_points = m_model->points.Size();
 
-    m_splat_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, num_points * sizeof(GaussianSplattingInstanceShaderData));
-    m_splat_indices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex));
-    m_scene_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(GaussianSplattingSceneShaderData));
+    m_splat_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, num_points * sizeof(GaussianSplattingInstanceShaderData));
+    m_splat_indices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex));
+    m_scene_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(GaussianSplattingSceneShaderData));
     m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(

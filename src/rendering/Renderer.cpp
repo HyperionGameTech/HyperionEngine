@@ -43,7 +43,6 @@ PassData::~PassData()
 void PassData::CullUnusedGraphicsPipelines(uint32 max_iter)
 {
     HYP_SCOPE;
-
     Threads::AssertOnThread(g_render_thread);
 
     // Ensures the iterator is valid: the Iterator type for SparsePagedArray will find the next available slot in the constructor
@@ -63,12 +62,6 @@ void PassData::CullUnusedGraphicsPipelines(uint32 max_iter)
     for (uint32 i = 0; render_group_cache_iterator != render_group_cache.End() && i < max_iter; i++)
     {
         RenderGroupCacheEntry& entry = *render_group_cache_iterator;
-
-        /// TODO: Review this
-        // HYP_LOG(Rendering, Debug, "Checking should cull gfx pipeline at index : {} {} / {} for frame {}",
-        //     render_group_cache_iterator.page, render_group_cache_iterator.elem,
-        //     render_group_cache.Count(),
-        //     RendererAPI_GetFrameIndex_RenderThread());
 
         if (!entry.render_group.Lock())
         {
@@ -152,5 +145,54 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
 }
 
 #pragma endregion PassData
+
+#pragma region RendererBase
+
+RendererBase::~RendererBase()
+{
+    for (PassData* pd : m_view_pass_data)
+    {
+        delete pd;
+    }
+}
+
+PassData* RendererBase::FetchViewPassData(View* view)
+{
+    if (!view)
+    {
+        return nullptr;
+    }
+
+    PassData* pd = nullptr;
+
+    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->GetID().ToIndex()))
+    {
+        pd = *pd_ptr;
+    }
+
+    if (!pd)
+    {
+        // call virtual function to alloc / create
+        pd = CreateViewPassData(view);
+        AssertDebug(pd != nullptr);
+
+        m_view_pass_data.Set(view->GetID().ToIndex(), pd);
+    }
+    else if (pd->view.GetUnsafe() != view)
+    {
+        delete pd;
+
+        pd = CreateViewPassData(view);
+        AssertDebug(pd != nullptr);
+
+        m_view_pass_data.Set(view->GetID().ToIndex(), pd);
+    }
+
+    AssertDebug(pd->view.GetUnsafe() == view);
+
+    return pd;
+}
+
+#pragma region RendererBase
 
 } // namespace hyperion

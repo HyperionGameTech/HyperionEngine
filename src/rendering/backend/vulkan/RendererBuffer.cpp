@@ -194,9 +194,9 @@ VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
         return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     case GPUBufferType::MESH_INDEX_BUFFER:
         return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    case GPUBufferType::CONSTANT_BUFFER:
+    case GPUBufferType::CBUFF:
         return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    case GPUBufferType::STORAGE_BUFFER:
+    case GPUBufferType::SSBO:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     case GPUBufferType::ATOMIC_COUNTER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
@@ -239,9 +239,9 @@ VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
         return VMA_MEMORY_USAGE_GPU_ONLY;
     case GPUBufferType::MESH_INDEX_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::CONSTANT_BUFFER:
+    case GPUBufferType::CBUFF:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::STORAGE_BUFFER:
+    case GPUBufferType::SSBO:
         return VMA_MEMORY_USAGE_AUTO;
     case GPUBufferType::ATOMIC_COUNTER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
@@ -274,9 +274,9 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
         return 0;
     case GPUBufferType::MESH_INDEX_BUFFER:
         return 0;
-    case GPUBufferType::CONSTANT_BUFFER:
+    case GPUBufferType::CBUFF:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::STORAGE_BUFFER:
+    case GPUBufferType::SSBO:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     case GPUBufferType::ATOMIC_COUNTER:
         return 0;

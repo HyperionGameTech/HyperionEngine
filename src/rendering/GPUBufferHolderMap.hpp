@@ -26,7 +26,7 @@ public:
         return m_holders;
     }
 
-    template <class T, GPUBufferType BufferType = GPUBufferType::STORAGE_BUFFER>
+    template <class T, GPUBufferType BufferType = GPUBufferType::SSBO>
     GPUBufferHolder<T, BufferType>* GetOrCreate(uint32 initial_count = 0)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);

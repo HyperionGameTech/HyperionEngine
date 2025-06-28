@@ -51,7 +51,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
         {
         case DescriptorSetElementType::UNIFORM_BUFFER:         // fallthrough
         case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC: // fallthrough
-        case DescriptorSetElementType::STORAGE_BUFFER:         // fallthrough
+        case DescriptorSetElementType::SSBO:                   // fallthrough
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC: // fallthrough
             PrefillElements<GPUBufferRef>(name, element.count);
 
@@ -129,7 +129,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
         {
         case DescriptorSetElementType::UNIFORM_BUFFER:
         case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC:
-        case DescriptorSetElementType::STORAGE_BUFFER:
+        case DescriptorSetElementType::SSBO:
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC:
         {
             const bool layout_has_size = layout_element->size != 0 && layout_element->size != ~0u;

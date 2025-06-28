@@ -232,7 +232,7 @@ public:
     }
 
 private:
-    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::STORAGE_BUFFER>* m_entity_instance_batches;
+    GPUBufferHolder<EntityInstanceBatchType, GPUBufferType::SSBO>* m_entity_instance_batches;
 };
 
 extern HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeID type_id);

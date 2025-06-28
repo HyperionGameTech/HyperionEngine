@@ -31,7 +31,7 @@ struct CullData;
 struct DrawCall;
 struct InstancedDrawCall;
 struct PassData;
-class IRenderer;
+class RendererBase;
 class RenderGroup;
 class View;
 class IDrawCallCollectionImpl;
@@ -198,10 +198,10 @@ struct HYP_API PassData
         IDrawCallCollectionImpl* impl = nullptr); // @TODO: Make this param part of renderable attributes
 };
 
-class IRenderer
+class HYP_API RendererBase
 {
 public:
-    virtual ~IRenderer() = default;
+    virtual ~RendererBase();
 
     virtual void Initialize() = 0;
     virtual void Shutdown() = 0;
@@ -209,7 +209,12 @@ public:
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) = 0;
 
 protected:
-    virtual void CreateViewPassData(View* view, PassData& out_pass_data) = 0;
+    virtual PassData* CreateViewPassData(View* view) = 0;
+
+    PassData* FetchViewPassData(View* view);
+
+private:
+    SparsePagedArray<PassData*, 16> m_view_pass_data;
 };
 
 } // namespace hyperion

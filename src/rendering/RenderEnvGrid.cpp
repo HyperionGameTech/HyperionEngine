@@ -553,7 +553,7 @@ void RenderEnvGrid::CreateSphericalHarmonicsData()
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
         const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
-        m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, size);
+        m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
 
         DeferCreate(m_sh_tiles_buffers[i]);
     }
@@ -677,7 +677,7 @@ void RenderEnvGrid::CreateLightFieldData()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        GPUBufferRef light_field_uniforms = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(LightFieldUniforms));
+        GPUBufferRef light_field_uniforms = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(LightFieldUniforms));
 
         DeferCreate(light_field_uniforms);
 

@@ -482,7 +482,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         MergeHalfResTexturesUniforms uniforms;
         uniforms.dimensions = m_extent;
 
-        merge_half_res_textures_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+        merge_half_res_textures_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
         HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create());
         merge_half_res_textures_uniform_buffer->Copy(sizeof(uniforms), &uniforms);
     }

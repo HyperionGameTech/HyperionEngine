@@ -989,7 +989,6 @@ DeferredRenderer::DeferredRenderer()
 
 DeferredRenderer::~DeferredRenderer()
 {
-    m_pass_data.Clear();
 }
 
 void DeferredRenderer::Initialize()
@@ -1000,7 +999,7 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
+PassData* DeferredRenderer::CreateViewPassData(View* view)
 {
     HYP_SCOPE;
 
@@ -1009,10 +1008,10 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
 
     HYP_LOG(Rendering, Debug, "Creating View pass data for View {}", view->GetID());
 
-    DeferredPassData& pd = static_cast<DeferredPassData&>(pass_data);
+    DeferredPassData* pd = new DeferredPassData;
 
-    pd.view = view->WeakHandleFromThis();
-    pd.viewport = view->GetRenderResource().GetViewport();
+    pd->view = view->WeakHandleFromThis();
+    pd->viewport = view->GetRenderResource().GetViewport();
 
     GBuffer* gbuffer = view->GetOutputTarget().GetGBuffer();
     AssertDebug(gbuffer != nullptr);
@@ -1025,31 +1024,31 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
     const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
     const FramebufferRef& translucent_fbo = view->GetOutputTarget().GetFramebuffer(RB_TRANSLUCENT);
 
-    pd.env_grid_radiance_pass = MakeUnique<EnvGridPass>(EGPM_RADIANCE, pd.viewport.extent, gbuffer);
-    pd.env_grid_radiance_pass->Create();
+    pd->env_grid_radiance_pass = MakeUnique<EnvGridPass>(EGPM_RADIANCE, pd->viewport.extent, gbuffer);
+    pd->env_grid_radiance_pass->Create();
 
-    pd.env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EGPM_IRRADIANCE, pd.viewport.extent, gbuffer);
-    pd.env_grid_irradiance_pass->Create();
+    pd->env_grid_irradiance_pass = MakeUnique<EnvGridPass>(EGPM_IRRADIANCE, pd->viewport.extent, gbuffer);
+    pd->env_grid_irradiance_pass->Create();
 
-    pd.ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
-    pd.ssgi->Create();
+    pd->ssgi = MakeUnique<SSGI>(SSGIConfig::FromConfig(), gbuffer);
+    pd->ssgi->Create();
 
-    pd.post_processing = MakeUnique<PostProcessing>();
-    pd.post_processing->Create();
+    pd->post_processing = MakeUnique<PostProcessing>();
+    pd->post_processing->Create();
 
-    pd.indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, pd.viewport.extent, gbuffer);
-    pd.indirect_pass->Create();
+    pd->indirect_pass = MakeUnique<DeferredPass>(DeferredPassMode::INDIRECT_LIGHTING, pd->viewport.extent, gbuffer);
+    pd->indirect_pass->Create();
 
-    pd.direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, pd.viewport.extent, gbuffer);
-    pd.direct_pass->Create();
+    pd->direct_pass = MakeUnique<DeferredPass>(DeferredPassMode::DIRECT_LIGHTING, pd->viewport.extent, gbuffer);
+    pd->direct_pass->Create();
 
-    pd.depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
-    pd.depth_pyramid_renderer->Create();
+    pd->depth_pyramid_renderer = MakeUnique<DepthPyramidRenderer>(gbuffer);
+    pd->depth_pyramid_renderer->Create();
 
-    pd.cull_data.depth_pyramid_image_view = pd.depth_pyramid_renderer->GetResultImageView();
-    pd.cull_data.depth_pyramid_dimensions = pd.depth_pyramid_renderer->GetExtent();
+    pd->cull_data.depth_pyramid_image_view = pd->depth_pyramid_renderer->GetResultImageView();
+    pd->cull_data.depth_pyramid_dimensions = pd->depth_pyramid_renderer->GetExtent();
 
-    pd.mip_chain = CreateObject<Texture>(TextureDesc {
+    pd->mip_chain = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
         mip_chain_format,
         Vec3u { mip_chain_extent.x, mip_chain_extent.y, 1 },
@@ -1057,33 +1056,35 @@ void DeferredRenderer::CreateViewPassData(View* view, PassData& pass_data)
         TFM_LINEAR_MIPMAP,
         TWM_CLAMP_TO_EDGE });
 
-    InitObject(pd.mip_chain);
+    InitObject(pd->mip_chain);
 
-    pd.mip_chain->SetPersistentRenderResourceEnabled(true);
+    pd->mip_chain->SetPersistentRenderResourceEnabled(true);
 
-    pd.hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), pd.viewport.extent, gbuffer);
-    pd.hbao->Create();
+    pd->hbao = MakeUnique<HBAO>(HBAOConfig::FromConfig(), pd->viewport.extent, gbuffer);
+    pd->hbao->Create();
 
     // m_dof_blur = MakeUnique<DOFBlur>(gbuffer->GetResolution(), gbuffer);
     // m_dof_blur->Create();
 
-    CreateViewCombinePass(view, pd);
+    CreateViewCombinePass(view, *pd);
 
-    pd.reflections_pass = MakeUnique<ReflectionsPass>(pd.viewport.extent, gbuffer, pd.mip_chain->GetRenderResource().GetImageView(), pd.combine_pass->GetFinalImageView());
-    pd.reflections_pass->Create();
+    pd->reflections_pass = MakeUnique<ReflectionsPass>(pd->viewport.extent, gbuffer, pd->mip_chain->GetRenderResource().GetImageView(), pd->combine_pass->GetFinalImageView());
+    pd->reflections_pass->Create();
 
-    pd.tonemap_pass = MakeUnique<TonemapPass>(pd.viewport.extent, gbuffer);
-    pd.tonemap_pass->Create();
+    pd->tonemap_pass = MakeUnique<TonemapPass>(pd->viewport.extent, gbuffer);
+    pd->tonemap_pass->Create();
 
     // We'll render the lightmap pass into the translucent framebuffer after deferred shading has been applied to OPAQUE objects.
-    pd.lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, pd.viewport.extent, gbuffer);
-    pd.lightmap_pass->Create();
+    pd->lightmap_pass = MakeUnique<LightmapPass>(translucent_fbo, pd->viewport.extent, gbuffer);
+    pd->lightmap_pass->Create();
 
-    pd.temporal_aa = MakeUnique<TemporalAA>(pd.tonemap_pass->GetFinalImageView(), pd.viewport.extent, gbuffer);
-    pd.temporal_aa->Create();
+    pd->temporal_aa = MakeUnique<TemporalAA>(pd->tonemap_pass->GetFinalImageView(), pd->viewport.extent, gbuffer);
+    pd->temporal_aa->Create();
 
-    CreateViewDescriptorSets(view, pd);
-    CreateViewFinalPassDescriptorSet(view, pd);
+    CreateViewDescriptorSets(view, *pd);
+    CreateViewFinalPassDescriptorSet(view, *pd);
+
+    return pd;
 }
 
 void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data)
@@ -1355,15 +1356,8 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
         render_proxy_lists.PushBack(&rpl);
 
-        DeferredPassData*& pd = m_view_pass_data[view];
-
-        if (!pd)
-        {
-            pd = &m_pass_data.EmplaceBack();
-
-            CreateViewPassData(view, *pd);
-        }
-        else if (pd->viewport != view->GetRenderResource().GetViewport())
+        DeferredPassData* pd = static_cast<DeferredPassData*>(FetchViewPassData(view));
+        if (pd->viewport != view->GetRenderResource().GetViewport())
         {
             ResizeView(view->GetRenderResource().GetViewport(), view, *pd);
         }
@@ -1522,7 +1516,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             continue;
         }
 
-        DeferredPassData* pd = m_view_pass_data[view];
+        DeferredPassData* pd = static_cast<DeferredPassData*>(FetchViewPassData(view));
         AssertDebug(pd != nullptr);
 
         new_rs.view = render_view.Get();
@@ -1581,9 +1575,6 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     DeferredPassData* pd = static_cast<DeferredPassData*>(rs.pass_data);
     AssertDebug(pd != nullptr);
-
-    HYP_LOG(Rendering, Debug, "Render deferred : main deferred lighting pass has extent : {}",
-        pd->indirect_pass->GetFramebuffer()->GetExtent());
 
     const uint32 frame_index = frame->GetFrameIndex();
 

@@ -207,9 +207,9 @@ void ParticleSpawner::Init()
 
 void ParticleSpawner::CreateBuffers()
 {
-    m_particle_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_params.max_particles * sizeof(ParticleShaderData));
+    m_particle_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_params.max_particles * sizeof(ParticleShaderData));
     m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-    m_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(float) * 128 * 128);
+    m_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(float) * 128 * 128);
 
     PUSH_RENDER_COMMAND(
         CreateParticleSpawnerBuffers,

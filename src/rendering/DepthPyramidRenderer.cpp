@@ -129,7 +129,7 @@ void DepthPyramidRenderer::Create()
             uniforms.prev_mip_dimensions = { prev_mip_width, prev_mip_height };
             uniforms.mip_level = mip_level;
 
-            GPUBufferRef& mip_uniform_buffer = m_mip_uniform_buffers.PushBack(g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DepthPyramidUniforms)));
+            GPUBufferRef& mip_uniform_buffer = m_mip_uniform_buffers.PushBack(g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
             HYPERION_ASSERT_RESULT(mip_uniform_buffer->Create());
             mip_uniform_buffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 

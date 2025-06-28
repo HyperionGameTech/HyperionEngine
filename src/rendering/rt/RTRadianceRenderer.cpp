@@ -234,8 +234,8 @@ void RTRadianceRenderer::CreateUniformBuffer()
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
     m_uniform_buffers = {
-        g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
-        g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms))
+        g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)),
+        g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms))
     };
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)

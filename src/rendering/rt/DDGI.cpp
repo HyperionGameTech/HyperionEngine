@@ -287,7 +287,7 @@ void DDGI::CreatePipelines()
 
 void DDGI::CreateUniformBuffer()
 {
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(DDGIUniforms));
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(DDGIUniforms));
 
     const Vec2u grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Vec3u num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
@@ -316,7 +316,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_radiance_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, m_grid_info.GetImageDimensions().x * m_grid_info.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radiance_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_grid_info.GetImageDimensions().x * m_grid_info.GetImageDimensions().y * sizeof(ProbeRayData));
 
     PUSH_RENDER_COMMAND(
         CreateDDGIRadianceBuffer,

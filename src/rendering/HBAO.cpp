@@ -135,7 +135,7 @@ void HBAO::CreateUniformBuffers()
     uniforms.radius = m_config.radius;
     uniforms.power = m_config.power;
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
 
     PUSH_RENDER_COMMAND(CreateHBAOUniformBuffer, uniforms, m_uniform_buffer);
 }

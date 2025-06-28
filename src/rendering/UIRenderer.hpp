@@ -56,7 +56,7 @@ public:
     RC<RenderProxyList> rpl;
 };
 
-class UIRenderer : public IRenderer
+class UIRenderer : public RendererBase
 {
 public:
     virtual ~UIRenderer() = default;
@@ -77,10 +77,8 @@ public:
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override;
 
 protected:
-    void CreateViewPassData(View* view, PassData& pass_data) override;
+    PassData* CreateViewPassData(View* view) override;
 
-    LinkedList<UIPassData> m_pass_data;
-    HashMap<View*, UIPassData*> m_view_pass_data;
     UIRenderCollector m_render_collector;
 };
 

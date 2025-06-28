@@ -317,7 +317,7 @@ struct DeferredPassData : PassData
     virtual ~DeferredPassData() override;
 };
 
-class DeferredRenderer final : public IRenderer
+class DeferredRenderer final : public RendererBase
 {
 public:
     struct LastFrameData
@@ -366,7 +366,7 @@ private:
     void RenderFrameForView(FrameBase* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
-    virtual void CreateViewPassData(View* view, PassData& pass_data) override;
+    virtual PassData* CreateViewPassData(View* view) override;
     void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data);
     void CreateViewDescriptorSets(View* view, DeferredPassData& pass_data);
     void CreateViewCombinePass(View* view, DeferredPassData& pass_data);
@@ -376,9 +376,6 @@ private:
     void PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs);
     void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, uint32 bucket_mask);
     void GenerateMipChain(FrameBase* frame, const RenderSetup& rs, const ImageRef& src_image);
-
-    LinkedList<DeferredPassData> m_pass_data;
-    HashMap<View*, DeferredPassData*> m_view_pass_data;
 
     LastFrameData m_last_frame_data;
 

@@ -27,7 +27,7 @@ class RenderProxyList;
 class RenderView;
 class View;
 class DrawCallCollection;
-class IRenderer;
+class RendererBase;
 class IRenderProxy;
 class EnvProbeRenderer;
 class EnvProbe;
@@ -110,7 +110,7 @@ public:
 
     DescriptorTableRef GlobalDescriptorTable;
 
-    IRenderer* Renderer;
+    RendererBase* Renderer;
     EnvProbeRenderer** EnvProbeRenderers;
 
     ResourceBinderBase* ResourceBinders[max_binders] { nullptr };

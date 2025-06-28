@@ -526,11 +526,11 @@ private:
 LightmapGPUPathTracer::LightmapGPUPathTracer(const Handle<Scene>& scene, LightmapShadingType shading_type)
     : m_scene(scene),
       m_shading_type(shading_type),
-      m_uniform_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)),
-          g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms)) }),
-      m_rays_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)),
-          g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(Vec4f) * 2 * (512 * 512)) }),
-      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(GPUBufferType::STORAGE_BUFFER, sizeof(LightmapHit) * (512 * 512)))
+      m_uniform_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)),
+          g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)) }),
+      m_rays_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)),
+          g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)) }),
+      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(LightmapHit) * (512 * 512)))
 {
 }
 
@@ -546,7 +546,7 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(RTRadianceUniforms));
+        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms));
 
         PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, m_uniform_buffers[frame_index]);
     }

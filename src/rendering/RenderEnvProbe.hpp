@@ -120,7 +120,7 @@ private:
     TResourceHandle<RenderShadowMap> m_shadow_map;
 };
 
-class EnvProbeRenderer : public IRenderer
+class EnvProbeRenderer : public RendererBase
 {
 public:
     virtual ~EnvProbeRenderer() override;
@@ -135,10 +135,7 @@ protected:
 
     virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) = 0;
 
-    void CreateViewPassData(View* view, PassData& pass_data) override
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
+    PassData* CreateViewPassData(View* view) override;
 };
 
 class ReflectionProbeRenderer : public EnvProbeRenderer

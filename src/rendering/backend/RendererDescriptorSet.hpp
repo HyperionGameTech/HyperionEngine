@@ -85,7 +85,7 @@ enum class DescriptorSetElementType : uint32
     UNSET,
     UNIFORM_BUFFER,
     UNIFORM_BUFFER_DYNAMIC,
-    STORAGE_BUFFER,
+    SSBO,
     STORAGE_BUFFER_DYNAMIC,
     IMAGE,
     IMAGE_STORAGE,
@@ -95,15 +95,15 @@ enum class DescriptorSetElementType : uint32
 };
 
 constexpr uint32 descriptor_set_element_type_to_buffer_type[uint32(DescriptorSetElementType::MAX)] = {
-    0,                                              // UNSET
-    (1u << uint32(GPUBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER
-    (1u << uint32(GPUBufferType::CONSTANT_BUFFER)), // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint32(GPUBufferType::STORAGE_BUFFER))
+    0,                                    // UNSET
+    (1u << uint32(GPUBufferType::CBUFF)), // UNIFORM_BUFFER
+    (1u << uint32(GPUBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GPUBufferType::SSBO))
         | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GPUBufferType::STAGING_BUFFER))
-        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)), // STORAGE_BUFFER
+        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)), // SSBO
 
-    (1u << uint32(GPUBufferType::STORAGE_BUFFER))
+    (1u << uint32(GPUBufferType::SSBO))
         | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
         | (1u << uint32(GPUBufferType::STAGING_BUFFER))
         | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
@@ -121,7 +121,7 @@ struct DescriptorSetElementTypeInfo<GPUBufferBase>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
         | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
-        | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER))
+        | (1u << uint32(DescriptorSetElementType::SSBO))
         | (1u << uint32(DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC));
 };
 

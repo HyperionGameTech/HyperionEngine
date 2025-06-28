@@ -205,7 +205,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.screen_edge_fade_start = m_config.screen_edge_fade.x;
     uniforms.screen_edge_fade_end = m_config.screen_edge_fade.y;
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CONSTANT_BUFFER, sizeof(uniforms));
+    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
 
     PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniform_buffer);
 }
