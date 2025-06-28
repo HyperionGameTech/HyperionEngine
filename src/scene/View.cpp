@@ -178,16 +178,18 @@ void View::Init()
     AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with ID #%u", GetID().Value());
     InitObject(m_camera);
 
+    const Vec2u extent = MathUtil::Max(m_view_desc.output_target_desc.extent, Vec2u::One());
+
     if (m_view_desc.flags & ViewFlags::GBUFFER)
     {
         AssertDebugMsg(m_view_desc.output_target_desc.attachments.Empty(),
             "View with GBuffer flag cannot have output target attachments defined, as it will use GBuffer instead.");
 
-        m_output_target = ViewOutputTarget(new GBuffer(Vec2u(m_viewport.extent)));
+        m_output_target = ViewOutputTarget(new GBuffer(extent));
     }
     else if (m_view_desc.output_target_desc.attachments.Any())
     {
-        FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(m_view_desc.output_target_desc.extent, m_view_desc.output_target_desc.num_views);
+        FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(extent, m_view_desc.output_target_desc.num_views);
 
         for (uint32 attachment_index = 0; attachment_index < m_view_desc.output_target_desc.attachments.Size(); ++attachment_index)
         {

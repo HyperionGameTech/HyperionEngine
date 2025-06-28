@@ -717,7 +717,7 @@ void UIRenderSubsystem::CreateFramebuffer()
 
         ViewOutputTargetDesc output_target_desc {
             .extent = surface_size * 2,
-            .attachments = { { TF_RGBA16F }, { g_rendering_api->GetDefaultFormat(DIF_DEPTH) } }
+            .attachments = { { TF_RGBA8 }, { g_rendering_api->GetDefaultFormat(DIF_DEPTH) } }
         };
 
         ViewDesc view_desc {

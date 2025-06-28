@@ -1096,6 +1096,10 @@ void EditorSubsystem::Update(float delta)
 
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
+    HYP_LOG(Editor, Debug, "Editor view framebuffer size: {}  num views: {}",
+        m_views[0]->GetOutputTarget().GetFramebuffer()->GetExtent(),
+        m_views.Size());
+
     m_editor_delegates->Update();
 
     UpdateCamera(delta);
@@ -1252,6 +1256,7 @@ void EditorSubsystem::InitViewport()
     Handle<View> view = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
         .viewport = Viewport { .extent = viewport_size, .position = Vec2i::Zero() },
+        .output_target_desc = { .extent = viewport_size },
         .camera = m_camera });
 
     InitObject(view);
