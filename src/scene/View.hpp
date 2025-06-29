@@ -29,7 +29,6 @@ class Camera;
 class Light;
 class RenderLight;
 class LightmapVolume;
-class RenderLightmapVolume;
 class EnvGrid;
 class RenderEnvGrid;
 class EnvProbe;

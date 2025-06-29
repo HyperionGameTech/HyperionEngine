@@ -13,6 +13,8 @@
 
 #include <core/Handle.hpp>
 
+#include <scene/Entity.hpp>
+
 #include <util/AtlasPacker.hpp>
 
 #include <GameCounter.hpp>
@@ -21,32 +23,25 @@
 namespace hyperion {
 
 class Texture;
-class RenderLightmapVolume;
 struct LightmapUVMap;
-
-// @TODO: Create RenderLightmapVolume, and add it to the RenderState.
-// Any visible objects that have a LightmapElementComponent with `volume` of this LightmapVolume
-// should be bound to the RenderState, so we ensure the proper textures are available at render time.
-
-// Could also group any rendered objects that have lightmaps to render with that lightmap bound globally.
+class IRenderProxy;
 
 HYP_ENUM()
-enum class LightmapElementTextureType : uint32
+enum LightmapTextureType : uint32
 {
-    RADIANCE = 0,
-    IRRADIANCE,
+    LTT_INVALID = ~0u,
 
-    MAX,
+    LTT_RADIANCE = 0,
+    LTT_IRRADIANCE,
 
-    INVALID = ~0u
+    LTT_MAX
 };
 
 HYP_STRUCT()
-
 struct LightmapElementTextureEntry
 {
     HYP_FIELD(Property = "TextureType", Serialize = true)
-    LightmapElementTextureType type = LightmapElementTextureType::INVALID;
+    LightmapTextureType type = LTT_INVALID;
 
     HYP_FIELD(Property = "Texture", Serialize = true)
     Handle<Texture> texture;
@@ -103,7 +98,7 @@ struct LightmapVolumeAtlas : AtlasPacker<LightmapElement>
 };
 
 HYP_CLASS()
-class HYP_API LightmapVolume final : public HypObject<LightmapVolume>
+class HYP_API LightmapVolume final : public Entity
 {
     HYP_OBJECT_BODY(LightmapVolume);
 
@@ -115,11 +110,6 @@ public:
     LightmapVolume(const LightmapVolume& other) = delete;
     LightmapVolume& operator=(const LightmapVolume& other) = delete;
     ~LightmapVolume() override;
-
-    HYP_FORCE_INLINE RenderLightmapVolume& GetRenderResource() const
-    {
-        return *m_render_resource;
-    }
 
     HYP_METHOD()
     HYP_FORCE_INLINE const UUID& GetUUID() const
@@ -133,7 +123,7 @@ public:
         return m_aabb;
     }
 
-    HYP_FORCE_INLINE const HashMap<LightmapElementTextureType, Handle<Texture>>& GetAtlasTextures() const
+    HYP_FORCE_INLINE const HashMap<LightmapTextureType, Handle<Texture>>& GetAtlasTextures() const
     {
         return m_atlas_textures;
     }
@@ -152,10 +142,9 @@ public:
 
 private:
     void Init() override;
+    void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     void UpdateAtlasTextures();
-
-    RenderLightmapVolume* m_render_resource;
 
     HYP_FIELD(Serialize = true)
     UUID m_uuid;
@@ -164,7 +153,7 @@ private:
     BoundingBox m_aabb;
 
     HYP_FIELD(Serialize = true)
-    HashMap<LightmapElementTextureType, Handle<Texture>> m_atlas_textures;
+    HashMap<LightmapTextureType, Handle<Texture>> m_atlas_textures;
     
     HYP_FIELD(Serialize = true)
     LightmapVolumeAtlas m_atlas;

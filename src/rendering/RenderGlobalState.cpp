@@ -32,6 +32,8 @@
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/EnvGrid.hpp>
+#include <scene/Light.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
 
 #include <core/object/HypClass.hpp>
 
@@ -79,6 +81,7 @@ static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // g
 extern void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next);
 extern void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next);
 extern void OnLightBindingChanged(Light* light, uint32 prev, uint32 next);
+extern void OnLightmapVolumeBindingChanged(LightmapVolume* lightmap_volume, uint32 prev, uint32 next);
 
 struct ResourceBindings
 {
@@ -95,6 +98,9 @@ struct ResourceBindings
 
     ResourceBindingAllocator<> light_bindings_allocator;
     ResourceBinder<Light, &OnLightBindingChanged> light_binder { &light_bindings_allocator };
+
+    ResourceBindingAllocator<> lightmap_volume_bindings_allocator;
+    ResourceBinder<LightmapVolume, &OnLightmapVolumeBindingChanged> lightmap_volume_binder { &lightmap_volume_bindings_allocator };
 };
 
 #pragma endregion ResourceBindings
@@ -193,7 +199,7 @@ struct ResourceSubtypeData final
     SparsePagedArray<IRenderProxy*, 256> proxies;
     IRenderProxy* (*proxy_ctor)(void* ptr);
     void (*set_gpu_elem)(GPUBufferHolderBase* gpu_buffer_holder, IRenderProxy* proxy);
-    bool has_proxy_pool : 1;
+    bool has_proxy_data : 1;
 
     template <class ResourceType, class ProxyType>
     ResourceSubtypeData(
@@ -202,7 +208,7 @@ struct ResourceSubtypeData final
         GPUBufferHolderBase* gpu_buffer_holder = nullptr,
         ResourceBinderBase* resource_binder = nullptr)
         : type_id(TypeID::ForType<ResourceType>()),
-          has_proxy_pool(false),
+          has_proxy_data(false),
           proxy_ctor(nullptr),
           set_gpu_elem(nullptr),
           gpu_buffer_holder(gpu_buffer_holder),
@@ -211,7 +217,7 @@ struct ResourceSubtypeData final
         // if ProxyType != NullProxy then we setup proxy pool
         if constexpr (!std::is_same_v<ProxyType, NullProxy>)
         {
-            has_proxy_pool = true;
+            has_proxy_data = true;
 
             proxy_allocator.class_size = sizeof(ProxyType);
             proxy_allocator.class_alignment = alignof(ProxyType);
@@ -240,7 +246,7 @@ struct ResourceSubtypeData final
 
     ~ResourceSubtypeData()
     {
-        if (has_proxy_pool)
+        if (has_proxy_data)
         {
             for (IRenderProxy* proxy : proxies)
             {
@@ -269,7 +275,7 @@ struct ResourceContainer
         }
 
         const HypClass* hyp_class = GetClass(type_id);
-        AssertDebugMsg(hyp_class != nullptr, "TypeID %u does not have a HypClass!", type_id.Value());
+        AssertDebug(hyp_class != nullptr, "TypeID %u does not have a HypClass!", type_id.Value());
 
         int static_index = -1;
 
@@ -548,7 +554,7 @@ HYP_API void RendererAPI_UpdateRenderProxy(IDBase id)
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeID());
     ResourceData& data = subtype_data.data.Get(id.ToIndex());
 
-    AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use UpdateResource() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
+    AssertDebugMsg(subtype_data.has_proxy_data, "Cannot use UpdateResource() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
 
     IRenderProxy* proxy;
@@ -599,7 +605,7 @@ HYP_API IRenderProxy* RendererAPI_GetRenderProxy(IDBase id)
     FrameData& frame_data = g_frame_data[slot];
 
     ResourceSubtypeData& subtype_data = frame_data.resources.GetSubtypeData(id.GetTypeID());
-    AssertDebugMsg(subtype_data.has_proxy_pool, "Cannot use GetRenderProxy() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
+    AssertDebugMsg(subtype_data.has_proxy_data, "Cannot use GetRenderProxy() for type which does not have a RenderProxy! TypeID: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
 
     if (!subtype_data.proxies.HasIndex(id.ToIndex()))
@@ -821,7 +827,7 @@ HYP_API void RendererAPI_EndFrame_RenderThread()
             AnyHandle resource { rd.resource };
             subtype_data.data.EraseAt(bit);
 
-            if (subtype_data.has_proxy_pool)
+            if (subtype_data.has_proxy_data)
             {
                 AssertDebugMsg(subtype_data.proxies.HasIndex(bit), "proxy missing at index: %u", bit);
 
@@ -1087,13 +1093,12 @@ void RenderGlobalState::SetDefaultDescriptorSetElements(uint32 frame_index)
 
 #pragma endregion RenderGlobalState
 
-// @NOTE: Not declaring for proxy Entity atm, since we are allocating them with new rather than
-// the pool.. come back and FIXME
-DECLARE_RENDER_DATA_CONTAINER(Entity, NullProxy, DEFAULT_CTOR); // RenderProxy);
+DECLARE_RENDER_DATA_CONTAINER(Entity, NullProxy, DEFAULT_CTOR);
 DECLARE_RENDER_DATA_CONTAINER(EnvGrid, RenderProxyEnvGrid, GRB_ENV_GRIDS, &ResourceBindings::env_grid_binder);
 DECLARE_RENDER_DATA_CONTAINER(ReflectionProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &ResourceBindings::reflection_probe_binder);
 DECLARE_RENDER_DATA_CONTAINER(SkyProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &ResourceBindings::reflection_probe_binder);
 DECLARE_RENDER_DATA_CONTAINER(EnvProbe, RenderProxyEnvProbe, GRB_ENV_PROBES, &ResourceBindings::ambient_probe_binder);
 DECLARE_RENDER_DATA_CONTAINER(Light, RenderProxyLight, GRB_LIGHTS, &ResourceBindings::light_binder);
+DECLARE_RENDER_DATA_CONTAINER(LightmapVolume, RenderProxyLightmapVolume, GRB_LIGHTMAP_VOLUMES, &ResourceBindings::lightmap_volume_binder);
 
 } // namespace hyperion

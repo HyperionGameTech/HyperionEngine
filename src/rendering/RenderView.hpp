@@ -25,7 +25,6 @@ class RenderWorld;
 class RenderScene;
 class RenderCamera;
 class RenderLight;
-class RenderLightmapVolume;
 class RenderEnvGrid;
 class RenderEnvProbe;
 class GBuffer;

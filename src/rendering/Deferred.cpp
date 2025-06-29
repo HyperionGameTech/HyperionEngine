@@ -1532,7 +1532,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
 
         counts[ERS_VIEWS]++;
-        counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
+        counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.NumCurrent();
         counts[ERS_LIGHTS] += rpl.lights.NumCurrent();
         counts[ERS_ENV_GRIDS] += rpl.env_grids.NumCurrent();
         counts[ERS_ENV_PROBES] += rpl.env_probes.NumCurrent();
@@ -1721,7 +1721,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         frame->GetCommandList().Add<EndFramebuffer>(deferred_pass_framebuffer, frame_index);
     }
 
-    if (rpl.lightmap_volumes.Any())
+    if (rpl.lightmap_volumes.NumCurrent())
     { // render objects to be lightmapped, separate from the opaque objects.
         // The lightmap bucket's framebuffer has a color attachment that will write into the opaque framebuffer's color attachment.
         frame->GetCommandList().Add<BeginFramebuffer>(lightmap_fbo, frame_index);

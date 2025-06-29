@@ -1123,12 +1123,19 @@ LightmapJob::LightmapJob(LightmapJobParams&& params)
     camera->AddCameraController(CreateObject<OrthoCameraController>());
     InitObject(camera);
 
+    // dummy output target
+    ViewOutputTargetDesc output_target_desc {
+        .extent = Vec2u::One(),
+        .attachments = { { TF_RGBA8 } }
+    };
+
     m_view = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::SKIP_FRUSTUM_CULLING
             | ViewFlags::SKIP_ENV_GRIDS
             | ViewFlags::SKIP_LIGHTMAP_VOLUMES,
         .viewport = Viewport { .extent = Vec2u::One(), .position = Vec2i::Zero() },
+        .output_target_desc = output_target_desc,
         .scenes = { m_params.scene },
         .camera = camera });
 
@@ -1293,6 +1300,12 @@ void LightmapJob::Process()
         }
 
         return;
+    }
+
+    if (m_view.IsValid())
+    {
+        m_view->UpdateVisibility();
+        m_view->Update(0.0f);
     }
 
     {
@@ -1637,8 +1650,6 @@ void Lightmapper::Update(float delta)
     if (!job->IsRunning())
     {
         job->Start();
-
-        m_scene->GetWorld()->AddView(job->GetView());
     }
 
     job->Process();
@@ -1754,8 +1765,8 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
         sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, radiance_texture);
 #else
         // @TEMP
-        sub_element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTextures().At(LightmapElementTextureType::IRRADIANCE));
-        sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTextures().At(LightmapElementTextureType::RADIANCE));
+        sub_element.material->SetTexture(MaterialTextureKey::IRRADIANCE_MAP, m_volume->GetAtlasTextures().At(LTT_IRRADIANCE));
+        sub_element.material->SetTexture(MaterialTextureKey::RADIANCE_MAP, m_volume->GetAtlasTextures().At(LTT_RADIANCE));
 #endif
 
         auto update_mesh_component = [entity_manager_weak = m_scene->GetEntityManager()->WeakHandleFromThis(), element_index = job->GetElementIndex(), volume = m_volume, sub_element = sub_element, new_material = (is_new_material ? sub_element.material : Handle<Material>::empty)]()

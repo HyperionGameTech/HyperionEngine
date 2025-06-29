@@ -41,7 +41,7 @@ class RenderView;
 struct RenderSetup;
 class IndirectRenderer;
 class RenderLight;
-class RenderLightmapVolume;
+class LightmapVolume;
 class RenderEnvGrid;
 class RenderEnvProbe;
 class ReflectionProbe;
@@ -153,9 +153,7 @@ struct HYP_API RenderProxyList
     ResourceTracker<ID<EnvProbe>, EnvProbe*> env_probes;
     ResourceTracker<ID<Light>, Light*> lights;
     ResourceTracker<ID<EnvGrid>, EnvGrid*> env_grids;
-    ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
-
-    Array<RenderLightmapVolume*> lightmap_volumes;
+    ResourceTracker<ID<LightmapVolume>, LightmapVolume*> lightmap_volumes;
 
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;

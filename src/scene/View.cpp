@@ -287,7 +287,7 @@ void View::Update(float delta)
     rpl.env_probes.Advance(AdvanceAction::CLEAR);
     rpl.env_grids.Advance(AdvanceAction::CLEAR);
     rpl.lights.Advance(AdvanceAction::CLEAR);
-    rpl.tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
+    rpl.lightmap_volumes.Advance(AdvanceAction::CLEAR);
 
     CollectLights(rpl);
     CollectLightmapVolumes(rpl);
@@ -808,43 +808,38 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.tracked_lightmap_volumes.Track(lightmap_volume_component.volume->GetID(), &lightmap_volume_component.volume->GetRenderResource());
+            rpl.lightmap_volumes.Track(lightmap_volume_component.volume->GetID(), lightmap_volume_component.volume);
         }
     }
 
-    auto diff = rpl.tracked_lightmap_volumes.GetDiff();
+    auto diff = rpl.lightmap_volumes.GetDiff();
 
     // temp shit
     if (diff.NeedsUpdate())
     {
-        Array<RenderLightmapVolume*> removed;
-        rpl.tracked_lightmap_volumes.GetRemoved(removed, false);
+        Array<LightmapVolume*> removed;
+        rpl.lightmap_volumes.GetRemoved(removed, false);
 
-        Array<RenderLightmapVolume*> added;
-        rpl.tracked_lightmap_volumes.GetAdded(added, false);
+        Array<LightmapVolume*> added;
+        rpl.lightmap_volumes.GetAdded(added, false);
 
-        for (RenderLightmapVolume* volume : added)
+        for (LightmapVolume* volume : added)
         {
-            volume->IncRef();
-
-            HYP_LOG(Scene, Debug, "Added lightmap volume {} to view {}", volume->GetLightmapVolume()->GetID(), GetID());
-
-            rpl.lightmap_volumes.PushBack(volume);
+            RendererAPI_AddRef(volume);
+            RendererAPI_UpdateRenderProxy(volume->GetID());
         }
 
-        for (RenderLightmapVolume* volume : removed)
+        for (LightmapVolume* volume : removed)
         {
-            volume->DecRef();
+            RendererAPI_ReleaseRef(volume->GetID());
+        }
 
-            HYP_LOG(Scene, Debug, "Removed lightmap volume {} from view {}", volume->GetLightmapVolume()->GetID(), GetID());
+        Array<ID<LightmapVolume>> changed_ids;
+        rpl.lightmap_volumes.GetChanged(changed_ids);
 
-            auto it = rpl.lightmap_volumes.Find(volume);
-            AssertDebug(it != rpl.lightmap_volumes.End());
-
-            if (it != rpl.lightmap_volumes.End())
-            {
-                rpl.lightmap_volumes.Erase(it);
-            }
+        for (ID<LightmapVolume> id : changed_ids)
+        {
+            RendererAPI_UpdateRenderProxy(id);
         }
     }
 }

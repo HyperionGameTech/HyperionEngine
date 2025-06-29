@@ -284,6 +284,27 @@ public:
     uint32 bound_index = ~0u; /// @TODO
 };
 
+struct LightmapVolumeShaderData
+{
+    Vec4f aabb_max;
+    Vec4f aabb_min;
+
+    uint32 texture_index;
+    uint32 _pad0;
+    uint32 _pad1;
+    uint32 _pad2;
+};
+
+class RenderProxyLightmapVolume : public IRenderProxy
+{
+public:
+    ~RenderProxyLightmapVolume() override = default;
+
+    WeakHandle<LightmapVolume> lightmap_volume;
+    LightmapVolumeShaderData buffer_data {};
+    uint32 bound_index = ~0u;
+};
+
 } // namespace hyperion
 
 #endif

@@ -5,11 +5,13 @@
 #include <rendering/RenderLight.hpp>
 #include <rendering/RenderTexture.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/lightmapper/RenderLightmapVolume.hpp>
 
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
 #include <scene/Texture.hpp>
+#include <scene/lightmapper/LightmapVolume.hpp>
 
 #include <core/object/HypClass.hpp>
 
@@ -154,6 +156,17 @@ void OnLightBindingChanged(Light* light, uint32 prev, uint32 next)
 
     proxy_casted->bound_index = light->GetRenderResource().GetBufferIndex();
     AssertDebug(proxy_casted->bound_index != ~0u);
+}
+
+void OnLightmapVolumeBindingChanged(LightmapVolume* lightmap_volume, uint32 prev, uint32 next)
+{
+    AssertDebug(lightmap_volume != nullptr);
+
+    IRenderProxy* proxy = RendererAPI_GetRenderProxy(lightmap_volume->GetID());
+    AssertThrow(proxy != nullptr);
+
+    RenderProxyLightmapVolume* proxy_casted = static_cast<RenderProxyLightmapVolume*>(proxy);
+    proxy_casted->bound_index = next;
 }
 
 } // namespace hyperion
