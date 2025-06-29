@@ -274,10 +274,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         // Copy combined shadow map to the final shadow map
         frame->GetCommandList().Add<InsertBarrier>(attachment->GetImage(), RS_COPY_SRC);
-        frame->GetCommandList().Add<InsertBarrier>(
-            shadow_map_image,
-            RS_COPY_DST,
-            ImageSubResource { .base_array_layer = atlas_element.atlas_index });
+        frame->GetCommandList().Add<InsertBarrier>(shadow_map_image, RS_COPY_DST, ImageSubResource { .base_array_layer = atlas_element.atlas_index });
 
         // copy the image
         frame->GetCommandList().Add<Blit>(

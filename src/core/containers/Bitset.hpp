@@ -264,12 +264,15 @@ public:
             }
         }
 
-        return not_found;
+        // No free bit currently; return the first bit of the next block to be added
+        return GetBlockIndex(num_blocks) * num_bits_per_block;
     }
 
     inline BitIndex LastZeroBitIndex() const
     {
-        for (uint32 block_index = uint32(m_blocks.Size()); block_index != 0; block_index--)
+        const uint32 num_blocks = uint32(m_blocks.Size());
+
+        for (uint32 block_index = num_blocks; block_index != 0; block_index--)
         {
             const BlockType inverted = ~m_blocks[block_index - 1];
 
@@ -286,7 +289,8 @@ public:
             }
         }
 
-        return not_found;
+        // No free bit currently; return the first bit of the next block to be added
+        return GetBlockIndex(m_blocks.Size()) * num_bits_per_block;
     }
 
     /*! \brief Get the value of the bit at the given index.

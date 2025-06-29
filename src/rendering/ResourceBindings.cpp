@@ -63,9 +63,8 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
     RenderProxyEnvProbe* proxy_casted = static_cast<RenderProxyEnvProbe*>(proxy);
 
     // temp shit
-    // proxy_casted->bound_index = next;
     AssertDebug(env_probe->GetRenderResource().GetBufferIndex() != ~0u);
-    proxy_casted->bound_index = env_probe->GetRenderResource().GetBufferIndex();
+    RenderApi_AssignResourceBinding(env_probe, env_probe->GetRenderResource().GetBufferIndex());
 
     // temp shit
     env_probe->GetRenderResource().SetTextureSlot(next);
@@ -98,15 +97,9 @@ void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next)
     RenderProxyEnvGrid* proxy_casted = static_cast<RenderProxyEnvGrid*>(proxy);
 
     // temp shit
-    // proxy_casted->bound_index = next;
 
     AssertDebug(env_grid->GetRenderResource().GetBufferIndex() != ~0u);
-    proxy_casted->bound_index = env_grid->GetRenderResource().GetBufferIndex();
-
-    DebugLog(LogType::Debug, "Bound env grid with id %u to bound index %u (proxy ptr: %p)\n",
-        env_grid->Id().Value(),
-        proxy_casted->bound_index,
-        proxy_casted);
+    RenderApi_AssignResourceBinding(env_grid, env_grid->GetRenderResource().GetBufferIndex());
 
     if (next != ~0u)
     {
@@ -151,27 +144,13 @@ void OnLightBindingChanged(Light* light, uint32 prev, uint32 next)
 {
     AssertDebug(light != nullptr);
 
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(light->Id());
-    AssertThrow(proxy != nullptr);
-
-    RenderProxyLight* proxy_casted = static_cast<RenderProxyLight*>(proxy);
-
     // temp shit
-    // proxy_casted->bound_index = next;
-
-    proxy_casted->bound_index = light->GetRenderResource().GetBufferIndex();
-    AssertDebug(proxy_casted->bound_index != ~0u);
+    RenderApi_AssignResourceBinding(light, light->GetRenderResource().GetBufferIndex());
 }
 
 void OnLightmapVolumeBindingChanged(LightmapVolume* lightmap_volume, uint32 prev, uint32 next)
 {
-    AssertDebug(lightmap_volume != nullptr);
-
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(lightmap_volume->Id());
-    AssertThrow(proxy != nullptr);
-
-    RenderProxyLightmapVolume* proxy_casted = static_cast<RenderProxyLightmapVolume*>(proxy);
-    proxy_casted->bound_index = next;
+    RenderApi_AssignResourceBinding(lightmap_volume, next);
 }
 
 } // namespace hyperion

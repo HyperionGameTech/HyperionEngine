@@ -138,7 +138,6 @@ public:
 
     WeakHandle<EnvProbe> env_probe;
     EnvProbeShaderData buffer_data {};
-    uint32 bound_index = ~0u;
 };
 
 struct EnvGridShaderData
@@ -166,7 +165,6 @@ public:
 
     WeakHandle<EnvGrid> env_grid;
     EnvGridShaderData buffer_data {};
-    uint32 bound_index = ~0u;
 };
 
 struct LightShaderData
@@ -205,7 +203,6 @@ public:
 
     WeakHandle<Light> light;
     LightShaderData buffer_data {};
-    uint32 bound_index = ~0u;
 };
 
 struct LightmapVolumeShaderData
@@ -226,7 +223,6 @@ public:
 
     WeakHandle<LightmapVolume> lightmap_volume;
     LightmapVolumeShaderData buffer_data {};
-    uint32 bound_index = ~0u;
 };
 
 } // namespace hyperion

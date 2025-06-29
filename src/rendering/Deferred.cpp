@@ -600,10 +600,6 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     for (EnvGrid* env_grid : rpl.env_grids)
     {
-        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->Id()));
-        AssertDebug(env_grid_proxy != nullptr);
-        AssertDebug(env_grid_proxy->bound_index != ~0u);
-
         const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
             ? m_graphics_pipeline
             : m_graphics_pipelines[EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGridType())];

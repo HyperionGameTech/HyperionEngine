@@ -69,9 +69,9 @@ struct ShaderDataOffset
     {
     }
 
-    template <class RenderProxyType, typename = std::enable_if_t<std::is_base_of_v<IRenderProxy, NormalizedType<RenderProxyType>>>>
-    ShaderDataOffset(const RenderProxyType* proxy)
-        : index(proxy != nullptr ? proxy->bound_index : ~0u)
+    template <class HypObjectType, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, NormalizedType<HypObjectType>>>>
+    ShaderDataOffset(const HypObjectType* resource)
+        : index(RenderApi_RetrieveResourceBinding(resource))
     {
     }
 
