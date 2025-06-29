@@ -35,15 +35,6 @@ enum class EnvProbeFlags : uint32
 
 HYP_MAKE_ENUM_FLAGS(EnvProbeFlags);
 
-enum EnvProbeBindingSlot : uint32
-{
-    ENV_PROBE_BINDING_SLOT_INVALID = uint32(-1),
-
-    ENV_PROBE_BINDING_SLOT_CUBEMAP = 0,
-    ENV_PROBE_BINDING_SLOT_SHADOW_CUBEMAP = 1,
-    ENV_PROBE_BINDING_SLOT_MAX
-};
-
 HYP_ENUM()
 enum EnvProbeType : uint32
 {

@@ -77,7 +77,7 @@ public:
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override;
 
 protected:
-    PassData* CreateViewPassData(View* view) override;
+    PassData* CreateViewPassData(View* view, PassDataExt&) override;
 
     UIRenderCollector m_render_collector;
 };

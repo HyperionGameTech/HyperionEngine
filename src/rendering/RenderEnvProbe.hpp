@@ -135,7 +135,7 @@ protected:
 
     virtual void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, EnvProbe* env_probe) = 0;
 
-    PassData* CreateViewPassData(View* view) override;
+    PassData* CreateViewPassData(View* view, PassDataExt&) override;
 };
 
 class ReflectionProbeRenderer : public EnvProbeRenderer

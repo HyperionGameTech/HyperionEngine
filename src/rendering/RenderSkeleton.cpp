@@ -51,7 +51,7 @@ void RenderSkeleton::Update_Internal()
 
 GPUBufferHolderBase* RenderSkeleton::GetGPUBufferHolder() const
 {
-    return g_render_global_state->Skeletons;
+    return g_render_global_state->gpu_buffers[GRB_SKELETONS];
 }
 
 void RenderSkeleton::UpdateBufferData()

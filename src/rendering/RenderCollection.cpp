@@ -259,9 +259,9 @@ RenderProxyList::~RenderProxyList()
 
     DO_FINALIZATION_CHECK(meshes);
     DO_FINALIZATION_CHECK(env_probes);
+    DO_FINALIZATION_CHECK(env_grids);
     DO_FINALIZATION_CHECK(lights);
     DO_FINALIZATION_CHECK(tracked_lightmap_volumes);
-    DO_FINALIZATION_CHECK(tracked_env_grids);
 
 #undef DO_FINALIZATION_CHECK
 }

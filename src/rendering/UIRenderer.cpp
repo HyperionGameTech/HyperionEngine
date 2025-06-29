@@ -531,7 +531,7 @@ void UIRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
     m_render_collector.ExecuteDrawCalls(frame, rs, output_target.GetFramebuffer());
 }
 
-PassData* UIRenderer::CreateViewPassData(View* view)
+PassData* UIRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     UIPassData* pd = new UIPassData;
 

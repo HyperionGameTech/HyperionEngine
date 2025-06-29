@@ -230,7 +230,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
             const DescriptorSetRef& descriptor_set = descriptor_table->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame_index);
             AssertThrow(descriptor_set.IsValid());
 
-            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
+            descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->gpu_buffers[GRB_MATERIALS]->GetBuffer(frame_index));
 
             descriptor_set->SetElement(NAME("LTCSampler"), m_ltc_sampler);
             descriptor_set->SetElement(NAME("LTCMatrixTexture"), m_ltc_matrix_texture->GetRenderResource().GetImageView());
@@ -584,7 +584,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
 
     // shouldn't be called if no env grids are present
-    AssertDebug(rpl.GetEnvGrids().Size() != 0);
+    AssertDebug(rpl.env_grids.NumCurrent() != 0);
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -596,11 +596,14 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
         RenderPreviousTextureToScreen(frame, rs);
     }
 
-    for (RenderEnvGrid* env_grid : rpl.GetEnvGrids())
+    for (EnvGrid* env_grid : rpl.env_grids)
     {
+        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RendererAPI_GetRenderProxy(env_grid->GetID()));
+        AssertThrow(env_grid_proxy->bound_index != ~0u);
+
         const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
             ? m_graphics_pipeline
-            : m_graphics_pipelines[uint32(EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGrid()->GetEnvGridType()))];
+            : m_graphics_pipelines[EnvGridTypeToApplyEnvGridMode(env_grid->GetEnvGridType())];
 
         AssertThrow(graphics_pipeline.IsValid());
 
@@ -627,7 +630,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             ArrayMap<Name, uint32> {
                 { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(*env_grid) } },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(/*env_grid_proxy->bound_index*/ env_grid->GetRenderResource().GetBufferIndex()) } },
             global_descriptor_set_index);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
@@ -891,8 +894,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            // RenderProxyEnvProbe* proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
-            // AssertThrow(proxy->bound_index != ~0u);
+            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
+            AssertThrow(env_probe_proxy != nullptr);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 graphics_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
@@ -900,7 +903,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe->GetRenderResource().GetBufferIndex()) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(/*env_probe_proxy->bound_index*/ env_probe->GetRenderResource().GetBufferIndex()) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -999,7 +1002,7 @@ void DeferredRenderer::Shutdown()
 {
 }
 
-PassData* DeferredRenderer::CreateViewPassData(View* view)
+PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     HYP_SCOPE;
 
@@ -1333,11 +1336,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
     /// @TODO: We could use the existing binning by subclass that ResourceTracker now provides.
     FixedArray<Array<EnvProbe*>, EPT_MAX> env_probes;
     FixedArray<Array<Light*>, LT_MAX> lights;
-    Array<RenderEnvGrid*> env_grids;
+    Array<EnvGrid*> env_grids;
 
     // For rendering EnvGrids and EnvProbes, we use a directional light from one of the Views that references it (if found)
     /// TODO: This could be a little bit more robust.
-    HashMap<RenderEnvGrid*, Light*> env_grid_lights;
+    HashMap<EnvGrid*, Light*> env_grid_lights;
     HashMap<EnvProbe*, Light*> env_probe_lights;
 
     // init view pass data and collect global rendering resources
@@ -1380,6 +1383,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                 continue;
             }
 
+            if (env_probes[env_probe->GetEnvProbeType()].Contains(env_probe))
+            {
+                continue;
+            }
+
             if (!env_probe_lights.Contains(env_probe))
             {
                 for (Light* light : rpl.lights)
@@ -1395,16 +1403,16 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                 }
             }
 
-            if (env_probes[env_probe->GetEnvProbeType()].Contains(env_probe))
+            env_probes[env_probe->GetEnvProbeType()].PushBack(env_probe);
+        }
+
+        for (EnvGrid* env_grid : rpl.env_grids)
+        {
+            if (env_grids.Contains(env_grid))
             {
                 continue;
             }
 
-            env_probes[env_probe->GetEnvProbeType()].PushBack(env_probe);
-        }
-
-        for (RenderEnvGrid* env_grid : rpl.GetEnvGrids())
-        {
             if (!env_grid_lights.Contains(env_grid))
             {
                 for (Light* light : rpl.lights)
@@ -1416,11 +1424,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                         break;
                     }
                 }
-            }
-
-            if (env_grids.Contains(env_grid))
-            {
-                continue;
             }
 
             env_grids.PushBack(env_grid);
@@ -1450,13 +1453,6 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             {
                 for (EnvProbe* env_probe : env_probes[env_probe_type])
                 {
-                    // Acquire binding slot for the env probe
-                    if (!g_render_global_state->EnvProbeBinder.Bind(env_probe))
-                    {
-                        HYP_LOG(Rendering, Warning, "Failed to bind EnvProbe {}! Skipping rendering of env probes of this type.", env_probe->GetID());
-                        continue;
-                    }
-
                     if (env_probe->NeedsRender())
                     {
                         EnvProbeRenderer* env_probe_renderer = g_render_global_state->EnvProbeRenderers[env_probe_type];
@@ -1483,7 +1479,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
         if (env_grids.Any())
         {
-            for (RenderEnvGrid* env_grid : env_grids)
+            for (EnvGrid* env_grid : env_grids)
             {
                 // Set global directional light as fallback
                 if (env_grid_lights.Contains(env_grid))
@@ -1491,9 +1487,12 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
                     new_rs.light = env_grid_lights[env_grid];
                 }
 
-                env_grid->Render(frame, new_rs);
+                new_rs.env_grid = env_grid;
+
+                g_render_global_state->EnvGridRenderer->RenderFrame(frame, new_rs);
 
                 new_rs.light = nullptr;
+                new_rs.env_grid = nullptr;
 
                 counts[ERS_ENV_GRIDS]++;
             }
@@ -1535,7 +1534,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         counts[ERS_VIEWS]++;
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.Size();
         counts[ERS_LIGHTS] += rpl.lights.NumCurrent();
-        counts[ERS_ENV_GRIDS] += rpl.env_grids.Size();
+        counts[ERS_ENV_GRIDS] += rpl.env_grids.NumCurrent();
         counts[ERS_ENV_PROBES] += rpl.env_probes.NumCurrent();
 #endif
     }
@@ -1598,8 +1597,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     const bool use_hbil = m_renderer_config.hbil_enabled;
     const bool use_ssgi = m_renderer_config.ssgi_enabled;
 
-    const bool use_env_grid_irradiance = rpl.env_grids.Any() && m_renderer_config.env_grid_gi_enabled;
-    const bool use_env_grid_radiance = rpl.env_grids.Any() && m_renderer_config.env_grid_radiance_enabled;
+    const bool use_env_grid_irradiance = rpl.env_grids.NumCurrent() && m_renderer_config.env_grid_gi_enabled;
+    const bool use_env_grid_radiance = rpl.env_grids.NumCurrent() && m_renderer_config.env_grid_radiance_enabled;
 
     const bool use_temporal_aa = pd->temporal_aa != nullptr && m_renderer_config.taa_enabled;
 

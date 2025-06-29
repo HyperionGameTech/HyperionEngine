@@ -123,14 +123,7 @@ static const bool sh_parallel_reduce = false;
 
 static const uint32 max_queued_probes_for_render = 1;
 
-static const Vec3u voxel_grid_dimensions { 256, 256, 256 };
-static const TextureFormat voxel_grid_format = TF_RGBA8;
-
 static const EnvProbeGridIndex invalid_probe_index = EnvProbeGridIndex();
-
-const TextureFormat light_field_color_format = TF_RGBA8;
-const TextureFormat light_field_depth_format = TF_RG16F;
-static const uint32 irradiance_octahedron_size = 8;
 
 #pragma endregion Globals Constants
 
@@ -227,54 +220,12 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet)
 #pragma region RenderEnvGrid
 
 RenderEnvGrid::RenderEnvGrid(EnvGrid* env_grid)
-    : m_env_grid(env_grid),
-      m_buffer_data {}
+    : m_env_grid(env_grid)
 {
-    for (uint32 index = 0; index < ArraySize(m_buffer_data.probe_indices); index++)
-    {
-        m_buffer_data.probe_indices[index] = invalid_probe_index.GetProbeIndex();
-    }
-    m_buffer_data.center = Vec4f(env_grid->GetAABB().GetCenter(), 1.0f);
-    m_buffer_data.extent = Vec4f(env_grid->GetAABB().GetExtent(), 1.0f);
-    m_buffer_data.aabb_max = Vec4f(env_grid->GetAABB().max, 1.0f);
-    m_buffer_data.aabb_min = Vec4f(env_grid->GetAABB().min, 1.0f);
-    m_buffer_data.density = { env_grid->GetOptions().density.x, env_grid->GetOptions().density.y, env_grid->GetOptions().density.z, 0 };
-    m_buffer_data.voxel_grid_aabb_max = Vec4f(env_grid->GetAABB().max, 1.0f);
-    m_buffer_data.voxel_grid_aabb_min = Vec4f(env_grid->GetAABB().min, 1.0f);
-
-    CreateShader();
 }
 
 RenderEnvGrid::~RenderEnvGrid()
 {
-    SafeRelease(std::move(m_shader));
-}
-
-void RenderEnvGrid::SetBufferData(const EnvGridShaderData& buffer_data)
-{
-    HYP_SCOPE;
-
-    Execute([this, buffer_data]()
-        {
-            m_buffer_data = buffer_data;
-
-            SetNeedsUpdate();
-        });
-}
-
-void RenderEnvGrid::SetAABB(const BoundingBox& aabb)
-{
-    HYP_SCOPE;
-
-    Execute([this, aabb]()
-        {
-            m_buffer_data.center = Vec4f(aabb.GetCenter(), 1.0f);
-            m_buffer_data.extent = Vec4f(aabb.GetExtent(), 1.0f);
-            m_buffer_data.aabb_max = Vec4f(aabb.max, 1.0f);
-            m_buffer_data.aabb_min = Vec4f(aabb.min, 1.0f);
-
-            SetNeedsUpdate();
-        });
 }
 
 void RenderEnvGrid::SetProbeIndices(Array<uint32>&& indices)
@@ -292,77 +243,32 @@ void RenderEnvGrid::SetProbeIndices(Array<uint32>&& indices)
         });
 }
 
-void RenderEnvGrid::SetViewResourceHandle(TResourceHandle<RenderView>&& render_view)
-{
-    HYP_SCOPE;
-
-    Execute([this, render_view = std::move(render_view)]()
-        {
-            m_render_view = std::move(render_view);
-        });
-}
-
-void RenderEnvGrid::CreateShader()
-{
-    HYP_SCOPE;
-
-    ShaderProperties shader_properties(static_mesh_vertex_attributes, { "WRITE_NORMALS", "WRITE_MOMENTS" });
-
-    m_shader = g_shader_manager->GetOrCreate(NAME("RenderToCubemap"), shader_properties);
-    AssertThrow(m_shader.IsValid());
-}
-
-void RenderEnvGrid::CreateFramebuffer()
-{
-    HYP_SCOPE;
-}
-
 void RenderEnvGrid::Initialize_Internal()
 {
     HYP_SCOPE;
-
-    CreateFramebuffer();
-
-    if (m_env_grid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
-    {
-        CreateVoxelGridData();
-    }
-
-    switch (m_env_grid->GetEnvGridType())
-    {
-    case ENV_GRID_TYPE_SH:
-        CreateSphericalHarmonicsData();
-
-        break;
-    case ENV_GRID_TYPE_LIGHT_FIELD:
-        CreateLightFieldData();
-
-        break;
-    default:
-        HYP_UNREACHABLE();
-        break;
-    }
-
-    UpdateBufferData();
 }
 
 void RenderEnvGrid::Destroy_Internal()
 {
     HYP_SCOPE;
+}
 
-    if (m_voxel_grid_texture.IsValid())
-    {
-        PUSH_RENDER_COMMAND(
-            SetElementInGlobalDescriptorSet,
-            NAME("Global"),
-            NAME("VoxelGridTexture"),
-            g_render_global_state->PlaceholderData->GetImageView3D1x1x1R8());
+void RenderEnvGrid::Update_Internal()
+{
+    HYP_SCOPE;
+}
 
-        m_voxel_grid_texture.Reset();
-    }
+GPUBufferHolderBase* RenderEnvGrid::GetGPUBufferHolder() const
+{
+    return g_render_global_state->gpu_buffers[GRB_ENV_GRIDS];
+}
 
-    m_render_view.Reset();
+#pragma endregion RenderEnvGrid
 
+#pragma region EnvGridPassData
+
+EnvGridPassData::~EnvGridPassData()
+{
     SafeRelease(std::move(m_clear_sh));
     SafeRelease(std::move(m_compute_sh));
     SafeRelease(std::move(m_reduce_sh));
@@ -385,51 +291,77 @@ void RenderEnvGrid::Destroy_Internal()
     SafeRelease(std::move(m_generate_voxel_grid_mipmaps_descriptor_tables));
 }
 
-void RenderEnvGrid::Update_Internal()
-{
-    HYP_SCOPE;
+#pragma endregion EnvGridPassData
 
-    UpdateBufferData();
+#pragma region EnvGridRenderer
+
+EnvGridRenderer::EnvGridRenderer()
+{
 }
 
-void RenderEnvGrid::CreateVoxelGridData()
+EnvGridRenderer::~EnvGridRenderer()
+{
+}
+
+void EnvGridRenderer::Initialize()
+{
+}
+
+void EnvGridRenderer::Shutdown()
+{
+}
+
+PassData* EnvGridRenderer::CreateViewPassData(View* view, PassDataExt& ext)
+{
+    EnvGridPassDataExt* ext_casted = ext.AsType<EnvGridPassDataExt>();
+    AssertDebug(ext_casted != nullptr, "EnvGridPassDataExt must be provided for EnvGridRenderer");
+    AssertDebug(ext_casted->env_grid != nullptr);
+
+    EnvGridPassData* pd = new EnvGridPassData;
+    pd->view = view->WeakHandleFromThis();
+    pd->viewport = view->GetRenderResource().GetViewport();
+
+    if (ext_casted->env_grid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
+    {
+        CreateVoxelGridData(ext_casted->env_grid, *pd);
+    }
+
+    switch (ext_casted->env_grid->GetEnvGridType())
+    {
+    case ENV_GRID_TYPE_SH:
+        CreateSphericalHarmonicsData(ext_casted->env_grid, *pd);
+
+        break;
+    case ENV_GRID_TYPE_LIGHT_FIELD:
+        CreateLightFieldData(ext_casted->env_grid, *pd);
+
+        break;
+    default:
+        HYP_UNREACHABLE();
+        break;
+    }
+
+    return pd;
+}
+
+void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd)
 {
     HYP_SCOPE;
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
+    AssertDebug(env_grid != nullptr);
+
+    const EnvGridOptions& options = env_grid->GetOptions();
 
     if (!(options.flags & EnvGridFlags::USE_VOXEL_GRID))
     {
         return;
     }
 
-    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = env_grid->GetView()->GetOutputTarget();
+    AssertDebug(output_target.IsValid());
 
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
-    AssertThrowMsg(framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
-
-    // Create our voxel grid texture
-    m_voxel_grid_texture = CreateObject<Texture>(
-        TextureDesc {
-            TT_TEX3D,
-            voxel_grid_format,
-            voxel_grid_dimensions,
-            TFM_LINEAR_MIPMAP,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_STORAGE | IU_SAMPLED });
-
-    InitObject(m_voxel_grid_texture);
-
-    m_voxel_grid_texture->SetPersistentRenderResourceEnabled(true);
-
-    // Set our voxel grid texture in the global descriptor set so we can use it in shaders
-    PUSH_RENDER_COMMAND(
-        SetElementInGlobalDescriptorSet,
-        NAME("Global"),
-        NAME("VoxelGridTexture"),
-        m_voxel_grid_texture->GetRenderResource().GetImageView());
+    AssertDebugMsg(framebuffer.IsValid(), "Framebuffer must be created before voxelizing probes");
 
     // Create shader, descriptor sets for voxelizing probes
 
@@ -458,38 +390,36 @@ void RenderEnvGrid::CreateVoxelGridData()
         descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
         descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
 
-        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_render_global_state->EnvGrids->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_render_global_state->EnvProbes->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvGridBuffer"), 0, sizeof(EnvGridShaderData), g_render_global_state->gpu_buffers[GRB_ENV_GRIDS]->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("EnvProbesBuffer"), g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame_index));
 
-        descriptor_set->SetElement(NAME("OutVoxelGridImage"), m_voxel_grid_texture->GetRenderResource().GetImageView());
-
-        AssertThrow(m_voxel_grid_texture->GetRenderResource().GetImageView() != nullptr);
+        descriptor_set->SetElement(NAME("OutVoxelGridImage"), env_grid->GetVoxelGridTexture()->GetRenderResource().GetImageView());
     }
 
     DeferCreate(descriptor_table);
 
     { // Compute shader to clear the voxel grid at a specific position
-        m_clear_voxels = g_rendering_api->MakeComputePipeline(
+        pd.m_clear_voxels = g_rendering_api->MakeComputePipeline(
             clear_voxels_shader,
             descriptor_table);
 
-        DeferCreate(m_clear_voxels);
+        DeferCreate(pd.m_clear_voxels);
     }
 
     { // Compute shader to voxelize a probe into voxel grid
-        m_voxelize_probe = g_rendering_api->MakeComputePipeline(
+        pd.m_voxelize_probe = g_rendering_api->MakeComputePipeline(
             voxelize_probe_shader,
             descriptor_table);
 
-        DeferCreate(m_voxelize_probe);
+        DeferCreate(pd.m_voxelize_probe);
     }
 
     { // Compute shader to 'offset' the voxel grid
-        m_offset_voxel_grid = g_rendering_api->MakeComputePipeline(
+        pd.m_offset_voxel_grid = g_rendering_api->MakeComputePipeline(
             offset_voxel_grid_shader,
             descriptor_table);
 
-        DeferCreate(m_offset_voxel_grid);
+        DeferCreate(pd.m_offset_voxel_grid);
     }
 
     { // Compute shader to generate mipmaps for voxel grid
@@ -498,17 +428,17 @@ void RenderEnvGrid::CreateVoxelGridData()
 
         const DescriptorTableDeclaration& generate_voxel_grid_mipmaps_descriptor_table_decl = generate_voxel_grid_mipmaps_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        const uint32 num_voxel_grid_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
-        m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
+        const uint32 num_voxel_grid_mip_levels = env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->NumMipmaps();
+        pd.m_voxel_grid_mips.Resize(num_voxel_grid_mip_levels);
 
         for (uint32 mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++)
         {
-            m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView(
-                m_voxel_grid_texture->GetRenderResource().GetImage(),
+            pd.m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView(
+                env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(),
                 mip_level, 1,
-                0, m_voxel_grid_texture->GetRenderResource().GetImage()->NumFaces());
+                0, env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->NumFaces());
 
-            DeferCreate(m_voxel_grid_mips[mip_level]);
+            DeferCreate(pd.m_voxel_grid_mips[mip_level]);
 
             // create descriptor sets for mip generation.
             DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&generate_voxel_grid_mipmaps_descriptor_table_decl);
@@ -521,41 +451,43 @@ void RenderEnvGrid::CreateVoxelGridData()
                 if (mip_level == 0)
                 {
                     // first mip level -- input is the actual image
-                    mip_descriptor_set->SetElement(NAME("InputTexture"), m_voxel_grid_texture->GetRenderResource().GetImageView());
+                    mip_descriptor_set->SetElement(NAME("InputTexture"), env_grid->GetVoxelGridTexture()->GetRenderResource().GetImageView());
                 }
                 else
                 {
-                    mip_descriptor_set->SetElement(NAME("InputTexture"), m_voxel_grid_mips[mip_level - 1]);
+                    mip_descriptor_set->SetElement(NAME("InputTexture"), pd.m_voxel_grid_mips[mip_level - 1]);
                 }
 
-                mip_descriptor_set->SetElement(NAME("OutputTexture"), m_voxel_grid_mips[mip_level]);
+                mip_descriptor_set->SetElement(NAME("OutputTexture"), pd.m_voxel_grid_mips[mip_level]);
             }
 
             DeferCreate(descriptor_table);
 
-            m_generate_voxel_grid_mipmaps_descriptor_tables.PushBack(std::move(descriptor_table));
+            pd.m_generate_voxel_grid_mipmaps_descriptor_tables.PushBack(std::move(descriptor_table));
         }
 
-        m_generate_voxel_grid_mipmaps = g_rendering_api->MakeComputePipeline(
+        pd.m_generate_voxel_grid_mipmaps = g_rendering_api->MakeComputePipeline(
             generate_voxel_grid_mipmaps_shader,
-            m_generate_voxel_grid_mipmaps_descriptor_tables[0]);
+            pd.m_generate_voxel_grid_mipmaps_descriptor_tables[0]);
 
-        DeferCreate(m_generate_voxel_grid_mipmaps);
+        DeferCreate(pd.m_generate_voxel_grid_mipmaps);
     }
 }
 
-void RenderEnvGrid::CreateSphericalHarmonicsData()
+void EnvGridRenderer::CreateSphericalHarmonicsData(EnvGrid* env_grid, EnvGridPassData& pd)
 {
     HYP_SCOPE;
 
-    m_sh_tiles_buffers.Resize(sh_num_levels);
+    AssertDebug(env_grid != nullptr);
+
+    pd.m_sh_tiles_buffers.Resize(sh_num_levels);
 
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
         const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
-        m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
+        pd.m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
 
-        DeferCreate(m_sh_tiles_buffers[i]);
+        DeferCreate(pd.m_sh_tiles_buffers[i]);
     }
 
     FixedArray<ShaderRef, 4> shaders = {
@@ -572,116 +504,69 @@ void RenderEnvGrid::CreateSphericalHarmonicsData()
 
     const DescriptorTableDeclaration& descriptor_table_decl = shaders[0]->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    m_compute_sh_descriptor_tables.Resize(sh_num_levels);
+    pd.m_compute_sh_descriptor_tables.Resize(sh_num_levels);
 
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
-        m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        pd.m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            const DescriptorSetRef& compute_sh_descriptor_set = m_compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
+            const DescriptorSetRef& compute_sh_descriptor_set = pd.m_compute_sh_descriptor_tables[i]->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame_index);
             AssertThrow(compute_sh_descriptor_set != nullptr);
 
             compute_sh_descriptor_set->SetElement(NAME("InColorCubemap"), g_render_global_state->PlaceholderData->DefaultCubemap->GetRenderResource().GetImageView());
             compute_sh_descriptor_set->SetElement(NAME("InNormalsCubemap"), g_render_global_state->PlaceholderData->DefaultCubemap->GetRenderResource().GetImageView());
             compute_sh_descriptor_set->SetElement(NAME("InDepthCubemap"), g_render_global_state->PlaceholderData->DefaultCubemap->GetRenderResource().GetImageView());
-            compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), m_sh_tiles_buffers[i]);
+            compute_sh_descriptor_set->SetElement(NAME("InputSHTilesBuffer"), pd.m_sh_tiles_buffers[i]);
 
             if (i != sh_num_levels - 1)
             {
-                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), m_sh_tiles_buffers[i + 1]);
+                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), pd.m_sh_tiles_buffers[i + 1]);
             }
             else
             {
-                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), m_sh_tiles_buffers[i]);
+                compute_sh_descriptor_set->SetElement(NAME("OutputSHTilesBuffer"), pd.m_sh_tiles_buffers[i]);
             }
         }
 
-        DeferCreate(m_compute_sh_descriptor_tables[i]);
+        DeferCreate(pd.m_compute_sh_descriptor_tables[i]);
     }
 
-    m_clear_sh = g_rendering_api->MakeComputePipeline(shaders[0], m_compute_sh_descriptor_tables[0]);
-    DeferCreate(m_clear_sh);
+    pd.m_clear_sh = g_rendering_api->MakeComputePipeline(shaders[0], pd.m_compute_sh_descriptor_tables[0]);
+    DeferCreate(pd.m_clear_sh);
 
-    m_compute_sh = g_rendering_api->MakeComputePipeline(shaders[1], m_compute_sh_descriptor_tables[0]);
-    DeferCreate(m_compute_sh);
+    pd.m_compute_sh = g_rendering_api->MakeComputePipeline(shaders[1], pd.m_compute_sh_descriptor_tables[0]);
+    DeferCreate(pd.m_compute_sh);
 
-    m_reduce_sh = g_rendering_api->MakeComputePipeline(shaders[2], m_compute_sh_descriptor_tables[0]);
-    DeferCreate(m_reduce_sh);
+    pd.m_reduce_sh = g_rendering_api->MakeComputePipeline(shaders[2], pd.m_compute_sh_descriptor_tables[0]);
+    DeferCreate(pd.m_reduce_sh);
 
-    m_finalize_sh = g_rendering_api->MakeComputePipeline(shaders[3], m_compute_sh_descriptor_tables[0]);
-    DeferCreate(m_finalize_sh);
+    pd.m_finalize_sh = g_rendering_api->MakeComputePipeline(shaders[3], pd.m_compute_sh_descriptor_tables[0]);
+    DeferCreate(pd.m_finalize_sh);
 }
 
-void RenderEnvGrid::CreateLightFieldData()
+void EnvGridRenderer::CreateLightFieldData(EnvGrid* env_grid, EnvGridPassData& pd)
 {
     HYP_SCOPE;
 
-    AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
+    AssertDebug(env_grid != nullptr);
+    AssertDebug(env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+    const ViewOutputTarget& output_target = env_grid->GetView()->GetOutputTarget();
+    AssertDebug(output_target.IsValid());
 
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
-    AssertThrow(framebuffer.IsValid());
+    AssertDebug(framebuffer.IsValid());
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
-
-    m_irradiance_texture = CreateObject<Texture>(
-        TextureDesc {
-            TT_TEX2D,
-            light_field_color_format,
-            Vec3u {
-                (irradiance_octahedron_size + 2) * options.density.x * options.density.y + 2,
-                (irradiance_octahedron_size + 2) * options.density.z + 2,
-                1 },
-            TFM_LINEAR,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_STORAGE | IU_SAMPLED });
-
-    InitObject(m_irradiance_texture);
-
-    m_irradiance_texture->SetPersistentRenderResourceEnabled(true);
-
-    PUSH_RENDER_COMMAND(
-        SetElementInGlobalDescriptorSet,
-        NAME("Global"),
-        NAME("LightFieldColorTexture"),
-        m_irradiance_texture->GetRenderResource().GetImageView());
-
-    m_depth_texture = CreateObject<Texture>(
-        TextureDesc {
-            TT_TEX2D,
-            light_field_depth_format,
-            Vec3u {
-                (irradiance_octahedron_size + 2) * options.density.x * options.density.y + 2,
-                (irradiance_octahedron_size + 2) * options.density.z + 2,
-                1 },
-            TFM_LINEAR,
-            TFM_LINEAR,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_STORAGE | IU_SAMPLED });
-
-    InitObject(m_depth_texture);
-
-    m_depth_texture->SetPersistentRenderResourceEnabled(true);
-
-    PUSH_RENDER_COMMAND(
-        SetElementInGlobalDescriptorSet,
-        NAME("Global"),
-        NAME("LightFieldDepthTexture"),
-        m_depth_texture->GetRenderResource().GetImageView());
+    const EnvGridOptions& options = env_grid->GetOptions();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         GPUBufferRef light_field_uniforms = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(LightFieldUniforms));
-
         DeferCreate(light_field_uniforms);
 
-        m_uniform_buffers.PushBack(std::move(light_field_uniforms));
+        pd.m_uniform_buffers.PushBack(std::move(light_field_uniforms));
     }
 
     ShaderRef compute_irradiance_shader = g_shader_manager->GetOrCreate(NAME("LightField_ComputeIrradiance"));
@@ -689,9 +574,9 @@ void RenderEnvGrid::CreateLightFieldData()
     ShaderRef copy_border_texels_shader = g_shader_manager->GetOrCreate(NAME("LightField_CopyBorderTexels"));
 
     Pair<ShaderRef, ComputePipelineRef&> shaders[] = {
-        { compute_irradiance_shader, m_compute_irradiance },
-        { compute_filtered_depth_shader, m_compute_filtered_depth },
-        { copy_border_texels_shader, m_copy_border_texels }
+        { compute_irradiance_shader, pd.m_compute_irradiance },
+        { compute_filtered_depth_shader, pd.m_compute_filtered_depth },
+        { copy_border_texels_shader, pd.m_copy_border_texels }
     };
 
     for (Pair<ShaderRef, ComputePipelineRef&>& pair : shaders)
@@ -710,15 +595,15 @@ void RenderEnvGrid::CreateLightFieldData()
             DescriptorSetRef descriptor_set = descriptor_table->GetDescriptorSet(NAME("LightFieldProbeDescriptorSet"), frame_index);
             AssertThrow(descriptor_set != nullptr);
 
-            descriptor_set->SetElement(NAME("UniformBuffer"), m_uniform_buffers[frame_index]);
+            descriptor_set->SetElement(NAME("UniformBuffer"), pd.m_uniform_buffers[frame_index]);
 
             descriptor_set->SetElement(NAME("InColorImage"), framebuffer->GetAttachment(0)->GetImageView());
             descriptor_set->SetElement(NAME("InNormalsImage"), framebuffer->GetAttachment(1)->GetImageView());
             descriptor_set->SetElement(NAME("InDepthImage"), framebuffer->GetAttachment(2)->GetImageView());
             descriptor_set->SetElement(NAME("SamplerLinear"), g_render_global_state->PlaceholderData->GetSamplerLinear());
             descriptor_set->SetElement(NAME("SamplerNearest"), g_render_global_state->PlaceholderData->GetSamplerNearest());
-            descriptor_set->SetElement(NAME("OutColorImage"), m_irradiance_texture->GetRenderResource().GetImageView());
-            descriptor_set->SetElement(NAME("OutDepthImage"), m_depth_texture->GetRenderResource().GetImageView());
+            descriptor_set->SetElement(NAME("OutColorImage"), env_grid->GetLightFieldIrradianceTexture()->GetRenderResource().GetImageView());
+            descriptor_set->SetElement(NAME("OutDepthImage"), env_grid->GetLightFieldDepthTexture()->GetRenderResource().GetImageView());
         }
 
         DeferCreate(descriptor_table);
@@ -728,44 +613,31 @@ void RenderEnvGrid::CreateLightFieldData()
     }
 }
 
-GPUBufferHolderBase* RenderEnvGrid::GetGPUBufferHolder() const
-{
-    return g_render_global_state->EnvGrids;
-}
-
-void RenderEnvGrid::UpdateBufferData()
-{
-    HYP_SCOPE;
-
-    m_buffer_data.light_field_image_dimensions = m_irradiance_texture.IsValid()
-        ? Vec2i(m_irradiance_texture->GetExtent().GetXY())
-        : Vec2i::Zero();
-
-    m_buffer_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
-
-    for (uint32 index = 0; index < ArraySize(m_buffer_data.probe_indices); index++)
-    {
-        const Handle<EnvProbe>& probe = m_env_grid->GetEnvProbeCollection().GetEnvProbeOnRenderThread(index);
-        AssertThrow(probe.IsValid());
-
-        m_buffer_data.probe_indices[index] = probe->GetRenderResource().GetBufferIndex();
-    }
-
-    *static_cast<EnvGridShaderData*>(m_buffer_address) = m_buffer_data;
-
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
-}
-
-void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
+void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_setup)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.env_grid != nullptr);
 
-    const BoundingBox grid_aabb = BoundingBox(
-        m_buffer_data.aabb_min.GetXYZ(),
-        m_buffer_data.aabb_max.GetXYZ());
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
+
+    EnvGridPassDataExt ext;
+    ext.env_grid = env_grid;
+
+    EnvGridPassData* pd = static_cast<EnvGridPassData*>(FetchViewPassData(env_grid->GetView(), &ext));
+    AssertDebug(pd != nullptr);
+
+    RenderSetup rs = render_setup;
+    rs.view = &env_grid->GetView()->GetRenderResource();
+    rs.pass_data = pd;
+
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(env_grid->GetView());
+
+    /// FIXME: Not thread safe; use render proxy
+    const BoundingBox grid_aabb = env_grid->GetAABB();
 
     if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
     {
@@ -774,8 +646,8 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
         return;
     }
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
-    const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
+    const EnvGridOptions& options = env_grid->GetOptions();
+    const EnvProbeCollection& env_probe_collection = env_grid->GetEnvProbeCollection();
 
     // Debug draw
     if (options.flags & EnvGridFlags::DEBUG_DISPLAY_PROBES)
@@ -797,18 +669,15 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
     }
 
     // render enqueued probes
-    while (m_next_render_indices.Any())
+    while (pd->m_next_render_indices.Any())
     {
-        RenderSetup new_render_setup = render_setup;
-        new_render_setup.view = m_render_view.Get();
-
-        RenderProbe(frame, new_render_setup, m_next_render_indices.Pop());
+        RenderProbe(frame, rs, pd->m_next_render_indices.Pop());
     }
 
     if (env_probe_collection.num_probes != 0)
     {
         // update probe positions in grid, choose next to render.
-        AssertThrow(m_current_probe_index < env_probe_collection.num_probes);
+        AssertThrow(pd->m_current_probe_index < env_probe_collection.num_probes);
 
         // const Vec3f &camera_position = camera_resource_handle->GetBufferData().camera_position.GetXYZ();
 
@@ -817,7 +686,7 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
 
         for (uint32 i = 0; i < env_probe_collection.num_probes; i++)
         {
-            const uint32 index = (m_current_probe_index + i) % env_probe_collection.num_probes;
+            const uint32 index = (pd->m_current_probe_index + i) % env_probe_collection.num_probes;
             const Handle<EnvProbe>& probe = env_probe_collection.GetEnvProbeOnRenderThread(index);
 
             if (probe.IsValid() && probe->NeedsRender())
@@ -849,7 +718,7 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
 
                 if (binding_index != invalid_probe_index)
                 {
-                    if (m_next_render_indices.Size() < max_queued_probes_for_render)
+                    if (pd->m_next_render_indices.Size() < max_queued_probes_for_render)
                     {
                         const Vec4i position_in_grid = Vec4i {
                             int32(indirect_index % options.density.x),
@@ -861,9 +730,9 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
                         probe->GetRenderResource().SetPositionInGrid(position_in_grid);
 
                         // render this probe in the next frame, since the data will have been updated on the gpu on start of the frame
-                        m_next_render_indices.Push(indirect_index);
+                        pd->m_next_render_indices.Push(indirect_index);
 
-                        m_current_probe_index = (found_index + 1) % env_probe_collection.num_probes;
+                        pd->m_current_probe_index = (found_index + 1) % env_probe_collection.num_probes;
                     }
                     else
                     {
@@ -882,16 +751,22 @@ void RenderEnvGrid::Render(FrameBase* frame, const RenderSetup& render_setup)
     }
 }
 
-void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index)
+void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index)
 {
     HYP_SCOPE;
 
     AssertDebug(render_setup.IsValid());
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
-    const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
+    View* view = env_grid->GetView();
+    AssertDebug(view != nullptr);
+
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+
+    const EnvGridOptions& options = env_grid->GetOptions();
+    const EnvProbeCollection& env_probe_collection = env_grid->GetEnvProbeCollection();
 
     const Handle<EnvProbe>& probe = env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
@@ -903,7 +778,7 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
 
     RenderCollector::ExecuteDrawCalls(frame, new_render_setup, rpl, (1u << RB_OPAQUE));
 
-    switch (m_env_grid->GetEnvGridType())
+    switch (env_grid->GetEnvGridType())
     {
     case ENV_GRID_TYPE_SH:
         ComputeEnvProbeIrradiance_SphericalHarmonics(frame, render_setup, probe);
@@ -920,25 +795,38 @@ void RenderEnvGrid::RenderProbe(FrameBase* frame, const RenderSetup& render_setu
 
     if (options.flags & EnvGridFlags::USE_VOXEL_GRID)
     {
-        VoxelizeProbe(frame, probe_index);
+        VoxelizeProbe(frame, render_setup, probe_index);
     }
 
     probe->SetNeedsRender(false);
 }
 
-void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
 {
     HYP_SCOPE;
 
-    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+    AssertDebug(probe.IsValid());
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
+    AssertDebug(env_grid->GetEnvGridType() == ENV_GRID_TYPE_SH);
+
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
+
+    EnvGridPassData* pd = static_cast<EnvGridPassData*>(FetchViewPassData(view));
+    AssertDebug(pd != nullptr);
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
 
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
-    const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
-
-    AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_SH);
+    const EnvGridOptions& options = env_grid->GetOptions();
+    const EnvProbeCollection& env_probe_collection = env_grid->GetEnvProbeCollection();
 
     const uint32 grid_slot = probe->m_grid_slot;
     AssertThrow(grid_slot != ~0u);
@@ -972,7 +860,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 
     push_constants.world_position = probe->GetRenderResource().GetBufferData().world_position;
 
-    for (const DescriptorTableRef& descriptor_set_ref : m_compute_sh_descriptor_tables)
+    for (const DescriptorTableRef& descriptor_set_ref : pd->m_compute_sh_descriptor_tables)
     {
         descriptor_set_ref->GetDescriptorSet(NAME("ComputeSHDescriptorSet"), frame->GetFrameIndex())
             ->SetElement(NAME("InColorCubemap"), framebuffer->GetAttachment(0)->GetImageView());
@@ -986,48 +874,48 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         descriptor_set_ref->Update(frame->GetFrameIndex());
     }
 
-    m_clear_sh->SetPushConstants(&push_constants, sizeof(push_constants));
-    m_compute_sh->SetPushConstants(&push_constants, sizeof(push_constants));
+    pd->m_clear_sh->SetPushConstants(&push_constants, sizeof(push_constants));
+    pd->m_compute_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
     RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
 
-    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(pd->m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
-        m_compute_sh_descriptor_tables[0],
-        m_clear_sh,
+        pd->m_compute_sh_descriptor_tables[0],
+        pd->m_clear_sh,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
-    async_compute_command_list.Add<BindComputePipeline>(m_clear_sh);
-    async_compute_command_list.Add<DispatchCompute>(m_clear_sh, Vec3u { 1, 1, 1 });
+    async_compute_command_list.Add<BindComputePipeline>(pd->m_clear_sh);
+    async_compute_command_list.Add<DispatchCompute>(pd->m_clear_sh, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(pd->m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
-        m_compute_sh_descriptor_tables[0],
-        m_compute_sh,
+        pd->m_compute_sh_descriptor_tables[0],
+        pd->m_compute_sh,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
-    async_compute_command_list.Add<BindComputePipeline>(m_compute_sh);
-    async_compute_command_list.Add<DispatchCompute>(m_compute_sh, Vec3u { 1, 1, 1 });
+    async_compute_command_list.Add<BindComputePipeline>(pd->m_compute_sh);
+    async_compute_command_list.Add<DispatchCompute>(pd->m_compute_sh, Vec3u { 1, 1, 1 });
 
     // Parallel reduce
     if (sh_parallel_reduce)
     {
         for (uint32 i = 1; i < sh_num_levels; i++)
         {
-            async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[i - 1], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+            async_compute_command_list.Add<InsertBarrier>(pd->m_sh_tiles_buffers[i - 1], RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
             const Vec2u prev_dimensions {
                 MathUtil::Max(1u, sh_num_samples.x >> (i - 1)),
@@ -1050,45 +938,45 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
                 next_dimensions.y
             };
 
-            m_reduce_sh->SetPushConstants(&push_constants, sizeof(push_constants));
+            pd->m_reduce_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
             async_compute_command_list.Add<BindDescriptorTable>(
-                m_compute_sh_descriptor_tables[i - 1],
-                m_reduce_sh,
+                pd->m_compute_sh_descriptor_tables[i - 1],
+                pd->m_reduce_sh,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
-                        { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                        { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                             { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                             { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
                 frame->GetFrameIndex());
 
-            async_compute_command_list.Add<BindComputePipeline>(m_reduce_sh);
-            async_compute_command_list.Add<DispatchCompute>(m_reduce_sh, Vec3u { 1, (next_dimensions.x + 3) / 4, (next_dimensions.y + 3) / 4 });
+            async_compute_command_list.Add<BindComputePipeline>(pd->m_reduce_sh);
+            async_compute_command_list.Add<DispatchCompute>(pd->m_reduce_sh, Vec3u { 1, (next_dimensions.x + 3) / 4, (next_dimensions.y + 3) / 4 });
         }
     }
 
     const uint32 finalize_sh_buffer_index = sh_parallel_reduce ? sh_num_levels - 1 : 0;
 
     // Finalize - build into final buffer
-    async_compute_command_list.Add<InsertBarrier>(m_sh_tiles_buffers[finalize_sh_buffer_index], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(pd->m_sh_tiles_buffers[finalize_sh_buffer_index], RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
-    m_finalize_sh->SetPushConstants(&push_constants, sizeof(push_constants));
+    pd->m_finalize_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
     async_compute_command_list.Add<BindDescriptorTable>(
-        m_compute_sh_descriptor_tables[finalize_sh_buffer_index],
-        m_finalize_sh,
+        pd->m_compute_sh_descriptor_tables[finalize_sh_buffer_index],
+        pd->m_finalize_sh,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(render_setup.light ? render_setup.light->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
-    async_compute_command_list.Add<BindComputePipeline>(m_finalize_sh);
-    async_compute_command_list.Add<DispatchCompute>(m_finalize_sh, Vec3u { 1, 1, 1 });
+    async_compute_command_list.Add<BindComputePipeline>(pd->m_finalize_sh);
+    async_compute_command_list.Add<DispatchCompute>(pd->m_finalize_sh, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind(
@@ -1098,7 +986,7 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
 
             EnvProbeShaderData readback_buffer;
 
-            g_render_global_state->EnvProbes->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
+            g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), resource_handle->GetBufferIndex(), &readback_buffer);
 
             // Log out SH data
             HYP_LOG(EnvGrid, Info, "EnvProbe {} SH data:\n\t{}\n\t{}\n\t{}\n\t{}\n",
@@ -1114,23 +1002,44 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fram
         });
 }
 
-void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
+void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe)
 {
     HYP_SCOPE;
 
-    AssertThrow(m_env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
+    AssertDebug(env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
 
+    EnvGridPassData* pd = static_cast<EnvGridPassData*>(FetchViewPassData(view));
+    AssertDebug(pd != nullptr);
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
+
+    const FramebufferRef& framebuffer = output_target.GetFramebuffer();
+    AssertThrow(framebuffer.IsValid());
+
+    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+
+    RenderProxyEnvGrid* proxy = static_cast<RenderProxyEnvGrid*>(RendererAPI_GetRenderProxy(env_grid->GetID()));
+    AssertThrow(proxy != nullptr, "EnvGrid render proxy not found!");
+
+    const Vec2i irradiance_octahedron_size = proxy->buffer_data.irradiance_octahedron_size;
+
+    const EnvGridOptions& options = env_grid->GetOptions();
     const uint32 probe_index = probe->m_grid_slot;
 
     { // Update uniform buffer
+
         LightFieldUniforms uniforms;
         Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
-        uniforms.image_dimensions = Vec4u { m_irradiance_texture->GetExtent(), 0 };
+        uniforms.image_dimensions = Vec4u { env_grid->GetLightFieldIrradianceTexture()->GetExtent(), 0 };
 
         uniforms.probe_grid_position = {
             probe_index % options.density.x,
@@ -1139,11 +1048,15 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
             probe->GetRenderResource().GetBufferIndex()
         };
 
-        uniforms.dimension_per_probe = { irradiance_octahedron_size, irradiance_octahedron_size, 0, 0 };
+        uniforms.dimension_per_probe = {
+            uint32(irradiance_octahedron_size.x),
+            uint32(irradiance_octahedron_size.y),
+            0, 0
+        };
 
         uniforms.probe_offset_coord = {
-            (irradiance_octahedron_size + 2) * (uniforms.probe_grid_position.x * options.density.y + uniforms.probe_grid_position.y) + 1,
-            (irradiance_octahedron_size + 2) * uniforms.probe_grid_position.z + 1,
+            (irradiance_octahedron_size.x + 2) * (uniforms.probe_grid_position.x * options.density.y + uniforms.probe_grid_position.y) + 1,
+            (irradiance_octahedron_size.y + 2) * uniforms.probe_grid_position.z + 1,
             0, 0
         };
 
@@ -1172,66 +1085,79 @@ void RenderEnvGrid::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const
 
         uniforms.num_bound_lights = num_bound_lights;
 
-        m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
+        pd->m_uniform_buffers[frame->GetFrameIndex()]->Copy(sizeof(uniforms), &uniforms);
     }
 
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
-    frame->GetCommandList().Add<BindComputePipeline>(m_compute_irradiance);
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetLightFieldIrradianceTexture()->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
+    frame->GetCommandList().Add<BindComputePipeline>(pd->m_compute_irradiance);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_compute_irradiance->GetDescriptorTable(),
-        m_compute_irradiance,
+        pd->m_compute_irradiance->GetDescriptorTable(),
+        pd->m_compute_irradiance,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<DispatchCompute>(m_compute_irradiance, Vec3u { (irradiance_octahedron_size + 7) / 8, (irradiance_octahedron_size + 7) / 8, 1 });
+    frame->GetCommandList().Add<DispatchCompute>(pd->m_compute_irradiance, Vec3u { uint32(irradiance_octahedron_size.x + 7) / 8, uint32(irradiance_octahedron_size.y + 7) / 8, 1 });
 
-    frame->GetCommandList().Add<BindComputePipeline>(m_compute_filtered_depth);
+    frame->GetCommandList().Add<BindComputePipeline>(pd->m_compute_filtered_depth);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_compute_filtered_depth->GetDescriptorTable(),
-        m_compute_filtered_depth,
+        pd->m_compute_filtered_depth->GetDescriptorTable(),
+        pd->m_compute_filtered_depth,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
-        m_compute_filtered_depth,
+        pd->m_compute_filtered_depth,
         Vec3u {
-            (irradiance_octahedron_size + 7) / 8,
-            (irradiance_octahedron_size + 7) / 8,
+            uint32(irradiance_octahedron_size.x + 7) / 8,
+            uint32(irradiance_octahedron_size.y + 7) / 8,
             1 });
 
-    frame->GetCommandList().Add<InsertBarrier>(m_depth_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetLightFieldDepthTexture()->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
-    frame->GetCommandList().Add<BindComputePipeline>(m_copy_border_texels);
+    frame->GetCommandList().Add<BindComputePipeline>(pd->m_copy_border_texels);
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_copy_border_texels->GetDescriptorTable(),
-        m_copy_border_texels,
+        pd->m_copy_border_texels->GetDescriptorTable(),
+        pd->m_copy_border_texels,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
-        m_copy_border_texels,
-        Vec3u { ((irradiance_octahedron_size * 4) + 255) / 256, 1, 1 });
+        pd->m_copy_border_texels,
+        Vec3u { uint32((irradiance_octahedron_size.x * 4) + 255) / 256, 1, 1 });
 
-    frame->GetCommandList().Add<InsertBarrier>(m_irradiance_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
-    frame->GetCommandList().Add<InsertBarrier>(m_depth_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetLightFieldIrradianceTexture()->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetLightFieldDepthTexture()->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 }
 
-void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
+void EnvGridRenderer::OffsetVoxelGrid(FrameBase* frame, const RenderSetup& render_setup, Vec3i offset)
 {
     HYP_SCOPE;
 
-    AssertThrow(m_voxel_grid_texture.IsValid());
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
+    AssertDebug(env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
+
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
+
+    EnvGridPassData* pd = static_cast<EnvGridPassData*>(FetchViewPassData(view));
+    AssertDebug(pd != nullptr);
+
+    AssertThrow(env_grid->GetVoxelGridTexture().IsValid());
 
     struct
     {
@@ -1244,36 +1170,52 @@ void RenderEnvGrid::OffsetVoxelGrid(FrameBase* frame, Vec3i offset)
 
     push_constants.offset = { offset.x, offset.y, offset.z, 0 };
 
-    m_offset_voxel_grid->SetPushConstants(&push_constants, sizeof(push_constants));
+    pd->m_offset_voxel_grid->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
-    frame->GetCommandList().Add<BindComputePipeline>(m_offset_voxel_grid);
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
+    frame->GetCommandList().Add<BindComputePipeline>(pd->m_offset_voxel_grid);
 
     frame->GetCommandList().Add<BindDescriptorTable>(
-        m_offset_voxel_grid->GetDescriptorTable(),
-        m_offset_voxel_grid,
+        pd->m_offset_voxel_grid->GetDescriptorTable(),
+        pd->m_offset_voxel_grid,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) } } } },
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) } } } },
         frame->GetFrameIndex());
 
-    frame->GetCommandList().Add<DispatchCompute>(m_offset_voxel_grid, (m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8));
-    frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+    frame->GetCommandList().Add<DispatchCompute>(pd->m_offset_voxel_grid, (env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->GetExtent() + Vec3u(7)) / Vec3u(8));
+    frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 }
 
-void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
+void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index)
 {
-    const ViewOutputTarget& output_target = m_render_view->GetView()->GetOutputTarget();
+    HYP_SCOPE;
+
+    AssertDebug(render_setup.IsValid());
+    AssertDebug(render_setup.HasView());
+
+    EnvGrid* env_grid = render_setup.env_grid;
+    AssertDebug(env_grid != nullptr);
+    AssertDebug(env_grid->GetEnvGridType() == ENV_GRID_TYPE_LIGHT_FIELD);
+
+    View* view = render_setup.view->GetView();
+    AssertDebug(view != nullptr);
+
+    EnvGridPassData* pd = static_cast<EnvGridPassData*>(FetchViewPassData(view));
+    AssertDebug(pd != nullptr);
+
+    const ViewOutputTarget& output_target = view->GetOutputTarget();
+    AssertDebug(output_target.IsValid());
 
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
-    const EnvGridOptions& options = m_env_grid->GetOptions();
-    const EnvProbeCollection& env_probe_collection = m_env_grid->GetEnvProbeCollection();
+    const EnvGridOptions& options = env_grid->GetOptions();
+    const EnvProbeCollection& env_probe_collection = env_grid->GetEnvProbeCollection();
 
-    AssertThrow(m_voxel_grid_texture.IsValid());
+    AssertThrow(env_grid->GetVoxelGridTexture().IsValid());
 
-    const Vec3u& voxel_grid_texture_extent = m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent();
+    const Vec3u& voxel_grid_texture_extent = env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->GetExtent();
 
     // size of a probe in the voxel grid
     const Vec3u probe_voxel_extent = voxel_grid_texture_extent / options.density;
@@ -1308,39 +1250,39 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
 
     if (false)
     { // Clear our voxel grid at the start of each probe
-        m_clear_voxels->SetPushConstants(&push_constants, sizeof(push_constants));
+        pd->m_clear_voxels->SetPushConstants(&push_constants, sizeof(push_constants));
 
-        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
+        frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
 
-        frame->GetCommandList().Add<BindComputePipeline>(m_clear_voxels);
+        frame->GetCommandList().Add<BindComputePipeline>(pd->m_clear_voxels);
 
         frame->GetCommandList().Add<BindDescriptorTable>(
-            m_clear_voxels->GetDescriptorTable(),
-            m_clear_voxels,
+            pd->m_clear_voxels->GetDescriptorTable(),
+            pd->m_clear_voxels,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) } } } },
+                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) } } } },
             frame->GetFrameIndex());
 
-        frame->GetCommandList().Add<DispatchCompute>(m_clear_voxels, (probe_voxel_extent + Vec3u(7)) / Vec3u(8));
+        frame->GetCommandList().Add<DispatchCompute>(pd->m_clear_voxels, (probe_voxel_extent + Vec3u(7)) / Vec3u(8));
     }
 
     { // Voxelize probe
-        m_voxelize_probe->SetPushConstants(&push_constants, sizeof(push_constants));
+        pd->m_voxelize_probe->SetPushConstants(&push_constants, sizeof(push_constants));
 
-        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
-        frame->GetCommandList().Add<BindComputePipeline>(m_voxelize_probe);
+        frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
+        frame->GetCommandList().Add<BindComputePipeline>(pd->m_voxelize_probe);
 
         frame->GetCommandList().Add<BindDescriptorTable>(
-            m_voxelize_probe->GetDescriptorTable(),
-            m_voxelize_probe,
+            pd->m_voxelize_probe->GetDescriptorTable(),
+            pd->m_voxelize_probe,
             ArrayMap<Name, ArrayMap<Name, uint32>> {
                 { NAME("Global"),
-                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(m_buffer_index) } } } },
+                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid->GetRenderResource().GetBufferIndex()) } } } },
             frame->GetFrameIndex());
 
         frame->GetCommandList().Add<DispatchCompute>(
-            m_voxelize_probe,
+            pd->m_voxelize_probe,
             Vec3u {
                 (probe_voxel_extent.x + 31) / 32,
                 (probe_voxel_extent.y + 31) / 32,
@@ -1348,11 +1290,11 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
     }
 
     { // Generate mipmaps for the voxel grid
-        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
 
-        const uint32 num_mip_levels = m_voxel_grid_texture->GetRenderResource().GetImage()->NumMipmaps();
+        const uint32 num_mip_levels = env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->NumMipmaps();
 
-        const Vec3u voxel_image_extent = m_voxel_grid_texture->GetRenderResource().GetImage()->GetExtent();
+        const Vec3u voxel_image_extent = env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->GetExtent();
         Vec3u mip_extent = voxel_image_extent;
 
         struct
@@ -1378,36 +1320,36 @@ void RenderEnvGrid::VoxelizeProbe(FrameBase* frame, uint32 probe_index)
             {
                 // put the mip into writeable state
                 frame->GetCommandList().Add<InsertBarrier>(
-                    m_voxel_grid_texture->GetRenderResource().GetImage(),
+                    env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(),
                     RS_UNORDERED_ACCESS,
                     ImageSubResource { .base_mip_level = mip_level });
             }
 
             frame->GetCommandList().Add<BindDescriptorTable>(
-                m_generate_voxel_grid_mipmaps_descriptor_tables[mip_level],
-                m_generate_voxel_grid_mipmaps,
+                pd->m_generate_voxel_grid_mipmaps_descriptor_tables[mip_level],
+                pd->m_generate_voxel_grid_mipmaps,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {},
                 frame->GetFrameIndex());
 
-            m_generate_voxel_grid_mipmaps->SetPushConstants(&push_constant_data, sizeof(push_constant_data));
+            pd->m_generate_voxel_grid_mipmaps->SetPushConstants(&push_constant_data, sizeof(push_constant_data));
 
-            frame->GetCommandList().Add<BindComputePipeline>(m_generate_voxel_grid_mipmaps);
+            frame->GetCommandList().Add<BindComputePipeline>(pd->m_generate_voxel_grid_mipmaps);
 
-            frame->GetCommandList().Add<DispatchCompute>(m_generate_voxel_grid_mipmaps, (mip_extent + Vec3u(7)) / Vec3u(8));
+            frame->GetCommandList().Add<DispatchCompute>(pd->m_generate_voxel_grid_mipmaps, (mip_extent + Vec3u(7)) / Vec3u(8));
 
             // put this mip into readable state
             frame->GetCommandList().Add<InsertBarrier>(
-                m_voxel_grid_texture->GetRenderResource().GetImage(),
+                env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(),
                 RS_SHADER_RESOURCE,
                 ImageSubResource { .base_mip_level = mip_level });
         }
 
         // all mip levels have been transitioned into this state
-        frame->GetCommandList().Add<InsertBarrier>(m_voxel_grid_texture->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
+        frame->GetCommandList().Add<InsertBarrier>(env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(), RS_SHADER_RESOURCE);
     }
 }
 
-#pragma endregion RenderEnvGrid
+#pragma endregion EnvGridRenderer
 
 HYP_DESCRIPTOR_CBUFF(Global, EnvGridsBuffer, 1, sizeof(EnvGridShaderData), true);
 

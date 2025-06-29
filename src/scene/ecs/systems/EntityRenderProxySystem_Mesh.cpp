@@ -61,7 +61,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
             max_entity_id_index = MathUtil::Max(max_entity_id_index, proxy.entity.GetID().ToIndex());
         }
 
-        g_render_global_state->Entities->EnsureCapacity(max_entity_id_index);
+        g_render_global_state->gpu_buffers[GRB_ENTITIES]->EnsureCapacity(max_entity_id_index);
 
         for (const RenderProxy& proxy : render_proxies)
         {
@@ -85,7 +85,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
             // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity ID index.
             // This will allow us to remove empty blocks when unused.
-            g_render_global_state->Entities->Set(proxy.entity.GetID().ToIndex(), entity_shader_data);
+            g_render_global_state->gpu_buffers[GRB_ENTITIES]->Set(proxy.entity.GetID().ToIndex(), entity_shader_data);
         }
 
         HYPERION_RETURN_OK;

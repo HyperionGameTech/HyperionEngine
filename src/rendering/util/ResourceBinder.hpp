@@ -21,27 +21,37 @@ struct ResourceBindingAllocatorBase
     ResourceBindingAllocatorBase(uint32 max_size)
         : max_size(max_size)
     {
-        used_indices.Resize(max_size);
+        if (max_size != ~0u)
+        {
+            used_indices.Resize(max_size);
+        }
     }
 
     uint32 AllocateIndex()
     {
-        for (uint32 i = 0; i < max_size; ++i)
-        {
-            if (!used_indices.Get(i))
-            {
-                used_indices.Set(i, true);
+        const uint32 free_index = used_indices.FirstZeroBitIndex();
+        ;
 
-                return i;
-            }
+        // if max_size is not ~0u we have to check up to max_size
+        if (max_size != ~0u && free_index >= max_size)
+        {
+            return invalid_binding;
         }
 
-        return invalid_binding; // No free index found
+        used_indices.Set(free_index, true);
+
+        return free_index;
     }
 
     void FreeIndex(uint32 index)
     {
-        if (index >= max_size || index == invalid_binding)
+        if (!used_indices.Test(index))
+        {
+            // already not set
+            return;
+        }
+
+        if ((max_size != ~0u && index >= max_size) || index == invalid_binding)
         {
             return;
         }
@@ -55,6 +65,7 @@ struct ResourceBindingAllocatorBase
     }
 
     // the maximum size of this allocator, i.e. the maximum number of bindings that can be allocated in a single frame
+    // if set to ~0u, no limit is used when allocating indices
     const uint32 max_size;
 
     // number of claims for the current from
@@ -66,7 +77,7 @@ struct ResourceBindingAllocatorBase
     Bitset used_indices;
 };
 
-template <uint32 MaxSize>
+template <uint32 MaxSize = ~0u>
 struct ResourceBindingAllocator : ResourceBindingAllocatorBase
 {
     ResourceBindingAllocator()
@@ -80,18 +91,31 @@ class HYP_API ResourceBinderBase
 public:
     virtual ~ResourceBinderBase() = default;
 
+    HYP_FORCE_INLINE ResourceBindingAllocatorBase* GetBindingAllocator() const
+    {
+        return m_binding_allocator;
+    }
+
+    virtual bool Bind(HypObjectBase* object) = 0;
+    virtual void Unbind(HypObjectBase* object) = 0;
     virtual void UpdateBoundResources() = 0;
+    virtual const Bitset& GetBoundIndices(TypeID type_id) const = 0;
 
 protected:
-    ResourceBinderBase(RenderGlobalState* rgs);
+    ResourceBinderBase(ResourceBindingAllocatorBase* binding_allocator)
+        : m_binding_allocator(binding_allocator)
+    {
+    }
+
+    ResourceBindingAllocatorBase* m_binding_allocator;
 };
 
 /*! \brief This class manages bindings slots for objects of a given resource type. Subclasses of T are also able to be managed,
  *  So binding an instance of e.g ReflectionProbe can be put into the same group of slots as SkyProbe if given the same allocator instance.
  *  Only static subclasses are supported so using types extended only from managed code will not work. (See HypClass::GetStaticIndex)
  *  \note This system is not thread safe and should only be used from a single thread at any given time */
-template <class T, auto OnBindingChanged>
-class ResourceBinder final : public ResourceBinderBase
+template <class T, auto OnBindingChanged = (void (*)(T*, uint32, uint32)) nullptr>
+class ResourceBinder : public ResourceBinderBase
 {
     struct Impl final
     {
@@ -115,14 +139,18 @@ class ResourceBinder final : public ResourceBinderBase
                     T* object = it->first.GetUnsafe();
                     const uint32 binding = it->second;
 
-                    OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalid_binding);
+                    if (OnBindingChanged != nullptr)
+                    {
+                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalid_binding);
+                    }
+
                     allocator->FreeIndex(binding);
                     bindings.Erase(it);
                 }
             }
         }
 
-        bool Bind(ResourceBindingAllocatorBase* allocator, T* object)
+        bool Bind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
             IDBase id = object->GetID();
 
@@ -144,7 +172,7 @@ class ResourceBinder final : public ResourceBinderBase
             return true;
         }
 
-        void Unbind(ResourceBindingAllocatorBase* allocator, T* object)
+        void Unbind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
             IDBase id = object->GetID();
 
@@ -176,7 +204,11 @@ class ResourceBinder final : public ResourceBinderBase
                     T* object = it->first.GetUnsafe();
                     const uint32 binding = it->second;
 
-                    OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalid_binding);
+                    if (OnBindingChanged != nullptr)
+                    {
+                        OnBindingChanged(object, binding, ResourceBindingAllocatorBase::invalid_binding);
+                    }
+
                     allocator->FreeIndex(binding);
                     bindings.Erase(it);
                 }
@@ -206,7 +238,10 @@ class ResourceBinder final : public ResourceBinderBase
                 auto insert_result = bindings.Insert(WeakHandle<T> { id }, index);
                 AssertDebugMsg(insert_result.second, "Failed to insert binding for object with ID %u - it should not already exist!", id.Value());
 
-                OnBindingChanged(insert_result.first->first.GetUnsafe(), ResourceBindingAllocatorBase::invalid_binding, index);
+                if (OnBindingChanged != nullptr)
+                {
+                    OnBindingChanged(insert_result.first->first.GetUnsafe(), ResourceBindingAllocatorBase::invalid_binding, index);
+                }
             }
 
             if (newly_added.Count() != 0 || removed.Count() != 0)
@@ -244,12 +279,11 @@ class ResourceBinder final : public ResourceBinderBase
     };
 
 public:
-    ResourceBinder(RenderGlobalState* rgs, ResourceBindingAllocatorBase* allocator)
-        : ResourceBinderBase(rgs),
-          m_allocator(allocator),
+    ResourceBinder(ResourceBindingAllocatorBase* binding_allocator)
+        : ResourceBinderBase(binding_allocator),
           m_impl(TypeID::ForType<T>())
     {
-        AssertDebug(m_allocator != nullptr);
+        AssertDebug(m_binding_allocator != nullptr);
 
         const SizeType num_descendants = GetNumDescendants(TypeID::ForType<T>());
 
@@ -261,12 +295,12 @@ public:
 
     ResourceBinder(const ResourceBinder&) = delete;
     ResourceBinder& operator=(const ResourceBinder&) = delete;
-    ResourceBinder(ResourceBinder&&) = delete;
-    ResourceBinder& operator=(ResourceBinder&&) = delete;
+    ResourceBinder(ResourceBinder&&) noexcept = delete;
+    ResourceBinder& operator=(ResourceBinder&&) noexcept = delete;
 
-    ~ResourceBinder() override
+    virtual ~ResourceBinder() override
     {
-        m_impl.ReleaseBindings(m_allocator);
+        m_impl.ReleaseBindings(m_binding_allocator);
 
         // Loop over the set bits and destruct subclass impls
         for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
@@ -274,12 +308,12 @@ public:
             AssertDebug(bit_index < m_subclass_impls.Size());
 
             Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.ReleaseBindings(m_allocator);
+            impl.ReleaseBindings(m_binding_allocator);
             m_subclass_impls[bit_index].Destruct();
         }
     }
 
-    bool Bind(T* object)
+    virtual bool Bind(HypObjectBase* object) override
     {
         if (!object)
         {
@@ -291,7 +325,7 @@ public:
 
         if (object_type_id == base_type_id)
         {
-            return m_impl.Bind(m_allocator, object);
+            return m_impl.Bind(m_binding_allocator, object);
         }
         else
         {
@@ -308,18 +342,19 @@ public:
 
             Impl& impl = m_subclass_impls[subclass_index].Get();
 
-            return impl.Bind(m_allocator, object);
+            return impl.Bind(m_binding_allocator, object);
         }
     }
 
-    void Unbind(T* object)
+    virtual void Unbind(HypObjectBase* object) override
     {
         AssertDebug(object != nullptr);
 
         constexpr TypeID type_id = TypeID::ForType<T>();
+
         if (object->GetTypeID() == type_id)
         {
-            m_impl.Unbind(m_allocator, object);
+            m_impl.Unbind(m_binding_allocator, object);
         }
         else
         {
@@ -335,24 +370,52 @@ public:
             }
 
             Impl& impl = m_subclass_impls[subclass_index].Get();
-            impl.Unbind(m_allocator, object);
+            impl.Unbind(m_binding_allocator, object);
         }
     }
 
     virtual void UpdateBoundResources() override
     {
-        m_impl.UpdateBoundResources(m_allocator);
+        m_impl.UpdateBoundResources(m_binding_allocator);
 
         for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
         {
             Impl& impl = m_subclass_impls[bit_index].Get();
-            impl.UpdateBoundResources(m_allocator);
+            impl.UpdateBoundResources(m_binding_allocator);
+        }
+    }
+
+    virtual const Bitset& GetBoundIndices(TypeID type_id) const override
+    {
+        static const Bitset empty_bitset;
+
+        if (type_id == TypeID::Void())
+        {
+            return empty_bitset;
+        }
+
+        if (type_id == TypeID::ForType<T>())
+        {
+            return m_impl.current_frame_ids;
+        }
+        else
+        {
+            const int subclass_index = GetSubclassIndex(TypeID::ForType<T>(), type_id);
+            AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
+                "ResourceBinder<%s>: Attempted to get bound indices for TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
+                TypeNameWithoutNamespace<T>().Data(), type_id.Value(), TypeID::ForType<T>().Value());
+
+            if (!m_subclass_impls_initialized.Test(subclass_index))
+            {
+                // not initialized, return empty bitset
+                return empty_bitset;
+            }
+
+            return m_subclass_impls[subclass_index].Get().current_frame_ids;
         }
     }
 
 protected:
-    ResourceBindingAllocatorBase* m_allocator;
-
     // base class impl
     Impl m_impl;
 

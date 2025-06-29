@@ -5,6 +5,7 @@
 
 #include <core/containers/Array.hpp>
 #include <core/utilities/FormatFwd.hpp>
+#include <core/utilities/ByteUtil.hpp>
 
 #include <core/math/MathUtil.hpp>
 
@@ -100,6 +101,16 @@ public:
     HYP_API Bitset(Bitset&& other) noexcept;
     HYP_API Bitset& operator=(Bitset&& other) noexcept;
     ~Bitset() = default;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        return AnyBitsSet();
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !AnyBitsSet();
+    }
 
     HYP_FORCE_INLINE bool operator==(const Bitset& other) const
     {
@@ -316,7 +327,30 @@ public:
 
     /*! \brief Returns the number of ones in the bitset.
         \returns The number of ones in the bitset. */
-    HYP_API uint64 Count() const;
+    HYP_FORCE_INLINE uint64 Count() const
+    {
+        uint64 count = 0;
+
+        for (const BlockType value : m_blocks)
+        {
+            count += ByteUtil::BitCount(value);
+        }
+
+        return count;
+    }
+
+    HYP_FORCE_INLINE bool AnyBitsSet() const
+    {
+        for (auto it = m_blocks.Begin(); it != m_blocks.End(); ++it)
+        {
+            if (*it)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /*! \brief Returns the uint32 representation of the bitset.
         If more bits are included in the bitset than can be converted to

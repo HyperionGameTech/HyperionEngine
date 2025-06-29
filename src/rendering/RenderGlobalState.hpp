@@ -68,20 +68,43 @@ HYP_API extern void RendererAPI_ReleaseRef(IDBase id);
 
 HYP_API extern IRenderProxy* RendererAPI_AllocRenderProxy(IDBase id);
 HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id);
-HYP_API extern void RendererAPI_UpdateRenderProxy(IDBase id, IRenderProxy* proxy);
 
 // Call on render thread or render thread tasks only (consumer)
 HYP_API extern IRenderProxy* RendererAPI_GetRenderProxy(IDBase id);
+
+struct ResourceBindings;
+
+enum GlobalRenderBuffer : uint8
+{
+    GRB_WORLDS = 0,
+    GRB_CAMERAS,
+    GRB_LIGHTS,
+    GRB_ENTITIES,
+    GRB_MATERIALS,
+    GRB_SKELETONS,
+    GRB_SHADOW_MAPS,
+    GRB_ENV_PROBES,
+    GRB_ENV_GRIDS,
+    GRB_LIGHTMAP_VOLUMES,
+
+    GRB_MAX
+};
+
+struct GlobalGpuBuffers
+{
+    GPUBufferHolderBase* buffers[GRB_MAX];
+
+    HYP_FORCE_INLINE GPUBufferHolderBase* operator[](GlobalRenderBuffer buf) const
+    {
+        return buffers[buf];
+    }
+};
 
 class RenderGlobalState
 {
     friend class ResourceBinderBase;
 
-    static void OnEnvProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next);
-
 public:
-    static constexpr uint32 max_binders = 16;
-
     RenderGlobalState();
     RenderGlobalState(const RenderGlobalState& other) = delete;
     RenderGlobalState& operator=(const RenderGlobalState& other) = delete;
@@ -90,17 +113,6 @@ public:
     void Create();
     void Destroy();
     void UpdateBuffers(FrameBase* frame);
-
-    GPUBufferHolderBase* Worlds;
-    GPUBufferHolderBase* Cameras;
-    GPUBufferHolderBase* Lights;
-    GPUBufferHolderBase* Entities;
-    GPUBufferHolderBase* Materials;
-    GPUBufferHolderBase* Skeletons;
-    GPUBufferHolderBase* ShadowMaps;
-    GPUBufferHolderBase* EnvProbes;
-    GPUBufferHolderBase* EnvGrids;
-    GPUBufferHolderBase* LightmapVolumes;
 
     BindlessStorage BindlessTextures;
 
@@ -112,9 +124,10 @@ public:
 
     RendererBase* Renderer;
     EnvProbeRenderer** EnvProbeRenderers;
+    class EnvGridRenderer* EnvGridRenderer;
 
-    ResourceBinderBase* ResourceBinders[max_binders] { nullptr };
-    ResourceBinder<EnvProbe, &OnEnvProbeBindingChanged> EnvProbeBinder;
+    GlobalGpuBuffers gpu_buffers;
+    ResourceBindings* resource_bindings;
 
 private:
     void CreateBlueNoiseBuffer();

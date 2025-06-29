@@ -87,60 +87,36 @@ using debug::LogType;
 #define DebugLogRaw(type, ...) \
     debug::DebugLog_Write(type, nullptr, 0, __VA_ARGS__)
 
-#define DebugLogAssertion(level, cond)                           \
-    do                                                           \
-    {                                                            \
-        const char* s = "*** assertion failed: (" #cond ") ***"; \
-        DebugLog(level, "%s", s);                                \
-        debug::DebugLog_FlushOutputStream();                     \
-    }                                                            \
-    while (0)
+#define HYP_HAS_ARGS(...) HYP_HAS_ARGS_(__VA_ARGS__, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, )
+#define HYP_HAS_ARGS_(a1, a2, a3, a4, a5, b1, b2, b3, b4, b5, c1, c2, c3, c4, c5, d1, d2, d3, d4, d5, e, N, ...) N
 
-#define AssertOrElse(level, cond, stmt)     \
-    do                                      \
-    {                                       \
-        if (!(cond))                        \
-        {                                   \
-            DebugLogAssertion(level, cond); \
-            {                               \
-                stmt;                       \
-            }                               \
-        }                                   \
-    }                                       \
-    while (0)
+#define AssertThrow(...) HYP_CONCAT(HYP_ASSERT, HYP_HAS_ARGS(__VA_ARGS__))(__VA_ARGS__)
 
-#define AssertThrow(cond) AssertOrElse(LogType::Error, cond, HYP_THROW("Assertion failed"))
+#define HYP_ASSERT0(expr) HYP_ASSERT1(expr, )
+
+#define HYP_ASSERT1(expression, ...)                                                                              \
+    do                                                                                                            \
+    {                                                                                                             \
+        if (HYP_UNLIKELY(!(expression)))                                                                          \
+        {                                                                                                         \
+            DebugLog(LogType::Error, "Assertion failed!\n\tCondition: " #expression "\n\tMessage: " __VA_ARGS__); \
+            debug::DebugLog_FlushOutputStream();                                                                  \
+            HYP_PRINT_STACK_TRACE();                                                                              \
+            std::terminate();                                                                                     \
+        }                                                                                                         \
+    }                                                                                                             \
+    while (0)
 
 #ifdef HYP_DEBUG_MODE
-#define AssertDebug(cond) AssertThrow(cond)
+#define AssertDebug(...) AssertThrow(__VA_ARGS__)
 #else
 #define AssertDebug(...)
 #endif
 
-#define DebugLogAssertionMsg(level, cond, msg, ...)                                            \
-    do                                                                                         \
-    {                                                                                          \
-        DebugLog(level, "*** assertion failed: (" #cond ") ***\n\t" #msg "\n", ##__VA_ARGS__); \
-    }                                                                                          \
-    while (0)
-
-#define AssertOrElseMsg(level, cond, stmt, msg, ...)               \
-    do                                                             \
-    {                                                              \
-        if (!(cond))                                               \
-        {                                                          \
-            DebugLogAssertionMsg(level, cond, msg, ##__VA_ARGS__); \
-            {                                                      \
-                stmt;                                              \
-            }                                                      \
-        }                                                          \
-    }                                                              \
-    while (0)
-
-#define AssertThrowMsg(cond, msg, ...) AssertOrElseMsg(LogType::Error, cond, HYP_THROW("Assertion failed"), msg, ##__VA_ARGS__)
+#define AssertThrowMsg(...) AssertThrow(__VA_ARGS__)
 
 #ifdef HYP_DEBUG_MODE
-#define AssertDebugMsg(cond, msg, ...) AssertThrowMsg(cond, msg, ##__VA_ARGS__)
+#define AssertDebugMsg(...) AssertThrowMsg(__VA_ARGS__)
 #else
 #define AssertDebugMsg(...)
 #endif
@@ -152,7 +128,7 @@ using debug::LogType;
 #define HYP_PRINT_STACK_TRACE()
 #endif
 
-#define HYP_FAIL(msg, ...) AssertOrElseMsg(LogType::Error, false, HYP_THROW("Fatal error"), msg, ##__VA_ARGS__)
+#define HYP_FAIL(...) AssertThrow(false, ##__VA_ARGS__)
 
 // Add to the body of virtual methods that should be overridden.
 // Used to allow instances of the class to be created from the managed runtime for providing managed method implementations.

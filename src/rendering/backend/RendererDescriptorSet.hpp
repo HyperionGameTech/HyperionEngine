@@ -43,6 +43,8 @@ enum class DescriptorSetDeclarationFlags : uint8
 
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
+class IRenderProxy;
+
 template <class T>
 struct ShaderDataOffset
 {
@@ -55,15 +57,21 @@ struct ShaderDataOffset
     {
     }
 
-    template <class RenderResourceType>
-    ShaderDataOffset(const RenderResourceType* render_resource, uint32 index_if_null = invalid_index)
+    template <class RenderResourceType, typename = std::enable_if_t<!std::is_base_of_v<IRenderProxy, NormalizedType<RenderResourceType>>>>
+    HYP_DEPRECATED ShaderDataOffset(const RenderResourceType* render_resource, uint32 index_if_null = invalid_index)
         : index(render_resource != nullptr ? render_resource->GetBufferIndex() : index_if_null)
     {
     }
 
     template <class RenderResourceType, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<RenderResourceType>> && !std::is_integral_v<NormalizedType<RenderResourceType>>>>
-    ShaderDataOffset(const RenderResourceType& render_resource)
+    HYP_DEPRECATED ShaderDataOffset(const RenderResourceType& render_resource)
         : index(render_resource.GetBufferIndex())
+    {
+    }
+
+    template <class RenderProxyType, typename = std::enable_if_t<std::is_base_of_v<IRenderProxy, NormalizedType<RenderProxyType>>>>
+    ShaderDataOffset(const RenderProxyType* proxy)
+        : index(proxy != nullptr ? proxy->bound_index : ~0u)
     {
     }
 

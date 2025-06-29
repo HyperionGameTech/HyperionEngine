@@ -146,7 +146,7 @@ void RenderMaterial::Update_Internal()
 
 GPUBufferHolderBase* RenderMaterial::GetGPUBufferHolder() const
 {
-    return g_render_global_state->Materials;
+    return g_render_global_state->gpu_buffers[GRB_MATERIALS];
 }
 
 void RenderMaterial::CreateDescriptorSets()

@@ -603,7 +603,7 @@ public:
 
     HYP_DEF_STL_BEGIN_END(Iterator(const_cast<SparsePagedArray*>(this), 0, 0), Iterator(const_cast<SparsePagedArray*>(this), m_pages.Size(), PageSize));
 
-private:
+protected:
     HYP_FORCE_INLINE static constexpr SizeType PageIndex(SizeType index)
     {
         return index / PageSize;

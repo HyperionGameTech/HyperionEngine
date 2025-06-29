@@ -103,11 +103,6 @@ struct HYP_API RenderProxyList
 
     ~RenderProxyList();
 
-    HYP_FORCE_INLINE const Array<RenderEnvGrid*>& GetEnvGrids() const
-    {
-        return env_grids;
-    }
-
 #ifdef HYP_DEBUG_MODE
     HYP_FORCE_INLINE SizeType NumDrawCallsCollected() const
     {
@@ -157,10 +152,9 @@ struct HYP_API RenderProxyList
     ResourceTracker<ID<Entity>, RenderProxy> meshes;
     ResourceTracker<ID<EnvProbe>, EnvProbe*> env_probes;
     ResourceTracker<ID<Light>, Light*> lights;
-    ResourceTracker<ID<EnvGrid>, RenderEnvGrid*> tracked_env_grids;
+    ResourceTracker<ID<EnvGrid>, EnvGrid*> env_grids;
     ResourceTracker<ID<LightmapVolume>, RenderLightmapVolume*> tracked_lightmap_volumes;
 
-    Array<RenderEnvGrid*> env_grids;
     Array<RenderLightmapVolume*> lightmap_volumes;
 
     ParallelRenderingState* parallel_rendering_state_head;

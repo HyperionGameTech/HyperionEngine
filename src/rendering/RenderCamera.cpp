@@ -49,7 +49,7 @@ void RenderCamera::Update_Internal()
 
 GPUBufferHolderBase* RenderCamera::GetGPUBufferHolder() const
 {
-    return g_render_global_state->Cameras;
+    return g_render_global_state->gpu_buffers[GRB_CAMERAS];
 }
 
 void RenderCamera::UpdateBufferData()
@@ -97,7 +97,7 @@ void RenderCamera::ApplyJitter(const RenderSetup& render_setup)
 
         buffer_data.jitter = jitter * jitter_scale;
 
-        g_render_global_state->Cameras->MarkDirty(m_buffer_index);
+        g_render_global_state->gpu_buffers[GRB_CAMERAS]->MarkDirty(m_buffer_index);
     }
 }
 

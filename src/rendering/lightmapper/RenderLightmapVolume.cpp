@@ -57,7 +57,7 @@ void RenderLightmapVolume::Update_Internal()
 
 GPUBufferHolderBase* RenderLightmapVolume::GetGPUBufferHolder() const
 {
-    return g_render_global_state->LightmapVolumes;
+    return g_render_global_state->gpu_buffers[GRB_LIGHTMAP_VOLUMES];
 }
 
 void RenderLightmapVolume::SetBufferData(const LightmapVolumeShaderData& buffer_data)

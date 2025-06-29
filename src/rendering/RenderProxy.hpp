@@ -29,6 +29,7 @@ class Mesh;
 class Material;
 class Skeleton;
 class EnvProbe;
+class EnvGrid;
 struct MeshInstanceData;
 
 HYP_API extern void MeshInstanceData_PostLoad(MeshInstanceData&);
@@ -213,6 +214,34 @@ public:
 
     WeakHandle<EnvProbe> env_probe;
     EnvProbeShaderData buffer_data {};
+    uint32 bound_index = ~0u; /// @TODO
+};
+
+struct EnvGridShaderData
+{
+    uint32 probe_indices[max_bound_ambient_probes];
+
+    Vec4f center;
+    Vec4f extent;
+    Vec4f aabb_max;
+    Vec4f aabb_min;
+
+    Vec4u density;
+
+    Vec4f voxel_grid_aabb_max;
+    Vec4f voxel_grid_aabb_min;
+
+    Vec2i light_field_image_dimensions;
+    Vec2i irradiance_octahedron_size;
+};
+
+class RenderProxyEnvGrid : public IRenderProxy
+{
+public:
+    ~RenderProxyEnvGrid() override = default;
+
+    WeakHandle<EnvGrid> env_grid;
+    EnvGridShaderData buffer_data {};
     uint32 bound_index = ~0u; /// @TODO
 };
 

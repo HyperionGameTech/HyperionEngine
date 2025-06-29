@@ -285,9 +285,9 @@ void View::Update(float delta)
     rpl.priority = m_priority;
     rpl.meshes.Advance(AdvanceAction::CLEAR);
     rpl.env_probes.Advance(AdvanceAction::CLEAR);
+    rpl.env_grids.Advance(AdvanceAction::CLEAR);
     rpl.lights.Advance(AdvanceAction::CLEAR);
     rpl.tracked_lightmap_volumes.Advance(AdvanceAction::CLEAR);
-    rpl.tracked_env_grids.Advance(AdvanceAction::CLEAR);
 
     CollectLights(rpl);
     CollectLightmapVolumes(rpl);
@@ -883,47 +883,38 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            /// @TODO: Refactor to:
-            /// rpl.tracked_env_grids.Track(env_grid->GetID(), env_grid->CreateProxy());
-            /// which would just create a struct object that holds a weak pointer and any data needed to render it.
-
-            rpl.tracked_env_grids.Track(env_grid->GetID(), &env_grid->GetRenderResource());
+            rpl.env_grids.Track(env_grid->GetID(), env_grid);
         }
     }
 
-    auto diff = rpl.tracked_env_grids.GetDiff();
+    auto diff = rpl.env_grids.GetDiff();
 
     // temp shit
     if (diff.NeedsUpdate())
     {
-        Array<RenderEnvGrid*> removed;
-        rpl.tracked_env_grids.GetRemoved(removed, false);
+        Array<EnvGrid*> removed;
+        rpl.env_grids.GetRemoved(removed, false);
 
-        Array<RenderEnvGrid*> added;
-        rpl.tracked_env_grids.GetAdded(added, false);
+        Array<EnvGrid*> added;
+        rpl.env_grids.GetAdded(added, false);
 
-        for (RenderEnvGrid* env_grid : added)
+        for (EnvGrid* env_grid : added)
         {
-            env_grid->IncRef();
-
-            HYP_LOG(Scene, Debug, "Added EnvGrid {} to view {}", env_grid->GetEnvGrid()->GetID(), GetID());
-
-            rpl.env_grids.PushBack(env_grid);
+            RendererAPI_AddRef(env_grid);
+            RendererAPI_UpdateRenderProxy(env_grid->GetID());
         }
 
-        for (RenderEnvGrid* env_grid : removed)
+        for (EnvGrid* env_grid : removed)
         {
-            env_grid->DecRef();
+            RendererAPI_ReleaseRef(env_grid->GetID());
+        }
 
-            HYP_LOG(Scene, Debug, "Removed EnvGrid {} from view {}", env_grid->GetEnvGrid()->GetID(), GetID());
+        Array<ID<EnvGrid>> changed_ids;
+        rpl.env_grids.GetChanged(changed_ids);
 
-            auto it = rpl.env_grids.Find(env_grid);
-            AssertDebug(it != rpl.env_grids.End());
-
-            if (it != rpl.env_grids.End())
-            {
-                rpl.env_grids.Erase(it);
-            }
+        for (ID<EnvGrid> id : changed_ids)
+        {
+            RendererAPI_UpdateRenderProxy(id);
         }
     }
 }

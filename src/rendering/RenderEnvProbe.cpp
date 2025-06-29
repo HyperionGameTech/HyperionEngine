@@ -222,7 +222,7 @@ void RenderEnvProbe::Update_Internal()
 
 GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
 {
-    return g_render_global_state->EnvProbes;
+    return g_render_global_state->gpu_buffers[GRB_ENV_PROBES];
 }
 
 void RenderEnvProbe::UpdateBufferData()
@@ -402,7 +402,7 @@ void EnvProbeRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_s
     RenderProbe(frame, rs, env_probe);
 }
 
-PassData* EnvProbeRenderer::CreateViewPassData(View* view)
+PassData* EnvProbeRenderer::CreateViewPassData(View* view, PassDataExt&)
 {
     PassData* pd = new PassData;
     pd->view = view->WeakHandleFromThis();
@@ -823,7 +823,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
 
     async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     async_compute_command_list.Add<BindDescriptorTable>(
         compute_sh_descriptor_tables[0],
@@ -902,7 +902,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     // Finalize - build into final buffer
     async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[finalize_sh_buffer_index], RS_UNORDERED_ACCESS, SMT_COMPUTE);
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     pipelines[NAME("Finalize")].second->SetPushConstants(&push_constants, sizeof(push_constants));
 
@@ -918,7 +918,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);
     async_compute_command_list.Add<DispatchCompute>(pipelines[NAME("Finalize")].second, Vec3u { 1, 1, 1 });
 
-    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->EnvProbes->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
+    async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
 
     DelegateHandler* delegate_handle = new DelegateHandler();
     *delegate_handle = frame->OnFrameEnd.Bind([render_env_probe = TResourceHandle<RenderEnvProbe>(env_probe->GetRenderResource()), pipelines = std::move(pipelines), descriptor_tables = std::move(compute_sh_descriptor_tables), delegate_handle](FrameBase* frame) mutable
@@ -929,7 +929,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
             EnvProbeShaderData readback_buffer;
 
-            g_render_global_state->EnvProbes->ReadbackElement(frame->GetFrameIndex(), render_env_probe->GetBufferIndex(), &readback_buffer);
+            g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), render_env_probe->GetBufferIndex(), &readback_buffer);
 
             Memory::MemCpy(render_env_probe->m_spherical_harmonics.values, readback_buffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
 

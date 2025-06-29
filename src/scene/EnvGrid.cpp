@@ -5,6 +5,7 @@
 #include <scene/View.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
+#include <scene/Texture.hpp>
 
 #include <scene/camera/Camera.hpp>
 
@@ -31,7 +32,14 @@
 namespace hyperion {
 
 static const Vec2u sh_probe_dimensions { 256, 256 };
+
 static const Vec2u light_field_probe_dimensions { 32, 32 };
+const TextureFormat light_field_color_format = TF_RGBA8;
+const TextureFormat light_field_depth_format = TF_RG16F;
+static const uint32 irradiance_octahedron_size = 8;
+
+static const Vec3u voxel_grid_dimensions { 256, 256, 256 };
+static const TextureFormat voxel_grid_format = TF_RGBA8;
 
 static const TextureFormat ambient_probe_format = TF_RGBA8;
 
@@ -144,6 +152,75 @@ void EnvGrid::Init()
     m_camera->SetTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
 
+    ShaderProperties shader_properties(static_mesh_vertex_attributes, { "WRITE_NORMALS", "WRITE_MOMENTS" });
+    ShaderDefinition shader_definition { NAME("RenderToCubemap"), shader_properties };
+
+    switch (GetEnvGridType())
+    {
+    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
+    {
+        m_irradiance_texture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX2D,
+                light_field_color_format,
+                Vec3u {
+                    (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
+                    (irradiance_octahedron_size + 2) * m_options.density.z + 2,
+                    1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED });
+
+        InitObject(m_irradiance_texture);
+
+        m_irradiance_texture->SetPersistentRenderResourceEnabled(true);
+
+        m_depth_texture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX2D,
+                light_field_depth_format,
+                Vec3u {
+                    (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
+                    (irradiance_octahedron_size + 2) * m_options.density.z + 2,
+                    1 },
+                TFM_LINEAR,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED });
+
+        InitObject(m_depth_texture);
+
+        m_depth_texture->SetPersistentRenderResourceEnabled(true);
+
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (m_options.flags & EnvGridFlags::USE_VOXEL_GRID)
+    {
+
+        // Create our voxel grid texture
+        m_voxel_grid_texture = CreateObject<Texture>(
+            TextureDesc {
+                TT_TEX3D,
+                voxel_grid_format,
+                voxel_grid_dimensions,
+                TFM_LINEAR_MIPMAP,
+                TFM_LINEAR,
+                TWM_CLAMP_TO_EDGE,
+                1,
+                IU_STORAGE | IU_SAMPLED });
+
+        InitObject(m_voxel_grid_texture);
+
+        m_voxel_grid_texture->SetPersistentRenderResourceEnabled(true);
+    }
+
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
 
     ViewOutputTargetDesc output_target_desc {
@@ -184,13 +261,9 @@ void EnvGrid::Init()
         .camera = m_camera,
         .override_attributes = RenderableAttributeSet(
             MeshAttributes {},
-            MaterialAttributes {
-                .shader_definition = m_render_resource->GetShader()->GetCompiledShader()->GetDefinition(),
-                .cull_faces = FCM_BACK }) });
+            MaterialAttributes { .shader_definition = shader_definition, .cull_faces = FCM_BACK }) });
 
     InitObject(m_view);
-
-    m_render_resource->SetViewResourceHandle(TResourceHandle<RenderView>(m_view->GetRenderResource()));
 
     SetReady(true);
 }
@@ -283,11 +356,6 @@ void EnvGrid::SetAABB(const BoundingBox& aabb)
     if (m_aabb != aabb)
     {
         m_aabb = aabb;
-
-        if (IsInitCalled())
-        {
-            m_render_resource->SetAABB(aabb);
-        }
     }
 }
 
@@ -453,6 +521,36 @@ void EnvGrid::Update(float delta)
 
         probe->SetNeedsRender(true);
         probe->SetReceivesUpdate(true);
+    }
+}
+
+void EnvGrid::UpdateRenderProxy(IRenderProxy* proxy)
+{
+    RenderProxyEnvGrid* proxy_casted = static_cast<RenderProxyEnvGrid*>(proxy);
+    proxy_casted->env_grid = WeakHandle<EnvGrid>(WeakHandleFromThis());
+
+    EnvGridShaderData& buffer_data = proxy_casted->buffer_data;
+    buffer_data.center = Vec4f(m_aabb.GetCenter(), 1.0f);
+    buffer_data.extent = Vec4f(m_aabb.GetExtent(), 1.0f);
+    buffer_data.aabb_max = Vec4f(m_aabb.max, 1.0f);
+    buffer_data.aabb_min = Vec4f(m_aabb.min, 1.0f);
+    buffer_data.density = { m_options.density.x, m_options.density.y, m_options.density.z, 0 };
+    buffer_data.voxel_grid_aabb_max = Vec4f(m_aabb.max, 1.0f);
+    buffer_data.voxel_grid_aabb_min = Vec4f(m_aabb.min, 1.0f);
+
+    buffer_data.light_field_image_dimensions = m_irradiance_texture.IsValid()
+        ? Vec2i(m_irradiance_texture->GetExtent().GetXY())
+        : Vec2i::Zero();
+
+    buffer_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
+
+    for (uint32 index = 0; index < std::size(buffer_data.probe_indices); index++)
+    {
+        const Handle<EnvProbe>& probe = m_env_probe_collection.GetEnvProbeOnGameThread(index);
+        AssertThrow(probe.IsValid());
+
+        // @FIXME dont use render resource
+        buffer_data.probe_indices[index] = probe->GetRenderResource().GetBufferIndex();
     }
 }
 

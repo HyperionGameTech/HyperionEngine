@@ -20,8 +20,9 @@
 #include <rendering/backend/RendererResult.hpp>
 
 #include <scene/Texture.hpp>
-#include <scene/EnvProbe.hpp>
 #include <scene/Light.hpp>
+#include <scene/EnvProbe.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <Engine.hpp>
 
@@ -181,7 +182,7 @@ void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setu
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -304,8 +305,8 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
         descriptor_set->SetElement(NAME("OutputImage"), m_texture->GetRenderResource().GetImageView());
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->gpu_buffers[GRB_LIGHTS]->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->gpu_buffers[GRB_MATERIALS]->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }
 

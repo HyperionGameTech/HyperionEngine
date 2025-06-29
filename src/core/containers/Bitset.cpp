@@ -206,18 +206,6 @@ void Bitset::Clear()
     m_blocks = CreateBlocks_Static_Internal<0>();
 }
 
-uint64 Bitset::Count() const
-{
-    uint64 count = 0;
-
-    for (const BlockType value : m_blocks)
-    {
-        count += ByteUtil::BitCount(value);
-    }
-
-    return count;
-}
-
 Bitset& Bitset::Resize(SizeType num_bits)
 {
     const SizeType previous_num_blocks = m_blocks.Size();

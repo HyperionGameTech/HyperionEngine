@@ -75,6 +75,7 @@ HYP_API void DebugLog_Write(LogType type, const char* callee, uint32_t line, con
 
 HYP_API void DebugLog_FlushOutputStream()
 {
+    fputs("", HYP_DEBUG_OUTPUT_STREAM);
     fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 

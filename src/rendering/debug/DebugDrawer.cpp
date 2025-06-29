@@ -25,6 +25,7 @@
 #include <scene/Mesh.hpp>
 #include <scene/Scene.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <util/MeshBuilder.hpp>
 
@@ -397,7 +398,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
                     { NAME("Global"),
                         { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) } } },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) } } },
                     { NAME("Object"),
                         {} },
                     { NAME("Instancing"),

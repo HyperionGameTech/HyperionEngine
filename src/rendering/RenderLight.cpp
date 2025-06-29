@@ -66,7 +66,7 @@ void RenderLight::Update_Internal()
 
 GPUBufferHolderBase* RenderLight::GetGPUBufferHolder() const
 {
-    return g_render_global_state->Lights;
+    return g_render_global_state->gpu_buffers[GRB_LIGHTS];
 }
 
 void RenderLight::UpdateBufferData()

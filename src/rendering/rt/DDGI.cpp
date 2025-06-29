@@ -19,6 +19,7 @@
 #include <rendering/backend/RendererImage.hpp>
 
 #include <scene/EnvProbe.hpp>
+#include <scene/EnvGrid.hpp>
 
 #include <Engine.hpp>
 #include <Types.hpp>
@@ -225,8 +226,8 @@ void DDGI::CreatePipelines()
 
         descriptor_set->SetElement(NAME("TLAS"), m_top_level_acceleration_structures[frame_index]);
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->gpu_buffers[GRB_LIGHTS]->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->gpu_buffers[GRB_MATERIALS]->GetBuffer(frame_index));
         descriptor_set->SetElement(NAME("MeshDescriptionsBuffer"), m_top_level_acceleration_structures[frame_index]->GetMeshDescriptionsBuffer());
 
         descriptor_set->SetElement(NAME("DDGIUniforms"), m_uniform_buffer);
@@ -458,7 +459,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
@@ -514,7 +515,7 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& render_setup)
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 

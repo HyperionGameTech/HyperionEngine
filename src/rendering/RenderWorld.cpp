@@ -242,7 +242,7 @@ void RenderWorld::UpdateBufferData()
 
 GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
 {
-    return g_render_global_state->Worlds;
+    return g_render_global_state->gpu_buffers[GRB_WORLDS];
 }
 
 void RenderWorld::PreRender(FrameBase* frame)

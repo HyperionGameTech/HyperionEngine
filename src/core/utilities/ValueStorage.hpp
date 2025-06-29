@@ -35,11 +35,21 @@ struct ValueStorageAlignment<void>
 template <class T, SizeType Alignment = ValueStorageAlignment<T>::value>
 struct alignas(Alignment) ValueStorage
 {
+    struct ConstructTag
+    {
+    };
+
     static constexpr SizeType alignment = Alignment;
 
     alignas(Alignment) ubyte data_buffer[sizeof(T)];
 
-    ValueStorage() = default;
+    constexpr ValueStorage() = default;
+
+    template <class... Args>
+    constexpr ValueStorage(ConstructTag, Args&&... args)
+    {
+        new (data_buffer) T(std::forward<Args>(args)...);
+    }
 
     template <class OtherType>
     explicit ValueStorage(const ValueStorage<OtherType>& other) = delete;
@@ -47,19 +57,16 @@ struct alignas(Alignment) ValueStorage
     template <class OtherType>
     explicit ValueStorage(const OtherType* ptr) = delete;
 
-    ValueStorage(const ValueStorage& other) = default;
+    constexpr ValueStorage(const ValueStorage& other) = default;
     ValueStorage& operator=(const ValueStorage& other) = default;
-    ValueStorage(ValueStorage&& other) noexcept = default;
+    constexpr ValueStorage(ValueStorage&& other) noexcept = default;
     ValueStorage& operator=(ValueStorage&& other) noexcept = default;
     ~ValueStorage() = default;
 
     template <class... Args>
-    HYP_FORCE_INLINE T* Construct(Args&&... args)
+    HYP_FORCE_INLINE constexpr T* Construct(Args&&... args)
     {
-        T* address = GetPointer();
-        new (address) T(std::forward<Args>(args)...);
-
-        return address;
+        return new (data_buffer) T(std::forward<Args>(args)...);
     }
 
     HYP_FORCE_INLINE void Destruct()

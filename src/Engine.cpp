@@ -433,18 +433,6 @@ HYP_API void Engine::RenderNextFrame()
         m_world->GetRenderResource().PostRender(frame);
     }
 
-    // Update renderable bindings
-    for (uint32 i = 0; i < RenderGlobalState::max_binders; i++)
-    {
-        ResourceBinderBase* binder = g_render_global_state->ResourceBinders[i];
-        if (!binder)
-        {
-            break; // stop at first empty slot
-        }
-
-        binder->UpdateBoundResources();
-    }
-
     g_render_global_state->UpdateBuffers(frame);
 
     g_rendering_api->PresentFrame(frame);

@@ -256,7 +256,7 @@ void RenderShadowMap::Update_Internal()
 
 GPUBufferHolderBase* RenderShadowMap::GetGPUBufferHolder() const
 {
-    return g_render_global_state->ShadowMaps;
+    return g_render_global_state->gpu_buffers[GRB_SHADOW_MAPS];
 }
 
 void RenderShadowMap::SetBufferData(const ShadowMapShaderData& buffer_data)

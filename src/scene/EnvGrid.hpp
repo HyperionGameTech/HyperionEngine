@@ -32,6 +32,7 @@ class Scene;
 class RenderEnvGrid;
 class RenderEnvProbe;
 class EnvProbe;
+class Texture;
 
 enum class EnvGridFlags : uint32
 {
@@ -146,6 +147,21 @@ public:
         return m_env_probe_collection;
     }
 
+    HYP_FORCE_INLINE const Handle<Texture>& GetVoxelGridTexture() const
+    {
+        return m_voxel_grid_texture;
+    }
+
+    HYP_FORCE_INLINE const Handle<Texture>& GetLightFieldIrradianceTexture() const
+    {
+        return m_irradiance_texture;
+    }
+
+    HYP_FORCE_INLINE const Handle<Texture>& GetLightFieldDepthTexture() const
+    {
+        return m_depth_texture;
+    }
+
     HYP_FORCE_INLINE RenderEnvGrid& GetRenderResource() const
     {
         return *m_render_resource;
@@ -174,6 +190,8 @@ public:
 
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
+
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
     
 private:
     virtual void OnAttachedToNode(Node* node) override;
@@ -208,6 +226,11 @@ private:
     BoundingBox m_voxel_grid_aabb;
 
     EnvProbeCollection m_env_probe_collection;
+
+    Handle<Texture> m_voxel_grid_texture;
+
+    Handle<Texture> m_irradiance_texture;
+    Handle<Texture> m_depth_texture;
 
     HashCode m_cached_octant_hash_code;
 

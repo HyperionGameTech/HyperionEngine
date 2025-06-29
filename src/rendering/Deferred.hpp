@@ -366,7 +366,7 @@ private:
     void RenderFrameForView(FrameBase* frame, const RenderSetup& rs);
 
     // Called on initialization or when the view changes
-    virtual PassData* CreateViewPassData(View* view) override;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt&) override;
     void CreateViewFinalPassDescriptorSet(View* view, DeferredPassData& pass_data);
     void CreateViewDescriptorSets(View* view, DeferredPassData& pass_data);
     void CreateViewCombinePass(View* view, DeferredPassData& pass_data);

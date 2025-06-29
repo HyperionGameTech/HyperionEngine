@@ -7,6 +7,8 @@
 
 #include <core/math/Matrix4.hpp>
 
+#include <rendering/Renderer.hpp>
+
 #include <rendering/RenderResource.hpp>
 #include <rendering/RenderCollection.hpp>
 
@@ -20,24 +22,6 @@ class EnvGrid;
 class RenderView;
 class RenderScene;
 
-struct EnvGridShaderData
-{
-    uint32 probe_indices[max_bound_ambient_probes];
-
-    Vec4f center;
-    Vec4f extent;
-    Vec4f aabb_max;
-    Vec4f aabb_min;
-
-    Vec4u density;
-
-    Vec4f voxel_grid_aabb_max;
-    Vec4f voxel_grid_aabb_min;
-
-    Vec2i light_field_image_dimensions;
-    Vec2i irradiance_octahedron_size;
-};
-
 class RenderEnvGrid final : public RenderResourceBase
 {
 public:
@@ -49,34 +33,7 @@ public:
         return m_env_grid;
     }
 
-    HYP_FORCE_INLINE const ShaderRef& GetShader() const
-    {
-        return m_shader;
-    }
-
-    HYP_FORCE_INLINE const FramebufferRef& GetFramebuffer() const
-    {
-        return m_framebuffer;
-    }
-
-    /*! \note Only to be called from render thread or render task */
-    HYP_FORCE_INLINE const EnvGridShaderData& GetBufferData() const
-    {
-        return m_buffer_data;
-    }
-
-    void SetBufferData(const EnvGridShaderData& buffer_data);
-
-    void SetAABB(const BoundingBox& aabb);
-
     void SetProbeIndices(Array<uint32>&& indices);
-
-    HYP_FORCE_INLINE const TResourceHandle<RenderView>& GetViewRenderResourceHandle() const
-    {
-        return m_render_view;
-    }
-
-    void SetViewResourceHandle(TResourceHandle<RenderView>&& render_view);
 
     void Render(FrameBase* frame, const RenderSetup& render_setup);
 
@@ -88,30 +45,12 @@ protected:
     virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
 
 private:
-    void CreateShader();
-    void CreateFramebuffer();
-
-    void CreateVoxelGridData();
-    void CreateSphericalHarmonicsData();
-    void CreateLightFieldData();
-
-    void UpdateBufferData();
-
-    void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index);
-
-    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe);
-    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe);
-
-    void OffsetVoxelGrid(FrameBase* frame, Vec3i offset);
-    void VoxelizeProbe(FrameBase* frame, uint32 probe_index);
-
     EnvGrid* m_env_grid;
+};
 
-    EnvGridShaderData m_buffer_data;
-
-    TResourceHandle<RenderCamera> m_render_camera;
-    TResourceHandle<RenderScene> m_render_scene;
-    TResourceHandle<RenderView> m_render_view;
+struct HYP_API EnvGridPassData : PassData
+{
+    virtual ~EnvGridPassData() override;
 
     ShaderRef m_shader;
     FramebufferRef m_framebuffer;
@@ -131,13 +70,9 @@ private:
     ComputePipelineRef m_offset_voxel_grid;
     ComputePipelineRef m_generate_voxel_grid_mipmaps;
 
-    Handle<Texture> m_voxel_grid_texture;
-
     Array<ImageViewRef> m_voxel_grid_mips;
     Array<DescriptorTableRef> m_generate_voxel_grid_mipmaps_descriptor_tables;
 
-    Handle<Texture> m_irradiance_texture;
-    Handle<Texture> m_depth_texture;
     Array<GPUBufferRef> m_uniform_buffers;
 
     ComputePipelineRef m_compute_irradiance;
@@ -145,8 +80,38 @@ private:
     ComputePipelineRef m_copy_border_texels;
 
     Queue<uint32> m_next_render_indices;
+};
 
-    HashCode m_octant_hash_code;
+struct EnvGridPassDataExt : PassDataExt
+{
+    EnvGrid* env_grid = nullptr;
+
+    virtual ~EnvGridPassDataExt() override = default;
+};
+
+class EnvGridRenderer : public RendererBase
+{
+public:
+    EnvGridRenderer();
+    virtual ~EnvGridRenderer() override;
+
+    virtual void Initialize() override;
+    virtual void Shutdown() override;
+
+    virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) override final;
+
+protected:
+    void RenderProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index);
+
+    void ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe);
+    void ComputeEnvProbeIrradiance_LightField(FrameBase* frame, const RenderSetup& render_setup, const Handle<EnvProbe>& probe);
+    void OffsetVoxelGrid(FrameBase* frame, const RenderSetup& render_setup, Vec3i offset);
+    void VoxelizeProbe(FrameBase* frame, const RenderSetup& render_setup, uint32 probe_index);
+
+    PassData* CreateViewPassData(View* view, PassDataExt& ext) override;
+    void CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd);
+    void CreateSphericalHarmonicsData(EnvGrid* env_grid, EnvGridPassData& pd);
+    void CreateLightFieldData(EnvGrid* env_grid, EnvGridPassData& pd);
 };
 
 } // namespace hyperion

@@ -200,6 +200,21 @@ struct DynamicAllocator : Allocator<DynamicAllocator>
             return capacity;
         }
     };
+
+    void* Allocate(SizeType size, SizeType alignment)
+    {
+        AssertDebug(size > 0);
+        AssertDebug(alignment > 0);
+
+        return HYP_ALLOC_ALIGNED(size, alignment);
+    }
+
+    void Free(void* ptr)
+    {
+        AssertDebug(ptr != nullptr);
+
+        HYP_FREE_ALIGNED(ptr);
+    }
 };
 
 template <SizeType Count, class DynamicAllocatorType = DynamicAllocator>

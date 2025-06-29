@@ -27,6 +27,7 @@ class RenderEnvGrid;
 class RenderLight;
 class Light;
 class EnvProbe;
+class EnvGrid;
 struct CullData;
 struct DrawCall;
 struct InstancedDrawCall;
@@ -84,7 +85,7 @@ struct HYP_API RenderSetup
     RenderWorld* world;
     RenderView* view;
     EnvProbe* env_probe;
-    RenderEnvGrid* env_grid;
+    EnvGrid* env_grid;
     Light* light;
     PassData* pass_data;
 
@@ -161,6 +162,51 @@ public:
  *  \internal Use sparingly as most rendering tasks should have a valid RenderWorld and using this will cause the IsValid() check to return false */
 extern const RenderSetup& NullRenderSetup();
 
+struct PassDataExt
+{
+    TypeID type_id;
+
+    virtual ~PassDataExt() = default;
+
+    HYP_FORCE_INLINE explicit operator bool() const
+    {
+        constexpr TypeID invalid_type_id = TypeID::Void();
+
+        return type_id != invalid_type_id;
+    }
+
+    HYP_FORCE_INLINE bool operator!() const
+    {
+        return !bool(*this);
+    }
+
+    template <class OtherPassDataExt>
+    HYP_FORCE_INLINE OtherPassDataExt* AsType()
+    {
+        constexpr TypeID other_type_id = TypeID::ForType<OtherPassDataExt>();
+
+        if (type_id != other_type_id)
+        {
+            return nullptr;
+        }
+
+        return reinterpret_cast<OtherPassDataExt*>(this);
+    }
+
+    template <class OtherPassDataExt>
+    HYP_FORCE_INLINE const OtherPassDataExt* AsType() const
+    {
+        constexpr TypeID other_type_id = TypeID::ForType<OtherPassDataExt>();
+
+        if (type_id != other_type_id)
+        {
+            return nullptr;
+        }
+
+        return reinterpret_cast<const OtherPassDataExt*>(this);
+    }
+};
+
 /*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
 struct HYP_API PassData
 {
@@ -182,6 +228,8 @@ struct HYP_API PassData
     SparsePagedArray<RenderGroupCacheEntry, 32> render_group_cache;
     // iterator for removing cache data over frames
     typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator render_group_cache_iterator;
+
+    PassDataExt* next = nullptr;
 
     virtual ~PassData();
 
@@ -209,9 +257,10 @@ public:
     virtual void RenderFrame(FrameBase* frame, const RenderSetup& render_setup) = 0;
 
 protected:
-    virtual PassData* CreateViewPassData(View* view) = 0;
+    virtual PassData* CreateViewPassData(View* view, PassDataExt& ext) = 0;
 
-    PassData* FetchViewPassData(View* view);
+    PassData* TryGetViewPassData(View* view);
+    PassData* FetchViewPassData(View* view, PassDataExt* ext = nullptr);
 
 private:
     SparsePagedArray<PassData*, 16> m_view_pass_data;

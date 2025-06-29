@@ -30,6 +30,12 @@ PassData::~PassData()
 {
     HYP_LOG(Rendering, Debug, "Destroying PassData");
 
+    if (next != nullptr)
+    {
+        delete next;
+        next = nullptr;
+    }
+
     for (auto& entry : render_group_cache)
     {
         HYP_LOG(Rendering, Debug, "Destroying RenderGroupCacheEntry for RenderGroup '{}'", entry.render_group.GetID());
@@ -156,7 +162,22 @@ RendererBase::~RendererBase()
     }
 }
 
-PassData* RendererBase::FetchViewPassData(View* view)
+PassData* RendererBase::TryGetViewPassData(View* view)
+{
+    if (!view)
+    {
+        return nullptr;
+    }
+
+    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->GetID().ToIndex()))
+    {
+        return *pd_ptr;
+    }
+
+    return nullptr;
+}
+
+PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 {
     if (!view)
     {
@@ -172,18 +193,27 @@ PassData* RendererBase::FetchViewPassData(View* view)
 
     if (!pd)
     {
+        PassDataExt null_pass_data_ext {};
+
         // call virtual function to alloc / create
-        pd = CreateViewPassData(view);
+
+        pd = CreateViewPassData(view, ext ? *ext : null_pass_data_ext);
         AssertDebug(pd != nullptr);
+
+        pd->next = ext;
 
         m_view_pass_data.Set(view->GetID().ToIndex(), pd);
     }
-    else if (pd->view.GetUnsafe() != view)
+    else if (pd->view.GetUnsafe() != view || pd->next != ext)
     {
         delete pd;
 
-        pd = CreateViewPassData(view);
+        PassDataExt null_pass_data_ext {};
+
+        pd = CreateViewPassData(view, ext ? *ext : null_pass_data_ext);
         AssertDebug(pd != nullptr);
+
+        pd->next = ext;
 
         m_view_pass_data.Set(view->GetID().ToIndex(), pd);
     }

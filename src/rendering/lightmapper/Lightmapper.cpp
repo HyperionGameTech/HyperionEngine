@@ -27,6 +27,7 @@
 #include <scene/Material.hpp>
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
+#include <scene/EnvGrid.hpp>
 #include <scene/Texture.hpp>
 #include <scene/View.hpp>
 
@@ -602,8 +603,8 @@ void LightmapGPUPathTracer::Create()
         descriptor_set->SetElement(NAME("HitsBuffer"), m_hits_buffer_gpu);
         descriptor_set->SetElement(NAME("RaysBuffer"), m_rays_buffers[frame_index]);
 
-        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->Lights->GetBuffer(frame_index));
-        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->Materials->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("LightsBuffer"), g_render_global_state->gpu_buffers[GRB_LIGHTS]->GetBuffer(frame_index));
+        descriptor_set->SetElement(NAME("MaterialsBuffer"), g_render_global_state->gpu_buffers[GRB_MATERIALS]->GetBuffer(frame_index));
 
         descriptor_set->SetElement(NAME("RTRadianceUniforms"), m_uniform_buffers[frame_index]);
     }
@@ -753,7 +754,7 @@ void LightmapGPUPathTracer::Render(FrameBase* frame, const RenderSetup& render_s
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
         frame->GetFrameIndex());
 
