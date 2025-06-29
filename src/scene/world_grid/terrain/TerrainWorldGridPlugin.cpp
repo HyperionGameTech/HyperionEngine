@@ -358,7 +358,7 @@ void TerrainStreamingCell::OnLoaded_Impl()
     const Handle<EntityManager>& entity_manager = m_scene->GetEntityManager();
     AssertThrow(entity_manager != nullptr);
 
-    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh Id: #{}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale, m_cell_info.bounds, m_mesh.GetID().Value());
+    HYP_LOG(WorldGrid, Debug, "Creating terrain patch at coord {} with extent {} and scale {}, bounds: {}\tMesh Id: #{}", m_cell_info.coord, m_cell_info.extent, m_cell_info.scale, m_cell_info.bounds, m_mesh.Id().Value());
 
     Transform transform;
     transform.SetTranslation(m_cell_info.bounds.min);

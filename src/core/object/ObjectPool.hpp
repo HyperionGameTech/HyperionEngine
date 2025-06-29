@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_OBJECT_POOL_HPP
 #define HYPERION_CORE_OBJECT_POOL_HPP
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
 

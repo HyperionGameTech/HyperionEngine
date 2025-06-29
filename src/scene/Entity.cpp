@@ -45,13 +45,13 @@ Entity::~Entity()
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
 
-        HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", GetID());
+        HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", Id());
 
         AssertDebug(entity_manager->HasEntity(this));
 
         if (!entity_manager->RemoveEntity(this))
         {
-            HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", GetID());
+            HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", Id());
         }
     }
     else
@@ -62,19 +62,19 @@ Entity::~Entity()
                 Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
                 if (!entity_manager)
                 {
-                    HYP_LOG(ECS, Error, "EntityManager is no longer valid while removing Entity {}", weak_this.GetID());
+                    HYP_LOG(ECS, Error, "EntityManager is no longer valid while removing Entity {}", weak_this.Id());
                     return;
                 }
 
                 HYP_NAMED_SCOPE("Remove Entity from EntityManager (async)");
 
-                HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", weak_this.GetID());
+                HYP_LOG(ECS, Debug, "Removing Entity {} from entity manager", weak_this.Id());
 
                 AssertDebug(entity_manager->HasEntity(weak_this.GetUnsafe()));
 
                 if (!entity_manager->RemoveEntity(weak_this.GetUnsafe()))
                 {
-                    HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", weak_this.GetID());
+                    HYP_LOG(ECS, Error, "Failed to remove Entity {} from EntityManager", weak_this.Id());
                 }
             },
             TaskEnqueueFlags::FIRE_AND_FORGET);
@@ -104,7 +104,7 @@ bool Entity::ReceivesUpdate() const
     }
 
     EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while checking receives update", GetID().Value());
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while checking receives update", Id().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -115,13 +115,13 @@ void Entity::SetReceivesUpdate(bool receives_update)
 {
     if (!m_entity_init_info.can_ever_update)
     {
-        AssertDebugMsg(!receives_update, "Entity #%u cannot receive updates, but SetReceivesUpdate() was called with true", GetID().Value());
+        AssertDebugMsg(!receives_update, "Entity #%u cannot receive updates, but SetReceivesUpdate() was called with true", Id().Value());
 
         return;
     }
 
     EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while setting receives update", GetID().Value());
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while setting receives update", Id().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -139,7 +139,7 @@ void Entity::Attach(const Handle<Node>& attach_node)
 {
     { // detach from node if already attached.
         EntityManager* entity_manager = GetEntityManager();
-        AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", GetID().Value());
+        AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", Id().Value());
 
         Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -176,7 +176,7 @@ void Entity::Attach(const Handle<Node>& attach_node)
 void Entity::Detach()
 {
     EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching from Node", GetID().Value());
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching from Node", Id().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -205,7 +205,7 @@ void Entity::OnDetachedFromNode(Node* node)
 
 void Entity::OnAddedToWorld(World* world)
 {
-    HYP_LOG(ECS, Debug, "Entity {} added to world {}", GetID(), world->GetID());
+    HYP_LOG(ECS, Debug, "Entity {} added to world {}", Id(), world->Id());
     AssertDebug(world != nullptr);
 
     m_world = world;
@@ -213,7 +213,7 @@ void Entity::OnAddedToWorld(World* world)
 
 void Entity::OnRemovedFromWorld(World* world)
 {
-    HYP_LOG(ECS, Debug, "Entity {} removed from world {}", GetID(), world->GetID());
+    HYP_LOG(ECS, Debug, "Entity {} removed from world {}", Id(), world->Id());
 
     AssertDebug(world != nullptr);
     AssertDebug(m_world == world);
@@ -244,7 +244,7 @@ void Entity::OnComponentAdded(AnyRef component)
     {
         if (!mesh_component->mesh.IsValid())
         {
-            HYP_LOG(ECS, Warning, "Entity {} has a MeshComponent with an invalid mesh", GetID());
+            HYP_LOG(ECS, Warning, "Entity {} has a MeshComponent with an invalid mesh", Id());
 
             return;
         }
@@ -253,14 +253,14 @@ void Entity::OnComponentAdded(AnyRef component)
         {
             if (mesh_component->mesh->GetBVH().IsValid())
             {
-                HYP_LOG(ECS, Debug, "Entity {} has a MeshComponent with a BVH, skipping BVH build", GetID());
+                HYP_LOG(ECS, Debug, "Entity {} has a MeshComponent with a BVH, skipping BVH build", Id());
 
                 return;
             }
 
             if (!mesh_component->mesh->BuildBVH(m_entity_init_info.bvh_depth))
             {
-                HYP_LOG(ECS, Error, "Failed to build BVH for MeshComponent on Entity {}!", GetID());
+                HYP_LOG(ECS, Error, "Failed to build BVH for MeshComponent on Entity {}!", Id());
 
                 return;
             }
@@ -288,7 +288,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
     }
 
     EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching child #%u", GetID().Value(), child.GetID().Value());
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching child #%u", Id().Value(), child.Id().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -330,10 +330,10 @@ void Entity::AttachChild(const Handle<Entity>& child)
             return;
         }
 
-        HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", GetID(), child.GetID());
+        HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
     }
 
-    HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", GetID(), child.GetID());
+    HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
 }
 
 void Entity::DetachChild(const Handle<Entity>& child)
@@ -344,7 +344,7 @@ void Entity::DetachChild(const Handle<Entity>& child)
     }
 
     EntityManager* entity_manager = GetEntityManager();
-    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching child #%u", GetID().Value(), child.GetID().Value());
+    AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching child #%u", Id().Value(), child.Id().Value());
 
     Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
@@ -361,15 +361,15 @@ void Entity::DetachChild(const Handle<Entity>& child)
                         return;
                     }
 
-                    HYP_LOG(ECS, Warning, "Failed to detach child {} node ({}) from parent's node ({})", child.GetID(), child_node->GetName(), node->GetName());
+                    HYP_LOG(ECS, Warning, "Failed to detach child {} node ({}) from parent's node ({})", child.Id(), child_node->GetName(), node->GetName());
                 }
             }
 
-            HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent for child {}", GetID(), child.GetID());
+            HYP_LOG(ECS, Warning, "Entity {} does not have a NodeLinkComponent for child {}", Id(), child.Id());
         }
         else
         {
-            HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", GetID(), child.GetID());
+            HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", Id(), child.Id());
         }
     }
 }

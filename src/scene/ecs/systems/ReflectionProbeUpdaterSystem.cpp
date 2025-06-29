@@ -49,7 +49,7 @@ void ReflectionProbeUpdaterSystem::OnEntityAdded(Entity* entity)
 
     // if (!world_aabb.IsValid())
     // {
-    //     HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.GetID().Value());
+    //     HYP_LOG(EnvProbe, Warning, "Entity #{} has invalid bounding box", entity.Id().Value());
     // }
 
     // if (reflection_probe_component.reflection_probe_renderer)
@@ -121,11 +121,11 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
 
     //     const bool is_env_probe_in_frustum = camera->GetFrustum().ContainsAABB(env_probe->GetAABB());
 
-    //     env_probe->SetIsVisible(camera.GetID(), is_env_probe_in_frustum);
+    //     env_probe->SetIsVisible(camera.Id(), is_env_probe_in_frustum);
     // }
 
     // { // Update transforms and bounding boxes of EnvProbes to match the components
-    //     HashSet<Id<Entity>> updated_entity_ids;
+    //     HashSet<ObjId<Entity>> updated_entity_ids;
 
     //     for (auto [entity, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
     //     {
@@ -148,7 +148,7 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
     //     {
     //         AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
     //             {
-    //                 for (const Id<Entity>& entity_id : updated_entity_ids)
+    //                 for (const ObjId<Entity>& entity_id : updated_entity_ids)
     //                 {
     //                     GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
     //                 }

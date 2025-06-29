@@ -73,7 +73,7 @@ TaskThreadPool::TaskThreadPool(Array<UniquePtr<TaskThread>>&& threads)
     {
         AssertThrow(thread != nullptr);
 
-        m_thread_mask |= thread->GetID().GetMask();
+        m_thread_mask |= thread->Id().GetMask();
     }
 }
 
@@ -184,8 +184,8 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
                 return task_thread;
             }
         }
-        while (task_thread->GetID() == current_thread_id
-            || (current_thread_object != nullptr && current_thread_object->GetScheduler().HasWorkAssignedFromThread(task_thread->GetID())));
+        while (task_thread->Id() == current_thread_id
+            || (current_thread_object != nullptr && current_thread_object->GetScheduler().HasWorkAssignedFromThread(task_thread->Id())));
     }
     while (!task_thread->IsRunning() && !task_thread->IsFree());
 

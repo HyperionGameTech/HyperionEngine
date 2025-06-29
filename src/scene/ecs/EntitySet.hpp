@@ -92,7 +92,7 @@ struct EntitySetIterator
 
 private:
     template <SizeType... Indices>
-    Tuple<Components&...> GetComponents(const FixedArray<ComponentID, sizeof...(Components)>& component_ids, std::index_sequence<Indices...>)
+    Tuple<Components&...> GetComponents(const FixedArray<ComponentId, sizeof...(Components)>& component_ids, std::index_sequence<Indices...>)
     {
         return Tuple<Components&...>(
             set.m_component_containers.template GetElement<ComponentContainer<Components>&>().GetComponent(component_ids[Indices])...);
@@ -144,7 +144,7 @@ public:
     friend struct EntitySetIterator<Components...>;
     friend struct EntitySetView<Components...>;
 
-    using Element = Tuple<Entity*, TypeId, FixedArray<ComponentID, sizeof...(Components)>>;
+    using Element = Tuple<Entity*, TypeId, FixedArray<ComponentId, sizeof...(Components)>>;
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
@@ -228,7 +228,7 @@ public:
 
             EntityData& entity_data = m_entities.GetEntityData(entity);
 
-            m_elements.EmplaceBack(entity, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentId<Components>()... });
+            m_elements.EmplaceBack(entity, entity_data.type_id, FixedArray<ComponentId, sizeof...(Components)> { entity_data.template GetComponentId<Components>()... });
         }
         else
         {

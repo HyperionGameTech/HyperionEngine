@@ -85,12 +85,12 @@ EnvProbe::EnvProbe(EnvProbeType env_probe_type, const BoundingBox& aabb, const V
     m_entity_init_info.receives_update = true;
 }
 
-bool EnvProbe::IsVisible(Id<Camera> camera_id) const
+bool EnvProbe::IsVisible(ObjId<Camera> camera_id) const
 {
     return m_visibility_bits.Test(camera_id.ToIndex());
 }
 
-void EnvProbe::SetIsVisible(Id<Camera> camera_id, bool is_visible)
+void EnvProbe::SetIsVisible(ObjId<Camera> camera_id, bool is_visible)
 {
     const bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
 
@@ -362,7 +362,7 @@ void EnvProbe::Update(float delta)
 
                 if (!octant)
                 {
-                    HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe {} with AABB: {}", GetID(), m_aabb);
+                    HYP_LOG(EnvProbe, Warning, "No containing octant found for EnvProbe {} with AABB: {}", Id(), m_aabb);
                 }
             }
 
@@ -391,7 +391,7 @@ void EnvProbe::Update(float delta)
 
         if (diff.NeedsUpdate() || m_octant_hash_code != octant_hash_code)
         {
-            HYP_LOG(EnvProbe, Debug, "EnvProbe {} with AABB: {} has {} added, {} removed and {} changed entities", GetID(), m_aabb,
+            HYP_LOG(EnvProbe, Debug, "EnvProbe {} with AABB: {} has {} added, {} removed and {} changed entities", Id(), m_aabb,
                 diff.num_added, diff.num_removed, diff.num_changed);
 
             SetNeedsRender(true);

@@ -79,7 +79,7 @@ public:
     RTCClient& operator=(RTCClient&& other) noexcept = delete;
     virtual ~RTCClient() = default;
 
-    const String& GetID() const
+    const String& Id() const
     {
         return m_id;
     }

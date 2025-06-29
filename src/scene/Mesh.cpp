@@ -205,7 +205,7 @@ void Mesh::Init()
 
         if (!m_streamed_mesh_data)
         {
-            HYP_LOG(Mesh, Warning, "Creating empty streamed mesh data for mesh {}", GetID().Value());
+            HYP_LOG(Mesh, Warning, "Creating empty streamed mesh data for mesh {}", Id().Value());
 
             m_streamed_mesh_data.Emplace();
         }
@@ -215,7 +215,7 @@ void Mesh::Init()
 
         // Data passed to render resource to be uploaded,
         // Reset the resource handle now that we no longer need it in CPU-side memory
-        HYP_LOG(Mesh, Debug, "Resetting streamed mesh data resource handle for mesh {}", GetID().Value());
+        HYP_LOG(Mesh, Debug, "Resetting streamed mesh data resource handle for mesh {}", Id().Value());
         m_streamed_mesh_data_resource_handle.Reset();
     }
 

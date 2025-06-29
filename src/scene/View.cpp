@@ -175,7 +175,7 @@ void View::Init()
             }
         }));
 
-    AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with Id #%u", GetID().Value());
+    AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with Id #%u", Id().Value());
     InitObject(m_camera);
 
     const Vec2u extent = MathUtil::Max(m_view_desc.output_target_desc.extent, Vec2u::One());
@@ -210,14 +210,14 @@ void View::Init()
         m_output_target = ViewOutputTarget(framebuffer);
     }
 
-    AssertThrowMsg(m_output_target.IsValid(), "View with Id #%u must have a valid output target!", GetID().Value());
+    AssertThrowMsg(m_output_target.IsValid(), "View with Id #%u must have a valid output target!", Id().Value());
 
     Array<TResourceHandle<RenderScene>> render_scenes;
     render_scenes.Reserve(m_scenes.Size());
 
     for (const Handle<Scene>& scene : m_scenes)
     {
-        AssertThrowMsg(scene.IsValid(), "Scene is not valid for View with Id #%u", GetID().Value());
+        AssertThrowMsg(scene.IsValid(), "Scene is not valid for View with Id #%u", Id().Value());
         InitObject(scene);
 
         AssertThrow(scene->IsReady());
@@ -264,7 +264,7 @@ void View::UpdateVisibility()
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot update visibility!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot update visibility!", Id().Value());
         return;
     }
 
@@ -367,7 +367,7 @@ void View::RemoveScene(const Handle<Scene>& scene)
     m_scenes.Erase(scene);
 }
 
-typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectEntities(RenderProxyList& rpl)
+typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectEntities(RenderProxyList& rpl)
 {
     AssertReady();
 
@@ -384,7 +384,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectEntities(Re
     }
 }
 
-typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities(RenderProxyList& rpl)
+typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectAllEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -392,12 +392,12 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect entities!", Id().Value());
 
         return rpl.meshes.GetDiff();
     }
 
-    const Id<Camera> camera_id = m_camera->GetID();
+    const ObjId<Camera> camera_id = m_camera->Id();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -450,11 +450,11 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
-        HYP_LOG(Scene, Debug, "Collected {} entities for View {}, {} skipped", num_collected_entities, GetID(), num_skipped_entities);
+        HYP_LOG(Scene, Debug, "Collected {} entities for View {}, {} skipped", num_collected_entities, Id(), num_skipped_entities);
 #endif
     }
 
@@ -479,7 +479,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities
 
         for (RenderProxy* proxy : removed)
         {
-            RenderApi_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.Id());
 
             // for now:
             proxy->DecRefs();
@@ -489,7 +489,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities
     return diff;
 }
 
-typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
+typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -498,13 +498,13 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect dynamic entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect dynamic entities!", Id().Value());
         // if camera is invalid, update without adding any entities
 
         return rpl.meshes.GetDiff();
     }
 
-    const Id<Camera> camera_id = m_camera->GetID();
+    const ObjId<Camera> camera_id = m_camera->Id();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -536,7 +536,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
                 {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                     HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                        entity->GetID(), camera_id);
+                        entity->Id(), camera_id);
 #endif
 
                     continue;
@@ -550,7 +550,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
         }
     }
 
@@ -576,7 +576,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
 
         for (RenderProxy* proxy : removed)
         {
-            RenderApi_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.Id());
 
             // for now:
             proxy->DecRefs();
@@ -586,7 +586,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
     return diff;
 }
 
-typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
+typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -596,12 +596,12 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntit
     if (!m_camera.IsValid())
     {
         // if camera is invalid, update without adding any entities
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect static entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect static entities!", Id().Value());
 
         return rpl.meshes.GetDiff();
     }
 
-    const Id<Camera> camera_id = m_camera->GetID();
+    const ObjId<Camera> camera_id = m_camera->Id();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -633,7 +633,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntit
                 {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                     HYP_LOG(Scene, Debug, "Skipping entity #{} for camera #{} due to visibility state being invalid.",
-                        entity->GetID(), camera_id);
+                        entity->Id(), camera_id);
 #endif
 
                     continue;
@@ -647,7 +647,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntit
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->GetID(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
         }
     }
 
@@ -672,7 +672,7 @@ typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntit
 
         for (RenderProxy* proxy : removed)
         {
-            RenderApi_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.Id());
 
             // for now:
             proxy->DecRefs();
@@ -725,7 +725,7 @@ void View::CollectLights(RenderProxyList& rpl)
 
             if (is_light_in_frustum)
             {
-                rpl.lights.Track(light->GetID(), light);
+                rpl.lights.Track(light->Id(), light);
             }
 
             /// TODO: Move this
@@ -752,7 +752,7 @@ void View::CollectLights(RenderProxyList& rpl)
             light->GetRenderResource().IncRef();
 
             RenderApi_AddRef(light);
-            RenderApi_UpdateRenderProxy(light->GetID());
+            RenderApi_UpdateRenderProxy(light->Id());
         }
 
         for (Light* light : removed)
@@ -760,13 +760,13 @@ void View::CollectLights(RenderProxyList& rpl)
             // temp shit
             light->GetRenderResource().DecRef();
 
-            RenderApi_ReleaseRef(light->GetID());
+            RenderApi_ReleaseRef(light->Id());
         }
 
-        Array<Id<Light>> changed_ids;
+        Array<ObjId<Light>> changed_ids;
         rpl.lights.GetChanged(changed_ids);
 
-        for (Id<Light> id : changed_ids)
+        for (ObjId<Light> id : changed_ids)
         {
             RenderApi_UpdateRenderProxy(id);
         }
@@ -798,7 +798,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 
             if (!volume_aabb.IsValid() || !volume_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmap_volume_component.volume->GetID(), GetID());
+                HYP_LOG(Scene, Warning, "Lightmap volume {} has an invalid AABB in view {}", lightmap_volume_component.volume->Id(), Id());
 
                 continue;
             }
@@ -808,7 +808,7 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.lightmap_volumes.Track(lightmap_volume_component.volume->GetID(), lightmap_volume_component.volume);
+            rpl.lightmap_volumes.Track(lightmap_volume_component.volume->Id(), lightmap_volume_component.volume);
         }
     }
 
@@ -826,18 +826,18 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
         for (LightmapVolume* volume : added)
         {
             RenderApi_AddRef(volume);
-            RenderApi_UpdateRenderProxy(volume->GetID());
+            RenderApi_UpdateRenderProxy(volume->Id());
         }
 
         for (LightmapVolume* volume : removed)
         {
-            RenderApi_ReleaseRef(volume->GetID());
+            RenderApi_ReleaseRef(volume->Id());
         }
 
-        Array<Id<LightmapVolume>> changed_ids;
+        Array<ObjId<LightmapVolume>> changed_ids;
         rpl.lightmap_volumes.GetChanged(changed_ids);
 
-        for (Id<LightmapVolume> id : changed_ids)
+        for (ObjId<LightmapVolume> id : changed_ids)
         {
             RenderApi_UpdateRenderProxy(id);
         }
@@ -868,7 +868,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
             if (!grid_aabb.IsValid() || !grid_aabb.IsFinite())
             {
-                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid->GetID(), GetID());
+                HYP_LOG(Scene, Warning, "EnvGrid {} has an invalid AABB in view {}", env_grid->Id(), Id());
 
                 continue;
             }
@@ -878,7 +878,7 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.env_grids.Track(env_grid->GetID(), env_grid);
+            rpl.env_grids.Track(env_grid->Id(), env_grid);
         }
     }
 
@@ -896,18 +896,18 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
         for (EnvGrid* env_grid : added)
         {
             RenderApi_AddRef(env_grid);
-            RenderApi_UpdateRenderProxy(env_grid->GetID());
+            RenderApi_UpdateRenderProxy(env_grid->Id());
         }
 
         for (EnvGrid* env_grid : removed)
         {
-            RenderApi_ReleaseRef(env_grid->GetID());
+            RenderApi_ReleaseRef(env_grid->Id());
         }
 
-        Array<Id<EnvGrid>> changed_ids;
+        Array<ObjId<EnvGrid>> changed_ids;
         rpl.env_grids.GetChanged(changed_ids);
 
-        for (Id<EnvGrid> id : changed_ids)
+        for (ObjId<EnvGrid> id : changed_ids)
         {
             RenderApi_UpdateRenderProxy(id);
         }
@@ -938,7 +938,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
                 if (!probe_aabb.IsValid() || !probe_aabb.IsFinite())
                 {
-                    HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->GetID(), GetID());
+                    HYP_LOG(Scene, Warning, "EnvProbe {} has an invalid AABB in view {}", probe->Id(), Id());
 
                     continue;
                 }
@@ -949,7 +949,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 }
             }
 
-            rpl.env_probes.Track(probe->GetID(), probe);
+            rpl.env_probes.Track(probe->Id(), probe);
         }
 
         // TEMP SHIT
@@ -958,7 +958,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
             if (sky_component.subsystem)
             {
                 AssertThrow(sky_component.subsystem->GetEnvProbe()->IsInstanceOf<SkyProbe>());
-                rpl.env_probes.Track(sky_component.subsystem->GetEnvProbe()->GetID(), sky_component.subsystem->GetEnvProbe());
+                rpl.env_probes.Track(sky_component.subsystem->GetEnvProbe()->Id(), sky_component.subsystem->GetEnvProbe());
             }
         }
     }
@@ -978,18 +978,18 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
         for (EnvProbe* probe : added)
         {
             RenderApi_AddRef(probe);
-            RenderApi_UpdateRenderProxy(probe->GetID());
+            RenderApi_UpdateRenderProxy(probe->Id());
         }
 
         for (EnvProbe* probe : removed)
         {
-            RenderApi_ReleaseRef(probe->GetID());
+            RenderApi_ReleaseRef(probe->Id());
         }
 
-        Array<Id<EnvProbe>> changed_ids;
+        Array<ObjId<EnvProbe>> changed_ids;
         rpl.env_probes.GetChanged(changed_ids);
 
-        for (Id<EnvProbe> id : changed_ids)
+        for (ObjId<EnvProbe> id : changed_ids)
         {
             RenderApi_UpdateRenderProxy(id);
         }

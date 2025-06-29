@@ -80,7 +80,7 @@ struct RENDER_COMMAND(CreateTexture)
 
                     AssertThrowMsg(texture_data.buffer.Size() == texture_desc.GetByteSize(),
                         "Streamed texture data buffer size mismatch in CreateTexture! Texture Id: %u, Texture name: %s, Expected: %u, Actual: %u (HashCode: %llu)",
-                        texture->GetID().Value(), texture->GetName().LookupString(),
+                        texture->Id().Value(), texture->GetName().LookupString(),
                         texture_desc.GetByteSize(), texture_data.buffer.Size(), streamed_texture_data_handle->GetDataHashCode().Value());
 
                     AssertThrowMsg(streamed_texture_data_handle->GetTextureData().buffer.Size() == streamed_texture_data_handle->GetBufferSize(),
@@ -145,7 +145,7 @@ struct RENDER_COMMAND(CreateTexture)
 
             if (g_render_backend->GetRenderConfig().IsBindlessSupported())
             {
-                g_render_global_state->BindlessTextures.AddResource(texture.GetID(), image_view);
+                g_render_global_state->BindlessTextures.AddResource(texture.Id(), image_view);
             }
         }
 
@@ -178,7 +178,7 @@ struct RENDER_COMMAND(DestroyTexture)
 
         if (g_render_backend->GetRenderConfig().IsBindlessSupported())
         {
-            g_render_global_state->BindlessTextures.RemoveResource(texture.GetID());
+            g_render_global_state->BindlessTextures.RemoveResource(texture.Id());
         }
 
         HYPERION_RETURN_OK;

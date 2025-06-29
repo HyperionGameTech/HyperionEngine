@@ -492,7 +492,7 @@ HYP_API void RenderApi_AddRef(HypObjectBase* resource)
 
     Threads::AssertOnThread(g_game_thread);
 
-    const IdBase resource_id = resource->GetID();
+    const ObjIdBase resource_id = resource->Id();
 
     const uint32 slot = g_producer_index.load(std::memory_order_relaxed);
 
@@ -511,7 +511,7 @@ HYP_API void RenderApi_AddRef(HypObjectBase* resource)
     subtype_data.indices_pending_delete.Set(resource_id.ToIndex(), false);
 }
 
-HYP_API void RenderApi_ReleaseRef(IdBase id)
+HYP_API void RenderApi_ReleaseRef(ObjIdBase id)
 {
     if (!id.IsValid())
     {
@@ -538,7 +538,7 @@ HYP_API void RenderApi_ReleaseRef(IdBase id)
     }
 }
 
-HYP_API void RenderApi_UpdateRenderProxy(IdBase id)
+HYP_API void RenderApi_UpdateRenderProxy(ObjIdBase id)
 {
     if (!id.IsValid())
     {
@@ -593,7 +593,7 @@ HYP_API void RenderApi_UpdateRenderProxy(IdBase id)
     subtype_data.indices_pending_buffer_update.Set(id.ToIndex(), true);
 }
 
-HYP_API IRenderProxy* RenderApi_GetRenderProxy(IdBase id)
+HYP_API IRenderProxy* RenderApi_GetRenderProxy(ObjIdBase id)
 {
     AssertDebug(id.IsValid());
     AssertDebug(id.GetTypeId() != TypeId::Void());
@@ -800,7 +800,7 @@ HYP_API void RenderApi_EndFrame_RenderThread()
                 }
 
                 HYP_LOG(Rendering, Debug, "Updating resource of type {} with Id {} on GPU thread..\n",
-                    *GetClass(subtype_data.type_id)->GetName(), IdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
+                    *GetClass(subtype_data.type_id)->GetName(), ObjIdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
 
                 DebugLog(LogType::Debug, "WTF?? %s\n", typeid(*subtype_data.resource_binder).name());
 
@@ -821,7 +821,7 @@ HYP_API void RenderApi_EndFrame_RenderThread()
             AssertDebug(rd.count.Get(MemoryOrder::RELAXED) == 0);
 
             HYP_LOG(Rendering, Debug, "Deleting resource of type {} with Id {}\n",
-                *GetClass(subtype_data.type_id)->GetName(), IdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
+                *GetClass(subtype_data.type_id)->GetName(), ObjIdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
 
             // Swap refcount owner over to the Handle
             AnyHandle resource { rd.resource };

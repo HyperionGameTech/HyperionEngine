@@ -84,7 +84,7 @@ void RenderMesh::UploadMeshData()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Rendering, Debug, "Uploading mesh data: {}", m_mesh->GetID());
+    HYP_LOG(Rendering, Debug, "Uploading mesh data: {}", m_mesh->Id());
 
     // upload mesh data
     Array<float> vertex_buffer;
@@ -133,7 +133,7 @@ void RenderMesh::UploadMeshData()
         m_vbo = g_render_backend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packed_buffer_size);
 
 #ifdef HYP_DEBUG_MODE
-        m_vbo->SetDebugName(NAME_FMT("RenderMesh_VertexBuffer_{}", m_mesh->GetID().Value()));
+        m_vbo->SetDebugName(NAME_FMT("RenderMesh_VertexBuffer_{}", m_mesh->Id().Value()));
 #endif
     }
 
@@ -149,7 +149,7 @@ void RenderMesh::UploadMeshData()
         m_ibo = g_render_backend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packed_indices_size);
 
 #ifdef HYP_DEBUG_MODE
-        m_ibo->SetDebugName(NAME_FMT("RenderMesh_IndexBuffer_{}", m_mesh->GetID().Value()));
+        m_ibo->SetDebugName(NAME_FMT("RenderMesh_IndexBuffer_{}", m_mesh->Id().Value()));
 #endif
     }
 

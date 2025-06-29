@@ -598,7 +598,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     for (EnvGrid* env_grid : rpl.env_grids)
     {
-        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->GetID()));
+        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->Id()));
         AssertThrow(env_grid_proxy->bound_index != ~0u);
 
         const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
@@ -894,7 +894,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(env_probe->GetID()));
+            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(env_probe->Id()));
             AssertThrow(env_probe_proxy != nullptr);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -1009,7 +1009,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
     AssertThrow(view != nullptr);
     AssertThrow(view->GetFlags() & ViewFlags::GBUFFER);
 
-    HYP_LOG(Rendering, Debug, "Creating View pass data for View {}", view->GetID());
+    HYP_LOG(Rendering, Debug, "Creating View pass data for View {}", view->Id());
 
     DeferredPassData* pd = new DeferredPassData;
 
@@ -1021,7 +1021,7 @@ PassData* DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
     gbuffer->Create();
 
-    HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->GetID(), gbuffer->GetExtent());
+    HYP_LOG(Rendering, Info, "Creating renderer for view '{}' with GBuffer '{}'", view->Id(), gbuffer->GetExtent());
 
     const FramebufferRef& opaque_fbo = view->GetOutputTarget().GetFramebuffer(RB_OPAQUE);
     const FramebufferRef& lightmap_fbo = view->GetOutputTarget().GetFramebuffer(RB_LIGHTMAP);
@@ -1273,7 +1273,7 @@ void DeferredRenderer::ResizeView(Viewport viewport, View* view, DeferredPassDat
     HYP_SCOPE;
     Threads::AssertOnThread(g_render_thread);
 
-    HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->GetID(), viewport.extent.x, viewport.extent.y);
+    HYP_LOG(Rendering, Debug, "Resizing View '{}' to {}x{}", view->Id(), viewport.extent.x, viewport.extent.y);
 
     AssertThrow(viewport.extent.Volume() > 0);
 

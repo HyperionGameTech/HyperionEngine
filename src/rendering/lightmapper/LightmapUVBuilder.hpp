@@ -53,7 +53,7 @@ struct LightmapMeshData
 struct LightmapRay
 {
     Ray ray;
-    Id<Mesh> mesh_id;
+    ObjId<Mesh> mesh_id;
     uint32 triangle_index;
     uint32 texel_index;
 
@@ -90,8 +90,8 @@ struct LightmapUV
 
 struct LightmapUVMap
 {
-    // HashMap from mesh Id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
-    using MeshToUVIndicesMap = HashMap<Id<Mesh>, Array<uint32, DynamicAllocator>, HashTable_DynamicNodeAllocator<KeyValuePair<Id<Mesh>, Array<uint32, DynamicAllocator>>>>;
+    // HashMap from mesh id to an array of UV indices. Uses dynamic node allocation to reduce number of moves needed when adding or removing elements.
+    using MeshToUVIndicesMap = HashMap<ObjId<Mesh>, Array<uint32, DynamicAllocator>, HashTable_DynamicNodeAllocator<KeyValuePair<ObjId<Mesh>, Array<uint32, DynamicAllocator>>>>;
 
     uint32 width = 0;
     uint32 height = 0;

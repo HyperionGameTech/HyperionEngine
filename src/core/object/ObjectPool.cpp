@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/ObjectPool.hpp>
+#include <core/object/ObjectPool.hpp>
 
 namespace hyperion {
 

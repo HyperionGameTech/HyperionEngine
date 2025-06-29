@@ -48,13 +48,13 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
             visibility_state_component.visibility_state = &octant->GetVisibilityState();
         }
 
-        // HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.GetID().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
+        // HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.Id().Value(), visibility_state_component.octant_id.GetIndex(), visibility_state_component.octant_id.GetDepth());
 
         // GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     }
     else
     {
-        HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity->GetID(), insert_result.first.message);
+        HYP_LOG(Octree, Warning, "Failed to insert entity #{} into octree: {}", entity->Id(), insert_result.first.message);
     }
 }
 
@@ -70,7 +70,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
 
     if (!remove_result)
     {
-        HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity->GetID(), remove_result.message);
+        HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity->Id(), remove_result.message);
     }
 
     visibility_state_component.octant_id = OctantId::Invalid();
@@ -134,7 +134,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
 
             if (!update_result.first)
             {
-                HYP_LOG(Octree, Warning, "Failed to update entity {} in octree: {}", entity->GetID(), update_result.first.message);
+                HYP_LOG(Octree, Warning, "Failed to update entity {} in octree: {}", entity->Id(), update_result.first.message);
 
                 return;
             }

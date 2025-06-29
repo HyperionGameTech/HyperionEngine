@@ -193,7 +193,7 @@ namespace Hyperion
                 return;
             }
 
-            if (value is IdBase valueId)
+            if (value is ObjIdBase valueId)
             {
                 HypData_SetId(ref this, ref valueId);
                 return;
@@ -458,7 +458,7 @@ namespace Hyperion
 
             if (HypData_GetId(ref this, out value.valueId))
             {
-                return new IdBase(new TypeId((uint)(value.valueId >> 32)), (uint)(value.valueId & 0xFFFFFFFFu));
+                return new ObjIdBase(new TypeId((uint)(value.valueId >> 32)), (uint)(value.valueId & 0xFFFFFFFFu));
             }
 
             if (HypData_GetName(ref this, out value.valueName))
@@ -784,18 +784,18 @@ namespace Hyperion
             throw new InvalidOperationException("Failed to get Name from HypData");
         }
 
-        public IdBase ReadId()
+        public ObjIdBase ReadId()
         {
             if (IsNull)
             {
-                return IdBase.Invalid;
+                return ObjIdBase.Invalid;
             }
 
             ulong idValue;
 
             if (HypData_GetId(ref this, out idValue))
             {
-                return new IdBase(new TypeId((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
+                return new ObjIdBase(new TypeId((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
             }
 
             throw new InvalidOperationException("Failed to get Id from HypData");
@@ -1092,7 +1092,7 @@ namespace Hyperion
 
         [DllImport("hyperion", EntryPoint = "HypData_SetId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetId([In] ref HypDataBuffer hypData, ref IdBase id);
+        internal static extern bool HypData_SetId([In] ref HypDataBuffer hypData, ref ObjIdBase id);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetName")]
         [return: MarshalAs(UnmanagedType.I1)]

@@ -58,7 +58,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
                 continue;
             }
 
-            max_entity_id_index = MathUtil::Max(max_entity_id_index, proxy.entity.GetID().ToIndex());
+            max_entity_id_index = MathUtil::Max(max_entity_id_index, proxy.entity.Id().ToIndex());
         }
 
         g_render_global_state->gpu_buffers[GRB_ENTITIES]->EnsureCapacity(max_entity_id_index);
@@ -75,7 +75,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
                 .previous_model_matrix = proxy.previous_model_matrix,
                 .world_aabb_max = Vec4f(proxy.aabb.max, 1.0f),
                 .world_aabb_min = Vec4f(proxy.aabb.min, 1.0f),
-                .entity_index = proxy.entity.GetID().ToIndex(),
+                .entity_index = proxy.entity.Id().ToIndex(),
                 .material_index = proxy.material.IsValid() ? proxy.material->GetRenderResource().GetBufferIndex() : ~0u,
                 .skeleton_index = proxy.skeleton.IsValid() ? proxy.skeleton->GetRenderResource().GetBufferIndex() : ~0u,
                 .bucket = proxy.material.IsValid() ? proxy.material->GetRenderAttributes().bucket : RB_NONE,
@@ -85,7 +85,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
             // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity Id index.
             // This will allow us to remove empty blocks when unused.
-            g_render_global_state->gpu_buffers[GRB_ENTITIES]->Set(proxy.entity.GetID().ToIndex(), entity_shader_data);
+            g_render_global_state->gpu_buffers[GRB_ENTITIES]->Set(proxy.entity.Id().ToIndex(), entity_shader_data);
         }
 
         HYPERION_RETURN_OK;
@@ -128,12 +128,12 @@ void EntityRenderProxySystem_Mesh::OnEntityAdded(Entity* entity)
     {
         if (!mesh_component.mesh.IsValid())
         {
-            HYP_LOG(ECS, Warning, "Mesh not valid for entity #{}!", entity->GetID());
+            HYP_LOG(ECS, Warning, "Mesh not valid for entity #{}!", entity->Id());
         }
 
         if (!mesh_component.material.IsValid())
         {
-            HYP_LOG(ECS, Warning, "Material not valid for entity #{}!", entity->GetID());
+            HYP_LOG(ECS, Warning, "Material not valid for entity #{}!", entity->Id());
         }
     }
 }
@@ -158,13 +158,13 @@ void EntityRenderProxySystem_Mesh::Process(float delta)
 
     for (auto [entity, mesh_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<MeshComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_RENDER_PROXY>>().GetScopedView(GetComponentInfos()))
     {
-        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity->GetID());
+        HYP_NAMED_SCOPE_FMT("Update draw data for entity #{}", entity->Id());
 
         if (!mesh_component.mesh.IsValid() || !mesh_component.material.IsValid())
         {
             if (mesh_component.proxy)
             {
-                HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}!", entity->GetID());
+                HYP_LOG(ECS, Warning, "Mesh or material not valid for entity #{}!", entity->Id());
 
                 delete mesh_component.proxy;
                 mesh_component.proxy = nullptr;

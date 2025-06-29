@@ -329,7 +329,7 @@ void Camera::Init()
         .camera_near = m_near,
         .camera_far = m_far,
         .camera_fov = m_fov,
-        .id = GetID().Value() });
+        .id = Id().Value() });
 
     m_render_resource->IncRef();
 
@@ -683,7 +683,7 @@ void Camera::Update(float dt)
         .camera_near = m_near,
         .camera_far = m_far,
         .camera_fov = m_fov,
-        .id = GetID().Value() });
+        .id = Id().Value() });
 }
 
 void Camera::UpdateViewMatrix()

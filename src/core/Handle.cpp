@@ -105,7 +105,7 @@ AnyHandle::~AnyHandle()
     }
 }
 
-AnyHandle::IdType AnyHandle::GetID() const
+AnyHandle::IdType AnyHandle::Id() const
 {
     if (!IsValid())
     {

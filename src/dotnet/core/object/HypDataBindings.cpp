@@ -252,19 +252,19 @@ extern "C"
             return false;
         }
 
-        return hyp_data->Is<IdBase>();
+        return hyp_data->Is<ObjIdBase>();
     }
 
-    HYP_EXPORT int8 HypData_GetId(const HypData* hyp_data, IdBase* out_id)
+    HYP_EXPORT int8 HypData_GetId(const HypData* hyp_data, ObjIdBase* out_id)
     {
         if (!hyp_data || !out_id)
         {
             return false;
         }
 
-        if (hyp_data->Is<IdBase>())
+        if (hyp_data->Is<ObjIdBase>())
         {
-            *out_id = hyp_data->Get<IdBase>();
+            *out_id = hyp_data->Get<ObjIdBase>();
 
             return true;
         }
@@ -272,7 +272,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetId(HypData* hyp_data, IdBase* id)
+    HYP_EXPORT int8 HypData_SetId(HypData* hyp_data, ObjIdBase* id)
     {
         if (!hyp_data || !id)
         {

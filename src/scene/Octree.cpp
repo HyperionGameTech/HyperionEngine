@@ -197,7 +197,7 @@ void Octree::UpdateVisibilityState(const Handle<Camera>& camera, uint16 validity
     {
         // Process current node.
         current->m_visibility_state.validity_marker = validity_marker;
-        current->m_visibility_state.MarkAsValid(camera.GetID());
+        current->m_visibility_state.MarkAsValid(camera.Id());
 
         if (current->m_is_divided)
         {
@@ -349,7 +349,7 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
 
                             for (RayHit hit : local_bvh_results)
                             {
-                                hit.id = entry.value->GetID().Value();
+                                hit.id = entry.value->Id().Value();
                                 hit.user_data = nullptr;
 
                                 Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
@@ -377,12 +377,12 @@ bool Octree::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) 
                         NodeLinkComponent* node_link_component = m_entity_manager->TryGetComponent<NodeLinkComponent>(entry.value);
                         Handle<Node> node = node_link_component ? node_link_component->node.Lock() : nullptr;
 
-                        HYP_LOG(Octree, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value->GetID(), node ? node->GetName() : NAME("<null>"));
+                        HYP_LOG(Octree, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value->Id(), node ? node->GetName() : NAME("<null>"));
                     }
                 }
             }
 
-            if (ray.TestAABB(entry.aabb, entry.value->GetID().Value(), nullptr, aabb_result))
+            if (ray.TestAABB(entry.aabb, entry.value->Id().Value(), nullptr, aabb_result))
             {
                 out_results.Merge(std::move(aabb_result));
 

@@ -84,8 +84,8 @@ public:
     LogChannel& operator=(LogChannel&& other) noexcept = delete;
     HYP_API ~LogChannel();
 
-    /*! \brief Get the Id of this channel. */
-    HYP_FORCE_INLINE uint32 GetID() const
+    /*! \brief Get the integral identifier of this channel. */
+    HYP_FORCE_INLINE uint32 Id() const
     {
         return m_id;
     }

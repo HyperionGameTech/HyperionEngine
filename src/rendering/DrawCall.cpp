@@ -68,7 +68,7 @@ void DrawCallCollection::PushRenderProxy(DrawCallID id, const RenderProxy& rende
     draw_call.render_mesh = &render_proxy.mesh->GetRenderResource();
     draw_call.render_material = &render_proxy.material->GetRenderResource();
     draw_call.render_skeleton = render_proxy.skeleton.IsValid() ? &render_proxy.skeleton->GetRenderResource() : nullptr;
-    draw_call.entity_id = render_proxy.entity.GetID();
+    draw_call.entity_id = render_proxy.entity.Id();
     draw_call.draw_command_index = ~0u;
 }
 
@@ -134,7 +134,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
             batch = nullptr;
         }
 
-        const uint32 remaining_instances = PushEntityToBatch(*draw_call, render_proxy.entity.GetID(), render_proxy.instance_data, num_instances, instance_offset);
+        const uint32 remaining_instances = PushEntityToBatch(*draw_call, render_proxy.entity.Id(), render_proxy.instance_data, num_instances, instance_offset);
 
         instance_offset += num_instances - remaining_instances;
         num_instances = remaining_instances;
@@ -200,7 +200,7 @@ void DrawCallCollection::ResetDrawCalls()
     index_map.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, Id<Entity> entity_id, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
+uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ObjId<Entity> entity_id, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
     AssertThrow(num_instances <= mesh_instance_data.num_instances);

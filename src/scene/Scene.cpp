@@ -288,7 +288,7 @@ void Scene::SetWorld(World* world)
         return;
     }
 
-    if (m_world != nullptr && m_world->HasScene(GetID()))
+    if (m_world != nullptr && m_world->HasScene(Id()))
     {
         m_world->RemoveScene(HandleFromThis());
     }

@@ -126,7 +126,7 @@ public:
     {
         HYP_LOG(Profile, Info, "Iterate requests ({})", m_requests.Size());
 
-        Threads::AssertOnThread(m_thread.GetID());
+        Threads::AssertOnThread(m_thread.Id());
 
         // iterate over completed requests
         for (auto it = m_requests.Begin(); it != m_requests.End();)
@@ -166,7 +166,7 @@ public:
 
     bool StartConnection()
     {
-        Threads::AssertOnThread(m_thread.GetID());
+        Threads::AssertOnThread(m_thread.Id());
 
         if (m_params.endpoint_url.Empty())
         {
@@ -199,7 +199,7 @@ public:
 
     void Submit()
     {
-        Threads::AssertOnThread(m_thread.GetID());
+        Threads::AssertOnThread(m_thread.Id());
 
         if (m_params.endpoint_url.Empty())
         {

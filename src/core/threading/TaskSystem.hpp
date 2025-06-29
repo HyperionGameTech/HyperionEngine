@@ -177,7 +177,7 @@ protected:
         {
             UniquePtr<TaskThread>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadId(base_name, thread_index)));
 
-            m_thread_mask |= thread->GetID().GetMask();
+            m_thread_mask |= thread->Id().GetMask();
         }
     }
 
@@ -218,7 +218,7 @@ public:
     {
         const auto it = m_threads.FindIf([thread_id](const UniquePtr<TaskThread>& task_thread)
             {
-                return task_thread->GetID() == thread_id;
+                return task_thread->Id() == thread_id;
             });
 
         if (it != m_threads.End())

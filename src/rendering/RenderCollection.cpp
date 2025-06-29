@@ -145,7 +145,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
-static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<Id<Entity>, RenderProxy>& meshes, RenderProxy* proxy, View* view, const RenderableAttributeSet& attributes, RenderBucket rb)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ObjId<Entity>, RenderProxy>& meshes, RenderProxy* proxy, View* view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -192,10 +192,10 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<I
         InitObject(rg);
     }
 
-    mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
+    mapping.render_proxies.Insert(proxy->entity.Id(), proxy);
 }
 
-static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<Id<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ObjId<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -207,11 +207,11 @@ static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracke
     DrawCallCollectionMapping& mapping = it->second;
     AssertThrow(mapping.IsValid());
 
-    auto proxy_iter = mapping.render_proxies.Find(proxy->entity.GetID());
+    auto proxy_iter = mapping.render_proxies.Find(proxy->entity.Id());
 
     if (proxy_iter == mapping.render_proxies.End())
     {
-        HYP_LOG(Rendering, Warning, "RenderProxyList::RemoveRenderProxy: Render proxy not found in mapping for entity #%u", proxy->entity.GetID().Value());
+        HYP_LOG(Rendering, Warning, "RenderProxyList::RemoveRenderProxy: Render proxy not found in mapping for entity #%u", proxy->entity.Id().Value());
         return false;
     }
 
@@ -565,11 +565,11 @@ void RenderCollector::CollectDrawCalls(RenderProxyList& render_proxy_list, uint3
 
             if (unique_per_material)
             {
-                draw_call_id = DrawCallID(render_proxy->mesh->GetID(), render_proxy->material->GetID());
+                draw_call_id = DrawCallID(render_proxy->mesh->Id(), render_proxy->material->Id());
             }
             else
             {
-                draw_call_id = DrawCallID(render_proxy->mesh->GetID());
+                draw_call_id = DrawCallID(render_proxy->mesh->Id());
             }
 
             if (!render_proxy->instance_data.enable_auto_instancing

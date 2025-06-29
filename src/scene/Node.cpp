@@ -774,7 +774,7 @@ void Node::LockTransform()
             entity_manager->AddTag<EntityTag::STATIC>(m_entity);
             entity_manager->RemoveTag<EntityTag::DYNAMIC>(m_entity);
 
-            HYP_LOG(Node, Debug, "Node: {} Make Entity #{} static", m_name, m_entity.GetID().Value());
+            HYP_LOG(Node, Debug, "Node: {} Make Entity #{} static", m_name, m_entity.Id().Value());
         }
 
         m_transform_changed = false;
@@ -942,7 +942,7 @@ void Node::SetEntity(const Handle<Entity>& entity)
         UpdateWorldTransform();
     }
 
-    HYP_LOG(Node, Debug, "Node: {} Set Entity #{}\tScene: {}", m_name, m_entity.IsValid() ? m_entity.GetID().Value() : 0, m_scene ? m_scene->GetName() : Name::Invalid());
+    HYP_LOG(Node, Debug, "Node: {} Set Entity #{}\tScene: {}", m_name, m_entity.IsValid() ? m_entity.Id().Value() : 0, m_scene ? m_scene->GetName() : Name::Invalid());
 }
 
 void Node::SetEntityAABB(const BoundingBox& aabb)
@@ -1082,7 +1082,7 @@ void Node::UpdateWorldTransform(bool update_child_transforms)
 
         //         HYP_LOG(Node, Debug, "Node: {}; Make Entity #{} dynamic",
         //             GetName(),
-        //             m_entity.GetID().Value());
+        //             m_entity.Id().Value());
         //     }
 
         //     m_transform_changed = true;
@@ -1231,7 +1231,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
 
                     for (RayHit hit : local_bvh_results)
                     {
-                        hit.id = m_entity.GetID().Value();
+                        hit.id = m_entity.Id().Value();
                         hit.user_data = nullptr;
 
                         Vec4f transformed_normal = normal_matrix * Vec4f(hit.normal, 0.0f);
@@ -1254,7 +1254,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh) co
             }
             else
             {
-                has_entity_hit = ray.TestAABB(world_aabb, m_entity.GetID().Value(), nullptr, out_results);
+                has_entity_hit = ray.TestAABB(world_aabb, m_entity.Id().Value(), nullptr, out_results);
             }
         }
 

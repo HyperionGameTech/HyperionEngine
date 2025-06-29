@@ -72,7 +72,7 @@ public:
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture>& texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& textures);
 
-    void SetBoundTextureIDs(const Array<Id<Texture>>& bound_texture_ids);
+    void SetBoundTextureIDs(const Array<ObjId<Texture>>& bound_texture_ids);
 
     void SetBufferData(const MaterialShaderData& buffer_data);
 
@@ -91,8 +91,8 @@ private:
 
     Material* m_material;
     FlatMap<MaterialTextureKey, Handle<Texture>> m_textures;
-    HashMap<Id<Texture>, TResourceHandle<RenderTexture>> m_render_textures;
-    Array<Id<Texture>> m_bound_texture_ids;
+    HashMap<ObjId<Texture>, TResourceHandle<RenderTexture>> m_render_textures;
+    Array<ObjId<Texture>> m_bound_texture_ids;
     MaterialShaderData m_buffer_data;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 };

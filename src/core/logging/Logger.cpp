@@ -153,7 +153,7 @@ public:
     {
         const LogChannel* channel_ptr = &channel;
 
-        if (channel.GetID() >= Logger::max_channels)
+        if (channel.Id() >= Logger::max_channels)
         {
             channel_ptr = &Log_Core;
             return;
@@ -168,11 +168,11 @@ public:
             HYP_WAIT_IDLE();
         }
 
-        void* context = m_contexts[channel_ptr->GetID()];
-        LoggerWriteFnPtr fnptr = m_write_fnptr_table[channel_ptr->GetID()];
+        void* context = m_contexts[channel_ptr->Id()];
+        LoggerWriteFnPtr fnptr = m_write_fnptr_table[channel_ptr->Id()];
 
         uint32 bit_index;
-        uint64 mask = channel_ptr->GetMaskBitset().ToUInt64() & ~(1ull << channel_ptr->GetID());
+        uint64 mask = channel_ptr->GetMaskBitset().ToUInt64() & ~(1ull << channel_ptr->Id());
 
         while ((bit_index = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -196,7 +196,7 @@ public:
     {
         const LogChannel* channel_ptr = &channel;
 
-        if (channel.GetID() >= Logger::max_channels)
+        if (channel.Id() >= Logger::max_channels)
         {
             channel_ptr = &Log_Core;
             return;
@@ -211,11 +211,11 @@ public:
             HYP_WAIT_IDLE();
         }
 
-        void* context = m_contexts[channel_ptr->GetID()];
-        LoggerWriteFnPtr fnptr = m_write_error_fnptr_table[channel_ptr->GetID()];
+        void* context = m_contexts[channel_ptr->Id()];
+        LoggerWriteFnPtr fnptr = m_write_error_fnptr_table[channel_ptr->Id()];
 
         uint32 bit_index;
-        uint64 mask = channel_ptr->GetMaskBitset().ToUInt64() & ~(1ull << channel_ptr->GetID());
+        uint64 mask = channel_ptr->GetMaskBitset().ToUInt64() & ~(1ull << channel_ptr->Id());
 
         while ((bit_index = ByteUtil::HighestSetBitIndex(mask)) != -1)
         {
@@ -342,9 +342,9 @@ const LogChannel* Logger::FindLogChannel(WeakName name) const
 void Logger::RegisterChannel(LogChannel* channel)
 {
     AssertThrow(channel != nullptr);
-    AssertThrow(channel->GetID() < m_log_channels.Size());
+    AssertThrow(channel->Id() < m_log_channels.Size());
 
-    m_log_channels[channel->GetID()] = channel;
+    m_log_channels[channel->Id()] = channel;
 }
 
 LogChannel* Logger::CreateDynamicLogChannel(Name name, LogChannel* parent_channel)
@@ -399,11 +399,11 @@ void Logger::SetChannelEnabled(const LogChannel& channel, bool enabled)
 {
     if (enabled)
     {
-        m_log_mask.BitOr(1ull << channel.GetID(), MemoryOrder::RELAXED);
+        m_log_mask.BitOr(1ull << channel.Id(), MemoryOrder::RELAXED);
     }
     else
     {
-        m_log_mask.BitAnd(~(1ull << channel.GetID()), MemoryOrder::RELAXED);
+        m_log_mask.BitAnd(~(1ull << channel.Id()), MemoryOrder::RELAXED);
     }
 }
 

@@ -122,7 +122,7 @@ public:
 
         GpuBufferRef buffer = CreateGpuBuffer(buffer_type, required_size);
 
-        if (buffer->IsCPUAccessible())
+        if (buffer->IsCpuAccessible())
         {
             buffer->Memset(required_size, 0); // fill with zeros
         }

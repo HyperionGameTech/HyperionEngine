@@ -23,7 +23,7 @@ void ScenePrimaryCameraSystem::OnEntityAdded(Entity* entity)
     CameraComponent& camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
     if (!camera_component.camera.IsValid())
     {
-        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but camera is invalid", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but camera is invalid", GetEntityManager().GetScene()->GetName(), entity->Id().Value());
         return;
     }
 
@@ -31,7 +31,7 @@ void ScenePrimaryCameraSystem::OnEntityAdded(Entity* entity)
 
     if (!camera_component.camera->IsReady())
     {
-        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but camera is not ready", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but camera is not ready", GetEntityManager().GetScene()->GetName(), entity->Id().Value());
         return;
     }
 
@@ -39,7 +39,7 @@ void ScenePrimaryCameraSystem::OnEntityAdded(Entity* entity)
 
     if (entity_set.Size() > 1)
     {
-        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but there is already a primary camera", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+        HYP_LOG(Camera, Error, "CameraComponent added to scene {} entity #{} but there is already a primary camera", GetEntityManager().GetScene()->GetName(), entity->Id().Value());
         return;
     }
 }

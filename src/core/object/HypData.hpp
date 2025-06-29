@@ -5,7 +5,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Handle.hpp>
 
 #include <core/containers/String.hpp>
@@ -103,7 +103,7 @@ struct HypData
         double,
         bool,
         void*,
-        IdBase,
+        ObjIdBase,
         AnyHandle,
         RC<void>,
         AnyRef,
@@ -119,8 +119,8 @@ struct HypData
         || std::is_same_v<T, bool>
         || std::is_same_v<T, void*>
 
-        /*! All Id<T> are stored as IdBase */
-        || std::is_base_of_v<IdBase, T>
+        /*! All ObjId<T> are stored as ObjIdBase */
+        || std::is_base_of_v<ObjIdBase, T>
 
         /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle>
@@ -721,49 +721,49 @@ struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::Underl
 };
 
 template <>
-struct HypDataHelperDecl<IdBase>
+struct HypDataHelperDecl<ObjIdBase>
 {
 };
 
 template <>
-struct HypDataHelper<IdBase>
+struct HypDataHelper<ObjIdBase>
 {
-    using StorageType = IdBase;
+    using StorageType = ObjIdBase;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const IdBase& value) const
+    HYP_FORCE_INLINE bool Is(const ObjIdBase& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE constexpr IdBase& Get(IdBase& value) const
+    HYP_FORCE_INLINE constexpr ObjIdBase& Get(ObjIdBase& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const IdBase& Get(const IdBase& value) const
+    HYP_FORCE_INLINE const ObjIdBase& Get(const ObjIdBase& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hyp_data, const IdBase& value) const
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, const ObjIdBase& value) const
     {
         hyp_data.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(IdBase value, FBOMData& out_data)
+    HYP_FORCE_INLINE static FBOMResult Serialize(ObjIdBase value, FBOMData& out_data)
     {
-        out_data = FBOMData::FromStruct<IdBase>(value);
+        out_data = FBOMData::FromStruct<ObjIdBase>(value);
 
         return FBOMResult::FBOM_OK;
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
-        IdBase value;
+        ObjIdBase value;
 
-        if (FBOMResult err = data.ReadStruct<IdBase>(&value))
+        if (FBOMResult err = data.ReadStruct<ObjIdBase>(&value))
         {
             return err;
         }
@@ -775,18 +775,18 @@ struct HypDataHelper<IdBase>
 };
 
 template <class T>
-struct HypDataHelperDecl<Id<T>>
+struct HypDataHelperDecl<ObjId<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<Id<T>> : HypDataHelper<IdBase>
+struct HypDataHelper<ObjId<T>> : HypDataHelper<ObjIdBase>
 {
     using ConvertibleFrom = Tuple<AnyHandle>;
 
-    HYP_FORCE_INLINE bool Is(const IdBase& value) const
+    HYP_FORCE_INLINE bool Is(const ObjIdBase& value) const
     {
-        return true; // can't do anything more to check as IdBase doesn't hold type info.
+        return true; // can't do anything more to check as ObjIdBase doesn't hold type info.
     }
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
@@ -794,19 +794,19 @@ struct HypDataHelper<Id<T>> : HypDataHelper<IdBase>
         return value.Is<T>();
     }
 
-    HYP_FORCE_INLINE Id<T> Get(IdBase value) const
+    HYP_FORCE_INLINE ObjId<T> Get(ObjIdBase value) const
     {
-        return Id<T>(value);
+        return ObjId<T>(value);
     }
 
-    HYP_FORCE_INLINE Id<T> Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE ObjId<T> Get(const AnyHandle& value) const
     {
-        return Id<T>(value.GetID());
+        return ObjId<T>(value.Id());
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hyp_data, const Id<T>& value) const
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, const ObjId<T>& value) const
     {
-        HypDataHelper<IdBase>::Set(hyp_data, static_cast<const IdBase&>(value));
+        HypDataHelper<ObjIdBase>::Set(hyp_data, static_cast<const ObjIdBase&>(value));
     }
 };
 

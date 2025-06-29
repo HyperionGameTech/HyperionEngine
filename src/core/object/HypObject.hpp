@@ -3,11 +3,11 @@
 #ifndef HYPERION_CORE_HYP_OBJECT_HPP
 #define HYPERION_CORE_HYP_OBJECT_HPP
 
-#include <core/Id.hpp>
 #include <core/Name.hpp>
 #include <core/Defines.hpp>
-#include <core/ObjectPool.hpp>
 
+#include <core/object/ObjId.hpp>
+#include <core/object/ObjectPool.hpp>
 #include <core/object/HypObjectFwd.hpp>
 #include <core/object/HypObjectEnums.hpp>
 #include <core/object/managed/ManagedObjectResource.hpp>
@@ -347,9 +347,9 @@ public:                                                                         
         static constexpr bool is_hyp_object = true;                                  \
     };                                                                               \
                                                                                      \
-    HYP_FORCE_INLINE Id<T> GetID() const                                             \
+    HYP_FORCE_INLINE ObjId<T> Id() const                                             \
     {                                                                                \
-        return Id<T>(HypObjectBase::GetID());                                        \
+        return (ObjId<T>)(HypObjectBase::Id());                                      \
     }                                                                                \
                                                                                      \
     HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer() const             \
@@ -424,11 +424,11 @@ class HYP_API HypObjectBase
 public:
     virtual ~HypObjectBase();
 
-    HYP_FORCE_INLINE IdBase GetID() const
+    HYP_FORCE_INLINE ObjIdBase Id() const
     {
         AssertDebugMsg(m_header, "Invalid HypObject!");
 
-        return IdBase { m_header->container->GetObjectTypeId(), m_header->index + 1 };
+        return ObjIdBase { m_header->container->GetObjectTypeId(), m_header->index + 1 };
     }
 
     HYP_FORCE_INLINE TypeId GetTypeId() const

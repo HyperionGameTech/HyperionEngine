@@ -4,7 +4,7 @@
 #define HYPERION_BINDLESS_HPP
 
 #include <core/Base.hpp>
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 
 #include <core/containers/HashMap.hpp>
 
@@ -29,12 +29,12 @@ public:
     void Destroy();
 
     /*! \brief Add a texture to the bindless descriptor set. */
-    void AddResource(Id<Texture> id, const ImageViewRef& image_view);
+    void AddResource(ObjId<Texture> id, const ImageViewRef& image_view);
     /*! \brief Remove the given texture from the bindless descriptor set. */
-    void RemoveResource(Id<Texture> id);
+    void RemoveResource(ObjId<Texture> id);
 
 private:
-    HashMap<Id<Texture>, ImageViewWeakRef> m_resources;
+    HashMap<ObjId<Texture>, ImageViewWeakRef> m_resources;
 };
 
 } // namespace hyperion

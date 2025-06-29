@@ -628,7 +628,7 @@ bool World::RemoveScene(const Handle<Scene>& scene)
     return true;
 }
 
-bool World::HasScene(Id<Scene> scene_id) const
+bool World::HasScene(ObjId<Scene> scene_id) const
 {
     HYP_SCOPE;
 
@@ -636,7 +636,7 @@ bool World::HasScene(Id<Scene> scene_id) const
 
     return m_scenes.FindIf([scene_id](const Handle<Scene>& scene)
                {
-                   return scene.GetID() == scene_id;
+                   return scene.Id() == scene_id;
                })
         != m_scenes.End();
 }

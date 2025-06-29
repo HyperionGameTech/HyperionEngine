@@ -11,7 +11,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/Handle.hpp>
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 
 #include <type_traits>
 
@@ -73,9 +73,9 @@ struct TransformArgument<const char*> : DefaultTransformArgument<const char*>
 };
 
 template <class T>
-struct TransformArgument<Id<T>>
+struct TransformArgument<ObjId<T>>
 {
-    HYP_FORCE_INLINE typename Id<T>::ValueType operator()(Id<T> id) const
+    HYP_FORCE_INLINE typename ObjId<T>::ValueType operator()(ObjId<T> id) const
     {
         return id.Value();
     }

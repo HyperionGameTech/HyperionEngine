@@ -23,7 +23,7 @@ namespace threading {
 
 static const ThreadId& ThreadSet_KeyBy(ThreadBase* thread)
 {
-    return thread->GetID();
+    return thread->Id();
 }
 
 class ThreadMap
@@ -62,7 +62,7 @@ public:
 
         Mutex::Guard guard(m_mutex);
 
-        auto it = m_threads.Find(thread->GetID());
+        auto it = m_threads.Find(thread->Id());
 
         if (it != m_threads.End())
         {
@@ -209,12 +209,12 @@ void Threads::SetCurrentThreadObject(ThreadBase* thread)
 {
     AssertThrow(thread != nullptr);
 
-    AssertThrowMsg(IsThreadRegistered(thread->GetID()), "Thread %u (%s) is not registered",
-        thread->GetID().GetValue(), *thread->GetID().GetName());
+    AssertThrowMsg(IsThreadRegistered(thread->Id()), "Thread %u (%s) is not registered",
+        thread->Id().GetValue(), *thread->Id().GetName());
 
     g_current_thread = thread;
 
-    SetCurrentThreadId(thread->GetID());
+    SetCurrentThreadId(thread->Id());
     SetCurrentThreadPriority(thread->GetPriority());
 }
 

@@ -742,7 +742,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_se
                 else
                 {
                     HYP_LOG(EnvGrid, Warning, "EnvProbe {} out of range of max bound env probes (position: {}, world position: {}",
-                        probe->GetID(), binding_index.position, world_position);
+                        probe->Id(), binding_index.position, world_position);
                 }
 
                 probe->SetNeedsRender(false);
@@ -771,7 +771,7 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& render_se
     const Handle<EnvProbe>& probe = env_probe_collection.GetEnvProbeDirect(probe_index);
     AssertThrow(probe.IsValid());
 
-    HYP_LOG(EnvGrid, Debug, "Rendering EnvProbe {} at index {}", probe->GetID(), probe_index);
+    HYP_LOG(EnvGrid, Debug, "Rendering EnvProbe {} at index {}", probe->Id(), probe_index);
 
     RenderSetup new_render_setup = render_setup;
     new_render_setup.env_probe = probe;
@@ -990,7 +990,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
             // Log out SH data
             HYP_LOG(EnvGrid, Info, "EnvProbe {} SH data:\n\t{}\n\t{}\n\t{}\n\t{}\n",
-                resource_handle->GetEnvProbe()->GetID(),
+                resource_handle->GetEnvProbe()->Id(),
                 readback_buffer.sh.values[0],
                 readback_buffer.sh.values[1],
                 readback_buffer.sh.values[2],
@@ -1026,7 +1026,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
 
     RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
-    RenderProxyEnvGrid* proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->GetID()));
+    RenderProxyEnvGrid* proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->Id()));
     AssertThrow(proxy != nullptr, "EnvGrid render proxy not found!");
 
     const Vec2i irradiance_octahedron_size = proxy->buffer_data.irradiance_octahedron_size;
@@ -1066,7 +1066,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
         for (Light* light : rpl.lights)
         {
             HYP_LOG(EnvGrid, Debug, "Checking light {} for EnvGrid light binding, type: {}",
-                light->GetID(),
+                light->Id(),
                 light->GetLightType());
             const LightType light_type = light->GetLightType();
 

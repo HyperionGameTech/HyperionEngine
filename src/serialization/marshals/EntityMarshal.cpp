@@ -58,7 +58,7 @@ public:
 
         auto serialize_entity_and_components = [&]()
         {
-            Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(&entity);
+            Optional<const TypeMap<ComponentId>&> all_components = entity_manager->GetAllComponents(&entity);
 
             if (!all_components.HasValue())
             {
@@ -179,7 +179,7 @@ public:
 
         HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with Id: {}",
             entity->InstanceClass()->GetName(),
-            entity->GetID());
+            entity->Id());
 
         // Read components
 
@@ -278,12 +278,12 @@ public:
                 child_type_id.Value(),
                 child.GetType().name,
                 entity->InstanceClass()->GetName(),
-                entity->GetID());
+                entity->Id());
 
             // temp
             if (component_interface->GetTypeName() == "MeshComponent")
             {
-                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with Id: {}", entity->GetID());
+                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with Id: {}", entity->Id());
                 MeshComponent& mesh_component = child.m_deserialized_object->Get<MeshComponent>();
                 AssertThrow(mesh_component.mesh.IsValid());
             }
@@ -300,12 +300,12 @@ public:
 HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 
 // template <>
-// class FBOMMarshaler<Id<Entity>> : public FBOMObjectMarshalerBase<Id<Entity>>
+// class FBOMMarshaler<ObjId<Entity>> : public FBOMObjectMarshalerBase<ObjId<Entity>>
 // {
 // public:
 //     virtual ~FBOMMarshaler() override = default;
 
-//     virtual FBOMResult Serialize(const Id<Entity> &entity_id, FBOMObject &out) const override
+//     virtual FBOMResult Serialize(const ObjId<Entity> &entity_id, FBOMObject &out) const override
 //     {
 //         return FBOMMarshaler<Handle<Entity>>{}.Serialize(Handle<Entity>(entity_id), out);
 //     }
@@ -316,6 +316,6 @@ HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 //     }
 // };
 
-// HYP_DEFINE_MARSHAL(Id<Entity>, FBOMMarshaler<Id<Entity>>);
+// HYP_DEFINE_MARSHAL(ObjId<Entity>, FBOMMarshaler<ObjId<Entity>>);
 
 } // namespace hyperion::serialization

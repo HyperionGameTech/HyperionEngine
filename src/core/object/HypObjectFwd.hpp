@@ -8,7 +8,7 @@
 #include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 
 #ifdef HYP_DEBUG_MODE
 #include <core/threading/Threads.hpp>

@@ -40,7 +40,7 @@ public:
     virtual ~ThreadBase();
 
     /*! \brief Get the Id of this thread. This Id is unique to this thread and is used to identify it. */
-    HYP_FORCE_INLINE const ThreadId& GetID() const
+    HYP_FORCE_INLINE const ThreadId& Id() const
     {
         return m_id;
     }
@@ -160,7 +160,7 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
         {
             SetCurrentThreadObject(this);
 
-            m_scheduler.SetOwnerThread(GetID());
+            m_scheduler.SetOwnerThread(Id());
 
             (*this)((tuple_args.template GetElement<Args>())...);
 

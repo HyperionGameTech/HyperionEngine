@@ -1037,7 +1037,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob* job, const Lightmap
     out_payload.normal = Vec3f(0.0f);
     out_payload.distance = -1.0f;
     out_payload.barycentric_coords = Vec3f(0.0f);
-    out_payload.mesh_id = Id<Mesh>::invalid;
+    out_payload.mesh_id = ObjId<Mesh>::invalid;
     out_payload.triangle_index = ~0u;
 
     ILightmapAccelerationStructure* acceleration_structure = job->GetParams().acceleration_structure;
@@ -1072,7 +1072,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob* job, const Lightmap
 
         const LightmapSubElement& sub_element = *it->second;
 
-        const Id<Mesh> mesh_id = sub_element.mesh->GetID();
+        const ObjId<Mesh> mesh_id = sub_element.mesh->Id();
 
         const Vec3f barycentric_coords = hit.barycentric_coords;
 
@@ -1571,7 +1571,7 @@ void Lightmapper::PerformLightmapping()
         {
             if (!mesh_component.raytracing_data)
             {
-                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity->GetID());
+                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity->Id());
 
                 continue;
             }
@@ -1597,7 +1597,7 @@ void Lightmapper::PerformLightmapping()
     {
         if (!sub_element.mesh->BuildBVH())
         {
-            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", sub_element.entity.GetID());
+            HYP_LOG(Lightmap, Error, "Failed to build BVH for mesh on entity {} in lightmapper", sub_element.entity.Id());
 
             continue;
         }

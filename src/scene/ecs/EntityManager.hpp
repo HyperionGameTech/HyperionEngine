@@ -30,7 +30,7 @@
 #include <core/profiling/PerformanceClock.hpp>
 
 #include <core/Handle.hpp>
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntitySet.hpp>
@@ -271,7 +271,7 @@ class HYP_API EntityManager final : public HypObject<EntityManager>
     friend class Entity;
 
 public:
-    static constexpr ComponentID invalid_component_id = 0;
+    static constexpr ComponentId invalid_component_id = 0;
 
     EntityManager(const ThreadId& owner_thread_id, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager&) = delete;
@@ -529,7 +529,7 @@ public:
         EntityData* entity_data = m_entities.TryGetEntityData(entity);
         AssertThrowMsg(entity_data != nullptr, "Entity does not exist");
 
-        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentId<Component>();
+        const Optional<ComponentId> component_id_opt = entity_data->TryGetComponentId<Component>();
         AssertThrowMsg(component_id_opt.HasValue(), "Entity does not have component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
         static const TypeId component_type_id = TypeId::ForType<Component>();
@@ -577,7 +577,7 @@ public:
 
         static const TypeId component_type_id = TypeId::ForType<Component>();
 
-        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentId<Component>();
+        const Optional<ComponentId> component_id_opt = entity_data->TryGetComponentId<Component>();
 
         if (!component_id_opt)
         {
@@ -629,7 +629,7 @@ public:
             return AnyRef::Empty();
         }
 
-        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentID(component_type_id);
+        const Optional<ComponentId> component_id_opt = entity_data->TryGetComponentId(component_type_id);
 
         if (!component_id_opt)
         {
@@ -669,7 +669,7 @@ public:
     /*! \brief Get a map of all component types to respective component IDs for a given Entity.
      *  \param entity The Entity to get the components from
      *  \returns An Optional object holding a reference to the typemap if it exists, otherwise an empty optional. */
-    HYP_FORCE_INLINE Optional<const TypeMap<ComponentID>&> GetAllComponents(const Entity* entity) const
+    HYP_FORCE_INLINE Optional<const TypeMap<ComponentId>&> GetAllComponents(const Entity* entity) const
     {
         if (!entity)
         {
@@ -708,7 +708,7 @@ public:
         AssertThrow(entity_data != nullptr);
 
         Component* component_ptr = nullptr;
-        TypeMap<ComponentID> component_ids;
+        TypeMap<ComponentId> component_ids;
 
         auto component_it = entity_data->FindComponent<Component>();
         // @TODO: Replace the component if it already exists
@@ -716,7 +716,7 @@ public:
 
         static const TypeId component_type_id = TypeId::ForType<Component>();
 
-        const Pair<ComponentID, Component&> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
+        const Pair<ComponentId, Component&> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
 
         entity_data->components.Set<Component>(component_insert_result.first);
 
@@ -773,7 +773,7 @@ public:
 
         Threads::AssertOnThread(m_owner_thread_id);
 
-        TypeMap<ComponentID> removed_component_ids;
+        TypeMap<ComponentId> removed_component_ids;
 
         EntityData* entity_data = m_entities.TryGetEntityData(entity);
 
@@ -789,7 +789,7 @@ public:
         }
 
         const TypeId component_type_id = component_it->first;
-        const ComponentID component_id = component_it->second;
+        const ComponentId component_id = component_it->second;
 
         // Notify systems that entity is being removed from them
         removed_component_ids.Set(component_type_id, component_id);
@@ -1078,8 +1078,8 @@ private:
     void InitializeSystem(const Handle<SystemBase>& system);
     void ShutdownSystem(const Handle<SystemBase>& system);
 
-    void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentID>& component_ids);
-    void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentID>& component_ids);
+    void NotifySystemsOfEntityAdded(const Handle<Entity>& entity, const TypeMap<ComponentId>& component_ids);
+    void NotifySystemsOfEntityRemoved(Entity* entity, const TypeMap<ComponentId>& component_ids);
 
     /*! \brief Removes an entity from the EntityManager.
      *

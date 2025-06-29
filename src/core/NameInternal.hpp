@@ -71,7 +71,7 @@ struct Name
     constexpr Name(Name&& other) noexcept = default;
     constexpr Name& operator=(Name&& other) noexcept = default;
 
-    HYP_FORCE_INLINE constexpr NameID GetID() const
+    HYP_FORCE_INLINE constexpr NameID Id() const
     {
         return hash_code;
     }
@@ -191,7 +191,7 @@ struct WeakName
     constexpr WeakName(WeakName&& other) noexcept = default;
     constexpr WeakName& operator=(WeakName&& other) noexcept = default;
 
-    HYP_FORCE_INLINE constexpr NameID GetID() const
+    HYP_FORCE_INLINE constexpr NameID Id() const
     {
         return hash_code;
     }

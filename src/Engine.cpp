@@ -97,7 +97,7 @@ public:
         Threads::AssertOnThread(g_render_thread);
 
         SetCurrentThreadObject(this);
-        m_scheduler.SetOwnerThread(GetID());
+        m_scheduler.SetOwnerThread(Id());
 
         (*this)();
 

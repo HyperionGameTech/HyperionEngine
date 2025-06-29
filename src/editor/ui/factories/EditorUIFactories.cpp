@@ -571,18 +571,18 @@ public:
 
         if (!entity_manager)
         {
-            HYP_LOG(Editor, Error, "No EntityManager found for Entity {}", entity->GetID());
+            HYP_LOG(Editor, Error, "No EntityManager found for Entity {}", entity->Id());
 
             return nullptr;
         }
 
         auto create_components_grid = [&]() -> Handle<UIObject>
         {
-            Optional<const TypeMap<ComponentID>&> all_components = entity_manager->GetAllComponents(entity);
+            Optional<const TypeMap<ComponentId>&> all_components = entity_manager->GetAllComponents(entity);
 
             if (!all_components.HasValue())
             {
-                HYP_LOG(Editor, Error, "No component map found for Entity {}", entity->GetID());
+                HYP_LOG(Editor, Error, "No component map found for Entity {}", entity->Id());
 
                 return nullptr;
             }
@@ -609,7 +609,7 @@ public:
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data))
                 {
-                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with Id {} for Entity {}", component_interface->GetTypeName(), it.second, entity->GetID());
+                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with Id {} for Entity {}", component_interface->GetTypeName(), it.second, entity->Id());
 
                     continue;
                 }
@@ -820,7 +820,7 @@ public:
                     ScriptComponent *script_component = entity_manager->TryGetComponent<ScriptComponent>(entity);
 
                     if (!script_component) {
-                        HYP_LOG(Editor, Error, "Failed to get ScriptComponent for Entity {}", entity->GetID());
+                        HYP_LOG(Editor, Error, "Failed to get ScriptComponent for Entity {}", entity->Id());
 
                         return UIEventHandlerResult::ERR;
                     }

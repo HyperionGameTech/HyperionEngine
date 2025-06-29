@@ -15,9 +15,9 @@ namespace hyperion {
 struct RENDER_COMMAND(RemoveTextureFromBindlessStorage)
     : RenderCommand
 {
-    Id<Texture> id;
+    ObjId<Texture> id;
 
-    RENDER_COMMAND(RemoveTextureFromBindlessStorage)(Id<Texture> id)
+    RENDER_COMMAND(RemoveTextureFromBindlessStorage)(ObjId<Texture> id)
         : id(id)
     {
     }

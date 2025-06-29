@@ -25,7 +25,7 @@ void CameraSystem::OnEntityAdded(Entity* entity)
 {
     SystemBase::OnEntityAdded(entity);
 
-    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityAdded: CameraComponent added to scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->GetID().Value());
+    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityAdded: CameraComponent added to scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->Id().Value());
 
     CameraComponent& camera_component = GetEntityManager().GetComponent<CameraComponent>(entity);
     InitObject(camera_component.camera);
@@ -53,7 +53,7 @@ void CameraSystem::OnEntityRemoved(Entity* entity)
         }
     }
 
-    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityRemoved: CameraComponent removed from scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->GetID());
+    HYP_LOG(Camera, Debug, "CameraSystem::OnEntityRemoved: CameraComponent removed from scene {} entity #{}", GetEntityManager().GetScene()->GetName(), entity->Id());
 }
 
 void CameraSystem::Process(float delta)

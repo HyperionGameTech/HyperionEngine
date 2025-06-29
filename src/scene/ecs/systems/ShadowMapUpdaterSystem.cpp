@@ -46,7 +46,7 @@ void ShadowMapUpdaterSystem::OnEntityAdded(Entity* entity)
 
     // if (!light_component.light)
     // {
-    //     HYP_LOG(Shadows, Warning, "LightComponent is not valid for Entity #{}", entity->GetID().Value());
+    //     HYP_LOG(Shadows, Warning, "LightComponent is not valid for Entity #{}", entity->Id().Value());
 
     //     return;
     // }

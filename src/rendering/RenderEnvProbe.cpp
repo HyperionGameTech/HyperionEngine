@@ -94,7 +94,7 @@ void RenderEnvProbe::SetTextureSlot(uint32 texture_slot)
 
     Execute([this, texture_slot]()
         {
-            HYP_LOG(Rendering, Debug, "Setting texture slot for EnvProbe {} (type: {}) to {}", m_env_probe->GetID(), m_env_probe->GetEnvProbeType(), texture_slot);
+            HYP_LOG(Rendering, Debug, "Setting texture slot for EnvProbe {} (type: {}) to {}", m_env_probe->Id(), m_env_probe->GetEnvProbeType(), texture_slot);
 
             if (m_texture_slot == texture_slot)
             {
@@ -265,7 +265,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     if (m_env_probe->IsControlledByEnvGrid())
     {
-        HYP_LOG(EnvProbe, Warning, "EnvProbe {} is controlled by an EnvGrid, but Render() is being called!", m_env_probe->GetID());
+        HYP_LOG(EnvProbe, Warning, "EnvProbe {} is controlled by an EnvGrid, but Render() is being called!", m_env_probe->Id());
 
         return;
     }
@@ -280,7 +280,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     }
 
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
-        m_env_probe->GetID(), m_env_probe->GetEnvProbeType());
+        m_env_probe->Id(), m_env_probe->GetEnvProbeType());
 
     const uint32 frame_index = frame->GetFrameIndex();
 
@@ -305,7 +305,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
     if (m_env_probe->IsSkyProbe() || m_env_probe->IsReflectionProbe())
     {
         // HYP_LOG(EnvProbe, Debug, "Render sky/reflection probe {} (type: {})",
-        //     m_env_probe->GetID(), m_env_probe->GetEnvProbeType());
+        //     m_env_probe->Id(), m_env_probe->GetEnvProbeType());
 
         return; // now handled by ReflectionProbeRenderer
     }
@@ -315,7 +315,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
         AssertThrow(m_shadow_map->GetAtlasElement().point_light_index != ~0u);
 
         HYP_LOG(EnvProbe, Debug, "Render shadow probe {} (pointlight index: {})",
-            m_env_probe->GetID(), m_shadow_map->GetAtlasElement().point_light_index);
+            m_env_probe->Id(), m_shadow_map->GetAtlasElement().point_light_index);
 
         const ImageViewRef& shadow_map_image_view = m_shadow_map->GetImageView();
         AssertThrow(shadow_map_image_view.IsValid());
@@ -468,17 +468,17 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
-        env_probe->GetID(), env_probe->GetEnvProbeType());
+        env_probe->Id(), env_probe->GetEnvProbeType());
 
     if (env_probe->IsInstanceOf(SkyProbe::Class()))
     {
         if (!render_setup.light)
         {
-            HYP_LOG(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", env_probe->GetID(), view->GetID());
+            HYP_LOG(Rendering, Warning, "No directional light bound while rendering SkyProbe {} in view {}", env_probe->Id(), view->Id());
         }
         else if (render_setup.light->GetLightType() != LT_DIRECTIONAL)
         {
-            HYP_LOG(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}", render_setup.light->GetID(), view->GetID());
+            HYP_LOG(Rendering, Warning, "Light bound to SkyProbe pass is not a directional light: {} in view {}", render_setup.light->Id(), view->Id());
         }
     }
 
@@ -611,7 +611,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     const DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
     DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
-    descriptor_table->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", env_probe->GetID().Value()));
+    descriptor_table->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", env_probe->Id().Value()));
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -659,7 +659,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     // {
     //     g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), m_texture_slot, prefiltered_env_map->GetRenderResource().GetImageView());
     //     HYP_LOG(EnvProbe, Debug, "Set EnvProbe texture slot {} for envprobe {} in global descriptor table",
-    //         m_env_probe->GetTextureSlot(), m_env_probe->GetID());
+    //         m_env_probe->GetTextureSlot(), m_env_probe->Id());
     // }
 
     DelegateHandler* delegate_handle = new DelegateHandler();
@@ -933,7 +933,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
             Memory::MemCpy(render_env_probe->m_spherical_harmonics.values, readback_buffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
 
-            HYP_LOG(EnvProbe, Debug, "EnvProbe {} (type: {}) SH computed", render_env_probe->GetEnvProbe()->GetID(), render_env_probe->GetEnvProbe()->GetEnvProbeType());
+            HYP_LOG(EnvProbe, Debug, "EnvProbe {} (type: {}) SH computed", render_env_probe->GetEnvProbe()->Id(), render_env_probe->GetEnvProbe()->GetEnvProbeType());
             for (uint32 i = 0; i < 9; i++)
             {
                 HYP_LOG(EnvProbe, Debug, "SH[{}]: {}", i, render_env_probe->m_spherical_harmonics.values[i]);

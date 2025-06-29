@@ -116,7 +116,7 @@ void Light::EnqueueRenderUpdates()
 
     // temp shit
     LightShaderData buffer_data {
-        .light_id = GetID().Value(),
+        .light_id = Id().Value(),
         .light_type = uint32(m_type),
         .color_packed = uint32(m_color),
         .radius = m_radius,
@@ -216,7 +216,7 @@ void Light::UpdateRenderProxy(IRenderProxy* proxy)
     const BoundingBox aabb = GetAABB();
 
     LightShaderData& buffer_data = proxy_casted->buffer_data;
-    buffer_data.light_id = GetID().Value();
+    buffer_data.light_id = Id().Value();
     buffer_data.light_type = uint32(m_type);
     buffer_data.color_packed = uint32(m_color);
     buffer_data.radius = m_radius;

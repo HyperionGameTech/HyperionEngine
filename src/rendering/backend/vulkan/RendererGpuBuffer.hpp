@@ -20,7 +20,7 @@ public:
     }
 
     HYP_API virtual bool IsCreated() const override;
-    HYP_API virtual bool IsCPUAccessible() const override;
+    HYP_API virtual bool IsCpuAccessible() const override;
 
     HYP_API virtual void InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state) const override;
     HYP_API virtual void InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state, ShaderModuleType shader_type) const override;

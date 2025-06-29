@@ -2,7 +2,7 @@
 
 #include <core/object/HypData.hpp>
 
-#include <core/ObjectPool.hpp>
+#include <core/object/ObjectPool.hpp>
 
 #include <core/utilities/Format.hpp>
 

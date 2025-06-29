@@ -140,7 +140,7 @@ GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd) const
 
     AssertThrow(pd != nullptr);
 
-    HYP_LOG(Rendering, Debug, "Creating graphics pipeline for RenderGroup: {}", GetID());
+    HYP_LOG(Rendering, Debug, "Creating graphics pipeline for RenderGroup: {}", Id());
 
     Handle<View> view = pd->view.Lock();
     AssertThrow(view.IsValid());
@@ -499,7 +499,7 @@ static void RenderAll_Parallel(
 
         if (render_setup.env_probe)
         {
-            if (IRenderProxy* proxy = RenderApi_GetRenderProxy(render_setup.env_probe->GetID()))
+            if (IRenderProxy* proxy = RenderApi_GetRenderProxy(render_setup.env_probe->Id()))
             {
                 env_probe_proxy = static_cast<RenderProxyEnvProbe*>(proxy);
             }
@@ -717,10 +717,10 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
     AssertDebugMsg(render_setup.HasView(), "RenderSetup must have a valid RenderView for rendering");
     AssertDebugMsg(render_setup.pass_data != nullptr, "RenderSetup must have valid PassData for rendering!");
 
-    auto* cache_entry = render_setup.pass_data->render_group_cache.TryGet(GetID().ToIndex());
+    auto* cache_entry = render_setup.pass_data->render_group_cache.TryGet(Id().ToIndex());
     if (!cache_entry || cache_entry->render_group.GetUnsafe() != this)
     {
-        cache_entry = &*render_setup.pass_data->render_group_cache.Emplace(GetID().ToIndex());
+        cache_entry = &*render_setup.pass_data->render_group_cache.Emplace(Id().ToIndex());
 
         if (cache_entry->graphics_pipeline.IsValid())
         {
@@ -736,7 +736,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
     VulkanGraphicsPipeline* vulkan_graphics_pipeline = static_cast<VulkanGraphicsPipeline*>(cache_entry->graphics_pipeline.Get());
 
     // DebugLog(LogType::Debug, "PerformRendering() for RenderGroup #%u w/ with renderpass format: %u for pipeline %p\tand view renderpass format: %u for renderpass %p\n",
-    //     GetID().Value(),
+    //     Id().Value(),
     //     vulkan_graphics_pipeline->GetRenderPass()->GetAttachments()[0]->GetFormat(),
     //     vulkan_graphics_pipeline,
     //     render_setup.pass_data->view.GetUnsafe()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetFormat(),

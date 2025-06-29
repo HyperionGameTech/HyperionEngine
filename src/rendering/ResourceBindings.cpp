@@ -33,13 +33,13 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
 
     if (!env_probe->GetPrefilteredEnvMap().IsValid())
     {
-        HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", env_probe->GetID(),
+        HYP_LOG(Rendering, Error, "EnvProbe {} (class: {}) has no prefiltered env map set!\n", env_probe->Id(),
             env_probe->InstanceClass()->GetName());
 
         return;
     }
 
-    DebugLog(LogType::Debug, "EnvProbe %u (class: %s) binding changed from %u to %u\n", env_probe->GetID().Value(),
+    DebugLog(LogType::Debug, "EnvProbe %u (class: %s) binding changed from %u to %u\n", env_probe->Id().Value(),
         *env_probe->InstanceClass()->GetName(),
         prev, next);
 
@@ -57,7 +57,7 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
         env_probe->GetPrefilteredEnvMap()->GetRenderResource().IncRef();
     }
 
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(env_probe->GetID());
+    IRenderProxy* proxy = RenderApi_GetRenderProxy(env_probe->Id());
     AssertThrow(proxy != nullptr);
 
     RenderProxyEnvProbe* proxy_casted = static_cast<RenderProxyEnvProbe*>(proxy);
@@ -75,7 +75,7 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
         AssertDebug(env_probe->GetPrefilteredEnvMap().IsValid());
         AssertDebug(env_probe->GetPrefilteredEnvMap()->IsReady());
 
-        HYP_LOG(Rendering, Debug, "Setting env probe texture at index: {} to tex with Id: {}", next, env_probe->GetPrefilteredEnvMap().GetID());
+        HYP_LOG(Rendering, Debug, "Setting env probe texture at index: {} to tex with Id: {}", next, env_probe->GetPrefilteredEnvMap().Id());
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
             g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)->SetElement(NAME("EnvProbeTextures"), next, env_probe->GetPrefilteredEnvMap()->GetRenderResource().GetImageView());
@@ -92,7 +92,7 @@ void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next)
 {
     AssertDebug(env_grid != nullptr);
 
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(env_grid->GetID());
+    IRenderProxy* proxy = RenderApi_GetRenderProxy(env_grid->Id());
     AssertThrow(proxy != nullptr);
 
     RenderProxyEnvGrid* proxy_casted = static_cast<RenderProxyEnvGrid*>(proxy);
@@ -146,7 +146,7 @@ void OnLightBindingChanged(Light* light, uint32 prev, uint32 next)
 {
     AssertDebug(light != nullptr);
 
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(light->GetID());
+    IRenderProxy* proxy = RenderApi_GetRenderProxy(light->Id());
     AssertThrow(proxy != nullptr);
 
     RenderProxyLight* proxy_casted = static_cast<RenderProxyLight*>(proxy);
@@ -162,7 +162,7 @@ void OnLightmapVolumeBindingChanged(LightmapVolume* lightmap_volume, uint32 prev
 {
     AssertDebug(lightmap_volume != nullptr);
 
-    IRenderProxy* proxy = RenderApi_GetRenderProxy(lightmap_volume->GetID());
+    IRenderProxy* proxy = RenderApi_GetRenderProxy(lightmap_volume->Id());
     AssertThrow(proxy != nullptr);
 
     RenderProxyLightmapVolume* proxy_casted = static_cast<RenderProxyLightmapVolume*>(proxy);

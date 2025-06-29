@@ -43,16 +43,16 @@ public:
 
     void ResetOrdering();
 
-    void PushRenderProxy(ResourceTracker<Id<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth);
+    void PushRenderProxy(ResourceTracker<ObjId<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth);
 
-    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff PushUpdatesToRenderThread(
-        ResourceTracker<Id<Entity>, RenderProxy>& meshes,
+    typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff PushUpdatesToRenderThread(
+        ResourceTracker<ObjId<Entity>, RenderProxy>& meshes,
         const Optional<RenderableAttributeSet>& override_attributes = {});
 
     void CollectDrawCalls(FrameBase* frame, const RenderSetup& render_setup);
     void ExecuteDrawCalls(FrameBase* frame, const RenderSetup& render_setup, const FramebufferRef& framebuffer) const;
 
-    Array<Pair<Id<Entity>, int>> proxy_depths;
+    Array<Pair<ObjId<Entity>, int>> proxy_depths;
     RC<RenderProxyList> rpl;
 };
 
@@ -98,12 +98,12 @@ public:
         return m_ui_stage;
     }
 
-    HYP_FORCE_INLINE ResourceTracker<Id<Entity>, RenderProxy>& GetRenderProxyTracker()
+    HYP_FORCE_INLINE ResourceTracker<ObjId<Entity>, RenderProxy>& GetRenderProxyTracker()
     {
         return m_render_proxy_tracker;
     }
 
-    HYP_FORCE_INLINE const ResourceTracker<Id<Entity>, RenderProxy>& GetRenderProxyTracker() const
+    HYP_FORCE_INLINE const ResourceTracker<ObjId<Entity>, RenderProxy>& GetRenderProxyTracker() const
     {
         return m_render_proxy_tracker;
     }
@@ -124,7 +124,7 @@ private:
     ShaderRef m_shader;
 
     // Game thread side list, used for collecting UI objects
-    ResourceTracker<Id<Entity>, RenderProxy> m_render_proxy_tracker;
+    ResourceTracker<ObjId<Entity>, RenderProxy> m_render_proxy_tracker;
 
     TResourceHandle<RenderCamera> m_camera_resource_handle;
 

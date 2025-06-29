@@ -3,7 +3,7 @@
 #ifndef HYPERION_RESOURCE_TRACKER_HPP
 #define HYPERION_RESOURCE_TRACKER_HPP
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Defines.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
@@ -264,7 +264,7 @@ public:
     // still iterate over the elements (mostly) linearly.
     using ElementArrayType = SparsePagedArray<ElementType, 256>;
 
-    static_assert(std::is_base_of_v<IdBase, IdType>, "IdType must be derived from IdBase (must use numeric Id)");
+    static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric Id)");
 
     ResourceTracker()
         : m_impl(IdType::type_id_static) // default impl for base class
@@ -658,7 +658,7 @@ public:
     // protected:
     struct Impl final
     {
-        /*! \brief Checks if the ResourceTracker<Id<Entity>, RenderProxy> already has a proxy for the given Id from the previous frame */
+        /*! \brief Checks if the ResourceTracker<ObjId<Entity>, RenderProxy> already has a proxy for the given Id from the previous frame */
         HYP_FORCE_INLINE bool HasElement(IdType id) const
         {
             AssertDebugMsg(id.GetTypeId() == type_id, "ResourceTracker typeid mismatch");
@@ -835,7 +835,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 out_ids.PushBack(id);
 
@@ -861,7 +861,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -890,7 +890,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -919,7 +919,7 @@ public:
 
             while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -948,7 +948,7 @@ public:
 
             while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -972,7 +972,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != -1)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 out_ids.PushBack(id);
 
@@ -993,7 +993,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1017,7 +1017,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1041,7 +1041,7 @@ public:
 
             while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1065,7 +1065,7 @@ public:
 
             while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(ObjIdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);

@@ -174,7 +174,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                 // temp
                 if (property->GetName() == NAME("Entity") && hyp_class == Node::Class())
                 {
-                    HYP_LOG(Serialization, Debug, "Setting entity for Node with Id : {}, and name: {}", ref.Get<Node>().GetID(), ref.Get<Node>().GetName());
+                    HYP_LOG(Serialization, Debug, "Setting entity for Node with Id : {}, and name: {}", ref.Get<Node>().Id(), ref.Get<Node>().GetName());
                 }
 
                 if (hyp_class->GetName() == NAME("MeshComponent"))

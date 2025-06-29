@@ -341,7 +341,7 @@ bool ResourceBase::CanExecuteInline() const
 {
     ThreadBase* owner_thread = GetOwnerThread();
 
-    return owner_thread == nullptr || Threads::IsOnThread(owner_thread->GetID());
+    return owner_thread == nullptr || Threads::IsOnThread(owner_thread->Id());
 }
 
 void ResourceBase::FlushScheduledTasks() const

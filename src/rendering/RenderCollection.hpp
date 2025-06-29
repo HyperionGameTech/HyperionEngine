@@ -12,7 +12,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 
 #include <core/math/Transform.hpp>
 
@@ -75,7 +75,7 @@ struct ParallelRenderingState
 struct DrawCallCollectionMapping
 {
     Handle<RenderGroup> render_group;
-    HashMap<Id<Entity>, RenderProxy*> render_proxies;
+    HashMap<ObjId<Entity>, RenderProxy*> render_proxies;
     DrawCallCollection draw_call_collection;
     IndirectRenderer* indirect_renderer = nullptr;
 
@@ -149,11 +149,11 @@ struct HYP_API RenderProxyList
     Viewport viewport;
     int priority;
 
-    ResourceTracker<Id<Entity>, RenderProxy> meshes;
-    ResourceTracker<Id<EnvProbe>, EnvProbe*> env_probes;
-    ResourceTracker<Id<Light>, Light*> lights;
-    ResourceTracker<Id<EnvGrid>, EnvGrid*> env_grids;
-    ResourceTracker<Id<LightmapVolume>, LightmapVolume*> lightmap_volumes;
+    ResourceTracker<ObjId<Entity>, RenderProxy> meshes;
+    ResourceTracker<ObjId<EnvProbe>, EnvProbe*> env_probes;
+    ResourceTracker<ObjId<Light>, Light*> lights;
+    ResourceTracker<ObjId<EnvGrid>, EnvGrid*> env_grids;
+    ResourceTracker<ObjId<LightmapVolume>, LightmapVolume*> lightmap_volumes;
 
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;

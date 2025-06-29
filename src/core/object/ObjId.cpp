@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/object/HypClass.hpp>
 
 namespace hyperion {

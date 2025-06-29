@@ -366,7 +366,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& out_object
             RayHit hit {};
             hit.hitpoint = Vec3f { position.x, position.y, 0.0f };
             hit.distance = -float(ui_object->GetComputedDepth());
-            hit.id = entity->GetID().Value();
+            hit.id = entity->Id().Value();
             hit.user_data = ui_object;
 
             ray_test_results.AddHit(hit);

@@ -34,7 +34,7 @@ void BindlessStorage::Destroy()
     m_resources.Clear();
 }
 
-void BindlessStorage::AddResource(Id<Texture> id, const ImageViewRef& image_view)
+void BindlessStorage::AddResource(ObjId<Texture> id, const ImageViewRef& image_view)
 {
     Threads::AssertOnThread(g_render_thread);
 
@@ -61,7 +61,7 @@ void BindlessStorage::AddResource(Id<Texture> id, const ImageViewRef& image_view
     }
 }
 
-void BindlessStorage::RemoveResource(Id<Texture> id)
+void BindlessStorage::RemoveResource(ObjId<Texture> id)
 {
     Threads::AssertOnThread(g_render_thread);
 

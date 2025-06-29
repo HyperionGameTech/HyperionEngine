@@ -13,7 +13,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Handle.hpp>
 
 #include <rendering/RenderResource.hpp>

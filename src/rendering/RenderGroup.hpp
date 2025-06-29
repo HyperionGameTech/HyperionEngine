@@ -4,7 +4,7 @@
 #define HYPERION_RENDER_GROUP_HPP
 
 #include <core/utilities/EnumFlags.hpp>
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/Shader.hpp>

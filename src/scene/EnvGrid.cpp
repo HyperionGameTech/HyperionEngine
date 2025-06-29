@@ -479,7 +479,7 @@ void EnvGrid::Update(float delta)
     BoundingBoxComponent* bounding_box_component = GetEntityManager()->TryGetComponent<BoundingBoxComponent>(this);
     if (!bounding_box_component)
     {
-        HYP_LOG(EnvGrid, Error, "EnvGrid {} does not have a BoundingBoxComponent, cannot update", GetID());
+        HYP_LOG(EnvGrid, Error, "EnvGrid {} does not have a BoundingBoxComponent, cannot update", Id());
         return;
     }
 
@@ -511,7 +511,7 @@ void EnvGrid::Update(float delta)
     m_view->UpdateVisibility();
     m_view->Update(delta);
 
-    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes\t lights: {}", GetID(), m_env_probe_collection.num_probes,
+    HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes\t lights: {}", Id(), m_env_probe_collection.num_probes,
         RenderApi_GetProducerProxyList(m_view).lights.NumCurrent());
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)

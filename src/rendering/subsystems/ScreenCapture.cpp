@@ -126,7 +126,7 @@ void ScreenCaptureRenderSubsystem::CaptureFrame(FrameBase* frame)
 
     if (!pd)
     {
-        HYP_LOG(Rendering, Warning, "No pass data found for view {}. Skipping screen capture.", m_view->GetID());
+        HYP_LOG(Rendering, Warning, "No pass data found for view {}. Skipping screen capture.", m_view->Id());
 
         return;
     }

@@ -96,7 +96,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                         }
 
                         json::JSONObject entity_json;
-                        entity_json["id"] = entity->GetID().Value();
+                        entity_json["id"] = entity->Id().Value();
 
                         entity_json["num_strong_refs"] = entity.ptr->GetObjectHeader_Internal()->GetRefCountStrong() - 1;
                         entity_json["num_weak_refs"] = entity.ptr->GetObjectHeader_Internal()->GetRefCountWeak();
@@ -106,7 +106,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                         for (const auto& it : *entity_manager->GetAllComponents(entity))
                         {
                             const TypeId component_type_id = it.first;
-                            const ComponentID component_id = it.second;
+                            const ComponentId component_id = it.second;
 
                             const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
@@ -133,7 +133,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                                             { "num_weak_refs", node->GetObjectHeader_Internal()->GetRefCountWeak() },
                                             { "parent_name", node->GetParent() ? json::JSONValue(json::JSONString(*node->GetParent()->GetName())) : json::JSONValue(json::JSONNull()) },
                                             { "parent_uuid", node->GetParent() ? json::JSONValue(json::JSONString(node->GetParent()->GetUUID().ToString())) : json::JSONValue(json::JSONNull()) },
-                                            { "scene_id", node->GetScene() ? json::JSONValue(node->GetScene()->GetID().Value()) : json::JSONValue(uint32(0)) },
+                                            { "scene_id", node->GetScene() ? json::JSONValue(node->GetScene()->Id().Value()) : json::JSONValue(uint32(0)) },
                                             { "scene_name", node->GetScene() ? json::JSONValue(json::JSONString(*node->GetScene()->GetName())) : json::JSONValue(json::JSONNull()) } });
                                     }
                                     else

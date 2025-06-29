@@ -61,7 +61,7 @@ void RenderMaterial::Initialize_Internal()
         {
             AssertThrow(texture->IsReady());
 
-            m_render_textures.Set(texture->GetID(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
+            m_render_textures.Set(texture->Id(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
         }
     }
 
@@ -124,7 +124,7 @@ void RenderMaterial::Update_Internal()
 
         Handle<Material> material_locked = m_material->HandleFromThis();
 
-        HYP_LOG(Material, Debug, "Updating Material {} (name: {})", material_locked->GetID(), *material_locked->GetName());
+        HYP_LOG(Material, Debug, "Updating Material {} (name: {})", material_locked->Id(), *material_locked->GetName());
 
         for (const auto& it : m_textures)
         {
@@ -200,7 +200,7 @@ void RenderMaterial::UpdateBufferData()
     {
         for (SizeType i = 0; i < m_bound_texture_ids.Size(); i++)
         {
-            if (m_bound_texture_ids[i] != Id<Texture>::invalid)
+            if (m_bound_texture_ids[i] != ObjId<Texture>::invalid)
             {
                 if (use_bindless_textures)
                 {
@@ -236,7 +236,7 @@ void RenderMaterial::SetTexture(MaterialTextureKey texture_key, const Handle<Tex
                     return;
                 }
 
-                m_render_textures.Erase(it->second->GetID());
+                m_render_textures.Erase(it->second->Id());
             }
 
             m_textures.Set(texture_key, texture);
@@ -247,7 +247,7 @@ void RenderMaterial::SetTexture(MaterialTextureKey texture_key, const Handle<Tex
                 {
                     AssertThrow(texture->IsReady());
 
-                    m_render_textures.Set(texture->GetID(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
+                    m_render_textures.Set(texture->Id(), TResourceHandle<RenderTexture>(texture->GetRenderResource()));
                 }
 
                 UpdateBufferData();
@@ -273,7 +273,7 @@ void RenderMaterial::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& 
                     {
                         AssertThrow(it.second->IsReady());
 
-                        m_render_textures.Set(it.second->GetID(), TResourceHandle<RenderTexture>(it.second->GetRenderResource()));
+                        m_render_textures.Set(it.second->Id(), TResourceHandle<RenderTexture>(it.second->GetRenderResource()));
                     }
                 }
 
@@ -282,7 +282,7 @@ void RenderMaterial::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& 
         });
 }
 
-void RenderMaterial::SetBoundTextureIDs(const Array<Id<Texture>>& bound_texture_ids)
+void RenderMaterial::SetBoundTextureIDs(const Array<ObjId<Texture>>& bound_texture_ids)
 {
     HYP_SCOPE;
 

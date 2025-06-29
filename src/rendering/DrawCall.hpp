@@ -4,7 +4,7 @@
 #define HYPERION_DRAW_CALL_HPP
 
 #include <core/Defines.hpp>
-#include <core/Id.hpp>
+#include <core/object/ObjId.hpp>
 #include <core/Handle.hpp>
 
 #include <core/memory/UniquePtr.hpp>
@@ -65,12 +65,12 @@ struct DrawCallID
     {
     }
 
-    constexpr DrawCallID(Id<Mesh> mesh_id)
+    constexpr DrawCallID(ObjId<Mesh> mesh_id)
         : value(mesh_id.Value())
     {
     }
 
-    constexpr DrawCallID(Id<Mesh> mesh_id, Id<Material> material_id)
+    constexpr DrawCallID(ObjId<Mesh> mesh_id, ObjId<Material> material_id)
         : value(uint64(mesh_id.Value()) | (uint64(material_id.Value()) << 32))
     {
     }
@@ -120,7 +120,7 @@ struct DrawCallBase
  *  The `entity_id` is the Id of the entity that this draw call represents. */
 struct DrawCall : DrawCallBase
 {
-    Id<Entity> entity_id;
+    ObjId<Entity> entity_id;
 };
 
 /*! \brief Represents a draw call for multiple entities sharing the same mesh and material.
@@ -131,7 +131,7 @@ struct InstancedDrawCall : DrawCallBase
     EntityInstanceBatch* batch = nullptr;
 
     uint32 count = 0;
-    Id<Entity> entity_ids[max_entities_per_instance_batch];
+    ObjId<Entity> entity_ids[max_entities_per_instance_batch];
 };
 
 /// TODO: Refactor to a basic desc struct for Batch size info,
@@ -179,7 +179,7 @@ struct DrawCallCollection
     /*! \brief Push \ref{num_instances} instances of the given entity into an entity instance batch.
      *  If not all instances could be pushed to the given draw call's batch, a positive number will be returned.
      *  Otherwise, zero will be returned. */
-    uint32 PushEntityToBatch(InstancedDrawCall& draw_call, Id<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
+    uint32 PushEntityToBatch(InstancedDrawCall& draw_call, ObjId<Entity> entity, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset);
 
     IDrawCallCollectionImpl* impl;
 

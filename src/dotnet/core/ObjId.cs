@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    public struct IdBase
+    public struct ObjIdBase
     {
-        public static readonly IdBase Invalid = new IdBase();
+        public static readonly ObjIdBase Invalid = new ObjIdBase();
 
         [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
         private uint typeIdValue;
@@ -14,13 +14,13 @@ namespace Hyperion
         [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
         private uint value;
 
-        public IdBase()
+        public ObjIdBase()
         {
             this.typeIdValue = TypeId.Void.Value;
             this.value = 0;
         }
 
-        public IdBase(TypeId typeId, uint value)
+        public ObjIdBase(TypeId typeId, uint value)
         {
             this.typeIdValue = typeId.Value;
             this.value = value;
@@ -52,9 +52,9 @@ namespace Hyperion
 
         public override bool Equals(object obj)
         {
-            if (obj is IdBase)
+            if (obj is ObjIdBase)
             {
-                return this == (IdBase)obj;
+                return this == (ObjIdBase)obj;
             }
 
             return false;
@@ -62,24 +62,24 @@ namespace Hyperion
 
         public override string ToString()
         {
-            return string.Format("IdBase(TypeId: {0}, Value: {0})", typeIdValue, value);
+            return string.Format("ObjIdBase(TypeId: {0}, Value: {0})", typeIdValue, value);
         }
 
-        public static bool operator==(IdBase a, IdBase b)
+        public static bool operator==(ObjIdBase a, ObjIdBase b)
         {
             return a.typeIdValue == b.typeIdValue && a.value == b.value;
         }
 
-        public static bool operator!=(IdBase a, IdBase b)
+        public static bool operator!=(ObjIdBase a, ObjIdBase b)
         {
             return a.typeIdValue != b.typeIdValue || a.value != b.value;
         }
     }
 
     // [StructLayout(LayoutKind.Sequential, Size = 4)]
-    // public struct Id<T> where T : HypObject
+    // public struct ObjId<T> where T : HypObject
     // {
-    //     public static readonly Id<T> Invalid = new Id<T>(0);
+    //     public static readonly ObjId<T> Invalid = new ObjId<T>(0);
 
     //     [MarshalAs(UnmanagedType.U4)]
     //     private uint value;
@@ -89,7 +89,7 @@ namespace Hyperion
     //         this.value = value;
     //     }
 
-    //     public Id(IdBase id)
+    //     public Id(ObjIdBase id)
     //     {
     //         this.value = id.Value;
     //     }
@@ -112,9 +112,9 @@ namespace Hyperion
 
     //     public override bool Equals(object obj)
     //     {
-    //         if (obj is Id<T>)
+    //         if (obj is ObjId<T>)
     //         {
-    //             return this == (Id<T>)obj;
+    //             return this == (ObjId<T>)obj;
     //         }
 
     //         return false;
@@ -122,27 +122,27 @@ namespace Hyperion
 
     //     public override string ToString()
     //     {
-    //         return string.Format("Id<{0}>({1})", typeof(T).Name, value);
+    //         return string.Format("ObjId<{0}>({1})", typeof(T).Name, value);
     //     }
 
-    //     public static bool operator==(Id<T> a, Id<T> b)
+    //     public static bool operator==(ObjId<T> a, ObjId<T> b)
     //     {
     //         return a.value == b.value;
     //     }
 
-    //     public static bool operator!=(Id<T> a, Id<T> b)
+    //     public static bool operator!=(ObjId<T> a, ObjId<T> b)
     //     {
     //         return a.value != b.value;
     //     }
 
-    //     public static implicit operator IdBase(Id<T> id)
+    //     public static implicit operator ObjIdBase(ObjId<T> id)
     //     {
-    //         return new IdBase(id.value);
+    //         return new ObjIdBase(id.value);
     //     }
 
-    //     public static implicit operator Id<T>(IdBase id)
+    //     public static implicit operator ObjId<T>(ObjIdBase id)
     //     {
-    //         return new Id<T>(id.value);
+    //         return new ObjId<T>(id.value);
     //     }
     // }
 }

@@ -38,7 +38,7 @@ PassData::~PassData()
 
     for (auto& entry : render_group_cache)
     {
-        HYP_LOG(Rendering, Debug, "Destroying RenderGroupCacheEntry for RenderGroup '{}'", entry.render_group.GetID());
+        HYP_LOG(Rendering, Debug, "Destroying RenderGroupCacheEntry for RenderGroup '{}'", entry.render_group.Id());
 
         SafeRelease(std::move(entry.graphics_pipeline));
     }
@@ -71,7 +71,7 @@ void PassData::CullUnusedGraphicsPipelines(uint32 max_iter)
 
         if (!entry.render_group.Lock())
         {
-            HYP_LOG(Rendering, Debug, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.render_group.GetID());
+            HYP_LOG(Rendering, Debug, "Removing graphics pipeline for RenderGroup '{}' as it is no longer valid.", entry.render_group.Id());
 
             SafeRelease(std::move(entry.graphics_pipeline));
 
@@ -169,7 +169,7 @@ PassData* RendererBase::TryGetViewPassData(View* view)
         return nullptr;
     }
 
-    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->GetID().ToIndex()))
+    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->Id().ToIndex()))
     {
         return *pd_ptr;
     }
@@ -186,7 +186,7 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 
     PassData* pd = nullptr;
 
-    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->GetID().ToIndex()))
+    if (PassData** pd_ptr = m_view_pass_data.TryGet(view->Id().ToIndex()))
     {
         pd = *pd_ptr;
     }
@@ -202,7 +202,7 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 
         pd->next = ext;
 
-        m_view_pass_data.Set(view->GetID().ToIndex(), pd);
+        m_view_pass_data.Set(view->Id().ToIndex(), pd);
     }
     else if (pd->view.GetUnsafe() != view || pd->next != ext)
     {
@@ -215,7 +215,7 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 
         pd->next = ext;
 
-        m_view_pass_data.Set(view->GetID().ToIndex(), pd);
+        m_view_pass_data.Set(view->Id().ToIndex(), pd);
     }
 
     AssertDebug(pd->view.GetUnsafe() == view);

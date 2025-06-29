@@ -354,7 +354,7 @@ void VulkanGpuBuffer::Map() const
         return;
     }
 
-    AssertThrowMsg(IsCPUAccessible(), "Attempt to map a buffer that is not CPU accessible!");
+    AssertThrowMsg(IsCpuAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
     vmaMapMemory(GetRenderBackend()->GetDevice()->GetAllocator(), m_vma_allocation, &m_mapping);
 }
@@ -399,7 +399,7 @@ bool VulkanGpuBuffer::IsCreated() const
     return m_handle != VK_NULL_HANDLE;
 }
 
-bool VulkanGpuBuffer::IsCPUAccessible() const
+bool VulkanGpuBuffer::IsCpuAccessible() const
 {
     return m_vma_usage != VMA_MEMORY_USAGE_GPU_ONLY;
 }
@@ -622,7 +622,7 @@ RendererResult VulkanGpuBuffer::Create()
             "Failed to create gpu buffer!");
     }
 
-    if (IsCPUAccessible())
+    if (IsCpuAccessible())
     {
         // Memset all to zero
         Memset(m_size, 0);

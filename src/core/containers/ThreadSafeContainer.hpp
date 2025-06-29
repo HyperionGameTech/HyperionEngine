@@ -47,7 +47,7 @@ public:
 
         std::lock_guard guard(m_update_mutex);
 
-        m_items_pending_removal.Erase(item->GetID());
+        m_items_pending_removal.Erase(item->Id());
         m_items_pending_addition.PushBack(item);
 
         m_updates_pending.store(true);
@@ -62,13 +62,13 @@ public:
 
         std::lock_guard guard(m_update_mutex);
 
-        m_items_pending_removal.Erase(item->GetID());
+        m_items_pending_removal.Erase(item->Id());
         m_items_pending_addition.PushBack(std::move(item));
 
         m_updates_pending.store(true);
     }
 
-    void Remove(Id<T> id)
+    void Remove(ObjId<T> id)
     {
         if (!id)
         {
@@ -79,7 +79,7 @@ public:
 
         auto it = m_items_pending_addition.FindIf([&id](const auto& item)
             {
-                return item->GetID() == id;
+                return item->Id() == id;
             });
 
         if (it != m_items_pending_addition.End())
@@ -122,7 +122,7 @@ public:
 
             auto it = m_owned_items.FindIf([&front](const auto& item)
                 {
-                    return item->GetID() == front;
+                    return item->Id() == front;
                 });
 
             if (it != m_owned_items.End())
@@ -183,7 +183,7 @@ private:
     ThreadId m_owner_thread;
     Array<Handle<T>> m_owned_items;
     Array<Handle<T>> m_items_pending_addition;
-    Array<Id<T>> m_items_pending_removal;
+    Array<ObjId<T>> m_items_pending_removal;
     std::atomic_bool m_updates_pending;
     std::mutex m_update_mutex;
 };

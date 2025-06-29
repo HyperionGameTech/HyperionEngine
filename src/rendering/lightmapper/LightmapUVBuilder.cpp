@@ -227,7 +227,7 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
         const Matrix4 normal_matrix = transform.Inverted().Transpose();
         const Matrix4 inverse_normal_matrix = normal_matrix.Inverted();
 
-        MeshIndexArray& current_uv_indices = uv_map.mesh_to_uv_indices[lightmap_mesh_data.mesh->GetID()];
+        MeshIndexArray& current_uv_indices = uv_map.mesh_to_uv_indices[lightmap_mesh_data.mesh->Id()];
 
         const xatlas::Mesh& atlas_mesh = atlas->meshes[mesh_index];
 
@@ -336,7 +336,7 @@ TResult<LightmapUVMap> LightmapUVBuilder::Build()
                     lightmap_uv.lightmap_uv = Vec2f(point) / Vec2f { float(atlas->width), float(atlas->height) };
                     lightmap_uv.ray = LightmapRay {
                         Ray { position, normal },
-                        lightmap_mesh_data.mesh->GetID(),
+                        lightmap_mesh_data.mesh->Id(),
                         triangle_index,
                         uv_index
                     };

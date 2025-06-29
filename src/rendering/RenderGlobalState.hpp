@@ -64,13 +64,13 @@ HYP_API extern RenderProxyList& RenderApi_GetConsumerProxyList(View* view);
 
 // Call on game (producer) thread
 HYP_API extern void RenderApi_AddRef(HypObjectBase* resource);
-HYP_API extern void RenderApi_ReleaseRef(IdBase id);
+HYP_API extern void RenderApi_ReleaseRef(ObjIdBase id);
 
-HYP_API extern IRenderProxy* RenderApi_AllocRenderProxy(IdBase id);
-HYP_API extern void RenderApi_UpdateRenderProxy(IdBase id);
+HYP_API extern IRenderProxy* RenderApi_AllocRenderProxy(ObjIdBase id);
+HYP_API extern void RenderApi_UpdateRenderProxy(ObjIdBase id);
 
 // Call on render thread or render thread tasks only (consumer)
-HYP_API extern IRenderProxy* RenderApi_GetRenderProxy(IdBase id);
+HYP_API extern IRenderProxy* RenderApi_GetRenderProxy(ObjIdBase id);
 
 struct ResourceBindings;
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Hyperion
 {
-    using ComponentID = uint;
+    using ComponentId = uint;
 
     [HypClassBinding(Name = "EntityManager")]
     public class EntityManager : HypObject

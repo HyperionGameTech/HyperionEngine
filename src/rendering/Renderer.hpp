@@ -224,7 +224,7 @@ struct HYP_API PassData
 
     CullData cull_data;
 
-    // cached by Id<RenderGroup>
+    // cached by ObjId<RenderGroup>
     SparsePagedArray<RenderGroupCacheEntry, 32> render_group_cache;
     // iterator for removing cache data over frames
     typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator render_group_cache_iterator;

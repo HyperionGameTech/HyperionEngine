@@ -170,7 +170,7 @@ public:
             return;
         }
 
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
+        if (!IsRunning() || Threads::IsOnThread(Id()))
         {
             m_volumes.PushBack(volume);
         }
@@ -188,7 +188,7 @@ public:
 
     void RemoveStreamingVolume(const StreamingVolumeBase* volume)
     {
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
+        if (!IsRunning() || Threads::IsOnThread(Id()))
         {
             auto it = m_volumes.FindAs(volume);
             AssertThrowMsg(it != m_volumes.End(), "StreamingVolume not found in streaming manager!");
@@ -217,7 +217,7 @@ public:
             return;
         }
 
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
+        if (!IsRunning() || Threads::IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
                 {
@@ -249,7 +249,7 @@ public:
 
     void RemoveWorldGridLayer(const WorldGridLayer* layer)
     {
-        if (!IsRunning() || Threads::IsOnThread(GetID()))
+        if (!IsRunning() || Threads::IsOnThread(Id()))
         {
             auto it = m_layers.FindIf([layer](const LayerData& data)
                 {
@@ -429,7 +429,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streaming_manager)
     //             m_layers,
     //             [](const LayerData& layer_data)
     //             {
-    //                 return HYP_FORMAT("Layer: #{} : {}", layer_data.layer->GetID().Value(), layer_data.cells.Size());
+    //                 return HYP_FORMAT("Layer: #{} : {}", layer_data.layer->Id().Value(), layer_data.cells.Size());
     //             }),
     //         ", "));
 

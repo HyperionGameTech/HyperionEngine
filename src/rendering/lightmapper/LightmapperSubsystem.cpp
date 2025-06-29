@@ -54,7 +54,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    Array<Id<Scene>> lightmappers_to_remove;
+    Array<ObjId<Scene>> lightmappers_to_remove;
 
     for (auto& it : m_lightmappers)
     {
@@ -66,7 +66,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    for (Id<Scene> scene_id : lightmappers_to_remove)
+    for (ObjId<Scene> scene_id : lightmappers_to_remove)
     {
         m_lightmappers.Erase(scene_id);
     }
@@ -88,12 +88,12 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
 
     if (!aabb.IsValid() || !aabb.IsFinite())
     {
-        HYP_LOG(Rendering, Error, "Invalid AABB provided for lightmapper in Scene {}", scene->GetID());
+        HYP_LOG(Rendering, Error, "Invalid AABB provided for lightmapper in Scene {}", scene->Id());
 
         return nullptr;
     }
 
-    auto it = m_lightmappers.Find(scene.GetID());
+    auto it = m_lightmappers.Find(scene.Id());
 
     if (it != m_lightmappers.End())
     {
@@ -115,7 +115,7 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
 
     lightmapper->PerformLightmapping();
 
-    m_lightmappers.Insert(scene.GetID(), std::move(lightmapper));
+    m_lightmappers.Insert(scene.Id(), std::move(lightmapper));
 
     return &task;
 }

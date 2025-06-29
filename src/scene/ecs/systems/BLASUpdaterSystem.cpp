@@ -184,7 +184,7 @@ void BLASUpdaterSystem::OnEntityAdded(Entity* entity)
 
         if (!blas)
         {
-            HYP_LOG(Rendering, Error, "Failed to build BLAS for mesh #{} ({})", mesh_component.mesh.GetID().Value(), mesh_component.mesh->GetName());
+            HYP_LOG(Rendering, Error, "Failed to build BLAS for mesh #{} ({})", mesh_component.mesh.Id().Value(), mesh_component.mesh->GetName());
 
             return;
         }

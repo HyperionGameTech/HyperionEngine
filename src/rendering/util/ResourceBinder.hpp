@@ -129,7 +129,7 @@ class ResourceBinder : public ResourceBinderBase
             // Unbind all objects that were bound in the last frame
             for (Bitset::BitIndex bit_index : last_frame_ids)
             {
-                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
+                const ObjId<T> id = ObjId<T>(ObjIdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 AssertDebug(it != bindings.End());
@@ -152,7 +152,7 @@ class ResourceBinder : public ResourceBinderBase
 
         bool Bind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
-            IdBase id = object->GetID();
+            ObjIdBase id = object->Id();
 
             if (!id.IsValid())
             {
@@ -174,7 +174,7 @@ class ResourceBinder : public ResourceBinderBase
 
         void Unbind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
-            IdBase id = object->GetID();
+            ObjIdBase id = object->Id();
 
             if (!id.IsValid())
             {
@@ -194,7 +194,7 @@ class ResourceBinder : public ResourceBinderBase
 
             for (Bitset::BitIndex bit_index : removed)
             {
-                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
+                const ObjId<T> id = ObjId<T>(ObjIdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 AssertDebug(it != bindings.End());
@@ -216,7 +216,7 @@ class ResourceBinder : public ResourceBinderBase
 
             for (Bitset::BitIndex bit_index : newly_added)
             {
-                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
+                const ObjId<T> id = ObjId<T>(ObjIdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 if (it != bindings.End())

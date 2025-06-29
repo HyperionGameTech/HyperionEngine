@@ -6,8 +6,9 @@
 #include <core/Handle.hpp>
 #include <core/utilities/UserData.hpp>
 
-#include <rendering/Shader.hpp>
-#include <rendering/RenderProxy.hpp>
+#include <core/math/Matrix4.hpp>
+
+#include <rendering/MeshInstanceData.hpp>
 
 namespace hyperion {
 
@@ -15,6 +16,8 @@ class Mesh;
 class Material;
 class Skeleton;
 class BVHNode;
+class RenderProxy;
+struct MeshRaytracingData;
 
 using MeshComponentFlags = uint32;
 

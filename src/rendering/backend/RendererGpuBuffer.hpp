@@ -68,7 +68,7 @@ public:
     HYP_API virtual RendererResult Destroy() = 0;
 
     HYP_API virtual bool IsCreated() const = 0;
-    HYP_API virtual bool IsCPUAccessible() const = 0;
+    HYP_API virtual bool IsCpuAccessible() const = 0;
 
     HYP_API virtual void InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state) const = 0;
     HYP_API virtual void InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state, ShaderModuleType shader_type) const = 0;

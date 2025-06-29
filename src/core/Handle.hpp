@@ -3,8 +3,8 @@
 #ifndef HYPERION_CORE_HANDLE_HPP
 #define HYPERION_CORE_HANDLE_HPP
 
-#include <core/Id.hpp>
-#include <core/ObjectPool.hpp>
+#include <core/object/ObjId.hpp>
+#include <core/object/ObjectPool.hpp>
 
 #include <core/object/HypObject.hpp>
 
@@ -31,7 +31,7 @@ struct HandleBase
 template <class T>
 struct Handle final : HandleBase
 {
-    using IdType = Id<T>;
+    using IdType = ObjId<T>;
 
     friend struct AnyHandle;
     friend struct WeakHandle<T>;
@@ -189,15 +189,15 @@ struct Handle final : HandleBase
         return IsValid();
     }
 
-    /*! \see GetID() */
+    /*! \see Id() */
     HYP_FORCE_INLINE operator IdType() const
     {
-        return ptr != nullptr ? IdType(IdBase { ptr->m_header->container->GetObjectTypeId(), ptr->m_header->index + 1 }) : IdType();
+        return ptr != nullptr ? IdType(ObjIdBase { ptr->m_header->container->GetObjectTypeId(), ptr->m_header->index + 1 }) : IdType();
     }
 
     /*! \brief Get a referenceable Id for the object that the handle is referencing.
      *  \return The Id of the object. */
-    HYP_FORCE_INLINE IdType GetID() const
+    HYP_FORCE_INLINE IdType Id() const
     {
         return IdType(*this);
     }
@@ -371,14 +371,14 @@ struct Handle final : HandleBase
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return GetID().GetHashCode();
+        return Id().GetHashCode();
     }
 };
 
 template <class T>
 struct WeakHandle final
 {
-    using IdType = Id<T>;
+    using IdType = ObjId<T>;
 
     static const WeakHandle empty;
 
@@ -558,15 +558,15 @@ struct WeakHandle final
         return IsValid();
     }
 
-    /*! \see GetID() */
+    /*! \see Id() */
     HYP_FORCE_INLINE operator IdType() const
     {
-        return ptr != nullptr ? IdType(IdBase { ptr->m_header->container->GetObjectTypeId(), ptr->m_header->index + 1 }) : IdType();
+        return ptr != nullptr ? IdType(ObjIdBase { ptr->m_header->container->GetObjectTypeId(), ptr->m_header->index + 1 }) : IdType();
     }
 
     /*! \brief Get a referenceable Id for the object that the weak handle is referencing.
      *  \return The Id of the object. */
-    HYP_FORCE_INLINE IdType GetID() const
+    HYP_FORCE_INLINE IdType Id() const
     {
         return IdType(*this);
     }
@@ -689,7 +689,7 @@ struct WeakHandle final
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return GetID().GetHashCode();
+        return Id().GetHashCode();
     }
 };
 
@@ -698,7 +698,7 @@ struct WeakHandle final
  *  \todo Deprecate in favour of Handle<HypObjectBase>. */
 struct AnyHandle final
 {
-    using IdType = IdBase;
+    using IdType = ObjIdBase;
 
     HypObjectBase* ptr;
     TypeId type_id;
@@ -746,7 +746,7 @@ public:
     }
 
     template <class T>
-    explicit AnyHandle(Id<T> id)
+    explicit AnyHandle(ObjId<T> id)
         : AnyHandle(Handle<T>(id))
     {
     }
@@ -791,7 +791,7 @@ public:
 
     HYP_FORCE_INLINE bool operator<(const AnyHandle& other) const
     {
-        return GetID() < other.GetID();
+        return Id() < other.Id();
     }
 
     template <class T>
@@ -806,19 +806,19 @@ public:
         return ptr != other.ptr;
     }
 
-    HYP_FORCE_INLINE bool operator==(const IdBase& id) const
+    HYP_FORCE_INLINE bool operator==(const ObjIdBase& id) const
     {
-        return GetID() == id;
+        return Id() == id;
     }
 
-    HYP_FORCE_INLINE bool operator!=(const IdBase& id) const
+    HYP_FORCE_INLINE bool operator!=(const ObjIdBase& id) const
     {
-        return GetID() != id;
+        return Id() != id;
     }
 
-    HYP_FORCE_INLINE bool operator<(const IdBase& id) const
+    HYP_FORCE_INLINE bool operator<(const ObjIdBase& id) const
     {
-        return GetID() < id;
+        return Id() < id;
     }
 
     HYP_FORCE_INLINE bool IsValid() const
@@ -833,7 +833,7 @@ public:
 
     /*! \brief Get a referenceable Id for the object that the handle is referencing.
      *  \return The Id of the object. */
-    HYP_API IdType GetID() const;
+    HYP_API IdType Id() const;
 
     /*! \brief Get the TypeId for this handle type
      *  \return The TypeId for the handle */

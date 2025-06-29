@@ -834,9 +834,9 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Handle<Skeleton> skeleton_from_limb = get_skeleton_from_limb_node(*limb_node);
 
                 if (skeleton && skeleton_from_limb && skeleton != skeleton_from_limb) {
-                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with Id {}, but multiple skeletons are attached to the mesh!",
+                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with id {}, but multiple skeletons are attached to the mesh!",
                         cluster->limb_id,
-                        skeleton_from_limb->GetID());
+                        skeleton_from_limb->Id());
                 }
 
                 skeleton = skeleton_from_limb;

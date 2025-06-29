@@ -29,7 +29,7 @@ public:
     SharedMemory& operator=(SharedMemory&& other) noexcept;
     ~SharedMemory();
 
-    const String& GetID() const
+    const String& Id() const
     {
         return m_id;
     }

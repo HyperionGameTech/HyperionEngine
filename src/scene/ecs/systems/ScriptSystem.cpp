@@ -46,7 +46,7 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
                     {
                         if (ANSIStringView(script.assembly_path) == ANSIStringView(script_component.script.assembly_path))
                         {
-                            HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->GetID());
+                            HYP_LOG(Script, Info, "ScriptSystem: Reloading script for entity #{}", entity->Id());
 
                             // Reload the script
                             script_component.flags |= ScriptComponentFlags::RELOADING;
@@ -64,7 +64,7 @@ ScriptSystem::ScriptSystem(EntityManager& entity_manager)
 
                             script_component.flags &= ~ScriptComponentFlags::RELOADING;
 
-                            HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->GetID());
+                            HYP_LOG(Script, Info, "ScriptSystem: Script reloaded for entity #{}", entity->Id());
                         }
                     }
                 }));
