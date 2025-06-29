@@ -69,7 +69,7 @@ namespace Hyperion
         /// Returns the native TypeId for the given type using the type's name. The returned TypeId will have the DYNAMIC flag set on its first two bits.
         /// </summary>
         /// <typeparam name="T">The C# type to lookup the TypeId of</typeparam>
-        /// <returns>TypeObjId</returns>
+        /// <returns>TypeId</returns>
         public static TypeId ForType<T>()
         {
             string typeName = typeof(T).Name;
@@ -83,7 +83,7 @@ namespace Hyperion
         /// <summary>
         /// Returns the native TypeId for the given type using the type's name. The returned TypeId will have the DYNAMIC flag set on its first two bits.
         /// <param name="type">The C# type to lookup the TypeId of</param>
-        /// <returns>TypeObjId</returns>
+        /// <returns>TypeId</returns>
         /// </summary>
         public static TypeId ForType(Type type)
         {
