@@ -450,7 +450,7 @@ typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectAllEntit
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy, &mesh_component.proxy->version);
         }
 
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
@@ -550,7 +550,7 @@ typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectDynamicE
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy, &mesh_component.proxy->version);
         }
     }
 
@@ -647,7 +647,7 @@ typename ResourceTracker<ObjId<Entity>, RenderProxy>::Diff View::CollectStaticEn
             AssertDebug(mesh_component.proxy->mesh.IsValid());
             AssertDebug(mesh_component.proxy->material.IsValid());
 
-            rpl.meshes.Track(entity->Id(), *mesh_component.proxy);
+            rpl.meshes.Track(entity->Id(), *mesh_component.proxy, &mesh_component.proxy->version);
         }
     }
 
@@ -725,7 +725,7 @@ void View::CollectLights(RenderProxyList& rpl)
 
             if (is_light_in_frustum)
             {
-                rpl.lights.Track(light->Id(), light);
+                rpl.lights.Track(light->Id(), light, light->GetRenderProxyVersionPtr());
             }
 
             /// TODO: Move this
@@ -808,7 +808,8 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
                 continue;
             }
 
-            rpl.lightmap_volumes.Track(lightmap_volume_component.volume->Id(), lightmap_volume_component.volume);
+            rpl.lightmap_volumes.Track(lightmap_volume_component.volume->Id(), lightmap_volume_component.volume,
+                lightmap_volume_component.volume->GetRenderProxyVersionPtr());
         }
     }
 
@@ -875,16 +876,17 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
             if (!m_camera->GetFrustum().ContainsAABB(grid_aabb))
             {
+                HYP_LOG(Scene, Debug, "EnvGrid {} is not in frustum of View {}", env_grid->Id(), Id());
+
                 continue;
             }
 
-            rpl.env_grids.Track(env_grid->Id(), env_grid);
+            rpl.env_grids.Track(env_grid->Id(), env_grid, env_grid->GetRenderProxyVersionPtr());
         }
     }
 
     auto diff = rpl.env_grids.GetDiff();
 
-    // temp shit
     if (diff.NeedsUpdate())
     {
         Array<EnvGrid*> removed;
@@ -949,7 +951,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
                 }
             }
 
-            rpl.env_probes.Track(probe->Id(), probe);
+            rpl.env_probes.Track(probe->Id(), probe, probe->GetRenderProxyVersionPtr());
         }
 
         // TEMP SHIT
@@ -958,7 +960,7 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
             if (sky_component.subsystem)
             {
                 AssertThrow(sky_component.subsystem->GetEnvProbe()->IsInstanceOf<SkyProbe>());
-                rpl.env_probes.Track(sky_component.subsystem->GetEnvProbe()->Id(), sky_component.subsystem->GetEnvProbe());
+                rpl.env_probes.Track(sky_component.subsystem->GetEnvProbe()->Id(), sky_component.subsystem->GetEnvProbe(), sky_component.subsystem->GetEnvProbe()->GetRenderProxyVersionPtr());
             }
         }
     }

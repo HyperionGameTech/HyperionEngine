@@ -13,10 +13,22 @@
 
 namespace hyperion {
 
-template <uint32 NumComponents>
-static auto CreatePlaceholderBitmap(Vec2u dimensions)
+template <TextureFormat Format>
+struct TextureFormatHelper
 {
-    auto bitmap = Bitmap<NumComponents, ubyte>(dimensions.x, dimensions.y);
+    static constexpr uint32 num_components = NumComponents(Format);
+    static constexpr uint32 num_bytes = NumBytes(Format);
+    static constexpr bool is_float_type = uint32(Format) >= TF_RGBA16F && uint32(Format) <= TF_RGBA32F;
+
+    using ElementType = std::conditional_t<is_float_type, float, ubyte>;
+};
+
+template <TextureFormat Format>
+HYP_API void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& out_buffer)
+{
+    using Helper = TextureFormatHelper<Format>;
+
+    auto bitmap = Bitmap<Helper::num_components, typename Helper::ElementType>(dimensions.x, dimensions.y);
 
     // Set to default color to assist in debugging
     for (uint32 y = 0; y < dimensions.y; y++)
@@ -27,15 +39,23 @@ static auto CreatePlaceholderBitmap(Vec2u dimensions)
         }
     }
 
-    return bitmap;
+    if constexpr (Helper::is_float_type)
+    {
+        out_buffer = ByteBuffer(bitmap.GetUnpackedFloats().ToByteView());
+    }
+    else
+    {
+        out_buffer = bitmap.GetUnpackedBytes(Helper::num_bytes * Helper::num_components);
+    }
 }
 
-template <uint32 NumComponents, uint32 BytesPerPixel>
-static ByteBuffer CreatePlaceholderCubemap(Vec2u dimensions)
+template <TextureFormat Format>
+HYP_API void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& out_buffer)
 {
-    ByteBuffer byte_buffer;
+    using Helper = TextureFormatHelper<Format>;
+    static_assert(!Helper::is_float_type, "FillPlaceholderBuffer_Cubemap not implemented for floating point type textures");
 
-    auto bitmap = Bitmap<NumComponents, ubyte>(dimensions.x, dimensions.y);
+    auto bitmap = Bitmap<Helper::num_components, typename Helper::ElementType>(dimensions.x, dimensions.y);
 
     // Set to default color to assist in debugging
     for (uint32 y = 0; y < dimensions.y; y++)
@@ -46,17 +66,23 @@ static ByteBuffer CreatePlaceholderCubemap(Vec2u dimensions)
         }
     }
 
-    ByteBuffer face_byte_buffer = bitmap.GetUnpackedBytes(BytesPerPixel);
+    ByteBuffer face_byte_buffer = bitmap.GetUnpackedBytes(Helper::num_bytes * Helper::num_components);
 
-    byte_buffer.SetSize(face_byte_buffer.Size() * 6);
+    out_buffer.SetSize(face_byte_buffer.Size() * 6);
 
     for (uint32 i = 0; i < 6; i++)
     {
-        byte_buffer.Write(face_byte_buffer.Size(), i * face_byte_buffer.Size(), face_byte_buffer.Data());
+        out_buffer.Write(face_byte_buffer.Size(), i * face_byte_buffer.Size(), face_byte_buffer.Data());
     }
-
-    return byte_buffer;
 }
+
+template void FillPlaceholderBuffer_Tex2D<TF_R8>(Vec2u dimensions, ByteBuffer& out_buffer);      // R8
+template void FillPlaceholderBuffer_Tex2D<TF_RGBA8>(Vec2u dimensions, ByteBuffer& out_buffer);   // RGBA8
+template void FillPlaceholderBuffer_Tex2D<TF_RGBA16F>(Vec2u dimensions, ByteBuffer& out_buffer); // RGBA16F
+template void FillPlaceholderBuffer_Tex2D<TF_RGBA32F>(Vec2u dimensions, ByteBuffer& out_buffer); // RGBA32F
+
+template void FillPlaceholderBuffer_Cubemap<TF_R8>(Vec2u dimensions, ByteBuffer& out_buffer);    // R8
+template void FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u dimensions, ByteBuffer& out_buffer); // RGBA8
 
 PlaceholderData::PlaceholderData()
     : m_image_2d_1x1_r8(g_render_backend->MakeImage(TextureDesc {
@@ -198,6 +224,11 @@ void PlaceholderData::Create()
 #pragma endregion Image and ImageView
 
 #pragma region Textures
+    ByteBuffer placeholder_buffer_tex2d_rgba8;
+    FillPlaceholderBuffer_Tex2D<TF_RGBA8>(Vec2u::One(), placeholder_buffer_tex2d_rgba8);
+
+    ByteBuffer placeholder_buffer_cubemap_rgba8;
+    FillPlaceholderBuffer_Cubemap<TF_RGBA8>(Vec2u::One(), placeholder_buffer_cubemap_rgba8);
 
     DefaultTexture2D = CreateObject<Texture>(TextureData {
         TextureDesc {
@@ -209,7 +240,7 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        CreatePlaceholderBitmap<4>(Vec2u::One()).GetUnpackedBytes(4) });
+        placeholder_buffer_tex2d_rgba8 });
 
     DefaultTexture2D->SetName(NAME("Placeholder_Texture_2D_1x1_R8"));
     InitObject(DefaultTexture2D);
@@ -240,7 +271,7 @@ void PlaceholderData::Create()
             TWM_CLAMP_TO_EDGE,
             1,
             IU_SAMPLED | IU_STORAGE },
-        CreatePlaceholderCubemap<4, 4>(Vec2u::One()) });
+        placeholder_buffer_cubemap_rgba8 });
 
     DefaultCubemap->SetName(NAME("Placeholder_Texture_Cube_1x1_R8"));
     InitObject(DefaultCubemap);

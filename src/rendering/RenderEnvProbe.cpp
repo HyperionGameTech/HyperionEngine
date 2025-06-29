@@ -229,7 +229,7 @@ void RenderEnvProbe::UpdateBufferData()
 {
     HYP_SCOPE;
 
-    const BoundingBox aabb = BoundingBox(m_buffer_data.aabb_min.GetXYZ(), m_buffer_data.aabb_max.GetXYZ());
+    /*const BoundingBox aabb = BoundingBox(m_buffer_data.aabb_min.GetXYZ(), m_buffer_data.aabb_max.GetXYZ());
     const Vec3f world_position = m_buffer_data.world_position.GetXYZ();
 
     const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(aabb, world_position);
@@ -253,7 +253,7 @@ void RenderEnvProbe::UpdateBufferData()
 
     buffer_data->position_in_grid = m_position_in_grid;
 
-    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);*/
 }
 
 /// TEMPORARY: will be replaced by EnvProbeRenderer classes.
@@ -640,7 +640,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
         descriptor_table,
         convolve_probe_compute_pipeline,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->GetCommandList().Add<DispatchCompute>(
@@ -810,12 +810,12 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         uint32 env_probe_index;
     } push_constants;
 
-    AssertDebug(env_probe->GetRenderResource().GetBufferIndex() != ~0u);
-
-    push_constants.env_probe_index = env_probe->GetRenderResource().GetBufferIndex();
+    push_constants.env_probe_index = RenderApi_RetrieveResourceBinding(env_probe);
     push_constants.probe_grid_position = { 0, 0, 0, 0 };
     push_constants.cubemap_dimensions = Vec4u { cubemap_dimensions, 0, 0 };
     push_constants.world_position = env_probe->GetRenderResource().GetBufferData().world_position;
+
+    AssertDebug(push_constants.env_probe_index != ~0u);
 
     pipelines[NAME("Clear")].second->SetPushConstants(&push_constants, sizeof(push_constants));
     pipelines[NAME("BuildCoeffs")].second->SetPushConstants(&push_constants, sizeof(push_constants));
@@ -830,8 +830,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("Clear")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Clear")].second);
@@ -844,8 +844,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("BuildCoeffs")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("BuildCoeffs")].second);
@@ -889,8 +889,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
                 pipelines[NAME("Reduce")].second,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("Global"),
-                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light, 0) },
+                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe, 0) } } } },
                 frame->GetFrameIndex());
 
             async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Reduce")].second);
@@ -911,8 +911,8 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
         pipelines[NAME("Finalize")].second,
         ArrayMap<Name, ArrayMap<Name, uint32>> {
             { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light ? directional_light->GetRenderResource().GetBufferIndex() : 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe ? sky_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directional_light, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(sky_probe, 0) } } } },
         frame->GetFrameIndex());
 
     async_compute_command_list.Add<BindComputePipeline>(pipelines[NAME("Finalize")].second);

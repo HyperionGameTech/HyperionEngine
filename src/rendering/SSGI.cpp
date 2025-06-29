@@ -239,7 +239,7 @@ void SSGI::Render(FrameBase* frame, const RenderSetup& render_setup)
             { NAME("Global"),
                 { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe ? render_setup.env_probe->GetRenderResource().GetBufferIndex() : 0) } } } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(render_setup.env_probe, 0) } } } },
         frame_index);
 
     const uint32 view_descriptor_set_index = m_compute_pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));

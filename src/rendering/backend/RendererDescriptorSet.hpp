@@ -44,6 +44,9 @@ enum class DescriptorSetDeclarationFlags : uint8
 HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
 
 class IRenderProxy;
+class HypObjectBase;
+
+HYP_API extern uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource);
 
 template <class T>
 struct ShaderDataOffset
@@ -52,27 +55,30 @@ struct ShaderDataOffset
 
     static constexpr uint32 invalid_index = ~0u;
 
-    ShaderDataOffset(uint32 index)
+    explicit ShaderDataOffset(uint32 index)
         : index(index)
     {
     }
 
-    template <class RenderResourceType, typename = std::enable_if_t<!std::is_base_of_v<IRenderProxy, NormalizedType<RenderResourceType>>>>
-    HYP_DEPRECATED ShaderDataOffset(const RenderResourceType* render_resource, uint32 index_if_null = invalid_index)
+    template <class RenderResourceType, typename = std::enable_if_t<!std::is_base_of_v<HypObjectBase, NormalizedType<RenderResourceType>>>>
+    HYP_DEPRECATED explicit ShaderDataOffset(const RenderResourceType* render_resource, uint32 index_if_null = invalid_index)
         : index(render_resource != nullptr ? render_resource->GetBufferIndex() : index_if_null)
     {
     }
 
     template <class RenderResourceType, typename = std::enable_if_t<!std::is_pointer_v<NormalizedType<RenderResourceType>> && !std::is_integral_v<NormalizedType<RenderResourceType>>>>
-    HYP_DEPRECATED ShaderDataOffset(const RenderResourceType& render_resource)
+    HYP_DEPRECATED explicit ShaderDataOffset(const RenderResourceType& render_resource)
         : index(render_resource.GetBufferIndex())
     {
     }
 
-    template <class HypObjectType, typename = std::enable_if_t<std::is_base_of_v<HypObjectBase, NormalizedType<HypObjectType>>>>
-    ShaderDataOffset(const HypObjectType* resource)
-        : index(RenderApi_RetrieveResourceBinding(resource))
+    explicit ShaderDataOffset(const HypObjectBase* resource, uint32 index_if_null = invalid_index)
+        : index(index_if_null)
     {
+        if (uint32 idx = RenderApi_RetrieveResourceBinding(resource); idx != ~0u)
+        {
+            index = idx;
+        }
     }
 
     HYP_FORCE_INLINE operator uint32() const

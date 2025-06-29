@@ -79,6 +79,7 @@ static std::counting_semaphore<num_frames> g_free_semaphore { num_frames }; // g
 #pragma region ResourceBindings
 
 extern void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next);
+extern void OnAmbientProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next);
 extern void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next);
 extern void OnLightBindingChanged(Light* light, uint32 prev, uint32 next);
 extern void OnLightmapVolumeBindingChanged(LightmapVolume* lightmap_volume, uint32 prev, uint32 next);
@@ -100,7 +101,7 @@ struct ResourceBindings
 
     // ambient probes
     ResourceBindingAllocator<> ambient_probe_bindings_allocator;
-    ResourceBinder<EnvProbe> ambient_probe_binder { &ambient_probe_bindings_allocator };
+    ResourceBinder<EnvProbe, &OnAmbientProbeBindingChanged> ambient_probe_binder { &ambient_probe_bindings_allocator };
 
     ResourceBindingAllocator<16> env_grid_bindings_allocator;
     ResourceBinder<EnvGrid, &OnEnvGridBindingChanged> env_grid_binder { &env_grid_bindings_allocator };
@@ -130,19 +131,13 @@ struct ResourceBindings
         }
     }
 
-    uint32 Retrieve(HypObjectBase* resource) const
+    HYP_FORCE_INLINE uint32 Retrieve(const HypObjectBase* resource) const
     {
-        if (!resource)
-        {
-            return ~0u;
-        }
-
-        return Retrieve(resource->Id());
+        return resource ? Retrieve(resource->Id()) : ~0u;
     }
 
-    uint32 Retrieve(ObjIdBase id) const
+    HYP_FORCE_INLINE uint32 Retrieve(ObjIdBase id) const
     {
-
         if (!id.IsValid())
         {
             return ~0u; // invalid resource
@@ -152,13 +147,7 @@ struct ResourceBindings
 
         const uint32* binding = bindings.data.TryGet(id.ToIndex());
 
-        if (binding)
-        {
-            return *binding;
-        }
-
-        // not found in bindings, return invalid binding
-        return ~0u;
+        return binding ? *binding : ~0u;
     }
 
     SubtypeResourceBindings& GetSubtypeBindings(TypeId type_id)
@@ -277,7 +266,7 @@ struct ResourceSubtypeData final
     Bitset indices_pending_delete;
 
     // Indices marked for update from the game thread, for the render thread to perform GPU buffer updates to
-    Bitset indices_pending_buffer_update;
+    Bitset indices_pending_update;
 
     ResourceBinderBase* resource_binder = nullptr;
 
@@ -324,6 +313,7 @@ struct ResourceSubtypeData final
                 AssertDebug(idx != ~0u);
 
                 ProxyType* proxy_casted = static_cast<ProxyType*>(proxy);
+
                 gpu_buffer_holder->Set(idx, proxy_casted->buffer_data);
             };
         }
@@ -484,13 +474,6 @@ struct ResourceContainerFactory
                         TypeWrapper<ProxyType>(),
                         gpu_buffer_holder,
                         &resource_binder);
-
-                    if (TypeId::ForType<ResourceType>() == TypeId::ForType<SkyProbe>())
-                    {
-                        volatile ResourceBinderType* ptr = (volatile ResourceBinderType*)container.data_by_type.Get(static_index).resource_binder;
-                        DebugLog(LogType::Debug, "ResourceContainerFactory: Created ResourceBinder for SkyProbe with type Id %p", ptr);
-                        // HYP_BREAKPOINT;
-                    }
                 });
     }
 };
@@ -688,7 +671,7 @@ HYP_API void RenderApi_UpdateRenderProxy(ObjIdBase id)
         entity->UpdateRenderProxy(proxy);
 
         // mark for buffer data update from render thread
-        subtype_data.indices_pending_buffer_update.Set(id.ToIndex(), true);
+        subtype_data.indices_pending_update.Set(id.ToIndex(), true);
     }
     else
     {
@@ -714,8 +697,7 @@ HYP_API IRenderProxy* RenderApi_GetRenderProxy(ObjIdBase id)
 
     if (!subtype_data.proxies.HasIndex(id.ToIndex()))
     {
-        HYP_LOG(Rendering, Warning, "No render proxy found for resource Id {} of type {} in frame {}!\n",
-            id, GetClass(subtype_data.type_id)->GetName(), slot);
+        HYP_LOG(Rendering, Warning, "No render proxy found for resource: {} in frame {}", id, slot);
 
         return nullptr; // no proxy for this resource
     }
@@ -735,7 +717,7 @@ HYP_API void RenderApi_AssignResourceBinding(HypObjectBase* resource, uint32 bin
     g_render_global_state->resource_bindings->Assign(resource, binding);
 }
 
-HYP_API uint32 RenderApi_RetrieveResourceBinding(HypObjectBase* resource)
+HYP_API uint32 RenderApi_RetrieveResourceBinding(const HypObjectBase* resource)
 {
 #ifdef HYP_DEBUG_MODE
     // FIXME: Add better check to ensure it is from a render task thread.
@@ -818,17 +800,14 @@ HYP_API void RenderApi_BeginFrame_RenderThread()
 
     for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
     {
-        if (subtype_data.indices_pending_buffer_update.AnyBitsSet())
+        if (subtype_data.indices_pending_update.Count() != 0)
         {
             AssertDebug(subtype_data.resource_binder != nullptr);
 
             //  if resource binder is valid, bind each resource
-            for (Bitset::BitIndex bit : subtype_data.indices_pending_buffer_update)
+            for (Bitset::BitIndex i : subtype_data.indices_pending_update)
             {
-                ResourceData& rd = subtype_data.data.Get(bit);
-
-                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
-                AssertDebug(proxy != nullptr);
+                ResourceData& rd = subtype_data.data.Get(i);
 
                 // add it to the list to have a binding assigned
                 subtype_data.resource_binder->Consider(rd.resource);
@@ -846,25 +825,38 @@ HYP_API void RenderApi_BeginFrame_RenderThread()
 
     for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
     {
-        if (subtype_data.indices_pending_buffer_update.AnyBitsSet())
+        if (subtype_data.indices_pending_update.Count() != 0)
         {
             AssertDebug(subtype_data.resource_binder != nullptr);
 
+            // auto& subtype_bindings = g_render_global_state->resource_bindings->GetSubtypeBindings(subtype_data.type_id);
+
+            // if (subtype_bindings.data.Empty())
+            // {
+            //     // early out; nothing is bound.
+            //     continue;
+            // }
+
             const Bitset& current_bound_indices = subtype_data.resource_binder->GetBoundIndices(subtype_data.type_id);
 
-            if (!current_bound_indices.AnyBitsSet())
+            if (current_bound_indices.Count() == 0)
             {
-                // early out; nothing is bound
+                // early out; nothing is bound.
                 continue;
             }
 
             // Handle proxies that were updated on game thread
-            for (Bitset::BitIndex i = subtype_data.indices_pending_buffer_update.FirstSetBitIndex();
+            for (Bitset::BitIndex i = subtype_data.indices_pending_update.FirstSetBitIndex();
                 i != Bitset::not_found;
-                i = subtype_data.indices_pending_buffer_update.NextSetBitIndex(i + 1))
+                i = subtype_data.indices_pending_update.NextSetBitIndex(i + 1))
             {
                 // if the bit is not set, we failed to bind the resource to a slot and cannot update it
                 // skip updating the data this time -- maybe next frame a slot will be freed
+                // if (const uint32* p = subtype_bindings.data.TryGet(i); !p || *p == ~0u)
+                // {
+                //     continue;
+                // }
+
                 if (!current_bound_indices.Test(i))
                 {
                     continue;
@@ -872,21 +864,15 @@ HYP_API void RenderApi_BeginFrame_RenderThread()
 
                 const ObjIdBase resource_id = ObjIdBase(subtype_data.type_id, uint32(i + 1));
 
-                ResourceData& rd = subtype_data.data.Get(i);
-
-                IRenderProxy* proxy = subtype_data.proxies.Get(i);
-                AssertDebug(proxy != nullptr);
-
                 const uint32 bound_index = g_render_global_state->resource_bindings->Retrieve(resource_id);
                 AssertDebug(bound_index != ~0u, "Failed to retrieve binding for resource: %u of type %s in frame %u!",
                     resource_id.Value(), *GetClass(resource_id.GetTypeId())->GetName(), slot);
 
-                AssertDebug(subtype_data.gpu_buffer_holder != nullptr);
-                AssertDebug(subtype_data.set_gpu_elem != nullptr);
+                IRenderProxy* proxy = subtype_data.proxies.Get(i);
+                AssertDebug(proxy != nullptr);
 
                 subtype_data.set_gpu_elem(subtype_data.gpu_buffer_holder, bound_index, proxy);
-
-                subtype_data.indices_pending_buffer_update.Set(i, false);
+                subtype_data.indices_pending_update.Set(i, false);
             }
         }
     }
@@ -938,14 +924,13 @@ HYP_API void RenderApi_EndFrame_RenderThread()
     {
         // @TODO: for deletion, have a fixed number to iterate over per frame so we don't spend too much time on it.
         // Remove resources pending deletion via SafeDelete() for indices marked for deletion from the game thread
-        for (Bitset::BitIndex bit : subtype_data.indices_pending_delete)
+        for (Bitset::BitIndex i : subtype_data.indices_pending_delete)
         {
-            ResourceData& rd = subtype_data.data.Get(bit);
+            ResourceData& rd = subtype_data.data.Get(i);
             AssertDebug(rd.resource != nullptr);
             AssertDebug(rd.count.Get(MemoryOrder::RELAXED) == 0, "Ref count should be 0 before deletion");
 
-            HYP_LOG(Rendering, Debug, "Releasing usage of resource of type {} with id: {}\n",
-                *GetClass(subtype_data.type_id)->GetName(), ObjIdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
+            HYP_LOG(Rendering, Debug, "Releasing usage of resource: {}", rd.resource->Id());
 
             if (subtype_data.resource_binder)
             {
@@ -953,20 +938,20 @@ HYP_API void RenderApi_EndFrame_RenderThread()
             }
 
             // if we delete it, we want to make sure it is not in marked for update state (don't want to iterate over dead items)
-            subtype_data.indices_pending_buffer_update.Set(bit, false);
+            subtype_data.indices_pending_update.Set(i, false);
 
             // Swap refcount owner over to the Handle
             AnyHandle resource { rd.resource };
-            subtype_data.data.EraseAt(bit);
+            subtype_data.data.EraseAt(i);
 
             if (subtype_data.has_proxy_data)
             {
-                AssertDebugMsg(subtype_data.proxies.HasIndex(bit), "proxy missing at index: %u", bit);
+                AssertDebugMsg(subtype_data.proxies.HasIndex(i), "proxy missing at index: %u", i);
 
-                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
+                IRenderProxy* proxy = subtype_data.proxies.Get(i);
                 AssertDebug(proxy);
 
-                subtype_data.proxies.EraseAt(bit);
+                subtype_data.proxies.EraseAt(i);
 
                 // safely release the proxy's resources before we destruct it:
                 proxy->SafeRelease();

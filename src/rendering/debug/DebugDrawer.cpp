@@ -343,13 +343,13 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
         {
             const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
             env_probe_type = uint32(EPT_AMBIENT);
-            env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
+            env_probe_index = RenderApi_RetrieveResourceBinding(probe_command.env_probe_resource_handle->GetEnvProbe());
         }
         else if (draw_command.shape == &ReflectionProbe)
         {
             const DebugDrawCommand_Probe& probe_command = static_cast<const DebugDrawCommand_Probe&>(draw_command);
             env_probe_type = uint32(EPT_REFLECTION);
-            env_probe_index = probe_command.env_probe_resource_handle->GetBufferIndex();
+            env_probe_index = RenderApi_RetrieveResourceBinding(probe_command.env_probe_resource_handle->GetEnvProbe());
         }
 
         shader_data[index] = ImmediateDrawShaderData {
@@ -394,11 +394,11 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
                 graphics_pipeline,
                 ArrayMap<Name, ArrayMap<Name, uint32>> {
                     { NAME("DebugDrawerDescriptorSet"),
-                        { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0) } } },
+                        { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(0u) } } },
                     { NAME("Global"),
                         { { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*render_setup.world) },
                             { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*render_setup.view->GetCamera()) },
-                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid ? render_setup.env_grid->GetRenderResource().GetBufferIndex() : 0) } } },
+                            { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(render_setup.env_grid, 0) } } },
                     { NAME("Object"),
                         {} },
                     { NAME("Instancing"),

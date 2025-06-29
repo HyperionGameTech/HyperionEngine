@@ -12,6 +12,8 @@
 #include <scene/ecs/components/MeshComponent.hpp>
 #include <scene/ecs/EntityTag.hpp>
 
+#include <rendering/RenderProxy.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -25,7 +27,8 @@ namespace hyperion {
 
 Entity::Entity()
     : m_world(nullptr),
-      m_scene(nullptr)
+      m_scene(nullptr),
+      m_render_proxy_version(0)
 {
 }
 
@@ -372,6 +375,16 @@ void Entity::DetachChild(const Handle<Entity>& child)
             HYP_LOG(ECS, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", Id(), child.Id());
         }
     }
+}
+
+void Entity::UpdateRenderProxy(IRenderProxy* proxy)
+{
+    // no impl
+}
+
+void Entity::SetNeedsRenderProxyUpdate()
+{
+    ++m_render_proxy_version;
 }
 
 } // namespace hyperion

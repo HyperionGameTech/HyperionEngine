@@ -340,7 +340,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light->GetRenderResource().GetBufferIndex()) } },
+                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light, 0) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -629,7 +629,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             ArrayMap<Name, uint32> {
                 { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                 { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(/*env_grid_proxy->bound_index*/ env_grid->GetRenderResource().GetBufferIndex()) } },
+                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(env_grid, 0) } },
             global_descriptor_set_index);
 
         frame->GetCommandList().Add<BindDescriptorSet>(
@@ -903,7 +903,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(/*env_probe_proxy->bound_index*/ env_probe->GetRenderResource().GetBufferIndex()) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe, 0) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(

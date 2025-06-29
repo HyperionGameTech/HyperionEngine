@@ -19,13 +19,13 @@ namespace containers {
 
 static Array<Bitset::BlockType, InlineAllocator<16>> CreateBlocks_Internal(uint64 value)
 {
-    return { Bitset::BlockType(value & 0xFFFFFFFF), Bitset::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) };
+    return { Bitset::BlockType(value & 0xFFFFFFFFu), Bitset::BlockType((value & (0xFFFFFFFFull << 32ull)) >> 32ull) };
 }
 
 template <uint64 InitialValue>
 static Span<const Bitset::BlockType> CreateBlocks_Static_Internal()
 {
-    static const Bitset::BlockType blocks[2] = { Bitset::BlockType(InitialValue & 0xFFFFFFFF), Bitset::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull) };
+    static const Bitset::BlockType blocks[2] = { Bitset::BlockType(InitialValue & 0xFFFFFFFFu), Bitset::BlockType((InitialValue & (0xFFFFFFFFull << 32ull)) >> 32ull) };
 
     return Span<const Bitset::BlockType>(&blocks[0], &blocks[0] + ArraySize(blocks));
 }

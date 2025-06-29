@@ -503,7 +503,7 @@ public:
 
         if (!m_valid_pages.Test(page_index) || !m_pages[page_index]->initialized_bits.Test(element_index))
         {
-            // Element does not exist, nothing to erase
+            // element does not exist, nothing to erase
             // note: iterator will automatically skip to next
             return Iterator(this, page_index, element_index);
         }

@@ -23,6 +23,12 @@ namespace hyperion {
 
 class Texture;
 
+template <TextureFormat Format>
+void FillPlaceholderBuffer_Tex2D(Vec2u dimensions, ByteBuffer& out_buffer);
+
+template <TextureFormat Format>
+void FillPlaceholderBuffer_Cubemap(Vec2u dimensions, ByteBuffer& out_buffer);
+
 class HYP_API PlaceholderData
 {
 public:

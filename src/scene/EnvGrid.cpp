@@ -19,6 +19,7 @@
 #include <rendering/RenderScene.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderShadowMap.hpp>
+#include <rendering/PlaceholderData.hpp>
 
 #include <rendering/backend/RendererDescriptorSet.hpp>
 
@@ -162,14 +163,21 @@ void EnvGrid::Init()
     {
     case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
     {
+
+        const Vec3u irradiance_texture_dimensions = {
+            (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
+            (irradiance_octahedron_size + 2) * m_options.density.z + 2,
+            1
+        };
+
+        ByteBuffer placeholder_data;
+        FillPlaceholderBuffer_Tex2D<light_field_color_format>(irradiance_texture_dimensions.GetXY(), placeholder_data);
+
         m_irradiance_texture = CreateObject<Texture>(
             TextureDesc {
                 TT_TEX2D,
                 light_field_color_format,
-                Vec3u {
-                    (irradiance_octahedron_size + 2) * m_options.density.x * m_options.density.y + 2,
-                    (irradiance_octahedron_size + 2) * m_options.density.z + 2,
-                    1 },
+                irradiance_texture_dimensions,
                 TFM_LINEAR,
                 TFM_LINEAR,
                 TWM_CLAMP_TO_EDGE,
@@ -258,7 +266,6 @@ void EnvGrid::Init()
     m_view = CreateObject<View>(ViewDesc {
         .flags = ViewFlags::COLLECT_STATIC_ENTITIES
             | ViewFlags::SKIP_FRUSTUM_CULLING
-            | ViewFlags::SKIP_ENV_PROBES
             | ViewFlags::SKIP_ENV_GRIDS,
         .viewport = Viewport { .extent = probe_dimensions, .position = Vec2i::Zero() },
         .output_target_desc = output_target_desc,
@@ -361,6 +368,8 @@ void EnvGrid::SetAABB(const BoundingBox& aabb)
     if (m_aabb != aabb)
     {
         m_aabb = aabb;
+
+        SetNeedsRenderProxyUpdate();
     }
 }
 
@@ -464,6 +473,8 @@ void EnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
         m_env_probe_collection.SetIndexOnGameThread(update_index, updates[update_index]);
     }
 
+    SetNeedsRenderProxyUpdate();
+
     m_render_resource->SetProbeIndices(std::move(updates));
 }
 
@@ -549,6 +560,7 @@ void EnvGrid::UpdateRenderProxy(IRenderProxy* proxy)
 
     buffer_data.irradiance_octahedron_size = Vec2i(irradiance_octahedron_size, irradiance_octahedron_size);
 
+    /// FIXME: Needs to be set somehow in RenderEnvGrid, as that's when we can retrieve resource bindings for the probes.
     for (uint32 index = 0; index < std::size(buffer_data.probe_indices); index++)
     {
         const Handle<EnvProbe>& probe = m_env_probe_collection.GetEnvProbeOnGameThread(index);

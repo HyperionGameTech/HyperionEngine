@@ -212,7 +212,7 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 
         m_view_pass_data.Set(view->Id().ToIndex(), pd);
     }
-    else if (pd->view.GetUnsafe() != view || pd->next != ext)
+    else if (pd->view.GetUnsafe() != view)
     {
         delete pd;
 

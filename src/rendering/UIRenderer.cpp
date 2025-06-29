@@ -310,7 +310,8 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         for (RenderProxy& proxy : added_proxies)
         {
-            meshes.Track(proxy.entity.Id(), std::move(proxy));
+            const int proxy_version = proxy.version;
+            meshes.Track(proxy.entity.Id(), std::move(proxy), &proxy_version);
         }
 
         meshes.Advance(AdvanceAction::PERSIST);
@@ -382,7 +383,7 @@ void UIRenderCollector::PushRenderProxy(ResourceTracker<ObjId<Entity>, RenderPro
     AssertThrow(render_proxy.mesh.IsValid());
     AssertThrow(render_proxy.material.IsValid());
 
-    meshes.Track(render_proxy.entity, render_proxy);
+    meshes.Track(render_proxy.entity, render_proxy, &render_proxy.version);
 
     proxy_depths.EmplaceBack(render_proxy.entity.Id(), computed_depth);
 }

@@ -28,6 +28,21 @@ namespace hyperion {
 static const TextureFormat reflection_probe_format = TF_RGBA16F;
 static const TextureFormat shadow_probe_format = TF_RG32F;
 
+static FixedArray<Matrix4, 6> CreateCubemapMatrices(const BoundingBox& aabb, const Vec3f& origin)
+{
+    FixedArray<Matrix4, 6> view_matrices;
+
+    for (uint32 i = 0; i < 6; i++)
+    {
+        view_matrices[i] = Matrix4::LookAt(
+            origin,
+            origin + Texture::cubemap_directions[i].first,
+            Texture::cubemap_directions[i].second);
+    }
+
+    return view_matrices;
+}
+
 #pragma region Render commands
 
 struct RENDER_COMMAND(RenderPointLightShadow)
@@ -438,6 +453,25 @@ void EnvProbe::UpdateRenderProxy(IRenderProxy* proxy)
     buffer_data.flags = (IsReflectionProbe() ? EnvProbeFlags::PARALLAX_CORRECTED : EnvProbeFlags::NONE)
         | (IsShadowProbe() ? EnvProbeFlags::SHADOW : EnvProbeFlags::NONE)
         | EnvProbeFlags::DIRTY;
+
+    const FixedArray<Matrix4, 6> view_matrices = CreateCubemapMatrices(m_aabb, GetOrigin());
+
+    Memory::MemCpy(buffer_data.face_view_matrices, view_matrices.Data(), sizeof(EnvProbeShaderData::face_view_matrices));
+    // Memory::MemCpy(buffer_data.sh.values, m_spherical_harmonics.values, sizeof(EnvProbeSphericalHarmonics::values));
+
+    // /// temp shit
+    // if (IsShadowProbe())
+    // {
+    //     // AssertThrow(m_shadow_map);
+
+    //     // buffer_data->texture_index = m_shadow_map->GetAtlasElement().point_light_index;
+    // }
+    // else
+    // {
+    //     buffer_data.texture_index = m_render_resource->GetTextureSlot();
+    // }
+
+    // buffer_data.position_in_grid = m_render_resource->GetPositionInGrid();
 }
 
 #pragma region SkyProbe

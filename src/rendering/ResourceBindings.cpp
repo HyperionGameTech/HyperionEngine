@@ -66,8 +66,10 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
     AssertDebug(env_probe->GetRenderResource().GetBufferIndex() != ~0u);
     RenderApi_AssignResourceBinding(env_probe, env_probe->GetRenderResource().GetBufferIndex());
 
-    // temp shit
-    env_probe->GetRenderResource().SetTextureSlot(next);
+    // // temp shit
+    // env_probe->GetRenderResource().SetTextureSlot(next);
+
+    proxy_casted->buffer_data.texture_index = next;
 
     if (next != ~0u)
     {
@@ -87,6 +89,17 @@ void OnReflectionProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 ne
     }
 }
 
+void OnAmbientProbeBindingChanged(EnvProbe* env_probe, uint32 prev, uint32 next)
+{
+    AssertDebug(env_probe != nullptr);
+    AssertDebug(env_probe->IsReady());
+
+    AssertDebug(env_probe->GetEnvProbeType() == EPT_AMBIENT);
+
+    // temp shit
+    RenderApi_AssignResourceBinding(env_probe, env_probe->GetRenderResource().GetBufferIndex());
+}
+
 void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next)
 {
     AssertDebug(env_grid != nullptr);
@@ -101,43 +114,43 @@ void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next)
     AssertDebug(env_grid->GetRenderResource().GetBufferIndex() != ~0u);
     RenderApi_AssignResourceBinding(env_grid, env_grid->GetRenderResource().GetBufferIndex());
 
-    if (next != ~0u)
+    // if (next != ~0u)
+    // {
+    switch (env_grid->GetEnvGridType())
     {
-        switch (env_grid->GetEnvGridType())
+    case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
+    {
+        AssertDebug(env_grid->GetLightFieldIrradianceTexture().IsValid());
+        AssertDebug(env_grid->GetLightFieldDepthTexture().IsValid());
+
+        // @TODO: Set based on binding index
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-        case EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD:
-        {
-            AssertDebug(env_grid->GetLightFieldIrradianceTexture().IsValid());
-            AssertDebug(env_grid->GetLightFieldDepthTexture().IsValid());
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("LightFieldColorTexture"), env_grid->GetLightFieldIrradianceTexture()->GetRenderResource().GetImageView());
 
-            // @TODO: Set based on binding index
-            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-            {
-                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->SetElement(NAME("LightFieldColorTexture"), env_grid->GetLightFieldIrradianceTexture()->GetRenderResource().GetImageView());
-
-                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->SetElement(NAME("LightFieldDepthTexture"), env_grid->GetLightFieldDepthTexture()->GetRenderResource().GetImageView());
-            }
-
-            return;
-        }
-        default:
-            break;
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("LightFieldDepthTexture"), env_grid->GetLightFieldDepthTexture()->GetRenderResource().GetImageView());
         }
 
-        if (env_grid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
-        {
-            AssertDebug(env_grid->GetVoxelGridTexture().IsValid());
+        return;
+    }
+    default:
+        break;
+    }
 
-            // Set our voxel grid texture in the global descriptor set so we can use it in shaders
-            for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
-            {
-                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
-                    ->SetElement(NAME("VoxelGridTexture"), env_grid->GetVoxelGridTexture()->GetRenderResource().GetImageView());
-            }
+    if (env_grid->GetOptions().flags & EnvGridFlags::USE_VOXEL_GRID)
+    {
+        AssertDebug(env_grid->GetVoxelGridTexture().IsValid());
+
+        // Set our voxel grid texture in the global descriptor set so we can use it in shaders
+        for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
+        {
+            g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(NAME("Global"), frame_index)
+                ->SetElement(NAME("VoxelGridTexture"), env_grid->GetVoxelGridTexture()->GetRenderResource().GetImageView());
         }
     }
+    // }
 }
 
 void OnLightBindingChanged(Light* light, uint32 prev, uint32 next)

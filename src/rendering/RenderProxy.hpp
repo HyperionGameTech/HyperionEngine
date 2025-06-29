@@ -66,7 +66,7 @@ public:
     BoundingBox aabb;
     UserData<32, 16> user_data;
     MeshInstanceData instance_data;
-    uint32 version = 0;
+    int version = 0;
 
     ~RenderProxy() override = default;
 

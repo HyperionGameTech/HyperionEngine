@@ -33,7 +33,6 @@ class ResourceTracker
     template <class Derived, bool IsConst>
     struct IteratorBase
     {
-        using Element = std::conditional_t<IsConst, const ElementType, ElementType>;
         using ResourceTrackerType = std::conditional_t<IsConst, const ResourceTracker, ResourceTracker>;
 
         ResourceTrackerType* tracker;
@@ -153,7 +152,7 @@ class ResourceTracker
             return tmp;
         }
 
-        Element& operator*() const
+        auto operator*() const -> std::conditional_t<IsConst, const ElementType, ElementType>&
         {
             if (subclass_impl_index == Bitset::not_found && element_index == Bitset::not_found)
             {
@@ -174,7 +173,7 @@ class ResourceTracker
             HYP_FAIL("Invalid iterator phase");
         }
 
-        Element* operator->() const
+        auto operator->() const -> std::conditional_t<IsConst, const ElementType, ElementType>*
         {
             return &(**this);
         }
@@ -263,8 +262,9 @@ public:
     // without worring about hashing for lookups and allowing us to
     // still iterate over the elements (mostly) linearly.
     using ElementArrayType = SparsePagedArray<ElementType, 256>;
+    using VersionArrayType = SparsePagedArray<int, 256>; // mirrors elements array
 
-    static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric Id)");
+    static_assert(std::is_base_of_v<ObjIdBase, IdType>, "IdType must be derived from ObjIdBase (must use numeric id)");
 
     ResourceTracker()
         : m_impl(IdType::type_id_static) // default impl for base class
@@ -283,11 +283,12 @@ public:
 
     ~ResourceTracker()
     {
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        // destruct subtype containers
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            AssertDebug(bit_index < m_subclass_impls.Size());
+            AssertDebug(i < m_subclass_impls.Size());
 
-            m_subclass_impls[bit_index].Destruct();
+            m_subclass_impls[i].Destruct();
         }
     }
 
@@ -297,11 +298,11 @@ public:
 
         uint32 count = m_impl.GetCurrentBits().Count();
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            AssertDebug(bit_index < m_subclass_impls.Size());
+            AssertDebug(i < m_subclass_impls.Size());
 
-            count += m_subclass_impls[bit_index].Get().GetCurrentBits().Count();
+            count += m_subclass_impls[i].Get().GetCurrentBits().Count();
         }
 
         return count;
@@ -370,19 +371,25 @@ public:
         diff.num_removed = m_impl.GetRemoved().Count();
         diff.num_changed = m_impl.GetChanged().Count();
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            AssertDebug(bit_index < m_subclass_impls.Size());
+            AssertDebug(i < m_subclass_impls.Size());
 
-            diff.num_added += m_subclass_impls[bit_index].Get().GetAdded().Count();
-            diff.num_removed += m_subclass_impls[bit_index].Get().GetRemoved().Count();
-            diff.num_changed += m_subclass_impls[bit_index].Get().GetChanged().Count();
+            diff.num_added += m_subclass_impls[i].Get().GetAdded().Count();
+            diff.num_removed += m_subclass_impls[i].Get().GetRemoved().Count();
+            diff.num_changed += m_subclass_impls[i].Get().GetChanged().Count();
         }
 
         return diff;
     }
 
-    void Track(IdType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
+    /*! \brief Marks an element to be considered valid for this frame
+     *  \param id The ID of the element to track, used as a key / index
+     *  \param element The element to track
+     *  \param version_ptr Optional pointer to an integer that holds the version of the element. If the version does not match what is stored,
+     *  the element will be considered changed and the data marked for update.
+     */
+    void Track(IdType id, const ElementType& element, const int* version_ptr = nullptr)
     {
         HYP_SCOPE;
 
@@ -390,7 +397,7 @@ public:
 
         if (type_id == m_impl.type_id)
         {
-            m_impl.Track(id, element, out_track_state);
+            m_impl.Track(id, element, version_ptr);
             return;
         }
 
@@ -404,32 +411,7 @@ public:
             m_subclass_impls_initialized.Set(subclass_index, true);
         }
 
-        m_subclass_impls[subclass_index].Get().Track(id, element, out_track_state);
-    }
-
-    void Track(IdType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
-    {
-        HYP_SCOPE;
-
-        TypeId type_id = id.GetTypeId();
-
-        if (type_id == m_impl.type_id)
-        {
-            m_impl.Track(id, std::move(element), out_track_state);
-            return;
-        }
-
-        const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
-        AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
-
-        if (!m_subclass_impls_initialized.Test(subclass_index))
-        {
-            m_subclass_impls[subclass_index].Construct(type_id);
-            m_subclass_impls_initialized.Set(subclass_index, true);
-        }
-
-        m_subclass_impls[subclass_index].Get().Track(id, std::move(element), out_track_state);
+        m_subclass_impls[subclass_index].Get().Track(id, element, version_ptr);
     }
 
     bool MarkToKeep(IdType id)
@@ -498,9 +480,9 @@ public:
 
         m_impl.GetRemoved(out, include_changed);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetRemoved(out, include_changed);
+            m_subclass_impls[i].Get().GetRemoved(out, include_changed);
         }
     }
 
@@ -511,9 +493,9 @@ public:
 
         m_impl.GetRemoved(out, include_changed);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetRemoved(out, include_changed);
+            m_subclass_impls[i].Get().GetRemoved(out, include_changed);
         }
     }
 
@@ -524,9 +506,9 @@ public:
 
         m_impl.GetAdded(out, include_changed);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetAdded(out, include_changed);
+            m_subclass_impls[i].Get().GetAdded(out, include_changed);
         }
     }
 
@@ -537,9 +519,9 @@ public:
 
         m_impl.GetAdded(out, include_changed);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetAdded(out, include_changed);
+            m_subclass_impls[i].Get().GetAdded(out, include_changed);
         }
     }
 
@@ -550,9 +532,9 @@ public:
 
         m_impl.GetChanged(out_ids);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetChanged(out_ids);
+            m_subclass_impls[i].Get().GetChanged(out_ids);
         }
     }
 
@@ -563,9 +545,9 @@ public:
 
         m_impl.GetChanged(out);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetChanged(out);
+            m_subclass_impls[i].Get().GetChanged(out);
         }
     }
 
@@ -576,9 +558,9 @@ public:
 
         m_impl.GetChanged(out);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetChanged(out);
+            m_subclass_impls[i].Get().GetChanged(out);
         }
     }
 
@@ -589,9 +571,9 @@ public:
 
         m_impl.GetCurrent(out);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetCurrent(out);
+            m_subclass_impls[i].Get().GetCurrent(out);
         }
     }
 
@@ -602,9 +584,9 @@ public:
 
         m_impl.GetCurrent(out);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().GetCurrent(out);
+            m_subclass_impls[i].Get().GetCurrent(out);
         }
     }
 
@@ -637,9 +619,9 @@ public:
 
         m_impl.Advance(action);
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().Advance(action);
+            m_subclass_impls[i].Get().Advance(action);
         }
     }
 
@@ -647,15 +629,15 @@ public:
     {
         m_impl.Reset();
 
-        for (Bitset::BitIndex bit_index : m_subclass_impls_initialized)
+        for (Bitset::BitIndex i : m_subclass_impls_initialized)
         {
-            m_subclass_impls[bit_index].Get().Reset();
+            m_subclass_impls[i].Get().Reset();
         }
     }
 
     HYP_DEF_STL_BEGIN_END(Iterator(const_cast<ResourceTracker*>(this), Bitset::not_found, 0), Iterator(const_cast<ResourceTracker*>(this), Bitset::not_found, Bitset::not_found))
 
-    // protected:
+protected:
     struct Impl final
     {
         /*! \brief Checks if the ResourceTracker<ObjId<Entity>, RenderProxy> already has a proxy for the given Id from the previous frame */
@@ -690,9 +672,12 @@ public:
             return changed;
         }
 
-        void Track(IdType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
+        void Track(IdType id, const ElementType& value, const int* version_ptr = nullptr)
         {
-            ElementType* ptr = nullptr;
+            ElementType* current_value_ptr = nullptr;
+            int* current_version_ptr = nullptr;
+
+            ResourceTrackState track_state = ResourceTrackState::UNCHANGED;
 
             AssertThrowMsg(!next.Test(id.ToIndex()), "Id #%u already marked to be added for this iteration!", id.Value());
 
@@ -700,13 +685,17 @@ public:
             {
                 AssertDebug(elements.HasIndex(id.ToIndex()));
 
-                ptr = &elements.Get(id.ToIndex());
+                current_value_ptr = &elements.Get(id.ToIndex());
+                current_version_ptr = &versions.Get(id.ToIndex());
             }
 
-            if (ptr)
+            if (current_value_ptr != nullptr)
             {
-                // Advance if version has changed
-                if (element != *ptr)
+                // elements and versions must be kept in sync
+                AssertDebug(current_version_ptr != nullptr);
+
+                // Advance if version has changed or if elements are not equal
+                if (value != *current_value_ptr || (version_ptr != nullptr && *version_ptr != *current_version_ptr))
                 { // element.version != iter->second.version) {
                     // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
                     AssertDebug(!changed.Test(id.ToIndex()));
@@ -714,19 +703,14 @@ public:
                     // Mark as changed if it is found in the previous iteration
                     changed.Set(id.ToIndex(), true);
 
-                    *ptr = element;
+                    *current_value_ptr = value;
+                    *current_version_ptr = version_ptr ? *version_ptr : 0;
 
-                    if (out_track_state != nullptr)
-                    {
-                        *out_track_state = ResourceTrackState::CHANGED_MODIFIED;
-                    }
+                    track_state = ResourceTrackState::CHANGED_MODIFIED;
                 }
                 else
                 {
-                    if (out_track_state != nullptr)
-                    {
-                        *out_track_state = ResourceTrackState::UNCHANGED;
-                    }
+                    track_state = ResourceTrackState::UNCHANGED;
                 }
             }
             else
@@ -734,67 +718,11 @@ public:
                 // sanity check - if not in previous iteration, it must not be in the changed list
                 AssertDebug(!changed.Test(id.ToIndex()));
 
-                elements.Set(id.ToIndex(), element);
+                // use emplace to destruct / reconstruct current element
+                elements.Emplace(id.ToIndex(), value);
+                versions.Set(id.ToIndex(), version_ptr ? *version_ptr : 0);
 
-                if (out_track_state != nullptr)
-                {
-                    *out_track_state = ResourceTrackState::CHANGED_ADDED;
-                }
-            }
-
-            next.Set(id.ToIndex(), true);
-        }
-
-        void Track(IdType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
-        {
-            ElementType* ptr = nullptr;
-
-            AssertThrowMsg(!next.Test(id.ToIndex()), "Id #%u already marked to be added for this iteration!", id.Value());
-
-            if (HasElement(id))
-            {
-                AssertDebug(elements.HasIndex(id.ToIndex()));
-
-                ptr = &elements.Get(id.ToIndex());
-            }
-
-            if (ptr)
-            {
-                // Advance if version has changed
-                if (element != *ptr)
-                { // element.version != iter->second.version) {
-                    // Sanity check - must not contain duplicates or it will mess up safe releasing the previous RenderProxy objects
-                    AssertDebug(!changed.Test(id.ToIndex()));
-
-                    // Mark as changed if it is found in the previous iteration
-                    changed.Set(id.ToIndex(), true);
-
-                    *ptr = std::move(element);
-
-                    if (out_track_state != nullptr)
-                    {
-                        *out_track_state = ResourceTrackState::CHANGED_MODIFIED;
-                    }
-                }
-                else
-                {
-                    if (out_track_state != nullptr)
-                    {
-                        *out_track_state = ResourceTrackState::UNCHANGED;
-                    }
-                }
-            }
-            else
-            {
-                // sanity check - if not in previous iteration, it must not be in the changed list
-                AssertDebug(!changed.Test(id.ToIndex()));
-
-                elements.Set(id.ToIndex(), std::move(element));
-
-                if (out_track_state != nullptr)
-                {
-                    *out_track_state = ResourceTrackState::CHANGED_ADDED;
-                }
+                track_state = ResourceTrackState::CHANGED_ADDED;
             }
 
             next.Set(id.ToIndex(), true);
@@ -1098,6 +1026,7 @@ public:
                     AssertDebug(elements.HasIndex(index));
 
                     elements.EraseAt(index);
+                    versions.EraseAt(index);
                 }
             }
 
@@ -1125,6 +1054,8 @@ public:
         void Reset()
         {
             elements.Clear();
+            versions.Clear();
+
             previous.Clear();
             next.Clear();
             changed.Clear();
@@ -1133,6 +1064,8 @@ public:
         TypeId type_id;
 
         ElementArrayType elements;
+        // per-element version identifier array - mirrors elements array
+        VersionArrayType versions;
 
         Bitset previous;
         Bitset next;

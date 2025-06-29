@@ -82,7 +82,9 @@ public:
     HYP_METHOD()
     virtual void Detach();
 
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) { }
+    virtual void UpdateRenderProxy(IRenderProxy* proxy);
+
+    const int* GetRenderProxyVersionPtr() const { return &m_render_proxy_version; }
 
 protected:
     virtual void Init() override;
@@ -109,6 +111,9 @@ protected:
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
 
+    /*! \brief Marks this Entity as needing its render proxy to be updated on the next time it is collected. */
+    void SetNeedsRenderProxyUpdate();
+
     EntityInitInfo m_entity_init_info;
 
 private:
@@ -116,6 +121,8 @@ private:
     Scene* m_scene;
 
     Matrix4 m_prev_model_matrix;
+
+    int m_render_proxy_version;
 };
 
 } // namespace hyperion

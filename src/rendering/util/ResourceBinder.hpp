@@ -266,6 +266,7 @@ class ResourceBinder : public ResourceBinderBase
                     after.Count());
             }
 
+            // swap id bitsets
             last_frame_ids = std::move(current_frame_ids);
             current_frame_ids.Clear();
         }
