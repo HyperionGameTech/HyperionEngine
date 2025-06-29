@@ -389,21 +389,23 @@ public:
     {
         static const Bitset empty_bitset;
 
+        constexpr TypeId base_type_id = TypeId::ForType<T>();
+
         if (type_id == TypeId::Void())
         {
             return empty_bitset;
         }
 
-        if (type_id == TypeId::ForType<T>())
+        if (type_id == base_type_id)
         {
             return m_impl.current_frame_ids;
         }
         else
         {
-            const int subclass_index = GetSubclassIndex(TypeId::ForType<T>(), type_id);
+            const int subclass_index = GetSubclassIndex(base_type_id, type_id);
             AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
                 "ResourceBinder<%s>: Attempted to get bound indices for TypeId %u which is not a subclass of the expected TypeId (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), type_id.Value(), TypeId::ForType<T>().Value());
+                TypeNameWithoutNamespace<T>().Data(), type_id.Value(), base_type_id.Value());
 
             if (!m_subclass_impls_initialized.Test(subclass_index))
             {

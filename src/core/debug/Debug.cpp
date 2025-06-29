@@ -6,6 +6,12 @@
 #include <cstdarg>
 #include <type_traits>
 
+#ifdef HYP_UNIX
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
+#endif
+
 #define HYP_DEBUG_OUTPUT_STREAM stdout
 
 namespace hyperion {
@@ -83,6 +89,25 @@ HYP_API void WriteToStandardError(const char* msg)
 {
     fputs(msg, stderr);
     fflush(stderr);
+}
+
+HYP_API bool IsDebuggerAttached()
+{
+#ifdef HYP_WINDOWS
+    return ::IsDebuggerPresent();
+#elif defined(HYP_UNIX)
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    struct kinfo_proc info{};
+    size_t size = sizeof(info);
+
+    if (sysctl(mib, 4, &info, &size, nullptr, 0) != 0)
+    {
+        return false;
+    }
+
+    // P_TRACED flag is set when a debugger is tracing the process.
+    return (info.kp_proc.p_flag & P_TRACED) != 0;
+#endif
 }
 
 } // namespace debug

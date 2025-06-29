@@ -117,27 +117,27 @@ int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id)
     const HypClass* base = GetClass(base_type_id);
     if (!base)
     {
-        return -1;
+        return -2;
     }
 
     const HypClass* subclass = GetClass(subclass_type_id);
 
     if (!subclass)
     {
-        return -1;
+        return -2;
     }
 
     const int subclass_static_index = subclass->GetStaticIndex();
     if (subclass_static_index < 0)
     {
-        return -1; // subclass is not a static class
+        return -2; // subclass is not a static class
     }
 
     const int base_static_index = base->GetStaticIndex();
 
     if (subclass_static_index == base_static_index)
     {
-        return -1; // not subclass
+        return -1; // base class returns -1 for static index
     }
 
     if (uint32(subclass_static_index - base->GetStaticIndex()) <= base->GetNumDescendants())
@@ -146,7 +146,7 @@ int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id)
         return subclass_static_index - base->GetStaticIndex() - 1;
     }
 
-    return -1;
+    return -2;
 }
 
 SizeType GetNumDescendants(TypeId type_id)

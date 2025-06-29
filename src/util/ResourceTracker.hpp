@@ -315,7 +315,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (m_subclass_impls_initialized.Test(subclass_index))
@@ -336,7 +336,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (m_subclass_impls_initialized.Test(subclass_index))
@@ -395,7 +395,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (!m_subclass_impls_initialized.Test(subclass_index))
@@ -420,7 +420,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (!m_subclass_impls_initialized.Test(subclass_index))
@@ -444,7 +444,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (!m_subclass_impls_initialized.Test(subclass_index))
@@ -467,7 +467,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (!m_subclass_impls_initialized.Test(subclass_index))
@@ -620,7 +620,7 @@ public:
         }
 
         const int subclass_index = GetSubclassIndex(m_impl.type_id, type_id);
-        AssertDebugMsg(subclass_index != -1, "Invalid subclass index");
+        AssertDebugMsg(subclass_index >= 0, "Invalid subclass index");
         AssertDebugMsg(subclass_index < m_subclass_impls.Size(), "Invalid subclass index");
 
         if (!m_subclass_impls_initialized.Test(subclass_index))

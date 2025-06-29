@@ -166,6 +166,10 @@ struct PassDataExt
 {
     TypeId type_id;
 
+    PassDataExt()
+        : type_id(TypeId::Void())
+    {
+    }
     virtual ~PassDataExt() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -204,6 +208,15 @@ struct PassDataExt
         }
 
         return reinterpret_cast<const OtherPassDataExt*>(this);
+    }
+
+    // Create a new instance of this PassDataExt (caller owns the allocation)
+    virtual PassDataExt* Clone() = 0;
+
+protected:
+    PassDataExt(TypeId subtype)
+        : type_id(subtype)
+    {
     }
 };
 

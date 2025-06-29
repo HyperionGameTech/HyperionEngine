@@ -554,7 +554,7 @@ HYP_API void RenderApi_UpdateRenderProxy(ObjIdBase id)
     ResourceSubtypeData& subtype_data = fd.resources.GetSubtypeData(id.GetTypeId());
     ResourceData& data = subtype_data.data.Get(id.ToIndex());
 
-    AssertDebugMsg(subtype_data.has_proxy_data, "Cannot use UpdateResource() for type which does not have a RenderProxy! TypeId: %u, HypClass %s",
+    AssertDebugMsg(subtype_data.has_proxy_data, "Cannot use UpdateResource() for type which does not have proxy data! TypeId: %u, HypClass %s",
         subtype_data.type_id.Value(), *GetClass(subtype_data.type_id)->GetName());
 
     IRenderProxy* proxy;
@@ -582,15 +582,15 @@ HYP_API void RenderApi_UpdateRenderProxy(ObjIdBase id)
     {
         Entity* entity = static_cast<Entity*>(data.resource);
         entity->UpdateRenderProxy(proxy);
+
+        // mark for buffer data update from render thread
+        subtype_data.indices_pending_buffer_update.Set(id.ToIndex(), true);
     }
     else
     {
-        HYP_LOG(Rendering, Warning, "UpdateRenderProxy called for resource Id {} of type {} which is not an Entity! Skipping proxy update.\n",
+        HYP_LOG(Rendering, Warning, "UpdateRenderProxy called for resource id {} of type {} which is not an Entity! Skipping proxy update.\n",
             id, GetClass(subtype_data.type_id)->GetName());
     }
-
-    // mark for buffer data update from render thread
-    subtype_data.indices_pending_buffer_update.Set(id.ToIndex(), true);
 }
 
 HYP_API IRenderProxy* RenderApi_GetRenderProxy(ObjIdBase id)
@@ -666,6 +666,10 @@ HYP_API void RenderApi_EndFrame_GameThread()
     g_full_semaphore.release(); // a frame is ready for the renderer
 }
 
+static void RenderApi_UpdateBoundResources()
+{
+}
+
 HYP_API void RenderApi_BeginFrame_RenderThread()
 {
     HYP_SCOPE;
@@ -681,15 +685,98 @@ HYP_API void RenderApi_BeginFrame_RenderThread()
 
     FrameData& frame_data = g_frame_data[slot];
 
+    HYPERION_ASSERT_RESULT(RenderCommands::Flush());
+
     for (auto it = frame_data.per_view_data.Begin(); it != frame_data.per_view_data.End(); ++it)
     {
         ViewData& vd = *it;
         vd.render_proxy_list.state = RenderProxyList::CS_READING;
     }
 
-    // @TODO: is that needed?
-    // // Reset binding allocators at the end of the frame
-    // g_envprobe_bindings_allocator.Reset();
+    HashSet<ResourceBinderBase*> resource_binders;
+
+    for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
+    {
+        if (subtype_data.resource_binder != nullptr)
+        {
+            resource_binders.Insert(subtype_data.resource_binder);
+        }
+
+        if (subtype_data.indices_pending_buffer_update.AnyBitsSet())
+        {
+            AssertDebug(subtype_data.resource_binder != nullptr);
+
+            //  if resource binder is valid, bind each resource
+            for (Bitset::BitIndex bit : subtype_data.indices_pending_buffer_update)
+            {
+                ResourceData& rd = subtype_data.data.Get(bit);
+
+                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
+                AssertDebug(proxy != nullptr);
+
+                // add it to the list to have a binding assigned
+                subtype_data.resource_binder->Bind(rd.resource);
+            }
+        }
+    }
+
+    // set the actual bindings
+    for (ResourceBinderBase* resource_binder : resource_binders)
+    {
+        resource_binder->UpdateBoundResources();
+    }
+
+    for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
+    {
+        if (subtype_data.indices_pending_buffer_update.AnyBitsSet())
+        {
+            AssertDebug(subtype_data.resource_binder != nullptr);
+
+            const Bitset& current_bound_indices = subtype_data.resource_binder->GetBoundIndices(subtype_data.type_id);
+
+            if (!current_bound_indices.AnyBitsSet())
+            {
+                // early out; nothing is bound
+                continue;
+            }
+
+            // Handle proxies that were updated on game thread
+            for (Bitset::BitIndex bit = subtype_data.indices_pending_buffer_update.FirstSetBitIndex();
+                bit != Bitset::not_found;
+                bit = subtype_data.indices_pending_buffer_update.NextSetBitIndex(bit + 1))
+            {
+                // if the bit is not set, we failed to bind the resource to a slot and cannot update it
+                // skip updating the data this time -- maybe next frame a slot will be freed
+                if (!current_bound_indices.Test(bit))
+                {
+                    continue;
+                }
+
+                ResourceData& rd = subtype_data.data.Get(bit);
+
+                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
+                AssertDebug(proxy != nullptr);
+
+                if (subtype_data.type_id == TypeId::ForType<EnvGrid>())
+                {
+                    RenderProxyEnvGrid* p = static_cast<RenderProxyEnvGrid*>(proxy);
+                    AssertDebug(p->bound_index != ~0u);
+                }
+
+                HYP_LOG(Rendering, Debug, "Updating resource of type {} with Id {} on GPU thread..\n",
+                    *GetClass(subtype_data.type_id)->GetName(), ObjIdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
+
+                DebugLog(LogType::Debug, "WTF?? %s\n", typeid(*subtype_data.resource_binder).name());
+
+                AssertDebug(subtype_data.gpu_buffer_holder != nullptr);
+                AssertDebug(subtype_data.set_gpu_elem != nullptr);
+
+                subtype_data.set_gpu_elem(subtype_data.gpu_buffer_holder, proxy);
+
+                subtype_data.indices_pending_buffer_update.Set(bit, false);
+            }
+        }
+    }
 }
 
 HYP_API void RenderApi_EndFrame_RenderThread()
@@ -734,85 +821,8 @@ HYP_API void RenderApi_EndFrame_RenderThread()
         ++it;
     }
 
-    HashSet<ResourceBinderBase*> resource_binders;
-    HashSet<ResourceBindingAllocatorBase*> resource_binding_allocators;
-
     for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
     {
-        if (subtype_data.indices_pending_buffer_update.Count())
-        {
-            AssertDebug(subtype_data.resource_binder != nullptr);
-
-            resource_binders.Insert(subtype_data.resource_binder);
-
-            //  if resource binder is valid, bind each resource
-            for (Bitset::BitIndex bit : subtype_data.indices_pending_buffer_update)
-            {
-                ResourceData& rd = subtype_data.data.Get(bit);
-
-                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
-                AssertDebug(proxy != nullptr);
-
-                // add it to the list to have a binding assigned
-                subtype_data.resource_binder->Bind(rd.resource);
-            }
-        }
-    }
-
-    if (resource_binders.Any())
-    {
-        // set the actual bindings
-        for (ResourceBinderBase* resource_binder : resource_binders)
-        {
-            resource_binder->UpdateBoundResources();
-
-            resource_binding_allocators.Insert(resource_binder->GetBindingAllocator());
-        }
-    }
-
-    for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
-    {
-        if (subtype_data.indices_pending_buffer_update.Count())
-        {
-            AssertDebug(subtype_data.resource_binder != nullptr);
-
-            const Bitset& current_bound_indices = subtype_data.resource_binder->GetBoundIndices(subtype_data.type_id);
-
-            // Handle proxies that were updated on game thread
-            for (Bitset::BitIndex bit : subtype_data.indices_pending_buffer_update)
-            {
-                // if the bit is not set, we failed to bind the resource to a slot and cannot update it
-                // skip updating the data this time -- maybe next frame a slot will be freed
-                if (!current_bound_indices.Test(bit))
-                {
-                    continue;
-                }
-
-                ResourceData& rd = subtype_data.data.Get(bit);
-
-                IRenderProxy* proxy = subtype_data.proxies.Get(bit);
-                AssertDebug(proxy != nullptr);
-
-                if (subtype_data.type_id == TypeId::ForType<SkyProbe>())
-                {
-                    RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(proxy);
-                    AssertDebug(env_probe_proxy->bound_index != ~0u);
-                }
-
-                HYP_LOG(Rendering, Debug, "Updating resource of type {} with Id {} on GPU thread..\n",
-                    *GetClass(subtype_data.type_id)->GetName(), ObjIdBase { subtype_data.type_id, uint32(bit) + 1 }.Value());
-
-                DebugLog(LogType::Debug, "WTF?? %s\n", typeid(*subtype_data.resource_binder).name());
-
-                AssertDebug(subtype_data.gpu_buffer_holder != nullptr);
-                AssertDebug(subtype_data.set_gpu_elem != nullptr);
-
-                subtype_data.set_gpu_elem(subtype_data.gpu_buffer_holder, proxy);
-            }
-
-            subtype_data.indices_pending_buffer_update.Clear();
-        }
-
         // @TODO: for deletion, have a fixed number to iterate over per frame so we don't spend too much time on it.
         // Remove resources pending deletion via SafeDelete() for indices marked for deletion from the game thread
         for (Bitset::BitIndex bit : subtype_data.indices_pending_delete)
@@ -860,11 +870,24 @@ HYP_API void RenderApi_EndFrame_RenderThread()
         subtype_data.indices_pending_delete.Clear();
     }
 
+    // Resource counters for binding allocators
+    HashSet<ResourceBindingAllocatorBase*> resource_binding_allocators;
+
+    for (ResourceSubtypeData& subtype_data : frame_data.resources.data_by_type)
+    {
+        if (!subtype_data.resource_binder)
+        {
+            continue;
+        }
+
+        resource_binding_allocators.Insert(subtype_data.resource_binder->GetBindingAllocator());
+    }
+
     if (resource_binding_allocators.Any())
     {
-        for (ResourceBindingAllocatorBase* allocator : resource_binding_allocators)
+        for (ResourceBindingAllocatorBase* binding_allocator : resource_binding_allocators)
         {
-            allocator->Reset();
+            binding_allocator->Reset();
         }
     }
 

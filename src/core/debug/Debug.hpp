@@ -43,6 +43,8 @@ extern HYP_API void LogStackTrace(int depth = 10);
 
 extern HYP_API void WriteToStandardError(const char* msg);
 
+extern HYP_API bool IsDebuggerAttached();
+
 } // namespace debug
 
 using debug::LogType;
@@ -102,6 +104,7 @@ using debug::LogType;
             DebugLog(LogType::Error, "Assertion failed!\n\tCondition: " #expression "\n\tMessage: " __VA_ARGS__); \
             debug::DebugLog_FlushOutputStream();                                                                  \
             HYP_PRINT_STACK_TRACE();                                                                              \
+            if (debug::IsDebuggerAttached()) { HYP_BREAKPOINT; }                                                  \
             std::terminate();                                                                                     \
         }                                                                                                         \
     }                                                                                                             \

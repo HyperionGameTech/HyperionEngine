@@ -103,6 +103,11 @@ void OnEnvGridBindingChanged(EnvGrid* env_grid, uint32 prev, uint32 next)
     AssertDebug(env_grid->GetRenderResource().GetBufferIndex() != ~0u);
     proxy_casted->bound_index = env_grid->GetRenderResource().GetBufferIndex();
 
+    DebugLog(LogType::Debug, "Bound env grid with id %u to bound index %u (proxy ptr: %p)\n",
+        env_grid->Id().Value(),
+        proxy_casted->bound_index,
+        proxy_casted);
+
     if (next != ~0u)
     {
         switch (env_grid->GetEnvGridType())

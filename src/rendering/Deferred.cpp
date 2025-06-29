@@ -1,5 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
+#include "core/Defines.hpp"
 #include <rendering/Deferred.hpp>
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGroup.hpp>
@@ -572,6 +573,7 @@ void EnvGridPass::Resize_Internal(Vec2u new_size)
     FullScreenPass::Resize_Internal(new_size);
 }
 
+HYP_DISABLE_OPTIMIZATION;
 void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 {
     HYP_SCOPE;
@@ -599,7 +601,8 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     for (EnvGrid* env_grid : rpl.env_grids)
     {
         RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->Id()));
-        AssertThrow(env_grid_proxy->bound_index != ~0u);
+        AssertDebug(env_grid_proxy != nullptr);
+        AssertDebug(env_grid_proxy->bound_index != ~0u);
 
         const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
             ? m_graphics_pipeline
@@ -661,6 +664,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     m_is_first_frame = false;
 }
+HYP_ENABLE_OPTIMIZATION;
 
 #pragma endregion Env grid pass
 

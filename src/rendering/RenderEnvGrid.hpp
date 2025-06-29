@@ -52,41 +52,53 @@ struct HYP_API EnvGridPassData : PassData
 {
     virtual ~EnvGridPassData() override;
 
-    ShaderRef m_shader;
-    FramebufferRef m_framebuffer;
+    ShaderRef shader;
+    FramebufferRef framebuffer;
 
-    uint32 m_current_probe_index;
+    ComputePipelineRef clear_sh;
+    ComputePipelineRef compute_sh;
+    ComputePipelineRef reduce_sh;
+    ComputePipelineRef finalize_sh;
 
-    ComputePipelineRef m_clear_sh;
-    ComputePipelineRef m_compute_sh;
-    ComputePipelineRef m_reduce_sh;
-    ComputePipelineRef m_finalize_sh;
+    Array<DescriptorTableRef> compute_sh_descriptor_tables;
+    Array<GpuBufferRef> sh_tiles_buffers;
 
-    Array<DescriptorTableRef> m_compute_sh_descriptor_tables;
-    Array<GpuBufferRef> m_sh_tiles_buffers;
+    ComputePipelineRef clear_voxels;
+    ComputePipelineRef voxelize_probe;
+    ComputePipelineRef offset_voxel_grid;
+    ComputePipelineRef generate_voxel_grid_mipmaps;
 
-    ComputePipelineRef m_clear_voxels;
-    ComputePipelineRef m_voxelize_probe;
-    ComputePipelineRef m_offset_voxel_grid;
-    ComputePipelineRef m_generate_voxel_grid_mipmaps;
+    Array<ImageViewRef> voxel_grid_mips;
+    Array<DescriptorTableRef> generate_voxel_grid_mipmaps_descriptor_tables;
 
-    Array<ImageViewRef> m_voxel_grid_mips;
-    Array<DescriptorTableRef> m_generate_voxel_grid_mipmaps_descriptor_tables;
+    Array<GpuBufferRef> uniform_buffers;
 
-    Array<GpuBufferRef> m_uniform_buffers;
+    ComputePipelineRef compute_irradiance;
+    ComputePipelineRef compute_filtered_depth;
+    ComputePipelineRef copy_border_texels;
 
-    ComputePipelineRef m_compute_irradiance;
-    ComputePipelineRef m_compute_filtered_depth;
-    ComputePipelineRef m_copy_border_texels;
-
-    Queue<uint32> m_next_render_indices;
+    uint32 current_probe_index;
+    Queue<uint32> next_render_indices;
 };
 
 struct EnvGridPassDataExt : PassDataExt
 {
     EnvGrid* env_grid = nullptr;
 
+    EnvGridPassDataExt()
+        : PassDataExt(TypeId::ForType<EnvGridPassDataExt>())
+    {
+    }
+
     virtual ~EnvGridPassDataExt() override = default;
+
+    virtual PassDataExt* Clone() override
+    {
+        EnvGridPassDataExt* clone = new EnvGridPassDataExt;
+        clone->env_grid = env_grid;
+
+        return clone;
+    }
 };
 
 class EnvGridRenderer : public RendererBase

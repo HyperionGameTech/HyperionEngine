@@ -444,12 +444,8 @@ void Engine::PreFrameUpdate(FrameBase* frame)
 
     Threads::AssertOnThread(g_render_thread);
 
-    // Add/remove pending descriptor sets before flushing render commands or updating buffers and descriptor sets.
-    // otherwise we'll have an issue when render commands expect the descriptor sets to be there.
     m_material_descriptor_set_manager->UpdatePendingDescriptorSets(frame);
     m_material_descriptor_set_manager->Update(frame);
-
-    HYPERION_ASSERT_RESULT(RenderCommands::Flush());
 
     if (m_world->IsReady())
         m_world->GetRenderResource().PreRender(frame);

@@ -154,6 +154,14 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
 
 #pragma region RendererBase
 
+struct NullPassDataExt final : PassDataExt
+{
+    PassDataExt* Clone() override
+    {
+        HYP_FAIL("Should not Clone() NullPassDataExt!");
+    }
+};
+
 RendererBase::~RendererBase()
 {
     for (PassData* pd : m_view_pass_data)
@@ -193,14 +201,14 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
 
     if (!pd)
     {
-        PassDataExt null_pass_data_ext {};
+        NullPassDataExt null_pass_data_ext {};
 
         // call virtual function to alloc / create
 
         pd = CreateViewPassData(view, ext ? *ext : null_pass_data_ext);
         AssertDebug(pd != nullptr);
 
-        pd->next = ext;
+        pd->next = ext ? ext->Clone() : nullptr;
 
         m_view_pass_data.Set(view->Id().ToIndex(), pd);
     }
@@ -208,12 +216,12 @@ PassData* RendererBase::FetchViewPassData(View* view, PassDataExt* ext)
     {
         delete pd;
 
-        PassDataExt null_pass_data_ext {};
+        NullPassDataExt null_pass_data_ext {};
 
         pd = CreateViewPassData(view, ext ? *ext : null_pass_data_ext);
         AssertDebug(pd != nullptr);
 
-        pd->next = ext;
+        pd->next = ext ? ext->Clone() : nullptr;
 
         m_view_pass_data.Set(view->Id().ToIndex(), pd);
     }

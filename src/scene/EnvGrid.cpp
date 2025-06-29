@@ -117,6 +117,9 @@ EnvGrid::~EnvGrid()
 {
     if (m_render_resource != nullptr)
     {
+        // temp shit
+        m_render_resource->DecRef();
+
         FreeResource(m_render_resource);
 
         m_render_resource = nullptr;
@@ -222,6 +225,8 @@ void EnvGrid::Init()
     }
 
     m_render_resource = AllocateResource<RenderEnvGrid>(this);
+    // temp shit
+    m_render_resource->IncRef();
 
     ViewOutputTargetDesc output_target_desc {
         .extent = Vec2u(framebuffer_dimensions),
