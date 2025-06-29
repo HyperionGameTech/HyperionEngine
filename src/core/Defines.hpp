@@ -384,7 +384,7 @@
 #define HYP_ENABLE_THREAD_ID
 
 #ifndef HYP_ENABLE_THREAD_ID
-#error "Thread ID is required"
+#error "Thread Id is required"
 #endif
 
 #if defined(HYP_ENABLE_THREAD_ID) && defined(HYP_DEBUG_MODE)

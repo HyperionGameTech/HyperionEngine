@@ -2,7 +2,7 @@
 
 #include <core/debug/Debug.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <Types.hpp>
 
@@ -10,8 +10,8 @@ using namespace hyperion;
 
 extern "C"
 {
-    HYP_EXPORT void TypeID_ForManagedType(const char* type_name, TypeID* out_type_id)
+    HYP_EXPORT void TypeId_ForManagedType(const char* type_name, TypeId* out_type_id)
     {
-        *out_type_id = TypeID::ForManagedType(type_name);
+        *out_type_id = TypeId::ForManagedType(type_name);
     }
 } // extern "C"

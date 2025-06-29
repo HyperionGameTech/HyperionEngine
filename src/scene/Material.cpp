@@ -138,11 +138,11 @@ void Material::EnqueueRenderUpdates()
 {
     AssertReady();
 
-    static const bool is_bindless_supported = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool is_bindless_supported = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     if (!m_mutation_state.IsDirty())
     {
-        HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with ID {} (name: {}) that is not dirty", GetID(), GetName());
+        HYP_LOG_ONCE(Material, Warning, "EnqueueRenderUpdates called on material with Id {} (name: {}) that is not dirty", GetID(), GetName());
 
         return;
     }
@@ -151,7 +151,7 @@ void Material::EnqueueRenderUpdates()
         max_textures,
         is_bindless_supported ? max_bindless_resources : max_bound_textures);
 
-    Array<ID<Texture>> bound_texture_ids;
+    Array<Id<Texture>> bound_texture_ids;
     bound_texture_ids.Resize(num_bound_textures);
 
     for (uint32 i = 0; i < num_bound_textures; i++)
@@ -189,7 +189,7 @@ void Material::SetParameter(MaterialKey key, const Parameter& value)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting parameter on static material with ID {} (name: {})", GetID(), GetName());
+        HYP_LOG(Material, Warning, "Setting parameter on static material with Id {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -212,7 +212,7 @@ void Material::SetParameters(const ParameterTable& parameters)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting parameters on static material with ID {} (name: {})", GetID(), GetName());
+        HYP_LOG(Material, Warning, "Setting parameters on static material with Id {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -230,7 +230,7 @@ void Material::ResetParameters()
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Resetting parameters on static material with ID {} (name: {})", GetID(), GetName());
+        HYP_LOG(Material, Warning, "Resetting parameters on static material with Id {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -248,7 +248,7 @@ void Material::SetTexture(MaterialTextureKey key, const Handle<Texture>& texture
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting texture on static material with ID {} (name: {})", GetID(), GetName());
+        HYP_LOG(Material, Warning, "Setting texture on static material with Id {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -280,7 +280,7 @@ void Material::SetTextures(const TextureSet& textures)
 {
     if (IsStatic() && IsReady())
     {
-        HYP_LOG(Material, Warning, "Setting textures on static material with ID {} (name: {})", GetID(), GetName());
+        HYP_LOG(Material, Warning, "Setting textures on static material with Id {} (name: {})", GetID(), GetName());
 #ifdef HYP_DEBUG_MODE
         HYP_BREAKPOINT;
 #endif // HYP_DEBUG_MODE
@@ -305,7 +305,7 @@ void Material::SetTextures(const TextureSet& textures)
             InitObject(m_textures.ValueAt(i));
         }
 
-        if (!g_rendering_api->GetRenderConfig().IsBindlessSupported())
+        if (!g_render_backend->GetRenderConfig().IsBindlessSupported())
         {
             FlatMap<MaterialTextureKey, Handle<Texture>> textures;
 
@@ -475,7 +475,7 @@ Handle<Material> MaterialCache::GetOrCreate(
         };
     }
 
-    // @TODO: For textures hashcode, asset path should be used rather than texture ID
+    // @TODO: For textures hashcode, asset path should be used rather than texture Id
     // textures may later be destroyed and their IDs reused which would cause a hash collision
 
     HashCode hc;

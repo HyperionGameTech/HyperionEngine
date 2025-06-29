@@ -156,7 +156,7 @@ public:
     PostProcessing& operator=(const PostProcessing&) = delete;
     ~PostProcessing();
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetUniformBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetUniformBuffer() const
     {
         return m_uniform_buffer;
     }
@@ -245,11 +245,11 @@ private:
 
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects; // only touch from render thread
     FixedArray<TypeMap<UniquePtr<PostProcessingEffect>>, 2> m_effects_pending_addition;
-    FixedArray<FlatSet<TypeID>, 2> m_effects_pending_removal;
+    FixedArray<FlatSet<TypeId>, 2> m_effects_pending_removal;
     std::mutex m_effects_mutex;
     AtomicVar<bool> m_effects_updated { false };
 
-    GPUBufferRef m_uniform_buffer;
+    GpuBufferRef m_uniform_buffer;
 };
 
 } // namespace hyperion

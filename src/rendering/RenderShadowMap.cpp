@@ -62,7 +62,7 @@ void ShadowMapAllocator::Initialize()
 
     Threads::AssertOnThread(g_render_thread);
 
-    m_atlas_image = g_rendering_api->MakeImage(TextureDesc {
+    m_atlas_image = g_render_backend->MakeImage(TextureDesc {
         TT_TEX2D_ARRAY,
         TF_RG32F,
         Vec3u { m_atlas_dimensions, 1 },
@@ -74,10 +74,10 @@ void ShadowMapAllocator::Initialize()
 
     HYPERION_ASSERT_RESULT(m_atlas_image->Create());
 
-    m_atlas_image_view = g_rendering_api->MakeImageView(m_atlas_image);
+    m_atlas_image_view = g_render_backend->MakeImageView(m_atlas_image);
     HYPERION_ASSERT_RESULT(m_atlas_image_view->Create());
 
-    m_point_light_shadow_map_image = g_rendering_api->MakeImage(TextureDesc {
+    m_point_light_shadow_map_image = g_render_backend->MakeImage(TextureDesc {
         TT_CUBEMAP_ARRAY,
         TF_RG32F,
         Vec3u { 512, 512, 1 },
@@ -89,7 +89,7 @@ void ShadowMapAllocator::Initialize()
 
     HYPERION_ASSERT_RESULT(m_point_light_shadow_map_image->Create());
 
-    m_point_light_shadow_map_image_view = g_rendering_api->MakeImageView(m_point_light_shadow_map_image);
+    m_point_light_shadow_map_image_view = g_render_backend->MakeImageView(m_point_light_shadow_map_image);
     HYPERION_ASSERT_RESULT(m_point_light_shadow_map_image_view->Create());
 }
 
@@ -254,7 +254,7 @@ void RenderShadowMap::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* RenderShadowMap::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderShadowMap::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_SHADOW_MAPS];
 }
@@ -301,7 +301,7 @@ void RenderShadowMap::UpdateBufferData()
     }
 
     *static_cast<ShadowMapShaderData*>(m_buffer_address) = m_buffer_data;
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 #pragma endregion RenderShadowMap

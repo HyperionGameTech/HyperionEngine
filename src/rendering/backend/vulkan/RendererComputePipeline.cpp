@@ -3,7 +3,7 @@
 #include <rendering/backend/vulkan/RendererComputePipeline.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/RendererShader.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <core/debug/Debug.hpp>
 
@@ -19,11 +19,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 VulkanComputePipeline::VulkanComputePipeline()
@@ -76,12 +76,12 @@ void VulkanComputePipeline::Dispatch(
 
 void VulkanComputePipeline::DispatchIndirect(
     CommandBufferBase* command_buffer,
-    const GPUBufferRef& indirect_buffer,
+    const GpuBufferRef& indirect_buffer,
     SizeType offset) const
 {
     vkCmdDispatchIndirect(
         static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
-        static_cast<VulkanGPUBuffer*>(indirect_buffer.Get())->GetVulkanHandle(),
+        static_cast<VulkanGpuBuffer*>(indirect_buffer.Get())->GetVulkanHandle(),
         offset);
 }
 
@@ -91,14 +91,14 @@ RendererResult VulkanComputePipeline::Create()
     const VkPushConstantRange push_constant_ranges[] = {
         { .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .offset = 0,
-            .size = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
     const Array<VkDescriptorSetLayout> used_layouts = GetPipelineVulkanDescriptorSetLayouts(*this);
-    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 max_set_layouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
 #if 1
     HYP_LOG(RenderingBackend, Debug, "Using {} descriptor set layouts in pipeline", used_layouts.Size());
@@ -127,7 +127,7 @@ RendererResult VulkanComputePipeline::Create()
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_layout),
+        vkCreatePipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_layout),
         "Failed to create compute pipeline layout");
 
     VkComputePipelineCreateInfo pipeline_info { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
@@ -155,7 +155,7 @@ RendererResult VulkanComputePipeline::Create()
     pipeline_info.basePipelineIndex = -1;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateComputePipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
+        vkCreateComputePipelines(GetRenderBackend()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
         "Failed to create compute pipeline");
 
     HYPERION_RETURN_OK;

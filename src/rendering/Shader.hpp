@@ -43,7 +43,7 @@ private:
         ShaderWeakRef shader;
         RC<CompiledShader> compiled_shader;
         AtomicVar<State> state = State::UNLOADED;
-        ThreadID loading_thread_id;
+        ThreadId loading_thread_id;
     };
 
     HashMap<ShaderDefinition, RC<ShaderMapEntry>> m_map;

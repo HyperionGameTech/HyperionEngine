@@ -72,7 +72,7 @@ public:
     void SetTexture(MaterialTextureKey texture_key, const Handle<Texture>& texture);
     void SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& textures);
 
-    void SetBoundTextureIDs(const Array<ID<Texture>>& bound_texture_ids);
+    void SetBoundTextureIDs(const Array<Id<Texture>>& bound_texture_ids);
 
     void SetBufferData(const MaterialShaderData& buffer_data);
 
@@ -81,7 +81,7 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const override;
 
 private:
     void CreateDescriptorSets();
@@ -91,8 +91,8 @@ private:
 
     Material* m_material;
     FlatMap<MaterialTextureKey, Handle<Texture>> m_textures;
-    HashMap<ID<Texture>, TResourceHandle<RenderTexture>> m_render_textures;
-    Array<ID<Texture>> m_bound_texture_ids;
+    HashMap<Id<Texture>, TResourceHandle<RenderTexture>> m_render_textures;
+    Array<Id<Texture>> m_bound_texture_ids;
     MaterialShaderData m_buffer_data;
     FixedArray<DescriptorSetRef, max_frames_in_flight> m_descriptor_sets;
 };
@@ -141,7 +141,7 @@ public:
     FixedArray<DescriptorSetRef, max_frames_in_flight> AddMaterial(RenderMaterial* material, FixedArray<Handle<Texture>, max_bound_textures>&& textures);
 
     /*! \brief Remove a material from the manager. Only to be used from the render thread.
-     *  \param material The ID of the material to remove
+     *  \param material The Id of the material to remove
      */
     void RemoveMaterial(const RenderMaterial* material);
 

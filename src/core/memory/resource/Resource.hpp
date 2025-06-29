@@ -218,7 +218,7 @@ protected:
 
 private:
     AtomicVar<uint64> m_initialization_mask;
-    ThreadID m_initialization_thread_id; // thread that initialized this resource
+    ThreadId m_initialization_thread_id; // thread that initialized this resource
 };
 
 class IResourceMemoryPool
@@ -227,7 +227,7 @@ public:
     virtual ~IResourceMemoryPool() = default;
 };
 
-extern HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void));
+extern HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void));
 
 template <class T>
 class ResourceMemoryPool final : private MemoryPool<ValueStorage<T>, ResourceMemoryPoolInitInfo<T>>, public IResourceMemoryPool
@@ -239,7 +239,7 @@ public:
 
     static ResourceMemoryPool<T>* GetInstance()
     {
-        static IResourceMemoryPool* pool = GetOrCreateResourceMemoryPool(TypeID::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
+        static IResourceMemoryPool* pool = GetOrCreateResourceMemoryPool(TypeId::ForType<T>(), []() -> UniquePtr<IResourceMemoryPool>
             {
                 return MakeUnique<ResourceMemoryPool<T>>();
             });

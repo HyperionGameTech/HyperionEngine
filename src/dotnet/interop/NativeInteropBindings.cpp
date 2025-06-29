@@ -142,7 +142,7 @@ extern "C"
         DotNetSystem::GetInstance().GetGlobalFunctions().add_object_to_cache_function(ptr, out_class_object_ptr, out_object_reference, weak);
     }
 
-    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assembly_guid, Assembly* assembly_ptr, const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags, ManagedClass* out_managed_class)
+    HYP_EXPORT void ManagedClass_Create(ManagedGuid* assembly_guid, Assembly* assembly_ptr, const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeId type_id, Class* parent_class, uint32 flags, ManagedClass* out_managed_class)
     {
         AssertThrow(assembly_guid != nullptr);
         AssertThrow(assembly_ptr != nullptr);

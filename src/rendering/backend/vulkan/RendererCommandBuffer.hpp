@@ -5,7 +5,7 @@
 
 #include <rendering/backend/RendererCommandBuffer.hpp>
 
-#include <rendering/backend/vulkan/RendererBuffer.hpp>
+#include <rendering/backend/vulkan/RendererGpuBuffer.hpp>
 #include <rendering/backend/vulkan/RendererFence.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
@@ -58,8 +58,8 @@ public:
 
     HYP_API RendererResult SubmitSecondary(VulkanCommandBuffer* primary);
 
-    HYP_API virtual void BindVertexBuffer(const GPUBufferBase* buffer) override;
-    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, GPUElemType datum_type = GET_UNSIGNED_INT) override;
+    HYP_API virtual void BindVertexBuffer(const GpuBufferBase* buffer) override;
+    HYP_API virtual void BindIndexBuffer(const GpuBufferBase* buffer, GpuElemType elem_type = GET_UNSIGNED_INT) override;
 
     HYP_API virtual void DrawIndexed(
         uint32 num_indices,
@@ -67,7 +67,7 @@ public:
         uint32 instance_index = 0) const override;
 
     HYP_API virtual void DrawIndexedIndirect(
-        const GPUBufferBase* buffer,
+        const GpuBufferBase* buffer,
         uint32 buffer_offset) const override;
 
     HYP_API void DebugMarkerBegin(const char* marker_name) const;

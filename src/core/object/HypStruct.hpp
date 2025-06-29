@@ -23,7 +23,7 @@ class FBOMLoadContext;
 class HypStruct : public HypClass
 {
 public:
-    HypStruct(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    HypStruct(TypeId type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
         : HypClass(type_id, name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
@@ -100,7 +100,7 @@ public:
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
-        : HypStruct(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
+        : HypStruct(TypeId::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
@@ -155,7 +155,7 @@ public:
         AssertThrow(in.Is<T>());
 
         const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(TypeID::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            ? FBOM::GetInstance().GetMarshal(TypeId::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
@@ -200,7 +200,7 @@ public:
         }
 
         const FBOMMarshalerBase* marshal = (GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
-            ? FBOM::GetInstance().GetMarshal(TypeID::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
+            ? FBOM::GetInstance().GetMarshal(TypeId::ForType<T>(), /* allow_fallback */ (GetSerializationMode() & HypClassSerializationMode::MEMBERWISE))
             : nullptr;
 
         if (marshal)
@@ -246,7 +246,7 @@ protected:
             return;
         }
 
-        const IHypClassCallbackWrapper* callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
+        const IHypClassCallbackWrapper* callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
 
         if (!callback_wrapper)
         {
@@ -292,11 +292,11 @@ protected:
 
         // debugging
         AssertDebug(out.Is<Array<T>>());
-        AssertThrow(out.GetTypeID() == TypeID::ForType<Array<T>>());
-        DebugLog(LogType::Debug, "Created HypData for array type: %s from array with size %zu, TypeID: %u",
+        AssertThrow(out.GetTypeId() == TypeId::ForType<Array<T>>());
+        DebugLog(LogType::Debug, "Created HypData for array type: %s from array with size %zu, TypeId: %u",
             TypeNameWithoutNamespace<decltype(array)>().Data(),
             out.Get<Array<T>>().Size(),
-            TypeID::ForType<decltype(array)>().Value());
+            TypeId::ForType<decltype(array)>().Value());
 
         return true;
     }

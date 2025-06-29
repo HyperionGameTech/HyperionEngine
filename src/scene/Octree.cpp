@@ -69,13 +69,13 @@ void Octree::Clear()
 
     if (m_entity_manager)
     {
-        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadID()));
+        AssertThrow(Threads::IsOnThread(m_entity_manager->GetOwnerThreadId()));
 
         for (Entry& entry : entries)
         {
             if (VisibilityStateComponent* visibility_state_component = m_entity_manager->TryGetComponent<VisibilityStateComponent>(entry.value))
             {
-                visibility_state_component->octant_id = OctantID::Invalid();
+                visibility_state_component->octant_id = OctantId::Invalid();
                 visibility_state_component->visibility_state = nullptr;
             }
 

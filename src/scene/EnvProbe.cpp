@@ -52,7 +52,7 @@ struct RENDER_COMMAND(RenderPointLightShadow)
 
     virtual RendererResult operator()() override
     {
-        FrameBase* frame = g_rendering_api->GetCurrentFrame();
+        FrameBase* frame = g_render_backend->GetCurrentFrame();
         RenderSetup render_setup { world, nullptr };
 
         env_probe->Render(frame, render_setup);
@@ -85,12 +85,12 @@ EnvProbe::EnvProbe(EnvProbeType env_probe_type, const BoundingBox& aabb, const V
     m_entity_init_info.receives_update = true;
 }
 
-bool EnvProbe::IsVisible(ID<Camera> camera_id) const
+bool EnvProbe::IsVisible(Id<Camera> camera_id) const
 {
     return m_visibility_bits.Test(camera_id.ToIndex());
 }
 
-void EnvProbe::SetIsVisible(ID<Camera> camera_id, bool is_visible)
+void EnvProbe::SetIsVisible(Id<Camera> camera_id, bool is_visible)
 {
     const bool previous_value = m_visibility_bits.Test(camera_id.ToIndex());
 
@@ -277,7 +277,7 @@ void EnvProbe::CreateView()
     }
 
     output_target_desc.attachments.PushBack(ViewOutputTargetAttachmentDesc {
-        .format = g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+        .format = g_render_backend->GetDefaultFormat(DIF_DEPTH),
         .image_type = TT_CUBEMAP,
         .load_op = LoadOperation::CLEAR,
         .store_op = StoreOperation::STORE });

@@ -36,7 +36,7 @@ void RenderScene::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* RenderScene::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderScene::GetGpuBufferHolder() const
 {
     return nullptr;
 }

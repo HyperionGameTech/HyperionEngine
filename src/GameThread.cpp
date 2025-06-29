@@ -144,14 +144,14 @@ void GameThread::operator()()
             }
         }
 
-        RendererAPI_BeginFrame_GameThread();
+        RenderApi_BeginFrame_GameThread();
 
         if (m_game.IsValid())
         {
             m_game->Update(counter.delta);
         }
 
-        RendererAPI_EndFrame_GameThread();
+        RenderApi_EndFrame_GameThread();
     }
 
     // flush scheduler

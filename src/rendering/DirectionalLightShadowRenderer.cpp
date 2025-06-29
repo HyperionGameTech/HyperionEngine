@@ -13,7 +13,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Renderer.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererShader.hpp>
 #include <rendering/backend/RendererFrame.hpp>
@@ -80,7 +80,7 @@ ShadowPass::~ShadowPass()
 
 void ShadowPass::CreateFramebuffer()
 {
-    m_framebuffer = g_rendering_api->MakeFramebuffer(GetExtent());
+    m_framebuffer = g_render_backend->MakeFramebuffer(GetExtent());
 
     // depth, depth^2 texture (for variance shadow map)
     AttachmentRef moments_attachment = m_framebuffer->AddAttachment(
@@ -95,7 +95,7 @@ void ShadowPass::CreateFramebuffer()
     // standard depth texture
     m_framebuffer->AddAttachment(
         1,
-        g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+        g_render_backend->GetDefaultFormat(DIF_DEPTH),
         TT_TEX2D,
         LoadOperation::CLEAR,
         StoreOperation::STORE);
@@ -142,7 +142,7 @@ void ShadowPass::CreateCombineShadowMapsPass()
 
     const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -166,7 +166,7 @@ void ShadowPass::CreateComputePipelines()
 
     const DescriptorTableDeclaration& descriptor_table_decl = blur_shadow_map_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     // have to create descriptor sets specifically for compute shader,
     // holding framebuffer attachment image (src), and our final shadowmap image (dst)
@@ -181,7 +181,7 @@ void ShadowPass::CreateComputePipelines()
 
     DeferCreate(descriptor_table);
 
-    m_blur_shadow_map_pipeline = g_rendering_api->MakeComputePipeline(
+    m_blur_shadow_map_pipeline = g_render_backend->MakeComputePipeline(
         blur_shadow_map_shader,
         descriptor_table);
 
@@ -225,7 +225,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
             RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_statics,
-                RendererAPI_GetConsumerProxyList(m_render_view_statics->GetView()),
+                RenderApi_GetConsumerProxyList(m_render_view_statics->GetView()),
                 ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy static framebuffer image
@@ -244,7 +244,7 @@ void ShadowPass::Render(FrameBase* frame, const RenderSetup& render_setup)
             RenderCollector::ExecuteDrawCalls(
                 frame,
                 render_setup_dynamics,
-                RendererAPI_GetConsumerProxyList(m_render_view_dynamics->GetView()),
+                RenderApi_GetConsumerProxyList(m_render_view_dynamics->GetView()),
                 ((1u << RB_OPAQUE) | (1u << RB_TRANSLUCENT)));
 
             // copy dynamic framebuffer image
@@ -474,7 +474,7 @@ void DirectionalLightShadowRenderer::Update(float delta)
 
         virtual RendererResult operator()() override
         {
-            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+            FrameBase* frame = g_render_backend->GetCurrentFrame();
 
             RenderSetup render_setup { world, nullptr };
 

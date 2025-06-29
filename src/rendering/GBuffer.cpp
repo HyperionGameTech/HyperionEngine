@@ -4,7 +4,7 @@
 #include <rendering/RenderGroup.hpp>
 #include <rendering/Deferred.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererSwapchain.hpp>
 
@@ -52,13 +52,13 @@ static TextureFormat GetImageFormat(GBufferResourceName resource)
     }
     else if (const DefaultImageFormat* default_format = GBuffer::gbuffer_resources[resource].format.TryGet<DefaultImageFormat>())
     {
-        color_format = g_rendering_api->GetDefaultFormat(*default_format);
+        color_format = g_render_backend->GetDefaultFormat(*default_format);
     }
     else if (const Array<TextureFormat>* default_formats = GBuffer::gbuffer_resources[resource].format.TryGet<Array<TextureFormat>>())
     {
         for (const TextureFormat format : *default_formats)
         {
-            if (g_rendering_api->IsSupportedFormat(format, IS_SRV))
+            if (g_render_backend->IsSupportedFormat(format, IS_SRV))
             {
                 color_format = format;
 
@@ -178,7 +178,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
 
     AssertThrow(resolution.Volume() != 0);
 
-    FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(resolution);
+    FramebufferRef framebuffer = g_render_backend->MakeFramebuffer(resolution);
 
     auto add_owned_attachment = [&](uint32 binding, TextureFormat format)
     {
@@ -193,7 +193,7 @@ FramebufferRef GBuffer::CreateFramebuffer(const FramebufferRef& opaque_framebuff
 
         framebuffer->AddAttachment(
             binding,
-            g_rendering_api->MakeImage(texture_desc),
+            g_render_backend->MakeImage(texture_desc),
             LoadOperation::CLEAR,
             StoreOperation::STORE);
     };

@@ -29,7 +29,7 @@ static const HashMap<String, String> g_getvalue_overloads = {
     { "string", "ReadString" },
     { "Name", "ReadName" },
     { "byte[]", "ReadByteBuffer" },
-    { "IDBase", "ReadID" }
+    { "IdBase", "ReadId" }
 };
 
 FilePath CSharpModuleGenerator::GetOutputFilePath(const Analyzer& analyzer, const Module& mod) const

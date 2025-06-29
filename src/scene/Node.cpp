@@ -327,7 +327,7 @@ void Node::SetScene(Scene* scene)
 {
     if (!scene)
     {
-        scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
+        scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId()).Get();
     }
 
     AssertThrow(scene != nullptr);
@@ -1415,7 +1415,7 @@ bool Node::HasTag(WeakName key) const
 
 Scene* Node::GetDefaultScene()
 {
-    return g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID()).Get();
+    return g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId()).Get();
 }
 
 #ifdef HYP_EDITOR

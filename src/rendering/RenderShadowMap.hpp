@@ -12,7 +12,7 @@
 
 #include <core/utilities/EnumFlags.hpp>
 
-#include <core/IDGenerator.hpp>
+#include <core/IdGenerator.hpp>
 
 #include <util/AtlasPacker.hpp>
 
@@ -226,7 +226,7 @@ private:
     ImageRef m_point_light_shadow_map_image;
     ImageViewRef m_point_light_shadow_map_image_view;
 
-    IDGenerator m_point_light_shadow_map_id_generator;
+    IdGenerator m_point_light_shadow_map_id_generator;
 };
 
 class RenderShadowMap final : public RenderResourceBase
@@ -268,7 +268,7 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const override;
 
 private:
     void UpdateBufferData();

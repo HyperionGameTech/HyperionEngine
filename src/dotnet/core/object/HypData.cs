@@ -87,12 +87,12 @@ namespace Hyperion
             HypData_Destruct(ref this);
         }
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
-                TypeID typeId;
-                HypData_GetTypeID(ref this, out typeId);
+                TypeId typeId;
+                HypData_GetTypeId(ref this, out typeId);
                 return typeId;
             }
         }
@@ -193,9 +193,9 @@ namespace Hyperion
                 return;
             }
 
-            if (value is IDBase valueId)
+            if (value is IdBase valueId)
             {
-                HypData_SetID(ref this, ref valueId);
+                HypData_SetId(ref this, ref valueId);
                 return;
             }
 
@@ -368,7 +368,7 @@ namespace Hyperion
                                 throw new InvalidOperationException("Failed to set array!");
                             }
 
-                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((HypClass)hypClass).Name + " with length " + hypDataBufferArray.Length + " type ID: " + this.TypeID.Value);
+                            Logger.Log(LogType.Debug, "HypData.SetValue: Set array of type " + ((HypClass)hypClass).Name + " with length " + hypDataBufferArray.Length + " type Id: " + this.TypeId.Value);
                         }
                     }
                     finally
@@ -456,9 +456,9 @@ namespace Hyperion
                 return value.valueIntPtr;
             }
 
-            if (HypData_GetID(ref this, out value.valueId))
+            if (HypData_GetId(ref this, out value.valueId))
             {
-                return new IDBase(new TypeID((uint)(value.valueId >> 32)), (uint)(value.valueId & 0xFFFFFFFFu));
+                return new IdBase(new TypeId((uint)(value.valueId >> 32)), (uint)(value.valueId & 0xFFFFFFFFu));
             }
 
             if (HypData_GetName(ref this, out value.valueName))
@@ -538,12 +538,12 @@ namespace Hyperion
                 return value.objectReference.LoadObject();
             }
 
-            if (DynamicHypStruct.TryGet(TypeID, out DynamicHypStruct? dynamicHypStruct))
+            if (DynamicHypStruct.TryGet(TypeId, out DynamicHypStruct? dynamicHypStruct))
             {
                 return dynamicHypStruct.MarshalFromHypData(ref this);
             }
 
-            throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeID: " + TypeID.Value);
+            throw new NotImplementedException("Unsupported type to get value from HypData. Current TypeId: " + TypeId.Value);
         }
 
         public sbyte ReadInt8()
@@ -784,21 +784,21 @@ namespace Hyperion
             throw new InvalidOperationException("Failed to get Name from HypData");
         }
 
-        public IDBase ReadID()
+        public IdBase ReadId()
         {
             if (IsNull)
             {
-                return IDBase.Invalid;
+                return IdBase.Invalid;
             }
 
             ulong idValue;
 
-            if (HypData_GetID(ref this, out idValue))
+            if (HypData_GetId(ref this, out idValue))
             {
-                return new IDBase(new TypeID((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
+                return new IdBase(new TypeId((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFFu));
             }
 
-            throw new InvalidOperationException("Failed to get ID from HypData");
+            throw new InvalidOperationException("Failed to get Id from HypData");
         }
 
         public T? ReadObject<T>() where T : HypObject
@@ -832,12 +832,12 @@ namespace Hyperion
                 return (T)objectReference.LoadObject();
             }
 
-            if (DynamicHypStruct.TryGet(TypeID, out DynamicHypStruct? dynamicHypStruct))
+            if (DynamicHypStruct.TryGet(TypeId, out DynamicHypStruct? dynamicHypStruct))
             {
                 return (T)dynamicHypStruct.MarshalFromHypData(ref this);
             }
 
-            throw new NotImplementedException("Unsupported type to get struct from HypData. Current TypeID: " + TypeID.Value);
+            throw new NotImplementedException("Unsupported type to get struct from HypData. Current TypeId: " + TypeId.Value);
         }
 
         public byte[] ReadByteBuffer()
@@ -880,8 +880,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypData_Reset")]
         internal static extern void HypData_Reset([In] ref HypDataBuffer hypData);
 
-        [DllImport("hyperion", EntryPoint = "HypData_GetTypeID")]
-        internal static extern void HypData_GetTypeID([In] ref HypDataBuffer hypData, [Out] out TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "HypData_GetTypeId")]
+        internal static extern void HypData_GetTypeId([In] ref HypDataBuffer hypData, [Out] out TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetPointer")]
         internal static extern IntPtr HypData_GetPointer([In] ref HypDataBuffer hypData);
@@ -946,9 +946,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_GetString([In] ref HypDataBuffer hypData, [Out] out IntPtr outStringPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypData_GetID")]
+        [DllImport("hyperion", EntryPoint = "HypData_GetId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_GetID([In] ref HypDataBuffer hypData, [Out] out ulong outIdValue);
+        internal static extern bool HypData_GetId([In] ref HypDataBuffer hypData, [Out] out ulong outIdValue);
 
         [DllImport("hyperion", EntryPoint = "HypData_GetName")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1026,9 +1026,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_IsByteBuffer([In] ref HypDataBuffer hypData);
 
-        [DllImport("hyperion", EntryPoint = "HypData_IsID")]
+        [DllImport("hyperion", EntryPoint = "HypData_IsId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_IsID([In] ref HypDataBuffer hypData);
+        internal static extern bool HypData_IsId([In] ref HypDataBuffer hypData);
 
         [DllImport("hyperion", EntryPoint = "HypData_IsName")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1090,9 +1090,9 @@ namespace Hyperion
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool HypData_SetString([In] ref HypDataBuffer hypData, [In] IntPtr stringPtr);
 
-        [DllImport("hyperion", EntryPoint = "HypData_SetID")]
+        [DllImport("hyperion", EntryPoint = "HypData_SetId")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool HypData_SetID([In] ref HypDataBuffer hypData, ref IDBase id);
+        internal static extern bool HypData_SetId([In] ref HypDataBuffer hypData, ref IdBase id);
 
         [DllImport("hyperion", EntryPoint = "HypData_SetName")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -1152,11 +1152,11 @@ namespace Hyperion
             Dispose();
         }
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
-                return _data.TypeID;
+                return _data.TypeId;
             }
         }
 

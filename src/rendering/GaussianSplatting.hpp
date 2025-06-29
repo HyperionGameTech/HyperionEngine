@@ -64,12 +64,12 @@ public:
         return m_model;
     }
 
-    const GPUBufferRef& GetSplatBuffer() const
+    const GpuBufferRef& GetSplatBuffer() const
     {
         return m_splat_buffer;
     }
 
-    const GPUBufferRef& GetIndirectBuffer() const
+    const GpuBufferRef& GetIndirectBuffer() const
     {
         return m_indirect_buffer;
     }
@@ -100,10 +100,10 @@ private:
     void CreateComputePipelines();
 
     RC<GaussianSplattingModelData> m_model;
-    GPUBufferRef m_splat_buffer;
-    GPUBufferRef m_splat_indices_buffer;
-    GPUBufferRef m_scene_buffer;
-    GPUBufferRef m_indirect_buffer;
+    GpuBufferRef m_splat_buffer;
+    GpuBufferRef m_splat_indices_buffer;
+    GpuBufferRef m_scene_buffer;
+    GpuBufferRef m_indirect_buffer;
     ComputePipelineRef m_update_splats;
     ComputePipelineRef m_update_splat_distances;
     ComputePipelineRef m_sort_splats;
@@ -146,7 +146,7 @@ private:
     Handle<Mesh> m_quad_mesh;
 
     // for zeroing out data
-    GPUBufferRef m_staging_buffer;
+    GpuBufferRef m_staging_buffer;
 
     Handle<GaussianSplattingInstance> m_gaussian_splatting_instance;
 };

@@ -29,7 +29,7 @@ namespace hyperion {
 
 class Mesh;
 class Material;
-class RHICommandList;
+class CmdList;
 
 class RenderMesh final : public RenderResourceBase
 {
@@ -39,13 +39,13 @@ public:
     virtual ~RenderMesh() override;
 
     /*! \note Only to be called from render thread or render task */
-    HYP_FORCE_INLINE const GPUBufferRef& GetVertexBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetVertexBuffer() const
     {
         return m_vbo;
     }
 
     /*! \note Only to be called from render thread or render task */
-    HYP_FORCE_INLINE const GPUBufferRef& GetIndexBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetIndexBuffer() const
     {
         return m_ibo;
     }
@@ -59,8 +59,8 @@ public:
     void SetVertexAttributes(const VertexAttributeSet& vertex_attributes);
     void SetStreamedMeshData(const RC<StreamedMeshData>& streamed_mesh_data);
 
-    void Render(RHICommandList& cmd, uint32 num_instances = 1, uint32 instance_index = 0) const;
-    void RenderIndirect(RHICommandList& cmd, const GPUBufferRef& indirect_buffer, uint32 buffer_offset = 0) const;
+    void Render(CmdList& cmd, uint32 num_instances = 1, uint32 instance_index = 0) const;
+    void RenderIndirect(CmdList& cmd, const GpuBufferRef& indirect_buffer, uint32 buffer_offset = 0) const;
 
     void PopulateIndirectDrawCommand(IndirectDrawCommand& out);
 
@@ -87,8 +87,8 @@ private:
     RC<StreamedMeshData> m_streamed_mesh_data;
     mutable ResourceHandle m_streamed_mesh_data_handle;
 
-    GPUBufferRef m_vbo;
-    GPUBufferRef m_ibo;
+    GpuBufferRef m_vbo;
+    GpuBufferRef m_ibo;
 
     uint32 m_num_indices;
 };

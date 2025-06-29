@@ -1022,7 +1022,7 @@ static inline RenderObjectHandle_Strong<T> MakeRenderObject(Args&&... args)
 
 struct DeletionQueueBase
 {
-    TypeID type_id;
+    TypeId type_id;
     AtomicVar<int32> num_items { 0 };
     std::mutex mtx;
 
@@ -1053,7 +1053,7 @@ struct RenderObjectDeleter
 
         DeletionQueue()
         {
-            Base::type_id = TypeID::ForType<T>();
+            Base::type_id = TypeId::ForType<T>();
         }
 
         DeletionQueue(const DeletionQueue& other) = delete;

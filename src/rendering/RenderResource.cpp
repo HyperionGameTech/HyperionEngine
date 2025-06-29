@@ -112,7 +112,7 @@ void RenderResourceBase::AcquireBufferIndex()
 
     AssertThrow(m_buffer_index == ~0u);
 
-    GPUBufferHolderBase* holder = GetGPUBufferHolder();
+    GpuBufferHolderBase* holder = GetGpuBufferHolder();
 
     if (holder == nullptr)
     {
@@ -130,7 +130,7 @@ void RenderResourceBase::ReleaseBufferIndex()
 
     AssertThrow(m_buffer_index != ~0u);
 
-    GPUBufferHolderBase* holder = GetGPUBufferHolder();
+    GpuBufferHolderBase* holder = GetGpuBufferHolder();
     AssertThrow(holder != nullptr);
 
     holder->ReleaseIndex(m_buffer_index);

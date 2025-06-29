@@ -193,7 +193,7 @@ void RenderWorld::Initialize_Internal()
 {
     HYP_SCOPE;
 
-    HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with ID: {}", m_world->GetID());
+    HYP_LOG(Rendering, Info, "Initializing RenderWorld for World with Id: {}", m_world->GetID());
 
     m_render_environment->Initialize();
 
@@ -237,10 +237,10 @@ void RenderWorld::UpdateBufferData()
 
     *static_cast<WorldShaderData*>(m_buffer_address) = m_buffer_data;
 
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
-GPUBufferHolderBase* RenderWorld::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderWorld::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_WORLDS];
 }
@@ -280,7 +280,7 @@ void RenderWorld::PostRender(FrameBase* frame)
     if (m_buffer_index != ~0u)
     {
         static_cast<WorldShaderData*>(m_buffer_address)->frame_counter = m_buffer_data.frame_counter;
-        GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+        GetGpuBufferHolder()->MarkDirty(m_buffer_index);
     }
 }
 

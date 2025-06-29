@@ -1,6 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/backend/vulkan/RendererSwapchain.hpp>
 #include <rendering/backend/vulkan/RendererFrame.hpp>
 #include <rendering/backend/vulkan/RendererGraphicsPipeline.hpp>
@@ -35,7 +35,7 @@ static constexpr bool g_use_debug_layers = false;
 class VulkanRenderConfig final : public IRenderConfig
 {
 public:
-    VulkanRenderConfig(VulkanRenderingAPI* rendering_api)
+    VulkanRenderConfig(VulkanRenderBackend* rendering_api)
         : m_rendering_api(rendering_api)
     {
     }
@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    VulkanRenderingAPI* m_rendering_api;
+    VulkanRenderBackend* m_rendering_api;
 };
 
 #pragma endregion VulkanRenderConfig
@@ -361,9 +361,9 @@ VulkanDescriptorSetLayoutWrapperRef VulkanDescriptorSetManager::GetOrCreateVkDes
 
 #pragma endregion VulkanDescriptorSetManager
 
-#pragma region VulkanRenderingAPI
+#pragma region VulkanRenderBackend
 
-VulkanRenderingAPI::VulkanRenderingAPI()
+VulkanRenderBackend::VulkanRenderBackend()
     : m_instance(nullptr),
       m_render_config(new VulkanRenderConfig(this)),
       m_descriptor_set_manager(new VulkanDescriptorSetManager()),
@@ -372,23 +372,23 @@ VulkanRenderingAPI::VulkanRenderingAPI()
 {
 }
 
-VulkanRenderingAPI::~VulkanRenderingAPI()
+VulkanRenderBackend::~VulkanRenderBackend()
 {
     delete m_render_config;
     delete m_descriptor_set_manager;
 }
 
-platform::Device<Platform::vulkan>* VulkanRenderingAPI::GetDevice() const
+platform::Device<Platform::vulkan>* VulkanRenderBackend::GetDevice() const
 {
     return m_instance->GetDevice();
 }
 
-SwapchainBase* VulkanRenderingAPI::GetSwapchain() const
+SwapchainBase* VulkanRenderBackend::GetSwapchain() const
 {
     return m_instance->GetSwapchain();
 }
 
-RendererResult VulkanRenderingAPI::Initialize(AppContextBase& app_context)
+RendererResult VulkanRenderBackend::Initialize(AppContextBase& app_context)
 {
     m_instance = new platform::Instance<Platform::vulkan>();
     HYPERION_BUBBLE_ERRORS(m_instance->Initialize(app_context, g_use_debug_layers));
@@ -428,7 +428,7 @@ RendererResult VulkanRenderingAPI::Initialize(AppContextBase& app_context)
     return {};
 }
 
-RendererResult VulkanRenderingAPI::Destroy()
+RendererResult VulkanRenderBackend::Destroy()
 {
     m_descriptor_set_manager->Destroy(m_instance->GetDevice());
 
@@ -444,12 +444,12 @@ RendererResult VulkanRenderingAPI::Destroy()
     return {};
 }
 
-FrameBase* VulkanRenderingAPI::GetCurrentFrame() const
+FrameBase* VulkanRenderBackend::GetCurrentFrame() const
 {
     return m_instance->GetSwapchain()->GetCurrentFrame().Get();
 }
 
-FrameBase* VulkanRenderingAPI::PrepareNextFrame()
+FrameBase* VulkanRenderBackend::PrepareNextFrame()
 {
     RendererResult frame_result = m_instance->GetSwapchain()->PrepareFrame(m_should_recreate_swapchain);
 
@@ -489,7 +489,7 @@ FrameBase* VulkanRenderingAPI::PrepareNextFrame()
     return frame;
 }
 
-void VulkanRenderingAPI::PresentFrame(FrameBase* frame)
+void VulkanRenderBackend::PresentFrame(FrameBase* frame)
 {
     const CommandBufferRef& command_buffer = m_instance->GetSwapchain()->GetCurrentCommandBuffer();
 
@@ -512,7 +512,7 @@ void VulkanRenderingAPI::PresentFrame(FrameBase* frame)
     m_instance->GetSwapchain()->NextFrame();
 }
 
-DescriptorSetRef VulkanRenderingAPI::MakeDescriptorSet(const DescriptorSetLayout& layout)
+DescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSetLayout& layout)
 {
     DescriptorSetLayout new_layout { layout.GetDeclaration() };
     new_layout.SetIsTemplate(false);
@@ -524,12 +524,12 @@ DescriptorSetRef VulkanRenderingAPI::MakeDescriptorSet(const DescriptorSetLayout
     return descriptor_set;
 }
 
-DescriptorTableRef VulkanRenderingAPI::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
+DescriptorTableRef VulkanRenderBackend::MakeDescriptorTable(const DescriptorTableDeclaration* decl)
 {
     return MakeRenderObject<VulkanDescriptorTable>(decl);
 }
 
-GraphicsPipelineRef VulkanRenderingAPI::MakeGraphicsPipeline(
+GraphicsPipelineRef VulkanRenderBackend::MakeGraphicsPipeline(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table,
     Span<const FramebufferRef> framebuffers,
@@ -583,46 +583,46 @@ GraphicsPipelineRef VulkanRenderingAPI::MakeGraphicsPipeline(
     return graphics_pipeline;
 }
 
-ComputePipelineRef VulkanRenderingAPI::MakeComputePipeline(
+ComputePipelineRef VulkanRenderBackend::MakeComputePipeline(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table)
 {
     return MakeRenderObject<VulkanComputePipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptor_table));
 }
 
-RaytracingPipelineRef VulkanRenderingAPI::MakeRaytracingPipeline(
+RaytracingPipelineRef VulkanRenderBackend::MakeRaytracingPipeline(
     const ShaderRef& shader,
     const DescriptorTableRef& descriptor_table)
 {
     return MakeRenderObject<VulkanRaytracingPipeline>(VulkanShaderRef(shader), VulkanDescriptorTableRef(descriptor_table));
 }
 
-GPUBufferRef VulkanRenderingAPI::MakeGPUBuffer(GPUBufferType buffer_type, SizeType size, SizeType alignment)
+GpuBufferRef VulkanRenderBackend::MakeGpuBuffer(GpuBufferType buffer_type, SizeType size, SizeType alignment)
 {
-    return MakeRenderObject<VulkanGPUBuffer>(buffer_type, size, alignment);
+    return MakeRenderObject<VulkanGpuBuffer>(buffer_type, size, alignment);
 }
 
-ImageRef VulkanRenderingAPI::MakeImage(const TextureDesc& texture_desc)
+ImageRef VulkanRenderBackend::MakeImage(const TextureDesc& texture_desc)
 {
     return MakeRenderObject<VulkanImage>(texture_desc);
 }
 
-ImageViewRef VulkanRenderingAPI::MakeImageView(const ImageRef& image)
+ImageViewRef VulkanRenderBackend::MakeImageView(const ImageRef& image)
 {
     return MakeRenderObject<VulkanImageView>(VulkanImageRef(image));
 }
 
-ImageViewRef VulkanRenderingAPI::MakeImageView(const ImageRef& image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces)
+ImageViewRef VulkanRenderBackend::MakeImageView(const ImageRef& image, uint32 mip_index, uint32 num_mips, uint32 face_index, uint32 num_faces)
 {
     return MakeRenderObject<VulkanImageView>(VulkanImageRef(image), mip_index, num_mips, face_index, num_faces);
 }
 
-SamplerRef VulkanRenderingAPI::MakeSampler(TextureFilterMode filter_mode_min, TextureFilterMode filter_mode_mag, TextureWrapMode wrap_mode)
+SamplerRef VulkanRenderBackend::MakeSampler(TextureFilterMode filter_mode_min, TextureFilterMode filter_mode_mag, TextureWrapMode wrap_mode)
 {
     return MakeRenderObject<VulkanSampler>(filter_mode_min, filter_mode_mag, wrap_mode);
 }
 
-FramebufferRef VulkanRenderingAPI::MakeFramebuffer(Vec2u extent, uint32 num_views)
+FramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, uint32 num_views)
 {
     return MakeRenderObject<VulkanFramebuffer>(
         extent,
@@ -630,7 +630,7 @@ FramebufferRef VulkanRenderingAPI::MakeFramebuffer(Vec2u extent, uint32 num_view
         num_views);
 }
 
-FramebufferRef VulkanRenderingAPI::MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 num_views)
+FramebufferRef VulkanRenderBackend::MakeFramebuffer(Vec2u extent, RenderPassStage stage, uint32 num_views)
 {
     return MakeRenderObject<VulkanFramebuffer>(
         extent,
@@ -638,35 +638,35 @@ FramebufferRef VulkanRenderingAPI::MakeFramebuffer(Vec2u extent, RenderPassStage
         num_views);
 }
 
-FrameRef VulkanRenderingAPI::MakeFrame(uint32 frame_index)
+FrameRef VulkanRenderBackend::MakeFrame(uint32 frame_index)
 {
     return MakeRenderObject<VulkanFrame>(frame_index);
 }
 
-ShaderRef VulkanRenderingAPI::MakeShader(const RC<CompiledShader>& compiled_shader)
+ShaderRef VulkanRenderBackend::MakeShader(const RC<CompiledShader>& compiled_shader)
 {
     return MakeRenderObject<VulkanShader>(compiled_shader);
 }
 
-BLASRef VulkanRenderingAPI::MakeBLAS(
-    const GPUBufferRef& packed_vertices_buffer,
-    const GPUBufferRef& packed_indices_buffer,
+BLASRef VulkanRenderBackend::MakeBLAS(
+    const GpuBufferRef& packed_vertices_buffer,
+    const GpuBufferRef& packed_indices_buffer,
     const Handle<Material>& material,
     const Matrix4& transform)
 {
     return MakeRenderObject<VulkanBLAS>(
-        VulkanGPUBufferRef(packed_vertices_buffer),
-        VulkanGPUBufferRef(packed_indices_buffer),
+        VulkanGpuBufferRef(packed_vertices_buffer),
+        VulkanGpuBufferRef(packed_indices_buffer),
         material,
         transform);
 }
 
-TLASRef VulkanRenderingAPI::MakeTLAS()
+TLASRef VulkanRenderBackend::MakeTLAS()
 {
     return MakeRenderObject<VulkanTLAS>();
 }
 
-TextureFormat VulkanRenderingAPI::GetDefaultFormat(DefaultImageFormat type) const
+TextureFormat VulkanRenderBackend::GetDefaultFormat(DefaultImageFormat type) const
 {
     auto it = m_default_formats.Find(type);
     if (it != m_default_formats.End())
@@ -677,17 +677,17 @@ TextureFormat VulkanRenderingAPI::GetDefaultFormat(DefaultImageFormat type) cons
     return TF_NONE;
 }
 
-bool VulkanRenderingAPI::IsSupportedFormat(TextureFormat format, ImageSupport support_type) const
+bool VulkanRenderBackend::IsSupportedFormat(TextureFormat format, ImageSupport support_type) const
 {
     return m_instance->GetDevice()->GetFeatures().IsSupportedFormat(format, support_type);
 }
 
-TextureFormat VulkanRenderingAPI::FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const
+TextureFormat VulkanRenderBackend::FindSupportedFormat(Span<TextureFormat> possible_formats, ImageSupport support_type) const
 {
     return m_instance->GetDevice()->GetFeatures().FindSupportedFormat(possible_formats, support_type);
 }
 
-QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const TextureDesc& texture_desc) const
+QueryImageCapabilitiesResult VulkanRenderBackend::QueryImageCapabilities(const TextureDesc& texture_desc) const
 {
     QueryImageCapabilitiesResult result;
 
@@ -767,17 +767,17 @@ QueryImageCapabilitiesResult VulkanRenderingAPI::QueryImageCapabilities(const Te
     HYP_NOT_IMPLEMENTED();
 }
 
-RendererResult VulkanRenderingAPI::CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef& layout, VkDescriptorSet& out_vk_descriptor_set)
+RendererResult VulkanRenderBackend::CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef& layout, VkDescriptorSet& out_vk_descriptor_set)
 {
     return m_descriptor_set_manager->CreateDescriptorSet(m_instance->GetDevice(), layout, out_vk_descriptor_set);
 }
 
-RendererResult VulkanRenderingAPI::DestroyDescriptorSet(VkDescriptorSet vk_descriptor_set)
+RendererResult VulkanRenderBackend::DestroyDescriptorSet(VkDescriptorSet vk_descriptor_set)
 {
     return m_descriptor_set_manager->DestroyDescriptorSet(m_instance->GetDevice(), vk_descriptor_set);
 }
 
-RendererResult VulkanRenderingAPI::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VulkanDescriptorSetLayoutWrapperRef& out_ref)
+RendererResult VulkanRenderBackend::GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VulkanDescriptorSetLayoutWrapperRef& out_ref)
 {
     out_ref = m_descriptor_set_manager->GetOrCreateVkDescriptorSetLayout(m_instance->GetDevice(), layout);
 
@@ -789,7 +789,7 @@ RendererResult VulkanRenderingAPI::GetOrCreateVkDescriptorSetLayout(const Descri
     return HYP_MAKE_ERROR(RendererError, "Failed to get or create Vulkan descriptor set layout");
 }
 
-#pragma endregion VulkanRenderingAPI
+#pragma endregion VulkanRenderBackend
 
 HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout)
 {

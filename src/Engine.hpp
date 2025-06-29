@@ -9,7 +9,7 @@
 
 #include <rendering/EngineRenderStats.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RenderObject.hpp>

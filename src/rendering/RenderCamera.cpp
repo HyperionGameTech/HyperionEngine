@@ -47,7 +47,7 @@ void RenderCamera::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* RenderCamera::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderCamera::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_CAMERAS];
 }
@@ -58,7 +58,7 @@ void RenderCamera::UpdateBufferData()
 
     *static_cast<CameraShaderData*>(m_buffer_address) = m_buffer_data;
 
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void RenderCamera::SetBufferData(const CameraShaderData& buffer_data)

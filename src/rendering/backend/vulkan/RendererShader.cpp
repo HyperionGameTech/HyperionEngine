@@ -2,7 +2,7 @@
 
 #include <rendering/backend/vulkan/RendererShader.hpp>
 #include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/shader_compiler/ShaderCompiler.hpp>
 
@@ -14,11 +14,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region CreateShaderStage
@@ -48,7 +48,7 @@ RendererResult VulkanShader::AttachSubShader(ShaderModuleType type, const Shader
 
     VkShaderModule shader_module;
 
-    HYPERION_VK_CHECK(vkCreateShaderModule(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &shader_module));
+    HYPERION_VK_CHECK(vkCreateShaderModule(GetRenderBackend()->GetDevice()->GetDevice(), &create_info, nullptr, &shader_module));
 
     m_shader_modules.PushBack(VulkanShaderModule(type, m_entry_point_name, spirv, shader_module));
 
@@ -216,7 +216,7 @@ RendererResult VulkanShader::Destroy()
 
     for (const VulkanShaderModule& shader_module : m_shader_modules)
     {
-        vkDestroyShaderModule(GetRenderingAPI()->GetDevice()->GetDevice(), shader_module.shader_module, nullptr);
+        vkDestroyShaderModule(GetRenderBackend()->GetDevice()->GetDevice(), shader_module.shader_module, nullptr);
     }
 
     m_shader_modules.Clear();

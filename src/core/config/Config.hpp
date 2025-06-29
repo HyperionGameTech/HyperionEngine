@@ -240,7 +240,7 @@ public:
 private:
     HYP_FORCE_INLINE static const HypClass* GetHypClass()
     {
-        return GetClass(TypeID::ForType<Derived>());
+        return GetClass(TypeId::ForType<Derived>());
     }
 };
 

@@ -435,9 +435,9 @@ FBOMResult FBOMReader::Eat(BufferedReader* reader, FBOMCommand command, bool rea
 
 FBOMMarshalerBase* FBOMReader::GetMarshalForType(const FBOMType& type) const
 {
-    if (type.HasNativeTypeID())
+    if (type.HasNativeTypeId())
     {
-        if (FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(type.GetNativeTypeID(), /* allow_fallback */ true))
+        if (FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(type.GetNativeTypeId(), /* allow_fallback */ true))
         {
             return marshal;
         }
@@ -546,12 +546,12 @@ FBOMResult FBOMReader::ReadObjectType(FBOMLoadContext& context, BufferedReader* 
 
         out_type.size = type_size;
 
-        // read native TypeID
-        TypeID::ValueType type_id_value;
+        // read native TypeId
+        TypeId::ValueType type_id_value;
         reader->Read(&type_id_value);
         CheckEndianness(type_id_value);
 
-        out_type.type_id = TypeID { type_id_value };
+        out_type.type_id = TypeId { type_id_value };
 
         break;
     }
@@ -580,7 +580,7 @@ FBOMResult FBOMReader::ReadObjectType(FBOMLoadContext& context, BufferedReader* 
 
         // // grab from static data pool
         // FBOMType *as_type = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMType>();
-        // AssertThrowMsg(as_type != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // AssertThrowMsg(as_type != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeId().Value());
         // out_type = *as_type;
 
         break;
@@ -863,7 +863,7 @@ FBOMResult FBOMReader::ReadArray(FBOMLoadContext& context, BufferedReader* reade
 
         // // grab from static data pool
         // FBOMArray *as_array = m_static_data_pool[offset].data.TryGetAsDynamic<FBOMArray>();
-        // AssertThrowMsg(as_array != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeID().Value());
+        // AssertThrowMsg(as_array != nullptr, "Invalid value in static data pool at offset %u. Type: %u", offset, m_static_data_pool[offset].data.GetTypeId().Value());
         // out_array = *as_array;
     }
 

@@ -15,7 +15,7 @@
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
 #include <scene/Mesh.hpp>
@@ -30,7 +30,7 @@ namespace hyperion {
 
 static bool ResizeBuffer(
     FrameBase* frame,
-    const GPUBufferRef& buffer,
+    const GpuBufferRef& buffer,
     SizeType new_buffer_size)
 {
     if constexpr (IndirectDrawState::use_next_pow2_size)
@@ -48,8 +48,8 @@ static bool ResizeBuffer(
 static bool ResizeIndirectDrawCommandsBuffer(
     FrameBase* frame,
     uint32 num_draw_commands,
-    const GPUBufferRef& indirect_buffer,
-    const GPUBufferRef& staging_buffer)
+    const GpuBufferRef& indirect_buffer,
+    const GpuBufferRef& staging_buffer)
 {
     const bool was_created_or_resized = ResizeBuffer(
         frame,
@@ -94,8 +94,8 @@ static bool ResizeIndirectDrawCommandsBuffer(
 static bool ResizeInstancesBuffer(
     FrameBase* frame,
     uint32 num_object_instances,
-    const GPUBufferRef& instance_buffer,
-    const GPUBufferRef& staging_buffer)
+    const GpuBufferRef& instance_buffer,
+    const GpuBufferRef& staging_buffer)
 {
     const bool was_created_or_resized = ResizeBuffer(
         frame,
@@ -112,18 +112,18 @@ static bool ResizeInstancesBuffer(
 
 static bool ResizeIfNeeded(
     FrameBase* frame,
-    const FixedArray<GPUBufferRef, max_frames_in_flight>& indirect_buffers,
-    const FixedArray<GPUBufferRef, max_frames_in_flight>& instance_buffers,
-    const FixedArray<GPUBufferRef, max_frames_in_flight>& staging_buffers,
+    const FixedArray<GpuBufferRef, max_frames_in_flight>& indirect_buffers,
+    const FixedArray<GpuBufferRef, max_frames_in_flight>& instance_buffers,
+    const FixedArray<GpuBufferRef, max_frames_in_flight>& staging_buffers,
     uint32 num_draw_commands,
     uint32 num_object_instances,
     uint8 dirty_bits)
 {
     bool resize_happened = false;
 
-    const GPUBufferRef& indirect_buffer = indirect_buffers[frame->GetFrameIndex()];
-    const GPUBufferRef& instance_buffer = instance_buffers[frame->GetFrameIndex()];
-    const GPUBufferRef& staging_buffer = staging_buffers[frame->GetFrameIndex()];
+    const GpuBufferRef& indirect_buffer = indirect_buffers[frame->GetFrameIndex()];
+    const GpuBufferRef& instance_buffer = instance_buffers[frame->GetFrameIndex()];
+    const GpuBufferRef& staging_buffer = staging_buffers[frame->GetFrameIndex()];
 
     if ((dirty_bits & (1u << frame->GetFrameIndex())) || !indirect_buffers[frame->GetFrameIndex()].IsValid())
     {
@@ -143,14 +143,14 @@ static bool ResizeIfNeeded(
 struct RENDER_COMMAND(CreateIndirectDrawStateBuffers)
     : RenderCommand
 {
-    FixedArray<GPUBufferRef, max_frames_in_flight> indirect_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> instance_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> staging_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> indirect_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> instance_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> staging_buffers;
 
     RENDER_COMMAND(CreateIndirectDrawStateBuffers)(
-        const FixedArray<GPUBufferRef, max_frames_in_flight>& indirect_buffers,
-        const FixedArray<GPUBufferRef, max_frames_in_flight>& instance_buffers,
-        const FixedArray<GPUBufferRef, max_frames_in_flight>& staging_buffers)
+        const FixedArray<GpuBufferRef, max_frames_in_flight>& indirect_buffers,
+        const FixedArray<GpuBufferRef, max_frames_in_flight>& instance_buffers,
+        const FixedArray<GpuBufferRef, max_frames_in_flight>& staging_buffers)
         : indirect_buffers(indirect_buffers),
           instance_buffers(instance_buffers),
           staging_buffers(staging_buffers)
@@ -174,11 +174,11 @@ struct RENDER_COMMAND(CreateIndirectDrawStateBuffers)
     {
         SingleTimeCommands commands;
 
-        commands.Push([this](RHICommandList& cmd)
+        commands.Push([this](CmdList& cmd)
             {
                 for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
                 {
-                    FrameRef frame = g_rendering_api->MakeFrame(frame_index);
+                    FrameRef frame = g_render_backend->MakeFrame(frame_index);
 
                     if (!ResizeIndirectDrawCommandsBuffer(frame, IndirectDrawState::initial_count, indirect_buffers[frame_index], staging_buffers[frame_index]))
                     {
@@ -211,9 +211,9 @@ IndirectDrawState::IndirectDrawState()
     // Allocate used buffers so they can be set in descriptor sets
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_indirect_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(ObjectInstance));
-        m_staging_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
+        m_indirect_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+        m_instance_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(ObjectInstance));
+        m_staging_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
     }
 }
 
@@ -377,11 +377,11 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
 
     const DescriptorTableDeclaration& descriptor_table_decl = object_visibility_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     AssertThrow(impl != nullptr);
 
-    GPUBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
+    GpuBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
     const SizeType batch_sizeof = impl->GetBatchSizeOf();
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -410,7 +410,7 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
 
     DeferCreate(descriptor_table);
 
-    m_object_visibility = g_rendering_api->MakeComputePipeline(
+    m_object_visibility = g_render_backend->MakeComputePipeline(
         object_visibility_shader,
         descriptor_table);
 

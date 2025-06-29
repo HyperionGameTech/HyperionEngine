@@ -34,22 +34,22 @@ class HYP_API Threads
 {
 public:
     static void AssertOnThread(ThreadMask mask, const char* message = nullptr);
-    static void AssertOnThread(const ThreadID& thread_id, const char* message = nullptr);
-    static bool IsThreadInMask(const ThreadID& thread_id, ThreadMask mask);
+    static void AssertOnThread(const ThreadId& thread_id, const char* message = nullptr);
+    static bool IsThreadInMask(const ThreadId& thread_id, ThreadMask mask);
     static bool IsOnThread(ThreadMask mask);
-    static bool IsOnThread(const ThreadID& thread_id);
+    static bool IsOnThread(const ThreadId& thread_id);
 
-    static ThreadBase* GetThread(const ThreadID& thread_id);
+    static ThreadBase* GetThread(const ThreadId& thread_id);
 
     static ThreadBase* CurrentThreadObject();
 
-    static const ThreadID& CurrentThreadID();
+    static const ThreadId& CurrentThreadId();
 
-    static void RegisterThread(const ThreadID& id, ThreadBase* thread);
-    static void UnregisterThread(const ThreadID& id);
-    static bool IsThreadRegistered(const ThreadID& id);
+    static void RegisterThread(const ThreadId& id, ThreadBase* thread);
+    static void UnregisterThread(const ThreadId& id);
+    static bool IsThreadRegistered(const ThreadId& id);
 
-    static void SetCurrentThreadID(const ThreadID& id);
+    static void SetCurrentThreadId(const ThreadId& id);
 
     static void SetCurrentThreadObject(ThreadBase*);
     static void SetCurrentThreadPriority(ThreadPriorityValue priority);
@@ -65,9 +65,9 @@ using threading::ThreadCategory;
 using threading::Threads;
 using threading::ThreadType;
 
-HYP_API extern const StaticThreadID g_main_thread;
-HYP_API extern const StaticThreadID g_render_thread;
-HYP_API extern const StaticThreadID g_game_thread;
+HYP_API extern const StaticThreadId g_main_thread;
+HYP_API extern const StaticThreadId g_render_thread;
+HYP_API extern const StaticThreadId g_game_thread;
 
 } // namespace hyperion
 

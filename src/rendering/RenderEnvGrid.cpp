@@ -13,11 +13,11 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/AsyncCompute.hpp>
 
 #include <scene/EnvGrid.hpp>
@@ -197,9 +197,9 @@ struct RENDER_COMMAND(SetElementInGlobalDescriptorSet)
     {
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
-            if (value.Is<GPUBufferRef>())
+            if (value.Is<GpuBufferRef>())
             {
-                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<GPUBufferRef>());
+                g_render_global_state->GlobalDescriptorTable->GetDescriptorSet(set_name, frame_index)->SetElement(element_name, value.Get<GpuBufferRef>());
             }
             else if (value.Is<ImageViewRef>())
             {
@@ -258,7 +258,7 @@ void RenderEnvGrid::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* RenderEnvGrid::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderEnvGrid::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_ENV_GRIDS];
 }
@@ -375,7 +375,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
 
     const DescriptorTableDeclaration& descriptor_table_decl = voxelize_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -399,7 +399,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
     DeferCreate(descriptor_table);
 
     { // Compute shader to clear the voxel grid at a specific position
-        pd.m_clear_voxels = g_rendering_api->MakeComputePipeline(
+        pd.m_clear_voxels = g_render_backend->MakeComputePipeline(
             clear_voxels_shader,
             descriptor_table);
 
@@ -407,7 +407,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
     }
 
     { // Compute shader to voxelize a probe into voxel grid
-        pd.m_voxelize_probe = g_rendering_api->MakeComputePipeline(
+        pd.m_voxelize_probe = g_render_backend->MakeComputePipeline(
             voxelize_probe_shader,
             descriptor_table);
 
@@ -415,7 +415,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
     }
 
     { // Compute shader to 'offset' the voxel grid
-        pd.m_offset_voxel_grid = g_rendering_api->MakeComputePipeline(
+        pd.m_offset_voxel_grid = g_render_backend->MakeComputePipeline(
             offset_voxel_grid_shader,
             descriptor_table);
 
@@ -433,7 +433,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
 
         for (uint32 mip_level = 0; mip_level < num_voxel_grid_mip_levels; mip_level++)
         {
-            pd.m_voxel_grid_mips[mip_level] = g_rendering_api->MakeImageView(
+            pd.m_voxel_grid_mips[mip_level] = g_render_backend->MakeImageView(
                 env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage(),
                 mip_level, 1,
                 0, env_grid->GetVoxelGridTexture()->GetRenderResource().GetImage()->NumFaces());
@@ -441,7 +441,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
             DeferCreate(pd.m_voxel_grid_mips[mip_level]);
 
             // create descriptor sets for mip generation.
-            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&generate_voxel_grid_mipmaps_descriptor_table_decl);
+            DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&generate_voxel_grid_mipmaps_descriptor_table_decl);
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
@@ -466,7 +466,7 @@ void EnvGridRenderer::CreateVoxelGridData(EnvGrid* env_grid, EnvGridPassData& pd
             pd.m_generate_voxel_grid_mipmaps_descriptor_tables.PushBack(std::move(descriptor_table));
         }
 
-        pd.m_generate_voxel_grid_mipmaps = g_rendering_api->MakeComputePipeline(
+        pd.m_generate_voxel_grid_mipmaps = g_render_backend->MakeComputePipeline(
             generate_voxel_grid_mipmaps_shader,
             pd.m_generate_voxel_grid_mipmaps_descriptor_tables[0]);
 
@@ -485,7 +485,7 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(EnvGrid* env_grid, EnvGridPas
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
         const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
-        pd.m_sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
+        pd.m_sh_tiles_buffers[i] = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, size);
 
         DeferCreate(pd.m_sh_tiles_buffers[i]);
     }
@@ -508,7 +508,7 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(EnvGrid* env_grid, EnvGridPas
 
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
-        pd.m_compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        pd.m_compute_sh_descriptor_tables[i] = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -533,16 +533,16 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(EnvGrid* env_grid, EnvGridPas
         DeferCreate(pd.m_compute_sh_descriptor_tables[i]);
     }
 
-    pd.m_clear_sh = g_rendering_api->MakeComputePipeline(shaders[0], pd.m_compute_sh_descriptor_tables[0]);
+    pd.m_clear_sh = g_render_backend->MakeComputePipeline(shaders[0], pd.m_compute_sh_descriptor_tables[0]);
     DeferCreate(pd.m_clear_sh);
 
-    pd.m_compute_sh = g_rendering_api->MakeComputePipeline(shaders[1], pd.m_compute_sh_descriptor_tables[0]);
+    pd.m_compute_sh = g_render_backend->MakeComputePipeline(shaders[1], pd.m_compute_sh_descriptor_tables[0]);
     DeferCreate(pd.m_compute_sh);
 
-    pd.m_reduce_sh = g_rendering_api->MakeComputePipeline(shaders[2], pd.m_compute_sh_descriptor_tables[0]);
+    pd.m_reduce_sh = g_render_backend->MakeComputePipeline(shaders[2], pd.m_compute_sh_descriptor_tables[0]);
     DeferCreate(pd.m_reduce_sh);
 
-    pd.m_finalize_sh = g_rendering_api->MakeComputePipeline(shaders[3], pd.m_compute_sh_descriptor_tables[0]);
+    pd.m_finalize_sh = g_render_backend->MakeComputePipeline(shaders[3], pd.m_compute_sh_descriptor_tables[0]);
     DeferCreate(pd.m_finalize_sh);
 }
 
@@ -563,7 +563,7 @@ void EnvGridRenderer::CreateLightFieldData(EnvGrid* env_grid, EnvGridPassData& p
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        GPUBufferRef light_field_uniforms = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(LightFieldUniforms));
+        GpuBufferRef light_field_uniforms = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(LightFieldUniforms));
         DeferCreate(light_field_uniforms);
 
         pd.m_uniform_buffers.PushBack(std::move(light_field_uniforms));
@@ -588,7 +588,7 @@ void EnvGridRenderer::CreateLightFieldData(EnvGrid* env_grid, EnvGridPassData& p
 
         const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -608,7 +608,7 @@ void EnvGridRenderer::CreateLightFieldData(EnvGrid* env_grid, EnvGridPassData& p
 
         DeferCreate(descriptor_table);
 
-        pipeline = g_rendering_api->MakeComputePipeline(shader, descriptor_table);
+        pipeline = g_render_backend->MakeComputePipeline(shader, descriptor_table);
         DeferCreate(pipeline);
     }
 }
@@ -634,7 +634,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& render_se
     rs.view = &env_grid->GetView()->GetRenderResource();
     rs.pass_data = pd;
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(env_grid->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(env_grid->GetView());
 
     /// FIXME: Not thread safe; use render proxy
     const BoundingBox grid_aabb = env_grid->GetAABB();
@@ -763,7 +763,7 @@ void EnvGridRenderer::RenderProbe(FrameBase* frame, const RenderSetup& render_se
     View* view = env_grid->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     const EnvGridOptions& options = env_grid->GetOptions();
     const EnvProbeCollection& env_probe_collection = env_grid->GetEnvProbeCollection();
@@ -877,7 +877,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     pd->m_clear_sh->SetPushConstants(&push_constants, sizeof(push_constants));
     pd->m_compute_sh->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
+    CmdList& async_compute_command_list = g_render_backend->GetAsyncCompute()->GetCommandList();
 
     async_compute_command_list.Add<InsertBarrier>(pd->m_sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
     async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);
@@ -1024,9 +1024,9 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
     const FramebufferRef& framebuffer = output_target.GetFramebuffer();
     AssertThrow(framebuffer.IsValid());
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
-    RenderProxyEnvGrid* proxy = static_cast<RenderProxyEnvGrid*>(RendererAPI_GetRenderProxy(env_grid->GetID()));
+    RenderProxyEnvGrid* proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->GetID()));
     AssertThrow(proxy != nullptr, "EnvGrid render proxy not found!");
 
     const Vec2i irradiance_octahedron_size = proxy->buffer_data.irradiance_octahedron_size;

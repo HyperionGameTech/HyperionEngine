@@ -3,17 +3,17 @@
 #include <rendering/backend/vulkan/RendererRenderPass.hpp>
 #include <rendering/backend/vulkan/RendererFramebuffer.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <core/containers/HashSet.hpp>
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 VulkanRenderPass::VulkanRenderPass(RenderPassStage stage, RenderPassMode mode)
@@ -187,7 +187,7 @@ RendererResult VulkanRenderPass::Create()
         render_pass_info.pNext = &multiview_info;
     }
 
-    HYPERION_VK_CHECK(vkCreateRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), &render_pass_info, nullptr, &m_handle));
+    HYPERION_VK_CHECK(vkCreateRenderPass(GetRenderBackend()->GetDevice()->GetDevice(), &render_pass_info, nullptr, &m_handle));
 
     HYPERION_RETURN_OK;
 }
@@ -196,7 +196,7 @@ RendererResult VulkanRenderPass::Destroy()
 {
     RendererResult result;
 
-    vkDestroyRenderPass(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+    vkDestroyRenderPass(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
 
     SafeRelease(std::move(m_render_pass_attachments));

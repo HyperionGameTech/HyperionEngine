@@ -52,7 +52,7 @@ void AssetResourceBase::Initialize()
 
     // @TODO Loading async w/ AssetBatch
     const FilePath asset_file_path = asset_object->GetFilePath();
-    auto result = g_asset_manager->Load(GetAssetTypeID(), asset_file_path);
+    auto result = g_asset_manager->Load(GetAssetTypeId(), asset_file_path);
 
     if (result.HasError())
     {
@@ -98,7 +98,7 @@ Result ObjectAssetResourceBase::Save_Internal()
 
     FBOMWriter writer { FBOMWriterConfig {} };
 
-    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetTypeID());
+    FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetAssetTypeId());
     AssertThrow(marshal != nullptr);
 
     FBOMObject object;

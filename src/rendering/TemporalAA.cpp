@@ -11,7 +11,7 @@
 #include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -104,7 +104,7 @@ void TemporalAA::CreateComputePipelines()
 
     const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_result_texture,
@@ -132,7 +132,7 @@ void TemporalAA::CreateComputePipelines()
 
     DeferCreate(descriptor_table);
 
-    m_compute_taa = g_rendering_api->MakeComputePipeline(
+    m_compute_taa = g_render_backend->MakeComputePipeline(
         shader,
         descriptor_table);
 

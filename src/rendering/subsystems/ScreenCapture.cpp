@@ -66,7 +66,7 @@ void ScreenCaptureRenderSubsystem::OnAddedToWorld()
 
     m_texture->SetPersistentRenderResourceEnabled(true);
 
-    m_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, m_texture->GetRenderResource().GetImage()->GetByteSize());
+    m_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_texture->GetRenderResource().GetImage()->GetByteSize());
     DeferCreate(m_buffer);
 }
 
@@ -102,7 +102,7 @@ void ScreenCaptureRenderSubsystem::Update(float delta)
                 HYPERION_RETURN_OK;
             }
 
-            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+            FrameBase* frame = g_render_backend->GetCurrentFrame();
             subsystem->CaptureFrame(frame);
 
             HYPERION_RETURN_OK;

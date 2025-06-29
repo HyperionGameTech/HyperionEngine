@@ -5,7 +5,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/threading/ThreadID.hpp>
+#include <core/threading/ThreadId.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
 
@@ -51,7 +51,7 @@ public:
 
     struct ThreadAccessState
     {
-        ThreadID thread_id;
+        ThreadId thread_id;
         EnumFlags<DataAccessFlags> access = DataAccessFlags::ACCESS_NONE;
         uint32 original_index = ~0u;
         DataAccessState state;
@@ -66,7 +66,7 @@ public:
     private:
         EnumFlags<DataAccessFlags> m_flags;
         DataRaceDetector& m_detector;
-        ThreadID m_thread_id;
+        ThreadId m_thread_id;
     };
 
     DataRaceDetector();
@@ -92,12 +92,12 @@ public:
     DataRaceDetector& operator=(DataRaceDetector&& other) = delete;
     ~DataRaceDetector();
 
-    EnumFlags<DataAccessFlags> AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state = {});
-    void RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags);
+    EnumFlags<DataAccessFlags> AddAccess(ThreadId thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state = {});
+    void RemoveAccess(ThreadId thread_id, EnumFlags<DataAccessFlags> access_flags);
 
 private:
     void LogDataRace(uint64 readers_mask, uint64 writers_mask) const;
-    void GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>>& out_writer_thread_ids) const;
+    void GetThreadIds(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadId, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadId, DataAccessState>>& out_writer_thread_ids) const;
 
     Array<ThreadAccessState, DynamicAllocator> m_preallocated_states;
 

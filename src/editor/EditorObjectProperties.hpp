@@ -8,7 +8,7 @@
 #include <core/math/Vector4.hpp>
 
 #include <core/memory/RefCountedPtr.hpp>
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 namespace hyperion {
 
@@ -20,7 +20,7 @@ class UIObject;
 class EditorObjectPropertiesBase
 {
 protected:
-    EditorObjectPropertiesBase(TypeID type_id);
+    EditorObjectPropertiesBase(TypeId type_id);
 
 public:
     EditorObjectPropertiesBase(const EditorObjectPropertiesBase&) = delete;
@@ -34,7 +34,7 @@ public:
     virtual Handle<UIObject> CreateUIObject(UIObject* parent) const = 0;
 
 private:
-    TypeID m_type_id;
+    TypeId m_type_id;
 };
 
 template <class T>
@@ -45,7 +45,7 @@ class EditorObjectProperties<Vec2f> : public EditorObjectPropertiesBase
 {
 public:
     EditorObjectProperties()
-        : EditorObjectPropertiesBase(TypeID::ForType<Vec2f>())
+        : EditorObjectPropertiesBase(TypeId::ForType<Vec2f>())
     {
     }
 

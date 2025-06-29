@@ -5,7 +5,7 @@
 
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/GaussianSplatting.hpp>
-#include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
@@ -92,7 +92,7 @@ private:
 
     Handle<GaussianSplatting> m_gaussian_splatting;
 
-    UniquePtr<RTRadianceRenderer> m_rt_radiance;
+    UniquePtr<RaytracingReflections> m_rt_radiance;
     DDGI m_ddgi;
     bool m_has_rt_radiance;
     bool m_has_ddgi_probes;

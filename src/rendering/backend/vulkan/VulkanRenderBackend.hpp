@@ -3,7 +3,7 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_RENDERING_API_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_RENDERING_API_HPP
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/Platform.hpp>
 
 #include <rendering/CrashHandler.hpp>
@@ -31,11 +31,11 @@ class VulkanDescriptorSetManager;
 
 extern HYP_API VkDescriptorSetLayout GetVkDescriptorSetLayout(const VulkanDescriptorSetLayoutWrapper& layout);
 
-class VulkanRenderingAPI final : public IRenderingAPI
+class VulkanRenderBackend final : public IRenderBackend
 {
 public:
-    VulkanRenderingAPI();
-    virtual ~VulkanRenderingAPI() override;
+    VulkanRenderBackend();
+    virtual ~VulkanRenderBackend() override;
 
     HYP_FORCE_INLINE platform::Instance<Platform::vulkan>* GetInstance() const
     {
@@ -81,7 +81,7 @@ public:
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table) override;
 
-    virtual GPUBufferRef MakeGPUBuffer(GPUBufferType buffer_type, SizeType size, SizeType alignment = 0) override;
+    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType buffer_type, SizeType size, SizeType alignment = 0) override;
 
     virtual ImageRef MakeImage(const TextureDesc& texture_desc) override;
 
@@ -98,8 +98,8 @@ public:
     virtual ShaderRef MakeShader(const RC<CompiledShader>& compiled_shader) override;
 
     virtual BLASRef MakeBLAS(
-        const GPUBufferRef& packed_vertices_buffer,
-        const GPUBufferRef& packed_indices_buffer,
+        const GpuBufferRef& packed_vertices_buffer,
+        const GpuBufferRef& packed_indices_buffer,
         const Handle<Material>& material,
         const Matrix4& transform) override;
     virtual TLASRef MakeTLAS() override;

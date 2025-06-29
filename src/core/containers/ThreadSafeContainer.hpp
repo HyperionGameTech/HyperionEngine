@@ -23,7 +23,7 @@ public:
     using Iterator = typename Array<Handle<T>>::Iterator;
     using ConstIterator = typename Array<Handle<T>>::ConstIterator;
 
-    ThreadSafeContainer(const ThreadID& owner_thread)
+    ThreadSafeContainer(const ThreadId& owner_thread)
         : m_owner_thread(owner_thread)
     {
     }
@@ -68,7 +68,7 @@ public:
         m_updates_pending.store(true);
     }
 
-    void Remove(ID<T> id)
+    void Remove(Id<T> id)
     {
         if (!id)
         {
@@ -180,10 +180,10 @@ public:
     HYP_DEF_STL_ITERATOR(m_owned_items);
 
 private:
-    ThreadID m_owner_thread;
+    ThreadId m_owner_thread;
     Array<Handle<T>> m_owned_items;
     Array<Handle<T>> m_items_pending_addition;
-    Array<ID<T>> m_items_pending_removal;
+    Array<Id<T>> m_items_pending_removal;
     std::atomic_bool m_updates_pending;
     std::mutex m_update_mutex;
 };

@@ -29,12 +29,12 @@ HypProperty HypProperty::MakeHypProperty(const HypField* field)
 
     HypProperty result;
     result.m_name = property_name;
-    result.m_type_id = field->GetTypeID();
+    result.m_type_id = field->GetTypeId();
     result.m_attributes = field->GetAttributes();
 
     result.m_getter = HypPropertyGetter();
-    result.m_getter.type_info.target_type_id = field->GetTargetTypeID();
-    result.m_getter.type_info.value_type_id = field->GetTypeID();
+    result.m_getter.type_info.target_type_id = field->GetTargetTypeId();
+    result.m_getter.type_info.value_type_id = field->GetTypeId();
     result.m_getter.get_proc = [field](const HypData& target) -> HypData
     {
         return field->Get(target);
@@ -52,8 +52,8 @@ HypProperty HypProperty::MakeHypProperty(const HypField* field)
     };
 
     result.m_setter = HypPropertySetter();
-    result.m_setter.type_info.target_type_id = field->GetTargetTypeID();
-    result.m_setter.type_info.value_type_id = field->GetTypeID();
+    result.m_setter.type_info.target_type_id = field->GetTargetTypeId();
+    result.m_setter.type_info.value_type_id = field->GetTypeId();
     result.m_setter.set_proc = [field](HypData& target, const HypData& value) -> void
     {
         field->Set(target, value);
@@ -74,8 +74,8 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
 
     Optional<String> property_attribute_opt;
 
-    Optional<TypeID> type_id;
-    Optional<TypeID> target_type_id;
+    Optional<TypeId> type_id;
+    Optional<TypeId> target_type_id;
 
     const bool has_getter = getter != nullptr && getter->GetParameters().Size() >= 1;
     const bool has_setter = setter != nullptr && setter->GetParameters().Size() >= 2;
@@ -87,7 +87,7 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
             property_attribute_opt = attr.GetString();
         }
 
-        type_id = getter->GetTypeID();
+        type_id = getter->GetTypeId();
         target_type_id = getter->GetParameters()[0].type_id;
 
         result.m_attributes = getter->GetAttributes();
@@ -103,11 +103,11 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
             }
         }
 
-        const TypeID setter_type_id = setter->GetParameters()[0].type_id;
+        const TypeId setter_type_id = setter->GetParameters()[0].type_id;
 
         if (type_id.HasValue())
         {
-            AssertThrowMsg(*type_id == setter_type_id, "Getter TypeID (%u) does not match setter TypeID (%u)", type_id->Value(), setter_type_id.Value());
+            AssertThrowMsg(*type_id == setter_type_id, "Getter TypeId (%u) does not match setter TypeId (%u)", type_id->Value(), setter_type_id.Value());
         }
         else
         {
@@ -121,18 +121,18 @@ HypProperty HypProperty::MakeHypProperty(const HypMethod* getter, const HypMetho
 
         if (target_type_id.HasValue())
         {
-            AssertThrowMsg(*target_type_id == setter->GetTargetTypeID(), "Getter target TypeID (%u) does not match setter target TypeID (%u)", target_type_id->Value(), setter->GetTargetTypeID().Value());
+            AssertThrowMsg(*target_type_id == setter->GetTargetTypeId(), "Getter target TypeId (%u) does not match setter target TypeId (%u)", target_type_id->Value(), setter->GetTargetTypeId().Value());
         }
         else
         {
-            target_type_id = setter->GetTargetTypeID();
+            target_type_id = setter->GetTargetTypeId();
         }
 
         result.m_attributes.Merge(setter->GetAttributes());
     }
 
     AssertThrowMsg(property_attribute_opt.HasValue(), "A HypProperty composed of getter/setter pair must have at least one method that has \"Property=\" attribute");
-    AssertThrowMsg(type_id.HasValue(), "Cannot determine TypeID from getter/setter pair");
+    AssertThrowMsg(type_id.HasValue(), "Cannot determine TypeId from getter/setter pair");
 
     result.m_name = CreateNameFromDynamicString(*property_attribute_opt);
     result.m_type_id = *type_id;

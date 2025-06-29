@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_HYP_CLASS_REGISTRY_HPP
 #define HYPERION_CORE_HYP_CLASS_REGISTRY_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/ForEach.hpp>
@@ -70,17 +70,17 @@ public:
     {
         static_assert(std::is_class_v<T> || std::is_enum_v<T>, "T must be an class or enum type to use GetClass<T>()");
 
-        static constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        static constexpr TypeId type_id = TypeId::ForType<NormalizedType<T>>();
 
         return GetClass(type_id);
     }
 
     /*! \brief Get the HypClass instance for the given type.
      *
-     *  \param type_id The type ID to get the HypClass instance for.
+     *  \param type_id The type Id to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered.
      */
-    const HypClass* GetClass(TypeID type_id) const;
+    const HypClass* GetClass(TypeId type_id) const;
 
     /*! \brief Get the HypClass instance associated with the given name.
      *
@@ -99,7 +99,7 @@ public:
     {
         static_assert(std::is_enum_v<T>, "T must be an enum type to use GetEnum<T>()");
 
-        static constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        static constexpr TypeId type_id = TypeId::ForType<NormalizedType<T>>();
 
         return static_cast<const HypEnumInstance<T>*>(GetEnum(type_id));
     }
@@ -109,7 +109,7 @@ public:
      *  \param type_id The type to get the HypClass instance for.
      *  \return The HypClass instance for the given type, or nullptr if the type is not registered or is not an enum type
      */
-    const HypEnum* GetEnum(TypeID type_id) const;
+    const HypEnum* GetEnum(TypeId type_id) const;
 
     /*! \brief Get the HypClass instance for the given type casted to HypEnum.
      *
@@ -118,7 +118,7 @@ public:
      */
     const HypEnum* GetEnum(WeakName type_name) const;
 
-    void RegisterClass(TypeID type_id, HypClass* hyp_class);
+    void RegisterClass(TypeId type_id, HypClass* hyp_class);
 
     // Only for Dynamic classes
     void UnregisterClass(const HypClass* hyp_class);

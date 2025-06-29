@@ -122,7 +122,7 @@ private:
     Handle<Texture> m_uvs_texture;
     Handle<Texture> m_sampled_result_texture;
 
-    GPUBufferRef m_uniform_buffer;
+    GpuBufferRef m_uniform_buffer;
 
     ComputePipelineRef m_write_uvs;
     ComputePipelineRef m_sample_gbuffer;

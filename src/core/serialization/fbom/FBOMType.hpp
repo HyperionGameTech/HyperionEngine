@@ -10,7 +10,7 @@
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/UniqueID.hpp>
 #include <core/utilities/EnumFlags.hpp>
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <HashCode.hpp>
 #include <Types.hpp>
@@ -21,7 +21,7 @@ namespace hyperion {
 
 class HypClass;
 
-extern HYP_API const HypClass* GetClass(TypeID);
+extern HYP_API const HypClass* GetClass(TypeId);
 
 enum class FBOMTypeFlags : uint8
 {
@@ -42,15 +42,15 @@ class HYP_API FBOMType : public FBOMSerializableBase
 public:
     ANSIString name;
     SizeType size;
-    TypeID type_id;
+    TypeId type_id;
     EnumFlags<FBOMTypeFlags> flags;
     FBOMType* extends;
 
     FBOMType();
-    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, const FBOMType& extends);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags);
-    FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, const FBOMType& extends);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, EnumFlags<FBOMTypeFlags> flags);
+    FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends);
     FBOMType(const FBOMType& other);
     FBOMType& operator=(const FBOMType& other);
     FBOMType(FBOMType&& other) noexcept;
@@ -109,21 +109,21 @@ public:
             || extends != other.extends;
     }
 
-    /*! \brief Get the C++ TypeID of this type object.
-     *  \note Not all types will give a valid TypeID, which is OK - not all types correspond
+    /*! \brief Get the C++ TypeId of this type object.
+     *  \note Not all types will give a valid TypeId, which is OK - not all types correspond
      *  directly to a C++ type. */
-    HYP_FORCE_INLINE TypeID GetNativeTypeID() const
+    HYP_FORCE_INLINE TypeId GetNativeTypeId() const
     {
         return type_id;
     }
 
-    HYP_FORCE_INLINE bool HasNativeTypeID() const
+    HYP_FORCE_INLINE bool HasNativeTypeId() const
     {
-        return type_id != TypeID::Void();
+        return type_id != TypeId::Void();
     }
 
-    /*! \brief Gets a pointer to the HypClass that corresponds to the native TypeID for this type.
-     *  If there is no valid TypeID for this object, or the native type corresponding to the native TypeID for this object
+    /*! \brief Gets a pointer to the HypClass that corresponds to the native TypeId for this type.
+     *  If there is no valid TypeId for this object, or the native type corresponding to the native TypeId for this object
      *  does not have a corresponding HypClass, nullptr will be returned. */
     HYP_FORCE_INLINE const HypClass* GetHypClass() const
     {

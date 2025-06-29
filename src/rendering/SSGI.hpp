@@ -84,7 +84,7 @@ private:
 
     Handle<Texture> m_result_texture;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_uniform_buffers;
 
     ComputePipelineRef m_compute_pipeline;
 

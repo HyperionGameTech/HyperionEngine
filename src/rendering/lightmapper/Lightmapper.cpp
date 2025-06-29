@@ -68,9 +68,9 @@ namespace hyperion {
 struct RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)
     : RenderCommand
 {
-    GPUBufferRef uniform_buffer;
+    GpuBufferRef uniform_buffer;
 
-    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)(GPUBufferRef uniform_buffer)
+    RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer)(GpuBufferRef uniform_buffer)
         : uniform_buffer(std::move(uniform_buffer))
     {
     }
@@ -120,7 +120,7 @@ struct RENDER_COMMAND(LightmapRender)
 
     virtual RendererResult operator()() override
     {
-        FrameBase* frame = g_rendering_api->GetCurrentFrame();
+        FrameBase* frame = g_render_backend->GetCurrentFrame();
 
         RenderSetup render_setup { &g_engine->GetWorld()->GetRenderResource(), view };
 
@@ -128,7 +128,7 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (view)
         {
-            rpl = &RendererAPI_GetConsumerProxyList(view->GetView());
+            rpl = &RenderApi_GetConsumerProxyList(view->GetView());
         }
 
         const uint32 frame_index = frame->GetFrameIndex();
@@ -188,7 +188,7 @@ void LightmapperConfig::PostLoadCallback()
 {
     if (trace_mode == LightmapTraceMode::GPU_PATH_TRACING)
     {
-        if (!g_rendering_api->GetRenderConfig().IsRaytracingSupported())
+        if (!g_render_backend->GetRenderConfig().IsRaytracingSupported())
         {
             trace_mode = LightmapTraceMode::CPU_PATH_TRACING;
 
@@ -444,7 +444,7 @@ private:
 class LightmapperWorkerThread : public TaskThread
 {
 public:
-    LightmapperWorkerThread(ThreadID id)
+    LightmapperWorkerThread(ThreadId id)
         : TaskThread(id)
     {
     }
@@ -516,10 +516,10 @@ private:
     Handle<Scene> m_scene;
     LightmapShadingType m_shading_type;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_rays_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_uniform_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_rays_buffers;
 
-    GPUBufferRef m_hits_buffer_gpu;
+    GpuBufferRef m_hits_buffer_gpu;
 
     RaytracingPipelineRef m_raytracing_pipeline;
 };
@@ -527,11 +527,11 @@ private:
 LightmapGPUPathTracer::LightmapGPUPathTracer(const Handle<Scene>& scene, LightmapShadingType shading_type)
     : m_scene(scene),
       m_shading_type(shading_type),
-      m_uniform_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)),
-          g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)) }),
-      m_rays_buffers({ g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)),
-          g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)) }),
-      m_hits_buffer_gpu(g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(LightmapHit) * (512 * 512)))
+      m_uniform_buffers({ g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms)),
+          g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms)) }),
+      m_rays_buffers({ g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)),
+          g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(Vec4f) * 2 * (512 * 512)) }),
+      m_hits_buffer_gpu(g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(LightmapHit) * (512 * 512)))
 {
 }
 
@@ -547,7 +547,7 @@ void LightmapGPUPathTracer::CreateUniformBuffer()
 {
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms));
+        m_uniform_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms));
 
         PUSH_RENDER_COMMAND(CreateLightmapGPUPathTracerUniformBuffer, m_uniform_buffers[frame_index]);
     }
@@ -588,7 +588,7 @@ void LightmapGPUPathTracer::Create()
 
     const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -611,7 +611,7 @@ void LightmapGPUPathTracer::Create()
 
     DeferCreate(descriptor_table);
 
-    m_raytracing_pipeline = g_rendering_api->MakeRaytracingPipeline(
+    m_raytracing_pipeline = g_render_backend->MakeRaytracingPipeline(
         shader,
         descriptor_table);
 
@@ -666,15 +666,15 @@ void LightmapGPUPathTracer::ReadHitsBuffer(FrameBase* frame, Span<LightmapHit> o
 {
     // @TODO Some kind of function like WaitForFrameToComplete to ensure that the hits buffer is not being written to in the current frame.
 
-    const GPUBufferRef& hits_buffer = m_hits_buffer_gpu;
+    const GpuBufferRef& hits_buffer = m_hits_buffer_gpu;
 
-    GPUBufferRef staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, out_hits.Size() * sizeof(LightmapHit));
+    GpuBufferRef staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, out_hits.Size() * sizeof(LightmapHit));
     HYPERION_ASSERT_RESULT(staging_buffer->Create());
     staging_buffer->Memset(out_hits.Size() * sizeof(LightmapHit), 0);
 
     SingleTimeCommands commands;
 
-    commands.Push([&](RHICommandList& cmd)
+    commands.Push([&](CmdList& cmd)
         {
             const ResourceState previous_resource_state = hits_buffer->GetResourceState();
 
@@ -1037,7 +1037,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob* job, const Lightmap
     out_payload.normal = Vec3f(0.0f);
     out_payload.distance = -1.0f;
     out_payload.barycentric_coords = Vec3f(0.0f);
-    out_payload.mesh_id = ID<Mesh>::invalid;
+    out_payload.mesh_id = Id<Mesh>::invalid;
     out_payload.triangle_index = ~0u;
 
     ILightmapAccelerationStructure* acceleration_structure = job->GetParams().acceleration_structure;
@@ -1072,7 +1072,7 @@ void LightmapCPUPathTracer::TraceSingleRayOnCPU(LightmapJob* job, const Lightmap
 
         const LightmapSubElement& sub_element = *it->second;
 
-        const ID<Mesh> mesh_id = sub_element.mesh->GetID();
+        const Id<Mesh> mesh_id = sub_element.mesh->GetID();
 
         const Vec3f barycentric_coords = hit.barycentric_coords;
 
@@ -1815,7 +1815,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
             entity_manager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
         };
 
-        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadID()))
+        if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can update the mesh component immediately
             update_mesh_component();
@@ -1823,7 +1823,7 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
         else
         {
             // Enqueue the update to be performed on the owner thread
-            ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadID());
+            ThreadBase* thread = Threads::GetThread(m_scene->GetEntityManager()->GetOwnerThreadId());
             AssertThrow(thread != nullptr);
 
             thread->GetScheduler().Enqueue(std::move(update_mesh_component), TaskEnqueueFlags::FIRE_AND_FORGET);

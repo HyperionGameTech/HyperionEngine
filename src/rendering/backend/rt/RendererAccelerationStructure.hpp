@@ -47,7 +47,7 @@ public:
         return AccelerationStructureType::TOP_LEVEL;
     }
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetMeshDescriptionsBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetMeshDescriptionsBuffer() const
     {
         return m_mesh_descriptions_buffer;
     }
@@ -61,7 +61,7 @@ public:
     HYP_API virtual RendererResult UpdateStructure(RTUpdateStateFlags& out_update_state_flags) = 0;
 
 protected:
-    GPUBufferRef m_mesh_descriptions_buffer;
+    GpuBufferRef m_mesh_descriptions_buffer;
 };
 
 class BLASBase : public RenderObject<BLASBase>

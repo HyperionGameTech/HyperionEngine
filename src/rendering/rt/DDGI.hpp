@@ -126,7 +126,7 @@ public:
 
     HYP_API void ApplyTLASUpdates(RTUpdateStateFlags flags);
 
-    const GPUBufferRef& GetRadianceBuffer() const
+    const GpuBufferRef& GetRadianceBuffer() const
     {
         return m_radiance_buffer;
     }
@@ -166,8 +166,8 @@ private:
 
     RaytracingPipelineRef m_pipeline;
 
-    GPUBufferRef m_uniform_buffer;
-    GPUBufferRef m_radiance_buffer;
+    GpuBufferRef m_uniform_buffer;
+    GpuBufferRef m_radiance_buffer;
 
     ImageRef m_irradiance_image;
     ImageViewRef m_irradiance_image_view;

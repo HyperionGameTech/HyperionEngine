@@ -372,7 +372,7 @@ void World::Update(float delta)
     m_game_state.game_time += delta;
 }
 
-Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& subsystem)
+Handle<Subsystem> World::AddSubsystem(TypeId type_id, const Handle<Subsystem>& subsystem)
 {
     HYP_SCOPE;
 
@@ -414,7 +414,7 @@ Handle<Subsystem> World::AddSubsystem(TypeID type_id, const Handle<Subsystem>& s
     return new_subsystem;
 }
 
-Subsystem* World::GetSubsystem(TypeID type_id) const
+Subsystem* World::GetSubsystem(TypeId type_id) const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -434,7 +434,7 @@ Subsystem* World::GetSubsystemByName(WeakName name) const
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
 
-    const auto it = m_subsystems.FindIf([name](const Pair<TypeID, Handle<Subsystem>>& item)
+    const auto it = m_subsystems.FindIf([name](const Pair<TypeId, Handle<Subsystem>>& item)
         {
             if (!item.second)
             {
@@ -464,7 +464,7 @@ bool World::RemoveSubsystem(Subsystem* subsystem)
         return false;
     }
 
-    const TypeID type_id = subsystem->InstanceClass()->GetTypeID();
+    const TypeId type_id = subsystem->InstanceClass()->GetTypeId();
 
     auto it = m_subsystems.Find(type_id);
 
@@ -628,7 +628,7 @@ bool World::RemoveScene(const Handle<Scene>& scene)
     return true;
 }
 
-bool World::HasScene(ID<Scene> scene_id) const
+bool World::HasScene(Id<Scene> scene_id) const
 {
     HYP_SCOPE;
 
@@ -655,7 +655,7 @@ const Handle<Scene>& World::GetSceneByName(Name name) const
     return it != m_scenes.End() ? *it : Handle<Scene>::empty;
 }
 
-const Handle<Scene>& World::GetDetachedScene(const ThreadID& thread_id)
+const Handle<Scene>& World::GetDetachedScene(const ThreadId& thread_id)
 {
     return m_detached_scenes.GetDetachedScene(thread_id);
 }

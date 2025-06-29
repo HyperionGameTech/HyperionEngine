@@ -103,17 +103,17 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 {
     RC<RenderProxyList> render_proxy_list;
     Array<RenderProxy> added_proxies;
-    Array<ID<Entity>> removed_entities;
+    Array<Id<Entity>> removed_entities;
 
-    Array<Pair<ID<Entity>, int>> proxy_depths;
+    Array<Pair<Id<Entity>, int>> proxy_depths;
 
     Optional<RenderableAttributeSet> override_attributes;
 
     RENDER_COMMAND(RebuildProxyGroups_UI)(
         const RC<RenderProxyList>& render_proxy_list,
         Array<RenderProxy*>&& added_proxy_ptrs,
-        Array<ID<Entity>>&& removed_entities,
-        const Array<Pair<ID<Entity>, int>>& proxy_depths,
+        Array<Id<Entity>>&& removed_entities,
+        const Array<Pair<Id<Entity>, int>>& proxy_depths,
         const Optional<RenderableAttributeSet>& override_attributes = {})
         : render_proxy_list(render_proxy_list),
           removed_entities(std::move(removed_entities)),
@@ -178,9 +178,9 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
 
         render_proxy_list->Clear();
 
-        ResourceTracker<ID<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
+        ResourceTracker<Id<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
 
-        for (const Pair<ID<Entity>, int>& pair : proxy_depths)
+        for (const Pair<Id<Entity>, int>& pair : proxy_depths)
         {
             RenderProxy* proxy = meshes.GetElement(pair.first);
 
@@ -254,7 +254,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
         render_proxy_list->RemoveEmptyRenderGroups();
     }
 
-    bool RemoveRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>& meshes, ID<Entity> entity)
+    bool RemoveRenderProxy(ResourceTracker<Id<Entity>, RenderProxy>& meshes, Id<Entity> entity)
     {
         HYP_SCOPE;
 
@@ -289,7 +289,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
     {
         HYP_NAMED_SCOPE("Rebuild UI Proxy Groups");
 
-        ResourceTracker<ID<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
+        ResourceTracker<Id<Entity>, RenderProxy>& meshes = render_proxy_list->meshes;
 
         // Claim before unclaiming items from removed_entities so modified proxies (which would be in removed_entities)
         // don't have their resources destroyed unnecessarily, causing destroy + recreate to occur much too frequently.
@@ -298,7 +298,7 @@ struct RENDER_COMMAND(RebuildProxyGroups_UI)
             proxy.IncRefs();
         }
 
-        for (ID<Entity> entity : removed_entities)
+        for (Id<Entity> entity : removed_entities)
         {
             const RenderProxy* proxy = meshes.GetElement(entity);
             AssertThrow(proxy != nullptr);
@@ -349,7 +349,7 @@ struct RENDER_COMMAND(RenderUI)
     {
         HYP_NAMED_SCOPE("Render UI");
 
-        FrameBase* frame = g_rendering_api->GetCurrentFrame();
+        FrameBase* frame = g_render_backend->GetCurrentFrame();
 
         RenderSetup render_setup { world, view };
 
@@ -376,7 +376,7 @@ void UIRenderCollector::ResetOrdering()
     proxy_depths.Clear();
 }
 
-void UIRenderCollector::PushRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth)
+void UIRenderCollector::PushRenderProxy(ResourceTracker<Id<Entity>, RenderProxy>& meshes, const RenderProxy& render_proxy, int computed_depth)
 {
     AssertThrow(render_proxy.entity.IsValid());
     AssertThrow(render_proxy.mesh.IsValid());
@@ -387,7 +387,7 @@ void UIRenderCollector::PushRenderProxy(ResourceTracker<ID<Entity>, RenderProxy>
     proxy_depths.EmplaceBack(render_proxy.entity.GetID(), computed_depth);
 }
 
-typename ResourceTracker<ID<Entity>, RenderProxy>::Diff UIRenderCollector::PushUpdatesToRenderThread(ResourceTracker<ID<Entity>, RenderProxy>& meshes, const Optional<RenderableAttributeSet>& override_attributes)
+typename ResourceTracker<Id<Entity>, RenderProxy>::Diff UIRenderCollector::PushUpdatesToRenderThread(ResourceTracker<Id<Entity>, RenderProxy>& meshes, const Optional<RenderableAttributeSet>& override_attributes)
 {
     HYP_SCOPE;
 
@@ -398,7 +398,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff UIRenderCollector::PushU
 
     if (diff.NeedsUpdate())
     {
-        Array<ID<Entity>> removed_entities;
+        Array<Id<Entity>> removed_entities;
         meshes.GetRemoved(removed_entities, true /* include_changed */);
 
         Array<RenderProxy*> added_proxies_ptrs;
@@ -620,7 +620,7 @@ void UIRenderSubsystem::Init()
 
     ViewOutputTargetDesc output_target_desc {
         .extent = surface_size * 2,
-        .attachments = { { TF_RGBA8 }, { g_rendering_api->GetDefaultFormat(DIF_DEPTH) } }
+        .attachments = { { TF_RGBA8 }, { g_render_backend->GetDefaultFormat(DIF_DEPTH) } }
     };
 
     ViewDesc view_desc {
@@ -707,7 +707,7 @@ void UIRenderSubsystem::CreateFramebuffer()
 {
     HYP_SCOPE;
 
-    const ThreadID owner_thread_id = m_ui_stage->GetScene()->GetEntityManager()->GetOwnerThreadID();
+    const ThreadId owner_thread_id = m_ui_stage->GetScene()->GetEntityManager()->GetOwnerThreadId();
 
     auto impl = [weak_this = WeakHandleFromThis()]()
     {
@@ -728,7 +728,7 @@ void UIRenderSubsystem::CreateFramebuffer()
 
         // subsystem->m_ui_stage->SetSurfaceSize(Vec2i(surface_size));
 
-        HYP_LOG(UI, Debug, "Created UI Render Subsystem view with ID {} and surface size {}",
+        HYP_LOG(UI, Debug, "Created UI Render Subsystem view with Id {} and surface size {}",
             subsystem->m_view->GetID().Value(), surface_size);
     };
 

@@ -228,17 +228,17 @@ bool DescriptorSetBase::HasElement(Name name) const
     return m_elements.Find(name) != m_elements.End();
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const GPUBufferRef& ref)
+void DescriptorSetBase::SetElement(Name name, uint32 index, const GpuBufferRef& ref)
 {
-    SetElement<GPUBufferRef>(name, index, ref);
+    SetElement<GpuBufferRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef& ref)
+void DescriptorSetBase::SetElement(Name name, uint32 index, uint32 buffer_size, const GpuBufferRef& ref)
 {
-    SetElement<GPUBufferRef>(name, index, ref);
+    SetElement<GpuBufferRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const GPUBufferRef& ref)
+void DescriptorSetBase::SetElement(Name name, const GpuBufferRef& ref)
 {
     SetElement(name, 0, ref);
 }

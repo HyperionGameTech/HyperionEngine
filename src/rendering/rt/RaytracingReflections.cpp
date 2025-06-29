@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderScene.hpp>
@@ -16,7 +16,7 @@
 #include <rendering/SafeDeleter.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererResult.hpp>
 
 #include <scene/Texture.hpp>
@@ -82,18 +82,18 @@ struct RENDER_COMMAND(UnsetRTRadianceImageInGlobalDescriptorSet)
 
 #pragma endregion Render commands
 
-RTRadianceRenderer::RTRadianceRenderer(RTRadianceConfig&& config, GBuffer* gbuffer)
+RaytracingReflections::RaytracingReflections(RaytracingReflectionsConfig&& config, GBuffer* gbuffer)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer),
       m_updates { RT_RADIANCE_UPDATES_NONE, RT_RADIANCE_UPDATES_NONE }
 {
 }
 
-RTRadianceRenderer::~RTRadianceRenderer()
+RaytracingReflections::~RaytracingReflections()
 {
 }
 
-void RTRadianceRenderer::Create()
+void RaytracingReflections::Create()
 {
     CreateImages();
     CreateUniformBuffer();
@@ -101,7 +101,7 @@ void RTRadianceRenderer::Create()
     CreateRaytracingPipeline();
 }
 
-void RTRadianceRenderer::Destroy()
+void RaytracingReflections::Destroy()
 {
     m_shader.Reset();
 
@@ -117,9 +117,9 @@ void RTRadianceRenderer::Destroy()
     HYP_SYNC_RENDER();
 }
 
-void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup)
+void RaytracingReflections::UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup)
 {
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(render_setup.view->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(render_setup.view->GetView());
 
     RTRadianceUniforms uniforms {};
 
@@ -166,7 +166,7 @@ void RTRadianceRenderer::UpdateUniforms(FrameBase* frame, const RenderSetup& ren
     }
 }
 
-void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setup)
+void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& render_setup)
 {
     AssertDebug(render_setup.IsValid());
     AssertDebug(render_setup.HasView());
@@ -212,7 +212,7 @@ void RTRadianceRenderer::Render(FrameBase* frame, const RenderSetup& render_setu
     m_temporal_blending->Render(frame, render_setup);
 }
 
-void RTRadianceRenderer::CreateImages()
+void RaytracingReflections::CreateImages()
 {
     m_texture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
@@ -229,14 +229,14 @@ void RTRadianceRenderer::CreateImages()
     m_texture->SetPersistentRenderResourceEnabled(true);
 }
 
-void RTRadianceRenderer::CreateUniformBuffer()
+void RaytracingReflections::CreateUniformBuffer()
 {
     RTRadianceUniforms uniforms;
     Memory::MemSet(&uniforms, 0, sizeof(uniforms));
 
     m_uniform_buffers = {
-        g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms)),
-        g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(RTRadianceUniforms))
+        g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms)),
+        g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(RTRadianceUniforms))
     };
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -246,7 +246,7 @@ void RTRadianceRenderer::CreateUniformBuffer()
     }
 }
 
-void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
+void RaytracingReflections::ApplyTLASUpdates(RTUpdateStateFlags flags)
 {
     if (!flags)
     {
@@ -276,7 +276,7 @@ void RTRadianceRenderer::ApplyTLASUpdates(RTUpdateStateFlags flags)
     }
 }
 
-void RTRadianceRenderer::CreateRaytracingPipeline()
+void RaytracingReflections::CreateRaytracingPipeline()
 {
     if (IsPathTracer())
     {
@@ -291,7 +291,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
     const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -312,7 +312,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
 
     DeferCreate(descriptor_table);
 
-    m_raytracing_pipeline = g_rendering_api->MakeRaytracingPipeline(
+    m_raytracing_pipeline = g_render_backend->MakeRaytracingPipeline(
         m_shader,
         descriptor_table);
 
@@ -325,7 +325,7 @@ void RTRadianceRenderer::CreateRaytracingPipeline()
             m_temporal_blending->GetResultTexture()->GetRenderResource().GetImageView() });
 }
 
-void RTRadianceRenderer::CreateTemporalBlending()
+void RaytracingReflections::CreateTemporalBlending()
 {
     m_temporal_blending = MakeUnique<TemporalBlending>(
         m_config.extent,

@@ -450,7 +450,7 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         InitObject(material);
 
-        Handle<Scene> scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID());
+        Handle<Scene> scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 

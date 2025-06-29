@@ -173,7 +173,7 @@ FBOMResult FBOMObject::Visit(UniqueID id, FBOMWriter* writer, ByteWriter* out, E
     return writer->Write(out, *this, id, attributes);
 }
 
-FBOMResult FBOMObject::Deserialize(FBOMLoadContext& context, TypeID type_id, const FBOMObject& in, HypData& out)
+FBOMResult FBOMObject::Deserialize(FBOMLoadContext& context, TypeId type_id, const FBOMObject& in, HypData& out)
 {
     FBOMMarshalerBase* marshal = GetMarshal(type_id);
 
@@ -252,7 +252,7 @@ String FBOMObject::ToString(bool deep) const
     return String(ss.str().data());
 }
 
-FBOMMarshalerBase* FBOMObject::GetMarshal(TypeID type_id)
+FBOMMarshalerBase* FBOMObject::GetMarshal(TypeId type_id)
 {
     return FBOM::GetInstance().GetMarshal(type_id);
 }

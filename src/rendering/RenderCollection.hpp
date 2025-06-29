@@ -12,7 +12,7 @@
 #include <core/threading/Task.hpp>
 #include <core/threading/TaskSystem.hpp>
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <core/math/Transform.hpp>
 
@@ -22,7 +22,7 @@
 #include <rendering/EngineRenderStats.hpp>
 #include <rendering/IndirectDraw.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererStructs.hpp>
@@ -57,9 +57,9 @@ struct ParallelRenderingState
     uint32 num_batches = 0;
 
     // Non-async rendering command list - used for binding state at the start of the pass before async stuff
-    RHICommandList base_command_list;
+    CmdList base_command_list;
 
-    FixedArray<RHICommandList, max_batches> command_lists {};
+    FixedArray<CmdList, max_batches> command_lists {};
     FixedArray<EngineRenderStatsCounts, max_batches> render_stats_counts {};
 
     // Temporary storage for data that will be executed in parallel during the frame
@@ -75,7 +75,7 @@ struct ParallelRenderingState
 struct DrawCallCollectionMapping
 {
     Handle<RenderGroup> render_group;
-    HashMap<ID<Entity>, RenderProxy*> render_proxies;
+    HashMap<Id<Entity>, RenderProxy*> render_proxies;
     DrawCallCollection draw_call_collection;
     IndirectRenderer* indirect_renderer = nullptr;
 
@@ -133,7 +133,7 @@ struct HYP_API RenderProxyList
     void BuildRenderGroups(View* view);
 
     ParallelRenderingState* AcquireNextParallelRenderingState();
-    void CommitParallelRenderingState(RHICommandList& out_command_list);
+    void CommitParallelRenderingState(CmdList& out_command_list);
 
     // State for tracking transitions from writing (game thread) to reading (render thread).
     enum CollectionState : uint8
@@ -149,11 +149,11 @@ struct HYP_API RenderProxyList
     Viewport viewport;
     int priority;
 
-    ResourceTracker<ID<Entity>, RenderProxy> meshes;
-    ResourceTracker<ID<EnvProbe>, EnvProbe*> env_probes;
-    ResourceTracker<ID<Light>, Light*> lights;
-    ResourceTracker<ID<EnvGrid>, EnvGrid*> env_grids;
-    ResourceTracker<ID<LightmapVolume>, LightmapVolume*> lightmap_volumes;
+    ResourceTracker<Id<Entity>, RenderProxy> meshes;
+    ResourceTracker<Id<EnvProbe>, EnvProbe*> env_probes;
+    ResourceTracker<Id<Light>, Light*> lights;
+    ResourceTracker<Id<EnvGrid>, EnvGrid*> env_grids;
+    ResourceTracker<Id<LightmapVolume>, LightmapVolume*> lightmap_volumes;
 
     ParallelRenderingState* parallel_rendering_state_head;
     ParallelRenderingState* parallel_rendering_state_tail;

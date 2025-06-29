@@ -226,7 +226,7 @@ public:
 
         for (const FBOMObject& child : in.GetChildren())
         {
-            if (child.GetType().GetNativeTypeID() == TypeID::ForType<DescriptorUsage>())
+            if (child.GetType().GetNativeTypeId() == TypeId::ForType<DescriptorUsage>())
             {
                 compiled_shader.descriptor_usage_set.Add(child.m_deserialized_object->Get<DescriptorUsage>());
             }

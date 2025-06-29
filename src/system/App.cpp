@@ -7,7 +7,7 @@
 #include <core/logging/Logger.hpp>
 
 #include <rendering/RenderGlobalState.hpp>
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 
 #include <Game.hpp>
 #include <GameThread.hpp>
@@ -83,8 +83,8 @@ void App::LaunchGame(const Handle<Game>& game)
         HYP_LOG(Core, Info, "Running in headless mode");
     }
 
-    AssertThrow(g_rendering_api != nullptr);
-    HYPERION_ASSERT_RESULT(g_rendering_api->Initialize(*app_context));
+    AssertThrow(g_render_backend != nullptr);
+    HYPERION_ASSERT_RESULT(g_render_backend->Initialize(*app_context));
 
     RenderObjectDeleter<Platform::current>::Initialize();
 
@@ -105,7 +105,7 @@ void App::LaunchGame(const Handle<Game>& game)
 
     RenderObjectDeleter<Platform::current>::RemoveAllNow(/* force */ true);
 
-    HYPERION_ASSERT_RESULT(g_rendering_api->Destroy());
+    HYPERION_ASSERT_RESULT(g_render_backend->Destroy());
 }
 
 } // namespace sys

@@ -73,7 +73,7 @@ void DepthPyramidRenderer::Create()
         HYP_NAMED_SCOPE("Create depth pyramid resources");
         Threads::AssertOnThread(g_render_thread);
 
-        m_depth_pyramid_sampler = g_rendering_api->MakeSampler(
+        m_depth_pyramid_sampler = g_render_backend->MakeSampler(
             TFM_NEAREST_MIPMAP,
             TFM_NEAREST,
             TWM_CLAMP_TO_EDGE);
@@ -84,7 +84,7 @@ void DepthPyramidRenderer::Create()
         AssertThrow(depth_image.IsValid());
 
         // create depth pyramid image
-        m_depth_pyramid = g_rendering_api->MakeImage(TextureDesc {
+        m_depth_pyramid = g_render_backend->MakeImage(TextureDesc {
             TT_TEX2D,
             TF_R32F,
             Vec3u {
@@ -99,7 +99,7 @@ void DepthPyramidRenderer::Create()
 
         m_depth_pyramid->Create();
 
-        m_depth_pyramid_view = g_rendering_api->MakeImageView(m_depth_pyramid);
+        m_depth_pyramid_view = g_render_backend->MakeImageView(m_depth_pyramid);
         m_depth_pyramid_view->Create();
 
         const Vec3u& image_extent = m_depth_image_view->GetImage()->GetExtent();
@@ -129,11 +129,11 @@ void DepthPyramidRenderer::Create()
             uniforms.prev_mip_dimensions = { prev_mip_width, prev_mip_height };
             uniforms.mip_level = mip_level;
 
-            GPUBufferRef& mip_uniform_buffer = m_mip_uniform_buffers.PushBack(g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
+            GpuBufferRef& mip_uniform_buffer = m_mip_uniform_buffers.PushBack(g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DepthPyramidUniforms)));
             HYPERION_ASSERT_RESULT(mip_uniform_buffer->Create());
             mip_uniform_buffer->Copy(sizeof(DepthPyramidUniforms), &uniforms);
 
-            ImageViewRef& mip_image_view = m_mip_image_views.PushBack(g_rendering_api->MakeImageView(m_depth_pyramid, mip_level, 1, 0, m_depth_pyramid->NumFaces()));
+            ImageViewRef& mip_image_view = m_mip_image_views.PushBack(g_render_backend->MakeImageView(m_depth_pyramid, mip_level, 1, 0, m_depth_pyramid->NumFaces()));
             HYPERION_ASSERT_RESULT(mip_image_view->Create());
         }
 
@@ -186,7 +186,7 @@ void DepthPyramidRenderer::Create()
 
             if (!descriptor_table.IsValid())
             {
-                descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+                descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
                 set_descriptor_set_elements();
 
@@ -204,7 +204,7 @@ void DepthPyramidRenderer::Create()
         }
 
         // use the first mip descriptor table to create the compute pipeline, since the descriptor set layout is the same for all mip levels
-        m_generate_depth_pyramid = g_rendering_api->MakeComputePipeline(shader, m_mip_descriptor_tables.Front());
+        m_generate_depth_pyramid = g_render_backend->MakeComputePipeline(shader, m_mip_descriptor_tables.Front());
         DeferCreate(m_generate_depth_pyramid);
     };
 

@@ -489,7 +489,7 @@ struct alignas(16) PackedVertex
 
 static_assert(sizeof(PackedVertex) == sizeof(float32) * 8);
 
-enum GPUElemType : uint32
+enum GpuElemType : uint32
 {
     GET_UNSIGNED_BYTE,
     GET_SIGNED_BYTE,

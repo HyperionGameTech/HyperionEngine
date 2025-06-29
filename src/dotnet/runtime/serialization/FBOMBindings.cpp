@@ -89,14 +89,14 @@ extern "C"
         return ptr->name.Data();
     }
 
-    HYP_EXPORT void FBOMType_GetNativeTypeID(const FBOMType* ptr, TypeID* out_type_id)
+    HYP_EXPORT void FBOMType_GetNativeTypeId(const FBOMType* ptr, TypeId* out_type_id)
     {
         if (!ptr || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = ptr->GetNativeTypeID();
+        *out_type_id = ptr->GetNativeTypeId();
     }
 
     HYP_EXPORT const HypClass* FBOMType_GetHypClass(const FBOMType* ptr)

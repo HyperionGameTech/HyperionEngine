@@ -7,11 +7,11 @@
 
 #include <core/Handle.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
@@ -78,7 +78,7 @@ public:
     void Destroy();
 
     /*! \brief Get or create a buffer of at least the given size */
-    GPUBufferRef GetOrCreateBuffer(GPUBufferType buffer_type, SizeType required_size, bool exact_size = false)
+    GpuBufferRef GetOrCreateBuffer(GpuBufferType buffer_type, SizeType required_size, bool exact_size = false)
     {
         // Threads::AssertOnThread(g_render_thread);
 
@@ -89,8 +89,8 @@ public:
 
         auto& buffer_container = m_buffers.At(buffer_type);
 
-        // typename FlatMap<SizeType, GPUBufferWeakRef>::Iterator it;
-        typename FlatMap<SizeType, GPUBufferRef>::Iterator it;
+        // typename FlatMap<SizeType, GpuBufferWeakRef>::Iterator it;
+        typename FlatMap<SizeType, GpuBufferRef>::Iterator it;
 
         if (exact_size)
         {
@@ -120,7 +120,7 @@ public:
             required_size = MathUtil::NextPowerOf2(required_size);
         }
 
-        GPUBufferRef buffer = CreateGPUBuffer(buffer_type, required_size);
+        GpuBufferRef buffer = CreateGpuBuffer(buffer_type, required_size);
 
         if (buffer->IsCPUAccessible())
         {
@@ -134,9 +134,9 @@ public:
     }
 
 private:
-    GPUBufferRef CreateGPUBuffer(GPUBufferType buffer_type, SizeType size);
+    GpuBufferRef CreateGpuBuffer(GpuBufferType buffer_type, SizeType size);
 
-    FlatMap<GPUBufferType, FlatMap<SizeType, GPUBufferRef>> m_buffers;
+    FlatMap<GpuBufferType, FlatMap<SizeType, GpuBufferRef>> m_buffers;
 };
 
 } // namespace hyperion

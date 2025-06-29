@@ -43,8 +43,8 @@ class HYP_API UIElementFactoryRegistry
 public:
     static UIElementFactoryRegistry& GetInstance();
 
-    UIElementFactoryBase* GetFactory(TypeID type_id);
-    void RegisterFactory(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
+    UIElementFactoryBase* GetFactory(TypeId type_id);
+    void RegisterFactory(TypeId type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
 
 private:
     TypeMap<FactoryInstance> m_element_factories;
@@ -290,15 +290,15 @@ public:
 
     template <class T>
     UIDataSource(TypeWrapper<T>)
-        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
-          m_element_type_id(TypeID::ForType<T>())
+        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<T>())),
+          m_element_type_id(TypeId::ForType<T>())
     {
     }
 
     template <class T, class CreateUIObjectFunction, class UpdateUIObjectFunction>
     UIDataSource(TypeWrapper<T>, CreateUIObjectFunction&& create_ui_object, UpdateUIObjectFunction&& update_ui_object)
-        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<T>())),
-          m_element_type_id(TypeID::ForType<T>()),
+        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<T>())),
+          m_element_type_id(TypeId::ForType<T>()),
           m_create_ui_object_proc([func = std::forward<CreateUIObjectFunction>(create_ui_object)](UIObject* parent, const HypData& value, const HypData& context) mutable
               {
                   return func(parent, value.Get<T>(), context);
@@ -323,10 +323,10 @@ public:
             return;
         }
 
-        if (value.GetTypeID() != m_element_type_id)
+        if (value.GetTypeId() != m_element_type_id)
         {
-            HYP_FAIL("Cannot add element with TypeID %u to UIDataSource - expected TypeID %u",
-                value.GetTypeID().Value(),
+            HYP_FAIL("Cannot add element with TypeId %u to UIDataSource - expected TypeId %u",
+                value.GetTypeId().Value(),
                 m_element_type_id.Value());
         }
 
@@ -375,10 +375,10 @@ public:
 
     virtual void Set(const UUID& uuid, HypData&& value) override
     {
-        if (value.GetTypeID() != m_element_type_id)
+        if (value.GetTypeId() != m_element_type_id)
         {
-            HYP_FAIL("Cannot set element with TypeID %u in UIDataSource - expected TypeID %u",
-                value.GetTypeID().Value(),
+            HYP_FAIL("Cannot set element with TypeId %u in UIDataSource - expected TypeId %u",
+                value.GetTypeId().Value(),
                 m_element_type_id.Value());
         }
 
@@ -557,14 +557,14 @@ public:
     }
 
     /*! \internal */
-    void SetElementTypeIDAndFactory(TypeID element_type_id, UIElementFactoryBase* element_factory)
+    void SetElementTypeIdAndFactory(TypeId element_type_id, UIElementFactoryBase* element_factory)
     {
         m_element_factory = element_factory;
         m_element_type_id = element_type_id;
     }
 
 private:
-    TypeID m_element_type_id;
+    TypeId m_element_type_id;
     Forest<UIDataSourceElement> m_values;
 
     Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_create_ui_object_proc;
@@ -576,7 +576,7 @@ struct HYP_API UIElementFactoryRegistrationBase
 protected:
     Handle<UIElementFactoryBase> (*m_make_factory_function)(void);
 
-    UIElementFactoryRegistrationBase(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
+    UIElementFactoryRegistrationBase(TypeId type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void));
     ~UIElementFactoryRegistrationBase();
 };
 
@@ -584,7 +584,7 @@ template <class T>
 struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
 {
     UIElementFactoryRegistration(Handle<UIElementFactoryBase> (*make_factory_function)(void))
-        : UIElementFactoryRegistrationBase(TypeID::ForType<T>(), make_factory_function)
+        : UIElementFactoryRegistrationBase(TypeId::ForType<T>(), make_factory_function)
     {
     }
 };

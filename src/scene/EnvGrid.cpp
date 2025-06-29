@@ -243,7 +243,7 @@ void EnvGrid::Init()
                 StoreOperation::STORE,
                 MathUtil::Infinity<Vec4f>() },
             ViewOutputTargetAttachmentDesc {
-                g_rendering_api->GetDefaultFormat(DIF_DEPTH),
+                g_render_backend->GetDefaultFormat(DIF_DEPTH),
                 TT_CUBEMAP,
                 LoadOperation::CLEAR,
                 StoreOperation::STORE } },
@@ -512,7 +512,7 @@ void EnvGrid::Update(float delta)
     m_view->Update(delta);
 
     HYP_LOG(EnvGrid, Debug, "Updating EnvGrid {} with {} probes\t lights: {}", GetID(), m_env_probe_collection.num_probes,
-        RendererAPI_GetProducerProxyList(m_view).lights.NumCurrent());
+        RenderApi_GetProducerProxyList(m_view).lights.NumCurrent());
 
     for (uint32 index = 0; index < m_env_probe_collection.num_probes; index++)
     {

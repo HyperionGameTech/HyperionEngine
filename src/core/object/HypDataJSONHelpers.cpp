@@ -135,7 +135,7 @@ bool JSONToObject(const json::JSONObject& json_object, const HypClass* hyp_class
         {
             const HypProperty& property = static_cast<const HypProperty&>(member);
 
-            const TypeID type_id = property.Get(target).ToRef().GetTypeID();
+            const TypeId type_id = property.Get(target).ToRef().GetTypeId();
 
             HypData hyp_data;
 
@@ -155,7 +155,7 @@ bool JSONToObject(const json::JSONObject& json_object, const HypClass* hyp_class
         {
             const HypField& field = static_cast<const HypField&>(member);
 
-            const TypeID type_id = field.Get(target).ToRef().GetTypeID();
+            const TypeId type_id = field.Get(target).ToRef().GetTypeId();
 
             HypData hyp_data;
 
@@ -235,81 +235,81 @@ bool JSONToObject(const json::JSONObject& json_object, const HypClass* hyp_class
     return true;
 }
 
-bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& out_hyp_data)
+bool JSONToHypData(const json::JSONValue& json_value, TypeId type_id, HypData& out_hyp_data)
 {
-    if (type_id == TypeID::ForType<int8>())
+    if (type_id == TypeId::ForType<int8>())
     {
         out_hyp_data = HypData(int8(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<int16>())
+    else if (type_id == TypeId::ForType<int16>())
     {
         out_hyp_data = HypData(int16(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<int32>())
+    else if (type_id == TypeId::ForType<int32>())
     {
         out_hyp_data = HypData(int32(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<int64>())
+    else if (type_id == TypeId::ForType<int64>())
     {
         out_hyp_data = HypData(int64(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<uint8>())
+    else if (type_id == TypeId::ForType<uint8>())
     {
         out_hyp_data = HypData(uint8(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<uint16>())
+    else if (type_id == TypeId::ForType<uint16>())
     {
         out_hyp_data = HypData(uint16(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<uint32>())
+    else if (type_id == TypeId::ForType<uint32>())
     {
         out_hyp_data = HypData(uint32(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<uint64>())
+    else if (type_id == TypeId::ForType<uint64>())
     {
         out_hyp_data = HypData(uint64(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<float>())
+    else if (type_id == TypeId::ForType<float>())
     {
         out_hyp_data = HypData(float(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<double>())
+    else if (type_id == TypeId::ForType<double>())
     {
         out_hyp_data = HypData(double(json_value.ToNumber()));
 
         return true;
     }
-    else if (type_id == TypeID::ForType<bool>())
+    else if (type_id == TypeId::ForType<bool>())
     {
         out_hyp_data = HypData(json_value.ToBool());
 
         return true;
     }
-    else if (type_id == TypeID::ForType<String>())
+    else if (type_id == TypeId::ForType<String>())
     {
         out_hyp_data = HypData(json_value.ToString());
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec2i>())
+    else if (type_id == TypeId::ForType<Vec2i>())
     {
         if (!json_value.IsArray())
         {
@@ -327,7 +327,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec3i>())
+    else if (type_id == TypeId::ForType<Vec3i>())
     {
         if (!json_value.IsArray())
         {
@@ -345,7 +345,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec4i>())
+    else if (type_id == TypeId::ForType<Vec4i>())
     {
         if (!json_value.IsArray())
         {
@@ -363,7 +363,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec2u>())
+    else if (type_id == TypeId::ForType<Vec2u>())
     {
         if (!json_value.IsArray())
         {
@@ -381,7 +381,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec3u>())
+    else if (type_id == TypeId::ForType<Vec3u>())
     {
         if (!json_value.IsArray())
         {
@@ -399,7 +399,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec4u>())
+    else if (type_id == TypeId::ForType<Vec4u>())
     {
         if (!json_value.IsArray())
         {
@@ -417,7 +417,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec2f>())
+    else if (type_id == TypeId::ForType<Vec2f>())
     {
         if (!json_value.IsArray())
         {
@@ -435,7 +435,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec3f>())
+    else if (type_id == TypeId::ForType<Vec3f>())
     {
         if (!json_value.IsArray())
         {
@@ -453,7 +453,7 @@ bool JSONToHypData(const json::JSONValue& json_value, TypeID type_id, HypData& o
 
         return true;
     }
-    else if (type_id == TypeID::ForType<Vec4f>())
+    else if (type_id == TypeId::ForType<Vec4f>())
     {
         if (!json_value.IsArray())
         {
@@ -658,7 +658,7 @@ bool HypDataToJSON(const HypData& value, json::JSONValue& out_json)
         return true;
     }
 
-    const HypClass* hyp_class = GetClass(value.GetTypeID());
+    const HypClass* hyp_class = GetClass(value.GetTypeId());
 
     if (hyp_class)
     {

@@ -12,7 +12,7 @@ extern "C"
         AssertThrow(out_hyp_data != nullptr);
         AssertThrow(ptr != nullptr);
 
-        out_hyp_data->Construct(AnyRef(ptr->GetObjectHeader_Internal()->container->GetObjectTypeID(), ptr));
+        out_hyp_data->Construct(AnyRef(ptr->GetObjectHeader_Internal()->container->GetObjectTypeId(), ptr));
     }
 
     HYP_EXPORT void Handle_Set(HypData* hyp_data, HypObjectBase** out_ptr)

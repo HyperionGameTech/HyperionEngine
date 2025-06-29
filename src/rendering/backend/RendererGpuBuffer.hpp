@@ -19,7 +19,7 @@
 #include <Types.hpp>
 
 namespace hyperion {
-enum class GPUBufferType : uint8
+enum class GpuBufferType : uint8
 {
     NONE = 0,
     MESH_INDEX_BUFFER,
@@ -44,12 +44,12 @@ enum BufferIDMask : uint64
     ID_MASK_IMAGE = (0x2ull << 32ull)
 };
 
-class GPUBufferBase : public RenderObject<GPUBufferBase>
+class GpuBufferBase : public RenderObject<GpuBufferBase>
 {
 public:
-    virtual ~GPUBufferBase() override = default;
+    virtual ~GpuBufferBase() override = default;
 
-    HYP_FORCE_INLINE GPUBufferType GetBufferType() const
+    HYP_FORCE_INLINE GpuBufferType GetBufferType() const
     {
         return m_type;
     }
@@ -75,7 +75,7 @@ public:
 
     HYP_API virtual void CopyFrom(
         CommandBufferBase* command_buffer,
-        const GPUBufferBase* src_buffer,
+        const GpuBufferBase* src_buffer,
         SizeType count) = 0;
 
     HYP_API virtual RendererResult EnsureCapacity(
@@ -99,7 +99,7 @@ public:
     HYP_API virtual void Unmap() const = 0;
 
 protected:
-    GPUBufferBase(GPUBufferType type, SizeType size, SizeType alignment = 0)
+    GpuBufferBase(GpuBufferType type, SizeType size, SizeType alignment = 0)
         : m_type(type),
           m_size(size),
           m_alignment(alignment),
@@ -107,7 +107,7 @@ protected:
     {
     }
 
-    GPUBufferType m_type;
+    GpuBufferType m_type;
     SizeType m_size;
     SizeType m_alignment;
 

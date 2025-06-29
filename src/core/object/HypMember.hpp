@@ -11,7 +11,7 @@
 #include <core/object/HypConstant.hpp>
 #include <core/object/HypMemberFwd.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Variant.hpp>
 

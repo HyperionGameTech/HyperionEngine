@@ -7,7 +7,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT const AssetLoaderDefinition* AssetManager_GetLoaderDefinition(AssetManager* asset_manager, const char* path, TypeID desired_type_id)
+    HYP_EXPORT const AssetLoaderDefinition* AssetManager_GetLoaderDefinition(AssetManager* asset_manager, const char* path, TypeId desired_type_id)
     {
         AssertThrow(asset_manager != nullptr);
 

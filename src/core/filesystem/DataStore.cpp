@@ -27,7 +27,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(DataStore, IO);
 static TypeMap<HashMap<String, DataStoreBase*>> g_global_data_store_map {};
 static Mutex g_global_data_store_mutex;
 
-DataStoreBase* DataStoreBase::GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn)
+DataStoreBase* DataStoreBase::GetOrCreate(TypeId data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn)
 {
     Mutex::Guard guard(g_global_data_store_mutex);
 

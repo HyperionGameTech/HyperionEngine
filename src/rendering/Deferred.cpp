@@ -24,7 +24,7 @@
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -81,8 +81,8 @@ void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
 {
     ShaderProperties properties;
 
-    properties.Set("RT_REFLECTIONS_ENABLED", g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
-    properties.Set("RT_GI_ENABLED", g_rendering_api->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool());
+    properties.Set("RT_REFLECTIONS_ENABLED", g_render_backend->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.reflections.enabled").ToBool());
+    properties.Set("RT_GI_ENABLED", g_render_backend->GetRenderConfig().IsRaytracingSupported() && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.gi.enabled").ToBool());
     properties.Set("ENV_GRID_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.env_grid.gi.enabled").ToBool());
     properties.Set("HBIL_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
     properties.Set("HBAO_ENABLED", g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbao.enabled").ToBool());
@@ -99,11 +99,11 @@ void GetDeferredShaderProperties(ShaderProperties& out_shader_properties)
     out_shader_properties = std::move(properties);
 }
 
-static constexpr TypeID g_env_probe_type_to_type_id[EPT_MAX] = {
-    TypeID::ForType<SkyProbe>(),        // EPT_SKY
-    TypeID::ForType<ReflectionProbe>(), // EPT_REFLECTION
-    TypeID::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
-    TypeID::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
+static constexpr TypeId g_env_probe_type_to_type_id[EPT_MAX] = {
+    TypeId::ForType<SkyProbe>(),        // EPT_SKY
+    TypeId::ForType<ReflectionProbe>(), // EPT_REFLECTION
+    TypeId::ForType<EnvProbe>(),        // EPT_SHADOW (fixme when derived class)
+    TypeId::ForType<EnvProbe>()         // EPT_AMBIENT (fixme when derived class)
 };
 
 #pragma region Deferred pass
@@ -176,7 +176,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
     }
 
     { // linear transform cosines texture data
-        m_ltc_sampler = g_rendering_api->MakeSampler(
+        m_ltc_sampler = g_render_backend->MakeSampler(
             TFM_NEAREST,
             TFM_LINEAR,
             TWM_CLAMP_TO_EDGE);
@@ -223,7 +223,7 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderable_attri
 
         const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -274,7 +274,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
         return;
     }
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view->GetView());
 
     // no lights bound, do not render direct shading at all
     if (rpl.lights.NumCurrent() == 0)
@@ -282,7 +282,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
         return;
     }
 
-    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool use_bindless_textures = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     // render with each light
     for (uint32 light_type_index = 0; light_type_index < LT_MAX; light_type_index++)
@@ -552,7 +552,7 @@ void EnvGridPass::CreatePipeline()
 
         const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
 
         GraphicsPipelineRef graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
@@ -581,7 +581,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
     AssertDebug(rs.HasView());
     AssertDebug(rs.pass_data != nullptr);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view->GetView());
 
     // shouldn't be called if no env grids are present
     AssertDebug(rpl.env_grids.NumCurrent() != 0);
@@ -598,7 +598,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     for (EnvGrid* env_grid : rpl.env_grids)
     {
-        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RendererAPI_GetRenderProxy(env_grid->GetID()));
+        RenderProxyEnvGrid* env_grid_proxy = static_cast<RenderProxyEnvGrid*>(RenderApi_GetRenderProxy(env_grid->GetID()));
         AssertThrow(env_grid_proxy->bound_index != ~0u);
 
         const GraphicsPipelineRef& graphics_pipeline = m_mode == EGPM_RADIANCE
@@ -731,7 +731,7 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderable_at
 
         const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
         DeferCreate(descriptor_table);
 
         GraphicsPipelineRef graphics_pipeline = g_engine->GetGraphicsPipelineCache()->GetOrCreate(
@@ -761,7 +761,7 @@ void ReflectionsPass::CreateSSRRenderer()
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -811,7 +811,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(rs.view->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view->GetView());
 
     if (ShouldRenderSSR())
     {
@@ -894,7 +894,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RendererAPI_GetRenderProxy(env_probe->GetID()));
+            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(env_probe->GetID()));
             AssertThrow(env_probe_proxy != nullptr);
 
             frame->GetCommandList().Add<BindDescriptorSet>(
@@ -1110,7 +1110,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
 
     const DescriptorSetLayout layout { decl };
 
-    DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+    DescriptorSetRef descriptor_set = g_render_backend->MakeDescriptorSet(layout);
     descriptor_set->SetDebugName(NAME("FinalPassDescriptorSet"));
     descriptor_set->SetElement(NAME("InTexture"), input_image_view);
 
@@ -1151,10 +1151,10 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptor_set = g_render_backend->MakeDescriptorSet(layout);
         descriptor_set->SetDebugName(NAME_FMT("SceneViewDescriptorSet_{}", frame_index));
 
-        if (g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+        if (g_render_backend->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
         {
             uint32 gbuffer_element_index = 0;
 
@@ -1245,7 +1245,7 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& pass_
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -1356,7 +1356,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
             continue;
         }
 
-        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
         render_proxy_lists.PushBack(&rpl);
 
         DeferredPassData* pd = static_cast<DeferredPassData*>(FetchViewPassData(view));
@@ -1529,7 +1529,7 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         pd->CullUnusedGraphicsPipelines();
 
 #ifdef HYP_ENABLE_RENDER_STATS
-        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
         counts[ERS_VIEWS]++;
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.lightmap_volumes.NumCurrent();
@@ -1556,7 +1556,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     AssertThrow(rs.IsValid());
     AssertThrow(rs.HasView());
 
-    uint32 global_frame_index = RendererAPI_GetFrameIndex_RenderThread();
+    uint32 global_frame_index = RenderApi_GetFrameIndex_RenderThread();
     if (m_last_frame_data.frame_id != global_frame_index)
     {
         m_last_frame_data.frame_id = global_frame_index;
@@ -1570,7 +1570,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
         return;
     }
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     DeferredPassData* pd = static_cast<DeferredPassData*>(rs.pass_data);
     AssertDebug(pd != nullptr);
@@ -1602,8 +1602,8 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
 
     const bool use_temporal_aa = pd->temporal_aa != nullptr && m_renderer_config.taa_enabled;
 
-    // const bool use_reflection_probes = rpl.tracked_env_probes.NumCurrent(TypeID::ForType<SkyProbe>()) != 0
-    //     || rpl.tracked_env_probes.NumCurrent(TypeID::ForType<ReflectionProbe>()) != 0;
+    // const bool use_reflection_probes = rpl.tracked_env_probes.NumCurrent(TypeId::ForType<SkyProbe>()) != 0
+    //     || rpl.tracked_env_probes.NumCurrent(TypeId::ForType<ReflectionProbe>()) != 0;
 
     const bool use_reflection_probes = rpl.env_probes.GetElements<SkyProbe>().Any()
         || rpl.env_probes.GetElements<ReflectionProbe>().Any();
@@ -1821,14 +1821,14 @@ void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSet
         | (1 << RB_TRANSLUCENT)
         | (1 << RB_DEBUG);
 
-    RenderCollector::PerformOcclusionCulling(frame, rs, RendererAPI_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
+    RenderCollector::PerformOcclusionCulling(frame, rs, RenderApi_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
 }
 
 void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs, uint32 bucket_mask)
 {
     HYP_SCOPE;
 
-    RenderCollector::ExecuteDrawCalls(frame, rs, RendererAPI_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
+    RenderCollector::ExecuteDrawCalls(frame, rs, RenderApi_GetConsumerProxyList(rs.view->GetView()), bucket_mask);
 }
 
 void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs, const ImageRef& src_image)

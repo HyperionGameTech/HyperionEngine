@@ -6,9 +6,9 @@ namespace Hyperion
     [StructLayout(LayoutKind.Sequential, Size = 4)]
     public struct HypMethodParameter
     {
-        private TypeID typeId;
+        private TypeId typeId;
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
@@ -46,12 +46,12 @@ namespace Hyperion
             }
         }
 
-        public TypeID ReturnTypeID
+        public TypeId ReturnTypeId
         {
             get
             {
-                TypeID returnTypeId;
-                HypMethod_GetReturnTypeID(ptr, out returnTypeId);
+                TypeId returnTypeId;
+                HypMethod_GetReturnTypeId(ptr, out returnTypeId);
                 return returnTypeId;
             }
         }
@@ -246,8 +246,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypMethod_GetName")]
         private static extern void HypMethod_GetName([In] IntPtr methodPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypMethod_GetReturnTypeID")]
-        private static extern void HypMethod_GetReturnTypeID([In] IntPtr methodPtr, [Out] out TypeID returnTypeId);
+        [DllImport("hyperion", EntryPoint = "HypMethod_GetReturnTypeId")]
+        private static extern void HypMethod_GetReturnTypeId([In] IntPtr methodPtr, [Out] out TypeId returnTypeId);
 
         [DllImport("hyperion", EntryPoint = "HypMethod_GetParameters")]
         private static extern uint HypMethod_GetParameters([In] IntPtr methodPtr, [Out] out IntPtr outParamsPtr);

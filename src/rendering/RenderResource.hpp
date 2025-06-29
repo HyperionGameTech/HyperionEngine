@@ -18,7 +18,7 @@
 
 namespace hyperion {
 
-class GPUBufferHolderBase;
+class GpuBufferHolderBase;
 
 // Represents the objects an engine object (e.g Material) uses while it is currently being used by the renderer in some way.
 // The resources are reference counted internally, so as long as the object is being used for rendering somewhere,
@@ -67,7 +67,7 @@ protected:
     virtual void Destroy_Internal() = 0;
     virtual void Update_Internal() = 0;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const
     {
         return nullptr;
     }

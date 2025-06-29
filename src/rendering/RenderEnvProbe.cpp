@@ -10,11 +10,11 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererImage.hpp>
 #include <rendering/backend/RendererImageView.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/AsyncCompute.hpp>
 
 #include <scene/Texture.hpp>
@@ -220,7 +220,7 @@ void RenderEnvProbe::Update_Internal()
     UpdateBufferData();
 }
 
-GPUBufferHolderBase* RenderEnvProbe::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderEnvProbe::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_ENV_PROBES];
 }
@@ -253,7 +253,7 @@ void RenderEnvProbe::UpdateBufferData()
 
     buffer_data->position_in_grid = m_position_in_grid;
 
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 /// TEMPORARY: will be replaced by EnvProbeRenderer classes.
@@ -272,7 +272,7 @@ void RenderEnvProbe::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     AssertDebug(m_buffer_index != ~0u);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(m_render_view->GetView());
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(m_render_view->GetView());
 
     if (!m_env_probe->NeedsRender())
     {
@@ -465,7 +465,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     HYP_LOG(EnvProbe, Debug, "Rendering EnvProbe {} (type: {})",
         env_probe->GetID(), env_probe->GetEnvProbeType());
@@ -536,7 +536,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     struct ConvolveProbeUniforms
     {
@@ -589,7 +589,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     uniforms.num_bound_lights = num_bound_lights;
 
-    GPUBufferRef uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
+    GpuBufferRef uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
     HYPERION_ASSERT_RESULT(uniform_buffer->Create());
     uniform_buffer->Copy(sizeof(uniforms), &uniforms);
 
@@ -610,7 +610,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     const DescriptorTableDeclaration& descriptor_table_decl = convolve_probe_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
     descriptor_table->SetDebugName(NAME_FMT("ConvolveProbeDescriptorTable_{}", env_probe->GetID().Value()));
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
@@ -629,7 +629,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
 
     HYPERION_ASSERT_RESULT(descriptor_table->Create());
 
-    ComputePipelineRef convolve_probe_compute_pipeline = g_rendering_api->MakeComputePipeline(convolve_probe_shader, descriptor_table);
+    ComputePipelineRef convolve_probe_compute_pipeline = g_render_backend->MakeComputePipeline(convolve_probe_shader, descriptor_table);
     HYPERION_ASSERT_RESULT(convolve_probe_compute_pipeline->Create());
 
     frame->GetCommandList().Add<InsertBarrier>(prefiltered_env_map->GetRenderResource().GetImage(), RS_UNORDERED_ACCESS);
@@ -680,7 +680,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     View* view = render_setup.view->GetView();
     AssertDebug(view != nullptr);
 
-    RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view);
+    RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
 
     const ViewOutputTarget& output_target = env_probe->GetView()->GetOutputTarget();
 
@@ -693,7 +693,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     AttachmentBase* normals_attachment = framebuffer->GetAttachment(1);
     AttachmentBase* depth_attachment = framebuffer->GetAttachment(2);
 
-    Array<GPUBufferRef> sh_tiles_buffers;
+    Array<GpuBufferRef> sh_tiles_buffers;
     sh_tiles_buffers.Resize(sh_num_levels);
 
     Array<DescriptorTableRef> sh_tiles_descriptor_tables;
@@ -703,7 +703,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     {
         const SizeType size = sizeof(SHTile) * (sh_num_tiles.x >> i) * (sh_num_tiles.y >> i);
 
-        sh_tiles_buffers[i] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, size);
+        sh_tiles_buffers[i] = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, size);
         HYPERION_ASSERT_RESULT(sh_tiles_buffers[i]->Create());
     }
 
@@ -740,7 +740,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
     for (uint32 i = 0; i < sh_num_levels; i++)
     {
-        compute_sh_descriptor_tables[i] = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        compute_sh_descriptor_tables[i] = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -769,7 +769,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     {
         ComputePipelineRef& pipeline = it.second.second;
 
-        pipeline = g_rendering_api->MakeComputePipeline(
+        pipeline = g_render_backend->MakeComputePipeline(
             it.second.first,
             compute_sh_descriptor_tables[0]);
 
@@ -820,7 +820,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     pipelines[NAME("Clear")].second->SetPushConstants(&push_constants, sizeof(push_constants));
     pipelines[NAME("BuildCoeffs")].second->SetPushConstants(&push_constants, sizeof(push_constants));
 
-    RHICommandList& async_compute_command_list = g_rendering_api->GetAsyncCompute()->GetCommandList();
+    CmdList& async_compute_command_list = g_render_backend->GetAsyncCompute()->GetCommandList();
 
     async_compute_command_list.Add<InsertBarrier>(sh_tiles_buffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
     async_compute_command_list.Add<InsertBarrier>(g_render_global_state->gpu_buffers[GRB_ENV_PROBES]->GetBuffer(frame->GetFrameIndex()), RS_UNORDERED_ACCESS, SMT_COMPUTE);

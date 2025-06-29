@@ -184,7 +184,7 @@ class HYP_API TaskExecutorBase : public ITaskExecutor
 public:
     TaskExecutorBase()
         : m_id(TaskID::Invalid()),
-          m_initiator_thread_id(ThreadID::Invalid()),
+          m_initiator_thread_id(ThreadId::Invalid()),
           m_assigned_scheduler(nullptr)
     {
         // set notifier to initial value of 1 (one task)
@@ -204,19 +204,19 @@ public:
         return m_id;
     }
 
-    /*! \internal This function is used by the Scheduler to set the task ID. */
+    /*! \internal This function is used by the Scheduler to set the task Id. */
     HYP_FORCE_INLINE void SetTaskID(TaskID id)
     {
         m_id = id;
     }
 
-    HYP_FORCE_INLINE const ThreadID& GetInitiatorThreadID() const
+    HYP_FORCE_INLINE const ThreadId& GetInitiatorThreadId() const
     {
         return m_initiator_thread_id;
     }
 
-    /*! \internal This function is used by the Scheduler to set the initiator thread ID. */
-    HYP_FORCE_INLINE void SetInitiatorThreadID(const ThreadID& initiator_thread_id)
+    /*! \internal This function is used by the Scheduler to set the initiator thread Id. */
+    HYP_FORCE_INLINE void SetInitiatorThreadId(const ThreadId& initiator_thread_id)
     {
         m_initiator_thread_id = initiator_thread_id;
     }
@@ -256,7 +256,7 @@ public:
 
 protected:
     TaskID m_id;
-    ThreadID m_initiator_thread_id;
+    ThreadId m_initiator_thread_id;
     SchedulerBase* m_assigned_scheduler;
     TaskCompleteNotifier m_notifier;
 

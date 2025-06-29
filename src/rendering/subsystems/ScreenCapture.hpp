@@ -46,7 +46,7 @@ public:
     ScreenCaptureRenderSubsystem& operator=(ScreenCaptureRenderSubsystem&& other) noexcept = delete;
     virtual ~ScreenCaptureRenderSubsystem() override;
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetBuffer() const
     {
         return m_buffer;
     }
@@ -70,7 +70,7 @@ private:
     Handle<View> m_view;
     ScreenCaptureMode m_screen_capture_mode;
     Handle<Texture> m_texture;
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
 };
 
 } // namespace hyperion

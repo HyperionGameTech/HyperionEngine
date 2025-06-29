@@ -5,7 +5,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/RendererImage.hpp>
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <scene/lightmapper/LightmapVolume.hpp>
 

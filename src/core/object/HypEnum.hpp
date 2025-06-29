@@ -13,7 +13,7 @@ namespace hyperion {
 class HypEnum : public HypClass
 {
 public:
-    HypEnum(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+    HypEnum(TypeId type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
         : HypClass(type_id, name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
     }
@@ -34,7 +34,7 @@ public:
 
     virtual bool CanCreateInstance() const override = 0;
 
-    virtual TypeID GetUnderlyingTypeID() const = 0;
+    virtual TypeId GetUnderlyingTypeId() const = 0;
 
 protected:
     virtual void FixupPointer(void* target, IHypObjectInitializer* new_initializer) const override
@@ -65,7 +65,7 @@ public:
     }
 
     HypEnumInstance(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
-        : HypEnum(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
+        : HypEnum(TypeId::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
@@ -83,9 +83,9 @@ public:
         return true;
     }
 
-    virtual TypeID GetUnderlyingTypeID() const override
+    virtual TypeId GetUnderlyingTypeId() const override
     {
-        static const TypeID type_id = TypeID::ForType<std::underlying_type_t<T>>();
+        static const TypeId type_id = TypeId::ForType<std::underlying_type_t<T>>();
 
         return type_id;
     }

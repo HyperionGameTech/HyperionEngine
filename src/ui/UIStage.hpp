@@ -74,7 +74,7 @@ public:
     static const int g_max_depth = 10000;
 
     UIStage();
-    UIStage(ThreadID owner_thread_id);
+    UIStage(ThreadId owner_thread_id);
     UIStage(const UIStage& other) = delete;
     UIStage& operator=(const UIStage& other) = delete;
     virtual ~UIStage() override;

@@ -343,7 +343,7 @@ namespace Hyperion
             string? hypClassName = null;
             IntPtr hypClassPtr = IntPtr.Zero;
 
-            TypeID typeId = TypeID.ForType(type);
+            TypeId typeId = TypeId.ForType(type);
 
             // Use dynamic since we don't know the actual type - it is loaded from another assembly
             dynamic hypClassBindingAttribute = TryGetHypClassBindingAttribute(type);
@@ -391,11 +391,11 @@ namespace Hyperion
                         hypClassPtr = HypClass_CreateDynamicHypClass(ref typeId, (string)hypClassName, parentHypClassPtr);
 
                         if (hypClassPtr == IntPtr.Zero)
-                            throw new Exception(string.Format("Failed to create a dynamic HypClass for type \"{0}\" (TypeID: {1})", type.Name, typeId));
+                            throw new Exception(string.Format("Failed to create a dynamic HypClass for type \"{0}\" (TypeId: {1})", type.Name, typeId));
                     }
                     else
                     {
-                        // throw new Exception(string.Format("Dynamic HypClass creation is only supported in core assemblies! Cannot create dynamic HypClass for type \"{0}\" (TypeID: {1})", type.Name, typeId));
+                        // throw new Exception(string.Format("Dynamic HypClass creation is only supported in core assemblies! Cannot create dynamic HypClass for type \"{0}\" (TypeId: {1})", type.Name, typeId));
                     }
                 }
                 else
@@ -872,7 +872,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_Create")]
-        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeID typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
+        private static extern void ManagedClass_Create(ref Guid assemblyGuid, IntPtr assemblyPtr, IntPtr hypClassPtr, int typeHash, IntPtr typeNamePtr, uint typeSize, TypeId typeId, IntPtr parentClassPtr, uint managedClassFlags, [Out] out ManagedClass result);
 
         [DllImport("hyperion", EntryPoint = "ManagedClass_FindByTypeHash")]
         [return: MarshalAs(UnmanagedType.I1)]
@@ -881,14 +881,14 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassByName")]
         private static extern IntPtr HypClass_GetClassByName([MarshalAs(UnmanagedType.LPStr)] string name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeID")]
-        private static extern IntPtr HypClass_GetClassByTypeID([In] ref TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "HypClass_GetClassByTypeId")]
+        private static extern IntPtr HypClass_GetClassByTypeId([In] ref TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "HypClass_GetClassForManagedClass")]
         private static extern IntPtr HypClass_GetClassForManagedClass([In] IntPtr classObjectPtr);
 
         [DllImport("hyperion", EntryPoint = "HypClass_CreateDynamicHypClass")]
-        private static extern IntPtr HypClass_CreateDynamicHypClass([In] ref TypeID typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentHypClassClassPtr);
+        private static extern IntPtr HypClass_CreateDynamicHypClass([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string name, [In] IntPtr parentHypClassClassPtr);
 
         [DllImport("hyperion", EntryPoint = "NativeInterop_VerifyEngineVersion")]
         [return: MarshalAs(UnmanagedType.I1)]

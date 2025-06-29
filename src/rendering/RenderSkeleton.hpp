@@ -34,7 +34,7 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const override;
 
 private:
     void UpdateBufferData();

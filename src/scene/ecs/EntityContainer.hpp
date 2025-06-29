@@ -10,7 +10,7 @@
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Spinlock.hpp>
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Handle.hpp>
 
 #include <scene/ecs/ComponentContainer.hpp>
@@ -21,7 +21,7 @@ class Entity;
 
 struct EntityData
 {
-    TypeID type_id;
+    TypeId type_id;
     TypeMap<ComponentID> components;
 
     template <class Component>
@@ -30,7 +30,7 @@ struct EntityData
         return components.Contains<Component>();
     }
 
-    HYP_FORCE_INLINE bool HasComponent(TypeID component_type_id) const
+    HYP_FORCE_INLINE bool HasComponent(TypeId component_type_id) const
     {
         return components.Contains(component_type_id);
     }
@@ -41,9 +41,9 @@ struct EntityData
         return (HasComponent<Components>() && ...);
     }
 
-    HYP_FORCE_INLINE bool HasComponents(Span<const TypeID> component_type_ids) const
+    HYP_FORCE_INLINE bool HasComponents(Span<const TypeId> component_type_ids) const
     {
-        for (const TypeID& type_id : component_type_ids)
+        for (const TypeId& type_id : component_type_ids)
         {
             if (!components.Contains(type_id))
             {
@@ -60,7 +60,7 @@ struct EntityData
         return components.At<Component>();
     }
 
-    HYP_FORCE_INLINE ComponentID GetComponentID(TypeID component_type_id) const
+    HYP_FORCE_INLINE ComponentID GetComponentID(TypeId component_type_id) const
     {
         return components.At(component_type_id);
     }
@@ -78,7 +78,7 @@ struct EntityData
         return it->second;
     }
 
-    HYP_FORCE_INLINE Optional<ComponentID> TryGetComponentID(TypeID component_type_id) const
+    HYP_FORCE_INLINE Optional<ComponentID> TryGetComponentID(TypeId component_type_id) const
     {
         auto it = components.Find(component_type_id);
 
@@ -96,7 +96,7 @@ struct EntityData
         return components.Find<Component>();
     }
 
-    HYP_FORCE_INLINE typename TypeMap<ComponentID>::Iterator FindComponent(TypeID component_type_id)
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::Iterator FindComponent(TypeId component_type_id)
     {
         return components.Find(component_type_id);
     }
@@ -107,7 +107,7 @@ struct EntityData
         return components.Find<Component>();
     }
 
-    HYP_FORCE_INLINE typename TypeMap<ComponentID>::ConstIterator FindComponent(TypeID component_type_id) const
+    HYP_FORCE_INLINE typename TypeMap<ComponentID>::ConstIterator FindComponent(TypeId component_type_id) const
     {
         return components.Find(component_type_id);
     }
@@ -119,7 +119,7 @@ public:
     using Iterator = HashMap<Entity*, EntityData>::Iterator;
     using ConstIterator = HashMap<Entity*, EntityData>::ConstIterator;
 
-    HYP_FORCE_INLINE void Add(TypeID type_id, Entity* entity)
+    HYP_FORCE_INLINE void Add(TypeId type_id, Entity* entity)
     {
         HYP_MT_CHECK_RW(m_data_race_detector);
 

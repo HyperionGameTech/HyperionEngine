@@ -36,7 +36,7 @@ void TaskBatch::AwaitCompletion()
         // Sanity check - ensure not awaiting from a thread we depend on for processing any of the tasks
         // If we get here, we're probably currently on a task thread, and have a circular dependency chain.
         // Consider breaking up task dependencies.
-        const ThreadID& current_thread_id = ThreadID::Current();
+        const ThreadId& current_thread_id = ThreadId::Current();
 
         for (const TaskRef& task_ref : task_refs)
         {
@@ -148,7 +148,7 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
 
     const uint32 num_threads_in_pool = uint32(m_threads.Size());
 
-    const ThreadID current_thread_id = Threads::CurrentThreadID();
+    const ThreadId current_thread_id = Threads::CurrentThreadId();
     const bool is_on_task_thread = (m_thread_mask & current_thread_id.GetMask()) != 0;
 
     ThreadBase* current_thread_object = Threads::CurrentThreadObject();
@@ -192,9 +192,9 @@ TaskThread* TaskThreadPool::GetNextTaskThread()
     return task_thread;
 }
 
-ThreadID TaskThreadPool::CreateTaskThreadID(ANSIStringView base_name, uint32 thread_index)
+ThreadId TaskThreadPool::CreateTaskThreadId(ANSIStringView base_name, uint32 thread_index)
 {
-    return ThreadID(Name::Unique(HYP_FORMAT("{}{}", base_name, thread_index).Data()), THREAD_CATEGORY_TASK);
+    return ThreadId(Name::Unique(HYP_FORMAT("{}{}", base_name, thread_index).Data()), THREAD_CATEGORY_TASK);
 }
 
 #pragma endregion TaskThreadPool

@@ -33,7 +33,7 @@ FBOM::~FBOM()
 {
 }
 
-void FBOM::RegisterLoader(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal)
+void FBOM::RegisterLoader(TypeId type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal)
 {
     AssertThrow(marshal != nullptr);
 
@@ -42,7 +42,7 @@ void FBOM::RegisterLoader(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMar
     m_marshals.Set(type_id, Pair<ANSIString, UniquePtr<FBOMMarshalerBase>> { name, std::move(marshal) });
 }
 
-FBOMMarshalerBase* FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
+FBOMMarshalerBase* FBOM::GetMarshal(TypeId type_id, bool allow_fallback) const
 {
     const HypClass* hyp_class = GetClass(type_id);
 
@@ -52,7 +52,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
         return nullptr;
     }
 
-    auto find_marshal_for_type_id = [this](TypeID type_id) -> FBOMMarshalerBase*
+    auto find_marshal_for_type_id = [this](TypeId type_id) -> FBOMMarshalerBase*
     {
         const auto it = m_marshals.Find(type_id);
 
@@ -87,7 +87,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(TypeID type_id, bool allow_fallback) const
 
             if (parent_hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
             {
-                if (FBOMMarshalerBase* marshal = find_marshal_for_type_id(parent_hyp_class->GetTypeID()))
+                if (FBOMMarshalerBase* marshal = find_marshal_for_type_id(parent_hyp_class->GetTypeId()))
                 {
                     return marshal;
                 }
@@ -134,7 +134,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallbac
         return nullptr;
     };
 
-    auto find_marshal_for_type_id = [this](TypeID type_id) -> FBOMMarshalerBase*
+    auto find_marshal_for_type_id = [this](TypeId type_id) -> FBOMMarshalerBase*
     {
         const auto it = m_marshals.Find(type_id);
 
@@ -168,7 +168,7 @@ FBOMMarshalerBase* FBOM::GetMarshal(ANSIStringView type_name, bool allow_fallbac
         {
             if (parent_hyp_class->GetSerializationMode() & HypClassSerializationMode::USE_MARSHAL_CLASS)
             {
-                if (FBOMMarshalerBase* marshal = find_marshal_for_type_id(parent_hyp_class->GetTypeID()))
+                if (FBOMMarshalerBase* marshal = find_marshal_for_type_id(parent_hyp_class->GetTypeId()))
                 {
                     return marshal;
                 }

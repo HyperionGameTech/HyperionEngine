@@ -11,7 +11,7 @@
 #include <rendering/RenderMaterial.hpp>
 #include <rendering/RenderView.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RenderConfig.hpp>
@@ -145,7 +145,7 @@ static void UpdateRenderableAttributesDynamic(const RenderProxy* proxy, Renderab
     }
 }
 
-static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, View* view, const RenderableAttributeSet& attributes, RenderBucket rb)
+static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<Id<Entity>, RenderProxy>& meshes, RenderProxy* proxy, View* view, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -195,7 +195,7 @@ static void AddRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<I
     mapping.render_proxies.Insert(proxy->entity.GetID(), proxy);
 }
 
-static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<ID<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
+static bool RemoveRenderProxy(RenderProxyList* render_proxy_list, ResourceTracker<Id<Entity>, RenderProxy>& meshes, RenderProxy* proxy, const RenderableAttributeSet& attributes, RenderBucket rb)
 {
     HYP_SCOPE;
 
@@ -447,7 +447,7 @@ ParallelRenderingState* RenderProxyList::AcquireNextParallelRenderingState()
     return curr;
 }
 
-void RenderProxyList::CommitParallelRenderingState(RHICommandList& out_command_list)
+void RenderProxyList::CommitParallelRenderingState(CmdList& out_command_list)
 {
     ParallelRenderingState* state = parallel_rendering_state_head;
 
@@ -460,7 +460,7 @@ void RenderProxyList::CommitParallelRenderingState(RHICommandList& out_command_l
         out_command_list.Concat(std::move(state->base_command_list));
 
         // Add command lists to the frame's command list
-        for (RHICommandList& command_list : state->command_lists)
+        for (CmdList& command_list : state->command_lists)
         {
             out_command_list.Concat(std::move(command_list));
         }
@@ -541,7 +541,7 @@ void RenderCollector::CollectDrawCalls(RenderProxyList& render_proxy_list, uint3
         draw_call_collection.impl = mapping.render_group->GetDrawCallCollectionImpl();
         draw_call_collection.render_group = mapping.render_group;
 
-        static const bool unique_per_material = g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
+        static const bool unique_per_material = g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial();
 
         DrawCallCollection previous_draw_state = std::move(draw_call_collection);
 
@@ -613,7 +613,7 @@ void RenderCollector::PerformOcclusionCulling(FrameBase* frame, const RenderSetu
 
     HYP_MT_CHECK_RW(render_proxy_list.data_race_detector);
 
-    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
+    static const bool is_indirect_rendering_enabled = g_render_backend->GetRenderConfig().IsIndirectRenderingEnabled();
     const bool perform_occlusion_culling = is_indirect_rendering_enabled && render_setup.pass_data->cull_data.depth_pyramid_image_view != nullptr;
 
     if (perform_occlusion_culling)

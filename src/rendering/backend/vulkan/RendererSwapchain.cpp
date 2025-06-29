@@ -3,7 +3,7 @@
 #include <rendering/backend/vulkan/RendererSwapchain.hpp>
 #include <rendering/backend/vulkan/RendererFrame.hpp>
 #include <rendering/backend/vulkan/RendererImage.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -15,11 +15,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 static const bool use_srgb = true;
@@ -32,7 +32,7 @@ static RendererResult HandleNextFrame(
     bool& out_needs_recreate)
 {
     VkResult vk_result = vkAcquireNextImageKHR(
-        GetRenderingAPI()->GetDevice()->GetDevice(),
+        GetRenderBackend()->GetDevice()->GetDevice(),
         swapchain->GetVulkanHandle(),
         UINT64_MAX,
         frame->GetPresentSemaphores().GetWaitSemaphores()[0].Get().GetVulkanHandle(),
@@ -169,7 +169,7 @@ RendererResult VulkanSwapchain::Create()
     create_info.imageUsage = image_usage_flags;
 
     /* Graphics computations and presentation are done on separate hardware */
-    const QueueFamilyIndices& qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qf_indices = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices();
 
     const uint32 concurrent_families[] = {
         qf_indices.graphics_family.Get(),
@@ -200,7 +200,7 @@ RendererResult VulkanSwapchain::Create()
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateSwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), &create_info, nullptr, &m_handle),
+        vkCreateSwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), &create_info, nullptr, &m_handle),
         "Failed to create Vulkan swapchain!");
 
     HYPERION_BUBBLE_ERRORS(RetrieveImageHandles());
@@ -226,7 +226,7 @@ RendererResult VulkanSwapchain::Create()
         m_framebuffers.PushBack(std::move(framebuffer));
     }
 
-    VulkanDeviceQueue* queue = &GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
 
     for (uint32 i = 0; i < m_frames.Size(); i++)
     {
@@ -257,7 +257,7 @@ RendererResult VulkanSwapchain::Destroy()
     SafeRelease(std::move(m_frames));
     SafeRelease(std::move(m_command_buffers));
 
-    vkDestroySwapchainKHR(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+    vkDestroySwapchainKHR(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
     m_handle = VK_NULL_HANDLE;
 
     HYPERION_RETURN_OK;
@@ -270,7 +270,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     if (use_srgb)
     {
         /* look for srgb format */
-        m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+        m_image_format = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_support_details,
             { { TF_RGBA8_SRGB, TF_BGRA8_SRGB } },
             [this](auto&& format)
@@ -292,7 +292,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
     }
 
     /* look for non-srgb format */
-    m_image_format = GetRenderingAPI()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
+    m_image_format = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
         m_support_details,
         { { TF_R11G11B10F, TF_RGBA16F, TF_RGBA8 } },
         [this](auto&& format)
@@ -319,7 +319,7 @@ RendererResult VulkanSwapchain::ChoosePresentMode()
 
 RendererResult VulkanSwapchain::RetrieveSupportDetails()
 {
-    m_support_details = GetRenderingAPI()->GetDevice()->GetFeatures().QuerySwapchainSupport(GetRenderingAPI()->GetDevice()->GetRenderSurface());
+    m_support_details = GetRenderBackend()->GetDevice()->GetFeatures().QuerySwapchainSupport(GetRenderBackend()->GetDevice()->GetRenderSurface());
 
     HYPERION_RETURN_OK;
 }
@@ -330,11 +330,11 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     uint32 image_count = 0;
     /* Query for the size, as we will need to create swap chains with more images
      * in the future for more complex applications. */
-    vkGetSwapchainImagesKHR(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, &image_count, nullptr);
+    vkGetSwapchainImagesKHR(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, &image_count, nullptr);
 
     vk_images.Resize(image_count);
 
-    vkGetSwapchainImagesKHR(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, &image_count, vk_images.Data());
+    vkGetSwapchainImagesKHR(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, &image_count, vk_images.Data());
 
     m_images.Resize(image_count);
 
@@ -359,7 +359,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     // Transition each image to PRESENT state
     SingleTimeCommands commands;
 
-    commands.Push([&](RHICommandList& cmd)
+    commands.Push([&](CmdList& cmd)
         {
             for (const ImageRef& image : m_images)
             {

@@ -21,7 +21,7 @@ HYP_DEFINE_LOG_SUBCHANNEL(Resource, Memory);
 static TypeMap<UniquePtr<IResourceMemoryPool>> g_resource_memory_pools;
 static Mutex g_resource_memory_pools_mutex;
 
-HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void))
+HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeId type_id, UniquePtr<IResourceMemoryPool> (*create_fn)(void))
 {
     Mutex::Guard guard(g_resource_memory_pools_mutex);
 
@@ -41,7 +41,7 @@ HYP_API IResourceMemoryPool* GetOrCreateResourceMemoryPool(TypeID type_id, Uniqu
 
 ResourceBase::ResourceBase()
     : m_initialization_mask(0),
-      m_initialization_thread_id(ThreadID::Invalid()),
+      m_initialization_thread_id(ThreadId::Invalid()),
       m_update_counter(0)
 {
 }
@@ -51,7 +51,7 @@ ResourceBase::ResourceBase(ResourceBase&& other) noexcept
       m_initialization_thread_id(other.m_initialization_thread_id),
       m_update_counter(other.m_update_counter.Exchange(0, MemoryOrder::ACQUIRE_RELEASE))
 {
-    other.m_initialization_thread_id = ThreadID::Invalid();
+    other.m_initialization_thread_id = ThreadId::Invalid();
 }
 
 ResourceBase::~ResourceBase()
@@ -81,7 +81,7 @@ int ResourceBase::IncRefNoInitialize()
             Threads::Sleep(0);
         }
 
-        m_initialization_thread_id = Threads::CurrentThreadID();
+        m_initialization_thread_id = Threads::CurrentThreadId();
     }
 
     return count;
@@ -109,7 +109,7 @@ int ResourceBase::IncRef()
 
             HYP_MT_CHECK_RW(m_data_race_detector);
 
-            m_initialization_thread_id = Threads::CurrentThreadID();
+            m_initialization_thread_id = Threads::CurrentThreadId();
 
             Initialize();
         }
@@ -193,7 +193,7 @@ int ResourceBase::DecRef()
 
             Destroy();
 
-            m_initialization_thread_id = ThreadID::Invalid();
+            m_initialization_thread_id = ThreadId::Invalid();
         }
 
         // Done with destroying, we can now remove our read access

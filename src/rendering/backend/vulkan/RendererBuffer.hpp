@@ -3,16 +3,16 @@
 #ifndef HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP
 #define HYPERION_RENDERER_BACKEND_VULKAN_BUFFER_HPP
 
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 
 #include <system/vma/VmaUsage.hpp>
 
 namespace hyperion {
-class VulkanGPUBuffer final : public GPUBufferBase
+class VulkanGpuBuffer final : public GpuBufferBase
 {
 public:
-    HYP_API VulkanGPUBuffer(GPUBufferType type, SizeType size, SizeType alignment = 0);
-    HYP_API virtual ~VulkanGPUBuffer() override;
+    HYP_API VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment = 0);
+    HYP_API virtual ~VulkanGpuBuffer() override;
 
     HYP_FORCE_INLINE VkBuffer GetVulkanHandle() const
     {
@@ -30,7 +30,7 @@ public:
 
     HYP_API virtual void CopyFrom(
         CommandBufferBase* command_buffer,
-        const GPUBufferBase* src_buffer,
+        const GpuBufferBase* src_buffer,
         SizeType count) override;
 
     HYP_API RendererResult CheckCanAllocate(SizeType size) const;

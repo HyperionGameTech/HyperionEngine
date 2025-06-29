@@ -8,7 +8,7 @@
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 
 #include <rendering/backend/vulkan/RendererPipeline.hpp>
-#include <rendering/backend/vulkan/RendererBuffer.hpp>
+#include <rendering/backend/vulkan/RendererGpuBuffer.hpp>
 #include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 

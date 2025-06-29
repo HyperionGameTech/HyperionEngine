@@ -33,7 +33,7 @@ public:
 
     /*! \brief Takes ownership of ptr.
 
-        Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
+        Ty may be a derived class of T, and the type Id of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>().
 
         Do not delete the pointer passed to this,

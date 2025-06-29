@@ -125,7 +125,7 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
     // }
 
     // { // Update transforms and bounding boxes of EnvProbes to match the components
-    //     HashSet<ID<Entity>> updated_entity_ids;
+    //     HashSet<Id<Entity>> updated_entity_ids;
 
     //     for (auto [entity, reflection_probe_component, transform_component, bounding_box_component, _] : GetEntityManager().GetEntitySet<ReflectionProbeComponent, TransformComponent, BoundingBoxComponent, EntityTagComponent<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>>().GetScopedView(GetComponentInfos()))
     //     {
@@ -148,7 +148,7 @@ void ReflectionProbeUpdaterSystem::Process(float delta)
     //     {
     //         AfterProcess([this, updated_entity_ids = std::move(updated_entity_ids)]()
     //             {
-    //                 for (const ID<Entity>& entity_id : updated_entity_ids)
+    //                 for (const Id<Entity>& entity_id : updated_entity_ids)
     //                 {
     //                     GetEntityManager().RemoveTag<EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity_id);
     //                 }

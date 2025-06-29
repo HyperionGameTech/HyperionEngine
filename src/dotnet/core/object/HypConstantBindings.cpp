@@ -21,14 +21,14 @@ extern "C"
         *out_name = constant->GetName();
     }
 
-    HYP_EXPORT void HypConstant_GetTypeID(const HypConstant* constant, TypeID* out_type_id)
+    HYP_EXPORT void HypConstant_GetTypeId(const HypConstant* constant, TypeId* out_type_id)
     {
         if (!constant || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = constant->GetTypeID();
+        *out_type_id = constant->GetTypeId();
     }
 
 } // extern "C"

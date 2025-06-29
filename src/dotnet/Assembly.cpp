@@ -62,7 +62,7 @@ bool Assembly::Unload()
     return DotNetSystem::GetInstance().UnloadAssembly(m_guid);
 }
 
-RC<Class> Assembly::NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags)
+RC<Class> Assembly::NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeId type_id, Class* parent_class, uint32 flags)
 {
     auto it = m_class_objects.Find(type_hash);
 

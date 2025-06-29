@@ -21,7 +21,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 
     GetEntityManager().AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
 
-    if (visibility_state_component.octant_id != OctantID::Invalid())
+    if (visibility_state_component.octant_id != OctantId::Invalid())
     {
         return;
     }
@@ -38,7 +38,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 
     if (insert_result.first)
     {
-        AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
+        AssertThrowMsg(insert_result.second != OctantId::Invalid(), "Invalid octant Id returned from Insert()");
 
         visibility_state_component.octant_id = insert_result.second;
         visibility_state_component.visibility_state = nullptr;
@@ -73,7 +73,7 @@ void VisibilityStateUpdaterSystem::OnEntityRemoved(Entity* entity)
         HYP_LOG(Octree, Warning, "Failed to remove Entity #{} from octree: {}", entity->GetID(), remove_result.message);
     }
 
-    visibility_state_component.octant_id = OctantID::Invalid();
+    visibility_state_component.octant_id = OctantId::Invalid();
     visibility_state_component.visibility_state = nullptr;
 }
 
@@ -94,7 +94,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
         visibility_state_component.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
 
         // if entity is not in the octree, try to insert it
-        if (visibility_state_component.octant_id == OctantID::Invalid())
+        if (visibility_state_component.octant_id == OctantId::Invalid())
         {
             visibility_state_component.visibility_state = nullptr;
 
@@ -107,7 +107,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
 
             if (insert_result.first)
             {
-                AssertThrowMsg(insert_result.second != OctantID::Invalid(), "Invalid octant ID returned from Insert()");
+                AssertThrowMsg(insert_result.second != OctantId::Invalid(), "Invalid octant Id returned from Insert()");
 
                 visibility_state_component.octant_id = insert_result.second;
 
@@ -139,10 +139,10 @@ void VisibilityStateUpdaterSystem::Process(float delta)
                 return;
             }
 
-            AssertThrowMsg(update_result.second != OctantID::Invalid(), "Invalid octant ID returned from Update()");
+            AssertThrowMsg(update_result.second != OctantId::Invalid(), "Invalid octant Id returned from Update()");
         }
 
-        if (visibility_state_component.octant_id != OctantID::Invalid())
+        if (visibility_state_component.octant_id != OctantId::Invalid())
         {
             visibility_state_component.visibility_state = nullptr;
 

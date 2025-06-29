@@ -40,15 +40,15 @@ public:
     SchedulerBase& operator=(SchedulerBase&& other) noexcept = delete;
     virtual ~SchedulerBase() = default;
 
-    HYP_FORCE_INLINE ThreadID GetOwnerThread() const
+    HYP_FORCE_INLINE ThreadId GetOwnerThread() const
     {
         return m_owner_thread;
     }
 
-    /*! \brief Set the given thread ID to be the owner thread of this Scheduler.
+    /*! \brief Set the given thread Id to be the owner thread of this Scheduler.
      *  Tasks are to be enqueued from any other thread, and executed only from the owner thread.
      */
-    HYP_FORCE_INLINE void SetOwnerThread(ThreadID owner_thread)
+    HYP_FORCE_INLINE void SetOwnerThread(ThreadId owner_thread)
     {
         m_owner_thread = owner_thread;
     }
@@ -70,10 +70,10 @@ public:
 
     /*! \brief Has \ref{thread_id} given us work to complete?
      *  Returns true if \ref{thread_id} might be waiting on us to complete some work for them. */
-    virtual bool HasWorkAssignedFromThread(ThreadID thread_id) const = 0;
+    virtual bool HasWorkAssignedFromThread(ThreadId thread_id) const = 0;
 
 protected:
-    SchedulerBase(ThreadID owner_thread)
+    SchedulerBase(ThreadId owner_thread)
         : m_owner_thread(owner_thread)
     {
     }
@@ -88,7 +88,7 @@ protected:
     std::condition_variable m_has_tasks;
     std::condition_variable m_task_executed;
 
-    ThreadID m_owner_thread;
+    ThreadId m_owner_thread;
 };
 
 class Scheduler final : public SchedulerBase
@@ -205,7 +205,7 @@ public:
         }
     };
 
-    Scheduler(ThreadID owner_thread_id = Threads::CurrentThreadID())
+    Scheduler(ThreadId owner_thread_id = Threads::CurrentThreadId())
         : SchedulerBase(owner_thread_id)
     {
     }
@@ -397,13 +397,13 @@ public:
         return true;
     }
 
-    virtual bool HasWorkAssignedFromThread(ThreadID thread_id) const override
+    virtual bool HasWorkAssignedFromThread(ThreadId thread_id) const override
     {
         std::unique_lock lock(m_mutex);
 
         return AnyOf(m_queue, [thread_id](const ScheduledTask& item)
             {
-                return item.executor->GetInitiatorThreadID() == thread_id;
+                return item.executor->GetInitiatorThreadId() == thread_id;
             });
     }
 
@@ -515,7 +515,7 @@ private:
         const TaskID task_id { ++m_id_counter };
 
         scheduled_task.executor->SetTaskID(task_id);
-        scheduled_task.executor->SetInitiatorThreadID(Threads::CurrentThreadID());
+        scheduled_task.executor->SetInitiatorThreadId(Threads::CurrentThreadId());
         scheduled_task.executor->SetAssignedScheduler(this);
 
         m_queue.PushBack(std::move(scheduled_task));

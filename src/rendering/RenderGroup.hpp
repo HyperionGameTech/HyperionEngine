@@ -4,7 +4,7 @@
 #define HYPERION_RENDER_GROUP_HPP
 
 #include <core/utilities/EnumFlags.hpp>
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Defines.hpp>
 
 #include <rendering/Shader.hpp>
@@ -25,7 +25,7 @@ class Material;
 class Skeleton;
 class Entity;
 class RenderCollector;
-class GPUBufferHolderBase;
+class GpuBufferHolderBase;
 class IndirectRenderer;
 class RenderView;
 struct RenderSetup;

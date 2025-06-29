@@ -15,14 +15,13 @@
 
 #include <core/math/Matrix4.hpp>
 
-#include <rendering/RenderProxy.hpp>
-
 namespace hyperion {
 
 class World;
 class Scene;
 class Node;
 class EntityManager;
+class IRenderProxy;
 enum class EntityTag : uint64;
 
 struct EntityInitInfo
@@ -106,8 +105,6 @@ protected:
 
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
-
-    virtual void UpdateRenderProxy();
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);

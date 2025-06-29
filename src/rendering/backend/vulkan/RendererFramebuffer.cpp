@@ -1,23 +1,23 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/backend/vulkan/RendererFramebuffer.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererInstance.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region VulkanAttachmentMap
@@ -58,7 +58,7 @@ RendererResult VulkanAttachmentMap::Create()
     {
         SingleTimeCommands commands;
 
-        commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
+        commands.Push([this, &framebuffer, &images_to_transition](CmdList& cmd)
             {
                 for (const VulkanImageRef& image : images_to_transition)
                 {
@@ -150,7 +150,7 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u new_size)
     {
         SingleTimeCommands commands;
 
-        commands.Push([this, &framebuffer, &images_to_transition](RHICommandList& cmd)
+        commands.Push([this, &framebuffer, &images_to_transition](CmdList& cmd)
             {
                 for (const VulkanImageRef& image : images_to_transition)
                 {
@@ -245,7 +245,7 @@ RendererResult VulkanFramebuffer::Create()
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            GetRenderingAPI()->GetDevice()->GetDevice(),
+            GetRenderBackend()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
             &m_handles[frame_index]));
@@ -265,7 +265,7 @@ RendererResult VulkanFramebuffer::Destroy()
     {
         if (m_handles[frame_index] != VK_NULL_HANDLE)
         {
-            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
+            vkDestroyFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
             m_handles[frame_index] = VK_NULL_HANDLE;
         }
     }
@@ -297,7 +297,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u new_size)
     {
         if (m_handles[frame_index] != VK_NULL_HANDLE)
         {
-            vkDestroyFramebuffer(GetRenderingAPI()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
+            vkDestroyFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), m_handles[frame_index], nullptr);
             m_handles[frame_index] = VK_NULL_HANDLE;
         }
     }
@@ -327,7 +327,7 @@ RendererResult VulkanFramebuffer::Resize(Vec2u new_size)
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
         HYPERION_VK_CHECK(vkCreateFramebuffer(
-            GetRenderingAPI()->GetDevice()->GetDevice(),
+            GetRenderBackend()->GetDevice()->GetDevice(),
             &framebuffer_create_info,
             nullptr,
             &m_handles[frame_index]));

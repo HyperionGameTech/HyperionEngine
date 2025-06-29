@@ -172,7 +172,7 @@ void StreamedMeshData::LoadMeshData(const ByteBuffer& byte_buffer) const
     m_mesh_data = value.Get<MeshData>();
 
     HYP_LOG(Streaming, Debug, "StreamedMeshData: Loaded mesh data with {} vertices and {} indices on thread {}", m_mesh_data->vertices.Size(), m_mesh_data->indices.Size(),
-        ThreadID::Current().GetName());
+        ThreadId::Current().GetName());
 
     if (m_mesh_data->vertices.Size() != m_num_vertices)
     {

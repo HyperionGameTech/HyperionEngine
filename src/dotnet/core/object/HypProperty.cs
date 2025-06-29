@@ -24,12 +24,12 @@ namespace Hyperion
             }
         }
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
-                TypeID typeId;
-                HypProperty_GetTypeID(ptr, out typeId);
+                TypeId typeId;
+                HypProperty_GetTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -82,8 +82,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypProperty_GetName")]
         private static extern void HypProperty_GetName([In] IntPtr propertyPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypProperty_GetTypeID")]
-        private static extern void HypProperty_GetTypeID([In] IntPtr propertyPtr, [Out] out TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "HypProperty_GetTypeId")]
+        private static extern void HypProperty_GetTypeId([In] IntPtr propertyPtr, [Out] out TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "HypProperty_InvokeGetter")]
         [return: MarshalAs(UnmanagedType.I1)]

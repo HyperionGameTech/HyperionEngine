@@ -7,7 +7,7 @@
 #include <rendering/RenderMesh.hpp>
 #include <rendering/Renderer.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RenderCommand.hpp>
@@ -79,7 +79,7 @@ struct RENDER_COMMAND(CreateTexture)
                     const TextureDesc& texture_desc = streamed_texture_data_handle->GetTextureDesc();
 
                     AssertThrowMsg(texture_data.buffer.Size() == texture_desc.GetByteSize(),
-                        "Streamed texture data buffer size mismatch in CreateTexture! Texture ID: %u, Texture name: %s, Expected: %u, Actual: %u (HashCode: %llu)",
+                        "Streamed texture data buffer size mismatch in CreateTexture! Texture Id: %u, Texture name: %s, Expected: %u, Actual: %u (HashCode: %llu)",
                         texture->GetID().Value(), texture->GetName().LookupString(),
                         texture_desc.GetByteSize(), texture_data.buffer.Size(), streamed_texture_data_handle->GetDataHashCode().Value());
 
@@ -88,7 +88,7 @@ struct RENDER_COMMAND(CreateTexture)
                         streamed_texture_data_handle->GetBufferSize(), streamed_texture_data_handle->GetTextureData().buffer.Size(),
                         streamed_texture_data_handle->GetDataHashCode().Value());
 
-                    GPUBufferRef staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, texture_data.buffer.Size());
+                    GpuBufferRef staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, texture_data.buffer.Size());
                     HYPERION_BUBBLE_ERRORS(staging_buffer->Create());
                     staging_buffer->Copy(texture_data.buffer.Size(), texture_data.buffer.Data());
 
@@ -98,7 +98,7 @@ struct RENDER_COMMAND(CreateTexture)
 
                     SingleTimeCommands commands;
 
-                    commands.Push([&](RHICommandList& cmd)
+                    commands.Push([&](CmdList& cmd)
                         {
                             cmd.Add<InsertBarrier>(
                                 image,
@@ -125,7 +125,7 @@ struct RENDER_COMMAND(CreateTexture)
                 {
                     SingleTimeCommands commands;
 
-                    commands.Push([&](RHICommandList& cmd)
+                    commands.Push([&](CmdList& cmd)
                         {
                             // Transition to initial state
                             cmd.Add<InsertBarrier>(image, initial_state);
@@ -143,7 +143,7 @@ struct RENDER_COMMAND(CreateTexture)
                 HYPERION_BUBBLE_ERRORS(image_view->Create());
             }
 
-            if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
+            if (g_render_backend->GetRenderConfig().IsBindlessSupported())
             {
                 g_render_global_state->BindlessTextures.AddResource(texture.GetID(), image_view);
             }
@@ -156,7 +156,7 @@ struct RENDER_COMMAND(CreateTexture)
 struct RENDER_COMMAND(DestroyTexture)
     : RenderCommand
 {
-    // Keep weak handle around to ensure the ID persists
+    // Keep weak handle around to ensure the Id persists
     WeakHandle<Texture> texture;
 
     RENDER_COMMAND(DestroyTexture)(const WeakHandle<Texture>& texture)
@@ -176,7 +176,7 @@ struct RENDER_COMMAND(DestroyTexture)
             HYPERION_RETURN_OK;
         }
 
-        if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
+        if (g_render_backend->GetRenderConfig().IsBindlessSupported())
         {
             g_render_global_state->BindlessTextures.RemoveResource(texture.GetID());
         }
@@ -220,7 +220,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
         // draw a quad for each level
         SingleTimeCommands commands;
 
-        commands.Push([this](RHICommandList& cmd)
+        commands.Push([this](CmdList& cmd)
             {
                 const Vec3u extent = m_image->GetExtent();
 
@@ -252,7 +252,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                     push_constants.mip_level = mip_level;
 
                     {
-                        FrameRef temp_frame = g_rendering_api->MakeFrame(0);
+                        FrameRef temp_frame = g_render_backend->MakeFrame(0);
 
                         pass->GetGraphicsPipeline()->SetPushConstants(&push_constants, sizeof(push_constants));
                         pass->Begin(temp_frame, NullRenderSetup());
@@ -351,12 +351,12 @@ public:
         {
             const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-            DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+            DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
             const uint32 mip_width = MathUtil::Max(1u, extent.x >> mip_level);
             const uint32 mip_height = MathUtil::Max(1u, extent.y >> mip_level);
 
-            ImageViewRef mip_image_view = g_rendering_api->MakeImageView(m_image, mip_level, 1, 0, m_image->NumFaces());
+            ImageViewRef mip_image_view = g_render_backend->MakeImageView(m_image, mip_level, 1, 0, m_image->NumFaces());
             DeferCreate(mip_image_view);
 
             const DescriptorSetRef& generate_mipmaps_descriptor_set = descriptor_table->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);
@@ -413,8 +413,8 @@ private:
 
 RenderTexture::RenderTexture(Texture* texture)
     : m_texture(texture),
-      m_image(g_rendering_api->MakeImage(texture->GetTextureDesc())),
-      m_image_view(g_rendering_api->MakeImageView(m_image))
+      m_image(g_render_backend->MakeImage(texture->GetTextureDesc())),
+      m_image_view(g_render_backend->MakeImageView(m_image))
 {
 }
 
@@ -479,13 +479,13 @@ void RenderTexture::Readback(ByteBuffer& out_byte_buffer)
         {
             Threads::AssertOnThread(g_render_thread);
 
-            GPUBufferRef gpu_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, m_image->GetByteSize());
+            GpuBufferRef gpu_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_image->GetByteSize());
             HYPERION_ASSERT_RESULT(gpu_buffer->Create());
             gpu_buffer->Map();
 
             SingleTimeCommands commands;
 
-            commands.Push([this, &gpu_buffer](RHICommandList& cmd)
+            commands.Push([this, &gpu_buffer](CmdList& cmd)
                 {
                     const ResourceState previous_resource_state = m_image->GetResourceState();
 
@@ -543,16 +543,16 @@ void RenderTexture::Resize(const Vec3u& extent)
             SafeRelease(std::move(m_image));
             SafeRelease(std::move(m_image_view));
 
-            m_image = g_rendering_api->MakeImage(texture_desc);
+            m_image = g_render_backend->MakeImage(texture_desc);
             HYPERION_ASSERT_RESULT(m_image->Create());
 
-            m_image_view = g_rendering_api->MakeImageView(m_image);
+            m_image_view = g_render_backend->MakeImageView(m_image);
             HYPERION_ASSERT_RESULT(m_image_view->Create());
         },
         /* force_owner_thread */ true);
 }
 
-GPUBufferHolderBase* RenderTexture::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderTexture::GetGpuBufferHolder() const
 {
     return nullptr;
 }

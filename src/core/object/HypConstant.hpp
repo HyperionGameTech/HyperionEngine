@@ -12,7 +12,7 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 
@@ -35,7 +35,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, ConstantType value, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_type_id(TypeID::ForType<NormalizedType<ConstantType>>()),
+          m_type_id(TypeId::ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -63,7 +63,7 @@ public:
     template <class ConstantType, typename = std::enable_if_t<!std::is_reference_v<ConstantType>>>
     HypConstant(Name name, const ConstantType* value_ptr, Span<const HypClassAttribute> attributes = {})
         : m_name(name),
-          m_type_id(TypeID::ForType<NormalizedType<ConstantType>>()),
+          m_type_id(TypeId::ForType<NormalizedType<ConstantType>>()),
           m_size(sizeof(NormalizedType<ConstantType>)),
           m_attributes(attributes)
     {
@@ -106,14 +106,14 @@ public:
         return m_name;
     }
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
         return m_type_id;
     }
 
-    virtual TypeID GetTargetTypeID() const override
+    virtual TypeId GetTargetTypeId() const override
     {
-        return TypeID::Void();
+        return TypeId::Void();
     }
 
     virtual bool CanSerialize() const override
@@ -176,7 +176,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_type_id != TypeID::Void()
+            && m_type_id != TypeId::Void()
             && m_size != 0;
     }
 
@@ -187,7 +187,7 @@ public:
 
 private:
     Name m_name;
-    TypeID m_type_id;
+    TypeId m_type_id;
     uint32 m_size;
     HypClassAttributeSet m_attributes;
 

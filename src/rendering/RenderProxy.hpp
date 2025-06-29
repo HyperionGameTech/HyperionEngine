@@ -3,7 +3,7 @@
 #ifndef HYPERION_RENDER_PROXY_HPP
 #define HYPERION_RENDER_PROXY_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <core/utilities/UserData.hpp>
 #include <core/utilities/EnumFlags.hpp>

@@ -35,7 +35,7 @@ class EnvProbe;
 class RenderEnvProbe;
 class GBuffer;
 
-// /// ViewID is used to identify a View in a single frame. When a View is used in a frame, the global render state assigns an ID to it.
+// /// ViewID is used to identify a View in a single frame. When a View is used in a frame, the global render state assigns an Id to it.
 // /// It is not persistent across frames, and should not be used to identify a View across multiple frames.
 // using ViewID = uint32;
 // constexpr ViewID invalid_view_id = ViewID(-1);
@@ -201,7 +201,7 @@ public:
         return m_override_attributes;
     }
 
-    HYP_FORCE_INLINE const typename ResourceTracker<ID<Entity>, RenderProxy>::Diff& GetLastCollectionResult() const
+    HYP_FORCE_INLINE const typename ResourceTracker<Id<Entity>, RenderProxy>::Diff& GetLastCollectionResult() const
     {
         return m_last_collection_result;
     }
@@ -219,10 +219,10 @@ protected:
     void CollectEnvGrids(RenderProxyList& rpl);
     void CollectEnvProbes(RenderProxyList& rpl);
 
-    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectEntities(RenderProxyList& rpl);
-    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectAllEntities(RenderProxyList& rpl);
-    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectDynamicEntities(RenderProxyList& rpl);
-    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff CollectStaticEntities(RenderProxyList& rpl);
+    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff CollectEntities(RenderProxyList& rpl);
+    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff CollectAllEntities(RenderProxyList& rpl);
+    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff CollectDynamicEntities(RenderProxyList& rpl);
+    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff CollectStaticEntities(RenderProxyList& rpl);
 
     ViewDesc m_view_desc;
 
@@ -236,13 +236,13 @@ protected:
     Handle<Camera> m_camera;
     ViewOutputTarget m_output_target;
 
-    // ViewID m_view_id; // unique ID for this view in the current frame
+    // ViewID m_view_id; // unique Id for this view in the current frame
 
     int m_priority;
 
     Optional<RenderableAttributeSet> m_override_attributes;
 
-    typename ResourceTracker<ID<Entity>, RenderProxy>::Diff m_last_collection_result;
+    typename ResourceTracker<Id<Entity>, RenderProxy>::Diff m_last_collection_result;
 };
 
 } // namespace hyperion

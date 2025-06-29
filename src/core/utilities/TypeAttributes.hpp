@@ -3,7 +3,7 @@
 #ifndef HYPERION_TYPE_ATTRIBUTES_HPP
 #define HYPERION_TYPE_ATTRIBUTES_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/Name.hpp>
 #include <core/Util.hpp>
@@ -32,13 +32,13 @@ enum class TypeAttributeFlags : uint32
 HYP_MAKE_ENUM_FLAGS(TypeAttributeFlags)
 
 class HypClass;
-extern HYP_API const HypClass* GetClass(TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
 
 namespace utilities {
 
 struct TypeAttributes
 {
-    TypeID id = TypeID::Void();
+    TypeId id = TypeId::Void();
     Name name = Name::Invalid();
     SizeType size = 0;
     SizeType alignment = 0;
@@ -51,13 +51,13 @@ struct TypeAttributes
 
     HYP_FORCE_INLINE constexpr bool IsValid() const
     {
-        return id != TypeID::Void();
+        return id != TypeId::Void();
     }
 
     template <class T>
     static TypeAttributes ForType()
     {
-        constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        constexpr TypeId type_id = TypeId::ForType<NormalizedType<T>>();
 
         EnumFlags<TypeAttributeFlags> flags = TypeAttributeFlags::NONE;
 

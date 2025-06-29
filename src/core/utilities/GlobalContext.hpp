@@ -57,7 +57,7 @@ public:
     }
 
 private:
-    ThreadID m_owner_thread_id;
+    ThreadId m_owner_thread_id;
     TypeMap<UniquePtr<IGlobalContextHolder>> m_context_holders;
 };
 

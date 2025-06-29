@@ -11,7 +11,7 @@ ObjectPool::ObjectContainerMap& ObjectPool::GetObjectContainerHolder()
     return holder;
 }
 
-ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
+ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeId type_id)
 {
     Mutex::Guard guard(m_mutex);
 
@@ -22,7 +22,7 @@ ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
 
     if (it == m_map.End())
     {
-        HYP_FAIL("No object container for TypeID: %u", type_id.Value());
+        HYP_FAIL("No object container for TypeId: %u", type_id.Value());
     }
 
     AssertThrow(it->second != nullptr);
@@ -30,7 +30,7 @@ ObjectContainerBase& ObjectPool::ObjectContainerMap::Get(TypeID type_id)
     return *it->second;
 }
 
-ObjectContainerBase* ObjectPool::ObjectContainerMap::TryGet(TypeID type_id)
+ObjectContainerBase* ObjectPool::ObjectContainerMap::TryGet(TypeId type_id)
 {
     Mutex::Guard guard(m_mutex);
 

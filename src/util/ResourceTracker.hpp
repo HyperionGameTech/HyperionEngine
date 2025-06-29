@@ -3,13 +3,13 @@
 #ifndef HYPERION_RESOURCE_TRACKER_HPP
 #define HYPERION_RESOURCE_TRACKER_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Defines.hpp>
 
 #include <core/containers/SparsePagedArray.hpp>
 #include <core/containers/HashMap.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 
@@ -17,8 +17,8 @@
 
 namespace hyperion {
 
-HYP_API extern SizeType GetNumDescendants(TypeID type_id);
-HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+HYP_API extern SizeType GetNumDescendants(TypeId type_id);
+HYP_API extern int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id);
 
 /*! \brief The action to take on call to Advance for a ResourceTracker. */
 enum class AdvanceAction : uint32
@@ -27,7 +27,7 @@ enum class AdvanceAction : uint32
     PERSIST //! Copy the previous elements over to next. To remove elements, `RemoveProxy` needs to be manually called.
 };
 
-template <class IDType, class ElementType>
+template <class IdType, class ElementType>
 class ResourceTracker
 {
     template <class Derived, bool IsConst>
@@ -264,13 +264,13 @@ public:
     // still iterate over the elements (mostly) linearly.
     using ElementArrayType = SparsePagedArray<ElementType, 256>;
 
-    static_assert(std::is_base_of_v<IDBase, IDType>, "IDType must be derived from IDBase (must use numeric ID)");
+    static_assert(std::is_base_of_v<IdBase, IdType>, "IdType must be derived from IdBase (must use numeric Id)");
 
     ResourceTracker()
-        : m_impl(IDType::type_id_static) // default impl for base class
+        : m_impl(IdType::type_id_static) // default impl for base class
     {
         // Setup the subclass implementations array, we initialize them as they get used
-        const SizeType num_descendants = GetNumDescendants(IDType::type_id_static);
+        const SizeType num_descendants = GetNumDescendants(IdType::type_id_static);
         m_subclass_impls.Resize(num_descendants);
         m_subclass_impls_initialized.Resize(num_descendants);
     }
@@ -307,9 +307,9 @@ public:
         return count;
     }
 
-    uint32 NumCurrent(TypeID type_id) const
+    uint32 NumCurrent(TypeId type_id) const
     {
-        if (type_id == IDType::type_id_static)
+        if (type_id == IdType::type_id_static)
         {
             return m_impl.GetCurrentBits().Count();
         }
@@ -326,11 +326,11 @@ public:
         return 0;
     }
 
-    const ElementArrayType& GetElements(TypeID type_id) const
+    const ElementArrayType& GetElements(TypeId type_id) const
     {
         static const ElementArrayType empty_array {};
 
-        if (type_id == IDType::type_id_static)
+        if (type_id == IdType::type_id_static)
         {
             return m_impl.elements;
         }
@@ -350,7 +350,7 @@ public:
     template <class T>
     const ElementArrayType& GetElements() const
     {
-        static constexpr TypeID type_id = TypeID::ForType<T>();
+        static constexpr TypeId type_id = TypeId::ForType<T>();
 
         return GetElements(type_id);
     }
@@ -382,11 +382,11 @@ public:
         return diff;
     }
 
-    void Track(IDType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
+    void Track(IdType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
     {
         HYP_SCOPE;
 
-        TypeID type_id = id.GetTypeID();
+        TypeId type_id = id.GetTypeId();
 
         if (type_id == m_impl.type_id)
         {
@@ -407,11 +407,11 @@ public:
         m_subclass_impls[subclass_index].Get().Track(id, element, out_track_state);
     }
 
-    void Track(IDType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
+    void Track(IdType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
     {
         HYP_SCOPE;
 
-        TypeID type_id = id.GetTypeID();
+        TypeId type_id = id.GetTypeId();
 
         if (type_id == m_impl.type_id)
         {
@@ -432,11 +432,11 @@ public:
         m_subclass_impls[subclass_index].Get().Track(id, std::move(element), out_track_state);
     }
 
-    bool MarkToKeep(IDType id)
+    bool MarkToKeep(IdType id)
     {
         HYP_SCOPE;
 
-        TypeID type_id = id.GetTypeID();
+        TypeId type_id = id.GetTypeId();
 
         if (type_id == m_impl.type_id)
         {
@@ -455,9 +455,9 @@ public:
         return m_subclass_impls[subclass_index].Get().MarkToKeep(id);
     }
 
-    void MarkToRemove(IDType id)
+    void MarkToRemove(IdType id)
     {
-        TypeID type_id = id.GetTypeID();
+        TypeId type_id = id.GetTypeId();
 
         if (type_id == m_impl.type_id)
         {
@@ -479,7 +479,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetRemoved(Array<IDType, AllocatorType>& out_ids, bool include_changed) const
+    void GetRemoved(Array<IdType, AllocatorType>& out_ids, bool include_changed) const
     {
         HYP_SCOPE;
 
@@ -544,7 +544,7 @@ public:
     }
 
     template <class AllocatorType>
-    void GetChanged(Array<IDType, AllocatorType>& out_ids) const
+    void GetChanged(Array<IdType, AllocatorType>& out_ids) const
     {
         HYP_SCOPE;
 
@@ -608,11 +608,11 @@ public:
         }
     }
 
-    ElementType* GetElement(IDType id)
+    ElementType* GetElement(IdType id)
     {
         HYP_SCOPE;
 
-        TypeID type_id = id.GetTypeID();
+        TypeId type_id = id.GetTypeId();
 
         if (type_id == m_impl.type_id)
         {
@@ -658,10 +658,10 @@ public:
     // protected:
     struct Impl final
     {
-        /*! \brief Checks if the ResourceTracker<ID<Entity>, RenderProxy> already has a proxy for the given ID from the previous frame */
-        HYP_FORCE_INLINE bool HasElement(IDType id) const
+        /*! \brief Checks if the ResourceTracker<Id<Entity>, RenderProxy> already has a proxy for the given Id from the previous frame */
+        HYP_FORCE_INLINE bool HasElement(IdType id) const
         {
-            AssertDebugMsg(id.GetTypeID() == type_id, "ResourceTracker typeid mismatch");
+            AssertDebugMsg(id.GetTypeId() == type_id, "ResourceTracker typeid mismatch");
 
             return previous.Test(id.ToIndex());
         }
@@ -690,11 +690,11 @@ public:
             return changed;
         }
 
-        void Track(IDType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
+        void Track(IdType id, const ElementType& element, ResourceTrackState* out_track_state = nullptr)
         {
             ElementType* ptr = nullptr;
 
-            AssertThrowMsg(!next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
+            AssertThrowMsg(!next.Test(id.ToIndex()), "Id #%u already marked to be added for this iteration!", id.Value());
 
             if (HasElement(id))
             {
@@ -745,11 +745,11 @@ public:
             next.Set(id.ToIndex(), true);
         }
 
-        void Track(IDType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
+        void Track(IdType id, ElementType&& element, ResourceTrackState* out_track_state = nullptr)
         {
             ElementType* ptr = nullptr;
 
-            AssertThrowMsg(!next.Test(id.ToIndex()), "ID #%u already marked to be added for this iteration!", id.Value());
+            AssertThrowMsg(!next.Test(id.ToIndex()), "Id #%u already marked to be added for this iteration!", id.Value());
 
             if (HasElement(id))
             {
@@ -800,7 +800,7 @@ public:
             next.Set(id.ToIndex(), true);
         }
 
-        HYP_FORCE_INLINE bool MarkToKeep(IDType id)
+        HYP_FORCE_INLINE bool MarkToKeep(IdType id)
         {
             if (!previous.Test(id.ToIndex()))
             {
@@ -812,13 +812,13 @@ public:
             return true;
         }
 
-        HYP_FORCE_INLINE void MarkToRemove(IDType id)
+        HYP_FORCE_INLINE void MarkToRemove(IdType id)
         {
             next.Set(id.ToIndex(), false);
         }
 
         template <class AllocatorType>
-        void GetRemoved(Array<IDType, AllocatorType>& out_ids, bool include_changed) const
+        void GetRemoved(Array<IdType, AllocatorType>& out_ids, bool include_changed) const
         {
             HYP_SCOPE;
 
@@ -835,7 +835,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != -1)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 out_ids.PushBack(id);
 
@@ -861,7 +861,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -890,7 +890,7 @@ public:
 
             while ((first_set_bit_index = removed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -919,7 +919,7 @@ public:
 
             while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -948,7 +948,7 @@ public:
 
             while ((first_set_bit_index = newly_added_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -960,7 +960,7 @@ public:
         }
 
         template <class AllocatorType>
-        void GetChanged(Array<IDType, AllocatorType>& out_ids) const
+        void GetChanged(Array<IdType, AllocatorType>& out_ids) const
         {
             HYP_SCOPE;
 
@@ -972,7 +972,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != -1)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 out_ids.PushBack(id);
 
@@ -993,7 +993,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1017,7 +1017,7 @@ public:
 
             while ((first_set_bit_index = changed_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1041,7 +1041,7 @@ public:
 
             while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1065,7 +1065,7 @@ public:
 
             while ((first_set_bit_index = current_bits.FirstSetBitIndex()) != Bitset::not_found)
             {
-                const IDType id = IDType(IDBase { type_id, uint32(first_set_bit_index + 1) });
+                const IdType id = IdType(IdBase { type_id, uint32(first_set_bit_index + 1) });
 
                 const ElementType* elem = elements.TryGet(id.ToIndex());
                 AssertDebug(elem != nullptr);
@@ -1076,11 +1076,11 @@ public:
             }
         }
 
-        ElementType* GetElement(IDType id)
+        ElementType* GetElement(IdType id)
         {
-            AssertDebug(id.GetTypeID() == type_id);
+            AssertDebug(id.GetTypeId() == type_id);
 
-            if (id.GetTypeID() != type_id)
+            if (id.GetTypeId() != type_id)
             {
                 return nullptr;
             }
@@ -1130,7 +1130,7 @@ public:
             changed.Clear();
         }
 
-        TypeID type_id;
+        TypeId type_id;
 
         ElementArrayType elements;
 

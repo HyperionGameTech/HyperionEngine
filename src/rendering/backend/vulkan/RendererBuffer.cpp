@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/backend/vulkan/RendererBuffer.hpp>
+#include <rendering/backend/vulkan/RendererGpuBuffer.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -20,11 +20,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region Helpers
@@ -32,7 +32,7 @@ static inline VulkanRenderingAPI* GetRenderingAPI()
 static uint32 FindMemoryType(uint32 vk_type_filter, VkMemoryPropertyFlags vk_memory_property_flags)
 {
     VkPhysicalDeviceMemoryProperties mem_properties;
-    vkGetPhysicalDeviceMemoryProperties(GetRenderingAPI()->GetDevice()->GetPhysicalDevice(), &mem_properties);
+    vkGetPhysicalDeviceMemoryProperties(GetRenderBackend()->GetDevice()->GetPhysicalDevice(), &mem_properties);
 
     for (uint32 i = 0; i < mem_properties.memoryTypeCount; i++)
     {
@@ -186,115 +186,115 @@ VkPipelineStageFlags GetVkShaderStageMask(ResourceState state, bool src, ShaderM
     }
 }
 
-VkBufferUsageFlags GetVkUsageFlags(GPUBufferType type)
+VkBufferUsageFlags GetVkUsageFlags(GpuBufferType type)
 {
     switch (type)
     {
-    case GPUBufferType::MESH_VERTEX_BUFFER:
+    case GpuBufferType::MESH_VERTEX_BUFFER:
         return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    case GPUBufferType::MESH_INDEX_BUFFER:
+    case GpuBufferType::MESH_INDEX_BUFFER:
         return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    case GPUBufferType::CBUFF:
+    case GpuBufferType::CBUFF:
         return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    case GPUBufferType::SSBO:
+    case GpuBufferType::SSBO:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::ATOMIC_COUNTER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
             | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
             | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    case GPUBufferType::STAGING_BUFFER:
+    case GpuBufferType::STAGING_BUFFER:
         return VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
             | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
             | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    case GPUBufferType::SHADER_BINDING_TABLE:
+    case GpuBufferType::SHADER_BINDING_TABLE:
         return VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
         return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
         return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
             | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
             | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
         return VK_BUFFER_USAGE_INDEX_BUFFER_BIT
             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT                            /* for rt */
             | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR /* for rt */
             | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    case GPUBufferType::SCRATCH_BUFFER:
+    case GpuBufferType::SCRATCH_BUFFER:
         return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     default:
         return 0;
     }
 }
 
-VmaMemoryUsage GetVkMemoryUsage(GPUBufferType type)
+VmaMemoryUsage GetVkMemoryUsage(GpuBufferType type)
 {
     switch (type)
     {
-    case GPUBufferType::MESH_VERTEX_BUFFER:
+    case GpuBufferType::MESH_VERTEX_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::MESH_INDEX_BUFFER:
+    case GpuBufferType::MESH_INDEX_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::CBUFF:
+    case GpuBufferType::CBUFF:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::SSBO:
+    case GpuBufferType::SSBO:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::ATOMIC_COUNTER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::STAGING_BUFFER:
+    case GpuBufferType::STAGING_BUFFER:
         return VMA_MEMORY_USAGE_CPU_ONLY;
-    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::SHADER_BINDING_TABLE:
+    case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_MEMORY_USAGE_AUTO;
-    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
         return VMA_MEMORY_USAGE_GPU_ONLY;
-    case GPUBufferType::SCRATCH_BUFFER:
+    case GpuBufferType::SCRATCH_BUFFER:
         return VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     default:
         return VMA_MEMORY_USAGE_UNKNOWN;
     }
 }
 
-VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
+VmaAllocationCreateFlags GetVkAllocationCreateFlags(GpuBufferType type)
 {
     switch (type)
     {
-    case GPUBufferType::MESH_VERTEX_BUFFER:
+    case GpuBufferType::MESH_VERTEX_BUFFER:
         return 0;
-    case GPUBufferType::MESH_INDEX_BUFFER:
+    case GpuBufferType::MESH_INDEX_BUFFER:
         return 0;
-    case GPUBufferType::CBUFF:
+    case GpuBufferType::CBUFF:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::SSBO:
+    case GpuBufferType::SSBO:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::ATOMIC_COUNTER:
+    case GpuBufferType::ATOMIC_COUNTER:
         return 0;
-    case GPUBufferType::STAGING_BUFFER:
+    case GpuBufferType::STAGING_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::INDIRECT_ARGS_BUFFER:
+    case GpuBufferType::INDIRECT_ARGS_BUFFER:
         return 0;
-    case GPUBufferType::SHADER_BINDING_TABLE:
+    case GpuBufferType::SHADER_BINDING_TABLE:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
+    case GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    case GPUBufferType::RT_MESH_VERTEX_BUFFER:
+    case GpuBufferType::RT_MESH_VERTEX_BUFFER:
         return 0;
-    case GPUBufferType::RT_MESH_INDEX_BUFFER:
+    case GpuBufferType::RT_MESH_INDEX_BUFFER:
         return 0;
-    case GPUBufferType::SCRATCH_BUFFER:
+    case GpuBufferType::SCRATCH_BUFFER:
         return VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     default:
         HYP_THROW("Invalid gpu buffer type for allocation create flags");
@@ -303,21 +303,21 @@ VmaAllocationCreateFlags GetVkAllocationCreateFlags(GPUBufferType type)
 
 #pragma endregion Helpers
 
-#pragma region VulkanGPUBuffer
+#pragma region VulkanGpuBuffer
 
-VulkanGPUBuffer::VulkanGPUBuffer(GPUBufferType type, SizeType size, SizeType alignment)
-    : GPUBufferBase(type, size, alignment)
+VulkanGpuBuffer::VulkanGpuBuffer(GpuBufferType type, SizeType size, SizeType alignment)
+    : GpuBufferBase(type, size, alignment)
 {
 }
 
-VulkanGPUBuffer::~VulkanGPUBuffer()
+VulkanGpuBuffer::~VulkanGpuBuffer()
 {
     AssertThrowMsg(m_handle == VK_NULL_HANDLE,
         "Buffer should have been destroyed! Debug name: %s",
         GetDebugName().LookupString());
 }
 
-void VulkanGPUBuffer::Memset(SizeType count, ubyte value)
+void VulkanGpuBuffer::Memset(SizeType count, ubyte value)
 {
     if (m_mapping == nullptr)
     {
@@ -327,7 +327,7 @@ void VulkanGPUBuffer::Memset(SizeType count, ubyte value)
     Memory::MemSet(m_mapping, value, count);
 }
 
-void VulkanGPUBuffer::Copy(SizeType count, const void* ptr)
+void VulkanGpuBuffer::Copy(SizeType count, const void* ptr)
 {
     if (m_mapping == nullptr)
     {
@@ -337,7 +337,7 @@ void VulkanGPUBuffer::Copy(SizeType count, const void* ptr)
     Memory::MemCpy(m_mapping, ptr, count);
 }
 
-void VulkanGPUBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
+void VulkanGpuBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
 {
     if (m_mapping == nullptr)
     {
@@ -347,7 +347,7 @@ void VulkanGPUBuffer::Copy(SizeType offset, SizeType count, const void* ptr)
     Memory::MemCpy(reinterpret_cast<void*>(uintptr_t(m_mapping) + offset), ptr, count);
 }
 
-void VulkanGPUBuffer::Map() const
+void VulkanGpuBuffer::Map() const
 {
     if (m_mapping != nullptr)
     {
@@ -356,21 +356,21 @@ void VulkanGPUBuffer::Map() const
 
     AssertThrowMsg(IsCPUAccessible(), "Attempt to map a buffer that is not CPU accessible!");
 
-    vmaMapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), m_vma_allocation, &m_mapping);
+    vmaMapMemory(GetRenderBackend()->GetDevice()->GetAllocator(), m_vma_allocation, &m_mapping);
 }
 
-void VulkanGPUBuffer::Unmap() const
+void VulkanGpuBuffer::Unmap() const
 {
     if (m_mapping == nullptr)
     {
         return;
     }
 
-    vmaUnmapMemory(GetRenderingAPI()->GetDevice()->GetAllocator(), m_vma_allocation);
+    vmaUnmapMemory(GetRenderBackend()->GetDevice()->GetAllocator(), m_vma_allocation);
     m_mapping = nullptr;
 }
 
-void VulkanGPUBuffer::Read(SizeType count, void* out_ptr) const
+void VulkanGpuBuffer::Read(SizeType count, void* out_ptr) const
 {
     if (m_mapping == nullptr)
     {
@@ -382,7 +382,7 @@ void VulkanGPUBuffer::Read(SizeType count, void* out_ptr) const
     Memory::MemCpy(out_ptr, m_mapping, count);
 }
 
-void VulkanGPUBuffer::Read(SizeType offset, SizeType count, void* out_ptr) const
+void VulkanGpuBuffer::Read(SizeType offset, SizeType count, void* out_ptr) const
 {
     if (m_mapping == nullptr)
     {
@@ -394,17 +394,17 @@ void VulkanGPUBuffer::Read(SizeType offset, SizeType count, void* out_ptr) const
     Memory::MemCpy(out_ptr, reinterpret_cast<void*>(uintptr_t(m_mapping) + uintptr_t(offset)), count);
 }
 
-bool VulkanGPUBuffer::IsCreated() const
+bool VulkanGpuBuffer::IsCreated() const
 {
     return m_handle != VK_NULL_HANDLE;
 }
 
-bool VulkanGPUBuffer::IsCPUAccessible() const
+bool VulkanGpuBuffer::IsCPUAccessible() const
 {
     return m_vma_usage != VMA_MEMORY_USAGE_GPU_ONLY;
 }
 
-RendererResult VulkanGPUBuffer::CheckCanAllocate(SizeType size) const
+RendererResult VulkanGpuBuffer::CheckCanAllocate(SizeType size) const
 {
     const VkBufferCreateInfo create_info = GetBufferCreateInfo();
     const VmaAllocationCreateInfo alloc_info = GetAllocationCreateInfo();
@@ -412,10 +412,10 @@ RendererResult VulkanGPUBuffer::CheckCanAllocate(SizeType size) const
     return CheckCanAllocate(create_info, alloc_info, m_size);
 }
 
-uint64 VulkanGPUBuffer::GetBufferDeviceAddress() const
+uint64 VulkanGpuBuffer::GetBufferDeviceAddress() const
 {
     AssertThrowMsg(
-        GetRenderingAPI()->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
+        GetRenderBackend()->GetDevice()->GetFeatures().GetBufferDeviceAddressFeatures().bufferDeviceAddress,
         "Called GetBufferDeviceAddress() but the buffer device address extension feature is not supported or enabled!");
 
     AssertThrow(m_handle != VK_NULL_HANDLE);
@@ -423,19 +423,19 @@ uint64 VulkanGPUBuffer::GetBufferDeviceAddress() const
     VkBufferDeviceAddressInfoKHR info { VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
     info.buffer = m_handle;
 
-    return GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
-        GetRenderingAPI()->GetDevice()->GetDevice(),
+    return GetRenderBackend()->GetDevice()->GetFeatures().dyn_functions.vkGetBufferDeviceAddressKHR(
+        GetRenderBackend()->GetDevice()->GetDevice(),
         &info);
 }
 
-void VulkanGPUBuffer::InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state) const
+void VulkanGpuBuffer::InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state) const
 {
     InsertBarrier(
         static_cast<VulkanCommandBuffer*>(command_buffer),
         new_state);
 }
 
-void VulkanGPUBuffer::InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state, ShaderModuleType shader_type) const
+void VulkanGpuBuffer::InsertBarrier(CommandBufferBase* command_buffer, ResourceState new_state, ShaderModuleType shader_type) const
 {
     InsertBarrier(
         static_cast<VulkanCommandBuffer*>(command_buffer),
@@ -443,7 +443,7 @@ void VulkanGPUBuffer::InsertBarrier(CommandBufferBase* command_buffer, ResourceS
         shader_type);
 }
 
-void VulkanGPUBuffer::InsertBarrier(
+void VulkanGpuBuffer::InsertBarrier(
     VulkanCommandBuffer* command_buffer,
     ResourceState new_state) const
 {
@@ -475,7 +475,7 @@ void VulkanGPUBuffer::InsertBarrier(
     m_resource_state = new_state;
 }
 
-void VulkanGPUBuffer::InsertBarrier(
+void VulkanGpuBuffer::InsertBarrier(
     VulkanCommandBuffer* command_buffer,
     ResourceState new_state,
     ShaderModuleType shader_type) const
@@ -508,9 +508,9 @@ void VulkanGPUBuffer::InsertBarrier(
     m_resource_state = new_state;
 }
 
-void VulkanGPUBuffer::CopyFrom(
+void VulkanGpuBuffer::CopyFrom(
     CommandBufferBase* command_buffer,
-    const GPUBufferBase* src_buffer,
+    const GpuBufferBase* src_buffer,
     SizeType count)
 {
     if (!IsCreated())
@@ -535,13 +535,13 @@ void VulkanGPUBuffer::CopyFrom(
 
     vkCmdCopyBuffer(
         static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
-        static_cast<const VulkanGPUBuffer*>(src_buffer)->m_handle,
+        static_cast<const VulkanGpuBuffer*>(src_buffer)->m_handle,
         m_handle,
         1,
         &region);
 }
 
-RendererResult VulkanGPUBuffer::Destroy()
+RendererResult VulkanGpuBuffer::Destroy()
 {
     if (!IsCreated())
     {
@@ -553,7 +553,7 @@ RendererResult VulkanGPUBuffer::Destroy()
         Unmap();
     }
 
-    vmaDestroyBuffer(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_vma_allocation);
+    vmaDestroyBuffer(GetRenderBackend()->GetDevice()->GetAllocator(), m_handle, m_vma_allocation);
 
     m_handle = VK_NULL_HANDLE;
     m_vma_allocation = VK_NULL_HANDLE;
@@ -562,7 +562,7 @@ RendererResult VulkanGPUBuffer::Destroy()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanGPUBuffer::Create()
+RendererResult VulkanGpuBuffer::Create()
 {
     if (IsCreated())
     {
@@ -600,7 +600,7 @@ RendererResult VulkanGPUBuffer::Create()
     {
         HYPERION_VK_CHECK_MSG(
             vmaCreateBufferWithAlignment(
-                GetRenderingAPI()->GetDevice()->GetAllocator(),
+                GetRenderBackend()->GetDevice()->GetAllocator(),
                 &create_info,
                 &alloc_info,
                 m_alignment,
@@ -613,7 +613,7 @@ RendererResult VulkanGPUBuffer::Create()
     {
         HYPERION_VK_CHECK_MSG(
             vmaCreateBuffer(
-                GetRenderingAPI()->GetDevice()->GetAllocator(),
+                GetRenderBackend()->GetDevice()->GetAllocator(),
                 &create_info,
                 &alloc_info,
                 &m_handle,
@@ -631,7 +631,7 @@ RendererResult VulkanGPUBuffer::Create()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanGPUBuffer::EnsureCapacity(
+RendererResult VulkanGpuBuffer::EnsureCapacity(
     SizeType minimum_size,
     SizeType alignment,
     bool* out_size_changed)
@@ -689,16 +689,16 @@ RendererResult VulkanGPUBuffer::EnsureCapacity(
     return result;
 }
 
-RendererResult VulkanGPUBuffer::EnsureCapacity(
+RendererResult VulkanGpuBuffer::EnsureCapacity(
     SizeType minimum_size,
     bool* out_size_changed)
 {
     return EnsureCapacity(minimum_size, 0, out_size_changed);
 }
 
-VkBufferCreateInfo VulkanGPUBuffer::GetBufferCreateInfo() const
+VkBufferCreateInfo VulkanGpuBuffer::GetBufferCreateInfo() const
 {
-    const QueueFamilyIndices& qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qf_indices = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices();
     const uint32 buffer_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkBufferCreateInfo vk_buffer_info { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -710,7 +710,7 @@ VkBufferCreateInfo VulkanGPUBuffer::GetBufferCreateInfo() const
     return vk_buffer_info;
 }
 
-VmaAllocationCreateInfo VulkanGPUBuffer::GetAllocationCreateInfo() const
+VmaAllocationCreateInfo VulkanGpuBuffer::GetAllocationCreateInfo() const
 {
     VmaAllocationCreateInfo alloc_info {};
     alloc_info.flags = m_vma_allocation_create_flags;
@@ -719,12 +719,12 @@ VmaAllocationCreateInfo VulkanGPUBuffer::GetAllocationCreateInfo() const
     return alloc_info;
 }
 
-RendererResult VulkanGPUBuffer::CheckCanAllocate(
+RendererResult VulkanGpuBuffer::CheckCanAllocate(
     const VkBufferCreateInfo& buffer_create_info,
     const VmaAllocationCreateInfo& allocation_create_info,
     SizeType size) const
 {
-    const Features& features = GetRenderingAPI()->GetDevice()->GetFeatures();
+    const Features& features = GetRenderBackend()->GetDevice()->GetFeatures();
 
     RendererResult result;
 
@@ -732,7 +732,7 @@ RendererResult VulkanGPUBuffer::CheckCanAllocate(
 
     HYPERION_VK_PASS_ERRORS(
         vmaFindMemoryTypeIndexForBufferInfo(
-            GetRenderingAPI()->GetDevice()->GetAllocator(),
+            GetRenderBackend()->GetDevice()->GetAllocator(),
             &buffer_create_info,
             &allocation_create_info,
             &memory_type_index),
@@ -755,6 +755,6 @@ RendererResult VulkanGPUBuffer::CheckCanAllocate(
     return result;
 }
 
-#pragma endregion VulkanGPUBuffer
+#pragma endregion VulkanGpuBuffer
 
 } // namespace hyperion

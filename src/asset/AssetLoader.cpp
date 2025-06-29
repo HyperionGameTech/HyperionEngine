@@ -29,7 +29,7 @@ HYP_API void LoadedAsset::OnPostLoad()
 
     // @TODO: Change to use T::InstanceClass() from Asset<T>, as types might not be an exact match
     // @TODO: Walk up class heirarchy, call PostLoad() for each class
-    const HypClass* hyp_class = GetClass(value.GetTypeID());
+    const HypClass* hyp_class = GetClass(value.GetTypeId());
 
     if (!hyp_class)
     {

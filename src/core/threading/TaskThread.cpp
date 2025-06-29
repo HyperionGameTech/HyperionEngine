@@ -18,14 +18,14 @@ static const double g_task_thread_single_task_lag_spike_threshold = 10.0;
 
 // #define HYP_ENABLE_LAG_SPIKE_DETECTION
 
-TaskThread::TaskThread(const ThreadID& thread_id, ThreadPriorityValue priority)
+TaskThread::TaskThread(const ThreadId& thread_id, ThreadPriorityValue priority)
     : Thread(thread_id, priority),
       m_num_tasks(0)
 {
 }
 
 TaskThread::TaskThread(Name name, ThreadPriorityValue priority)
-    : Thread(ThreadID(name, THREAD_CATEGORY_TASK), priority),
+    : Thread(ThreadId(name, THREAD_CATEGORY_TASK), priority),
       m_num_tasks(0)
 {
 }

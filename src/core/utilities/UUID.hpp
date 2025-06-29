@@ -17,7 +17,6 @@ enum class UUIDVersion
 };
 
 HYP_STRUCT(Serialize = "bitwise")
-
 struct UUID
 {
     HYP_FIELD(Serialize, Property = "Data0")

@@ -124,21 +124,21 @@ SceneValidationResult SceneValidation::ValidateScene(const Scene* scene)
 #pragma region Scene
 
 Scene::Scene()
-    : Scene(nullptr, ThreadID::Current(), {})
+    : Scene(nullptr, ThreadId::Current(), {})
 {
 }
 
 Scene::Scene(EnumFlags<SceneFlags> flags)
-    : Scene(nullptr, ThreadID::Current(), flags)
+    : Scene(nullptr, ThreadId::Current(), flags)
 {
 }
 
 Scene::Scene(World* world, EnumFlags<SceneFlags> flags)
-    : Scene(world, ThreadID::Current(), flags)
+    : Scene(world, ThreadId::Current(), flags)
 {
 }
 
-Scene::Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags)
+Scene::Scene(World* world, ThreadId owner_thread_id, EnumFlags<SceneFlags> flags)
     : m_name(Name::Unique("Scene")),
       m_flags(flags),
       m_owner_thread_id(owner_thread_id),
@@ -177,7 +177,7 @@ Scene::~Scene()
     // Move so destruction of components can check GetEntityManager() returns nullptr
     if (Handle<EntityManager> entity_manager = std::move(m_entity_manager))
     {
-        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadId()))
         {
             // If we are on the same thread, we can safely shutdown the entity manager here:
             entity_manager->Shutdown();
@@ -185,7 +185,7 @@ Scene::~Scene()
         else
         {
             // have to enqueue a task to shut down the entity manager on its owner thread
-            Task<void> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([&entity_manager]()
+            Task<void> task = Threads::GetThread(entity_manager->GetOwnerThreadId())->GetScheduler().Enqueue([&entity_manager]()
                 {
                     entity_manager->Shutdown();
                 });
@@ -246,7 +246,7 @@ void Scene::Init()
     InitObject(m_entity_manager);
 }
 
-void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
+void Scene::SetOwnerThreadId(ThreadId owner_thread_id)
 {
     if (m_owner_thread_id == owner_thread_id)
     {
@@ -254,7 +254,7 @@ void Scene::SetOwnerThreadID(ThreadID owner_thread_id)
     }
 
     m_owner_thread_id = owner_thread_id;
-    m_entity_manager->SetOwnerThreadID(owner_thread_id);
+    m_entity_manager->SetOwnerThreadId(owner_thread_id);
 }
 
 const Handle<Camera>& Scene::GetPrimaryCamera() const

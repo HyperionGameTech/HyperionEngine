@@ -13,7 +13,7 @@ UIElementFactoryRegistry& UIElementFactoryRegistry::GetInstance()
     return instance;
 }
 
-UIElementFactoryBase* UIElementFactoryRegistry::GetFactory(TypeID type_id)
+UIElementFactoryBase* UIElementFactoryRegistry::GetFactory(TypeId type_id)
 {
     auto it = m_element_factories.Find(type_id);
 
@@ -32,7 +32,7 @@ UIElementFactoryBase* UIElementFactoryRegistry::GetFactory(TypeID type_id)
     return factory_instance.factory_instance.Get();
 }
 
-void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
+void UIElementFactoryRegistry::RegisterFactory(TypeId type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
 {
     m_element_factories.Set(type_id, FactoryInstance { make_factory_function, nullptr });
 }
@@ -41,7 +41,7 @@ void UIElementFactoryRegistry::RegisterFactory(TypeID type_id, Handle<UIElementF
 
 #pragma region UIElementFactoryRegistrationBase
 
-UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeID type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
+UIElementFactoryRegistrationBase::UIElementFactoryRegistrationBase(TypeId type_id, Handle<UIElementFactoryBase> (*make_factory_function)(void))
     : m_make_factory_function(make_factory_function)
 {
     UIElementFactoryRegistry::GetInstance().RegisterFactory(type_id, make_factory_function);

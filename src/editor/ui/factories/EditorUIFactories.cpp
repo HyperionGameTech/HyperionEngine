@@ -41,8 +41,8 @@ class HypDataUIElementFactory : public UIElementFactory<HypData, HypDataUIElemen
 public:
     Handle<UIObject> Create(UIObject* parent, const HypData& value) const
     {
-        const HypClass* hyp_class = GetClass(value.GetTypeID());
-        AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeID %u", value.GetTypeID().Value());
+        const HypClass* hyp_class = GetClass(value.GetTypeId());
+        AssertThrowMsg(hyp_class != nullptr, "No HypClass registered for TypeId %u", value.GetTypeId().Value());
 
         if (value.IsNull())
         {
@@ -89,11 +89,11 @@ public:
 
             HypData getter_result = it.second->Get(value);
 
-            UIElementFactoryBase* factory = GetEditorUIElementFactory(getter_result.GetTypeID());
+            UIElementFactoryBase* factory = GetEditorUIElementFactory(getter_result.GetTypeId());
 
             if (!factory)
             {
-                HYP_LOG(Editor, Warning, "No factory registered for TypeID {} when creating UI element for attribute \"{}\"", getter_result.GetTypeID().Value(), it.first);
+                HYP_LOG(Editor, Warning, "No factory registered for TypeId {} when creating UI element for attribute \"{}\"", getter_result.GetTypeId().Value(), it.first);
 
                 continue;
             }
@@ -591,13 +591,13 @@ public:
 
             for (const auto& it : *all_components)
             {
-                const TypeID component_type_id = it.first;
+                const TypeId component_type_id = it.first;
 
                 const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
                 if (!component_interface)
                 {
-                    HYP_LOG(Editor, Error, "No ComponentInterface registered for component with TypeID {}", component_type_id.Value());
+                    HYP_LOG(Editor, Error, "No ComponentInterface registered for component with TypeId {}", component_type_id.Value());
 
                     continue;
                 }
@@ -609,7 +609,7 @@ public:
 
                 if (!component_container->TryGetComponent(it.second, component_hyp_data))
                 {
-                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with ID {} for Entity {}", component_interface->GetTypeName(), it.second, entity->GetID());
+                    HYP_LOG(Editor, Error, "Failed to get component of type \"{}\" with Id {} for Entity {}", component_interface->GetTypeName(), it.second, entity->GetID());
 
                     continue;
                 }
@@ -910,7 +910,7 @@ public:
         Handle<UIGridRow> components_grid_container_content_row = components_grid_container->AddRow();
         Handle<UIGridColumn> components_grid_container_content_column = components_grid_container_content_row->AddColumn();
 
-        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadId()))
         {
             components_grid_container_content_column->AddChildUIObject(create_components_grid());
         }
@@ -918,7 +918,7 @@ public:
         {
             HYP_NAMED_SCOPE("Awaiting async component UI element creation");
 
-            Task<Handle<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(create_components_grid);
+            Task<Handle<UIObject>> task = Threads::GetThread(entity_manager->GetOwnerThreadId())->GetScheduler().Enqueue(create_components_grid);
 
             components_grid_container_content_column->AddChildUIObject(task.Await());
         }
@@ -950,11 +950,11 @@ public:
             return nullptr;
         }
 
-        UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeID());
+        UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeId());
 
         if (!factory)
         {
-            HYP_LOG(Editor, Error, "No factory registered for TypeID {} when creating UI element for property \"{}\"", value.property->GetTypeID().Value(), value.title);
+            HYP_LOG(Editor, Error, "No factory registered for TypeId {} when creating UI element for property \"{}\"", value.property->GetTypeId().Value(), value.title);
 
             return nullptr;
         }
@@ -1013,7 +1013,7 @@ public:
         // Handle<Node> node_rc = value.node.Lock();
         // AssertThrow(node_rc != nullptr);
 
-        // UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeID());
+        // UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeId());
         // AssertThrow(factory != nullptr);
 
         // Handle<UIPanel> content = ui_object->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();

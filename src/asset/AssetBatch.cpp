@@ -149,7 +149,7 @@ void AssetBatch::Add(const String& key, const String& path)
 
 #pragma region AssetManager
 
-UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeID loader_type_id, const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr)
+UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeId loader_type_id, const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr)
 {
     auto it = m_functor_factories.Find(loader_type_id);
     AssertThrow(it != m_functor_factories.End());

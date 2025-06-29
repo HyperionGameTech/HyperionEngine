@@ -20,7 +20,7 @@
 #include <rendering/backend/RenderConfig.hpp>
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 
 #include <scene/Mesh.hpp>
 #include <scene/Scene.hpp>
@@ -228,7 +228,7 @@ void DebugDrawer::Initialize()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_instance_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
+        m_instance_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, m_draw_commands.Capacity() * sizeof(ImmediateDrawShaderData));
         DeferCreate(m_instance_buffers[frame_index]);
     }
 
@@ -242,7 +242,7 @@ void DebugDrawer::Initialize()
 
     const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    m_descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
     AssertThrow(m_descriptor_table != nullptr);
 
     const uint32 debug_drawer_descriptor_set_index = m_descriptor_table->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
@@ -305,7 +305,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& render_setup)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    GPUBufferRef& instance_buffer = m_instance_buffers[frame_index];
+    GpuBufferRef& instance_buffer = m_instance_buffers[frame_index];
     bool was_instance_buffer_rebuilt = false;
 
     if (m_draw_commands.Size() * sizeof(ImmediateDrawShaderData) > instance_buffer->Size())

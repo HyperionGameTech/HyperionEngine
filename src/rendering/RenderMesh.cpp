@@ -2,11 +2,11 @@
 
 #include <rendering/RenderMesh.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
 
@@ -130,7 +130,7 @@ void RenderMesh::UploadMeshData()
     {
         SafeRelease(std::move(m_vbo));
 
-        m_vbo = g_rendering_api->MakeGPUBuffer(GPUBufferType::MESH_VERTEX_BUFFER, packed_buffer_size);
+        m_vbo = g_render_backend->MakeGpuBuffer(GpuBufferType::MESH_VERTEX_BUFFER, packed_buffer_size);
 
 #ifdef HYP_DEBUG_MODE
         m_vbo->SetDebugName(NAME_FMT("RenderMesh_VertexBuffer_{}", m_mesh->GetID().Value()));
@@ -146,7 +146,7 @@ void RenderMesh::UploadMeshData()
     {
         SafeRelease(std::move(m_ibo));
 
-        m_ibo = g_rendering_api->MakeGPUBuffer(GPUBufferType::MESH_INDEX_BUFFER, packed_indices_size);
+        m_ibo = g_render_backend->MakeGpuBuffer(GpuBufferType::MESH_INDEX_BUFFER, packed_indices_size);
 
 #ifdef HYP_DEBUG_MODE
         m_ibo->SetDebugName(NAME_FMT("RenderMesh_IndexBuffer_{}", m_mesh->GetID().Value()));
@@ -158,22 +158,22 @@ void RenderMesh::UploadMeshData()
         HYPERION_ASSERT_RESULT(m_ibo->Create());
     }
 
-    GPUBufferRef staging_buffer_vertices = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_buffer_size);
+    GpuBufferRef staging_buffer_vertices = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packed_buffer_size);
     HYPERION_ASSERT_RESULT(staging_buffer_vertices->Create());
     staging_buffer_vertices->Copy(packed_buffer_size, vertex_buffer.Data());
 
-    GPUBufferRef staging_buffer_indices = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_indices_size);
+    GpuBufferRef staging_buffer_indices = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packed_indices_size);
     HYPERION_ASSERT_RESULT(staging_buffer_indices->Create());
     staging_buffer_indices->Copy(packed_indices_size, index_buffer.Data());
 
     SingleTimeCommands commands;
 
-    commands.Push([&](RHICommandList& cmd)
+    commands.Push([&](CmdList& cmd)
         {
             cmd.Add<CopyBuffer>(staging_buffer_vertices, m_vbo, packed_buffer_size);
         });
 
-    commands.Push([&](RHICommandList& cmd)
+    commands.Push([&](CmdList& cmd)
         {
             cmd.Add<CopyBuffer>(staging_buffer_indices, m_ibo, packed_indices_size);
         });
@@ -381,13 +381,13 @@ BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
             const SizeType packed_vertices_size = packed_vertices.Size() * sizeof(PackedVertex);
             const SizeType packed_indices_size = packed_indices.Size() * sizeof(uint32);
 
-            GPUBufferRef vertices_staging_buffer;
-            GPUBufferRef indices_staging_buffer;
+            GpuBufferRef vertices_staging_buffer;
+            GpuBufferRef indices_staging_buffer;
 
-            GPUBufferRef packed_vertices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::RT_MESH_VERTEX_BUFFER, packed_vertices_size);
-            GPUBufferRef packed_indices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::RT_MESH_INDEX_BUFFER, packed_indices_size);
+            GpuBufferRef packed_vertices_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::RT_MESH_VERTEX_BUFFER, packed_vertices_size);
+            GpuBufferRef packed_indices_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::RT_MESH_INDEX_BUFFER, packed_indices_size);
 
-            BLASRef geometry = g_rendering_api->MakeBLAS(
+            BLASRef geometry = g_render_backend->MakeBLAS(
                 packed_vertices_buffer,
                 packed_indices_buffer,
                 material,
@@ -408,25 +408,25 @@ BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
             HYPERION_BUBBLE_ERRORS(packed_vertices_buffer->Create());
             HYPERION_BUBBLE_ERRORS(packed_indices_buffer->Create());
 
-            vertices_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_vertices_size);
+            vertices_staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packed_vertices_size);
             HYPERION_BUBBLE_ERRORS(vertices_staging_buffer->Create());
             vertices_staging_buffer->Memset(packed_vertices_size, 0); // zero out
             vertices_staging_buffer->Copy(packed_vertices.Size() * sizeof(PackedVertex), packed_vertices.Data());
 
-            indices_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, packed_indices_size);
+            indices_staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, packed_indices_size);
             HYPERION_BUBBLE_ERRORS(indices_staging_buffer->Create());
             indices_staging_buffer->Memset(packed_indices_size, 0); // zero out
             indices_staging_buffer->Copy(packed_indices.Size() * sizeof(uint32), packed_indices.Data());
 
             SingleTimeCommands commands;
 
-            commands.Push([&](RHICommandList& cmd)
+            commands.Push([&](CmdList& cmd)
                 {
                     cmd.Add<CopyBuffer>(vertices_staging_buffer, packed_vertices_buffer, packed_vertices_size);
                     cmd.Add<CopyBuffer>(indices_staging_buffer, packed_indices_buffer, packed_indices_size);
                 });
 
-            commands.Push([&](RHICommandList&)
+            commands.Push([&](CmdList&)
                 {
                     geometry->Create();
                 });
@@ -442,14 +442,14 @@ BLASRef RenderMesh::BuildBLAS(const Handle<Material>& material) const
     return std::move(task).Await();
 }
 
-void RenderMesh::Render(RHICommandList& cmd, uint32 num_instances, uint32 instance_index) const
+void RenderMesh::Render(CmdList& cmd, uint32 num_instances, uint32 instance_index) const
 {
     cmd.Add<BindVertexBuffer>(GetVertexBuffer());
     cmd.Add<BindIndexBuffer>(GetIndexBuffer());
     cmd.Add<DrawIndexed>(NumIndices(), num_instances, instance_index);
 }
 
-void RenderMesh::RenderIndirect(RHICommandList& cmd, const GPUBufferRef& indirect_buffer, uint32 buffer_offset) const
+void RenderMesh::RenderIndirect(CmdList& cmd, const GpuBufferRef& indirect_buffer, uint32 buffer_offset) const
 {
     cmd.Add<BindVertexBuffer>(GetVertexBuffer());
     cmd.Add<BindIndexBuffer>(GetIndexBuffer());

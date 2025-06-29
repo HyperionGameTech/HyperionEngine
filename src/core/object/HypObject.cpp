@@ -26,7 +26,7 @@ HypObjectInitializerGuardBase::HypObjectInitializerGuardBase(HypObjectPtr ptr)
     AssertThrow(ptr.IsValid());
 
 #ifdef HYP_DEBUG_MODE
-    initializer_thread_id = Threads::CurrentThreadID();
+    initializer_thread_id = Threads::CurrentThreadId();
 #else
     count = 0;
 #endif
@@ -154,7 +154,7 @@ HYP_API IHypObjectInitializer* HypObjectPtr::GetObjectInitializer() const
     return m_hyp_class->GetObjectInitializer(m_ptr);
 }
 
-HYP_API const HypClass* HypObjectPtr::GetHypClass(TypeID type_id) const
+HYP_API const HypClass* HypObjectPtr::GetHypClass(TypeId type_id) const
 {
     const HypClass* hyp_class = ::hyperion::GetClass(type_id);
     AssertThrow(hyp_class != nullptr);
@@ -203,9 +203,9 @@ DynamicHypObjectInitializer::~DynamicHypObjectInitializer()
     }
 }
 
-TypeID DynamicHypObjectInitializer::GetTypeID() const
+TypeId DynamicHypObjectInitializer::GetTypeId() const
 {
-    return m_hyp_class->GetTypeID();
+    return m_hyp_class->GetTypeId();
 }
 
 #pragma endregion DynamicHypObjectInitializer

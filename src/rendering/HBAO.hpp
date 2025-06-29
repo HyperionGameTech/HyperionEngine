@@ -76,7 +76,7 @@ private:
 
     HBAOConfig m_config;
 
-    GPUBufferRef m_uniform_buffer;
+    GpuBufferRef m_uniform_buffer;
 };
 
 } // namespace hyperion

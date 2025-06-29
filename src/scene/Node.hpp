@@ -611,7 +611,7 @@ public:
 
     bool TestRay(const Ray& ray, RayTestResults& out_results, bool use_bvh = true) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given ID is found. */
+    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given Id is found. */
     HYP_METHOD()
     Handle<Node> FindChildWithEntity(const Entity* entity) const;
 

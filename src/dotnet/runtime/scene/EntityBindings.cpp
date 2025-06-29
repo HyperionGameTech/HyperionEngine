@@ -16,7 +16,7 @@ extern "C"
 
         uint64 value = 0;
         value |= entity->GetID().Value();
-        value |= (uint64(entity->GetID().GetTypeID().Value()) << 32);
+        value |= (uint64(entity->GetID().GetTypeId().Value()) << 32);
 
         return value;
     }

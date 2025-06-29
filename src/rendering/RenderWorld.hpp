@@ -13,7 +13,7 @@
 
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Handle.hpp>
 
 #include <rendering/RenderResource.hpp>
@@ -97,7 +97,7 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const override;
 
 private:
     void UpdateBufferData();

@@ -141,7 +141,7 @@ struct LightmapRayHitPayload
     Vec3f normal;
     float distance = -1.0f;
     Vec3f barycentric_coords;
-    ID<Mesh> mesh_id;
+    Id<Mesh> mesh_id;
     uint32 triangle_index = ~0u;
 };
 

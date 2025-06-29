@@ -285,7 +285,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             continue;
         }
 
-        Handle<Scene> scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID());
+        Handle<Scene> scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 

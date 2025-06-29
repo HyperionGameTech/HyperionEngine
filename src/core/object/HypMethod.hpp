@@ -9,7 +9,7 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 #include <core/Defines.hpp>
@@ -26,7 +26,7 @@ class HypClass;
 
 struct HypMethodParameter
 {
-    TypeID type_id;
+    TypeId type_id;
 };
 
 #pragma region CallHypMethod
@@ -40,9 +40,9 @@ HYP_FORCE_INLINE decltype(auto) CallHypMethod_Impl(FunctionType fn, HypData** ar
 
         if (!condition)
         {
-            HYP_FAIL("Invalid argument at index %u: Expected %s, Got TypeID %u",
+            HYP_FAIL("Invalid argument at index %u: Expected %s, Got TypeId %u",
                 Index, TypeName<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>().Data(),
-                args[Index]->GetTypeID().Value());
+                args[Index]->GetTypeId().Value());
         }
 
         return condition;
@@ -69,7 +69,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& out_params, std::index_
     auto add_parameter = [&out_params]<SizeType Index>(std::integral_constant<SizeType, Index>) -> bool
     {
         out_params.PushBack(HypMethodParameter {
-            TypeID::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
+            TypeId::ForType<NormalizedType<typename TupleElement<Index, ArgTypes...>::Type>>() });
 
         return true;
     };
@@ -79,7 +79,7 @@ void InitHypMethodParams_Impl(Array<HypMethodParameter>& out_params, std::index_
     if constexpr (!std::is_void_v<ThisType>)
     {
         out_params.PushBack(HypMethodParameter {
-            TypeID::ForType<NormalizedType<ThisType>>() });
+            TypeId::ForType<NormalizedType<ThisType>>() });
     }
 }
 
@@ -150,8 +150,8 @@ class HypMethod : public IHypMember
 public:
     HypMethod(Span<const HypClassAttribute> attributes = {})
         : m_name(Name::Invalid()),
-          m_return_type_id(TypeID::Void()),
-          m_target_type_id(TypeID::Void()),
+          m_return_type_id(TypeId::Void()),
+          m_target_type_id(TypeId::Void()),
           m_flags(HypMethodFlags::NONE),
           m_attributes(attributes)
     {
@@ -180,8 +180,8 @@ public:
                   }
               })
     {
-        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
-        m_target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
+        m_return_type_id = TypeId::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeId::ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -274,8 +274,8 @@ public:
                   }
               })
     {
-        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
-        m_target_type_id = TypeID::ForType<NormalizedType<TargetType>>();
+        m_return_type_id = TypeId::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeId::ForType<NormalizedType<TargetType>>();
 
         m_params.Reserve(sizeof...(ArgTypes) + 1);
         InitHypMethodParams_Tuple<ReturnType, TargetType, Tuple<ArgTypes...>> {}(m_params);
@@ -366,8 +366,8 @@ public:
                   }
               })
     {
-        m_return_type_id = TypeID::ForType<NormalizedType<ReturnType>>();
-        m_target_type_id = TypeID::Void();
+        m_return_type_id = TypeId::ForType<NormalizedType<ReturnType>>();
+        m_target_type_id = TypeId::Void();
 
         m_params.Reserve(sizeof...(ArgTypes));
         InitHypMethodParams_Tuple<ReturnType, void, Tuple<ArgTypes...>> {}(m_params);
@@ -389,12 +389,12 @@ public:
         return m_name;
     }
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
         return m_return_type_id;
     }
 
-    virtual TypeID GetTargetTypeID() const override
+    virtual TypeId GetTargetTypeId() const override
     {
         return m_target_type_id;
     }
@@ -481,8 +481,8 @@ public:
 
 private:
     Name m_name;
-    TypeID m_return_type_id;
-    TypeID m_target_type_id;
+    TypeId m_return_type_id;
+    TypeId m_target_type_id;
     Array<HypMethodParameter> m_params;
     EnumFlags<HypMethodFlags> m_flags;
     HypClassAttributeSet m_attributes;

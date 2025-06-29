@@ -21,7 +21,7 @@ namespace hyperion {
 
 #pragma region Helpers
 
-const HypClass* GetClass(TypeID type_id)
+const HypClass* GetClass(TypeId type_id)
 {
     return HypClassRegistry::GetInstance().GetClass(type_id);
 }
@@ -31,7 +31,7 @@ const HypClass* GetClass(WeakName type_name)
     return HypClassRegistry::GetInstance().GetClass(type_name);
 }
 
-const HypEnum* GetEnum(TypeID type_id)
+const HypEnum* GetEnum(TypeId type_id)
 {
     return HypClassRegistry::GetInstance().GetEnum(type_id);
 }
@@ -41,14 +41,14 @@ const HypEnum* GetEnum(WeakName type_name)
     return HypClassRegistry::GetInstance().GetEnum(type_name);
 }
 
-bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id)
+bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id)
 {
     if (!hyp_class)
     {
         return false;
     }
 
-    if (hyp_class->GetTypeID() == type_id)
+    if (hyp_class->GetTypeId() == type_id)
     {
         return true;
     }
@@ -63,7 +63,7 @@ bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID typ
             return uint32(other_hyp_class->GetStaticIndex() - hyp_class->GetStaticIndex()) <= hyp_class->GetNumDescendants();
         }
 
-        // Try to get the initializer. If we can get it, use the instance class rather than just the class for the type ID.
+        // Try to get the initializer. If we can get it, use the instance class rather than just the class for the type Id.
         if (const IHypObjectInitializer* initializer = other_hyp_class->GetObjectInitializer(ptr))
         {
             other_hyp_class = initializer->GetClass();
@@ -112,7 +112,7 @@ bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hy
     return false;
 }
 
-int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id)
+int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id)
 {
     const HypClass* base = GetClass(base_type_id);
     if (!base)
@@ -149,7 +149,7 @@ int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id)
     return -1;
 }
 
-SizeType GetNumDescendants(TypeID type_id)
+SizeType GetNumDescendants(TypeId type_id)
 {
     const HypClass* base = GetClass(type_id);
     if (!base)
@@ -271,7 +271,7 @@ void HypClassMemberIterator::Advance()
 
 #pragma region HypClass
 
-HypClass::HypClass(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+HypClass::HypClass(TypeId type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : m_type_id(type_id),
       m_name(name),
       m_static_index(static_index),
@@ -390,7 +390,7 @@ void HypClass::Initialize()
     // Disable USE_MARSHAL_CLASS if no marshal is registered by the time this HypClass is initialized
     if (m_serialization_mode & HypClassSerializationMode::USE_MARSHAL_CLASS)
     {
-        FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeID(), /* allow_fallback */ false);
+        FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(GetTypeId(), /* allow_fallback */ false);
 
         if (!marshal)
         {

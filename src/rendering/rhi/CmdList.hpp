@@ -1,7 +1,7 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_RHI_COMMAND_LIST_HPP
-#define HYPERION_RHI_COMMAND_LIST_HPP
+#ifndef HYPERION_RHI_CMD_LIST_HPP
+#define HYPERION_RHI_CMD_LIST_HPP
 
 #include <core/memory/MemoryPool.hpp>
 
@@ -18,7 +18,7 @@
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererFramebuffer.hpp>
 #include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererCommandBuffer.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
@@ -30,36 +30,36 @@
 
 namespace hyperion {
 
-class RHICommandBase;
+class CmdBase;
 
-class RHICommandMemoryPoolBase
+class CmdMemoryPoolBase
 {
 public:
-    virtual ~RHICommandMemoryPoolBase() = default;
+    virtual ~CmdMemoryPoolBase() = default;
 
-    virtual void FreeCommand(RHICommandBase* command) = 0;
+    virtual void FreeCommand(CmdBase* command) = 0;
 };
 
-struct RHICommandPoolHandle
+struct CmdPoolHandle
 {
-    RHICommandMemoryPoolBase* pool;
+    CmdMemoryPoolBase* pool;
     uint32 index;
 };
 
-class RHICommandBase
+class CmdBase
 {
 public:
-    friend class RHICommandList;
+    friend class CmdList;
 
     template <class T>
-    friend class RHICommandMemoryPool;
+    friend class CmdMemoryPool;
 
-    RHICommandBase() = default;
-    RHICommandBase(const RHICommandBase& other) = delete;
-    RHICommandBase& operator=(const RHICommandBase& other) = delete;
-    RHICommandBase(RHICommandBase&& other) noexcept = delete;
-    RHICommandBase& operator=(RHICommandBase&& other) noexcept = delete;
-    virtual ~RHICommandBase() = default;
+    CmdBase() = default;
+    CmdBase(const CmdBase& other) = delete;
+    CmdBase& operator=(const CmdBase& other) = delete;
+    CmdBase(CmdBase&& other) noexcept = delete;
+    CmdBase& operator=(CmdBase&& other) noexcept = delete;
+    virtual ~CmdBase() = default;
 
     virtual void Prepare(FrameBase* frame)
     {
@@ -68,35 +68,35 @@ public:
     virtual void Execute(const CommandBufferRef& cmd) = 0;
 
 private:
-    RHICommandPoolHandle m_pool_handle;
+    CmdPoolHandle m_pool_handle;
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
     char* m_stack_trace = "";
 #endif
 };
 
-template <class RHICommandType>
-class RHICommandMemoryPool final : public MemoryPool<ValueStorage<RHICommandType>>, RHICommandMemoryPoolBase
+template <class CmdType>
+class CmdMemoryPool final : public MemoryPool<ValueStorage<CmdType>>, CmdMemoryPoolBase
 {
 public:
-    static RHICommandMemoryPool<RHICommandType>& GetInstance()
+    static CmdMemoryPool<CmdType>& GetInstance()
     {
-        static RHICommandMemoryPool<RHICommandType> instance;
+        static CmdMemoryPool<CmdType> instance;
 
         return instance;
     }
 
-    virtual ~RHICommandMemoryPool() override = default;
+    virtual ~CmdMemoryPool() override = default;
 
     template <class... Args>
-    RHICommandType* NewCommand(Args&&... args)
+    CmdType* NewCommand(Args&&... args)
     {
-        ValueStorage<RHICommandType>* command_storage;
+        ValueStorage<CmdType>* command_storage;
 
-        const uint32 index = MemoryPool<ValueStorage<RHICommandType>>::AcquireIndex(&command_storage);
+        const uint32 index = MemoryPool<ValueStorage<CmdType>>::AcquireIndex(&command_storage);
 
         command_storage->Construct(std::forward<Args>(args)...);
-        command_storage->Get().m_pool_handle = { static_cast<RHICommandMemoryPoolBase*>(this), index };
+        command_storage->Get().m_pool_handle = { static_cast<CmdMemoryPoolBase*>(this), index };
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
         // Allocate string and copy stack trace (creating stack trace is extremely SLOW, enable for debugging only!)
@@ -109,7 +109,7 @@ public:
         return &command_storage->Get();
     }
 
-    virtual void FreeCommand(RHICommandBase* command) override
+    virtual void FreeCommand(CmdBase* command) override
     {
         AssertDebug(command != nullptr);
         AssertDebug(command->m_pool_handle.pool == this);
@@ -122,16 +122,16 @@ public:
         }
 #endif
 
-        command->~RHICommandBase();
+        command->~CmdBase();
 
-        MemoryPool<ValueStorage<RHICommandType>>::ReleaseIndex(command->m_pool_handle.index);
+        MemoryPool<ValueStorage<CmdType>>::ReleaseIndex(command->m_pool_handle.index);
     }
 };
 
-class BindVertexBuffer final : public RHICommandBase
+class BindVertexBuffer final : public CmdBase
 {
 public:
-    BindVertexBuffer(const GPUBufferRef& buffer)
+    BindVertexBuffer(const GpuBufferRef& buffer)
         : m_buffer(buffer)
     {
     }
@@ -142,13 +142,13 @@ public:
     }
 
 private:
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
 };
 
-class BindIndexBuffer final : public RHICommandBase
+class BindIndexBuffer final : public CmdBase
 {
 public:
-    BindIndexBuffer(const GPUBufferRef& buffer)
+    BindIndexBuffer(const GpuBufferRef& buffer)
         : m_buffer(buffer)
     {
     }
@@ -159,10 +159,10 @@ public:
     }
 
 private:
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
 };
 
-class DrawIndexed final : public RHICommandBase
+class DrawIndexed final : public CmdBase
 {
 public:
     DrawIndexed(uint32 num_indices, uint32 num_instance, uint32 instance_index)
@@ -183,10 +183,10 @@ private:
     uint32 m_instance_index;
 };
 
-class DrawIndexedIndirect final : public RHICommandBase
+class DrawIndexedIndirect final : public CmdBase
 {
 public:
-    DrawIndexedIndirect(const GPUBufferRef& buffer, uint32 buffer_offset)
+    DrawIndexedIndirect(const GpuBufferRef& buffer, uint32 buffer_offset)
         : m_buffer(buffer),
           m_buffer_offset(buffer_offset)
     {
@@ -198,11 +198,11 @@ public:
     }
 
 private:
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
     uint32 m_buffer_offset;
 };
 
-class BeginFramebuffer final : public RHICommandBase
+class BeginFramebuffer final : public CmdBase
 {
 public:
 #ifdef HYP_DEBUG_MODE
@@ -226,7 +226,7 @@ private:
     uint32 m_frame_index;
 };
 
-class EndFramebuffer final : public RHICommandBase
+class EndFramebuffer final : public CmdBase
 {
 public:
 #ifdef HYP_DEBUG_MODE
@@ -250,7 +250,7 @@ private:
     uint32 m_frame_index;
 };
 
-class BindGraphicsPipeline final : public RHICommandBase
+class BindGraphicsPipeline final : public CmdBase
 {
 public:
 #ifdef HYP_DEBUG_MODE
@@ -288,7 +288,7 @@ private:
     Vec2u m_viewport_extent;
 };
 
-class BindComputePipeline final : public RHICommandBase
+class BindComputePipeline final : public CmdBase
 {
 public:
     BindComputePipeline(const ComputePipelineRef& pipeline)
@@ -305,7 +305,7 @@ private:
     ComputePipelineRef m_pipeline;
 };
 
-class BindRaytracingPipeline final : public RHICommandBase
+class BindRaytracingPipeline final : public CmdBase
 {
 public:
     BindRaytracingPipeline(const RaytracingPipelineRef& pipeline)
@@ -322,7 +322,7 @@ private:
     RaytracingPipelineRef m_pipeline;
 };
 
-class BindDescriptorSet final : public RHICommandBase
+class BindDescriptorSet final : public CmdBase
 {
 public:
     BindDescriptorSet(const DescriptorSetRef& descriptor_set, const GraphicsPipelineRef& pipeline, const ArrayMap<Name, uint32>& offsets = {})
@@ -411,7 +411,7 @@ private:
     uint32 m_bind_index;
 };
 
-class BindDescriptorTable final : public RHICommandBase
+class BindDescriptorTable final : public CmdBase
 {
 public:
     BindDescriptorTable(const DescriptorTableRef& descriptor_table, const GraphicsPipelineRef& graphics_pipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frame_index)
@@ -458,10 +458,10 @@ private:
     uint32 m_frame_index;
 };
 
-class InsertBarrier final : public RHICommandBase
+class InsertBarrier final : public CmdBase
 {
 public:
-    InsertBarrier(const GPUBufferRef& buffer, const ResourceState& state, ShaderModuleType shader_module_type = SMT_UNSET)
+    InsertBarrier(const GpuBufferRef& buffer, const ResourceState& state, ShaderModuleType shader_module_type = SMT_UNSET)
         : m_buffer(buffer),
           m_state(state),
           m_shader_module_type(shader_module_type)
@@ -503,14 +503,14 @@ public:
     }
 
 private:
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
     ImageRef m_image;
     ResourceState m_state;
     Optional<ImageSubResource> m_sub_resource;
     ShaderModuleType m_shader_module_type;
 };
 
-class Blit final : public RHICommandBase
+class Blit final : public CmdBase
 {
 public:
     Blit(const ImageRef& src_image, const ImageRef& dst_image)
@@ -582,7 +582,7 @@ private:
     Optional<MipFaceInfo> m_mip_face_info;
 };
 
-class BlitRect final : public RHICommandBase
+class BlitRect final : public CmdBase
 {
 public:
     BlitRect(const ImageRef& src_image, const ImageRef& dst_image, const Rect<uint32>& src_rect, const Rect<uint32>& dst_rect)
@@ -605,10 +605,10 @@ private:
     Rect<uint32> m_dst_rect;
 };
 
-class CopyImageToBuffer final : public RHICommandBase
+class CopyImageToBuffer final : public CmdBase
 {
 public:
-    CopyImageToBuffer(const ImageRef& image, const GPUBufferRef& buffer)
+    CopyImageToBuffer(const ImageRef& image, const GpuBufferRef& buffer)
         : m_image(image),
           m_buffer(buffer)
     {
@@ -621,13 +621,13 @@ public:
 
 private:
     ImageRef m_image;
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
 };
 
-class CopyBufferToImage final : public RHICommandBase
+class CopyBufferToImage final : public CmdBase
 {
 public:
-    CopyBufferToImage(const GPUBufferRef& buffer, const ImageRef& image)
+    CopyBufferToImage(const GpuBufferRef& buffer, const ImageRef& image)
         : m_buffer(buffer),
           m_image(image)
     {
@@ -639,14 +639,14 @@ public:
     }
 
 private:
-    GPUBufferRef m_buffer;
+    GpuBufferRef m_buffer;
     ImageRef m_image;
 };
 
-class CopyBuffer final : public RHICommandBase
+class CopyBuffer final : public CmdBase
 {
 public:
-    CopyBuffer(const GPUBufferRef& src_buffer, const GPUBufferRef& dst_buffer, SizeType size)
+    CopyBuffer(const GpuBufferRef& src_buffer, const GpuBufferRef& dst_buffer, SizeType size)
         : m_src_buffer(src_buffer),
           m_dst_buffer(dst_buffer),
           m_size(size)
@@ -659,12 +659,12 @@ public:
     }
 
 private:
-    GPUBufferRef m_src_buffer;
-    GPUBufferRef m_dst_buffer;
+    GpuBufferRef m_src_buffer;
+    GpuBufferRef m_dst_buffer;
     SizeType m_size;
 };
 
-class GenerateMipmaps final : public RHICommandBase
+class GenerateMipmaps final : public CmdBase
 {
 public:
     GenerateMipmaps(const ImageRef& image)
@@ -681,7 +681,7 @@ private:
     ImageRef m_image;
 };
 
-class DispatchCompute final : public RHICommandBase
+class DispatchCompute final : public CmdBase
 {
 public:
     DispatchCompute(const ComputePipelineRef& pipeline, Vec3u workgroup_count)
@@ -700,7 +700,7 @@ private:
     Vec3u m_workgroup_count;
 };
 
-class TraceRays final : public RHICommandBase
+class TraceRays final : public CmdBase
 {
 public:
     TraceRays(const RaytracingPipelineRef& pipeline, const Vec3u& workgroup_count)
@@ -719,30 +719,30 @@ private:
     Vec3u m_workgroup_count;
 };
 
-class RHICommandList
+class CmdList
 {
 public:
-    RHICommandList();
-    RHICommandList(const RHICommandList& other) = delete;
-    RHICommandList& operator=(const RHICommandList& other) = delete;
-    RHICommandList(RHICommandList&& other) noexcept = delete;
-    RHICommandList& operator=(RHICommandList&& other) noexcept = delete;
-    ~RHICommandList();
+    CmdList();
+    CmdList(const CmdList& other) = delete;
+    CmdList& operator=(const CmdList& other) = delete;
+    CmdList(CmdList&& other) noexcept = delete;
+    CmdList& operator=(CmdList&& other) noexcept = delete;
+    ~CmdList();
 
-    HYP_FORCE_INLINE const Array<RHICommandBase*>& GetCommands() const
+    HYP_FORCE_INLINE const Array<CmdBase*>& GetCommands() const
     {
         return m_commands;
     }
 
-    template <class RHICommandType, class... Args>
+    template <class CmdType, class... Args>
     void Add(Args&&... args)
     {
-        static RHICommandMemoryPool<RHICommandType>& pool = RHICommandMemoryPool<RHICommandType>::GetInstance();
+        static CmdMemoryPool<CmdType>& pool = CmdMemoryPool<CmdType>::GetInstance();
 
         m_commands.PushBack(pool.NewCommand(std::forward<Args>(args)...));
     }
 
-    void Concat(RHICommandList&& other)
+    void Concat(CmdList&& other)
     {
         m_commands.Concat(std::move(other.m_commands));
     }
@@ -751,9 +751,9 @@ public:
     void Execute(const CommandBufferRef& cmd);
 
 private:
-    void FreeCommand(RHICommandBase* command);
+    void FreeCommand(CmdBase* command);
 
-    Array<RHICommandBase*> m_commands;
+    Array<CmdBase*> m_commands;
 };
 
 } // namespace hyperion

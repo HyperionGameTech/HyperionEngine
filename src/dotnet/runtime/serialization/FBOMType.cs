@@ -82,12 +82,12 @@ namespace Hyperion
             }
         }
 
-        public TypeID NativeTypeID
+        public TypeId NativeTypeId
         {
             get
             {
-                TypeID typeId;
-                FBOMType_GetNativeTypeID(ptr, out typeId);
+                TypeId typeId;
+                FBOMType_GetNativeTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -131,8 +131,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "FBOMType_GetName")]
         public static extern IntPtr FBOMType_GetName([In] IntPtr ptr);
 
-        [DllImport("hyperion", EntryPoint = "FBOMType_GetNativeTypeID")]
-        public static extern void FBOMType_GetNativeTypeID([In] IntPtr ptr, [Out] out TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "FBOMType_GetNativeTypeId")]
+        public static extern void FBOMType_GetNativeTypeId([In] IntPtr ptr, [Out] out TypeId typeId);
 
         [DllImport("hyperion", EntryPoint = "FBOMType_GetHypClass")]
         public static extern IntPtr FBOMType_GetHypClass([In] IntPtr ptr);

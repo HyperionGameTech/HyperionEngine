@@ -70,7 +70,7 @@ void ReflectionProbeRenderer::OnUpdate(float delta)
 
         virtual RendererResult operator()() override
         {
-            FrameBase* frame = g_rendering_api->GetCurrentFrame();
+            FrameBase* frame = g_render_backend->GetCurrentFrame();
 
             RenderSetup render_setup { world, nullptr };
 

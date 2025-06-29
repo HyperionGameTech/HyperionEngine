@@ -121,12 +121,12 @@ void RenderGroup::Init()
         }));
 
     // If parallel rendering is globally disabled, disable it for this RenderGroup
-    if (!g_rendering_api->GetRenderConfig().IsParallelRenderingEnabled())
+    if (!g_render_backend->GetRenderConfig().IsParallelRenderingEnabled())
     {
         m_flags &= ~RenderGroupFlags::PARALLEL_RENDERING;
     }
 
-    if (!g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled())
+    if (!g_render_backend->GetRenderConfig().IsIndirectRenderingEnabled())
     {
         m_flags &= ~RenderGroupFlags::INDIRECT_RENDERING;
     }
@@ -154,7 +154,7 @@ GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd) const
     {
         const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
         descriptor_table->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists
@@ -164,7 +164,7 @@ GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd) const
         {
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
-                const GPUBufferRef& gpu_buffer = m_draw_call_collection_impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
+                const GpuBufferRef& gpu_buffer = m_draw_call_collection_impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
                 AssertThrow(gpu_buffer.IsValid());
 
                 const DescriptorSetRef& instancing_descriptor_set = descriptor_table->GetDescriptorSet(NAME("Instancing"), frame_index);
@@ -271,7 +271,7 @@ static void RenderAll(
         AssertDebug(indirect_renderer != nullptr);
     }
 
-    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool use_bindless_textures = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     if (draw_call_collection.instanced_draw_calls.Empty() && draw_call_collection.draw_calls.Empty())
     {
@@ -346,7 +346,7 @@ static void RenderAll(
             offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
             offsets[NAME("CurrentObject")] = ShaderDataOffset<EntityShaderData>(draw_call.entity_id.ToIndex());
 
-            if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+            if (g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
             {
                 offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
             }
@@ -399,7 +399,7 @@ static void RenderAll(
             ArrayMap<Name, uint32> offsets;
             offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
 
-            if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+            if (g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
             {
                 offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
             }
@@ -471,7 +471,7 @@ static void RenderAll_Parallel(
 
     AssertDebug(parallel_rendering_state != nullptr);
 
-    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool use_bindless_textures = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     if (draw_call_collection.instanced_draw_calls.Empty() && draw_call_collection.draw_calls.Empty())
     {
@@ -489,7 +489,7 @@ static void RenderAll_Parallel(
     const uint32 view_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
     const uint32 material_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
 
-    RHICommandList& base_command_list = parallel_rendering_state->base_command_list;
+    CmdList& base_command_list = parallel_rendering_state->base_command_list;
 
     base_command_list.Add<BindGraphicsPipeline>(pipeline);
 
@@ -499,7 +499,7 @@ static void RenderAll_Parallel(
 
         if (render_setup.env_probe)
         {
-            if (IRenderProxy* proxy = RendererAPI_GetRenderProxy(render_setup.env_probe->GetID()))
+            if (IRenderProxy* proxy = RenderApi_GetRenderProxy(render_setup.env_probe->GetID()))
             {
                 env_probe_proxy = static_cast<RenderProxyEnvProbe*>(proxy);
             }
@@ -553,7 +553,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                RHICommandList& command_list = parallel_rendering_state->command_lists[index];
+                CmdList& command_list = parallel_rendering_state->command_lists[index];
 
                 const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
                 const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
@@ -566,7 +566,7 @@ static void RenderAll_Parallel(
                         offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
                         offsets[NAME("CurrentObject")] = ShaderDataOffset<EntityShaderData>(draw_call.entity_id.ToIndex());
 
-                        if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        if (g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
                         {
                             offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
                         }
@@ -626,7 +626,7 @@ static void RenderAll_Parallel(
                     return;
                 }
 
-                RHICommandList& command_list = parallel_rendering_state->command_lists[index];
+                CmdList& command_list = parallel_rendering_state->command_lists[index];
 
                 const uint32 entity_descriptor_set_index = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
                 const DescriptorSetRef& entity_descriptor_set = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frame_index);
@@ -647,7 +647,7 @@ static void RenderAll_Parallel(
                         ArrayMap<Name, uint32> offsets;
                         offsets[NAME("SkeletonsBuffer")] = ShaderDataOffset<SkeletonShaderData>(draw_call.render_skeleton != nullptr ? draw_call.render_skeleton->GetBufferIndex() : 0);
 
-                        if (g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
+                        if (g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial())
                         {
                             offsets[NAME("MaterialsBuffer")] = ShaderDataOffset<MaterialShaderData>(draw_call.render_material != nullptr ? draw_call.render_material->GetBufferIndex() : 0);
                         }
@@ -744,7 +744,7 @@ void RenderGroup::PerformRendering(FrameBase* frame, const RenderSetup& render_s
 
     // AssertThrow(cache_entry->graphics_pipeline->GetFramebuffers()[0]->GetAttachment(0)->GetFormat() == render_setup.pass_data->view.GetUnsafe()->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetFormat());
 
-    static const bool is_indirect_rendering_enabled = g_rendering_api->GetRenderConfig().IsIndirectRenderingEnabled();
+    static const bool is_indirect_rendering_enabled = g_render_backend->GetRenderConfig().IsIndirectRenderingEnabled();
 
     const bool use_indirect_rendering = is_indirect_rendering_enabled
         && m_flags[RenderGroupFlags::INDIRECT_RENDERING]

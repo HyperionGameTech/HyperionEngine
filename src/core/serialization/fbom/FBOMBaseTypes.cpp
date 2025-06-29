@@ -10,7 +10,7 @@ FBOMObjectType::FBOMObjectType(const HypClass* hyp_class)
     : FBOMType(
           hyp_class->GetName().LookupString(),
           hyp_class->GetSize(),
-          hyp_class->GetTypeID(),
+          hyp_class->GetTypeId(),
           FBOMTypeFlags::CONTAINER,
           hyp_class->GetParent() ? FBOMObjectType(hyp_class->GetParent()) : FBOMBaseObjectType())
 {

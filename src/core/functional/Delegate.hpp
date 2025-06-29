@@ -51,7 +51,7 @@ struct DelegateHandlerEntryBase
 {
     uint32 index;
     AtomicVar<uint64> mask;
-    ThreadID calling_thread_id;
+    ThreadId calling_thread_id;
 
     HYP_FORCE_INLINE void MarkForRemoval()
     {
@@ -381,7 +381,7 @@ public:
     {
         AssertDebugMsg(std::is_void_v<ReturnType> || !require_current_thread, "Cannot use require_current_thread for non-void delegate return type");
 
-        return Bind(std::move(proc), require_current_thread ? ThreadID::Current() : ThreadID::Invalid());
+        return Bind(std::move(proc), require_current_thread ? ThreadId::Current() : ThreadId::Invalid());
     }
 
     /*! \brief Bind a Proc<> to the Delegate.
@@ -391,12 +391,12 @@ public:
      *  \param proc The Proc to bind.
      *  \param calling_thread_id The thread to call the bound function on.
      *  \return  A reference counted DelegateHandler object that can be used to remove the handler from the Delegate. */
-    HYP_NODISCARD DelegateHandler Bind(ProcType&& proc, const ThreadID& calling_thread_id)
+    HYP_NODISCARD DelegateHandler Bind(ProcType&& proc, const ThreadId& calling_thread_id)
     {
-        AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadID::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
+        AssertDebugMsg(std::is_void_v<ReturnType> || !calling_thread_id.IsValid() || calling_thread_id == ThreadId::Current(), "Cannot call a handler on a different thread if the delegate returns a value");
 
 #ifdef HYP_DEBUG_MODE
-        if (calling_thread_id != ThreadID::Invalid())
+        if (calling_thread_id != ThreadId::Invalid())
         {
             AssertDebugMsg(Threads::GetThread(calling_thread_id) != nullptr, "Cannot bind a handler to a thread that is not registered with the Threads system");
         }
@@ -510,7 +510,7 @@ public:
         // Mutex to prevent adding new elements to the list or broadcasting from another thread.
         Mutex::Guard guard(m_mutex);
 
-        const ThreadID current_thread_id = Threads::CurrentThreadID();
+        const ThreadId current_thread_id = Threads::CurrentThreadId();
 
         ValueStorage<ReturnType> result_storage;
         bool result_constructed = false;

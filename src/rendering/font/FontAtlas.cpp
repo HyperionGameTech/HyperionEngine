@@ -4,7 +4,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/SafeDeleter.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -70,7 +70,7 @@ struct RENDER_COMMAND(FontAtlas_RenderCharacter)
         AssertThrowMsg(cell_dimensions.x >= extent.x, "Cell width (%u) is less than glyph width (%u)", cell_dimensions.x, extent.x);
         AssertThrowMsg(cell_dimensions.y >= extent.y, "Cell height (%u) is less than glyph height (%u)", cell_dimensions.y, extent.y);
 
-        commands.Push([&](RHICommandList& cmd)
+        commands.Push([&](CmdList& cmd)
             {
                 // put src image in state for copying from
                 cmd.Add<InsertBarrier>(image, RS_COPY_SRC);
@@ -341,7 +341,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
         ByteBuffer& out_buffer;
         uint32 buffer_size;
 
-        GPUBufferRef buffer;
+        GpuBufferRef buffer;
 
         RENDER_COMMAND(FontAtlas_WriteToBuffer)(Handle<Texture> atlas, ByteBuffer& out_buffer, uint32 buffer_size)
             : atlas(std::move(atlas)),
@@ -361,7 +361,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
         {
             RendererResult result;
 
-            buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, buffer_size);
+            buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, buffer_size);
             HYPERION_ASSERT_RESULT(buffer->Create());
 
             if (!result)
@@ -374,7 +374,7 @@ void FontAtlas::WriteToBuffer(uint32 pixel_size, ByteBuffer& buffer) const
             AssertThrow(atlas);
             AssertThrow(atlas->IsReady());
 
-            commands.Push([&](RHICommandList& cmd)
+            commands.Push([&](CmdList& cmd)
                 {
                     // put src image in state for copying from
                     cmd.Add<InsertBarrier>(atlas->GetRenderResource().GetImage(), RS_COPY_SRC);

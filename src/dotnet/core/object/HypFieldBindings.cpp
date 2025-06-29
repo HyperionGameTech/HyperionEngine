@@ -21,14 +21,14 @@ extern "C"
         *out_name = field->GetName();
     }
 
-    HYP_EXPORT void HypField_GetTypeID(const HypField* field, TypeID* out_type_id)
+    HYP_EXPORT void HypField_GetTypeId(const HypField* field, TypeId* out_type_id)
     {
         if (!field || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = field->GetTypeID();
+        *out_type_id = field->GetTypeId();
     }
 
     HYP_EXPORT uint32 HypField_GetOffset(const HypField* field)

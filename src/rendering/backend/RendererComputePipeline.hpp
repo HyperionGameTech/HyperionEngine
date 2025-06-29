@@ -41,7 +41,7 @@ public:
     HYP_API virtual void Dispatch(CommandBufferBase* command_buffer, const Vec3u& group_size) const = 0;
     HYP_API virtual void DispatchIndirect(
         CommandBufferBase* command_buffer,
-        const GPUBufferRef& indirect_buffer,
+        const GpuBufferRef& indirect_buffer,
         SizeType offset = 0) const = 0;
 
     // Deprecated - will be removed to decouple from vulkan

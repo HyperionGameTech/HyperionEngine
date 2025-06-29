@@ -23,7 +23,7 @@ class WorldGrid;
 struct DetachedScenesContainer
 {
     World* world;
-    HashMap<ThreadID, Handle<Scene>> scenes;
+    HashMap<ThreadId, Handle<Scene>> scenes;
     Mutex mutex;
 
     DetachedScenesContainer(World* world)
@@ -31,7 +31,7 @@ struct DetachedScenesContainer
     {
     }
 
-    const Handle<Scene>& GetDetachedScene(const ThreadID& thread_id)
+    const Handle<Scene>& GetDetachedScene(const ThreadId& thread_id)
     {
         Mutex::Guard guard(mutex);
 
@@ -46,7 +46,7 @@ struct DetachedScenesContainer
     }
 
 private:
-    Handle<Scene> CreateSceneForThread(const ThreadID& thread_id)
+    Handle<Scene> CreateSceneForThread(const ThreadId& thread_id)
     {
         Handle<Scene> scene = CreateObject<Scene>(world, thread_id, SceneFlags::DETACHED);
         scene->SetName(CreateNameFromDynamicString(ANSIString("DetachedSceneForThread_") + *thread_id.GetName()));
@@ -84,7 +84,7 @@ public:
      *\param thread_id The thread the Scene should be associated with.
      * \return The handle for the detached Scene for the given thread.
      */
-    const Handle<Scene>& GetDetachedScene(const ThreadID& thread_id);
+    const Handle<Scene>& GetDetachedScene(const ThreadId& thread_id);
 
     HYP_FORCE_INLINE PhysicsWorld& GetPhysicsWorld()
     {
@@ -101,7 +101,7 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return AddSubsystem(TypeID::ForType<T>(), CreateObject<T>(std::forward<Args>(args)...)).template Cast<T>();
+        return AddSubsystem(TypeId::ForType<T>(), CreateObject<T>(std::forward<Args>(args)...)).template Cast<T>();
     }
 
     template <class T>
@@ -109,20 +109,20 @@ public:
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return AddSubsystem(TypeID::ForType<T>(), subsystem).template Cast<T>();
+        return AddSubsystem(TypeId::ForType<T>(), subsystem).template Cast<T>();
     }
 
-    Handle<Subsystem> AddSubsystem(TypeID type_id, const Handle<Subsystem>& subsystem);
+    Handle<Subsystem> AddSubsystem(TypeId type_id, const Handle<Subsystem>& subsystem);
 
     template <class T>
     HYP_FORCE_INLINE T* GetSubsystem()
     {
         static_assert(std::is_base_of_v<Subsystem, T>, "T must be a subclass of Subsystem");
 
-        return static_cast<T*>(GetSubsystem(TypeID::ForType<T>()));
+        return static_cast<T*>(GetSubsystem(TypeId::ForType<T>()));
     }
 
-    Subsystem* GetSubsystem(TypeID type_id) const;
+    Subsystem* GetSubsystem(TypeId type_id) const;
 
     HYP_METHOD()
     Subsystem* GetSubsystemByName(WeakName name) const;
@@ -157,7 +157,7 @@ public:
     /*! \brief Get the number of Scenes in the World. Must be called on the game thread.
      *  \return The number of Scenes in the World. */
     HYP_METHOD()
-    bool HasScene(ID<Scene> scene_id) const;
+    bool HasScene(Id<Scene> scene_id) const;
 
     /*! \brief Find a Scene by its Name property. If no Scene with the given name exists, an empty handle is returned. Must be called on the game thread.
      *  \param name The name of the Scene to find.

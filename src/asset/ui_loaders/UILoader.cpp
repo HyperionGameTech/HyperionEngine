@@ -728,7 +728,7 @@ public:
 
                     if (json_parse_result.ok)
                     {
-                        if (!JSONToHypData(json_parse_result.value, member.GetTypeID(), data))
+                        if (!JSONToHypData(json_parse_result.value, member.GetTypeId(), data))
                         {
                             HYP_LOG(Assets, Error, "Failed to deserialize field \"{}\" of HypClass \"{}\" from JSON",
                                 member.GetName(), ui_object->GetName());
@@ -920,7 +920,7 @@ AssetLoadResult UILoader::LoadAsset(LoaderState& state) const
 {
     AssertThrow(state.asset_manager != nullptr);
 
-    Handle<UIObject> ui_stage = CreateObject<UIStage>(ThreadID::Current());
+    Handle<UIObject> ui_stage = CreateObject<UIStage>(ThreadId::Current());
     InitObject(ui_stage);
 
     UISAXHandler handler(&state, static_cast<UIStage*>(ui_stage.Get()));

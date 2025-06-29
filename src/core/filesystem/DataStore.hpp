@@ -42,14 +42,14 @@ class HYP_API DataStoreBase : public IResource
     using ShutdownSemaphore = Semaphore<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE, threading::ConditionVarSemaphoreImpl<int32, SemaphoreDirection::WAIT_FOR_ZERO_OR_NEGATIVE>>;
 
 public:
-    static DataStoreBase* GetOrCreate(TypeID data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn);
+    static DataStoreBase* GetOrCreate(TypeId data_store_type_id, UTF8StringView prefix, ProcRef<DataStoreBase*(UTF8StringView)>&& create_fn);
 
     template <class DataStoreType>
     static DataStoreType& GetOrCreate(UTF8StringView prefix)
     {
         static_assert(std::is_base_of_v<DataStoreBase, DataStoreType>, "DataStoreType must be a subclass of DataStoreBase");
 
-        DataStoreBase* ptr = DataStoreBase::GetOrCreate(TypeID::ForType<DataStoreType>(), prefix, [](UTF8StringView prefix) -> DataStoreBase*
+        DataStoreBase* ptr = DataStoreBase::GetOrCreate(TypeId::ForType<DataStoreType>(), prefix, [](UTF8StringView prefix) -> DataStoreBase*
             {
                 return AllocateResource<DataStoreType>(prefix);
             });

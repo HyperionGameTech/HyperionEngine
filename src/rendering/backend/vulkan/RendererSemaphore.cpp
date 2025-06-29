@@ -1,17 +1,17 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/backend/vulkan/RendererSemaphore.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 VulkanSemaphore::VulkanSemaphore(VkPipelineStageFlags pipeline_stage)
@@ -30,7 +30,7 @@ RendererResult VulkanSemaphore::Create()
     VkSemaphoreCreateInfo semaphore_info { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateSemaphore(GetRenderingAPI()->GetDevice()->GetDevice(), &semaphore_info, nullptr, &m_semaphore),
+        vkCreateSemaphore(GetRenderBackend()->GetDevice()->GetDevice(), &semaphore_info, nullptr, &m_semaphore),
         "Failed to create semaphore");
 
     HYPERION_RETURN_OK;
@@ -38,7 +38,7 @@ RendererResult VulkanSemaphore::Create()
 
 RendererResult VulkanSemaphore::Destroy()
 {
-    vkDestroySemaphore(GetRenderingAPI()->GetDevice()->GetDevice(), m_semaphore, nullptr);
+    vkDestroySemaphore(GetRenderBackend()->GetDevice()->GetDevice(), m_semaphore, nullptr);
     m_semaphore = nullptr;
 
     HYPERION_RETURN_OK;

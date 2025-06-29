@@ -18,9 +18,9 @@ HYP_DECLARE_LOG_CHANNEL(RenderCollection);
 
 extern RenderGlobalState* g_render_global_state;
 
-HYP_API GPUBufferHolderMap* GetGPUBufferHolderMap()
+HYP_API GpuBufferHolderMap* GetGpuBufferHolderMap()
 {
-    return g_render_global_state->GPUBufferHolderMap.Get();
+    return g_render_global_state->GpuBufferHolderMap.Get();
 }
 
 #pragma region DrawCallCollection
@@ -92,7 +92,7 @@ void DrawCallCollection::PushRenderProxyInstanced(EntityInstanceBatch* batch, Dr
 
     AssertDebug(initial_num_instances > 0);
 
-    GPUBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
+    GpuBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
     AssertThrow(entity_instance_batches != nullptr);
 
     while (num_instances != 0)
@@ -177,7 +177,7 @@ void DrawCallCollection::ResetDrawCalls()
 {
     AssertDebug(impl != nullptr);
 
-    GPUBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
+    GpuBufferHolderBase* entity_instance_batches = impl->GetEntityInstanceBatchHolder();
     AssertDebug(entity_instance_batches != nullptr);
 
     for (InstancedDrawCall& draw_call : instanced_draw_calls)
@@ -200,7 +200,7 @@ void DrawCallCollection::ResetDrawCalls()
     index_map.Clear();
 }
 
-uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<Entity> entity_id, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
+uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, Id<Entity> entity_id, const MeshInstanceData& mesh_instance_data, uint32 num_instances, uint32 instance_offset)
 {
 #ifdef HYP_DEBUG_MODE // Sanity check
     AssertThrow(num_instances <= mesh_instance_data.num_instances);
@@ -295,7 +295,7 @@ uint32 DrawCallCollection::PushEntityToBatch(InstancedDrawCall& draw_call, ID<En
 static TypeMap<UniquePtr<IDrawCallCollectionImpl>> g_draw_call_collection_impl_map = {};
 static Mutex g_draw_call_collection_impl_map_mutex = {};
 
-HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeID type_id)
+HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeId type_id)
 {
     Mutex::Guard guard(g_draw_call_collection_impl_map_mutex);
 
@@ -304,7 +304,7 @@ HYP_API IDrawCallCollectionImpl* GetDrawCallCollectionImpl(TypeID type_id)
     return it != g_draw_call_collection_impl_map.End() ? it->second.Get() : nullptr;
 }
 
-HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeID type_id, UniquePtr<IDrawCallCollectionImpl>&& impl)
+HYP_API IDrawCallCollectionImpl* SetDrawCallCollectionImpl(TypeId type_id, UniquePtr<IDrawCallCollectionImpl>&& impl)
 {
     Mutex::Guard guard(g_draw_call_collection_impl_map_mutex);
 

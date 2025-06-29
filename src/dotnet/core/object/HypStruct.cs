@@ -34,7 +34,7 @@ namespace Hyperion
     {
         private static readonly Dictionary<Type, DynamicHypStruct> cache = new Dictionary<Type, DynamicHypStruct>();
         private static readonly object cacheLock = new object();
-        private static readonly ConcurrentDictionary<TypeID, DynamicHypStruct> typeIdCache = new ConcurrentDictionary<TypeID, DynamicHypStruct>();
+        private static readonly ConcurrentDictionary<TypeId, DynamicHypStruct> typeIdCache = new ConcurrentDictionary<TypeId, DynamicHypStruct>();
         private static readonly object typeIdCacheLock = new object();
 
         private HypClass hypClass;
@@ -47,14 +47,14 @@ namespace Hyperion
         {
             this.type = type;
 
-            TypeID typeId = TypeID.ForType(type);
+            TypeId typeId = TypeId.ForType(type);
 
             lock (typeIdCacheLock)
             {
                 if (typeIdCache.ContainsKey(typeId))
                 {
                     DynamicHypStruct existingDynamicHypStruct = typeIdCache[typeId];
-                    Assert.Throw(existingDynamicHypStruct.type == type, "TypeID already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicHypStruct.type.Name + " (hashcode: " + existingDynamicHypStruct.type.GetHashCode() + ")");
+                    Assert.Throw(existingDynamicHypStruct.type == type, "TypeId already exists for a different type: " + type.Name + " (hashcode: " + type.GetHashCode() + ") != " + existingDynamicHypStruct.type.Name + " (hashcode: " + existingDynamicHypStruct.type.GetHashCode() + ")");
 
                     hypClass = existingDynamicHypStruct.hypClass;
                     ownsHypClass = false;
@@ -128,8 +128,8 @@ namespace Hyperion
 
         public object? MarshalFromHypData(ref HypDataBuffer buffer)
         {
-            TypeID typeId = buffer.TypeID;
-            Assert.Throw(typeId == hypClass.TypeID, "TypeID mismatch: " + typeId + " != " + hypClass.TypeID);
+            TypeId typeId = buffer.TypeId;
+            Assert.Throw(typeId == hypClass.TypeId, "TypeId mismatch: " + typeId + " != " + hypClass.TypeId);
 
             IntPtr hypDataPtr = buffer.Pointer;
 
@@ -161,7 +161,7 @@ namespace Hyperion
             }
         }
 
-        public static bool TryGet(TypeID typeId, out DynamicHypStruct? dynamicHypStruct)
+        public static bool TryGet(TypeId typeId, out DynamicHypStruct? dynamicHypStruct)
         {
             dynamicHypStruct = null;
 
@@ -188,7 +188,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "HypStruct_CreateDynamicHypStruct")]
-        private static extern IntPtr HypStruct_CreateDynamicHypStruct([In] ref TypeID typeId, [MarshalAs(UnmanagedType.LPStr)] string typeName, uint size, IntPtr destructFunction);
+        private static extern IntPtr HypStruct_CreateDynamicHypStruct([In] ref TypeId typeId, [MarshalAs(UnmanagedType.LPStr)] string typeName, uint size, IntPtr destructFunction);
 
         [DllImport("hyperion", EntryPoint = "HypStruct_DestroyDynamicHypStruct")]
         private static extern void HypStruct_DestroyDynamicHypStruct([In] IntPtr hypClassPtr);

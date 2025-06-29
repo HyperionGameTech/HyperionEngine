@@ -48,7 +48,7 @@ void PostFXPass::CreateDescriptors()
         return;
     }
 
-    if (!g_rendering_api->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
+    if (!g_render_backend->GetRenderConfig().IsDynamicDescriptorIndexingSupported())
     {
         HYP_LOG(Rendering, Warning, "Creating post processing pass on a device that does not support dynamic descriptor indexing");
 
@@ -164,7 +164,7 @@ void PostProcessing::PerformUpdates()
     {
         for (auto& it : m_effects_pending_addition[stage_index])
         {
-            const TypeID type_id = it.first;
+            const TypeId type_id = it.first;
             auto& effect = it.second;
 
             AssertThrow(effect != nullptr);
@@ -178,7 +178,7 @@ void PostProcessing::PerformUpdates()
 
         m_effects_pending_addition[stage_index].Clear();
 
-        for (const TypeID type_id : m_effects_pending_removal[stage_index])
+        for (const TypeId type_id : m_effects_pending_removal[stage_index])
         {
             const auto effects_it = m_effects[stage_index].Find(type_id);
 
@@ -237,7 +237,7 @@ void PostProcessing::CreateUniformBuffer()
 
     const PostProcessingUniforms post_processing_uniforms = GetUniforms();
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(post_processing_uniforms));
+    m_uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(post_processing_uniforms));
     HYPERION_ASSERT_RESULT(m_uniform_buffer->Create());
     m_uniform_buffer->Copy(sizeof(PostProcessingUniforms), &post_processing_uniforms);
 }

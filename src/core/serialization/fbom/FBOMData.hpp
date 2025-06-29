@@ -90,11 +90,11 @@ struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fund
 
     HYP_FORCE_INLINE FBOMResult Read(T* out) const
     {
-        const TypeID type_id = target.GetType().GetNativeTypeID();
+        const TypeId type_id = target.GetType().GetNativeTypeId();
 
         auto ReadAsType = [this, &out, &type_id]<class TReadAsType>(TypeWrapper<TReadAsType>) -> bool
         {
-            if (type_id == TypeID::ForType<TReadAsType>())
+            if (type_id == TypeId::ForType<TReadAsType>())
             {
                 TReadAsType value;
                 target.ReadBytes(target.GetType().size, &value);
@@ -119,7 +119,7 @@ struct FBOMDataTypeOps<FBOMData, T, FBOMTypeClass, std::enable_if_t<std::is_fund
         {
             if (target.GetType().IsNumeric())
             {
-                AssertThrowMsg(type_id != TypeID::Void(), "Type must have a valid native TypeID if it is numeric");
+                AssertThrowMsg(type_id != TypeId::Void(), "Type must have a valid native TypeId if it is numeric");
 
                 if (ReadAsType(TypeWrapper<uint8> {}) || ReadAsType(TypeWrapper<uint16> {}) || ReadAsType(TypeWrapper<uint32> {}) || ReadAsType(TypeWrapper<uint64> {})
                     || ReadAsType(TypeWrapper<int8> {}) || ReadAsType(TypeWrapper<int16> {}) || ReadAsType(TypeWrapper<int32> {}) || ReadAsType(TypeWrapper<int64> {})
@@ -386,20 +386,20 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool IsStruct() const
     {
-        return m_type.IsOrExtends(FBOMStruct(TypeNameWithoutNamespace<NormalizedType<T>>(), -1, TypeID::ForType<NormalizedType<T>>()), /* allow_unbounded */ true, /* allow_void_type_id */ true);
+        return m_type.IsOrExtends(FBOMStruct(TypeNameWithoutNamespace<NormalizedType<T>>(), -1, TypeId::ForType<NormalizedType<T>>()), /* allow_unbounded */ true, /* allow_void_type_id */ true);
     }
 
-    HYP_FORCE_INLINE bool IsStruct(const char* type_name, TypeID type_id) const
+    HYP_FORCE_INLINE bool IsStruct(const char* type_name, TypeId type_id) const
     {
         return m_type.IsOrExtends(FBOMStruct(type_name, -1, type_id), /* allow_unbounded */ true, /* allow_void_type_id */ true);
     }
 
-    HYP_FORCE_INLINE bool IsStruct(const char* type_name, SizeType size, TypeID type_id) const
+    HYP_FORCE_INLINE bool IsStruct(const char* type_name, SizeType size, TypeId type_id) const
     {
         return m_type.IsOrExtends(FBOMStruct(type_name, size, type_id), /* allow_unbounded */ true, /* allow_void_type_id */ true);
     }
 
-    HYP_FORCE_INLINE FBOMResult ReadStruct(const char* type_name, SizeType size, TypeID type_id, void* out) const
+    HYP_FORCE_INLINE FBOMResult ReadStruct(const char* type_name, SizeType size, TypeId type_id, void* out) const
     {
         AssertThrow(out != nullptr);
 
@@ -415,7 +415,7 @@ public:
     {
         AssertStaticMsgCond(CompileTimeChecked, is_pod_type<T>, "T must be POD to use ReadStruct()");
 
-        return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeID::ForType<NormalizedType<T>>(), out);
+        return ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeId::ForType<NormalizedType<T>>(), out);
     }
 
     template <class T, bool CompileTimeChecked = true>
@@ -425,7 +425,7 @@ public:
 
         ValueStorage<NormalizedType<T>> result_storage;
 
-        if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeID::ForType<NormalizedType<T>>(), result_storage.GetPointer()))
+        if (FBOMResult err = ReadStruct(TypeNameWithoutNamespace<NormalizedType<T>>().Data(), sizeof(NormalizedType<T>), TypeId::ForType<NormalizedType<T>>(), result_storage.GetPointer()))
         {
             HYP_FAIL("Failed to read struct of type %s: %s", TypeNameWithoutNamespace<NormalizedType<T>>().Data(), *err.message);
         }

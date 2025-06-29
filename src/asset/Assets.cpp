@@ -87,7 +87,7 @@ void AssetCollector::NotifyAssetChanged(const FilePath& path, AssetChangeType ch
 class AssetManagerWorkerThread : public TaskThread
 {
 public:
-    AssetManagerWorkerThread(ThreadID id)
+    AssetManagerWorkerThread(ThreadId id)
         : TaskThread(id, ThreadPriorityValue::NORMAL)
     {
     }
@@ -289,7 +289,7 @@ void AssetManager::RegisterDefaultLoaders()
     Register<UILoader, UIObject>();
 }
 
-const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& path, TypeID desired_type_id)
+const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& path, TypeId desired_type_id)
 {
     HYP_SCOPE;
 
@@ -303,7 +303,7 @@ const AssetLoaderDefinition* AssetManager::GetLoaderDefinition(const FilePath& p
     {
         uint32 rank = 0;
 
-        if (desired_type_id != TypeID::Void())
+        if (desired_type_id != TypeId::Void())
         {
             if (!asset_loader_definition.HandlesResultType(desired_type_id))
             {

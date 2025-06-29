@@ -83,7 +83,7 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
                 .user_data = proxy.user_data.ReinterpretAs<EntityUserData>()
             };
 
-            // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity ID index.
+            // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity Id index.
             // This will allow us to remove empty blocks when unused.
             g_render_global_state->gpu_buffers[GRB_ENTITIES]->Set(proxy.entity.GetID().ToIndex(), entity_shader_data);
         }

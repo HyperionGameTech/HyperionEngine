@@ -280,7 +280,7 @@ public:
         return object;
     }
 
-    static FBOMResult Deserialize(FBOMLoadContext& context, TypeID type_id, const FBOMObject& in, HypData& out);
+    static FBOMResult Deserialize(FBOMLoadContext& context, TypeId type_id, const FBOMObject& in, HypData& out);
 
     template <class T, typename = std::enable_if_t<!std::is_same_v<FBOMObject, NormalizedType<T>>>>
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out)
@@ -294,18 +294,18 @@ public:
         return GetMarshal<T>() != nullptr;
     }
 
-    static FBOMMarshalerBase* GetMarshal(TypeID type_id);
+    static FBOMMarshalerBase* GetMarshal(TypeId type_id);
 
     template <class T>
     HYP_FORCE_INLINE static FBOMMarshalerBase* GetMarshal()
     {
-        return GetMarshal(TypeID::ForType<T>());
+        return GetMarshal(TypeId::ForType<T>());
     }
 
     /*! \brief Returns the associated HypClass for this object type, if applicable.
      *  The type must be registered using the "HYP_CLASS" macro.
      *
-     *  If this object's FBOMType has no native TypeID (e.g it is a FBOM-only type like `seq`), or if
+     *  If this object's FBOMType has no native TypeId (e.g it is a FBOM-only type like `seq`), or if
      *  no HypClass has been registered for the type, nullptr will be returned. */
     HYP_FORCE_INLINE const HypClass* GetHypClass() const
     {
@@ -380,7 +380,7 @@ struct FBOMObjectSerialize_Impl<T, std::enable_if_t<!std::is_same_v<FBOMObject, 
             }
             else
             {
-                const HashCode hash_code = HashCode::GetHashCode(TypeID::ForType<T>()).Add(HashCode::GetHashCode(in));
+                const HashCode hash_code = HashCode::GetHashCode(TypeId::ForType<T>()).Add(HashCode::GetHashCode(in));
 
                 out_object.m_unique_id = UniqueID(hash_code);
             }

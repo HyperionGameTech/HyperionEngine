@@ -29,16 +29,16 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         return { FBOMResult::FBOM_ERR, "Attempting to serialize null object" };
     }
 
-    const HypClass* hyp_class = GetClass(in.GetTypeID());
+    const HypClass* hyp_class = GetClass(in.GetTypeId());
 
     if (!hyp_class)
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeID {} has no associated HypClass", in.GetTypeID().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", in.GetTypeId().Value()) };
     }
 
     if (!hyp_class->CanSerialize())
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeID {} has no associated HypClass", in.GetTypeID().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot serialize object using HypClassInstanceMarshal, TypeId {} has no associated HypClass", in.GetTypeId().Value()) };
     }
 
     const HypClassAttributeValue& serialize_attribute = hyp_class->GetAttribute("serialize");
@@ -67,7 +67,7 @@ FBOMResult HypClassInstanceMarshal::Serialize(ConstAnyRef in, FBOMObject& out) c
         return { FBOMResult::FBOM_OK };
     }
 
-    HypData target_data { AnyRef { in.GetTypeID(), const_cast<void*>(in.GetPointer()) } };
+    HypData target_data { AnyRef { in.GetTypeId(), const_cast<void*>(in.GetPointer()) } };
 
     out = FBOMObject(FBOMObjectType(hyp_class));
 
@@ -108,7 +108,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize(FBOMLoadContext& context, const 
 
     if (!hyp_class)
     {
-        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeID: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeID().Value()) };
+        return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object using HypClassInstanceMarshal, serialized data with type '{}' (TypeId: {}) has no associated HypClass", in.GetType().name, in.GetType().GetNativeTypeId().Value()) };
     }
 
     if (!hyp_class->CreateInstance(out))
@@ -174,7 +174,7 @@ FBOMResult HypClassInstanceMarshal::Deserialize_Internal(FBOMLoadContext& contex
                 // temp
                 if (property->GetName() == NAME("Entity") && hyp_class == Node::Class())
                 {
-                    HYP_LOG(Serialization, Debug, "Setting entity for Node with ID : {}, and name: {}", ref.Get<Node>().GetID(), ref.Get<Node>().GetName());
+                    HYP_LOG(Serialization, Debug, "Setting entity for Node with Id : {}, and name: {}", ref.Get<Node>().GetID(), ref.Get<Node>().GetName());
                 }
 
                 if (hyp_class->GetName() == NAME("MeshComponent"))

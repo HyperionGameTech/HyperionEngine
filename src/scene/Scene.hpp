@@ -92,7 +92,7 @@ public:
     Scene();
     Scene(EnumFlags<SceneFlags> flags);
     Scene(World* world, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
-    Scene(World* world, ThreadID owner_thread_id, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
+    Scene(World* world, ThreadId owner_thread_id, EnumFlags<SceneFlags> flags = SceneFlags::NONE);
     Scene(const Scene& other) = delete;
     Scene& operator=(const Scene& other) = delete;
     ~Scene();
@@ -102,16 +102,16 @@ public:
         return *m_render_resource;
     }
 
-    /*! \brief Get the thread ID that owns this Scene. */
-    HYP_FORCE_INLINE ThreadID GetOwnerThreadID() const
+    /*! \brief Get the thread Id that owns this Scene. */
+    HYP_FORCE_INLINE ThreadId GetOwnerThreadId() const
     {
         return m_owner_thread_id;
     }
 
-    /*! \brief Set the thread ID that owns this Scene.
+    /*! \brief Set the thread Id that owns this Scene.
      *  This is used to assert that the Scene is being accessed from the correct thread.
      *  \note Only call this if you know what you are doing. */
-    void SetOwnerThreadID(ThreadID owner_thread_id);
+    void SetOwnerThreadId(ThreadId owner_thread_id);
 
     HYP_METHOD()
     const Handle<Camera>& GetPrimaryCamera() const;
@@ -248,7 +248,7 @@ private:
 
     Handle<Node> m_root;
 
-    ThreadID m_owner_thread_id;
+    ThreadId m_owner_thread_id;
 
     World* m_world;
 

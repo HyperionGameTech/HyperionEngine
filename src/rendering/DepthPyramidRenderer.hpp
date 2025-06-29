@@ -44,7 +44,7 @@ private:
     ImageRef m_depth_pyramid;
     ImageViewRef m_depth_pyramid_view;
     Array<ImageViewRef> m_mip_image_views;
-    Array<GPUBufferRef> m_mip_uniform_buffers;
+    Array<GpuBufferRef> m_mip_uniform_buffers;
     Array<DescriptorTableRef> m_mip_descriptor_tables;
     SamplerRef m_depth_pyramid_sampler;
 

@@ -70,11 +70,11 @@ void RenderEnvironment::Initialize()
     InitObject(m_gaussian_splatting);
 
     /// FIXME: GetCurrentView() should not be used here
-    // m_rt_radiance = MakeUnique<RTRadianceRenderer>(
-    //     RTRadianceConfig::FromConfig(),
+    // m_rt_radiance = MakeUnique<RaytracingReflections>(
+    //     RaytracingReflectionsConfig::FromConfig(),
     //     g_engine->GetCurrentView()->GetGBuffer());
 
-    if (g_rendering_api->GetRenderConfig().IsRaytracingSupported()
+    if (g_render_backend->GetRenderConfig().IsRaytracingSupported()
         && g_engine->GetAppContext()->GetConfiguration().Get("rendering.rt.enabled").ToBool())
     {
         CreateTopLevelAccelerationStructures();
@@ -94,7 +94,7 @@ void RenderEnvironment::ApplyTLASUpdates(FrameBase* frame, RTUpdateStateFlags fl
 {
     Threads::AssertOnThread(g_render_thread);
 
-    static const bool is_raytracing_supported = g_rendering_api->GetRenderConfig().IsRaytracingSupported();
+    static const bool is_raytracing_supported = g_render_backend->GetRenderConfig().IsRaytracingSupported();
     AssertThrow(is_raytracing_supported);
 
     if (m_has_rt_radiance)
@@ -122,7 +122,7 @@ void RenderEnvironment::RenderDDGIProbes(FrameBase* frame, const RenderSetup& re
 {
     Threads::AssertOnThread(g_render_thread);
 
-    AssertThrow(g_rendering_api->GetRenderConfig().IsRaytracingSupported());
+    AssertThrow(g_render_backend->GetRenderConfig().IsRaytracingSupported());
 
     if (m_has_ddgi_probes)
     {
@@ -201,7 +201,7 @@ bool RenderEnvironment::CreateTopLevelAccelerationStructures()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_top_level_acceleration_structures[frame_index] = g_rendering_api->MakeTLAS();
+        m_top_level_acceleration_structures[frame_index] = g_render_backend->MakeTLAS();
         m_top_level_acceleration_structures[frame_index]->AddBLAS(blas);
 
         DeferCreate(m_top_level_acceleration_structures[frame_index]);

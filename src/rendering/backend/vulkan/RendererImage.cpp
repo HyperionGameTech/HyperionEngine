@@ -2,7 +2,7 @@
 
 #include <rendering/backend/vulkan/RendererImage.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererGraphicsPipeline.hpp>
 #include <rendering/backend/RendererInstance.hpp>
@@ -10,7 +10,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <util/img/ImageUtil.hpp>
 
@@ -29,11 +29,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 extern VkImageLayout GetVkImageLayout(ResourceState);
@@ -325,7 +325,7 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
         vk_image_create_flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    RendererResult format_support_result = GetRenderingAPI()->GetDevice()->GetFeatures().GetImageFormatProperties(
+    RendererResult format_support_result = GetRenderBackend()->GetDevice()->GetFeatures().GetImageFormatProperties(
         vk_format,
         vk_image_type,
         m_tiling,
@@ -339,7 +339,7 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
         HYPERION_BUBBLE_ERRORS(format_support_result);
     }
 
-    const QueueFamilyIndices& qf_indices = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices();
+    const QueueFamilyIndices& qf_indices = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices();
     const uint32 image_family_indices[] = { qf_indices.graphics_family.Get(), qf_indices.compute_family.Get() };
 
     VkImageCreateInfo image_info { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -364,7 +364,7 @@ RendererResult VulkanImage::Create(ResourceState initial_state)
 
     HYPERION_VK_CHECK_MSG(
         vmaCreateImage(
-            GetRenderingAPI()->GetDevice()->GetAllocator(),
+            GetRenderBackend()->GetDevice()->GetAllocator(),
             &image_info,
             &alloc_info,
             &m_handle,
@@ -385,7 +385,7 @@ RendererResult VulkanImage::Destroy()
         {
             AssertThrowMsg(m_is_handle_owned, "If allocation is not VK_NULL_HANDLE, is_handle_owned should be true");
 
-            vmaDestroyImage(GetRenderingAPI()->GetDevice()->GetAllocator(), m_handle, m_allocation);
+            vmaDestroyImage(GetRenderBackend()->GetDevice()->GetAllocator(), m_handle, m_allocation);
             m_allocation = VK_NULL_HANDLE;
         }
 
@@ -442,7 +442,7 @@ RendererResult VulkanImage::Resize(const Vec3u& extent)
 
             SingleTimeCommands commands;
 
-            commands.Push([this, previous_resource_state](RHICommandList& cmd)
+            commands.Push([this, previous_resource_state](CmdList& cmd)
                 {
                     cmd.Add<::hyperion::InsertBarrier>(HandleFromThis(), previous_resource_state);
                 });
@@ -768,7 +768,7 @@ RendererResult VulkanImage::Blit(
     HYPERION_RETURN_OK;
 }
 
-void VulkanImage::CopyFromBuffer(CommandBufferBase* command_buffer, const GPUBufferBase* src_buffer) const
+void VulkanImage::CopyFromBuffer(CommandBufferBase* command_buffer, const GpuBufferBase* src_buffer) const
 {
     const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -798,7 +798,7 @@ void VulkanImage::CopyFromBuffer(CommandBufferBase* command_buffer, const GPUBuf
 
         vkCmdCopyBufferToImage(
             static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
-            static_cast<const VulkanGPUBuffer*>(src_buffer)->GetVulkanHandle(),
+            static_cast<const VulkanGpuBuffer*>(src_buffer)->GetVulkanHandle(),
             m_handle,
             GetVkImageLayout(m_resource_state),
             1,
@@ -806,7 +806,7 @@ void VulkanImage::CopyFromBuffer(CommandBufferBase* command_buffer, const GPUBuf
     }
 }
 
-void VulkanImage::CopyToBuffer(CommandBufferBase* command_buffer, GPUBufferBase* dst_buffer) const
+void VulkanImage::CopyToBuffer(CommandBufferBase* command_buffer, GpuBufferBase* dst_buffer) const
 {
     const auto flags = m_texture_desc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -838,7 +838,7 @@ void VulkanImage::CopyToBuffer(CommandBufferBase* command_buffer, GPUBufferBase*
             static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
             m_handle,
             GetVkImageLayout(m_resource_state),
-            static_cast<VulkanGPUBuffer*>(dst_buffer)->GetVulkanHandle(),
+            static_cast<VulkanGpuBuffer*>(dst_buffer)->GetVulkanHandle(),
             1,
             &region);
     }
@@ -856,7 +856,7 @@ ImageViewRef VulkanImage::MakeLayerImageView(uint32 layer_index) const
         return ImageViewRef();
     }
 
-    return GetRenderingAPI()->MakeImageView(
+    return GetRenderBackend()->MakeImageView(
         HandleFromThis(),
         0,
         NumMipmaps(),

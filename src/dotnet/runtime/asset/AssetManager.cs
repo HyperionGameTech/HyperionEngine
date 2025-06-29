@@ -173,7 +173,7 @@ namespace Hyperion
             if (hypClass == null)
                 throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
 
-            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeID);
+            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeId);
 
             if (loaderDefinitionPtr == IntPtr.Zero)
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
@@ -188,7 +188,7 @@ namespace Hyperion
             if (hypClass == null)
                 throw new Exception("Failed to get HypClass for type: " + typeof(T).Name + ", cannot load asset!");
 
-            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeID);
+            IntPtr loaderDefinitionPtr = AssetManager_GetLoaderDefinition(NativeAddress, path, ((HypClass)hypClass).TypeId);
 
             if (loaderDefinitionPtr == IntPtr.Zero)
                 throw new Exception("Failed to get loader definition for path: " + path + ", cannot load asset!");
@@ -211,7 +211,7 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "AssetManager_GetLoaderDefinition")]
-        private static extern IntPtr AssetManager_GetLoaderDefinition([In] IntPtr assetManagerPtr, [MarshalAs(UnmanagedType.LPStr)] string path, TypeID desiredTypeID);
+        private static extern IntPtr AssetManager_GetLoaderDefinition([In] IntPtr assetManagerPtr, [MarshalAs(UnmanagedType.LPStr)] string path, TypeId desiredTypeId);
 
         [DllImport("hyperion", EntryPoint = "AssetManager_LoadAsync")]
         private static extern void AssetManager_LoadAsync(IntPtr assetManagerPtr, IntPtr handleAssetResultPtr);

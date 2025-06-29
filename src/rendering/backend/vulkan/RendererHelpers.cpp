@@ -5,30 +5,30 @@
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/RendererFence.hpp>
 #include <rendering/backend/vulkan/RendererFrame.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <core/math/MathUtil.hpp>
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
 namespace platform {
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 } // namespace platform
 
 namespace helpers {
 
-VkIndexType ToVkIndexType(GPUElemType datum_type)
+VkIndexType ToVkIndexType(GpuElemType elem_type)
 {
-    switch (datum_type)
+    switch (elem_type)
     {
     case GET_UNSIGNED_BYTE:
         return VK_INDEX_TYPE_UINT8_EXT;
@@ -37,7 +37,7 @@ VkIndexType ToVkIndexType(GPUElemType datum_type)
     case GET_UNSIGNED_INT:
         return VK_INDEX_TYPE_UINT32;
     default:
-        AssertThrowMsg(0, "Unsupported datum type to vulkan index type conversion: %d", int(datum_type));
+        HYP_FAIL("Unsupported gpu element type to vulkan index type conversion: %d", int(elem_type));
     }
 }
 
@@ -244,7 +244,7 @@ SingleTimeCommands<Platform::vulkan>::~SingleTimeCommands()
 template <>
 RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
 {
-    RHICommandList command_list;
+    CmdList command_list;
 
     for (auto& fn : m_functions)
     {
@@ -255,7 +255,7 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
 
     RendererResult result;
 
-    VulkanFrameRef temp_frame = VulkanFrameRef(GetRenderingAPI()->MakeFrame(0));
+    VulkanFrameRef temp_frame = VulkanFrameRef(GetRenderBackend()->MakeFrame(0));
     HYPERION_BUBBLE_ERRORS(temp_frame->Create());
 
     command_list.Prepare(temp_frame);
@@ -263,7 +263,7 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
     temp_frame->UpdateUsedDescriptorSets();
 
     VulkanCommandBufferRef command_buffer = MakeRenderObject<VulkanCommandBuffer>(CommandBufferType::COMMAND_BUFFER_PRIMARY);
-    HYPERION_BUBBLE_ERRORS(command_buffer->Create(GetRenderingAPI()->GetDevice()->GetGraphicsQueue().command_pools[0]));
+    HYPERION_BUBBLE_ERRORS(command_buffer->Create(GetRenderBackend()->GetDevice()->GetGraphicsQueue().command_pools[0]));
 
     HYPERION_BUBBLE_ERRORS(command_buffer->Begin());
 
@@ -278,7 +278,7 @@ RendererResult SingleTimeCommands<Platform::vulkan>::Execute()
     HYPERION_PASS_ERRORS(fence->Reset(), result);
 
     // Submit to the queue
-    VulkanDeviceQueue& queue_graphics = GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
+    VulkanDeviceQueue& queue_graphics = GetRenderBackend()->GetDevice()->GetGraphicsQueue();
 
     HYPERION_PASS_ERRORS(command_buffer->SubmitPrimary(&queue_graphics, fence, nullptr), result);
 

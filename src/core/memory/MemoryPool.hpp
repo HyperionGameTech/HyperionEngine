@@ -17,7 +17,7 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
-#include <core/IDGenerator.hpp>
+#include <core/IdGenerator.hpp>
 
 #include <Types.hpp>
 
@@ -97,10 +97,10 @@ public:
     ~MemoryPoolBase(); // non-virtual intentionally
 
 protected:
-    MemoryPoolBase(ThreadID owner_thread_id, SizeType (*get_num_allocated_bytes)(MemoryPoolBase*));
+    MemoryPoolBase(ThreadId owner_thread_id, SizeType (*get_num_allocated_bytes)(MemoryPoolBase*));
 
-    ThreadID m_owner_thread_id;
-    IDGenerator m_id_generator;
+    ThreadId m_owner_thread_id;
+    IdGenerator m_id_generator;
 
 private:
     void RegisterMemoryPool();
@@ -137,7 +137,7 @@ public:
     static constexpr uint32 s_invalid_index = ~0u;
 
     MemoryPool(uint32 initial_count = InitInfo::num_initial_elements, bool create_initial_blocks = true, void* block_init_ctx = nullptr)
-        : MemoryPoolBase(ThreadID::Current(), &CalculateMemoryUsage),
+        : MemoryPoolBase(ThreadId::Current(), &CalculateMemoryUsage),
           m_initial_num_blocks((initial_count + num_elements_per_block - 1) / num_elements_per_block),
           m_num_blocks(0),
           m_block_init_ctx(block_init_ctx)

@@ -834,7 +834,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                 Handle<Skeleton> skeleton_from_limb = get_skeleton_from_limb_node(*limb_node);
 
                 if (skeleton && skeleton_from_limb && skeleton != skeleton_from_limb) {
-                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with ID {}, but multiple skeletons are attached to the mesh!",
+                    HYP_LOG(Assets, Warning, "LimbNode with id {} has Skeleton with Id {}, but multiple skeletons are attached to the mesh!",
                         cluster->limb_id,
                         skeleton_from_limb->GetID());
                 }
@@ -902,13 +902,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
             if (!child->GetFBXPropertyValue<FBXObjectID>(1, connection.left))
             {
-                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get left ID value");
+                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get left Id value");
                 continue;
             }
 
             if (!child->GetFBXPropertyValue<FBXObjectID>(2, connection.right))
             {
-                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get right ID value");
+                HYP_LOG(Assets, Warning, "Invalid FBX Node connection, cannot get right Id value");
                 continue;
             }
 
@@ -1342,7 +1342,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
         if (left_it == object_mapping.End())
         {
-            INVALID_NODE_CONNECTION("Left ID not found in fbx_node map");
+            INVALID_NODE_CONNECTION("Left Id not found in fbx_node map");
         }
 
         if (!left_it->second.data.IsValid())
@@ -1363,7 +1363,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
         if (right_it == object_mapping.End())
         {
-            INVALID_NODE_CONNECTION("Right ID not found in fbx_node map");
+            INVALID_NODE_CONNECTION("Right Id not found in fbx_node map");
         }
 
         if (!right_it->second.data.IsValid())
@@ -1485,7 +1485,7 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
                     .bucket = RB_OPAQUE
                 });
 
-                Handle<Scene> detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadID());
+                Handle<Scene> detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
                 const Handle<Entity> entity = detached_scene->GetEntityManager()->AddEntity();
 

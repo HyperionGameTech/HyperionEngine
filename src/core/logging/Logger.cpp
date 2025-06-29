@@ -21,15 +21,15 @@ HYP_API Logger& GetLogger()
     return Logger::GetInstance();
 }
 
-class LogChannelIDGenerator
+class LogChannelIdGenerator
 {
 public:
-    LogChannelIDGenerator() = default;
-    LogChannelIDGenerator(const LogChannelIDGenerator& other) = delete;
-    LogChannelIDGenerator& operator=(const LogChannelIDGenerator& other) = delete;
-    LogChannelIDGenerator(LogChannelIDGenerator&& other) noexcept = delete;
-    LogChannelIDGenerator& operator=(LogChannelIDGenerator&& other) noexcept = delete;
-    ~LogChannelIDGenerator() = default;
+    LogChannelIdGenerator() = default;
+    LogChannelIdGenerator(const LogChannelIdGenerator& other) = delete;
+    LogChannelIdGenerator& operator=(const LogChannelIdGenerator& other) = delete;
+    LogChannelIdGenerator(LogChannelIdGenerator&& other) noexcept = delete;
+    LogChannelIdGenerator& operator=(LogChannelIdGenerator&& other) noexcept = delete;
+    ~LogChannelIdGenerator() = default;
 
     HYP_NODISCARD HYP_FORCE_INLINE uint32 Next()
     {
@@ -40,7 +40,7 @@ private:
     AtomicVar<uint32> m_counter { 0 };
 };
 
-static LogChannelIDGenerator g_log_channel_id_generator {};
+static LogChannelIdGenerator g_log_channel_id_generator {};
 
 #pragma region LoggerOutputStream
 

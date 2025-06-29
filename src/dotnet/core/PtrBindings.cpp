@@ -10,7 +10,7 @@ using namespace hyperion;
 extern "C"
 {
 
-    HYP_EXPORT void Ptr_Get(TypeID type_id, void* ptr, ValueStorage<HypData>* out_hyp_data)
+    HYP_EXPORT void Ptr_Get(TypeId type_id, void* ptr, ValueStorage<HypData>* out_hyp_data)
     {
         AssertThrow(out_hyp_data != nullptr);
 

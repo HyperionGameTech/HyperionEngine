@@ -9,7 +9,7 @@
 
 #include <core/utilities/GlobalContext.hpp>
 
-#include <core/IDGenerator.hpp>
+#include <core/IdGenerator.hpp>
 
 #include <core/Defines.hpp>
 
@@ -28,12 +28,12 @@
 namespace hyperion {
 namespace threading {
 
-HYP_API void RegisterThread(const ThreadID& id, ThreadBase* thread)
+HYP_API void RegisterThread(const ThreadId& id, ThreadBase* thread)
 {
     Threads::RegisterThread(id, thread);
 }
 
-HYP_API void UnregisterThread(const ThreadID& id)
+HYP_API void UnregisterThread(const ThreadId& id)
 {
     Threads::UnregisterThread(id);
 }
@@ -50,12 +50,12 @@ HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
 
 #pragma region ThreadBase
 
-ThreadBase::ThreadBase(const ThreadID& id, ThreadPriorityValue priority)
+ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
       m_tls(new ThreadLocalStorage())
 {
-    AssertThrowMsg(id.IsValid(), "ThreadID must be valid");
+    AssertThrowMsg(id.IsValid(), "ThreadId must be valid");
 
     RegisterThread(m_id, this);
 }

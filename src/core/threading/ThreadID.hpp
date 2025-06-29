@@ -25,7 +25,7 @@ using ThreadMask = uint32;
 
 enum ThreadCategory : ThreadMask;
 
-class ThreadID
+class ThreadId
 {
 public:
     enum AllocateFlags : uint32
@@ -35,36 +35,36 @@ public:
         FORCE_UNIQUE = 0x2
     };
 
-    static const ThreadID invalid;
+    static const ThreadId invalid;
 
-    HYP_API static const ThreadID& Current();
-    HYP_API static const ThreadID& Invalid();
+    HYP_API static const ThreadId& Current();
+    HYP_API static const ThreadId& Invalid();
 
-    constexpr ThreadID()
+    constexpr ThreadId()
         : m_value(0)
     {
     }
 
-    HYP_API ThreadID(Name name, bool force_unique = false);
-    HYP_API ThreadID(Name name, ThreadCategory category, bool force_unique = false);
+    HYP_API ThreadId(Name name, bool force_unique = false);
+    HYP_API ThreadId(Name name, ThreadCategory category, bool force_unique = false);
 
-    constexpr ThreadID(const ThreadID& other) = default;
-    ThreadID& operator=(const ThreadID& other) = default;
-    constexpr ThreadID(ThreadID&& other) noexcept = default;
-    ThreadID& operator=(ThreadID&& other) noexcept = default;
-    ~ThreadID() = default;
+    constexpr ThreadId(const ThreadId& other) = default;
+    ThreadId& operator=(const ThreadId& other) = default;
+    constexpr ThreadId(ThreadId&& other) noexcept = default;
+    ThreadId& operator=(ThreadId&& other) noexcept = default;
+    ~ThreadId() = default;
 
-    HYP_FORCE_INLINE constexpr bool operator==(const ThreadID& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const ThreadId& other) const
     {
         return m_value == other.m_value;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const ThreadID& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const ThreadId& other) const
     {
         return m_value != other.m_value;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator<(const ThreadID& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const ThreadId& other) const
     {
         return m_value < other.m_value;
     }
@@ -74,8 +74,8 @@ public:
         return m_name;
     }
 
-    /*! \brief Check if this thread ID is a dynamic thread ID.
-     *  \returns True if this is a dynamic thread ID, false otherwise. */
+    /*! \brief Check if this thread Id is a dynamic thread Id.
+     *  \returns True if this is a dynamic thread Id, false otherwise. */
     HYP_FORCE_INLINE constexpr bool IsDynamic() const
     {
         return (m_value & g_thread_dynamic_mask) >> 31;
@@ -96,7 +96,7 @@ public:
         return m_value;
     }
 
-    /*! \brief Returns a mask value that can be used to match against ThreadIDs that meet the same criteria as this ThreadID.
+    /*! \brief Returns a mask value that can be used to match against ThreadIds that meet the same criteria as this ThreadId.
      *  For static thread IDs, this matches the same value / bits.
      *  For dyanmic thread IDs, the dynamic bit and thread category are preserved but the actual value is not */
     HYP_FORCE_INLINE constexpr ThreadMask GetMask() const
@@ -115,39 +115,39 @@ public:
     }
 
 protected:
-    HYP_API ThreadID(Name name, ThreadCategory category, uint32 allocate_flags);
+    HYP_API ThreadId(Name name, ThreadCategory category, uint32 allocate_flags);
 
     uint32 m_value;
     Name m_name;
 };
 
-static_assert(std::is_trivially_destructible_v<ThreadID>,
-    "ThreadID must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
+static_assert(std::is_trivially_destructible_v<ThreadId>,
+    "ThreadId must be trivially destructible! Otherwise thread_local current_thread_id var may  be generated using a wrapper function.");
 
-/*! \brief StaticThreadIDs may be used for bitwise operations as only one bit will be set for the value. */
-class HYP_API StaticThreadID : public ThreadID
+/*! \brief StaticThreadIds may be used for bitwise operations as only one bit will be set for the value. */
+class HYP_API StaticThreadId : public ThreadId
 {
 public:
-    friend constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadID& rhs);
-    friend constexpr ThreadMask operator&(ThreadMask lhs, const StaticThreadID& rhs);
+    friend constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadId& rhs);
+    friend constexpr ThreadMask operator&(ThreadMask lhs, const StaticThreadId& rhs);
 
-    constexpr StaticThreadID() = default;
+    constexpr StaticThreadId() = default;
 
-    /*! \brief Allocate a new StaticThreadID with the given Name.
-     *  \param name The name to use to allocate the ThreadID.
-     *  \param force_unique If true, a new index will be allocated for the ThreadID regardless of whether or not one already exists with the given name. */
-    explicit StaticThreadID(Name name, bool force_unique = false);
+    /*! \brief Allocate a new StaticThreadId with the given Name.
+     *  \param name The name to use to allocate the ThreadId.
+     *  \param force_unique If true, a new index will be allocated for the ThreadId regardless of whether or not one already exists with the given name. */
+    explicit StaticThreadId(Name name, bool force_unique = false);
 
-    /*! \brief Construct a StaticThreadID from an pre-allocated static thread ID index */
-    explicit StaticThreadID(uint32 static_thread_index);
+    /*! \brief Construct a StaticThreadId from an pre-allocated static thread Id index */
+    explicit StaticThreadId(uint32 static_thread_index);
 
-    constexpr StaticThreadID(const StaticThreadID& other) = default;
-    StaticThreadID& operator=(const StaticThreadID& other) = default;
-    constexpr StaticThreadID(StaticThreadID&& other) noexcept = default;
-    StaticThreadID& operator=(StaticThreadID&& other) noexcept = default;
-    ~StaticThreadID() = default;
+    constexpr StaticThreadId(const StaticThreadId& other) = default;
+    StaticThreadId& operator=(const StaticThreadId& other) = default;
+    constexpr StaticThreadId(StaticThreadId&& other) noexcept = default;
+    StaticThreadId& operator=(StaticThreadId&& other) noexcept = default;
+    ~StaticThreadId() = default;
 
-    /*! \brief StaticThreadID can be converted to ThreadMask directly since only one bit will be set */
+    /*! \brief StaticThreadId can be converted to ThreadMask directly since only one bit will be set */
     HYP_FORCE_INLINE constexpr explicit operator ThreadMask() const
     {
         return m_value;
@@ -158,12 +158,12 @@ public:
         return ~m_value;
     }
 
-    HYP_FORCE_INLINE constexpr ThreadMask operator|(const StaticThreadID& other) const
+    HYP_FORCE_INLINE constexpr ThreadMask operator|(const StaticThreadId& other) const
     {
         return m_value | other.m_value;
     }
 
-    HYP_FORCE_INLINE constexpr ThreadMask operator&(const StaticThreadID& other) const
+    HYP_FORCE_INLINE constexpr ThreadMask operator&(const StaticThreadId& other) const
     {
         return m_value & other.m_value;
     }
@@ -184,22 +184,22 @@ public:
     }
 };
 
-HYP_FORCE_INLINE constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadID& rhs)
+HYP_FORCE_INLINE constexpr ThreadMask operator|(ThreadMask lhs, const StaticThreadId& rhs)
 {
     return lhs | rhs.m_value;
 }
 
-HYP_FORCE_INLINE constexpr ThreadMask operator&(ThreadMask lhs, const StaticThreadID& rhs)
+HYP_FORCE_INLINE constexpr ThreadMask operator&(ThreadMask lhs, const StaticThreadId& rhs)
 {
     return lhs & rhs.m_value;
 }
 
-static_assert(sizeof(StaticThreadID) == sizeof(ThreadID), "StaticThreadID must not increase in size relative to base class ThreadID");
+static_assert(sizeof(StaticThreadId) == sizeof(ThreadId), "StaticThreadId must not increase in size relative to base class ThreadId");
 
 } // namespace threading
 
-using threading::StaticThreadID;
-using threading::ThreadID;
+using threading::StaticThreadId;
+using threading::ThreadId;
 using threading::ThreadMask;
 
 } // namespace hyperion

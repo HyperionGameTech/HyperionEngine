@@ -2,7 +2,7 @@
 
 #include <rendering/backend/vulkan/RendererImageView.hpp>
 #include <rendering/backend/vulkan/RendererImage.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -11,11 +11,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region VulkanImageView
@@ -88,7 +88,7 @@ RendererResult VulkanImageView::Create()
     // AssertThrowMsg(face_layer < m_num_faces, "face layer out of bounds");
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateImageView(GetRenderingAPI()->GetDevice()->GetDevice(), &view_info, nullptr, &m_handle),
+        vkCreateImageView(GetRenderBackend()->GetDevice()->GetDevice(), &view_info, nullptr, &m_handle),
         "Failed to create image view");
 
     HYPERION_RETURN_OK;
@@ -98,7 +98,7 @@ RendererResult VulkanImageView::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyImageView(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyImageView(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
 
         m_handle = VK_NULL_HANDLE;
     }

@@ -5,14 +5,14 @@
 
 #include <core/Defines.hpp>
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Handle.hpp>
 
 #include <core/containers/String.hpp>
 #include <core/containers/HashMap.hpp>
 #include <core/containers/HashSet.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/StringView.hpp>
@@ -103,7 +103,7 @@ struct HypData
         double,
         bool,
         void*,
-        IDBase,
+        IdBase,
         AnyHandle,
         RC<void>,
         AnyRef,
@@ -119,16 +119,16 @@ struct HypData
         || std::is_same_v<T, bool>
         || std::is_same_v<T, void*>
 
-        /*! All ID<T> are stored as IDBase */
-        || std::is_base_of_v<IDBase, T>
+        /*! All Id<T> are stored as IdBase */
+        || std::is_base_of_v<IdBase, T>
 
-        /*! Handle<T> gets stored as AnyHandle, which holds TypeID for conversion */
+        /*! Handle<T> gets stored as AnyHandle, which holds TypeId for conversion */
         || std::is_base_of_v<HandleBase, T> || std::is_same_v<T, AnyHandle>
 
         /*! RC<T> gets stored as RC<void> and can be converted back */
         || std::is_base_of_v<typename RC<void>::RefCountedPtrBase, T>
 
-        /*! Pointers are stored as AnyRef which holds TypeID for conversion */
+        /*! Pointers are stored as AnyRef which holds TypeId for conversion */
         || std::is_same_v<T, AnyRef> || std::is_pointer_v<T>
 
         || std::is_same_v<T, Any>;
@@ -186,9 +186,9 @@ struct HypData
         return !ToRef().HasValue();
     }
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return ToRef().GetTypeID();
+        return ToRef().GetTypeId();
     }
 
     HYP_FORCE_INLINE void Reset()
@@ -225,7 +225,7 @@ struct HypData
             return any_ptr->ToRef();
         }
 
-        return AnyRef(value.GetTypeID(), value.GetPointer());
+        return AnyRef(value.GetTypeId(), value.GetPointer());
     }
 
     HYP_FORCE_INLINE AnyRef ToRef() const
@@ -276,9 +276,9 @@ struct HypData
             HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance {};
 
             AssertThrowMsg(getter_instance(value, result_value),
-                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeId = %u)",
                 TypeName<T>().Data(),
-                GetTypeID().Value());
+                GetTypeId().Value());
 
             return *result_value;
         }
@@ -302,9 +302,9 @@ struct HypData
             HypDataGetter_Tuple<ReturnType, T, typename HypDataHelper<T>::ConvertibleFrom> getter_instance {};
 
             AssertThrowMsg(getter_instance(value, result_value),
-                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeID = %u)",
+                "Failed to invoke HypData Get method with T = %s - Mismatched types or T could not be converted to the held type (current TypeId = %u)",
                 TypeName<T>().Data(),
-                GetTypeID().Value());
+                GetTypeId().Value());
 
             return *result_value;
         }
@@ -424,7 +424,7 @@ struct HypDataMarshalHelper
 
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<Normalized>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<Normalized>());
 
         if (!marshal)
         {
@@ -446,7 +446,7 @@ struct HypDataMarshalHelper
     template <class T>
     static inline FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
 
         if (!marshal)
         {
@@ -721,49 +721,49 @@ struct HypDataHelper<EnumFlags<T>> : HypDataHelper<typename EnumFlags<T>::Underl
 };
 
 template <>
-struct HypDataHelperDecl<IDBase>
+struct HypDataHelperDecl<IdBase>
 {
 };
 
 template <>
-struct HypDataHelper<IDBase>
+struct HypDataHelper<IdBase>
 {
-    using StorageType = IDBase;
+    using StorageType = IdBase;
     using ConvertibleFrom = Tuple<>;
 
-    HYP_FORCE_INLINE bool Is(const IDBase& value) const
+    HYP_FORCE_INLINE bool Is(const IdBase& value) const
     {
         // should never be hit
         HYP_NOT_IMPLEMENTED();
     }
 
-    HYP_FORCE_INLINE constexpr IDBase& Get(IDBase& value) const
+    HYP_FORCE_INLINE constexpr IdBase& Get(IdBase& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE const IDBase& Get(const IDBase& value) const
+    HYP_FORCE_INLINE const IdBase& Get(const IdBase& value) const
     {
         return value;
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hyp_data, const IDBase& value) const
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, const IdBase& value) const
     {
         hyp_data.Set_Internal(value);
     }
 
-    HYP_FORCE_INLINE static FBOMResult Serialize(IDBase value, FBOMData& out_data)
+    HYP_FORCE_INLINE static FBOMResult Serialize(IdBase value, FBOMData& out_data)
     {
-        out_data = FBOMData::FromStruct<IDBase>(value);
+        out_data = FBOMData::FromStruct<IdBase>(value);
 
         return FBOMResult::FBOM_OK;
     }
 
     HYP_FORCE_INLINE static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
-        IDBase value;
+        IdBase value;
 
-        if (FBOMResult err = data.ReadStruct<IDBase>(&value))
+        if (FBOMResult err = data.ReadStruct<IdBase>(&value))
         {
             return err;
         }
@@ -775,18 +775,18 @@ struct HypDataHelper<IDBase>
 };
 
 template <class T>
-struct HypDataHelperDecl<ID<T>>
+struct HypDataHelperDecl<Id<T>>
 {
 };
 
 template <class T>
-struct HypDataHelper<ID<T>> : HypDataHelper<IDBase>
+struct HypDataHelper<Id<T>> : HypDataHelper<IdBase>
 {
     using ConvertibleFrom = Tuple<AnyHandle>;
 
-    HYP_FORCE_INLINE bool Is(const IDBase& value) const
+    HYP_FORCE_INLINE bool Is(const IdBase& value) const
     {
-        return true; // can't do anything more to check as IDBase doesn't hold type info.
+        return true; // can't do anything more to check as IdBase doesn't hold type info.
     }
 
     HYP_FORCE_INLINE bool Is(const AnyHandle& value) const
@@ -794,19 +794,19 @@ struct HypDataHelper<ID<T>> : HypDataHelper<IDBase>
         return value.Is<T>();
     }
 
-    HYP_FORCE_INLINE ID<T> Get(IDBase value) const
+    HYP_FORCE_INLINE Id<T> Get(IdBase value) const
     {
-        return ID<T>(value);
+        return Id<T>(value);
     }
 
-    HYP_FORCE_INLINE ID<T> Get(const AnyHandle& value) const
+    HYP_FORCE_INLINE Id<T> Get(const AnyHandle& value) const
     {
-        return ID<T>(value.GetID());
+        return Id<T>(value.GetID());
     }
 
-    HYP_FORCE_INLINE void Set(HypData& hyp_data, const ID<T>& value) const
+    HYP_FORCE_INLINE void Set(HypData& hyp_data, const Id<T>& value) const
     {
-        HypDataHelper<IDBase>::Set(hyp_data, static_cast<const IDBase&>(value));
+        HypDataHelper<IdBase>::Set(hyp_data, static_cast<const IdBase&>(value));
     }
 };
 
@@ -859,7 +859,7 @@ struct HypDataHelper<AnyHandle>
             return FBOMResult::FBOM_OK;
         }
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeID());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
 
         if (!marshal)
         {
@@ -889,7 +889,7 @@ struct HypDataHelper<AnyHandle>
             return FBOMResult::FBOM_OK;
         }
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(data.GetType().GetNativeTypeID());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(data.GetType().GetNativeTypeId());
 
         if (!marshal)
         {
@@ -951,7 +951,7 @@ struct HypDataHelper<Handle<T>> : HypDataHelper<AnyHandle>
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
 
         if (!marshal)
         {
@@ -1023,7 +1023,7 @@ struct HypDataHelper<RC<void>>
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeID());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
 
         if (!marshal)
         {
@@ -1088,7 +1088,7 @@ struct HypDataHelper<RC<T>, std::enable_if_t<!std::is_void_v<T>>> : HypDataHelpe
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
 
         if (!marshal)
         {
@@ -1159,7 +1159,7 @@ struct HypDataHelper<AnyRef>
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeID());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
 
         if (!marshal)
         {
@@ -1247,14 +1247,14 @@ struct HypDataHelper<T*, std::enable_if_t<!is_const_pointer<T*> && !std::is_same
 
     HYP_FORCE_INLINE void Set(HypData& hyp_data, T* value) const
     {
-        HypDataHelper<AnyRef>::Set(hyp_data, AnyRef(TypeID::ForType<T>(), value));
+        HypDataHelper<AnyRef>::Set(hyp_data, AnyRef(TypeId::ForType<T>(), value));
     }
 
     static FBOMResult Deserialize(FBOMLoadContext& context, const FBOMData& data, HypData& out)
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
 
         if (!marshal)
         {
@@ -1294,7 +1294,7 @@ struct HypDataHelper<const T*, std::enable_if_t<!std::is_same_v<T*, void*>>> : H
 {
     HYP_FORCE_INLINE const T* Get(const ConstAnyRef& value) const
     {
-        return HypDataHelper<T*>::Get(AnyRef(value.GetTypeID(), const_cast<void*>(value.GetPointer())));
+        return HypDataHelper<T*>::Get(AnyRef(value.GetTypeId(), const_cast<void*>(value.GetPointer())));
     }
 
     HYP_FORCE_INLINE const T* Get(const AnyRef& value) const
@@ -1354,7 +1354,7 @@ struct HypDataHelper<Any>
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeID());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(value.GetTypeId());
 
         if (!marshal)
         {
@@ -2713,9 +2713,9 @@ struct HypDataHelper<Variant<Types...>> : HypDataHelper<Any>
         int found_type_index = Variant<Types...>::invalid_type_index;
         int current_type_index = 0;
 
-        for (TypeID type_id : Variant<Types...>::type_ids)
+        for (TypeId type_id : Variant<Types...>::type_ids)
         {
-            if (data.GetType().GetNativeTypeID() == type_id)
+            if (data.GetType().GetNativeTypeId() == type_id)
             {
                 found_type_index = current_type_index;
 
@@ -2818,7 +2818,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<NormalizedType<T>>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<NormalizedType<T>>());
 
         if (!marshal)
         {
@@ -2841,7 +2841,7 @@ struct HypDataHelper<T, std::enable_if_t<!HypData::can_store_directly<T> && !imp
     {
         HYP_SCOPE;
 
-        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeID::ForType<T>());
+        const FBOMMarshalerBase* marshal = FBOM::GetInstance().GetMarshal(TypeId::ForType<T>());
 
         if (!marshal)
         {
@@ -2938,7 +2938,7 @@ struct HypDataPlaceholderSerializedType<Handle<T>>
         {
             is_init = true;
 
-            const HypClass* hyp_class = GetClass(TypeID::ForType<T>());
+            const HypClass* hyp_class = GetClass(TypeId::ForType<T>());
             AssertThrowMsg(hyp_class, "HypClass for type %s is not registered", TypeName<T>().Data());
 
             placeholder_type = FBOMObjectType(hyp_class);

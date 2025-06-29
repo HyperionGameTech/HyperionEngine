@@ -306,7 +306,7 @@ bool ConfigurationTable::SetHypClassFields(const HypClass* hyp_class, const void
     AssertThrow(hyp_class != nullptr);
     AssertThrow(ptr != nullptr);
 
-    AnyRef target_ref(hyp_class->GetTypeID(), const_cast<void*>(ptr));
+    AnyRef target_ref(hyp_class->GetTypeId(), const_cast<void*>(ptr));
     HypData target_hyp_data = HypData(target_ref);
 
     if (!JSONToObject(GetSubobject().AsObject(), hyp_class, target_hyp_data))

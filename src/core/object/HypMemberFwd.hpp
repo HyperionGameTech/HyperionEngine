@@ -9,7 +9,7 @@
 #include <core/containers/String.hpp>
 
 #include <core/utilities/StringView.hpp>
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 
 namespace hyperion {
@@ -48,9 +48,9 @@ public:
 
     virtual Name GetName() const = 0;
 
-    virtual TypeID GetTypeID() const = 0;
+    virtual TypeId GetTypeId() const = 0;
 
-    virtual TypeID GetTargetTypeID() const = 0;
+    virtual TypeId GetTargetTypeId() const = 0;
 
     virtual bool CanSerialize() const = 0;
     virtual bool CanDeserialize() const = 0;

@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_OBJECT_POOL_HPP
 #define HYPERION_CORE_OBJECT_POOL_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Util.hpp>
 #include <core/Defines.hpp>
 
@@ -44,7 +44,7 @@ class ObjectContainerBase
 public:
     virtual ~ObjectContainerBase() = default;
 
-    HYP_FORCE_INLINE const TypeID& GetObjectTypeID() const
+    HYP_FORCE_INLINE const TypeId& GetObjectTypeId() const
     {
         return m_type_id;
     }
@@ -69,15 +69,15 @@ public:
     virtual void ReleaseIndex(uint32 index) = 0;
 
 protected:
-    ObjectContainerBase(TypeID type_id, const HypClass* hyp_class)
+    ObjectContainerBase(TypeId type_id, const HypClass* hyp_class)
         : m_type_id(type_id),
           m_hyp_class(hyp_class)
     {
-        AssertDebug(type_id != TypeID::Void());
+        AssertDebug(type_id != TypeId::Void());
         // AssertDebug(hyp_class != nullptr);
     }
 
-    TypeID m_type_id;
+    TypeId m_type_id;
     const HypClass* m_hyp_class;
 };
 
@@ -180,7 +180,7 @@ struct HypObjectMemory final : HypObjectHeader
 
         if ((count = ref_count_strong.Decrement(1, MemoryOrder::ACQUIRE_RELEASE)) == 1)
         {
-            // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause FreeID() to be called.
+            // Increment weak reference count by 1 so any WeakHandleFromThis() calls in the destructor do not immediately cause the item to be removed from the pool
             ref_count_weak.Increment(1, MemoryOrder::RELEASE);
 
             HypObject_OnDecRefCount_Strong(HypObjectPtr(GetPointer()), count - 1);
@@ -264,7 +264,7 @@ class ObjectContainer final : public ObjectContainerBase
 
 public:
     ObjectContainer()
-        : ObjectContainerBase(TypeID::ForType<T>(), GetClass(TypeID::ForType<T>())),
+        : ObjectContainerBase(TypeId::ForType<T>(), GetClass(TypeId::ForType<T>())),
           m_pool(2048, /* create_initial_blocks */ true, /* block_init_ctx */ this)
     {
     }
@@ -349,9 +349,9 @@ class ObjectPool
 public:
     class ObjectContainerMap
     {
-        // Maps type ID to object container
+        // Maps type Id to object container
         // Use a linked list so that references are never invalidated.
-        LinkedList<Pair<TypeID, UniquePtr<ObjectContainerBase>>> m_map;
+        LinkedList<Pair<TypeId, UniquePtr<ObjectContainerBase>>> m_map;
         Mutex m_mutex;
 
     public:
@@ -366,7 +366,7 @@ public:
         ObjectContainer<T>& GetOrCreate()
         {
             // static variable to ensure that the object container is only created once and we don't have to lock everytime this is called
-            static ObjectContainer<T>& container = static_cast<ObjectContainer<T>&>(GetOrCreate(TypeID::ForType<T>(), []() -> UniquePtr<ObjectContainerBase>
+            static ObjectContainer<T>& container = static_cast<ObjectContainer<T>&>(GetOrCreate(TypeId::ForType<T>(), []() -> UniquePtr<ObjectContainerBase>
                 {
                     return MakeUnique<ObjectContainer<T>>();
                 }));
@@ -374,11 +374,11 @@ public:
             return container;
         }
 
-        HYP_API ObjectContainerBase& Get(TypeID type_id);
-        HYP_API ObjectContainerBase* TryGet(TypeID type_id);
+        HYP_API ObjectContainerBase& Get(TypeId type_id);
+        HYP_API ObjectContainerBase* TryGet(TypeId type_id);
 
     private:
-        ObjectContainerBase& GetOrCreate(TypeID type_id, UniquePtr<ObjectContainerBase> (*create_fn)(void))
+        ObjectContainerBase& GetOrCreate(TypeId type_id, UniquePtr<ObjectContainerBase> (*create_fn)(void))
         {
             Mutex::Guard guard(m_mutex);
 

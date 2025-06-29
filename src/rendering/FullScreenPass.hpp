@@ -5,7 +5,7 @@
 
 #include <rendering/RenderableAttributes.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererStructs.hpp>

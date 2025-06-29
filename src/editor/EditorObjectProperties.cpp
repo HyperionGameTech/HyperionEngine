@@ -15,7 +15,7 @@ namespace hyperion {
 
 #pragma region EditorObjectPropertiesBase
 
-EditorObjectPropertiesBase::EditorObjectPropertiesBase(TypeID type_id)
+EditorObjectPropertiesBase::EditorObjectPropertiesBase(TypeId type_id)
     : m_type_id(type_id)
 {
 }

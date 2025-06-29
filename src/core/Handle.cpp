@@ -11,7 +11,7 @@ const AnyHandle AnyHandle::empty = {};
 
 AnyHandle::AnyHandle(HypObjectBase* hyp_object_ptr)
     : ptr(hyp_object_ptr),
-      type_id(hyp_object_ptr ? hyp_object_ptr->m_header->container->GetObjectTypeID() : TypeID::Void())
+      type_id(hyp_object_ptr ? hyp_object_ptr->m_header->container->GetObjectTypeId() : TypeId::Void())
 {
     if (IsValid())
     {
@@ -21,7 +21,7 @@ AnyHandle::AnyHandle(HypObjectBase* hyp_object_ptr)
 
 AnyHandle::AnyHandle(const HypClass* hyp_class, HypObjectBase* ptr)
     : ptr(ptr),
-      type_id(hyp_class ? hyp_class->GetTypeID() : TypeID::Void())
+      type_id(hyp_class ? hyp_class->GetTypeId() : TypeId::Void())
 {
     if (IsValid())
     {
@@ -105,17 +105,17 @@ AnyHandle::~AnyHandle()
     }
 }
 
-AnyHandle::IDType AnyHandle::GetID() const
+AnyHandle::IdType AnyHandle::GetID() const
 {
     if (!IsValid())
     {
-        return IDType();
+        return IdType();
     }
 
-    return IDType { ptr->m_header->container->GetObjectTypeID(), ptr->m_header->index + 1 };
+    return IdType { ptr->m_header->container->GetObjectTypeId(), ptr->m_header->index + 1 };
 }
 
-TypeID AnyHandle::GetTypeID() const
+TypeId AnyHandle::GetTypeId() const
 {
     return type_id;
 }

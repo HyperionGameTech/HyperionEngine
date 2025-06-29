@@ -6,7 +6,7 @@
 #include <core/containers/Array.hpp>
 #include <core/containers/HashSet.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Tuple.hpp>
 #include <core/utilities/StringView.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -96,12 +96,12 @@ public:
         return true;
     }
 
-    /*! \brief Returns the TypeIDs of the components this System operates on.
+    /*! \brief Returns the TypeIds of the components this System operates on.
      *  To be used by the EntityManager in order to properly order the Systems based on their dependencies.
      *
-     *  \return The TypeIDs of the components this System operates on.
+     *  \return The TypeIds of the components this System operates on.
      */
-    HYP_FORCE_INLINE const Array<TypeID>& GetComponentTypeIDs() const
+    HYP_FORCE_INLINE const Array<TypeId>& GetComponentTypeIds() const
     {
         return m_component_type_ids;
     }
@@ -115,16 +115,16 @@ public:
         return m_component_infos;
     }
 
-    /*! \brief Returns true if all given TypeIDs are operated on by this System, false otherwise.
+    /*! \brief Returns true if all given TypeIds are operated on by this System, false otherwise.
      *
-     *  \param component_type_ids The TypeIDs of the components to check.
+     *  \param component_type_ids The TypeIds of the components to check.
      *  \param receive_events_context If true, this function will skip components that do not receive events for this System.
      *
-     *  \return True if all given TypeIDs are operated on by this System, false otherwise.
+     *  \return True if all given TypeIds are operated on by this System, false otherwise.
      */
-    bool ActsOnComponents(const Array<TypeID>& component_type_ids, bool receive_events_context) const
+    bool ActsOnComponents(const Array<TypeId>& component_type_ids, bool receive_events_context) const
     {
-        for (const TypeID component_type_id : m_component_type_ids)
+        for (const TypeId component_type_id : m_component_type_ids)
         {
             const ComponentInfo& component_info = GetComponentInfo(component_type_id);
 
@@ -148,15 +148,15 @@ public:
         return true;
     }
 
-    /*! \brief Returns true if this System operates on the component with the given TypeID, false otherwise.
+    /*! \brief Returns true if this System operates on the component with the given TypeId, false otherwise.
      *
-     *  \param component_type_id The TypeID of the component to check.
+     *  \param component_type_id The TypeId of the component to check.
      *  \param include_read_only If true, this function will return true even if the component is read-only.
      *  Otherwise, read-only components will be ignored.
      *
-     *  \return True if this System operates on the component with the given TypeID, false otherwise.
+     *  \return True if this System operates on the component with the given TypeId, false otherwise.
      */
-    bool HasComponentTypeID(TypeID component_type_id, bool include_read_only = true) const
+    bool HasComponentTypeId(TypeId component_type_id, bool include_read_only = true) const
     {
         const bool has_component_type_id = m_component_type_ids.Contains(component_type_id);
 
@@ -175,19 +175,19 @@ public:
         return !!(component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE);
     }
 
-    /*! \brief Returns the ComponentInfo of the component with the given TypeID.
+    /*! \brief Returns the ComponentInfo of the component with the given TypeId.
      *
-     *  \param component_type_id The TypeID of the component to check.
+     *  \param component_type_id The TypeId of the component to check.
      *
-     *  \return The ComponentInfo of the component with the given TypeID.
+     *  \return The ComponentInfo of the component with the given TypeId.
      */
-    const ComponentInfo& GetComponentInfo(TypeID component_type_id) const
+    const ComponentInfo& GetComponentInfo(TypeId component_type_id) const
     {
         const auto it = m_component_type_ids.Find(component_type_id);
-        AssertThrowMsg(it != m_component_type_ids.End(), "Component type ID not found");
+        AssertThrowMsg(it != m_component_type_ids.End(), "Component type Id not found");
 
         const SizeType index = m_component_type_ids.IndexOf(it);
-        AssertThrowMsg(index != SizeType(-1), "Component type ID not found");
+        AssertThrowMsg(index != SizeType(-1), "Component type Id not found");
 
         return m_component_infos[index];
     }
@@ -266,7 +266,7 @@ private:
 
     HashSet<WeakHandle<Entity>> m_initialized_entities;
 
-    Array<TypeID> m_component_type_ids;
+    Array<TypeId> m_component_type_ids;
     Array<ComponentInfo> m_component_infos;
 
     Array<Proc<void()>> m_after_process_procs;

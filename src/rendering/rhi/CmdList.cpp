@@ -1,6 +1,6 @@
 /* Copyright (c) 2024-2025 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 #include <rendering/backend/RendererFrame.hpp>
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_VULKAN)
@@ -14,35 +14,35 @@
 
 namespace hyperion {
 
-#pragma region RHICommandList
+#pragma region CmdList
 
-RHICommandList::RHICommandList()
+CmdList::CmdList()
 {
 }
 
-RHICommandList::~RHICommandList()
+CmdList::~CmdList()
 {
-    for (RHICommandBase* command : m_commands)
+    for (CmdBase* command : m_commands)
     {
         FreeCommand(command);
     }
 }
 
-void RHICommandList::Prepare(FrameBase* frame)
+void CmdList::Prepare(FrameBase* frame)
 {
     AssertThrow(frame != nullptr);
 
-    for (RHICommandBase* command : m_commands)
+    for (CmdBase* command : m_commands)
     {
         command->Prepare(frame);
     }
 }
 
-void RHICommandList::Execute(const CommandBufferRef& cmd)
+void CmdList::Execute(const CommandBufferRef& cmd)
 {
     AssertThrow(cmd != nullptr);
 
-    for (RHICommandBase* command : m_commands)
+    for (CmdBase* command : m_commands)
     {
         command->Execute(cmd);
 
@@ -52,17 +52,17 @@ void RHICommandList::Execute(const CommandBufferRef& cmd)
     m_commands.Clear();
 }
 
-void RHICommandList::FreeCommand(RHICommandBase* command)
+void CmdList::FreeCommand(CmdBase* command)
 {
     AssertThrow(command != nullptr);
 
-    RHICommandMemoryPoolBase* pool = command->m_pool_handle.pool;
+    CmdMemoryPoolBase* pool = command->m_pool_handle.pool;
     AssertThrow(pool != nullptr);
 
     pool->FreeCommand(command);
 }
 
-#pragma endregion RHICommandList
+#pragma endregion CmdList
 
 #pragma region BindDescriptorSet
 

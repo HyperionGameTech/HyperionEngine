@@ -48,7 +48,7 @@ namespace Hyperion
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
             
-            return EntityManager_HasComponent(NativeAddress, componentHypClass.TypeID, entity.NativeAddress);
+            return EntityManager_HasComponent(NativeAddress, componentHypClass.TypeId, entity.NativeAddress);
         }
 
         public void AddComponent<T>(Entity entity, T component) where T : struct, IComponent
@@ -70,7 +70,7 @@ namespace Hyperion
             //     HypDataBuffer hypDataBuffer = new HypDataBuffer();
             //     hypDataBuffer.SetValue((IntPtr)componentPtr);
 
-            //     EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, &hypDataBuffer);
+            //     EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeId, &hypDataBuffer);
 
             //     hypDataBuffer.Dispose();
             // }
@@ -78,7 +78,7 @@ namespace Hyperion
             HypDataBuffer hypDataBuffer = new HypDataBuffer();
             hypDataBuffer.SetValue(component);
 
-            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeID, &hypDataBuffer);
+            EntityManager_AddComponent(NativeAddress, entity.NativeAddress, componentHypClass.TypeId, &hypDataBuffer);
 
             hypDataBuffer.Dispose();
         }
@@ -87,11 +87,11 @@ namespace Hyperion
         {
             HypClass componentHypClass = HypClass.GetClass(typeof(T));
 
-            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentHypClass.TypeID, entity.NativeAddress);
+            IntPtr componentPtr = EntityManager_GetComponent(NativeAddress, componentHypClass.TypeId, entity.NativeAddress);
 
             if (componentPtr == IntPtr.Zero)
             {
-                throw new Exception("Failed to get component of type " + typeof(T).Name + " for entity " + entity.ID);
+                throw new Exception("Failed to get component of type " + typeof(T).Name + " for entity " + entity.Id);
             }
 
             // marshal IntPtr to struct ref
@@ -102,13 +102,13 @@ namespace Hyperion
         }
 
         [DllImport("hyperion", EntryPoint = "EntityManager_HasComponent")]
-        private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IntPtr entityAddress);
+        private static extern bool EntityManager_HasComponent(IntPtr entityManagerPtr, TypeId componentTypeId, IntPtr entityAddress);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_GetComponent")]
-        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeID componentTypeId, IntPtr entityAddress);
+        private static extern IntPtr EntityManager_GetComponent(IntPtr entityManagerPtr, TypeId componentTypeId, IntPtr entityAddress);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddComponent")]
-        private static unsafe extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeID componentTypeId, HypDataBuffer* componentHypDataPtr);
+        private static unsafe extern void EntityManager_AddComponent(IntPtr entityManagerPtr, IntPtr entityAddress, TypeId componentTypeId, HypDataBuffer* componentHypDataPtr);
 
         [DllImport("hyperion", EntryPoint = "EntityManager_AddTypedEntity")]
         [return: MarshalAs(UnmanagedType.I1)]

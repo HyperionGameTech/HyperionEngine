@@ -175,7 +175,7 @@ public:
 
         for (const FBOMObject& child : in.GetChildren())
         {
-            HYP_LOG(Serialization, Debug, "Material : Child TypeID: {}, TypeName: {}", child.GetType().GetNativeTypeID().Value(), child.GetType().name);
+            HYP_LOG(Serialization, Debug, "Material : Child TypeId: {}, TypeName: {}", child.GetType().GetNativeTypeId().Value(), child.GetType().name);
             if (child.GetType().IsOrExtends("Texture"))
             {
                 if (texture_index < texture_keys.Size())

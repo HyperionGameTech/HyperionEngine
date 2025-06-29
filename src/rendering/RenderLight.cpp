@@ -64,7 +64,7 @@ void RenderLight::Update_Internal()
     UpdateBufferData();
 }
 
-GPUBufferHolderBase* RenderLight::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderLight::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_LIGHTS];
 }
@@ -91,7 +91,7 @@ void RenderLight::UpdateBufferData()
         buffer_data->shadow_map_index = ~0u;
     }
 
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void RenderLight::SetMaterial(const Handle<Material>& material)

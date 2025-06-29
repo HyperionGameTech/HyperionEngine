@@ -13,7 +13,7 @@
 
 #include <rendering/backend/RendererStructs.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/Platform.hpp>
 
 #include <core/math/Matrix4.hpp>
@@ -161,20 +161,20 @@ struct alignas(16) RTRadianceUniforms
     uint32 light_indices[16];
 };
 
-class GPUBufferHolderBase
+class GpuBufferHolderBase
 {
 protected:
     template <class T>
-    GPUBufferHolderBase(TypeWrapper<T>)
-        : m_struct_type_id(TypeID::ForType<T>()),
+    GpuBufferHolderBase(TypeWrapper<T>)
+        : m_struct_type_id(TypeId::ForType<T>()),
           m_struct_size(sizeof(T))
     {
     }
 
 public:
-    virtual ~GPUBufferHolderBase();
+    virtual ~GpuBufferHolderBase();
 
-    HYP_FORCE_INLINE TypeID GetStructTypeID() const
+    HYP_FORCE_INLINE TypeId GetStructTypeId() const
     {
         return m_struct_type_id;
     }
@@ -184,7 +184,7 @@ public:
         return m_struct_size;
     }
 
-    HYP_FORCE_INLINE SizeType GetGPUBufferOffset(uint32 element_index) const
+    HYP_FORCE_INLINE SizeType GetGpuBufferOffset(uint32 element_index) const
     {
         return m_struct_size * element_index;
     }
@@ -193,7 +193,7 @@ public:
 
     virtual uint32 NumElementsPerBlock() const = 0;
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetBuffer(uint32 frame_index) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetBuffer(uint32 frame_index) const
     {
         return m_buffers[frame_index];
     }
@@ -219,7 +219,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE void Set(uint32 index, const T& value)
     {
-        AssertThrowMsg(TypeID::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
+        AssertThrowMsg(TypeId::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
 
         Set_Internal(index, &value);
     }
@@ -232,24 +232,24 @@ public:
     }
 
 protected:
-    void CreateBuffers(GPUBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
+    void CreateBuffers(GpuBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
 
     virtual void Set_Internal(uint32 index, const void* ptr) = 0;
 
-    TypeID m_struct_type_id;
+    TypeId m_struct_type_id;
     SizeType m_struct_size;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_buffers;
     FixedArray<Range<uint32>, max_frames_in_flight> m_dirty_ranges;
 };
 
 template <class StructType>
-class GPUBufferHolderMemoryPool final : public MemoryPool<StructType>
+class GpuBufferHolderMemoryPool final : public MemoryPool<StructType>
 {
 public:
     using Base = MemoryPool<StructType>;
 
-    GPUBufferHolderMemoryPool(uint32 initial_count = Base::InitInfo::num_initial_elements)
+    GpuBufferHolderMemoryPool(uint32 initial_count = Base::InitInfo::num_initial_elements)
         : Base(initial_count, /* create_initial_blocks */ true, /* block_init_ctx */ nullptr)
     {
     }
@@ -269,7 +269,7 @@ public:
         MarkDirty(index);
     }
 
-    void EnsureGPUBufferCapacity(const GPUBufferRef& buffer, uint32 frame_index)
+    void EnsureGpuBufferCapacity(const GpuBufferRef& buffer, uint32 frame_index)
     {
         bool was_resized = false;
         HYPERION_ASSERT_RESULT(buffer->EnsureCapacity(Base::NumAllocatedElements() * sizeof(StructType), &was_resized));
@@ -282,7 +282,7 @@ public:
         }
     }
 
-    void CopyToGPUBuffer(const GPUBufferRef& buffer, uint32 frame_index)
+    void CopyToGpuBuffer(const GpuBufferRef& buffer, uint32 frame_index)
     {
         HYP_MT_CHECK_READ(m_data_race_detector);
 
@@ -347,21 +347,21 @@ protected:
     HYP_DECLARE_MT_CHECK(m_data_race_detector);
 };
 
-template <class StructType, GPUBufferType BufferType>
-class GPUBufferHolder final : public GPUBufferHolderBase
+template <class StructType, GpuBufferType BufferType>
+class GpuBufferHolder final : public GpuBufferHolderBase
 {
 public:
-    GPUBufferHolder(uint32 initial_count = 0)
-        : GPUBufferHolderBase(TypeWrapper<StructType> {}),
+    GpuBufferHolder(uint32 initial_count = 0)
+        : GpuBufferHolderBase(TypeWrapper<StructType> {}),
           m_pool(initial_count)
     {
-        GPUBufferHolderBase::CreateBuffers(BufferType, initial_count, sizeof(StructType));
+        GpuBufferHolderBase::CreateBuffers(BufferType, initial_count, sizeof(StructType));
     }
 
-    GPUBufferHolder(const GPUBufferHolder& other) = delete;
-    GPUBufferHolder& operator=(const GPUBufferHolder& other) = delete;
+    GpuBufferHolder(const GpuBufferHolder& other) = delete;
+    GpuBufferHolder& operator=(const GpuBufferHolder& other) = delete;
 
-    virtual ~GPUBufferHolder() override = default;
+    virtual ~GpuBufferHolder() override = default;
 
     virtual SizeType Count() const override
     {
@@ -376,12 +376,12 @@ public:
     virtual void UpdateBufferSize(uint32 frame_index) override
     {
         // m_pool.RemoveEmptyBlocks();
-        m_pool.EnsureGPUBufferCapacity(m_buffers[frame_index], frame_index);
+        m_pool.EnsureGpuBufferCapacity(m_buffers[frame_index], frame_index);
     }
 
     virtual void UpdateBufferData(uint32 frame_index) override
     {
-        m_pool.CopyToGPUBuffer(m_buffers[frame_index], frame_index);
+        m_pool.CopyToGpuBuffer(m_buffers[frame_index], frame_index);
     }
 
     virtual void MarkDirty(uint32 index) override
@@ -435,7 +435,7 @@ private:
         Set(index, *static_cast<const StructType*>(ptr));
     }
 
-    GPUBufferHolderMemoryPool<StructType> m_pool;
+    GpuBufferHolderMemoryPool<StructType> m_pool;
 };
 
 } // namespace hyperion

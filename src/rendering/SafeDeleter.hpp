@@ -6,14 +6,14 @@
 #include <core/containers/LinkedList.hpp>
 #include <core/threading/AtomicVar.hpp>
 #include <core/threading/Mutex.hpp>
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <rendering/Bindless.hpp>
 #include <rendering/RenderMesh.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
 namespace hyperion {

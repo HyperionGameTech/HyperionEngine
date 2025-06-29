@@ -107,7 +107,7 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
     {
         const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
         table->SetDebugName(NAME_FMT("DescriptorTable_{}", shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists
@@ -124,7 +124,7 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
 
             for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
             {
-                const GPUBufferRef& gpu_buffer = impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
+                const GpuBufferRef& gpu_buffer = impl->GetEntityInstanceBatchHolder()->GetBuffer(frame_index);
                 AssertThrow(gpu_buffer.IsValid());
 
                 const DescriptorSetRef& instancing_descriptor_set = table->GetDescriptorSet(NAME("Instancing"), frame_index);

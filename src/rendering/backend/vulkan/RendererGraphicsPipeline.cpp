@@ -4,7 +4,7 @@
 #include <rendering/backend/vulkan/RendererRenderPass.hpp>
 #include <rendering/backend/vulkan/RendererFramebuffer.hpp>
 #include <rendering/backend/vulkan/RendererShader.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
@@ -24,11 +24,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region Helpers
@@ -313,7 +313,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 max_set_layouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     if (!m_descriptor_table.IsValid())
     {
@@ -348,14 +348,14 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     const VkPushConstantRange push_constant_ranges[] = {
         { .stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
             .offset = 0,
-            .size = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     layout_info.pushConstantRangeCount = uint32(std::size(push_constant_ranges));
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_CHECK_MSG(
-        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_layout),
+        vkCreatePipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), &layout_info, nullptr, &m_layout),
         "Failed to create graphics pipeline layout");
 
     /* Depth / stencil */
@@ -420,7 +420,7 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
     };
 
     HYPERION_VK_CHECK_MSG(
-        vkCreateGraphicsPipelines(GetRenderingAPI()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
+        vkCreateGraphicsPipelines(GetRenderBackend()->GetDevice()->GetDevice(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &m_handle),
         "Failed to create graphics pipeline");
 
     HYP_LOG(Rendering, Debug, "Created graphics pipeline #{}", g_tmp_num_graphics_pipelines);

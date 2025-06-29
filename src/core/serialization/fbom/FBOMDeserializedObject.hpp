@@ -6,7 +6,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 #include <core/memory/UniquePtr.hpp>
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <core/serialization/fbom/FBOMBaseTypes.hpp>
 #include <core/serialization/SerializationWrapper.hpp>

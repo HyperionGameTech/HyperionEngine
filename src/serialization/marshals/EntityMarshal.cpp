@@ -67,17 +67,17 @@ public:
                 return;
             }
 
-            HashSet<TypeID> serialized_components;
+            HashSet<TypeId> serialized_components;
 
             for (const auto& it : *all_components)
             {
-                const TypeID component_type_id = it.first;
+                const TypeId component_type_id = it.first;
 
                 const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
 
                 if (!component_interface)
                 {
-                    result = { FBOMResult::FBOM_ERR, HYP_FORMAT("No ComponentInterface registered for component with TypeID {}", component_type_id.Value()) };
+                    result = { FBOMResult::FBOM_ERR, HYP_FORMAT("No ComponentInterface registered for component with TypeId {}", component_type_id.Value()) };
 
                     return;
                 }
@@ -98,7 +98,7 @@ public:
                 {
                     EntityTag entity_tag = component_interface->GetEntityTag();
 
-                    FBOMObject entity_tag_object { FBOMObjectType(component_interface->GetTypeName(), component_interface->GetTypeID(), FBOMTypeFlags::DEFAULT) };
+                    FBOMObject entity_tag_object { FBOMObjectType(component_interface->GetTypeName(), component_interface->GetTypeId(), FBOMTypeFlags::DEFAULT) };
                     entity_tag_object.SetProperty("EntityTag", uint32(entity_tag));
                     out.AddChild(std::move(entity_tag_object));
 
@@ -113,7 +113,7 @@ public:
 
                 if (!marshal)
                 {
-                    HYP_LOG(Serialization, Warning, "Cannot serialize component with type name {} and TypeID {} - No marshal registered", component_interface->GetTypeName(), component_type_id.Value());
+                    HYP_LOG(Serialization, Warning, "Cannot serialize component with type name {} and TypeId {} - No marshal registered", component_interface->GetTypeName(), component_type_id.Value());
 
                     continue;
                 }
@@ -136,7 +136,7 @@ public:
             }
         };
 
-        if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+        if (Threads::IsOnThread(entity_manager->GetOwnerThreadId()))
         {
             serialize_entity_and_components();
         }
@@ -144,7 +144,7 @@ public:
         {
             HYP_NAMED_SCOPE("Awaiting async entity and component serialization");
 
-            Task<void> serialize_entity_and_components_task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serialize_entity_and_components]()
+            Task<void> serialize_entity_and_components_task = Threads::GetThread(entity_manager->GetOwnerThreadId())->GetScheduler().Enqueue(HYP_STATIC_MESSAGE("Serialize Entity and Components"), [&serialize_entity_and_components]()
                 {
                     serialize_entity_and_components();
                 });
@@ -162,7 +162,7 @@ public:
 
         if (!hyp_class->IsDerivedFrom(Entity::Class()))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, serialized data with type '{}' (HypClass: {}, TypeID: {}) is not a subclass of Entity", in.GetType().name, hyp_class->GetName(), in.GetType().GetNativeTypeID().Value()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, serialized data with type '{}' (HypClass: {}, TypeId: {}) is not a subclass of Entity", in.GetType().name, hyp_class->GetName(), in.GetType().GetNativeTypeId().Value()) };
         }
 
         if (!hyp_class->CreateInstance(out))
@@ -177,19 +177,19 @@ public:
             return err;
         }
 
-        HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with ID: {}",
+        HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with Id: {}",
             entity->InstanceClass()->GetName(),
             entity->GetID());
 
         // Read components
 
-        const Handle<Scene>& detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(ThreadID::Current());
+        const Handle<Scene>& detached_scene = g_engine->GetDefaultWorld()->GetDetachedScene(ThreadId::Current());
         const Handle<EntityManager>& entity_manager = detached_scene->GetEntityManager();
         entity_manager->AddExistingEntity(entity);
 
         for (const FBOMObject& child : in.GetChildren())
         {
-            const TypeID child_type_id = child.GetType().GetNativeTypeID();
+            const TypeId child_type_id = child.GetType().GetNativeTypeId();
 
             if (!child_type_id)
             {
@@ -198,7 +198,7 @@ public:
 
             if (!entity_manager->IsValidComponentType(child_type_id))
             {
-                HYP_LOG(Serialization, Warning, "Component with TypeID {} is not a valid component type", child_type_id.Value());
+                HYP_LOG(Serialization, Warning, "Component with TypeId {} is not a valid component type", child_type_id.Value());
 
                 continue;
             }
@@ -207,14 +207,14 @@ public:
 
             if (!component_interface)
             {
-                HYP_LOG(Serialization, Warning, "No ComponentInterface registered for component with TypeID {} (serialized object type name: {})", child_type_id.Value(), child.GetType().name);
+                HYP_LOG(Serialization, Warning, "No ComponentInterface registered for component with TypeId {} (serialized object type name: {})", child_type_id.Value(), child.GetType().name);
 
                 continue;
             }
 
             if (!component_interface->GetShouldSerialize())
             {
-                HYP_LOG(Serialization, Warning, "Component with TypeID {} is not marked for serialization", component_interface->GetTypeID().Value());
+                HYP_LOG(Serialization, Warning, "Component with TypeId {} is not marked for serialization", component_interface->GetTypeId().Value());
 
                 continue;
             }
@@ -234,9 +234,9 @@ public:
 
                 EntityTag entity_tag = EntityTag(entity_tag_value);
 
-                if (!entity_manager->IsEntityTagComponent(component_interface->GetTypeID()))
+                if (!entity_manager->IsEntityTagComponent(component_interface->GetTypeId()))
                 {
-                    HYP_LOG(Serialization, Warning, "Component with TypeID {} is not an entity tag component", component_interface->GetTypeID().Value());
+                    HYP_LOG(Serialization, Warning, "Component with TypeId {} is not an entity tag component", component_interface->GetTypeId().Value());
 
                     continue;
                 }
@@ -273,7 +273,7 @@ public:
                 continue;
             }
 
-            HYP_LOG(Serialization, Debug, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with ID: {}",
+            HYP_LOG(Serialization, Debug, "Adding component '{}' (child type id: {}, name: {}) to entity of type {} with Id: {}",
                 component_interface->GetTypeName(),
                 child_type_id.Value(),
                 child.GetType().name,
@@ -283,7 +283,7 @@ public:
             // temp
             if (component_interface->GetTypeName() == "MeshComponent")
             {
-                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with ID: {}", entity->GetID());
+                HYP_LOG(Serialization, Debug, "MeshComponent deserialized for entity with Id: {}", entity->GetID());
                 MeshComponent& mesh_component = child.m_deserialized_object->Get<MeshComponent>();
                 AssertThrow(mesh_component.mesh.IsValid());
             }
@@ -300,12 +300,12 @@ public:
 HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 
 // template <>
-// class FBOMMarshaler<ID<Entity>> : public FBOMObjectMarshalerBase<ID<Entity>>
+// class FBOMMarshaler<Id<Entity>> : public FBOMObjectMarshalerBase<Id<Entity>>
 // {
 // public:
 //     virtual ~FBOMMarshaler() override = default;
 
-//     virtual FBOMResult Serialize(const ID<Entity> &entity_id, FBOMObject &out) const override
+//     virtual FBOMResult Serialize(const Id<Entity> &entity_id, FBOMObject &out) const override
 //     {
 //         return FBOMMarshaler<Handle<Entity>>{}.Serialize(Handle<Entity>(entity_id), out);
 //     }
@@ -316,6 +316,6 @@ HYP_DEFINE_MARSHAL(Entity, FBOMMarshaler<Entity>);
 //     }
 // };
 
-// HYP_DEFINE_MARSHAL(ID<Entity>, FBOMMarshaler<ID<Entity>>);
+// HYP_DEFINE_MARSHAL(Id<Entity>, FBOMMarshaler<Id<Entity>>);
 
 } // namespace hyperion::serialization

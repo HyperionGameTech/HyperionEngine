@@ -20,7 +20,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
@@ -55,15 +55,15 @@ namespace hyperion {
 struct RENDER_COMMAND(CreateParticleSpawnerBuffers)
     : RenderCommand
 {
-    GPUBufferRef particle_buffer;
-    GPUBufferRef indirect_buffer;
-    GPUBufferRef noise_buffer;
+    GpuBufferRef particle_buffer;
+    GpuBufferRef indirect_buffer;
+    GpuBufferRef noise_buffer;
     ParticleSpawnerParams params;
 
     RENDER_COMMAND(CreateParticleSpawnerBuffers)(
-        GPUBufferRef particle_buffer,
-        GPUBufferRef indirect_buffer,
-        GPUBufferRef noise_buffer,
+        GpuBufferRef particle_buffer,
+        GpuBufferRef indirect_buffer,
+        GpuBufferRef noise_buffer,
         const ParticleSpawnerParams& params)
         : particle_buffer(std::move(particle_buffer)),
           indirect_buffer(std::move(indirect_buffer)),
@@ -138,11 +138,11 @@ struct RENDER_COMMAND(DestroyParticleSystem)
 struct RENDER_COMMAND(CreateParticleSystemBuffers)
     : RenderCommand
 {
-    GPUBufferRef staging_buffer;
+    GpuBufferRef staging_buffer;
     Handle<Mesh> quad_mesh;
 
     RENDER_COMMAND(CreateParticleSystemBuffers)(
-        GPUBufferRef staging_buffer,
+        GpuBufferRef staging_buffer,
         Handle<Mesh> quad_mesh)
         : staging_buffer(std::move(staging_buffer)),
           quad_mesh(std::move(quad_mesh))
@@ -207,9 +207,9 @@ void ParticleSpawner::Init()
 
 void ParticleSpawner::CreateBuffers()
 {
-    m_particle_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_params.max_particles * sizeof(ParticleShaderData));
-    m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
-    m_noise_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, sizeof(float) * 128 * 128);
+    m_particle_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, m_params.max_particles * sizeof(ParticleShaderData));
+    m_indirect_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+    m_noise_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, sizeof(float) * 128 * 128);
 
     PUSH_RENDER_COMMAND(
         CreateParticleSpawnerBuffers,
@@ -226,7 +226,7 @@ void ParticleSpawner::CreateGraphicsPipeline()
 
     const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -268,7 +268,7 @@ void ParticleSpawner::CreateComputePipelines()
 
     const DescriptorTableDeclaration& descriptor_table_decl = update_particles_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -282,7 +282,7 @@ void ParticleSpawner::CreateComputePipelines()
 
     DeferCreate(descriptor_table);
 
-    m_update_particles = g_rendering_api->MakeComputePipeline(
+    m_update_particles = g_render_backend->MakeComputePipeline(
         update_particles_shader,
         descriptor_table);
 
@@ -328,7 +328,7 @@ void ParticleSystem::Init()
 
 void ParticleSystem::CreateBuffers()
 {
-    m_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
+    m_staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(
         CreateParticleSystemBuffers,

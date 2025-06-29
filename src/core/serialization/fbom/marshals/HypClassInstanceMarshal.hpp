@@ -35,9 +35,9 @@ public:
         return FBOMObjectType(TypeNameWithoutNamespace<HypClassInstanceStub>().Data());
     }
 
-    virtual TypeID GetTypeID() const override final
+    virtual TypeId GetTypeId() const override final
     {
-        return TypeID::ForType<HypClassInstanceStub>();
+        return TypeId::ForType<HypClassInstanceStub>();
     }
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override;

@@ -166,7 +166,7 @@ void LightVisibilityUpdaterSystem::Process(float delta)
                 continue;
             }
 
-            // For area lights, update the material ID if the entity has a MeshComponent.
+            // For area lights, update the material Id if the entity has a MeshComponent.
             if (light_component.light->GetLightType() == LT_AREA_RECT)
             {
                 /*if (MeshComponent *mesh_component = entity_manager.TryGetComponent<MeshComponent>(entity)) {

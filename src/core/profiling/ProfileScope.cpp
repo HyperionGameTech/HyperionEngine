@@ -33,7 +33,7 @@ class ProfilerConnectionThread final : public Thread<Scheduler, ProfilerConnecti
 {
 public:
     ProfilerConnectionThread()
-        : Thread(ThreadID(Name::Unique("ProfilerConnectionThread")), ThreadPriorityValue::LOWEST)
+        : Thread(ThreadId(Name::Unique("ProfilerConnectionThread")), ThreadPriorityValue::LOWEST)
     {
     }
 
@@ -143,7 +143,7 @@ public:
 
     void Push(Array<json::JSONValue>&& values)
     {
-        const ThreadID current_thread_id = Threads::CurrentThreadID();
+        const ThreadId current_thread_id = Threads::CurrentThreadId();
 
         Array<json::JSONValue>* json_values_array = nullptr;
 
@@ -217,7 +217,7 @@ public:
 
             json::JSONArray groups_array;
 
-            for (KeyValuePair<ThreadID, UniquePtr<json::JSONArray>>& it : m_per_thread_values)
+            for (KeyValuePair<ThreadId, UniquePtr<json::JSONArray>>& it : m_per_thread_values)
             {
                 json::JSONObject group_object;
                 group_object["name"] = json::JSONString(it.first.GetName().LookupString());
@@ -239,7 +239,7 @@ private:
     UUID m_trace_id;
     ProfilerConnectionThread m_thread;
 
-    FlatMap<ThreadID, UniquePtr<json::JSONArray>> m_per_thread_values;
+    FlatMap<ThreadId, UniquePtr<json::JSONArray>> m_per_thread_values;
     mutable Mutex m_values_mutex;
 
     Array<Task<HTTPResponse>> m_requests;
@@ -387,7 +387,7 @@ class ProfileScopeStack
 {
 public:
     ProfileScopeStack()
-        : m_thread_id(Threads::CurrentThreadID()),
+        : m_thread_id(Threads::CurrentThreadId()),
           m_root_entry("ROOT", ""),
           m_head(&m_root_entry)
     {
@@ -443,7 +443,7 @@ public:
     }
 
 private:
-    ThreadID m_thread_id;
+    ThreadId m_thread_id;
     ProfileScopeEntry m_root_entry;
     NotNullPtr<ProfileScopeEntry> m_head;
     json::JSONArray m_queue;

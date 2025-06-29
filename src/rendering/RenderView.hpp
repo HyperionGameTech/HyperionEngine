@@ -43,7 +43,7 @@ class HBAO;
 class SSGI;
 class DOFBlur;
 class Texture;
-class RTRadianceRenderer;
+class RaytracingReflections;
 struct RenderSetup;
 
 class RenderView : public RenderResourceBase

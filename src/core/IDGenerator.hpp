@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
-#ifndef HYPERION_CORE_ID_CREATOR_HPP
-#define HYPERION_CORE_ID_CREATOR_HPP
+#ifndef HYPERION_CORE_ID_GENERATOR_HPP
+#define HYPERION_CORE_ID_GENERATOR_HPP
 
 #include <core/Defines.hpp>
 
@@ -19,32 +19,32 @@
 
 namespace hyperion {
 
-struct IDGenerator
+struct IdGenerator
 {
     AtomicVar<uint32> id_counter;
     AtomicVar<uint32> num_free_indices;
     Bitset free_indices;
     Mutex free_id_mutex;
 
-    IDGenerator()
+    IdGenerator()
         : id_counter(0),
           num_free_indices(0)
     {
     }
 
-    IDGenerator(const IDGenerator&) = delete;
-    IDGenerator& operator=(const IDGenerator&) = delete;
+    IdGenerator(const IdGenerator&) = delete;
+    IdGenerator& operator=(const IdGenerator&) = delete;
 
-    IDGenerator(IDGenerator&& other) noexcept
+    IdGenerator(IdGenerator&& other) noexcept
         : id_counter(other.id_counter.Exchange(0, MemoryOrder::ACQUIRE)),
           num_free_indices(other.num_free_indices.Exchange(0, MemoryOrder::ACQUIRE)),
           free_indices(std::move(other.free_indices))
     {
     }
 
-    IDGenerator& operator=(IDGenerator&& other) noexcept = delete;
+    IdGenerator& operator=(IdGenerator&& other) noexcept = delete;
 
-    ~IDGenerator() = default;
+    ~IdGenerator() = default;
 
     uint32 NextID()
     {

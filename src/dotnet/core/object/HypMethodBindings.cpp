@@ -30,14 +30,14 @@ extern "C"
         *out_name = method->GetName();
     }
 
-    HYP_EXPORT void HypMethod_GetReturnTypeID(const HypMethod* method, TypeID* out_return_type_id)
+    HYP_EXPORT void HypMethod_GetReturnTypeId(const HypMethod* method, TypeId* out_return_type_id)
     {
         if (!method || !out_return_type_id)
         {
             return;
         }
 
-        *out_return_type_id = method->GetTypeID();
+        *out_return_type_id = method->GetTypeId();
     }
 
     HYP_EXPORT uint32 HypMethod_GetParameters(const HypMethod* method, const HypMethodParameter** out_params)

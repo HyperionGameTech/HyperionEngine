@@ -3,7 +3,7 @@
 #include <rendering/backend/vulkan/rt/RendererRaytracingPipeline.hpp>
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/RendererShader.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererFeatures.hpp>
 
@@ -17,11 +17,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 static constexpr VkShaderStageFlags push_constant_stage_flags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
@@ -46,7 +46,7 @@ VulkanRaytracingPipeline::~VulkanRaytracingPipeline() = default;
 
 RendererResult VulkanRaytracingPipeline::Create()
 {
-    if (!GetRenderingAPI()->GetDevice()->GetFeatures().IsRaytracingSupported())
+    if (!GetRenderBackend()->GetDevice()->GetFeatures().IsRaytracingSupported())
     {
         return HYP_MAKE_ERROR(RendererError, "Raytracing is not supported on this device");
     }
@@ -58,7 +58,7 @@ RendererResult VulkanRaytracingPipeline::Create()
     /* Pipeline layout */
     VkPipelineLayoutCreateInfo layout_info { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 
-    const uint32 max_set_layouts = GetRenderingAPI()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
+    const uint32 max_set_layouts = GetRenderBackend()->GetDevice()->GetFeatures().GetPhysicalDeviceProperties().limits.maxBoundDescriptorSets;
 
     Array<VkDescriptorSetLayout> used_layouts = GetPipelineVulkanDescriptorSetLayouts(*this);
 
@@ -80,14 +80,14 @@ RendererResult VulkanRaytracingPipeline::Create()
     const VkPushConstantRange push_constant_ranges[] = {
         { .stageFlags = push_constant_stage_flags,
             .offset = 0,
-            .size = uint32(GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
+            .size = uint32(GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize<PushConstantData>()) }
     };
 
     layout_info.pushConstantRangeCount = ArraySize(push_constant_ranges);
     layout_info.pPushConstantRanges = push_constant_ranges;
 
     HYPERION_VK_PASS_ERRORS(
-        vkCreatePipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), &layout_info, VK_NULL_HANDLE, &m_layout),
+        vkCreatePipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), &layout_info, VK_NULL_HANDLE, &m_layout),
         result);
 
     if (!result)
@@ -119,8 +119,8 @@ RendererResult VulkanRaytracingPipeline::Create()
     pipeline_info.basePipelineIndex = -1;
 
     HYPERION_VK_PASS_ERRORS(
-        GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(
-            GetRenderingAPI()->GetDevice()->GetDevice(),
+        GetRenderBackend()->GetDevice()->GetFeatures().dyn_functions.vkCreateRayTracingPipelinesKHR(
+            GetRenderBackend()->GetDevice()->GetDevice(),
             VK_NULL_HANDLE,
             VK_NULL_HANDLE,
             1,
@@ -162,13 +162,13 @@ RendererResult VulkanRaytracingPipeline::Destroy()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, VK_NULL_HANDLE);
+        vkDestroyPipeline(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, VK_NULL_HANDLE);
         m_handle = VK_NULL_HANDLE;
     }
 
     if (m_layout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), m_layout, VK_NULL_HANDLE);
+        vkDestroyPipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), m_layout, VK_NULL_HANDLE);
         m_layout = VK_NULL_HANDLE;
     }
 
@@ -196,7 +196,7 @@ void VulkanRaytracingPipeline::Bind(CommandBufferBase* command_buffer)
 
 void VulkanRaytracingPipeline::TraceRays(CommandBufferBase* command_buffer, const Vec3u& extent) const
 {
-    GetRenderingAPI()->GetDevice()->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
+    GetRenderBackend()->GetDevice()->GetFeatures().dyn_functions.vkCmdTraceRaysKHR(
         static_cast<VulkanCommandBuffer*>(command_buffer)->GetVulkanHandle(),
         &m_shader_binding_table_entries.ray_gen,
         &m_shader_binding_table_entries.ray_miss,
@@ -209,17 +209,17 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTables(VulkanShader*
 {
     const Array<VulkanShaderGroup>& shader_groups = shader->GetShaderGroups();
 
-    const auto& features = GetRenderingAPI()->GetDevice()->GetFeatures();
+    const auto& features = GetRenderBackend()->GetDevice()->GetFeatures();
     const auto& properties = features.GetRaytracingPipelineProperties();
 
     const uint32 handle_size = properties.shaderGroupHandleSize;
-    const uint32 handle_size_aligned = GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
+    const uint32 handle_size_aligned = GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize(handle_size, properties.shaderGroupHandleAlignment);
     const uint32 table_size = uint32(shader_groups.Size()) * handle_size_aligned;
 
     ByteBuffer shader_handle_storage(table_size);
 
     HYPERION_VK_CHECK(features.dyn_functions.vkGetRayTracingShaderGroupHandlesKHR(
-        GetRenderingAPI()->GetDevice()->GetDevice(),
+        GetRenderBackend()->GetDevice()->GetDevice(),
         m_handle,
         0,
         uint32(shader_groups.Size()),
@@ -302,7 +302,7 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
     uint32 num_shaders,
     ShaderBindingTableEntry& out)
 {
-    const auto& properties = GetRenderingAPI()->GetDevice()->GetFeatures().GetRaytracingPipelineProperties();
+    const auto& properties = GetRenderBackend()->GetDevice()->GetFeatures().GetRaytracingPipelineProperties();
 
     AssertThrow(properties.shaderGroupHandleSize != 0);
 
@@ -313,14 +313,14 @@ RendererResult VulkanRaytracingPipeline::CreateShaderBindingTableEntry(
 
     RendererResult result;
 
-    out.buffer = MakeRenderObject<VulkanGPUBuffer>(GPUBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * num_shaders);
+    out.buffer = MakeRenderObject<VulkanGpuBuffer>(GpuBufferType::SHADER_BINDING_TABLE, properties.shaderGroupHandleSize * num_shaders);
 
     HYPERION_PASS_ERRORS(out.buffer->Create(), result);
 
     if (result)
     {
         /* Get strided device address region */
-        const uint32 handle_size = GetRenderingAPI()->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
+        const uint32 handle_size = GetRenderBackend()->GetDevice()->GetFeatures().PaddedSize(properties.shaderGroupHandleSize, properties.shaderGroupHandleAlignment);
 
         out.strided_device_address_region = VkStridedDeviceAddressRegionKHR {
             .deviceAddress = out.buffer->GetBufferDeviceAddress(),

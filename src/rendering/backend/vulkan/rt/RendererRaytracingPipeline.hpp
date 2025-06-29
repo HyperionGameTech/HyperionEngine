@@ -34,7 +34,7 @@ public:
 private:
     struct ShaderBindingTableEntry
     {
-        VulkanGPUBufferRef buffer;
+        VulkanGpuBufferRef buffer;
         VkStridedDeviceAddressRegionKHR strided_device_address_region;
     };
 

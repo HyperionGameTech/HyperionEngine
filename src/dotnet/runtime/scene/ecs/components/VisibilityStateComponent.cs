@@ -10,7 +10,7 @@ namespace Hyperion
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 16)]
-    public struct OctantID
+    public struct OctantId
     {
         public ulong indexBits;
         public byte depth;
@@ -21,7 +21,7 @@ namespace Hyperion
     public struct VisibilityStateComponent : IComponent
     {
         public VisibilityStateFlags visibilityStateFlags;
-        public OctantID octantID;
+        public OctantId octantId;
         public IntPtr visibilityStatePtr;
 
         public void Dispose()

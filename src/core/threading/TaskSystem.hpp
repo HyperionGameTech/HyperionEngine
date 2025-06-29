@@ -175,7 +175,7 @@ protected:
 
         for (uint32 thread_index = 0; thread_index < num_threads; thread_index++)
         {
-            UniquePtr<TaskThread>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadID(base_name, thread_index)));
+            UniquePtr<TaskThread>& thread = m_threads.PushBack(MakeUnique<TaskThreadType>(CreateTaskThreadId(base_name, thread_index)));
 
             m_thread_mask |= thread->GetID().GetMask();
         }
@@ -214,7 +214,7 @@ public:
         return m_thread_mask;
     }
 
-    HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadID thread_id) const
+    HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadId thread_id) const
     {
         const auto it = m_threads.FindIf([thread_id](const UniquePtr<TaskThread>& task_thread)
             {
@@ -253,7 +253,7 @@ protected:
     ThreadMask m_thread_mask;
 
 private:
-    static ThreadID CreateTaskThreadID(ANSIStringView base_name, uint32 thread_index);
+    static ThreadId CreateTaskThreadId(ANSIStringView base_name, uint32 thread_index);
 };
 
 class TaskSystem
@@ -284,12 +284,12 @@ public:
         return *m_pools[uint32(pool_name)];
     }
 
-    HYP_FORCE_INLINE TaskThread* GetTaskThread(TaskThreadPoolName pool_name, ThreadID thread_id) const
+    HYP_FORCE_INLINE TaskThread* GetTaskThread(TaskThreadPoolName pool_name, ThreadId thread_id) const
     {
         return GetPool(pool_name).GetTaskThread(thread_id);
     }
 
-    HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadID thread_id) const
+    HYP_FORCE_INLINE TaskThread* GetTaskThread(ThreadId thread_id) const
     {
         for (const UniquePtr<TaskThreadPool>& pool : m_pools)
         {

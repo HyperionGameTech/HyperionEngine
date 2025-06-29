@@ -90,7 +90,7 @@ TResult<CSharpTypeMapping> MapToCSharpType(const Analyzer& analyzer, const ASTTy
             { "ANSIStringView", { "string", "ReadString" } },
             { "FilePath", { "string", "ReadString" } },
             { "ByteBuffer", { "byte[]", "ReadByteBuffer" } },
-            { "ID", { "IDBase", "ReadID" } },
+            { "Id", { "IdBase", "ReadId" } },
             { "Name", { "Name", "ReadName" } },
             { "WeakName", { "Name", "ReadName" } },
             { "HypObjectBase", { "HypObject" } }, // HypObjectBase (C++) is the untyped base class - C# uses HypObject.

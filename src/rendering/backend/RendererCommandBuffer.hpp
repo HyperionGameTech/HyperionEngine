@@ -6,7 +6,7 @@
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererRenderPass.hpp>
 #include <rendering/backend/RendererSemaphore.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/Platform.hpp>
 
 #include <core/Defines.hpp>
@@ -28,8 +28,8 @@ public:
     HYP_API virtual RendererResult Create() = 0;
     HYP_API virtual RendererResult Destroy() = 0;
 
-    HYP_API virtual void BindVertexBuffer(const GPUBufferBase* buffer) = 0;
-    HYP_API virtual void BindIndexBuffer(const GPUBufferBase* buffer, GPUElemType datum_type = GET_UNSIGNED_INT) = 0;
+    HYP_API virtual void BindVertexBuffer(const GpuBufferBase* buffer) = 0;
+    HYP_API virtual void BindIndexBuffer(const GpuBufferBase* buffer, GpuElemType elem_type = GET_UNSIGNED_INT) = 0;
 
     HYP_API virtual void DrawIndexed(
         uint32 num_indices,
@@ -37,7 +37,7 @@ public:
         uint32 instance_index = 0) const = 0;
 
     HYP_API virtual void DrawIndexedIndirect(
-        const GPUBufferBase* buffer,
+        const GpuBufferBase* buffer,
         uint32 buffer_offset) const = 0;
 };
 

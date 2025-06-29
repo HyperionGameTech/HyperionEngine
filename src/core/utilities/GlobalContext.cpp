@@ -18,7 +18,7 @@ HYP_API GlobalContextRegistry* GetGlobalContextRegistryForCurrentThread()
 }
 
 GlobalContextRegistry::GlobalContextRegistry()
-    : m_owner_thread_id(ThreadID::Current())
+    : m_owner_thread_id(ThreadId::Current())
 {
 }
 

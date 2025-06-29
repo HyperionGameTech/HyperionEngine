@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_COMPONENT_FACTORY_HPP
 #define HYPERION_ECS_COMPONENT_FACTORY_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <core/memory/UniquePtr.hpp>
 

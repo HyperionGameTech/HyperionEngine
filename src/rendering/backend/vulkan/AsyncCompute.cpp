@@ -5,8 +5,8 @@
 #include <rendering/backend/vulkan/RendererCommandBuffer.hpp>
 #include <rendering/backend/vulkan/RendererComputePipeline.hpp>
 #include <rendering/backend/vulkan/RendererDescriptorSet.hpp>
-#include <rendering/backend/vulkan/RendererBuffer.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/RendererGpuBuffer.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
@@ -15,11 +15,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 VulkanAsyncCompute::VulkanAsyncCompute()
@@ -42,17 +42,17 @@ RendererResult VulkanAsyncCompute::Create()
 {
     HYP_SCOPE;
 
-    AssertThrow(GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices().IsComplete());
+    AssertThrow(GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().IsComplete());
 
-    VulkanDeviceQueue* queue = &GetRenderingAPI()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetComputeQueue();
 
-    m_is_supported = GetRenderingAPI()->GetDevice()->GetQueueFamilyIndices().compute_family.HasValue();
+    m_is_supported = GetRenderBackend()->GetDevice()->GetQueueFamilyIndices().compute_family.HasValue();
 
     if (!m_is_supported)
     {
         HYP_LOG(RenderingBackend, Warning, "Dedicated compute queue not supported, using graphics queue for compute operations");
 
-        queue = &GetRenderingAPI()->GetDevice()->GetGraphicsQueue();
+        queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
     }
 
     for (const VulkanCommandBufferRef& command_buffer : m_command_buffers)
@@ -76,13 +76,13 @@ RendererResult VulkanAsyncCompute::Submit(VulkanFrame* frame)
 
     const uint32 frame_index = frame->GetFrameIndex();
 
-    // @TODO: Call RHICommandList::Prepare to set descriptor sets to be used for the frame.
+    // @TODO: Call CmdList::Prepare to set descriptor sets to be used for the frame.
 
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->Begin());
     m_command_list.Execute(m_command_buffers[frame_index]);
     HYPERION_BUBBLE_ERRORS(m_command_buffers[frame_index]->End());
 
-    VulkanDeviceQueue& compute_queue = GetRenderingAPI()->GetDevice()->GetComputeQueue();
+    VulkanDeviceQueue& compute_queue = GetRenderBackend()->GetDevice()->GetComputeQueue();
 
     return m_command_buffers[frame_index]->SubmitPrimary(&compute_queue, m_fences[frame_index], nullptr);
 }

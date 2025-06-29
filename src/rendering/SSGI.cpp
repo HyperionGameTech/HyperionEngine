@@ -13,7 +13,7 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/GBuffer.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -58,11 +58,11 @@ struct RENDER_COMMAND(CreateSSGIUniformBuffers)
     : RenderCommand
 {
     SSGIUniforms uniforms;
-    FixedArray<GPUBufferRef, max_frames_in_flight> uniform_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> uniform_buffers;
 
     RENDER_COMMAND(CreateSSGIUniformBuffers)(
         const SSGIUniforms& uniforms,
-        const FixedArray<GPUBufferRef, max_frames_in_flight>& uniform_buffers)
+        const FixedArray<GpuBufferRef, max_frames_in_flight>& uniform_buffers)
         : uniforms(uniforms),
           uniform_buffers(uniform_buffers)
     {
@@ -176,7 +176,7 @@ void SSGI::CreateUniformBuffers()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_uniform_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
+        m_uniform_buffers[frame_index] = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
     }
 
     PUSH_RENDER_COMMAND(CreateSSGIUniformBuffers, uniforms, m_uniform_buffers);
@@ -190,7 +190,7 @@ void SSGI::CreateComputePipelines()
     AssertThrow(shader.IsValid());
 
     const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -203,7 +203,7 @@ void SSGI::CreateComputePipelines()
 
     DeferCreate(descriptor_table);
 
-    m_compute_pipeline = g_rendering_api->MakeComputePipeline(
+    m_compute_pipeline = g_render_backend->MakeComputePipeline(
         shader,
         descriptor_table);
 
@@ -287,7 +287,7 @@ void SSGI::FillUniformBufferData(RenderView* view, SSGIUniforms& out_uniforms) c
     // Can only fill the lights if we have a view ready
     if (view)
     {
-        RenderProxyList& rpl = RendererAPI_GetConsumerProxyList(view->GetView());
+        RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view->GetView());
 
         const uint32 max_bound_lights = ArraySize(out_uniforms.light_indices);
 

@@ -20,7 +20,7 @@
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RendererResult.hpp>
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererImageView.hpp>
 #include <rendering/backend/RendererSampler.hpp>
 #include <rendering/backend/rt/RendererAccelerationStructure.hpp>
@@ -104,28 +104,28 @@ enum class DescriptorSetElementType : uint32
 
 constexpr uint32 descriptor_set_element_type_to_buffer_type[uint32(DescriptorSetElementType::MAX)] = {
     0,                                    // UNSET
-    (1u << uint32(GPUBufferType::CBUFF)), // UNIFORM_BUFFER
-    (1u << uint32(GPUBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
-    (1u << uint32(GPUBufferType::SSBO))
-        | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
-        | (1u << uint32(GPUBufferType::STAGING_BUFFER))
-        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)), // SSBO
+    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER
+    (1u << uint32(GpuBufferType::CBUFF)), // UNIFORM_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::SSBO))
+        | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GpuBufferType::STAGING_BUFFER))
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)), // SSBO
 
-    (1u << uint32(GPUBufferType::SSBO))
-        | (1u << uint32(GPUBufferType::ATOMIC_COUNTER))
-        | (1u << uint32(GPUBufferType::STAGING_BUFFER))
-        | (1u << uint32(GPUBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
+    (1u << uint32(GpuBufferType::SSBO))
+        | (1u << uint32(GpuBufferType::ATOMIC_COUNTER))
+        | (1u << uint32(GpuBufferType::STAGING_BUFFER))
+        | (1u << uint32(GpuBufferType::INDIRECT_ARGS_BUFFER)),   // STORAGE_BUFFER_DYNAMIC
     0,                                                           // IMAGE
     0,                                                           // IMAGE_STORAGE
     0,                                                           // SAMPLER
-    (1u << uint32(GPUBufferType::ACCELERATION_STRUCTURE_BUFFER)) // ACCELERATION_STRUCTURE
+    (1u << uint32(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER)) // ACCELERATION_STRUCTURE
 };
 
 template <class T>
 struct DescriptorSetElementTypeInfo;
 
 template <>
-struct DescriptorSetElementTypeInfo<GPUBufferBase>
+struct DescriptorSetElementTypeInfo<GpuBufferBase>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER))
         | (1u << uint32(DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC))
@@ -550,7 +550,7 @@ private:
 
 struct DescriptorSetElement
 {
-    using ValueType = Variant<GPUBufferRef, ImageViewRef, SamplerRef, TLASRef>;
+    using ValueType = Variant<GpuBufferRef, ImageViewRef, SamplerRef, TLASRef>;
 
     FlatMap<uint32, ValueType> values;
     Range<uint32> dirty_range {};
@@ -622,9 +622,9 @@ public:
 
     bool HasElement(Name name) const;
 
-    void SetElement(Name name, uint32 index, uint32 buffer_size, const GPUBufferRef& ref);
-    void SetElement(Name name, uint32 index, const GPUBufferRef& ref);
-    void SetElement(Name name, const GPUBufferRef& ref);
+    void SetElement(Name name, uint32 index, uint32 buffer_size, const GpuBufferRef& ref);
+    void SetElement(Name name, uint32 index, const GpuBufferRef& ref);
+    void SetElement(Name name, const GpuBufferRef& ref);
 
     void SetElement(Name name, uint32 index, const ImageViewRef& ref);
     void SetElement(Name name, const ImageViewRef& ref);
@@ -667,11 +667,11 @@ protected:
             layout_element->count);
 
         // Buffer type check, to make sure the buffer type is allowed for the given element
-        if constexpr (std::is_same_v<typename T::Type, GPUBufferBase>)
+        if constexpr (std::is_same_v<typename T::Type, GpuBufferBase>)
         {
             if (ref != nullptr)
             {
-                const GPUBufferType buffer_type = ref->GetBufferType();
+                const GpuBufferType buffer_type = ref->GetBufferType();
 
                 AssertThrowMsg(
                     (descriptor_set_element_type_to_buffer_type[uint32(layout_element->type)] & (1u << uint32(buffer_type))),

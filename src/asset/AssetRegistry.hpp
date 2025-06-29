@@ -81,7 +81,7 @@ protected:
 
     virtual Result Save_Internal() = 0;
 
-    virtual TypeID GetAssetTypeID() const = 0;
+    virtual TypeId GetAssetTypeId() const = 0;
 
     WeakHandle<AssetObject> m_asset_object;
     LoadedAsset m_loaded_asset;
@@ -94,14 +94,14 @@ public:
 
     ObjectAssetResourceBase(HypData&& value)
     {
-        m_asset_type_id = value.GetTypeID();
+        m_asset_type_id = value.GetTypeId();
         m_loaded_asset = std::move(value);
     }
 
     template <class T, typename = std::enable_if_t<!is_hypdata_v<NormalizedType<T>>>>
     ObjectAssetResourceBase(T&& value)
         : AssetResourceBase(std::forward<T>(value)),
-          m_asset_type_id(TypeID::ForType<T>())
+          m_asset_type_id(TypeId::ForType<T>())
     {
     }
 
@@ -116,12 +116,12 @@ public:
 protected:
     virtual Result Save_Internal() override;
 
-    virtual TypeID GetAssetTypeID() const override final
+    virtual TypeId GetAssetTypeId() const override final
     {
         return m_asset_type_id;
     }
 
-    TypeID m_asset_type_id;
+    TypeId m_asset_type_id;
 };
 
 HYP_CLASS()

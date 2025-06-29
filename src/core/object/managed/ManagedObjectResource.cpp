@@ -93,7 +93,7 @@ void ManagedObjectResource::Initialize()
     if (!m_ptr.IsValid())
     {
         HYP_LOG(Object, Error, "Thread: {}\tManaged object could not be kept alive, it may have been garbage collected\n\tObject address: {}",
-            Threads::CurrentThreadID().GetName(),
+            Threads::CurrentThreadId().GetName(),
             (void*)m_object_ptr);
 
         return;
@@ -104,7 +104,7 @@ void ManagedObjectResource::Initialize()
     const HypClass* hyp_class = m_ptr.GetClass();
 
     // HYP_LOG(Object, Info, "Thread: {}\tManaged object for object with HypClass {} at address {} could not be kept alive, it may have been garbage collected. The managed object will be recreated.\n\tObject address: {}",
-    //     Threads::CurrentThreadID().GetName(),
+    //     Threads::CurrentThreadId().GetName(),
     //     hyp_class->GetName(), m_ptr.GetPointer(),
     //     (void*)m_object_ptr);
 

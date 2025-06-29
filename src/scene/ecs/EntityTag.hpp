@@ -5,7 +5,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/ByteUtil.hpp>
 
 #include <Types.hpp>
@@ -48,7 +48,7 @@ enum class EntityTag : uint64
     UPDATE_ENV_PROBE_TRANSFORM,
 
     TYPE_ID = (uint64(1) << 31),            // Flag to indicate that this EntityTag is an EntityType tag
-    TYPE_ID_MASK = uint64(0xFFFFFFFF) << 32 // Mask to get TypeID from the vaue
+    TYPE_ID_MASK = uint64(0xFFFFFFFF) << 32 // Mask to get TypeId from the vaue
 };
 
 static constexpr inline bool IsEntityTypeTag(EntityTag tag)
@@ -56,15 +56,15 @@ static constexpr inline bool IsEntityTypeTag(EntityTag tag)
     return uint64(tag) & uint64(EntityTag::TYPE_ID);
 }
 
-static constexpr inline TypeID GetTypeIDFromEntityTag(EntityTag tag)
+static constexpr inline TypeId GetTypeIdFromEntityTag(EntityTag tag)
 {
-    static_assert(sizeof(TypeID) == sizeof(uint32), "Using this requires sizeof(TypeID) is 32 bytes");
+    static_assert(sizeof(TypeId) == sizeof(uint32), "Using this requires sizeof(TypeId) is 32 bytes");
     if (!IsEntityTypeTag(tag))
     {
-        return TypeID::Void();
+        return TypeId::Void();
     }
 
-    return TypeID(static_cast<uint64>(tag) >> 32);
+    return TypeId(static_cast<uint64>(tag) >> 32);
 }
 
 template <class T>
@@ -73,12 +73,12 @@ struct EntityType_Impl
     static_assert(std::is_base_of_v<Entity, T>, "T must be a base of Entity to use EntityType");
     static constexpr EntityTag value = (std::is_void_v<T> || std::is_same_v<T, Entity>)
         ? EntityTag::TYPE_ID
-        : EntityTag((static_cast<uint64>(TypeID::ForType<T>().Value()) << 32) | uint64(EntityTag::TYPE_ID));
+        : EntityTag((static_cast<uint64>(TypeId::ForType<T>().Value()) << 32) | uint64(EntityTag::TYPE_ID));
 };
 
-static constexpr inline EntityTag MakeEntityTypeTag(TypeID type_id)
+static constexpr inline EntityTag MakeEntityTypeTag(TypeId type_id)
 {
-    if (type_id == TypeID::Void() || type_id == TypeID::ForType<Entity>())
+    if (type_id == TypeId::Void() || type_id == TypeId::ForType<Entity>())
     {
         return EntityTag::TYPE_ID;
     }

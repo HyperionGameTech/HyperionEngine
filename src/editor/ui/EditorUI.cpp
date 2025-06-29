@@ -12,7 +12,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeID type_id)
+HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeId type_id)
 {
     UIElementFactoryBase* factory = UIElementFactoryRegistry::GetInstance().GetFactory(type_id);
 
@@ -20,12 +20,12 @@ HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeID type_id)
     {
         if (const HypClass* hyp_class = GetClass(type_id))
         {
-            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeID::ForType<HypData>());
+            factory = UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<HypData>());
         }
 
         if (!factory)
         {
-            HYP_LOG(Editor, Warning, "No factory registered for TypeID {}", type_id.Value());
+            HYP_LOG(Editor, Warning, "No factory registered for TypeId {}", type_id.Value());
 
             return nullptr;
         }

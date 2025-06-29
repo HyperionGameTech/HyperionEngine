@@ -34,14 +34,14 @@ Entity::~Entity()
     m_scene = nullptr;
     m_world = nullptr;
 
-    // Keep a WeakHandle of Entity so the ID doesn't get reused while we're using it
+    // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
     EntityManager* entity_manager = GetEntityManager();
     if (entity_manager == nullptr)
     {
         return;
     }
 
-    if (Threads::IsOnThread(entity_manager->GetOwnerThreadID()))
+    if (Threads::IsOnThread(entity_manager->GetOwnerThreadId()))
     {
         HYP_NAMED_SCOPE("Remove Entity from EntityManager (sync)");
 
@@ -57,7 +57,7 @@ Entity::~Entity()
     else
     {
         // If not on the correct thread, perform the removal asynchronously
-        Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue([weak_this = WeakHandleFromThis(), entity_manager_weak = entity_manager->WeakHandleFromThis()]()
+        Threads::GetThread(entity_manager->GetOwnerThreadId())->GetScheduler().Enqueue([weak_this = WeakHandleFromThis(), entity_manager_weak = entity_manager->WeakHandleFromThis()]()
             {
                 Handle<EntityManager> entity_manager = entity_manager_weak.Lock();
                 if (!entity_manager)
@@ -106,7 +106,7 @@ bool Entity::ReceivesUpdate() const
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while checking receives update", GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
     return entity_manager->HasTag<EntityTag::RECEIVES_UPDATE>(this);
 }
@@ -123,7 +123,7 @@ void Entity::SetReceivesUpdate(bool receives_update)
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while setting receives update", GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
     if (receives_update)
     {
@@ -141,7 +141,7 @@ void Entity::Attach(const Handle<Node>& attach_node)
         EntityManager* entity_manager = GetEntityManager();
         AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching to Node", GetID().Value());
 
-        Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+        Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
         if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
         {
@@ -178,7 +178,7 @@ void Entity::Detach()
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching from Node", GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
     if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
@@ -280,10 +280,6 @@ void Entity::OnTagRemoved(EntityTag tag)
 {
 }
 
-void Entity::UpdateRenderProxy()
-{
-}
-
 void Entity::AttachChild(const Handle<Entity>& child)
 {
     if (!child)
@@ -294,7 +290,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while attaching child #%u", GetID().Value(), child.GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
     if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {
@@ -350,7 +346,7 @@ void Entity::DetachChild(const Handle<Entity>& child)
     EntityManager* entity_manager = GetEntityManager();
     AssertDebugMsg(entity_manager != nullptr, "EntityManager is null for Entity #%u while detaching child #%u", GetID().Value(), child.GetID().Value());
 
-    Threads::AssertOnThread(entity_manager->GetOwnerThreadID());
+    Threads::AssertOnThread(entity_manager->GetOwnerThreadId());
 
     if (NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(this))
     {

@@ -40,7 +40,7 @@ public:
     Task<void>* GenerateLightmaps(const Handle<Scene>& scene, const BoundingBox& aabb);
 
 private:
-    HashMap<ID<Scene>, UniquePtr<Lightmapper>> m_lightmappers;
+    HashMap<Id<Scene>, UniquePtr<Lightmapper>> m_lightmappers;
     LinkedList<Task<void>> m_tasks;
 };
 

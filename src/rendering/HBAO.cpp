@@ -43,11 +43,11 @@ struct RENDER_COMMAND(CreateHBAOUniformBuffer)
     : RenderCommand
 {
     HBAOUniforms uniforms;
-    GPUBufferRef uniform_buffer;
+    GpuBufferRef uniform_buffer;
 
     RENDER_COMMAND(CreateHBAOUniformBuffer)(
         const HBAOUniforms& uniforms,
-        const GPUBufferRef& uniform_buffer)
+        const GpuBufferRef& uniform_buffer)
         : uniforms(uniforms),
           uniform_buffer(uniform_buffer)
     {
@@ -102,7 +102,7 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderable_attributes)
 
     const DescriptorTableDeclaration& descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -135,7 +135,7 @@ void HBAO::CreateUniformBuffers()
     uniforms.radius = m_config.radius;
     uniforms.power = m_config.power;
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
+    m_uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
 
     PUSH_RENDER_COMMAND(CreateHBAOUniformBuffer, uniforms, m_uniform_buffer);
 }

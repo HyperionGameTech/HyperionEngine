@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/backend/vulkan/RendererSampler.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -11,11 +11,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 VulkanSampler::VulkanSampler(TextureFilterMode min_filter_mode, TextureFilterMode mag_filter_mode, TextureWrapMode wrap_mode)
@@ -84,7 +84,7 @@ RendererResult VulkanSampler::Create()
 
     if (m_min_filter_mode == TFM_MINMAX_MIPMAP)
     {
-        if (!GetRenderingAPI()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
+        if (!GetRenderBackend()->GetDevice()->GetFeatures().GetSamplerMinMaxProperties().filterMinmaxSingleComponentFormats)
         {
             return HYP_MAKE_ERROR(RendererError, "Device does not support min/max sampler formats");
         }
@@ -93,7 +93,7 @@ RendererResult VulkanSampler::Create()
         sampler_info.pNext = &reduction_info;
     }
 
-    if (vkCreateSampler(GetRenderingAPI()->GetDevice()->GetDevice(), &sampler_info, nullptr, &m_handle) != VK_SUCCESS)
+    if (vkCreateSampler(GetRenderBackend()->GetDevice()->GetDevice(), &sampler_info, nullptr, &m_handle) != VK_SUCCESS)
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to create sampler!");
     }
@@ -105,7 +105,7 @@ RendererResult VulkanSampler::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroySampler(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroySampler(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 

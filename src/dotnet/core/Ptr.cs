@@ -6,7 +6,7 @@ namespace Hyperion
     public static class PtrNativeBindings
     {
         [DllImport("hyperion", EntryPoint = "Ptr_Get")]
-        internal static extern void Ptr_Get(TypeID type_id, IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
+        internal static extern void Ptr_Get(TypeId type_id, IntPtr ptr, [Out] out HypDataBuffer outHypDataBuffer);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -44,7 +44,7 @@ namespace Hyperion
             }
 
             HypDataBuffer hypDataBuffer;
-            PtrNativeBindings.Ptr_Get(((HypClass)hypClass).TypeID, ptr, out hypDataBuffer);
+            PtrNativeBindings.Ptr_Get(((HypClass)hypClass).TypeId, ptr, out hypDataBuffer);
 
             T? value = (T?)hypDataBuffer.GetValue();
 

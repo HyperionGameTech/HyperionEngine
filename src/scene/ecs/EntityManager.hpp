@@ -30,7 +30,7 @@
 #include <core/profiling/PerformanceClock.hpp>
 
 #include <core/Handle.hpp>
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <scene/Entity.hpp>
 #include <scene/ecs/EntitySet.hpp>
@@ -139,19 +139,19 @@ public:
             return false;
         }
 
-        const Array<TypeID>& component_type_ids = system_ptr->GetComponentTypeIDs();
+        const Array<TypeId>& component_type_ids = system_ptr->GetComponentTypeIds();
 
         for (const auto& it : m_systems)
         {
             const SystemBase* other_system = it.second.Get();
 
-            for (TypeID component_type_id : component_type_ids)
+            for (TypeId component_type_id : component_type_ids)
             {
                 const ComponentInfo& component_info = system_ptr->GetComponentInfo(component_type_id);
 
                 if (component_info.rw_flags & COMPONENT_RW_FLAGS_WRITE)
                 {
-                    if (other_system->HasComponentTypeID(component_type_id, true))
+                    if (other_system->HasComponentTypeId(component_type_id, true))
                     {
                         return false;
                     }
@@ -159,7 +159,7 @@ public:
                 else
                 {
                     // This System is read-only for this component, so it can be processed with other Systems
-                    if (other_system->HasComponentTypeID(component_type_id, false))
+                    if (other_system->HasComponentTypeId(component_type_id, false))
                     {
                         return false;
                     }
@@ -179,7 +179,7 @@ public:
     template <class SystemType>
     HYP_FORCE_INLINE bool HasSystem() const
     {
-        static const TypeID type_id = TypeID::ForType<SystemType>();
+        static const TypeId type_id = TypeId::ForType<SystemType>();
 
         return m_systems.Find(type_id) != m_systems.End();
     }
@@ -193,10 +193,10 @@ public:
         AssertThrow(system.IsValid());
         AssertThrowMsg(IsValidForSystem(system.Get()), "System is not valid for this SystemExecutionGroup");
 
-        auto it = m_systems.Find(system->GetTypeID());
+        auto it = m_systems.Find(system->GetTypeId());
         AssertThrowMsg(it == m_systems.End(), "System already exists");
 
-        auto insert_result = m_systems.Set(system->GetTypeID(), system);
+        auto insert_result = m_systems.Set(system->GetTypeId(), system);
 
         return insert_result.first->second;
     }
@@ -204,7 +204,7 @@ public:
     template <class SystemType>
     Handle<SystemType> GetSystem() const
     {
-        static const TypeID type_id = TypeID::ForType<SystemType>();
+        static const TypeId type_id = TypeId::ForType<SystemType>();
 
         const auto it = m_systems.Find(type_id);
 
@@ -231,7 +231,7 @@ public:
     template <class SystemType>
     bool RemoveSystem()
     {
-        static const TypeID type_id = TypeID::ForType<SystemType>();
+        static const TypeId type_id = TypeId::ForType<SystemType>();
 
         return m_systems.Erase(type_id);
     }
@@ -273,7 +273,7 @@ class HYP_API EntityManager final : public HypObject<EntityManager>
 public:
     static constexpr ComponentID invalid_component_id = 0;
 
-    EntityManager(const ThreadID& owner_thread_id, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
+    EntityManager(const ThreadId& owner_thread_id, Scene* scene, EnumFlags<EntityManagerFlags> flags = EntityManagerFlags::DEFAULT);
     EntityManager(const EntityManager&) = delete;
     EntityManager& operator=(const EntityManager&) = delete;
     EntityManager(EntityManager&&) noexcept = delete;
@@ -283,40 +283,40 @@ public:
     template <class Component>
     static bool IsValidComponentType()
     {
-        return IsValidComponentType(TypeID::ForType<Component>());
+        return IsValidComponentType(TypeId::ForType<Component>());
     }
 
-    static bool IsValidComponentType(TypeID component_type_id);
+    static bool IsValidComponentType(TypeId component_type_id);
 
     template <class Component>
     static bool IsEntityTagComponent()
     {
-        return IsEntityTagComponent(TypeID::ForType<Component>());
+        return IsEntityTagComponent(TypeId::ForType<Component>());
     }
 
-    static bool IsEntityTagComponent(TypeID component_type_id);
-    static bool IsEntityTagComponent(TypeID component_type_id, EntityTag& out_tag);
+    static bool IsEntityTagComponent(TypeId component_type_id);
+    static bool IsEntityTagComponent(TypeId component_type_id, EntityTag& out_tag);
 
     template <class Component>
     static ANSIStringView GetComponentTypeName()
     {
-        return GetComponentTypeName(TypeID::ForType<Component>());
+        return GetComponentTypeName(TypeId::ForType<Component>());
     }
 
-    static ANSIStringView GetComponentTypeName(TypeID component_type_id);
+    static ANSIStringView GetComponentTypeName(TypeId component_type_id);
 
     /*! \brief Gets the thread mask of the thread that owns this EntityManager.
      *
      *  \return The thread mask.
      */
-    HYP_FORCE_INLINE const ThreadID& GetOwnerThreadID() const
+    HYP_FORCE_INLINE const ThreadId& GetOwnerThreadId() const
     {
         return m_owner_thread_id;
     }
 
     /*! \brief Sets the thread mask of the thread that owns this EntityManager.
      *  \internal This is used by the Scene to set the thread mask of the Scene's thread. It should not be called from user code. */
-    HYP_FORCE_INLINE void SetOwnerThreadID(const ThreadID& owner_thread_id)
+    HYP_FORCE_INLINE void SetOwnerThreadId(const ThreadId& owner_thread_id)
     {
         m_owner_thread_id = owner_thread_id;
     }
@@ -498,7 +498,7 @@ public:
         return m_entities.GetEntityData(entity).HasComponent<Component>();
     }
 
-    bool HasComponent(TypeID component_type_id, const Entity* entity) const
+    bool HasComponent(TypeId component_type_id, const Entity* entity) const
     {
         EnsureValidComponentType(component_type_id);
 
@@ -529,10 +529,10 @@ public:
         EntityData* entity_data = m_entities.TryGetEntityData(entity);
         AssertThrowMsg(entity_data != nullptr, "Entity does not exist");
 
-        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentID<Component>();
+        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentId<Component>();
         AssertThrowMsg(component_id_opt.HasValue(), "Entity does not have component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
-        static const TypeID component_type_id = TypeID::ForType<Component>();
+        static const TypeId component_type_id = TypeId::ForType<Component>();
 
         auto component_container_it = m_containers.Find(component_type_id);
         AssertThrowMsg(component_container_it != m_containers.End(), "Component container does not exist");
@@ -575,9 +575,9 @@ public:
             return nullptr;
         }
 
-        static const TypeID component_type_id = TypeID::ForType<Component>();
+        static const TypeId component_type_id = TypeId::ForType<Component>();
 
-        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentID<Component>();
+        const Optional<ComponentID> component_id_opt = entity_data->TryGetComponentId<Component>();
 
         if (!component_id_opt)
         {
@@ -601,14 +601,14 @@ public:
         return const_cast<EntityManager*>(this)->TryGetComponent<Component>(entity);
     }
 
-    /*! \brief Gets a component using the dynamic type ID.
+    /*! \brief Gets a component using the dynamic type Id.
      *
-     *  \param[in] component_type_id The type ID of the component to get.
+     *  \param[in] component_type_id The type Id of the component to get.
      *  \param[in] entity The Entity to get the component from.
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
-    AnyRef TryGetComponent(TypeID component_type_id, const Entity* entity)
+    AnyRef TryGetComponent(TypeId component_type_id, const Entity* entity)
     {
         EnsureValidComponentType(component_type_id);
 
@@ -642,14 +642,14 @@ public:
         return component_container_it->second->TryGetComponent(*component_id_opt);
     }
 
-    /*! \brief Gets a component using the dynamic type ID.
+    /*! \brief Gets a component using the dynamic type Id.
      *
-     *  \param[in] component_type_id The type ID of the component to get.
+     *  \param[in] component_type_id The type Id of the component to get.
      *  \param[in] entity The entity to get the component from.
      *
      *  \return Pointer to the component as a void pointer, or nullptr if the entity does not have the component.
      */
-    HYP_FORCE_INLINE ConstAnyRef TryGetComponent(TypeID component_type_id, const Entity* entity) const
+    HYP_FORCE_INLINE ConstAnyRef TryGetComponent(TypeId component_type_id, const Entity* entity) const
     {
         return const_cast<EntityManager*>(this)->TryGetComponent(component_type_id, entity);
     }
@@ -690,7 +690,7 @@ public:
     void AddComponent(Entity* entity, const HypData& component_data);
     void AddComponent(Entity* entity, HypData&& component_data);
 
-    bool RemoveComponent(TypeID component_type_id, Entity* entity);
+    bool RemoveComponent(TypeId component_type_id, Entity* entity);
 
     template <class Component, class U = Component>
     Component& AddComponent(Entity* entity, U&& component)
@@ -714,7 +714,7 @@ public:
         // @TODO: Replace the component if it already exists
         AssertThrowMsg(component_it == entity_data->components.End(), "Entity already has component of type %s", TypeNameWithoutNamespace<Component>().Data());
 
-        static const TypeID component_type_id = TypeID::ForType<Component>();
+        static const TypeId component_type_id = TypeId::ForType<Component>();
 
         const Pair<ComponentID, Component&> component_insert_result = GetContainer<Component>().AddComponent(std::move(component));
 
@@ -727,7 +727,7 @@ public:
 
             if (component_entity_sets_it != m_component_entity_sets.End())
             {
-                for (TypeID entity_set_type_id : component_entity_sets_it->second)
+                for (TypeId entity_set_type_id : component_entity_sets_it->second)
                 {
                     EntitySetBase& entity_set = *m_entity_sets.At(entity_set_type_id);
 
@@ -788,7 +788,7 @@ public:
             return false;
         }
 
-        const TypeID component_type_id = component_it->first;
+        const TypeId component_type_id = component_it->first;
         const ComponentID component_id = component_it->second;
 
         // Notify systems that entity is being removed from them
@@ -811,7 +811,7 @@ public:
 
             if (component_entity_sets_it != m_component_entity_sets.End())
             {
-                for (TypeID entity_set_type_id : component_entity_sets_it->second)
+                for (TypeId entity_set_type_id : component_entity_sets_it->second)
                 {
                     EntitySetBase& entity_set = *m_entity_sets.At(entity_set_type_id);
 
@@ -854,7 +854,7 @@ public:
     {
         Mutex::Guard guard(m_entity_sets_mutex);
 
-        static const TypeID entity_set_type_id = TypeID::ForType<EntitySet<Components...>>();
+        static const TypeId entity_set_type_id = TypeId::ForType<EntitySet<Components...>>();
 
         auto entity_sets_it = m_entity_sets.Find(entity_set_type_id);
 
@@ -871,7 +871,7 @@ public:
             if constexpr (sizeof...(Components) > 0)
             {
                 // Make sure the element exists in m_component_entity_sets
-                for (TypeID component_type_id : { TypeID::ForType<Components>()... })
+                for (TypeId component_type_id : { TypeId::ForType<Components>()... })
                 {
                     auto component_entity_sets_it = m_component_entity_sets.Find(component_type_id);
 
@@ -916,7 +916,7 @@ public:
     }
 
     HYP_METHOD()
-    Handle<SystemBase> GetSystemByTypeID(TypeID system_type_id) const
+    Handle<SystemBase> GetSystemByTypeId(TypeId system_type_id) const
     {
         for (const SystemExecutionGroup& system_execution_group : m_system_execution_groups)
         {
@@ -975,7 +975,7 @@ public:
         return static_cast<ComponentContainer<Component>&>(*it->second);
     }
 
-    HYP_FORCE_INLINE ComponentContainerBase* TryGetContainer(TypeID component_type_id)
+    HYP_FORCE_INLINE ComponentContainerBase* TryGetContainer(TypeId component_type_id)
     {
         EnsureValidComponentType(component_type_id);
 
@@ -1007,10 +1007,10 @@ private:
 #endif
     }
 
-    static void EnsureValidComponentType(TypeID component_type_id)
+    static void EnsureValidComponentType(TypeId component_type_id)
     {
 #ifdef HYP_DEBUG_MODE
-        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type: TypeID(%u)", component_type_id.Value());
+        AssertThrowMsg(IsValidComponentType(component_type_id), "Invalid component type: TypeId(%u)", component_type_id.Value());
 #endif
     }
 
@@ -1093,7 +1093,7 @@ private:
 
     void GetSystemClasses(Array<const HypClass*>& out_classes) const;
 
-    ThreadID m_owner_thread_id;
+    ThreadId m_owner_thread_id;
     World* m_world;
     Scene* m_scene;
     EnumFlags<EntityManagerFlags> m_flags;
@@ -1102,9 +1102,9 @@ private:
     DataRaceDetector m_containers_data_race_detector;
     EntityContainer m_entities;
     DataRaceDetector m_entities_data_race_detector;
-    HashMap<TypeID, UniquePtr<EntitySetBase>> m_entity_sets;
+    HashMap<TypeId, UniquePtr<EntitySetBase>> m_entity_sets;
     mutable Mutex m_entity_sets_mutex;
-    TypeMap<HashSet<TypeID>> m_component_entity_sets;
+    TypeMap<HashSet<TypeId>> m_component_entity_sets;
 
     Array<SystemExecutionGroup> m_system_execution_groups;
 

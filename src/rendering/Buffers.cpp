@@ -2,7 +2,7 @@
 
 #include <rendering/Buffers.hpp>
 
-#include <rendering/backend/RenderingAPI.hpp>
+#include <rendering/backend/RenderBackend.hpp>
 
 #include <core/utilities/ByteUtil.hpp>
 
@@ -10,14 +10,14 @@
 
 namespace hyperion {
 
-#pragma region GPUBufferHolderBase
+#pragma region GpuBufferHolderBase
 
-GPUBufferHolderBase::~GPUBufferHolderBase()
+GpuBufferHolderBase::~GpuBufferHolderBase()
 {
     SafeRelease(std::move(m_buffers));
 }
 
-void GPUBufferHolderBase::CreateBuffers(GPUBufferType type, SizeType initial_count, SizeType size, SizeType alignment)
+void GpuBufferHolderBase::CreateBuffers(GpuBufferType type, SizeType initial_count, SizeType size, SizeType alignment)
 {
     if (initial_count == 0)
     {
@@ -26,12 +26,12 @@ void GPUBufferHolderBase::CreateBuffers(GPUBufferType type, SizeType initial_cou
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_buffers[frame_index] = g_rendering_api->MakeGPUBuffer(type, size * initial_count, alignment);
+        m_buffers[frame_index] = g_render_backend->MakeGpuBuffer(type, size * initial_count, alignment);
 
         DeferCreate(m_buffers[frame_index]);
     }
 }
 
-#pragma endregion GPUBufferHolderBase
+#pragma endregion GpuBufferHolderBase
 
 } // namespace hyperion

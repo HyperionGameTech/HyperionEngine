@@ -12,7 +12,7 @@
 
 #include <core/functional/Proc.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 #include <core/utilities/Result.hpp>
@@ -35,8 +35,8 @@ class HypField : public IHypMember
 public:
     HypField(const Span<const HypClassAttribute>& attributes = {})
         : m_name(Name::Invalid()),
-          m_type_id(TypeID::Void()),
-          m_target_type_id(TypeID::Void()),
+          m_type_id(TypeId::Void()),
+          m_target_type_id(TypeId::Void()),
           m_offset(~0u),
           m_size(0),
           m_attributes(attributes)
@@ -46,8 +46,8 @@ public:
     template <class ThisType, class FieldType>
     HypField(Name name, FieldType ThisType::* member, uint32 offset, const Span<const HypClassAttribute>& attributes = {})
         : m_name(name),
-          m_type_id(TypeID::ForType<FieldType>()),
-          m_target_type_id(TypeID::ForType<ThisType>()),
+          m_type_id(TypeId::ForType<FieldType>()),
+          m_target_type_id(TypeId::ForType<ThisType>()),
           m_offset(offset),
           m_size(sizeof(FieldType)),
           m_attributes(attributes)
@@ -63,8 +63,8 @@ public:
                 ConstAnyRef target_ref = target_data.ToRef();
 
                 AssertThrow(target_ref.HasValue());
-                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
-                    TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), target_ref.GetTypeId().Value());
 
                 return HypData(static_cast<const ThisType*>(target_ref.GetPointer())->*member);
             }
@@ -81,8 +81,8 @@ public:
                 AnyRef target_ref = target_data.ToRef();
 
                 AssertThrow(target_ref.HasValue());
-                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
-                    TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                    TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), target_ref.GetTypeId().Value());
 
                 ThisType* target = static_cast<ThisType*>(target_ref.GetPointer());
 
@@ -136,8 +136,8 @@ public:
                     ConstAnyRef target_ref = target_data.ToRef();
 
                     AssertThrow(target_ref.HasValue());
-                    AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeID: %u), but got TypeID: %u",
-                        TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                    AssertThrowMsg(target_ref.Is<ThisType>(), "Invalid target type: Expected %s (TypeId: %u), but got TypeId: %u",
+                        TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), target_ref.GetTypeId().Value());
 
                     if (FBOMResult err = HypDataHelper<NormalizedType<FieldType>>::Serialize(static_cast<const ThisType*>(target_ref.GetPointer())->*member, out))
                     {
@@ -165,8 +165,8 @@ public:
 
                     if (!target_ref.Is<ThisType>())
                     {
-                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeID: {}), but got TypeID: {}",
-                            TypeName<ThisType>().Data(), TypeID::ForType<ThisType>().Value(), target_ref.GetTypeID().Value());
+                        return HYP_MAKE_ERROR(Error, "Invalid target type: Expected {} (TypeId: {}), but got TypeId: {}",
+                            TypeName<ThisType>().Data(), TypeId::ForType<ThisType>().Value(), target_ref.GetTypeId().Value());
                     }
 
                     HypData value;
@@ -233,12 +233,12 @@ public:
         return m_name;
     }
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
         return m_type_id;
     }
 
-    virtual TypeID GetTargetTypeID() const override
+    virtual TypeId GetTargetTypeId() const override
     {
         return m_target_type_id;
     }
@@ -308,7 +308,7 @@ public:
     HYP_FORCE_INLINE bool IsValid() const
     {
         return m_name.IsValid()
-            && m_type_id != TypeID::Void()
+            && m_type_id != TypeId::Void()
             && m_size != 0;
     }
 
@@ -329,8 +329,8 @@ public:
 
 private:
     Name m_name;
-    TypeID m_type_id;
-    TypeID m_target_type_id;
+    TypeId m_type_id;
+    TypeId m_target_type_id;
     uint32 m_offset;
     uint32 m_size;
 

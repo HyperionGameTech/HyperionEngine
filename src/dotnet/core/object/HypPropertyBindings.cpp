@@ -31,14 +31,14 @@ extern "C"
         *out_name = property->GetName();
     }
 
-    HYP_EXPORT void HypProperty_GetTypeID(const HypProperty* property, TypeID* out_type_id)
+    HYP_EXPORT void HypProperty_GetTypeId(const HypProperty* property, TypeId* out_type_id)
     {
         if (!property || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = property->GetTypeID();
+        *out_type_id = property->GetTypeId();
     }
 
     HYP_EXPORT bool HypProperty_InvokeGetter(const HypProperty* property, const HypClass* target_class, void* target_ptr, HypData* out_result)
@@ -53,7 +53,7 @@ extern "C"
             return false;
         }
 
-        HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+        HypData target_data { AnyRef(target_class->GetTypeId(), target_ptr) };
 
         *out_result = property->Get(target_data);
 
@@ -72,7 +72,7 @@ extern "C"
             return false;
         }
 
-        HypData target_data { AnyRef(target_class->GetTypeID(), target_ptr) };
+        HypData target_data { AnyRef(target_class->GetTypeId(), target_ptr) };
 
         property->Set(target_data, *value);
 

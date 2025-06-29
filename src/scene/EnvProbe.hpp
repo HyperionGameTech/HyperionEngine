@@ -210,8 +210,8 @@ public:
         return counter > 0;
     }
 
-    HYP_DEPRECATED bool IsVisible(ID<Camera> camera_id) const;
-    HYP_DEPRECATED void SetIsVisible(ID<Camera> camera_id, bool is_visible);
+    HYP_DEPRECATED bool IsVisible(Id<Camera> camera_id) const;
+    HYP_DEPRECATED void SetIsVisible(Id<Camera> camera_id, bool is_visible);
 
     virtual void Update(float delta) override;
 

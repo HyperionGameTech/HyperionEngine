@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/backend/vulkan/RendererPipeline.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <core/containers/FlatSet.hpp>
 
@@ -11,11 +11,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region VulkanPipelineBase
@@ -36,13 +36,13 @@ RendererResult VulkanPipelineBase::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
-        vkDestroyPipeline(GetRenderingAPI()->GetDevice()->GetDevice(), m_handle, nullptr);
+        vkDestroyPipeline(GetRenderBackend()->GetDevice()->GetDevice(), m_handle, nullptr);
         m_handle = VK_NULL_HANDLE;
     }
 
     if (m_layout != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineLayout(GetRenderingAPI()->GetDevice()->GetDevice(), m_layout, nullptr);
+        vkDestroyPipelineLayout(GetRenderBackend()->GetDevice()->GetDevice(), m_layout, nullptr);
         m_layout = VK_NULL_HANDLE;
     }
 

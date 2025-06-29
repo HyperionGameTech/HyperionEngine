@@ -88,7 +88,7 @@ public:
             .Add(m_invalidation_marker);
     }
 
-    HYP_FORCE_INLINE Octree* GetChildOctant(OctantID octant_id)
+    HYP_FORCE_INLINE Octree* GetChildOctant(OctantId octant_id)
     {
         return static_cast<Octree*>(OctreeBase::GetChildOctant(octant_id));
     }

@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_HYP_OBJECT_HPP
 #define HYPERION_CORE_HYP_OBJECT_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Name.hpp>
 #include <core/Defines.hpp>
 #include <core/ObjectPool.hpp>
@@ -12,7 +12,7 @@
 #include <core/object/HypObjectEnums.hpp>
 #include <core/object/managed/ManagedObjectResource.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/GlobalContext.hpp>
 
 #include <core/threading/AtomicVar.hpp>
@@ -47,9 +47,9 @@ namespace dotnet {
 class Class;
 } // namespace dotnet
 
-extern HYP_API const HypClass* GetClass(TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
 
-extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id);
 extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hyp_class);
 
 template <class ExpectedType>
@@ -60,7 +60,7 @@ bool IsInstanceOfHypClass(const HypClass* instance_hyp_class)
         return false;
     }
 
-    const HypClass* hyp_class = GetClass(TypeID::ForType<ExpectedType>());
+    const HypClass* hyp_class = GetClass(TypeId::ForType<ExpectedType>());
 
     if (!hyp_class)
     {
@@ -82,14 +82,14 @@ bool IsInstanceOfHypClass(const InstanceType* instance)
         return false;
     }
 
-    const HypClass* instance_hyp_class = GetClass(TypeID::ForType<InstanceType>());
+    const HypClass* instance_hyp_class = GetClass(TypeId::ForType<InstanceType>());
 
     if (!instance_hyp_class)
     {
         return false;
     }
 
-    const HypClass* hyp_class = GetClass(TypeID::ForType<ExpectedType>());
+    const HypClass* hyp_class = GetClass(TypeId::ForType<ExpectedType>());
 
     if (!hyp_class)
     {
@@ -117,7 +117,7 @@ public:
     DynamicHypObjectInitializer(const HypClass* hyp_class, IHypObjectInitializer* parent_initializer);
     virtual ~DynamicHypObjectInitializer() override;
 
-    virtual TypeID GetTypeID() const override;
+    virtual TypeId GetTypeId() const override;
 
     virtual const HypClass* GetClass() const override
     {
@@ -182,9 +182,9 @@ public:
         }
     }
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
-        return GetTypeID_Static();
+        return GetTypeId_Static();
     }
 
     virtual const HypClass* GetClass() const override
@@ -311,16 +311,16 @@ public:
         return 0;
     }
 
-    HYP_FORCE_INLINE static TypeID GetTypeID_Static()
+    HYP_FORCE_INLINE static TypeId GetTypeId_Static()
     {
-        static constexpr TypeID type_id = TypeID::ForType<T>();
+        static constexpr TypeId type_id = TypeId::ForType<T>();
 
         return type_id;
     }
 
     HYP_FORCE_INLINE static const HypClass* GetClass_Static()
     {
-        static const HypClass* hyp_class = ::hyperion::GetClass(TypeID::ForType<T>());
+        static const HypClass* hyp_class = ::hyperion::GetClass(TypeId::ForType<T>());
 
         return hyp_class;
     }
@@ -347,9 +347,9 @@ public:                                                                         
         static constexpr bool is_hyp_object = true;                                  \
     };                                                                               \
                                                                                      \
-    HYP_FORCE_INLINE ID<T> GetID() const                                             \
+    HYP_FORCE_INLINE Id<T> GetID() const                                             \
     {                                                                                \
-        return ID<T>(HypObjectBase::GetID());                                        \
+        return Id<T>(HypObjectBase::GetID());                                        \
     }                                                                                \
                                                                                      \
     HYP_FORCE_INLINE IHypObjectInitializer* GetObjectInitializer() const             \
@@ -376,7 +376,7 @@ public:                                                                         
         }                                                                            \
         else                                                                         \
         {                                                                            \
-            const HypClass* other_hyp_class = GetClass(TypeID::ForType<TOther>());   \
+            const HypClass* other_hyp_class = GetClass(TypeId::ForType<TOther>());   \
             if (!other_hyp_class)                                                    \
             {                                                                        \
                 return false;                                                        \
@@ -424,18 +424,18 @@ class HYP_API HypObjectBase
 public:
     virtual ~HypObjectBase();
 
-    HYP_FORCE_INLINE IDBase GetID() const
+    HYP_FORCE_INLINE IdBase GetID() const
     {
         AssertDebugMsg(m_header, "Invalid HypObject!");
 
-        return IDBase { m_header->container->GetObjectTypeID(), m_header->index + 1 };
+        return IdBase { m_header->container->GetObjectTypeId(), m_header->index + 1 };
     }
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         AssertDebugMsg(m_header, "Invalid HypObject!");
 
-        return m_header->container->GetObjectTypeID();
+        return m_header->container->GetObjectTypeId();
     }
 
     HYP_FORCE_INLINE const HypClass* InstanceClass() const

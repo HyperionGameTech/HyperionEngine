@@ -35,14 +35,14 @@ extern "C"
         hyp_data_storage->Destruct();
     }
 
-    HYP_EXPORT void HypData_GetTypeID(const HypData* hyp_data, TypeID* out_type_id)
+    HYP_EXPORT void HypData_GetTypeId(const HypData* hyp_data, TypeId* out_type_id)
     {
         if (!hyp_data || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = hyp_data->GetTypeID();
+        *out_type_id = hyp_data->GetTypeId();
     }
 
     HYP_EXPORT const void* HypData_GetPointer(const HypData* hyp_data)
@@ -245,26 +245,26 @@ extern "C"
         return true;
     }
 
-    HYP_EXPORT int8 HypData_IsID(const HypData* hyp_data)
+    HYP_EXPORT int8 HypData_IsId(const HypData* hyp_data)
     {
         if (!hyp_data)
         {
             return false;
         }
 
-        return hyp_data->Is<IDBase>();
+        return hyp_data->Is<IdBase>();
     }
 
-    HYP_EXPORT int8 HypData_GetID(const HypData* hyp_data, IDBase* out_id)
+    HYP_EXPORT int8 HypData_GetId(const HypData* hyp_data, IdBase* out_id)
     {
         if (!hyp_data || !out_id)
         {
             return false;
         }
 
-        if (hyp_data->Is<IDBase>())
+        if (hyp_data->Is<IdBase>())
         {
-            *out_id = hyp_data->Get<IDBase>();
+            *out_id = hyp_data->Get<IdBase>();
 
             return true;
         }
@@ -272,7 +272,7 @@ extern "C"
         return false;
     }
 
-    HYP_EXPORT int8 HypData_SetID(HypData* hyp_data, IDBase* id)
+    HYP_EXPORT int8 HypData_SetId(HypData* hyp_data, IdBase* id)
     {
         if (!hyp_data || !id)
         {
@@ -337,7 +337,7 @@ extern "C"
             return false;
         }
 
-        const HypClass* hyp_class = GetClass(hyp_data->GetTypeID());
+        const HypClass* hyp_class = GetClass(hyp_data->GetTypeId());
 
         if (!hyp_class)
         {
@@ -376,7 +376,7 @@ extern "C"
             return false;
         }
 
-        const TypeID type_id = hyp_class->GetTypeID();
+        const TypeId type_id = hyp_class->GetTypeId();
 
         if (hyp_class->IsClassType())
         {
@@ -402,7 +402,7 @@ extern "C"
 
         // @TODO Implement for dynamic struct types
 
-        const HypClass* hyp_class = GetClass(hyp_data->GetTypeID());
+        const HypClass* hyp_class = GetClass(hyp_data->GetTypeId());
 
         if (!hyp_class)
         {

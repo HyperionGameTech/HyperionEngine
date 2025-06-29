@@ -2,7 +2,7 @@
 #ifndef HYPERION_ASSET_LOADER_HPP
 #define HYPERION_ASSET_LOADER_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 #include <core/Handle.hpp>
 
 #include <core/memory/Any.hpp>

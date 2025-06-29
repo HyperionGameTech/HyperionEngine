@@ -8,7 +8,7 @@
 #include <rendering/PostFX.hpp>
 #include <rendering/ParticleSystem.hpp>
 #include <rendering/IndirectDraw.hpp>
-#include <rendering/rt/RTRadianceRenderer.hpp>
+#include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/DOFBlur.hpp>
 #include <rendering/HBAO.hpp>
 #include <rendering/TemporalAA.hpp>
@@ -49,7 +49,7 @@ class DeferredPass;
 class HBAO;
 class DOFBlur;
 class Texture;
-class RTRadianceRenderer;
+class RaytracingReflections;
 struct RenderSetup;
 class RenderGroup;
 class IDrawCallCollectionImpl;

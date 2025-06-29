@@ -241,7 +241,7 @@ void TemporalBlending::CreateDescriptorSets()
 
     const DescriptorTableDeclaration& descriptor_table_decl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    m_descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    m_descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_result_texture,
@@ -286,7 +286,7 @@ void TemporalBlending::CreateComputePipelines()
     ShaderRef shader = g_shader_manager->GetOrCreate(NAME("TemporalBlending"), GetShaderProperties());
     AssertThrow(shader.IsValid());
 
-    m_perform_blending = g_rendering_api->MakeComputePipeline(shader, m_descriptor_table);
+    m_perform_blending = g_render_backend->MakeComputePipeline(shader, m_descriptor_table);
     DeferCreate(m_perform_blending);
 }
 

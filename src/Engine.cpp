@@ -131,7 +131,7 @@ private:
                 m_app_context->GetMainWindow()->GetInputEventSink().Push(std::move(event));
             }
 
-            RendererAPI_BeginFrame_RenderThread();
+            RenderApi_BeginFrame_RenderThread();
 
             if (uint32 num_enqueued = m_scheduler.NumEnqueued())
             {
@@ -145,7 +145,7 @@ private:
 
             g_engine->RenderNextFrame();
 
-            RendererAPI_EndFrame_RenderThread();
+            RenderApi_EndFrame_RenderThread();
         }
     }
 
@@ -213,7 +213,7 @@ HYP_API void Engine::Init()
     AssertThrowMsg(m_app_context != nullptr, "App context must be set before initializing the engine!");
 
     m_render_thread = MakeUnique<RenderThread>(m_app_context);
-    RendererAPI_InitResourceContainers();
+    RenderApi_InitResourceContainers();
 
     AssertThrow(m_app_context->GetMainWindow() != nullptr);
 
@@ -228,9 +228,9 @@ HYP_API void Engine::Init()
 
     TaskSystem::GetInstance().Start();
 
-    AssertThrow(g_rendering_api != nullptr);
+    AssertThrow(g_render_backend != nullptr);
 
-    g_rendering_api->GetOnSwapchainRecreatedDelegate()
+    g_render_backend->GetOnSwapchainRecreatedDelegate()
         .Bind([this](SwapchainBase* swapchain)
             {
                 m_final_pass = MakeUnique<FinalPass>(swapchain->HandleFromThis());
@@ -283,7 +283,7 @@ HYP_API void Engine::Init()
     m_graphics_pipeline_cache = MakeUnique<GraphicsPipelineCache>();
     m_graphics_pipeline_cache->Initialize();
 
-    m_final_pass = MakeUnique<FinalPass>(g_rendering_api->GetSwapchain()->HandleFromThis());
+    m_final_pass = MakeUnique<FinalPass>(g_render_backend->GetSwapchain()->HandleFromThis());
     m_final_pass->Create();
 
     m_debug_drawer = MakeUnique<DebugDrawer>();
@@ -419,7 +419,7 @@ HYP_API void Engine::RenderNextFrame()
     OnRenderStatsUpdated(m_render_stats);
 #endif
 
-    FrameBase* frame = g_rendering_api->PrepareNextFrame();
+    FrameBase* frame = g_render_backend->PrepareNextFrame();
 
     PreFrameUpdate(frame);
 
@@ -435,7 +435,7 @@ HYP_API void Engine::RenderNextFrame()
 
     g_render_global_state->UpdateBuffers(frame);
 
-    g_rendering_api->PresentFrame(frame);
+    g_render_backend->PresentFrame(frame);
 }
 
 void Engine::PreFrameUpdate(FrameBase* frame)

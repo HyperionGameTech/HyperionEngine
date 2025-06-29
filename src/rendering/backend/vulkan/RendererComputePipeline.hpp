@@ -25,7 +25,7 @@ public:
     HYP_API virtual void Dispatch(CommandBufferBase* command_buffer, const Vec3u& group_size) const override;
     HYP_API virtual void DispatchIndirect(
         CommandBufferBase* command_buffer,
-        const GPUBufferRef& indirect_buffer,
+        const GpuBufferRef& indirect_buffer,
         SizeType offset = 0) const override;
 
     HYP_API virtual void SetPushConstants(const void* data, SizeType size) override;

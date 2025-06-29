@@ -5,7 +5,7 @@
 
 namespace hyperion {
 
-HypClassRegistrationBase::HypClassRegistrationBase(TypeID type_id, HypClass* hyp_class)
+HypClassRegistrationBase::HypClassRegistrationBase(TypeId type_id, HypClass* hyp_class)
 {
     HypClassRegistry::GetInstance().RegisterClass(type_id, hyp_class);
 }

@@ -3,7 +3,7 @@
 #ifndef HYPERION_ANY_HPP
 #define HYPERION_ANY_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/memory/AnyRef.hpp>
 #include <core/memory/Memory.hpp>
 #include <core/debug/Debug.hpp>
@@ -17,8 +17,8 @@ namespace hyperion {
 
 class HypClass;
 
-extern HYP_API const HypClass* GetClass(TypeID type_id);
-extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id);
 
 namespace memory {
 
@@ -52,7 +52,7 @@ public:
     friend class memory::UniquePtr;
 
     Any()
-        : m_type_id(TypeID::ForType<void>()),
+        : m_type_id(TypeId::ForType<void>()),
           m_ptr(nullptr),
           m_dtor(nullptr)
     {
@@ -61,7 +61,7 @@ public:
     /*! \brief Construct an Any by taking ownership of \ref{ptr}. The object pointed to will be deleted when the Any is destructed. */
     template <class T>
     explicit Any(T* ptr)
-        : m_type_id(TypeID::ForType<NormalizedType<T>>()),
+        : m_type_id(TypeId::ForType<NormalizedType<T>>()),
           m_ptr(ptr),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
     {
@@ -83,7 +83,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any(T&& value) noexcept
-        : m_type_id(TypeID::ForType<NormalizedType<T>>()),
+        : m_type_id(TypeId::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
     {
@@ -92,7 +92,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     Any& operator=(T&& value) noexcept
     {
-        const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId new_type_id = TypeId::ForType<NormalizedType<T>>();
 
         if constexpr (std::is_move_assignable_v<NormalizedType<T>>)
         {
@@ -125,7 +125,7 @@ public:
           m_ptr(other.m_ptr),
           m_dtor(other.m_dtor)
     {
-        other.m_type_id = TypeID::ForType<void>();
+        other.m_type_id = TypeId::ForType<void>();
         other.m_ptr = nullptr;
         other.m_dtor = nullptr;
     }
@@ -146,7 +146,7 @@ public:
         m_ptr = other.m_ptr;
         m_dtor = other.m_dtor;
 
-        other.m_type_id = TypeID::ForType<void>();
+        other.m_type_id = TypeId::ForType<void>();
         other.m_ptr = nullptr;
         other.m_dtor = nullptr;
 
@@ -179,8 +179,8 @@ public:
         return m_ptr != nullptr;
     }
 
-    /*! \brief Returns the TypeID of the held object. */
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    /*! \brief Returns the TypeId of the held object. */
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_type_id;
     }
@@ -190,15 +190,15 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        constexpr TypeId type_id = TypeId::ForType<NormalizedType<T>>();
 
         return m_type_id == type_id
             || IsInstanceOfHypClass(GetClass(type_id), m_ptr, m_type_id);
     }
 
     /*! \brief Returns true if the held object is of type \ref{type_id}.
-     *  If the type with the given ID has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
-    HYP_FORCE_INLINE bool Is(TypeID type_id) const
+     *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
+    HYP_FORCE_INLINE bool Is(TypeId type_id) const
     {
         return m_type_id == type_id
             || IsInstanceOfHypClass(GetClass(type_id), m_ptr, m_type_id);
@@ -208,7 +208,7 @@ public:
     template <class T>
     HYP_NODISCARD HYP_FORCE_INLINE T& Get() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
@@ -218,7 +218,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T* TryGet() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
 
         if (m_type_id == requested_type_id)
         {
@@ -236,7 +236,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(value);
         m_dtor = &Memory::Delete<NormalizedType<T>>;
     }
@@ -249,7 +249,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::move(value));
         m_dtor = &Memory::Delete<NormalizedType<T>>;
     }
@@ -263,7 +263,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
         m_dtor = &Memory::Delete<NormalizedType<T>>;
 
@@ -277,13 +277,13 @@ public:
     {
         if constexpr (!std::is_void_v<T>)
         {
-            const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+            const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
             AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
         }
 
         T* ptr = static_cast<T*>(m_ptr);
 
-        m_type_id = TypeID::ForType<void>();
+        m_type_id = TypeId::ForType<void>();
         m_ptr = nullptr;
         m_dtor = nullptr;
 
@@ -301,7 +301,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = ptr;
 
         if (ptr)
@@ -322,7 +322,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<void>();
+        m_type_id = TypeId::ForType<void>();
         m_ptr = nullptr;
         m_dtor = nullptr;
     }
@@ -354,7 +354,7 @@ public:
         return ConstAnyRef(m_type_id, m_ptr);
     }
 
-    static Any FromVoidPointer(TypeID type_id, void* ptr, DeleteFunction dtor)
+    static Any FromVoidPointer(TypeId type_id, void* ptr, DeleteFunction dtor)
     {
         Any result;
         result.m_type_id = type_id;
@@ -365,7 +365,7 @@ public:
     }
 
 protected:
-    TypeID m_type_id;
+    TypeId m_type_id;
     void* m_ptr;
     DeleteFunction m_dtor;
 };
@@ -381,7 +381,7 @@ public:
     friend class memory::UniquePtr;
 
     CopyableAny()
-        : m_type_id(TypeID::ForType<void>()),
+        : m_type_id(TypeId::ForType<void>()),
           m_ptr(nullptr),
           m_copy_ctor(nullptr),
           m_dtor(nullptr)
@@ -404,7 +404,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(const T& value)
-        : m_type_id(TypeID::ForType<NormalizedType<T>>()),
+        : m_type_id(TypeId::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(value)),
           m_copy_ctor(&Any_CopyConstruct<NormalizedType<T>>),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
@@ -414,7 +414,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(const T& value)
     {
-        const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId new_type_id = TypeId::ForType<NormalizedType<T>>();
 
         if constexpr (std::is_copy_assignable_v<NormalizedType<T>>)
         {
@@ -442,7 +442,7 @@ public:
 
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny(T&& value) noexcept
-        : m_type_id(TypeID::ForType<NormalizedType<T>>()),
+        : m_type_id(TypeId::ForType<NormalizedType<T>>()),
           m_ptr(new NormalizedType<T>(std::forward<NormalizedType<T>>(value))),
           m_copy_ctor(&Any_CopyConstruct<NormalizedType<T>>),
           m_dtor(&Memory::Delete<NormalizedType<T>>)
@@ -452,7 +452,7 @@ public:
     template <class T, typename = std::enable_if_t<!std::is_base_of_v<AnyBase, T>>>
     CopyableAny& operator=(T&& value) noexcept
     {
-        const TypeID new_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId new_type_id = TypeId::ForType<NormalizedType<T>>();
 
         if constexpr (std::is_move_assignable_v<NormalizedType<T>>)
         {
@@ -512,7 +512,7 @@ public:
           m_copy_ctor(other.m_copy_ctor),
           m_dtor(other.m_dtor)
     {
-        other.m_type_id = TypeID::ForType<void>();
+        other.m_type_id = TypeId::ForType<void>();
         other.m_ptr = nullptr;
         other.m_copy_ctor = nullptr;
         other.m_dtor = nullptr;
@@ -535,7 +535,7 @@ public:
         m_copy_ctor = other.m_copy_ctor;
         m_dtor = other.m_dtor;
 
-        other.m_type_id = TypeID::ForType<void>();
+        other.m_type_id = TypeId::ForType<void>();
         other.m_ptr = nullptr;
         other.m_copy_ctor = nullptr;
         other.m_dtor = nullptr;
@@ -569,8 +569,8 @@ public:
         return m_ptr != nullptr;
     }
 
-    /*! \brief Returns the TypeID of the held object. */
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    /*! \brief Returns the TypeId of the held object. */
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_type_id;
     }
@@ -580,15 +580,15 @@ public:
     template <class T>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeID type_id = TypeID::ForType<NormalizedType<T>>();
+        constexpr TypeId type_id = TypeId::ForType<NormalizedType<T>>();
 
         return m_type_id == type_id
             || IsInstanceOfHypClass(GetClass(type_id), m_ptr, m_type_id);
     }
 
     /*! \brief Returns true if the held object is of type \ref{type_id}.
-     *  If the type with the given ID has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
-    HYP_FORCE_INLINE bool Is(TypeID type_id) const
+     *  If the type with the given Id has a HypClass registered, this function will also return true if the held object is a subclass of the type. */
+    HYP_FORCE_INLINE bool Is(TypeId type_id) const
     {
         return m_type_id == type_id
             || IsInstanceOfHypClass(GetClass(type_id), m_ptr, m_type_id);
@@ -598,7 +598,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T& Get() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
         AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
 
         return *static_cast<NormalizedType<T>*>(m_ptr);
@@ -608,7 +608,7 @@ public:
     template <class T>
     HYP_FORCE_INLINE T* TryGet() const
     {
-        const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+        const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
 
         if (m_type_id == requested_type_id)
         {
@@ -626,7 +626,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(value);
         m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
@@ -640,7 +640,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::move(value));
         m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
@@ -655,7 +655,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = new NormalizedType<T>(std::forward<Args>(args)...);
         m_copy_ctor = &Any_CopyConstruct<NormalizedType<T>>;
         m_dtor = &Memory::Delete<NormalizedType<T>>;
@@ -670,13 +670,13 @@ public:
     {
         if constexpr (!std::is_void_v<T>)
         {
-            const TypeID requested_type_id = TypeID::ForType<NormalizedType<T>>();
+            const TypeId requested_type_id = TypeId::ForType<NormalizedType<T>>();
             AssertThrowMsg(m_type_id == requested_type_id, "Held type not equal to requested type!");
         }
 
         T* ptr = static_cast<T*>(m_ptr);
 
-        m_type_id = TypeID::ForType<void>();
+        m_type_id = TypeId::ForType<void>();
         m_ptr = nullptr;
         m_copy_ctor = nullptr;
         m_dtor = nullptr;
@@ -695,7 +695,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<NormalizedType<T>>();
+        m_type_id = TypeId::ForType<NormalizedType<T>>();
         m_ptr = ptr;
 
         if (ptr)
@@ -718,7 +718,7 @@ public:
             m_dtor(m_ptr);
         }
 
-        m_type_id = TypeID::ForType<void>();
+        m_type_id = TypeId::ForType<void>();
         m_ptr = nullptr;
         m_copy_ctor = nullptr;
         m_dtor = nullptr;
@@ -752,7 +752,7 @@ public:
     }
 
 protected:
-    TypeID m_type_id;
+    TypeId m_type_id;
     void* m_ptr;
     CopyConstructor m_copy_ctor;
     DeleteFunction m_dtor;

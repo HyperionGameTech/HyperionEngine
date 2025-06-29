@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#ifndef HYPERION_RT_RADIANCE_RENDERER_HPP
-#define HYPERION_RT_RADIANCE_RENDERER_HPP
+#ifndef HYPERION_RAYTRACING_REFLECTIONS_RENDERER_HPP
+#define HYPERION_RAYTRACING_REFLECTIONS_RENDERER_HPP
 
 #include <Constants.hpp>
 
@@ -20,11 +20,11 @@ class Engine;
 class GBuffer;
 class RenderView;
 
-struct RenderCommand_DestroyRTRadianceRenderer;
+struct RenderCommand_DestroyRaytracingReflections;
 struct RenderCommand_CreateRTRadianceImageOutputs;
 
 HYP_STRUCT(ConfigName = "app", JSONPath = "rendering.rt.reflections")
-struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
+struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
 {
     HYP_FIELD()
     Vec2u extent = { 1024, 1024 };
@@ -32,7 +32,7 @@ struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
     HYP_FIELD()
     bool path_tracing = false;
 
-    virtual ~RTRadianceConfig() override = default;
+    virtual ~RaytracingReflectionsConfig() override = default;
 
     bool Validate() const
     {
@@ -40,17 +40,17 @@ struct RTRadianceConfig : public ConfigBase<RTRadianceConfig>
     }
 };
 
-class RTRadianceRenderer
+class RaytracingReflections
 {
 public:
-    friend struct RenderCommand_DestroyRTRadianceRenderer;
+    friend struct RenderCommand_DestroyRaytracingReflections;
     friend struct RenderCommand_CreateRTRadianceImageOutputs;
 
-    HYP_API RTRadianceRenderer(
-        RTRadianceConfig&& config,
+    HYP_API RaytracingReflections(
+        RaytracingReflectionsConfig&& config,
         GBuffer* gbuffer);
 
-    HYP_API ~RTRadianceRenderer();
+    HYP_API ~RaytracingReflections();
 
     HYP_FORCE_INLINE bool IsPathTracer() const
     {
@@ -76,7 +76,7 @@ private:
     void CreateTemporalBlending();
     void UpdateUniforms(FrameBase* frame, const RenderSetup& render_setup);
 
-    RTRadianceConfig m_config;
+    RaytracingReflectionsConfig m_config;
 
     GBuffer* m_gbuffer;
 
@@ -90,7 +90,7 @@ private:
     UniquePtr<TemporalBlending> m_temporal_blending;
 
     RaytracingPipelineRef m_raytracing_pipeline;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_uniform_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_uniform_buffers;
 
     Matrix4 m_previous_view_matrix;
 };

@@ -114,7 +114,7 @@ Handle<Mesh> UIObject::GetQuadMesh()
     return UIObjectQuadMeshHelper::GetQuadMesh();
 }
 
-UIObject::UIObject(const ThreadID& owner_thread_id)
+UIObject::UIObject(const ThreadId& owner_thread_id)
     : m_stage(nullptr),
       m_origin_alignment(UIObjectAlignment::TOP_LEFT),
       m_parent_alignment(UIObjectAlignment::TOP_LEFT),
@@ -163,7 +163,7 @@ UIObject::UIObject(const ThreadID& owner_thread_id)
 }
 
 UIObject::UIObject()
-    : UIObject(ThreadID::invalid)
+    : UIObject(ThreadId::invalid)
 {
 }
 
@@ -189,14 +189,14 @@ UIObject::~UIObject()
         Scene* scene = GetScene();
         AssertThrow(scene != nullptr);
 
-        if (Threads::IsOnThread(scene->GetOwnerThreadID()))
+        if (Threads::IsOnThread(scene->GetOwnerThreadId()))
         {
             remove_ui_component(GetScene(), std::move(entity), std::move(m_node));
         }
         else
         {
             // Keep node alive until it can be destroyed on the owner thread
-            Task<void> task = Threads::GetThread(scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node), entity = std::move(entity)]() mutable
+            Task<void> task = Threads::GetThread(scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = GetScene()->HandleFromThis(), node = std::move(m_node), entity = std::move(entity)]() mutable
                 {
                     remove_ui_component(scene.Get(), std::move(entity), std::move(node));
                 });

@@ -13,7 +13,7 @@
 #include <rendering/Deferred.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <rendering/backend/RendererComputePipeline.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
 #include <rendering/backend/RendererImage.hpp>
@@ -43,12 +43,12 @@ static constexpr TextureFormat ddgi_depth_format = TF_RG16F;
 struct RENDER_COMMAND(SetDDGIDescriptors)
     : RenderCommand
 {
-    GPUBufferRef uniform_buffer;
+    GpuBufferRef uniform_buffer;
     ImageViewRef irradiance_image_view;
     ImageViewRef depth_image_view;
 
     RENDER_COMMAND(SetDDGIDescriptors)(
-        const GPUBufferRef& uniform_buffer,
+        const GpuBufferRef& uniform_buffer,
         const ImageViewRef& irradiance_image_view,
         const ImageViewRef& depth_image_view)
         : uniform_buffer(uniform_buffer),
@@ -100,10 +100,10 @@ struct RENDER_COMMAND(UnsetDDGIDescriptors)
 struct RENDER_COMMAND(CreateDDGIUniformBuffer)
     : RenderCommand
 {
-    GPUBufferRef uniform_buffer;
+    GpuBufferRef uniform_buffer;
     DDGIUniforms uniforms;
 
-    RENDER_COMMAND(CreateDDGIUniformBuffer)(const GPUBufferRef& uniform_buffer, const DDGIUniforms& uniforms)
+    RENDER_COMMAND(CreateDDGIUniformBuffer)(const GpuBufferRef& uniform_buffer, const DDGIUniforms& uniforms)
         : uniform_buffer(uniform_buffer),
           uniforms(uniforms)
     {
@@ -123,10 +123,10 @@ struct RENDER_COMMAND(CreateDDGIUniformBuffer)
 struct RENDER_COMMAND(CreateDDGIRadianceBuffer)
     : RenderCommand
 {
-    GPUBufferRef radiance_buffer;
+    GpuBufferRef radiance_buffer;
     DDGIInfo grid_info;
 
-    RENDER_COMMAND(CreateDDGIRadianceBuffer)(const GPUBufferRef& radiance_buffer, const DDGIInfo& grid_info)
+    RENDER_COMMAND(CreateDDGIRadianceBuffer)(const GpuBufferRef& radiance_buffer, const DDGIInfo& grid_info)
         : radiance_buffer(radiance_buffer),
           grid_info(grid_info)
     {
@@ -215,7 +215,7 @@ void DDGI::CreatePipelines()
 
     const DescriptorTableDeclaration& raytracing_pipeline_descriptor_table_decl = m_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorTableRef raytracing_pipeline_descriptor_table = g_rendering_api->MakeDescriptorTable(&raytracing_pipeline_descriptor_table_decl);
+    DescriptorTableRef raytracing_pipeline_descriptor_table = g_render_backend->MakeDescriptorTable(&raytracing_pipeline_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -238,7 +238,7 @@ void DDGI::CreatePipelines()
 
     // Create raytracing pipeline
 
-    m_pipeline = g_rendering_api->MakeRaytracingPipeline(
+    m_pipeline = g_render_backend->MakeRaytracingPipeline(
         m_shader,
         raytracing_pipeline_descriptor_table);
 
@@ -262,7 +262,7 @@ void DDGI::CreatePipelines()
 
         const DescriptorTableDeclaration& descriptor_table_decl = it.first->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+        DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -278,7 +278,7 @@ void DDGI::CreatePipelines()
 
         DeferCreate(descriptor_table);
 
-        it.second = g_rendering_api->MakeComputePipeline(
+        it.second = g_render_backend->MakeComputePipeline(
             it.first,
             descriptor_table);
 
@@ -288,7 +288,7 @@ void DDGI::CreatePipelines()
 
 void DDGI::CreateUniformBuffer()
 {
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(DDGIUniforms));
+    m_uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(DDGIUniforms));
 
     const Vec2u grid_image_dimensions = m_grid_info.GetImageDimensions();
     const Vec3u num_probes_per_dimension = m_grid_info.NumProbesPerDimension();
@@ -317,7 +317,7 @@ void DDGI::CreateStorageBuffers()
 {
     const Vec3u probe_counts = m_grid_info.NumProbesPerDimension();
 
-    m_radiance_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, m_grid_info.GetImageDimensions().x * m_grid_info.GetImageDimensions().y * sizeof(ProbeRayData));
+    m_radiance_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, m_grid_info.GetImageDimensions().x * m_grid_info.GetImageDimensions().y * sizeof(ProbeRayData));
 
     PUSH_RENDER_COMMAND(
         CreateDDGIRadianceBuffer,
@@ -331,7 +331,7 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_irradiance_image = g_rendering_api->MakeImage(TextureDesc {
+        m_irradiance_image = g_render_backend->MakeImage(TextureDesc {
             TT_TEX2D,
             ddgi_irradiance_format,
             extent,
@@ -345,7 +345,7 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // irradiance image view
-        m_irradiance_image_view = g_rendering_api->MakeImageView(m_irradiance_image);
+        m_irradiance_image_view = g_render_backend->MakeImageView(m_irradiance_image);
 
         DeferCreate(m_irradiance_image_view);
     }
@@ -357,7 +357,7 @@ void DDGI::CreateStorageBuffers()
             1
         };
 
-        m_depth_image = g_rendering_api->MakeImage(TextureDesc {
+        m_depth_image = g_render_backend->MakeImage(TextureDesc {
             TT_TEX2D,
             ddgi_depth_format,
             extent,
@@ -371,7 +371,7 @@ void DDGI::CreateStorageBuffers()
     }
 
     { // depth image view
-        m_depth_image_view = g_rendering_api->MakeImageView(m_depth_image);
+        m_depth_image_view = g_render_backend->MakeImageView(m_depth_image);
 
         DeferCreate(m_depth_image_view);
     }

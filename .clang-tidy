@@ -5,9 +5,9 @@ CheckOptions:
   - { key: readability-inconsistent-declaration-parameter-name.Strict,    value: true }
   - { key: readability-identifier-naming.FunctionIgnoredRegexp,           value: "(.*_.*)|(.*_Impl)|(.*_Internal)|(.*_KeyByFunction)|(.*_Proc)|(^get$)" }
   - { key: readability-identifier-naming.GlobalVariableIgnoredRegexp,     value: "(HYP_DECLARE_LOG_CHANNEL.*)|(RENDER_COMMAND.*)$" }
-  - { key: readability-identifier-naming.LocalVariableCase,               value: lower_case }
+  - { key: readability-identifier-naming.LocalVariableCase,               value: camelBack }
   - { key: readability-identifier-naming.LocalVariableIgnoredRegexp,      value: "^_(.*)$" }
-  - { key: readability-identifier-naming.LocalConstantCase,               value: lower_case }
+  - { key: readability-identifier-naming.LocalConstantCase,               value: camelBack }
   - { key: readability-identifier-naming.LocalConstantIgnoredRegexp,      value: "^_(.*)$" }
   - { key: readability-identifier-naming.FunctionCase,                    value: CamelCase }
   - { key: readability-identifier-naming.ClassCase,                       value: CamelCase }
@@ -22,19 +22,19 @@ CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,                   value: lower_case }
   - { key: readability-identifier-naming.ParameterCase,                   value: lower_case }
   - { key: readability-identifier-naming.ParameterIgnoredRegexp,          value: "^_(.*)$" }
-  - { key: readability-identifier-naming.GlobalVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalVariableCase,              value: camelBack }
   - { key: readability-identifier-naming.GlobalVariablePrefix,            value: "" } # come back to these
-  - { key: readability-identifier-naming.GlobalConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.GlobalConstantCase,              value: camelBack }
   - { key: readability-identifier-naming.GlobalConstantPrefix,            value: "" } # come back to these
-  - { key: readability-identifier-naming.PublicMemberCase,                value: lower_case }
+  - { key: readability-identifier-naming.PublicMemberCase,                value: camelBack }
   - { key: readability-identifier-naming.PublicMemberIgnoredRegexp,       value: "(^[A-Z].*$)|(^On(.*))|(.*Callback.*)|(^_.*)|(Span)|(Pair)|(NotNullPtr)$" } # Span, Pair etc types are breaking with clang-tidy when used as a parameter
-  - { key: readability-identifier-naming.ProtectedMemberCase,             value: lower_case }
+  - { key: readability-identifier-naming.ProtectedMemberCase,             value: camelBack }
   - { key: readability-identifier-naming.ProtectedMemberPrefix,           value: m_ }
   - { key: readability-identifier-naming.ProtectedMemberIgnoredRegexp,    value: "(^On(.*))|(.*Callback.*)|(^_.*)" }
-  - { key: readability-identifier-naming.PrivateMemberCase,               value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberCase,               value: camelBack }
   - { key: readability-identifier-naming.PrivateMemberPrefix,             value: m_ }
   - { key: readability-identifier-naming.PrivateMemberIgnoredRegexp,      value: "(^On(.*))|(.*Callback.*)|(^_.*)" }
-  - { key: readability-identifier-naming.ClassMemberCase,                 value: lower_case }
+  - { key: readability-identifier-naming.ClassMemberCase,                 value: camelBack }
   - { key: readability-identifier-naming.ClassMemberPrefix,               value: s_ }
   - { key: readability-identifier-naming.ClassMemberIgnoredRegexp,        value: "^g_(.*)$" }
   - { key: readability-identifier-naming.ClassMethodCase,                 value: CamelCase }
@@ -45,13 +45,13 @@ CheckOptions:
   - { key: readability-identifier-naming.ProtectedMethodIgnoredRegexp,    value: "(.*_Impl$)|(.*_.*)" }
   - { key: readability-identifier-naming.PrivateMethodCase,               value: CamelCase }
   - { key: readability-identifier-naming.PrivateMethodIgnoredRegexp,      value: "(.*_Impl$)|(.*_.*)" }
-  - { key: readability-identifier-naming.StaticConstantCase,              value: lower_case }
+  - { key: readability-identifier-naming.StaticConstantCase,              value: camelBack }
   - { key: readability-identifier-naming.StaticConstantPrefix,            value: "" }
-  - { key: readability-identifier-naming.StaticVariableCase,              value: lower_case }
+  - { key: readability-identifier-naming.StaticVariableCase,              value: camelBack }
   - { key: readability-identifier-naming.StaticVariablePrefix,            value: "" }
   - { key: readability-identifier-naming.TemplateParameterCase,           value: CamelCase }
   - { key: readability-identifier-naming.TemplateParameterIgnoredRegexp,  value: "^(string_type)|(.*_.*)$" }
   - { key: readability-identifier-naming.TemplateTypeCase,                value: CamelCase }
-  - { key: readability-identifier-naming.ConstexprVariableCase,           value: lower_case }
+  - { key: readability-identifier-naming.ConstexprVariableCase,           value: camelBack }
   - { key: readability-identifier-naming.ConstexprVariablePrefix,         value: "" }
 

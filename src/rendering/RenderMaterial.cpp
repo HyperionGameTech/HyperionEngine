@@ -69,7 +69,7 @@ void RenderMaterial::Initialize_Internal()
 
     HYP_LOG(Material, Debug, "Initializing RenderMaterial: {}", (void*)this);
 
-    if (!g_rendering_api->GetRenderConfig().IsBindlessSupported())
+    if (!g_render_backend->GetRenderConfig().IsBindlessSupported())
     {
         CreateDescriptorSets();
     }
@@ -85,7 +85,7 @@ void RenderMaterial::Destroy_Internal()
 
     HYP_LOG(Material, Debug, "Destroying RenderMaterial: {}", (void*)this);
 
-    if (!g_rendering_api->GetRenderConfig().IsBindlessSupported())
+    if (!g_render_backend->GetRenderConfig().IsBindlessSupported())
     {
         DestroyDescriptorSets();
     }
@@ -97,7 +97,7 @@ void RenderMaterial::Update_Internal()
 
     AssertThrow(m_material != nullptr);
 
-    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool use_bindless_textures = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     if (!use_bindless_textures)
     {
@@ -144,7 +144,7 @@ void RenderMaterial::Update_Internal()
     }
 }
 
-GPUBufferHolderBase* RenderMaterial::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderMaterial::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_MATERIALS];
 }
@@ -191,7 +191,7 @@ void RenderMaterial::UpdateBufferData()
 
     AssertThrow(m_buffer_index != ~0u);
 
-    static const bool use_bindless_textures = g_rendering_api->GetRenderConfig().IsBindlessSupported();
+    static const bool use_bindless_textures = g_render_backend->GetRenderConfig().IsBindlessSupported();
 
     m_buffer_data.texture_usage = 0;
     Memory::MemSet(m_buffer_data.texture_index, 0, sizeof(m_buffer_data.texture_index));
@@ -200,7 +200,7 @@ void RenderMaterial::UpdateBufferData()
     {
         for (SizeType i = 0; i < m_bound_texture_ids.Size(); i++)
         {
-            if (m_bound_texture_ids[i] != ID<Texture>::invalid)
+            if (m_bound_texture_ids[i] != Id<Texture>::invalid)
             {
                 if (use_bindless_textures)
                 {
@@ -218,7 +218,7 @@ void RenderMaterial::UpdateBufferData()
 
     *static_cast<MaterialShaderData*>(m_buffer_address) = m_buffer_data;
 
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void RenderMaterial::SetTexture(MaterialTextureKey texture_key, const Handle<Texture>& texture)
@@ -282,7 +282,7 @@ void RenderMaterial::SetTextures(FlatMap<MaterialTextureKey, Handle<Texture>>&& 
         });
 }
 
-void RenderMaterial::SetBoundTextureIDs(const Array<ID<Texture>>& bound_texture_ids)
+void RenderMaterial::SetBoundTextureIDs(const Array<Id<Texture>>& bound_texture_ids)
 {
     HYP_SCOPE;
 
@@ -346,7 +346,7 @@ MaterialDescriptorSetManager::~MaterialDescriptorSetManager()
 
 void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 {
-    if (g_rendering_api->GetRenderConfig().IsBindlessSupported())
+    if (g_render_backend->GetRenderConfig().IsBindlessSupported())
     {
         return;
     }
@@ -358,7 +358,7 @@ void MaterialDescriptorSetManager::CreateInvalidMaterialDescriptorSet()
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        m_invalid_material_descriptor_sets[frame_index] = g_rendering_api->MakeDescriptorSet(layout);
+        m_invalid_material_descriptor_sets[frame_index] = g_render_backend->MakeDescriptorSet(layout);
         m_invalid_material_descriptor_sets[frame_index]->SetDebugName(NAME_FMT("MaterialDescriptorSet_INVALID_{}", frame_index));
 
         for (uint32 texture_index = 0; texture_index < max_bound_textures; texture_index++)
@@ -407,7 +407,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptor_set = g_render_backend->MakeDescriptorSet(layout);
 
 #ifdef HYP_DEBUG_MODE
         descriptor_set->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", material->GetMaterial()->GetName(), frame_index));
@@ -460,7 +460,7 @@ FixedArray<DescriptorSetRef, max_frames_in_flight> MaterialDescriptorSetManager:
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
-        DescriptorSetRef descriptor_set = g_rendering_api->MakeDescriptorSet(layout);
+        DescriptorSetRef descriptor_set = g_render_backend->MakeDescriptorSet(layout);
 
 #ifdef HYP_DEBUG_MODE
         descriptor_set->SetDebugName(NAME_FMT("MaterialDescriptorSet_{}_{}", material->GetMaterial()->GetName(), frame_index));
@@ -642,7 +642,7 @@ void MaterialDescriptorSetManager::Update(FrameBase* frame)
 
 #pragma endregion MaterialDescriptorSetManager
 
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
-HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_rendering_api->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, ~0u, false, !g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
+HYP_DESCRIPTOR_SSBO_COND(Object, MaterialsBuffer, 1, sizeof(MaterialShaderData), true, g_render_backend->GetRenderConfig().ShouldCollectUniqueDrawCallPerMaterial());
 
 } // namespace hyperion

@@ -63,8 +63,8 @@ namespace Hyperion
         /// <summary>
         /// Called when an Entity is removed from the EntityManager that matches the system's component descriptors, or when any of the components required by the system are removed from the entity.
         /// </summary>
-        /// <param name="entityId">The ID of the Entity that was removed.</param>
-        public virtual void OnEntityRemoved(IDBase entityId)
+        /// <param name="entityId">The Id of the Entity that was removed.</param>
+        public virtual void OnEntityRemoved(IdBase entityId)
         {
             InvokeNativeMethod(new Name("OnEntityRemoved_Impl", weak: true), new object[] { entityId });
         }

@@ -51,7 +51,7 @@ struct ProcessAssetFunctor;
 
 using AssetLoadFlags = uint32;
 
-extern HYP_API const HypClass* GetClass(TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
 
 enum AssetLoadFlagBits : AssetLoadFlags
 {
@@ -63,13 +63,13 @@ enum AssetLoadFlagBits : AssetLoadFlags
 HYP_STRUCT()
 struct AssetLoaderDefinition
 {
-    TypeID loader_type_id;
-    TypeID result_type_id;
+    TypeId loader_type_id;
+    TypeId result_type_id;
     const HypClass* result_hyp_class = nullptr;
     FlatSet<String> extensions;
     Handle<AssetLoaderBase> loader;
 
-    HYP_FORCE_INLINE bool HandlesResultType(TypeID type_id) const
+    HYP_FORCE_INLINE bool HandlesResultType(TypeId type_id) const
     {
         return result_type_id == type_id
             || (result_hyp_class != nullptr && IsInstanceOfHypClass(result_hyp_class, GetClass(type_id)));
@@ -226,9 +226,9 @@ public:
         };
 
         AssetLoaderDefinition& asset_loader_definition = m_loaders.EmplaceBack();
-        asset_loader_definition.loader_type_id = TypeID::ForType<Loader>();
-        asset_loader_definition.result_type_id = TypeID::ForType<ResultType>();
-        asset_loader_definition.result_hyp_class = GetClass(TypeID::ForType<ResultType>());
+        asset_loader_definition.loader_type_id = TypeId::ForType<Loader>();
+        asset_loader_definition.result_type_id = TypeId::ForType<ResultType>();
+        asset_loader_definition.result_hyp_class = GetClass(TypeId::ForType<ResultType>());
         asset_loader_definition.extensions = FlatSet<String>(format_strings.Begin(), format_strings.End());
         asset_loader_definition.loader = CreateObject<Loader>();
 
@@ -239,11 +239,11 @@ public:
     }
 
     /*! \brief Load a single asset synchronously
-     *  \param type_id The TypeID of asset to load
+     *  \param type_id The TypeId of asset to load
      *  \param path The path to the asset
      *  \param flags Flags to control the loading process
      *  \return The result of the load operation */
-    HYP_NODISCARD AssetLoadResult Load(const TypeID& type_id, const String& path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD AssetLoadResult Load(const TypeId& type_id, const String& path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
         const AssetLoaderDefinition* loader_definition = GetLoaderDefinition(path, type_id);
 
@@ -266,7 +266,7 @@ public:
     template <class T>
     HYP_NODISCARD TAssetLoadResult<T> Load(const String& path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
     {
-        const AssetLoaderDefinition* loader_definition = GetLoaderDefinition(path, TypeID::ForType<T>());
+        const AssetLoaderDefinition* loader_definition = GetLoaderDefinition(path, TypeId::ForType<T>());
 
         if (!loader_definition)
         {
@@ -279,7 +279,7 @@ public:
         return TAssetLoadResult<T>(loader->Load(*this, path));
     }
 
-    HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeID desired_type_id = TypeID::Void());
+    HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desired_type_id = TypeId::Void());
 
     HYP_API RC<AssetBatch> CreateBatch();
 
@@ -305,12 +305,12 @@ private:
     /*! \internal Called from AssetBatch on LoadAsync() */
     HYP_API void AddPendingBatch(const RC<AssetBatch>& batch);
 
-    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeID loader_type_id, const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr);
+    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loader_type_id, const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr);
 
     template <class Loader>
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr)
     {
-        return CreateProcessAssetFunctor(TypeID::ForType<Loader>(), key, path, callbacks_ptr);
+        return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), key, path, callbacks_ptr);
     }
 
     UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& key, const String& path, AssetBatchCallbacks* callbacks_ptr)

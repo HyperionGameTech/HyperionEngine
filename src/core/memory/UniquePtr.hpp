@@ -5,7 +5,7 @@
 
 #include <core/Defines.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/Any.hpp>
@@ -21,8 +21,8 @@ namespace hyperion {
 
 class HypClass;
 
-extern HYP_API const HypClass* GetClass(TypeID type_id);
-extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id);
 
 namespace memory {
 
@@ -32,14 +32,14 @@ class UniquePtr;
 struct UniquePtrHolder
 {
     void* value;
-    TypeID type_id;
-    TypeID base_type_id;
+    TypeId type_id;
+    TypeId base_type_id;
     void (*dtor)(void*);
 
     UniquePtrHolder()
         : value(nullptr),
-          type_id(TypeID::ForType<void>()),
-          base_type_id(TypeID::ForType<void>()),
+          type_id(TypeId::ForType<void>()),
+          base_type_id(TypeId::ForType<void>()),
           dtor(nullptr)
     {
     }
@@ -74,8 +74,8 @@ struct UniquePtrHolder
           dtor(other.dtor)
     {
         other.value = nullptr;
-        other.type_id = TypeID::ForType<void>();
-        other.base_type_id = TypeID::ForType<void>();
+        other.type_id = TypeId::ForType<void>();
+        other.base_type_id = TypeId::ForType<void>();
         other.dtor = nullptr;
     }
 
@@ -92,8 +92,8 @@ struct UniquePtrHolder
         dtor = other.dtor;
 
         other.value = nullptr;
-        other.type_id = TypeID::ForType<void>();
-        other.base_type_id = TypeID::ForType<void>();
+        other.type_id = TypeId::ForType<void>();
+        other.base_type_id = TypeId::ForType<void>();
         other.dtor = nullptr;
 
         return *this;
@@ -104,8 +104,8 @@ struct UniquePtrHolder
     {
         value = Memory::AllocateAndConstruct<Derived>(std::forward<Args>(args)...);
         dtor = &Memory::DestructAndFree<Derived>;
-        type_id = TypeID::ForType<Derived>();
-        base_type_id = TypeID::ForType<Base>();
+        type_id = TypeId::ForType<Derived>();
+        base_type_id = TypeId::ForType<Base>();
     }
 
     template <class Base, class Derived>
@@ -113,8 +113,8 @@ struct UniquePtrHolder
     {
         value = ptr;
         dtor = &Memory::DestructAndFree<Derived>;
-        type_id = TypeID::ForType<Derived>();
-        base_type_id = TypeID::ForType<Base>();
+        type_id = TypeId::ForType<Derived>();
+        base_type_id = TypeId::ForType<Base>();
     }
 
     void Destruct()
@@ -190,7 +190,7 @@ public:
         return Get() != nullptr;
     }
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_holder.type_id;
     }
@@ -234,7 +234,7 @@ protected:
     {
     }
 
-    HYP_FORCE_INLINE TypeID GetBaseTypeID() const
+    HYP_FORCE_INLINE TypeId GetBaseTypeId() const
     {
         return m_holder.base_type_id;
     }
@@ -265,7 +265,7 @@ public:
 
     /*! \brief Takes ownership of ptr.
 
-        Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
+        Ty may be a derived class of T, and the type Id of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>().
 
         Do not delete the pointer passed to this,
@@ -368,7 +368,7 @@ public:
 
     /*! \brief Drops any currently held valeu and constructs a new value using \ref{value}.
 
-        Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
+        Ty may be a derived class of T, and the type Id of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>(). */
     template <class Ty>
     HYP_FORCE_INLINE void Set(Ty&& value)
@@ -384,7 +384,7 @@ public:
     /*! \brief Takes ownership of {ptr}, dropping the reference to the currently held value,
         if any.
 
-        Ty may be a derived class of T, and the type ID of Ty will be stored, allowing
+        Ty may be a derived class of T, and the type Id of Ty will be stored, allowing
         for conversion back to UniquePtr<Ty> using Cast<Ty>().
 
         Note, do not delete the ptr after passing it to Reset(), as it will be deleted
@@ -467,13 +467,13 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeID type_id = TypeID::ForType<Ty>();
+        constexpr TypeId type_id = TypeId::ForType<Ty>();
 
         return std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
             || std::is_same_v<Ty, void>
-            || GetTypeID() == type_id
-            || GetBaseTypeID() == type_id
-            || IsInstanceOfHypClass(GetClass(type_id), m_holder.value, GetTypeID());
+            || GetTypeId() == type_id
+            || GetBaseTypeId() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_holder.value, GetTypeId());
     }
 
     /*! \brief Returns a boolean indicating whether the type of this UniquePtr is the same as the given type, or if the given type is a base class of the type of this UniquePtr.
@@ -526,7 +526,7 @@ public:
 
 /*! \brief A UniquePtr<void> cannot be constructed except for being moved from an existing
     UniquePtr<T>. This is because UniquePtr<T> may hold a derived pointer, while still being convertible to
-    the derived type. In order to maintain that functionality on UniquePtr<void>, we need to store the TypeID of T.
+    the derived type. In order to maintain that functionality on UniquePtr<void>, we need to store the TypeId of T.
     We would not be able to do that with UniquePtr<void>.*/
 // void pointer specialization
 template <>
@@ -602,12 +602,12 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeID type_id = TypeID::ForType<Ty>();
+        constexpr TypeId type_id = TypeId::ForType<Ty>();
 
         return std::is_same_v<Ty, void>
-            || GetTypeID() == type_id
-            || GetBaseTypeID() == type_id
-            || IsInstanceOfHypClass(GetClass(type_id), m_holder.value, GetTypeID());
+            || GetTypeId() == type_id
+            || GetBaseTypeId() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), m_holder.value, GetTypeId());
     }
 
     /*! \brief Attempts to cast the pointer directly to the given type.

@@ -154,10 +154,10 @@ public:
     ~FBOM();
 
     /*! \brief Register a custom marshal class to be used for serializng and deserializing
-     *  an object, based on its type ID. */
-    void RegisterLoader(TypeID type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal);
+     *  an object, based on its type Id. */
+    void RegisterLoader(TypeId type_id, ANSIStringView name, UniquePtr<FBOMMarshalerBase>&& marshal);
 
-    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type ID,
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for \ref{T}'s type Id,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
      *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
@@ -168,18 +168,18 @@ public:
     template <class T>
     HYP_FORCE_INLINE FBOMMarshalerBase* GetMarshal(bool allow_fallback = true) const
     {
-        return GetMarshal(TypeID::ForType<T>(), allow_fallback);
+        return GetMarshal(TypeId::ForType<T>(), allow_fallback);
     }
 
-    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type ID,
+    /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type Id,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:
      *      For classes that have a HypClass associated, the HypClassInstanceMarshal will be used.
      *      Otherwise, no marshal will be used, and this function will return nullptr.
-     *  \param type_id The type ID of the class to get the marshal for
+     *  \param type_id The type Id of the class to get the marshal for
      *  \param allow_fallback If true (default), allows catch all marshal to be used for HypClass types
      *  \return A pointer to the marshal instance, or nullptr if no marshal will be used for the given type
      */
-    FBOMMarshalerBase* GetMarshal(TypeID type_id, bool allow_fallback = true) const;
+    FBOMMarshalerBase* GetMarshal(TypeId type_id, bool allow_fallback = true) const;
 
     /*! \brief Get the marshal to use for the given object type. If a custom marshal has been registered for the type name,
      *  that marshal will be used. Otherwise, the default marshal for the type will be used:

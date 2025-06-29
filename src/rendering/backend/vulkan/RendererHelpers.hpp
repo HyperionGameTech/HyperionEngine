@@ -22,7 +22,7 @@ enum class DescriptorSetElementType : uint32;
 
 namespace helpers {
 
-VkIndexType ToVkIndexType(GPUElemType);
+VkIndexType ToVkIndexType(GpuElemType);
 VkFormat ToVkFormat(TextureFormat);
 VkFilter ToVkFilter(TextureFilterMode);
 VkSamplerAddressMode ToVkSamplerAddressMode(TextureWrapMode);

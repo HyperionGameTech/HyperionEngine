@@ -3,7 +3,7 @@
 #ifndef HYPERION_CORE_ID_HPP
 #define HYPERION_CORE_ID_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/UniqueID.hpp>
 
 #include <core/utilities/FormatFwd.hpp>
@@ -16,25 +16,25 @@
 
 namespace hyperion {
 
-HYP_API extern ANSIStringView GetClassName(const TypeID& type_id);
+HYP_API extern ANSIStringView GetClassName(const TypeId& type_id);
 
-struct IDBase
+struct IdBase
 {
-    constexpr IDBase() = default;
+    constexpr IdBase() = default;
 
-    constexpr IDBase(TypeID type_id, uint32 value)
+    constexpr IdBase(TypeId type_id, uint32 value)
         : type_id_value(type_id.Value()),
           value(value)
     {
     }
 
-    IDBase(uint32 value) = delete; // delete so we cannot create an IDBase with just a value, it must have a type_id
+    IdBase(uint32 value) = delete; // delete so we cannot create an IdBase with just a value, it must have a type_id
 
-    constexpr IDBase(const IDBase& other) = default;
-    IDBase& operator=(const IDBase& other) = default;
+    constexpr IdBase(const IdBase& other) = default;
+    IdBase& operator=(const IdBase& other) = default;
 
-    constexpr IDBase(IDBase&& other) noexcept = default;
-    IDBase& operator=(IDBase&& other) noexcept = default;
+    constexpr IdBase(IdBase&& other) noexcept = default;
+    IdBase& operator=(IdBase&& other) noexcept = default;
 
     HYP_FORCE_INLINE constexpr bool IsValid() const
     {
@@ -46,9 +46,9 @@ struct IDBase
         return value;
     }
 
-    HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
+    HYP_FORCE_INLINE constexpr TypeId GetTypeId() const
     {
-        return TypeID { type_id_value };
+        return TypeId { type_id_value };
     }
 
     HYP_FORCE_INLINE explicit constexpr operator bool() const
@@ -61,17 +61,17 @@ struct IDBase
         return !IsValid();
     }
 
-    HYP_FORCE_INLINE constexpr bool operator==(const IDBase& other) const
+    HYP_FORCE_INLINE constexpr bool operator==(const IdBase& other) const
     {
         return type_id_value == other.type_id_value && value == other.value;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator!=(const IDBase& other) const
+    HYP_FORCE_INLINE constexpr bool operator!=(const IdBase& other) const
     {
         return type_id_value != other.type_id_value || value != other.value;
     }
 
-    HYP_FORCE_INLINE constexpr bool operator<(const IDBase& other) const
+    HYP_FORCE_INLINE constexpr bool operator<(const IdBase& other) const
     {
         if (type_id_value != other.type_id_value)
         {
@@ -81,7 +81,7 @@ struct IDBase
         return value < other.value;
     }
 
-    /*! \brief If the value is non-zero, returns the ID minus one,
+    /*! \brief If the value is non-zero, returns the Id minus one,
         to be used as a storage index. If the value is zero (invalid state),
         zero is returned. Ideally a validation check would be performed before you use this,
         unless you are totally sure that 0 is a valid index. */
@@ -108,85 +108,85 @@ struct IDBase
     uint32 value = 0;
 };
 
-/*! \brief A transient, global ID for an instance of an object. Object is not guaranteed to be alive when this ID is used.
- *  \details The object this is referencing may not be of type T as it may be a subclass of T. Use TypeID() to get the runtime type ID of the object.
- *  \warning This ID is NOT guaranteed to be stable across runs of the engine. Do not use it for persistent storage or serialization. */
+/*! \brief A transient, global Id for an instance of an object. Object is not guaranteed to be alive when this Id is used.
+ *  \details The object this is referencing may not be of type T as it may be a subclass of T. Use TypeId() to get the runtime type Id of the object.
+ *  \warning This Id is NOT guaranteed to be stable across runs of the engine. Do not use it for persistent storage or serialization. */
 template <class T>
-struct ID : IDBase
+struct Id : IdBase
 {
     using ObjectType = T;
 
-    static const ID invalid;
-    static constexpr TypeID type_id_static = TypeID::ForType<T>();
+    static const Id invalid;
+    static constexpr TypeId type_id_static = TypeId::ForType<T>();
 
-    constexpr ID()
-        : IDBase { type_id_static, 0 }
+    constexpr Id()
+        : IdBase { type_id_static, 0 }
     {
     }
 
-    explicit constexpr ID(const IDBase& other)
-        : IDBase(other)
+    explicit constexpr Id(const IdBase& other)
+        : IdBase(other)
     {
     }
 
-    ID& operator=(const IDBase& other) = delete; // delete so we cannot assign a type's ID to a different type
+    Id& operator=(const IdBase& other) = delete; // delete so we cannot assign a type's Id to a different type
 
-    constexpr ID(const ID& other) = default;
-    ID& operator=(const ID& other) = default;
+    constexpr Id(const Id& other) = default;
+    Id& operator=(const Id& other) = default;
 
-    constexpr ID(ID&& other) noexcept = default;
-    ID& operator=(ID&& other) noexcept = default;
+    constexpr Id(Id&& other) noexcept = default;
+    Id& operator=(Id&& other) noexcept = default;
 
-    static ID FromIndex(uint32 index)
+    static Id FromIndex(uint32 index)
     {
-        return ID { IDBase { type_id_static, index + 1 } };
+        return Id { IdBase { type_id_static, index + 1 } };
     }
 
-    /*! \brief Allows implicit conversion to ID<Ty> where T is convertible to Ty.
+    /*! \brief Allows implicit conversion to Id<Ty> where T is convertible to Ty.
      *  \details This is useful for converting IDs of derived types to IDs of base types. */
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>, int> = 0>
-    HYP_FORCE_INLINE operator ID<Ty>() const
+    HYP_FORCE_INLINE operator Id<Ty>() const
     {
-        return ID<Ty>(static_cast<const IDBase&>(*this));
+        return Id<Ty>(static_cast<const IdBase&>(*this));
     }
 
-    /*! \brief Allows explicit conversion to ID<Ty> where T is a base class of Ty.
+    /*! \brief Allows explicit conversion to Id<Ty> where T is a base class of Ty.
      *  \details This is useful for converting IDs of base types to IDs of derived types, but requires an explicit cast to avoid accidental conversions. */
     template <class Ty, std::enable_if_t<!std::is_same_v<Ty, T> && (!std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> && std::is_base_of_v<T, Ty>), int> = 0>
-    HYP_FORCE_INLINE explicit operator ID<Ty>() const
+    HYP_FORCE_INLINE explicit operator Id<Ty>() const
     {
         if (!IsValid())
         {
-            return ID<Ty>::invalid;
+            return Id<Ty>::invalid;
         }
 
         /// \todo Add a AssertDebug here to ensure that type_id is in the hierarchy of Ty
 
-        return ID<Ty>(static_cast<const IDBase&>(*this));
+        return Id<Ty>(static_cast<const IdBase&>(*this));
     }
 };
 
 template <class T>
-const ID<T> ID<T>::invalid = ID<T>();
+const Id<T> Id<T>::invalid = Id<T>();
 
-// string format specialization for ID<T>
+// string format specialization for Id<T>
 namespace utilities {
 
 template <class StringType, class T>
-struct Formatter<StringType, ID<T>>
+struct Formatter<StringType, Id<T>>
 {
-    auto operator()(const ID<T>& value) const
+    auto operator()(const Id<T>& value) const
     {
-        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeID())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeId())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 
 template <class StringType>
-struct Formatter<StringType, IDBase>
+struct Formatter<StringType, IdBase>
 {
-    auto operator()(const IDBase& value) const
+    auto operator()(const IdBase& value) const
     {
-        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeID())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
+        return Formatter<StringType, ANSIStringView> {}(GetClassName(value.GetTypeId())) + StringType("#") + Formatter<StringType, uint32> {}(value.Value());
     }
 };
 

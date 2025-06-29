@@ -3,7 +3,7 @@
 #ifndef HYPERION_VISIBILITY_STATE_HPP
 #define HYPERION_VISIBILITY_STATE_HPP
 
-#include <core/ID.hpp>
+#include <core/Id.hpp>
 
 #include <Types.hpp>
 
@@ -24,7 +24,7 @@ struct VisibilityStateSnapshot
 struct VisibilityState
 {
     uint16 validity_marker { 0u };
-    HashMap<ID<Camera>, VisibilityStateSnapshot> snapshots;
+    HashMap<Id<Camera>, VisibilityStateSnapshot> snapshots;
 
     VisibilityState() = default;
     VisibilityState(const VisibilityState& other) = default;
@@ -38,7 +38,7 @@ struct VisibilityState
         ++validity_marker;
     }
 
-    HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(ID<Camera> id) const
+    HYP_FORCE_INLINE VisibilityStateSnapshot GetSnapshot(Id<Camera> id) const
     {
         auto it = snapshots.Find(id);
 
@@ -50,7 +50,7 @@ struct VisibilityState
         return it->second;
     }
 
-    HYP_FORCE_INLINE void MarkAsValid(ID<Camera> id)
+    HYP_FORCE_INLINE void MarkAsValid(Id<Camera> id)
     {
         auto it = snapshots.Find(id);
 

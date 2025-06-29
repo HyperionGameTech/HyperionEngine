@@ -14,7 +14,7 @@
 #include <rendering/Renderer.hpp>
 #include <rendering/GraphicsPipelineCache.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererFeatures.hpp>
@@ -60,17 +60,17 @@ struct alignas(8) GaussianSplatIndex
 struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
     : RenderCommand
 {
-    GPUBufferRef splat_buffer;
-    GPUBufferRef splat_indices_buffer;
-    GPUBufferRef scene_buffer;
-    GPUBufferRef indirect_buffer;
+    GpuBufferRef splat_buffer;
+    GpuBufferRef splat_indices_buffer;
+    GpuBufferRef scene_buffer;
+    GpuBufferRef indirect_buffer;
     RC<GaussianSplattingModelData> model;
 
     RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)(
-        GPUBufferRef splat_buffer,
-        GPUBufferRef splat_indices_buffer,
-        GPUBufferRef scene_buffer,
-        GPUBufferRef indirect_buffer,
+        GpuBufferRef splat_buffer,
+        GpuBufferRef splat_indices_buffer,
+        GpuBufferRef scene_buffer,
+        GpuBufferRef indirect_buffer,
         RC<GaussianSplattingModelData> model)
         : splat_buffer(std::move(splat_buffer)),
           splat_indices_buffer(std::move(splat_indices_buffer)),
@@ -139,11 +139,11 @@ struct RENDER_COMMAND(CreateGaussianSplattingInstanceBuffers)
 struct RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)
     : RenderCommand
 {
-    GPUBufferRef staging_buffer;
+    GpuBufferRef staging_buffer;
     Handle<Mesh> quad_mesh;
 
     RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers)(
-        GPUBufferRef staging_buffer,
+        GpuBufferRef staging_buffer,
         Handle<Mesh> quad_mesh)
         : staging_buffer(std::move(staging_buffer)),
           quad_mesh(std::move(quad_mesh))
@@ -412,10 +412,10 @@ void GaussianSplattingInstance::CreateBuffers()
 {
     const SizeType num_points = m_model->points.Size();
 
-    m_splat_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, num_points * sizeof(GaussianSplattingInstanceShaderData));
-    m_splat_indices_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::SSBO, MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex));
-    m_scene_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(GaussianSplattingSceneShaderData));
-    m_indirect_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
+    m_splat_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, num_points * sizeof(GaussianSplattingInstanceShaderData));
+    m_splat_indices_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::SSBO, MathUtil::NextPowerOf2(num_points) * sizeof(GaussianSplatIndex));
+    m_scene_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(GaussianSplattingSceneShaderData));
+    m_indirect_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::INDIRECT_ARGS_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(
         CreateGaussianSplattingInstanceBuffers,
@@ -433,7 +433,7 @@ void GaussianSplattingInstance::CreateShader()
 
 void GaussianSplattingInstance::CreateGraphicsPipeline()
 {
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&m_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -475,7 +475,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateSplats"),
         base_properties);
 
-    DescriptorTableRef update_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(&update_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef update_splats_descriptor_table = g_render_backend->MakeDescriptorTable(&update_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -490,7 +490,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     DeferCreate(update_splats_descriptor_table);
 
-    m_update_splats = g_rendering_api->MakeComputePipeline(
+    m_update_splats = g_render_backend->MakeComputePipeline(
         update_splats_shader,
         update_splats_descriptor_table);
 
@@ -502,7 +502,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         NAME("GaussianSplatting_UpdateDistances"),
         base_properties);
 
-    DescriptorTableRef update_splat_distances_descriptor_table = g_rendering_api->MakeDescriptorTable(&update_splat_distances_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+    DescriptorTableRef update_splat_distances_descriptor_table = g_render_backend->MakeDescriptorTable(&update_splat_distances_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -516,7 +516,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     DeferCreate(update_splat_distances_descriptor_table);
 
-    m_update_splat_distances = g_rendering_api->MakeComputePipeline(
+    m_update_splat_distances = g_render_backend->MakeComputePipeline(
         update_splat_distances_shader,
         update_splat_distances_descriptor_table);
 
@@ -532,7 +532,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
 
     for (uint32 sort_stage_index = 0; sort_stage_index < SortStage::SORT_STAGE_MAX; sort_stage_index++)
     {
-        DescriptorTableRef sort_splats_descriptor_table = g_rendering_api->MakeDescriptorTable(&sort_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
+        DescriptorTableRef sort_splats_descriptor_table = g_render_backend->MakeDescriptorTable(&sort_splats_shader->GetCompiledShader()->GetDescriptorTableDeclaration());
 
         for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
         {
@@ -549,7 +549,7 @@ void GaussianSplattingInstance::CreateComputePipelines()
         m_sort_stage_descriptor_tables[sort_stage_index] = std::move(sort_splats_descriptor_table);
     }
 
-    m_sort_splats = g_rendering_api->MakeComputePipeline(
+    m_sort_splats = g_render_backend->MakeComputePipeline(
         sort_splats_shader,
         m_sort_stage_descriptor_tables[0]);
 
@@ -621,7 +621,7 @@ void GaussianSplatting::SetGaussianSplattingInstance(Handle<GaussianSplattingIns
 
 void GaussianSplatting::CreateBuffers()
 {
-    m_staging_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
+    m_staging_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, sizeof(IndirectDrawCommand));
 
     PUSH_RENDER_COMMAND(CreateGaussianSplattingIndirectBuffers,
         m_staging_buffer,

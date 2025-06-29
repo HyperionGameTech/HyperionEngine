@@ -29,7 +29,7 @@ class RenderableAttributeSet;
 struct CompiledShader;
 class Material;
 
-class IRenderingAPI;
+class IRenderBackend;
 class FrameBase;
 class SwapchainBase;
 class AsyncComputeBase;
@@ -38,7 +38,7 @@ struct TextureDesc;
 class DescriptorSetLayout;
 struct DescriptorTableDeclaration;
 
-enum class GPUBufferType : uint8;
+enum class GpuBufferType : uint8;
 enum class RenderPassStage : uint8;
 
 struct QueryImageCapabilitiesResult
@@ -57,10 +57,10 @@ public:
     virtual ~IDescriptorSetManager() = default;
 };
 
-class IRenderingAPI
+class IRenderBackend
 {
 public:
-    virtual ~IRenderingAPI() = default;
+    virtual ~IRenderBackend() = default;
 
     virtual RendererResult Initialize(AppContextBase& app_context) = 0;
     virtual RendererResult Destroy() = 0;
@@ -94,7 +94,7 @@ public:
         const ShaderRef& shader,
         const DescriptorTableRef& descriptor_table) = 0;
 
-    virtual GPUBufferRef MakeGPUBuffer(GPUBufferType buffer_type, SizeType size, SizeType alignment = 0) = 0;
+    virtual GpuBufferRef MakeGpuBuffer(GpuBufferType buffer_type, SizeType size, SizeType alignment = 0) = 0;
 
     virtual ImageRef MakeImage(const TextureDesc& texture_desc) = 0;
 
@@ -111,8 +111,8 @@ public:
     virtual ShaderRef MakeShader(const RC<CompiledShader>& compiled_shader) = 0;
 
     virtual BLASRef MakeBLAS(
-        const GPUBufferRef& packed_vertices_buffer,
-        const GPUBufferRef& packed_indices_buffer,
+        const GpuBufferRef& packed_vertices_buffer,
+        const GpuBufferRef& packed_indices_buffer,
         const Handle<Material>& material,
         const Matrix4& transform) = 0;
     virtual TLASRef MakeTLAS() = 0;

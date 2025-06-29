@@ -52,12 +52,12 @@ public:
         return m_params;
     }
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetParticleBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetParticleBuffer() const
     {
         return m_particle_buffer;
     }
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetIndirectBuffer() const
+    HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer() const
     {
         return m_indirect_buffer;
     }
@@ -86,9 +86,9 @@ private:
     void CreateGraphicsPipeline();
 
     ParticleSpawnerParams m_params;
-    GPUBufferRef m_particle_buffer;
-    GPUBufferRef m_indirect_buffer;
-    GPUBufferRef m_noise_buffer;
+    GpuBufferRef m_particle_buffer;
+    GpuBufferRef m_indirect_buffer;
+    GpuBufferRef m_noise_buffer;
     ComputePipelineRef m_update_particles;
     GraphicsPipelineRef m_graphics_pipeline;
     ShaderRef m_shader;
@@ -129,7 +129,7 @@ private:
     Handle<Mesh> m_quad_mesh;
 
     // for zeroing out data
-    GPUBufferRef m_staging_buffer;
+    GpuBufferRef m_staging_buffer;
 
     ThreadSafeContainer<ParticleSpawner> m_particle_spawners;
 

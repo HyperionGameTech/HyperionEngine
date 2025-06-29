@@ -59,7 +59,7 @@ void ComponentInterfaceRegistry::Shutdown()
     m_is_initialized = false;
 }
 
-void ComponentInterfaceRegistry::Register(TypeID type_id, UniquePtr<IComponentInterface> (*fptr)())
+void ComponentInterfaceRegistry::Register(TypeId type_id, UniquePtr<IComponentInterface> (*fptr)())
 {
     m_factories.Set(type_id, fptr);
 }

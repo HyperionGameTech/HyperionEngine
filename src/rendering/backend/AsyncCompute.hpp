@@ -8,12 +8,12 @@
 #include <core/containers/FixedArray.hpp>
 #include <core/containers/ArrayMap.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/Platform.hpp>
 #include <rendering/backend/RenderObject.hpp>
 #include <rendering/backend/RendererResult.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 
 #include <core/math/MathUtil.hpp>
 #include <core/math/Extent.hpp>
@@ -29,18 +29,18 @@ public:
 
     virtual bool IsSupported() const = 0;
 
-    HYP_FORCE_INLINE RHICommandList& GetCommandList()
+    HYP_FORCE_INLINE CmdList& GetCommandList()
     {
         return m_command_list;
     }
 
-    HYP_FORCE_INLINE const RHICommandList& GetCommandList(uint32 frame_index) const
+    HYP_FORCE_INLINE const CmdList& GetCommandList(uint32 frame_index) const
     {
         return m_command_list;
     }
 
 protected:
-    RHICommandList m_command_list;
+    CmdList m_command_list;
 };
 
 } // namespace hyperion

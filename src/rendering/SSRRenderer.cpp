@@ -11,7 +11,7 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/GBuffer.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RendererFrame.hpp>
 #include <rendering/backend/RendererDescriptorSet.hpp>
@@ -51,11 +51,11 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer)
     : RenderCommand
 {
     SSRUniforms uniforms;
-    GPUBufferRef uniform_buffer;
+    GpuBufferRef uniform_buffer;
 
     RENDER_COMMAND(CreateSSRUniformBuffer)(
         const SSRUniforms& uniforms,
-        const GPUBufferRef& uniform_buffer)
+        const GpuBufferRef& uniform_buffer)
         : uniforms(uniforms),
           uniform_buffer(uniform_buffer)
     {
@@ -205,7 +205,7 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.screen_edge_fade_start = m_config.screen_edge_fade.x;
     uniforms.screen_edge_fade_end = m_config.screen_edge_fade.y;
 
-    m_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
+    m_uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
 
     PUSH_RENDER_COMMAND(CreateSSRUniformBuffer, uniforms, m_uniform_buffer);
 }
@@ -220,7 +220,7 @@ void SSRRenderer::CreateComputePipelines()
     AssertThrow(write_uvs_shader.IsValid());
 
     const DescriptorTableDeclaration& write_uvs_shader_descriptor_table_decl = write_uvs_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef write_uvs_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&write_uvs_shader_descriptor_table_decl);
+    DescriptorTableRef write_uvs_shader_descriptor_table = g_render_backend->MakeDescriptorTable(&write_uvs_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -240,7 +240,7 @@ void SSRRenderer::CreateComputePipelines()
 
     DeferCreate(write_uvs_shader_descriptor_table);
 
-    m_write_uvs = g_rendering_api->MakeComputePipeline(
+    m_write_uvs = g_render_backend->MakeComputePipeline(
         g_shader_manager->GetOrCreate(NAME("SSRWriteUVs"), shader_properties),
         write_uvs_shader_descriptor_table);
 
@@ -252,7 +252,7 @@ void SSRRenderer::CreateComputePipelines()
     AssertThrow(sample_gbuffer_shader.IsValid());
 
     const DescriptorTableDeclaration& sample_gbuffer_shader_descriptor_table_decl = sample_gbuffer_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_rendering_api->MakeDescriptorTable(&sample_gbuffer_shader_descriptor_table_decl);
+    DescriptorTableRef sample_gbuffer_shader_descriptor_table = g_render_backend->MakeDescriptorTable(&sample_gbuffer_shader_descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -273,7 +273,7 @@ void SSRRenderer::CreateComputePipelines()
 
     DeferCreate(sample_gbuffer_shader_descriptor_table);
 
-    m_sample_gbuffer = g_rendering_api->MakeComputePipeline(
+    m_sample_gbuffer = g_render_backend->MakeComputePipeline(
         sample_gbuffer_shader,
         sample_gbuffer_shader_descriptor_table);
 

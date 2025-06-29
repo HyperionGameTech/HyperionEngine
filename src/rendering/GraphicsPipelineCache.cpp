@@ -119,7 +119,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
 
     if (!table)
     {
-        table = g_rendering_api->MakeDescriptorTable(descriptor_table_decl);
+        table = g_render_backend->MakeDescriptorTable(descriptor_table_decl);
         if (!table.IsValid())
         {
             HYP_LOG(Rendering, Error, "Failed to create descriptor table for shader: {}", shader->GetDebugName());
@@ -139,7 +139,7 @@ GraphicsPipelineRef GraphicsPipelineCache::GetOrCreate(
         (*m_cached_pipelines)[attributes].PushBack(graphics_pipeline);
     };
 
-    graphics_pipeline = g_rendering_api->MakeGraphicsPipeline(
+    graphics_pipeline = g_render_backend->MakeGraphicsPipeline(
         shader,
         table,
         framebuffers,

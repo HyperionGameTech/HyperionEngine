@@ -507,7 +507,7 @@ protected:
         AFTER_CHILDREN
     };
 
-    UIObject(const ThreadID& owner_thread_id);
+    UIObject(const ThreadId& owner_thread_id);
 
 public:
     friend class UIRenderSubsystem;
@@ -1272,7 +1272,7 @@ protected:
     {
         if (Scene* scene = GetScene())
         {
-            Threads::AssertOnThread(scene->GetOwnerThreadID());
+            Threads::AssertOnThread(scene->GetOwnerThreadId());
         }
     }
 

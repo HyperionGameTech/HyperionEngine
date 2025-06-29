@@ -54,7 +54,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    Array<ID<Scene>> lightmappers_to_remove;
+    Array<Id<Scene>> lightmappers_to_remove;
 
     for (auto& it : m_lightmappers)
     {
@@ -66,7 +66,7 @@ void LightmapperSubsystem::Update(float delta)
         }
     }
 
-    for (ID<Scene> scene_id : lightmappers_to_remove)
+    for (Id<Scene> scene_id : lightmappers_to_remove)
     {
         m_lightmappers.Erase(scene_id);
     }

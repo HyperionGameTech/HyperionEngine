@@ -68,7 +68,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         while (entry->state.Get(MemoryOrder::SEQUENTIAL) == ShaderMapEntry::State::LOADING)
         {
             // sanity check - should never happen
-            AssertThrow(entry->loading_thread_id != Threads::CurrentThreadID());
+            AssertThrow(entry->loading_thread_id != Threads::CurrentThreadId());
 
             if (num_spins == max_spins)
             {
@@ -76,11 +76,11 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
                     "Shader {} is loading for too long! Skipping reuse attempt and loading on this thread. (Loading thread: {}, current thread: {})",
                     definition.GetName(),
                     entry->loading_thread_id.GetName(),
-                    Threads::CurrentThreadID().GetName());
+                    Threads::CurrentThreadId().GetName());
 
                 entry = MakeRefCountedPtr<ShaderMapEntry>();
                 entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-                entry->loading_thread_id = Threads::CurrentThreadID();
+                entry->loading_thread_id = Threads::CurrentThreadId();
 
                 should_add_entry_to_cache = false;
 
@@ -118,7 +118,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
         entry = MakeRefCountedPtr<ShaderMapEntry>();
         entry->compiled_shader = compiled_shader;
         entry->state.Set(ShaderMapEntry::State::LOADING, MemoryOrder::SEQUENTIAL);
-        entry->loading_thread_id = Threads::CurrentThreadID();
+        entry->loading_thread_id = Threads::CurrentThreadId();
     }
 
     if (should_add_entry_to_cache)
@@ -155,7 +155,7 @@ ShaderRef ShaderManager::GetOrCreate(const ShaderDefinition& definition)
             definition.GetName().LookupString(),
             definition.GetProperties().GetHashCode().Value());
 
-        shader = g_rendering_api->MakeShader(std::move(compiled_shader));
+        shader = g_render_backend->MakeShader(std::move(compiled_shader));
 
 #ifdef HYP_DEBUG_MODE
         AssertThrow(ensure_contains_properties(definition.GetProperties(), shader->GetCompiledShader()->GetDefinition().GetProperties()));

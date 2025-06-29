@@ -2,9 +2,9 @@ template <class Derived, class TEntry>
 const BoundingBox OctreeBase<Derived, TEntry>::default_bounds = BoundingBox({ -250.0f }, { 250.0f });
 
 template <class Derived, class TEntry>
-void OctreeState<Derived, TEntry>::MarkOctantDirty(OctantID octant_id)
+void OctreeState<Derived, TEntry>::MarkOctantDirty(OctantId octant_id)
 {
-    const OctantID prev_state = rebuild_state;
+    const OctantId prev_state = rebuild_state;
 
     if (octant_id.IsInvalid())
     {
@@ -24,7 +24,7 @@ void OctreeState<Derived, TEntry>::MarkOctantDirty(OctantID octant_id)
     }
 
     // should always end up at root if it doesnt match any
-    AssertThrow(rebuild_state != OctantID::Invalid());
+    AssertThrow(rebuild_state != OctantId::Invalid());
 }
 
 template <class Derived, class TEntry>
@@ -46,7 +46,7 @@ OctreeBase<Derived, TEntry>::OctreeBase(const BoundingBox& aabb, OctreeBase* par
       m_parent(nullptr),
       m_is_divided(false),
       m_state(nullptr),
-      m_octant_id(index, OctantID::Invalid()),
+      m_octant_id(index, OctantId::Invalid()),
       m_invalidation_marker(0)
 {
     if (parent != nullptr)
@@ -84,7 +84,7 @@ void OctreeBase<Derived, TEntry>::SetParent(OctreeBase* parent)
         m_state = nullptr;
     }
 
-    m_octant_id = OctantID(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantID::Invalid());
+    m_octant_id = OctantId(m_octant_id.GetIndex(), parent != nullptr ? parent->m_octant_id : OctantId::Invalid());
 
     if (IsDivided())
     {
@@ -150,9 +150,9 @@ void OctreeBase<Derived, TEntry>::InitOctants()
 }
 
 template <class Derived, class TEntry>
-OctreeBase<Derived, TEntry>* OctreeBase<Derived, TEntry>::GetChildOctant(OctantID octant_id)
+OctreeBase<Derived, TEntry>* OctreeBase<Derived, TEntry>::GetChildOctant(OctantId octant_id)
 {
-    if (octant_id == OctantID::Invalid())
+    if (octant_id == OctantId::Invalid())
     {
         return nullptr;
     }
@@ -404,7 +404,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::Insert(co
         }
 
         // stop recursing if we are at max depth
-        if (m_octant_id.GetDepth() < OctantID::max_depth - 1)
+        if (m_octant_id.GetDepth() < OctantId::max_depth - 1)
         {
             for (Octant& octant : m_octants)
             {
@@ -673,7 +673,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::Move(cons
 
                 if (!IsDivided())
                 {
-                    if (allow_rebuild && m_octant_id.GetDepth() < OctantID::max_depth - 1)
+                    if (allow_rebuild && m_octant_id.GetDepth() < OctantId::max_depth - 1)
                     {
                         Divide();
                     }
@@ -730,7 +730,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::Update(co
         {
             return {
                 { Result::OCTREE_ERR, "Object not found in entry map!" },
-                OctantID::Invalid()
+                OctantId::Invalid()
             };
         }
 
@@ -741,7 +741,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::Update(co
 
         return {
             { Result::OCTREE_ERR, "Object has no octree in entry map!" },
-            OctantID::Invalid()
+            OctantId::Invalid()
         };
     }
 
@@ -772,7 +772,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::Update_In
 
         return {
             { Result::OCTREE_ERR, "Could not update in any sub octants" },
-            OctantID::Invalid()
+            OctantId::Invalid()
         };
     }
 
@@ -868,7 +868,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::RebuildEx
     {
         return {
             { OctreeBase<Derived, TEntry>::Result::OCTREE_ERR, "AABB is in invalid state" },
-            OctantID::Invalid()
+            OctantId::Invalid()
         };
     }
 
@@ -876,7 +876,7 @@ OctreeBase<Derived, TEntry>::InsertResult OctreeBase<Derived, TEntry>::RebuildEx
     {
         return {
             { OctreeBase<Derived, TEntry>::Result::OCTREE_ERR, "AABB is not finite" },
-            OctantID::Invalid()
+            OctantId::Invalid()
         };
     }
 
@@ -908,7 +908,7 @@ void OctreeBase<Derived, TEntry>::PerformUpdates()
     if (rebuild_result.first)
     {
         // set rebuild state back to invalid if rebuild was successful
-        m_state->rebuild_state = OctantID::Invalid();
+        m_state->rebuild_state = OctantId::Invalid();
     }
 }
 

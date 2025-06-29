@@ -30,7 +30,7 @@ HYP_DEFINE_LOG_CHANNEL(BuildTool);
 class WorkerThread : public TaskThread
 {
 public:
-    WorkerThread(ThreadID id)
+    WorkerThread(ThreadId id)
         : TaskThread(id)
     {
     }

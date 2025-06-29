@@ -14,7 +14,7 @@
 
 #include <core/containers/HashMap.hpp>
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Span.hpp>
 
@@ -35,17 +35,17 @@ class HypField;
 
 struct HypPropertyTypeInfo
 {
-    TypeID target_type_id;
-    TypeID value_type_id; // for getter or setter: getter is param type, setter is return type
+    TypeId target_type_id;
+    TypeId value_type_id; // for getter or setter: getter is param type, setter is return type
 };
 
 template <class T>
 using UnwrappedSerializationType = NormalizedType<typename SerializationWrapperReverseMapping<NormalizedType<T>>::Type>;
 
 template <class T>
-constexpr TypeID GetUnwrappedSerializationTypeID()
+constexpr TypeId GetUnwrappedSerializationTypeId()
 {
-    return TypeID::ForType<UnwrappedSerializationType<T>>();
+    return TypeId::ForType<UnwrappedSerializationType<T>>();
 }
 
 struct HypPropertyGetter
@@ -75,7 +75,7 @@ struct HypPropertyGetter
               })
 
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ReturnType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -96,7 +96,7 @@ struct HypPropertyGetter
                   return out;
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ReturnType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ReturnType>();
     }
 
     template <class ReturnType, class TargetType>
@@ -117,7 +117,7 @@ struct HypPropertyGetter
                   return out;
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ReturnType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ReturnType>();
     }
 
     // Special getter that takes no target. Used for Enums
@@ -139,7 +139,7 @@ struct HypPropertyGetter
                   return out;
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ReturnType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ReturnType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -160,7 +160,7 @@ struct HypPropertyGetter
                   return out;
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ValueType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -181,9 +181,9 @@ struct HypPropertyGetter
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             target.ToRef().Is(type_info.target_type_id),
-            "Target type mismatch, expected TypeID %u, got %u",
+            "Target type mismatch, expected TypeId %u, got %u",
             type_info.target_type_id.Value(),
-            target.GetTypeID().Value());
+            target.GetTypeId().Value());
 #endif
 
         return get_proc(target);
@@ -197,9 +197,9 @@ struct HypPropertyGetter
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             target.ToRef().Is(type_info.target_type_id),
-            "Target type mismatch, expected TypeID %u, got %u",
+            "Target type mismatch, expected TypeId %u, got %u",
             type_info.target_type_id.Value(),
-            target.GetTypeID().Value());
+            target.GetTypeId().Value());
 #endif
 
         return serialize_proc(target);
@@ -246,7 +246,7 @@ struct HypPropertySetter
                   }
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ValueType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ValueType>();
     }
 
     template <class ReturnType, class TargetType, class ValueType>
@@ -281,7 +281,7 @@ struct HypPropertySetter
                   }
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ValueType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ValueType>();
     }
 
     template <class ValueType, class TargetType, typename = std::enable_if_t<!std::is_member_function_pointer_v<ValueType TargetType::*>>>
@@ -316,7 +316,7 @@ struct HypPropertySetter
                   }
               })
     {
-        type_info.value_type_id = GetUnwrappedSerializationTypeID<ValueType>();
+        type_info.value_type_id = GetUnwrappedSerializationTypeId<ValueType>();
     }
 
     HYP_FORCE_INLINE explicit operator bool() const
@@ -337,9 +337,9 @@ struct HypPropertySetter
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             target.ToRef().Is(type_info.target_type_id),
-            "Target type mismatch, expected TypeID %u, got %u",
+            "Target type mismatch, expected TypeId %u, got %u",
             type_info.target_type_id.Value(),
-            target.GetTypeID().Value());
+            target.GetTypeId().Value());
 #endif
 
         set_proc(target, value);
@@ -353,9 +353,9 @@ struct HypPropertySetter
 #ifdef HYP_DEBUG_MODE
         AssertThrowMsg(
             target.ToRef().Is(type_info.target_type_id),
-            "Target type mismatch, expected TypeID %u, got %u",
+            "Target type mismatch, expected TypeId %u, got %u",
             type_info.target_type_id.Value(),
-            target.GetTypeID().Value());
+            target.GetTypeId().Value());
 #endif
 
         deserialize_proc(context, target, value);
@@ -429,16 +429,16 @@ public:
         return m_name;
     }
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
         return m_type_id;
     }
 
-    virtual TypeID GetTargetTypeID() const override
+    virtual TypeId GetTargetTypeId() const override
     {
         return m_getter.IsValid() ? m_getter.type_info.target_type_id
             : m_setter.IsValid()  ? m_setter.type_info.target_type_id
-                                  : TypeID::Void();
+                                  : TypeId::Void();
     }
 
     virtual bool CanSerialize() const override
@@ -502,7 +502,7 @@ public:
 
     HYP_FORCE_INLINE bool IsValid() const
     {
-        return m_type_id != TypeID::Void() && CanGet();
+        return m_type_id != TypeId::Void() && CanGet();
     }
 
     // getter
@@ -535,7 +535,7 @@ public:
         return m_original_member;
     }
 
-    /*! \brief Get the associated HypClass for this property's type ID, if applicable. */
+    /*! \brief Get the associated HypClass for this property's type Id, if applicable. */
     HYP_API const HypClass* GetHypClass() const;
 
     static HYP_API HypProperty MakeHypProperty(const HypField* field);
@@ -543,7 +543,7 @@ public:
 
 private:
     Name m_name;
-    TypeID m_type_id;
+    TypeId m_type_id;
 
     HypClassAttributeSet m_attributes;
 

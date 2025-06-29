@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    public struct IDBase
+    public struct IdBase
     {
-        public static readonly IDBase Invalid = new IDBase();
+        public static readonly IdBase Invalid = new IdBase();
 
         [FieldOffset(0), MarshalAs(UnmanagedType.U4)]
         private uint typeIdValue;
@@ -14,23 +14,23 @@ namespace Hyperion
         [FieldOffset(4), MarshalAs(UnmanagedType.U4)]
         private uint value;
 
-        public IDBase()
+        public IdBase()
         {
-            this.typeIdValue = TypeID.Void.Value;
+            this.typeIdValue = TypeId.Void.Value;
             this.value = 0;
         }
 
-        public IDBase(TypeID typeId, uint value)
+        public IdBase(TypeId typeId, uint value)
         {
             this.typeIdValue = typeId.Value;
             this.value = value;
         }
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
-                return new TypeID(typeIdValue);
+                return new TypeId(typeIdValue);
             }
         }
 
@@ -52,9 +52,9 @@ namespace Hyperion
 
         public override bool Equals(object obj)
         {
-            if (obj is IDBase)
+            if (obj is IdBase)
             {
-                return this == (IDBase)obj;
+                return this == (IdBase)obj;
             }
 
             return false;
@@ -62,34 +62,34 @@ namespace Hyperion
 
         public override string ToString()
         {
-            return string.Format("IDBase(TypeID: {0}, Value: {0})", typeIdValue, value);
+            return string.Format("IdBase(TypeId: {0}, Value: {0})", typeIdValue, value);
         }
 
-        public static bool operator==(IDBase a, IDBase b)
+        public static bool operator==(IdBase a, IdBase b)
         {
             return a.typeIdValue == b.typeIdValue && a.value == b.value;
         }
 
-        public static bool operator!=(IDBase a, IDBase b)
+        public static bool operator!=(IdBase a, IdBase b)
         {
             return a.typeIdValue != b.typeIdValue || a.value != b.value;
         }
     }
 
     // [StructLayout(LayoutKind.Sequential, Size = 4)]
-    // public struct ID<T> where T : HypObject
+    // public struct Id<T> where T : HypObject
     // {
-    //     public static readonly ID<T> Invalid = new ID<T>(0);
+    //     public static readonly Id<T> Invalid = new Id<T>(0);
 
     //     [MarshalAs(UnmanagedType.U4)]
     //     private uint value;
 
-    //     public ID(uint value)
+    //     public Id(uint value)
     //     {
     //         this.value = value;
     //     }
 
-    //     public ID(IDBase id)
+    //     public Id(IdBase id)
     //     {
     //         this.value = id.Value;
     //     }
@@ -112,9 +112,9 @@ namespace Hyperion
 
     //     public override bool Equals(object obj)
     //     {
-    //         if (obj is ID<T>)
+    //         if (obj is Id<T>)
     //         {
-    //             return this == (ID<T>)obj;
+    //             return this == (Id<T>)obj;
     //         }
 
     //         return false;
@@ -122,27 +122,27 @@ namespace Hyperion
 
     //     public override string ToString()
     //     {
-    //         return string.Format("ID<{0}>({1})", typeof(T).Name, value);
+    //         return string.Format("Id<{0}>({1})", typeof(T).Name, value);
     //     }
 
-    //     public static bool operator==(ID<T> a, ID<T> b)
+    //     public static bool operator==(Id<T> a, Id<T> b)
     //     {
     //         return a.value == b.value;
     //     }
 
-    //     public static bool operator!=(ID<T> a, ID<T> b)
+    //     public static bool operator!=(Id<T> a, Id<T> b)
     //     {
     //         return a.value != b.value;
     //     }
 
-    //     public static implicit operator IDBase(ID<T> id)
+    //     public static implicit operator IdBase(Id<T> id)
     //     {
-    //         return new IDBase(id.value);
+    //         return new IdBase(id.value);
     //     }
 
-    //     public static implicit operator ID<T>(IDBase id)
+    //     public static implicit operator Id<T>(IdBase id)
     //     {
-    //         return new ID<T>(id.value);
+    //         return new Id<T>(id.value);
     //     }
     // }
 }

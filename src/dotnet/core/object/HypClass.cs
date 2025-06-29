@@ -70,12 +70,12 @@ namespace Hyperion
             }
         }
 
-        public TypeID TypeID
+        public TypeId TypeId
         {
             get
             {
-                TypeID typeId;
-                HypClass_GetTypeID(ptr, out typeId);
+                TypeId typeId;
+                HypClass_GetTypeId(ptr, out typeId);
                 return typeId;
             }
         }
@@ -483,8 +483,8 @@ namespace Hyperion
         [DllImport("hyperion", EntryPoint = "HypClass_GetName")]
         private static extern void HypClass_GetName([In] IntPtr hypClassPtr, [Out] out Name name);
 
-        [DllImport("hyperion", EntryPoint = "HypClass_GetTypeID")]
-        private static extern void HypClass_GetTypeID([In] IntPtr hypClassPtr, [Out] out TypeID typeId);
+        [DllImport("hyperion", EntryPoint = "HypClass_GetTypeId")]
+        private static extern void HypClass_GetTypeId([In] IntPtr hypClassPtr, [Out] out TypeId typeId);
         
         [DllImport("hyperion", EntryPoint = "HypClass_GetSize")]
         private static extern uint HypClass_GetSize([In] IntPtr hypClassPtr);

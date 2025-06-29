@@ -77,25 +77,25 @@ HYP_MAKE_ENUM_FLAGS(HypClassSerializationMode)
 
 #pragma region Helpers
 
-HYP_API const HypClass* GetClass(TypeID type_id);
+HYP_API const HypClass* GetClass(TypeId type_id);
 HYP_API const HypClass* GetClass(WeakName type_name);
-HYP_API const HypEnum* GetEnum(TypeID type_id);
+HYP_API const HypEnum* GetEnum(TypeId type_id);
 HYP_API const HypEnum* GetEnum(WeakName type_name);
 
-HYP_API SizeType GetNumDescendants(TypeID type_id);
+HYP_API SizeType GetNumDescendants(TypeId type_id);
 
 template <class T>
 static inline SizeType GetNumDescendants()
 {
-    return GetNumDescendants(TypeID::ForType<T>());
+    return GetNumDescendants(TypeId::ForType<T>());
 }
 
-HYP_API int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+HYP_API int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id);
 
 template <class T, class U>
 static inline int GetSubclassIndex()
 {
-    static const int idx = GetSubclassIndex(TypeID::ForType<T>(), TypeID::ForType<U>());
+    static const int idx = GetSubclassIndex(TypeId::ForType<T>(), TypeId::ForType<U>());
 
     return idx;
 }
@@ -103,16 +103,16 @@ static inline int GetSubclassIndex()
 template <class T>
 HYP_FORCE_INLINE const HypClass* GetClass()
 {
-    return GetClass(TypeID::ForType<T>());
+    return GetClass(TypeId::ForType<T>());
 }
 
 template <class T>
 HYP_FORCE_INLINE const HypEnumInstance<T>* GetEnum()
 {
-    return static_cast<const HypEnumInstance<T>*>(GetEnum(TypeID::ForType<T>()));
+    return static_cast<const HypEnumInstance<T>*>(GetEnum(TypeId::ForType<T>()));
 }
 
-HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id);
 HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const HypClass* instance_hyp_class);
 
 #pragma endregion Helpers
@@ -327,7 +327,7 @@ public:
         return instance;
     }
 
-    const IHypClassCallbackWrapper* GetCallback(const TypeID& type_id) const
+    const IHypClassCallbackWrapper* GetCallback(const TypeId& type_id) const
     {
         Mutex::Guard guard(m_mutex);
 
@@ -341,7 +341,7 @@ public:
         return nullptr;
     }
 
-    void SetCallback(const TypeID& type_id, const IHypClassCallbackWrapper* callback)
+    void SetCallback(const TypeId& type_id, const IHypClassCallbackWrapper* callback)
     {
         Mutex::Guard guard(m_mutex);
 
@@ -349,7 +349,7 @@ public:
     }
 
 private:
-    HashMap<TypeID, const IHypClassCallbackWrapper*> m_callbacks;
+    HashMap<TypeId, const IHypClassCallbackWrapper*> m_callbacks;
     mutable Mutex m_mutex;
 };
 
@@ -357,7 +357,7 @@ template <HypClassCallbackType CallbackType>
 struct HypClassCallbackRegistration
 {
     template <auto Callback>
-    HypClassCallbackRegistration(const TypeID& type_id, ValueWrapper<Callback>)
+    HypClassCallbackRegistration(const TypeId& type_id, ValueWrapper<Callback>)
     {
         static const HypClassCallbackWrapper callback_wrapper(Callback);
 
@@ -370,7 +370,7 @@ class HYP_API HypClass
 public:
     friend struct HypClassRegistrationBase;
 
-    HypClass(TypeID type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    HypClass(TypeId type_id, Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     HypClass(const HypClass& other) = delete;
     HypClass& operator=(const HypClass& other) = delete;
     HypClass(HypClass&& other) noexcept = delete;
@@ -455,7 +455,7 @@ public:
 
     virtual void FixupPointer(void* target, IHypObjectInitializer* new_initializer) const = 0;
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
         return m_type_id;
     }
@@ -599,7 +599,7 @@ public:
         return CreateInstanceArray_Internal(elements, out);
     }
 
-    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeID.
+    /*! \brief Create a new HypData from \ref{memory}. The object at \ref{memory} must have the type of this HypClass's TypeId.
      *  The underlying data will be moved or have ownership taken.
      *  \param memory A view to the memory of the underlying object.
      *  \returns True if the operation was successful. */
@@ -610,8 +610,8 @@ public:
 
     HYP_FORCE_INLINE HashCode GetInstanceHashCode(ConstAnyRef ref) const
     {
-        AssertThrowMsg(ref.GetTypeID() == GetTypeID(), "Expected HypClass instance to have type ID %u but got type ID %u",
-            ref.GetTypeID().Value(), GetTypeID().Value());
+        AssertThrowMsg(ref.GetTypeId() == GetTypeId(), "Expected HypClass instance to have type Id %u but got type Id %u",
+            ref.GetTypeId().Value(), GetTypeId().Value());
 
         return GetInstanceHashCode_Internal(ref);
     }
@@ -654,7 +654,7 @@ protected:
 
     static bool GetManagedObjectFromObjectInitializer(const IHypObjectInitializer* object_initializer, dotnet::ObjectReference& out_object_reference);
 
-    TypeID m_type_id;
+    TypeId m_type_id;
     Name m_name;
     int m_static_index;
     uint32 m_num_descendants;
@@ -713,7 +713,7 @@ public:
         Span<const HypClassAttribute> attributes,
         EnumFlags<HypClassFlags> flags,
         Span<HypMember> members)
-        : HypClass(TypeID::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
+        : HypClass(TypeId::ForType<T>(), name, static_index, num_descendants, parent_name, attributes, flags, members)
     {
         m_size = sizeof(T);
         m_alignment = alignof(T);
@@ -819,8 +819,8 @@ protected:
 
         if constexpr (std::is_base_of_v<EnableRefCountedPtrFromThisBase<>, T>)
         {
-            // hack to update the TypeID of the weak_this pointer to be the same as the new initializer
-            static_cast<EnableRefCountedPtrFromThisBase<>*>(static_cast<T*>(target))->weak_this.GetRefCountData_Internal()->type_id = new_initializer->GetTypeID();
+            // hack to update the TypeId of the weak_this pointer to be the same as the new initializer
+            static_cast<EnableRefCountedPtrFromThisBase<>*>(static_cast<T*>(target))->weak_this.GetRefCountData_Internal()->type_id = new_initializer->GetTypeId();
         }
 
         static_cast<T*>(target)->m_hyp_object_initializer_ptr = new_initializer;
@@ -833,7 +833,7 @@ protected:
             return;
         }
 
-        const IHypClassCallbackWrapper* callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeID());
+        const IHypClassCallbackWrapper* callback_wrapper = HypClassCallbackCollection<HypClassCallbackType::ON_POST_LOAD>::GetInstance().GetCallback(GetTypeId());
 
         if (!callback_wrapper)
         {
@@ -960,7 +960,7 @@ protected:
 class DynamicHypClassInstance final : public HypClass
 {
 public:
-    DynamicHypClassInstance(TypeID type_id, Name name, const HypClass* parent_class, dotnet::Class* class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
+    DynamicHypClassInstance(TypeId type_id, Name name, const HypClass* parent_class, dotnet::Class* class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members);
     virtual ~DynamicHypClassInstance() override;
 
     virtual bool IsValid() const override;

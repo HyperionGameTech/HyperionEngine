@@ -25,7 +25,7 @@ namespace hyperion {
 
 #pragma region DynamicHypClassInstance
 
-DynamicHypClassInstance::DynamicHypClassInstance(TypeID type_id, Name name, const HypClass* parent_class, dotnet::Class* class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
+DynamicHypClassInstance::DynamicHypClassInstance(TypeId type_id, Name name, const HypClass* parent_class, dotnet::Class* class_ptr, Span<const HypClassAttribute> attributes, EnumFlags<HypClassFlags> flags, Span<HypMember> members)
     : HypClass(type_id, name, -1, 0, Name::Invalid(), attributes, flags, members)
 {
     if (class_ptr != nullptr)
@@ -210,7 +210,7 @@ extern "C"
         return HypClassRegistry::GetInstance().GetClass(weak_name);
     }
 
-    HYP_EXPORT const HypClass* HypClass_GetClassByTypeID(const TypeID* type_id)
+    HYP_EXPORT const HypClass* HypClass_GetClassByTypeId(const TypeId* type_id)
     {
         if (!type_id)
         {
@@ -254,14 +254,14 @@ extern "C"
         *out_name = hyp_class->GetName();
     }
 
-    HYP_EXPORT void HypClass_GetTypeID(const HypClass* hyp_class, TypeID* out_type_id)
+    HYP_EXPORT void HypClass_GetTypeId(const HypClass* hyp_class, TypeId* out_type_id)
     {
         if (!hyp_class || !out_type_id)
         {
             return;
         }
 
-        *out_type_id = hyp_class->GetTypeID();
+        *out_type_id = hyp_class->GetTypeId();
     }
 
     HYP_EXPORT uint32 HypClass_GetSize(const HypClass* hyp_class)
@@ -436,7 +436,7 @@ extern "C"
         return (uint32)hyp_class->GetConstants().Size();
     }
 
-    HYP_EXPORT HypClass* HypClass_CreateDynamicHypClass(const TypeID* type_id, const char* name, const HypClass* parent_hyp_class)
+    HYP_EXPORT HypClass* HypClass_CreateDynamicHypClass(const TypeId* type_id, const char* name, const HypClass* parent_hyp_class)
     {
         AssertThrow(type_id != nullptr);
         AssertThrow(name != nullptr);

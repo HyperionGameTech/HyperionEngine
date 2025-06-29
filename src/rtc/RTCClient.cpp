@@ -8,10 +8,10 @@
 
 #ifdef HYP_LIBDATACHANNEL
 
-    #include <rtc/configuration.hpp>
-    #include <rtc/peerconnection.hpp>
+#include <rtc/configuration.hpp>
+#include <rtc/peerconnection.hpp>
 
-    #include <variant>
+#include <variant>
 #endif // HYP_LIBDATACHANNEL
 
 namespace hyperion {
@@ -88,12 +88,12 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
 
     peer_connection->onStateChange([this, id = m_id](rtc::PeerConnection::State state)
         {
-            DebugLog(LogType::Debug, "State changed for Client with ID %s: %d\n", id.Data(), int(state));
+            DebugLog(LogType::Debug, "State changed for Client with Id %s: %d\n", id.Data(), int(state));
 
             switch (state)
             {
             case rtc::PeerConnection::State::Disconnected:
-                DebugLog(LogType::Debug, "Client with ID %s disconnected\n", id.Data());
+                DebugLog(LogType::Debug, "Client with Id %s disconnected\n", id.Data());
 
                 m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
@@ -103,7 +103,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
 
                 break;
             case rtc::PeerConnection::State::Failed:
-                DebugLog(LogType::Debug, "Client with ID %s connection failed\n", id.Data());
+                DebugLog(LogType::Debug, "Client with Id %s connection failed\n", id.Data());
 
                 m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
@@ -115,7 +115,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
 
                 break;
             case rtc::PeerConnection::State::Closed:
-                DebugLog(LogType::Debug, "Client with ID %s connection closed\n", id.Data());
+                DebugLog(LogType::Debug, "Client with Id %s connection closed\n", id.Data());
 
                 m_state = RTC_CLIENT_STATE_DISCONNECTED;
 
@@ -139,7 +139,7 @@ LibDataChannelRTCClient::LibDataChannelRTCClient(String id, RTCServer* server)
 
     peer_connection->onGatheringStateChange([this, id = m_id, pc_weak = Weak<rtc::PeerConnection>(peer_connection)](rtc::PeerConnection::GatheringState state)
         {
-            DebugLog(LogType::Debug, "Gathering state changed for Client with ID %s: %d\n", id.Data(), int(state));
+            DebugLog(LogType::Debug, "Gathering state changed for Client with Id %s: %d\n", id.Data(), int(state));
 
             if (state != rtc::PeerConnection::GatheringState::Complete)
             {

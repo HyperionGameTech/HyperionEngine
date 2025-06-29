@@ -21,7 +21,7 @@ namespace threading {
 
 DataRaceDetector::DataAccessScope::DataAccessScope(EnumFlags<DataAccessFlags> flags, const DataRaceDetector& detector, const DataAccessState& state)
     : m_detector(const_cast<DataRaceDetector&>(detector)),
-      m_thread_id(ThreadID::Current())
+      m_thread_id(ThreadId::Current())
 {
     // Check if we should suppress data race detection
     if (IsGlobalContextActive<SuppressDataRaceDetectorContext>())
@@ -53,7 +53,7 @@ static Span<const DataRaceDetector::ThreadAccessState> GetPreallocatedStates()
         {
             for (SizeType i = 0; i < DataRaceDetector::num_preallocated_states; i++)
             {
-                const StaticThreadID thread_id = StaticThreadID(i);
+                const StaticThreadId thread_id = StaticThreadId(i);
 
                 data[i] = DataRaceDetector::ThreadAccessState { thread_id, DataAccessFlags::ACCESS_NONE };
             }
@@ -76,7 +76,7 @@ DataRaceDetector::~DataRaceDetector()
     DebugLog(LogType::Debug, "DataRaceDetector destroyed : %p\n", this);
 }
 
-EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state)
+EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadId thread_id, EnumFlags<DataAccessFlags> access_flags, const DataAccessState& state)
 {
     Threads::AssertOnThread(thread_id);
 
@@ -85,7 +85,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     if (thread_id.IsStatic())
     {
         // ensure no writer from other thread
-        index = static_cast<const StaticThreadID&>(thread_id).GetStaticThreadIndex();
+        index = static_cast<const StaticThreadId&>(thread_id).GetStaticThreadIndex();
         AssertDebug(index < num_preallocated_states);
 
         // disable bits that are already enabled
@@ -174,7 +174,7 @@ EnumFlags<DataAccessFlags> DataRaceDetector::AddAccess(ThreadID thread_id, EnumF
     return access_flags;
 }
 
-void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlags> access_flags)
+void DataRaceDetector::RemoveAccess(ThreadId thread_id, EnumFlags<DataAccessFlags> access_flags)
 {
     if (access_flags == DataAccessFlags::ACCESS_NONE)
     {
@@ -189,7 +189,7 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
     if (thread_id.IsStatic())
     {
         // ensure no writer from other thread
-        index = static_cast<const StaticThreadID&>(thread_id).GetStaticThreadIndex();
+        index = static_cast<const StaticThreadId&>(thread_id).GetStaticThreadIndex();
         AssertDebug(index < num_preallocated_states);
 
         flags = m_preallocated_states[index].access;
@@ -242,9 +242,9 @@ void DataRaceDetector::RemoveAccess(ThreadID thread_id, EnumFlags<DataAccessFlag
 
 void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) const
 {
-    Array<Pair<ThreadID, DataAccessState>> reader_thread_ids;
-    Array<Pair<ThreadID, DataAccessState>> writer_thread_ids;
-    GetThreadIDs(readers_mask, writers_mask, reader_thread_ids, writer_thread_ids);
+    Array<Pair<ThreadId, DataAccessState>> reader_thread_ids;
+    Array<Pair<ThreadId, DataAccessState>> writer_thread_ids;
+    GetThreadIds(readers_mask, writers_mask, reader_thread_ids, writer_thread_ids);
 
     String reader_threads_string = "<None>";
 
@@ -285,12 +285,12 @@ void DataRaceDetector::LogDataRace(uint64 readers_mask, uint64 writers_mask) con
     }
 
     HYP_LOG(DataRaceDetector, Error, "Data race detected: Current thread: {} ({}), Writer threads: {}, Reader threads: {}",
-        ThreadID::Current().GetName(), ThreadID::Current().GetValue(),
+        ThreadId::Current().GetName(), ThreadId::Current().GetValue(),
         writer_threads_string,
         reader_threads_string);
 }
 
-void DataRaceDetector::GetThreadIDs(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadID, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadID, DataAccessState>>& out_writer_thread_ids) const
+void DataRaceDetector::GetThreadIds(uint64 readers_mask, uint64 writers_mask, Array<Pair<ThreadId, DataAccessState>>& out_reader_thread_ids, Array<Pair<ThreadId, DataAccessState>>& out_writer_thread_ids) const
 {
     Mutex::Guard guard(m_dynamic_states_mutex);
 

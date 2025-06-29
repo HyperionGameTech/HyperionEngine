@@ -338,7 +338,7 @@ Result CXXModuleGenerator::Generate_Internal(const Analyzer& analyzer, const Mod
 
         if (post_load_attribute_value.IsValid())
         {
-            writer.WriteString(HYP_FORMAT("static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeID::ForType<{}>(), ValueWrapper<{}>());\n", hyp_class.name, hyp_class.name, post_load_attribute_value.GetString()));
+            writer.WriteString(HYP_FORMAT("static const HypClassCallbackRegistration<HypClassCallbackType::ON_POST_LOAD> g_post_load_{}(TypeId::ForType<{}>(), ValueWrapper<{}>());\n", hyp_class.name, hyp_class.name, post_load_attribute_value.GetString()));
         }
 
         writer.WriteString("} // namespace hyperion\n\n");

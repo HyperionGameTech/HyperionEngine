@@ -49,7 +49,7 @@ void RenderSkeleton::Update_Internal()
     HYP_SCOPE;
 }
 
-GPUBufferHolderBase* RenderSkeleton::GetGPUBufferHolder() const
+GpuBufferHolderBase* RenderSkeleton::GetGpuBufferHolder() const
 {
     return g_render_global_state->gpu_buffers[GRB_SKELETONS];
 }
@@ -61,7 +61,7 @@ void RenderSkeleton::UpdateBufferData()
     AssertThrow(m_buffer_index != ~0u);
 
     *static_cast<SkeletonShaderData*>(m_buffer_address) = m_buffer_data;
-    GetGPUBufferHolder()->MarkDirty(m_buffer_index);
+    GetGpuBufferHolder()->MarkDirty(m_buffer_index);
 }
 
 void RenderSkeleton::SetBufferData(const SkeletonShaderData& buffer_data)

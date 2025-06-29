@@ -3,7 +3,7 @@
 #ifndef HYPERION_EDITOR_UI_HPP
 #define HYPERION_EDITOR_UI_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Optional.hpp>
 
 #include <core/containers/String.hpp>
@@ -27,12 +27,12 @@ struct EditorNodePropertyRef
 
 class UIElementFactoryBase;
 
-HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeID type_id);
+HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeId type_id);
 
 template <class T>
 static UIElementFactoryBase* GetEditorUIElementFactory()
 {
-    return GetEditorUIElementFactory(TypeID::ForType<T>());
+    return GetEditorUIElementFactory(TypeId::ForType<T>());
 }
 
 } // namespace hyperion

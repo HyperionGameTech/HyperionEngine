@@ -13,13 +13,13 @@ namespace hyperion::serialization {
 FBOMType::FBOMType()
     : name("UNSET"),
       size(0),
-      type_id(TypeID::Void()),
+      type_id(TypeId::Void()),
       flags(FBOMTypeFlags::DEFAULT),
       extends(nullptr)
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id)
     : name(name),
       size(size),
       type_id(type_id),
@@ -28,7 +28,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id)
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, const FBOMType& extends)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, const FBOMType& extends)
     : name(name),
       size(size),
       type_id(type_id),
@@ -37,7 +37,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, co
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, EnumFlags<FBOMTypeFlags> flags)
     : name(name),
       size(size),
       type_id(type_id),
@@ -46,7 +46,7 @@ FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, En
 {
 }
 
-FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeID type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends)
+FBOMType::FBOMType(const ANSIStringView& name, SizeType size, TypeId type_id, EnumFlags<FBOMTypeFlags> flags, const FBOMType& extends)
     : name(name),
       size(size),
       type_id(type_id),
@@ -97,7 +97,7 @@ FBOMType::FBOMType(FBOMType&& other) noexcept
       extends(other.extends)
 {
     other.size = 0;
-    other.type_id = TypeID::Void();
+    other.type_id = TypeId::Void();
     other.flags = FBOMTypeFlags::DEFAULT;
     other.extends = nullptr;
 }
@@ -116,7 +116,7 @@ FBOMType& FBOMType::operator=(FBOMType&& other) noexcept
     extends = other.extends;
 
     other.size = 0;
-    other.type_id = TypeID::Void();
+    other.type_id = TypeId::Void();
     other.flags = FBOMTypeFlags::DEFAULT;
     other.extends = nullptr;
 
@@ -133,7 +133,7 @@ FBOMType::~FBOMType()
 
 FBOMType FBOMType::Extend(const FBOMType& object) const
 {
-    return FBOMType(object.name, -1, TypeID::Void(), object.flags, *this);
+    return FBOMType(object.name, -1, TypeId::Void(), object.flags, *this);
 }
 
 bool FBOMType::HasAnyFlagsSet(EnumFlags<FBOMTypeFlags> flags, bool include_parents) const

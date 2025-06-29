@@ -28,7 +28,7 @@
 #include <rendering/RenderGlobalState.hpp>
 
 #ifdef HYP_VULKAN
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 #endif
 
 #include <audio/AudioManager.hpp>
@@ -47,7 +47,7 @@ Handle<AssetManager> g_asset_manager {};
 ShaderManager* g_shader_manager = nullptr;
 MaterialCache* g_material_system = nullptr;
 SafeDeleter* g_safe_deleter = nullptr;
-IRenderingAPI* g_rendering_api = nullptr;
+IRenderBackend* g_render_backend = nullptr;
 RenderGlobalState* g_render_global_state = nullptr;
 
 static CommandLineArguments g_command_line_arguments;
@@ -128,7 +128,7 @@ HYP_API const FilePath& GetResourceDirectory()
 
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
-    Threads::SetCurrentThreadID(g_main_thread);
+    Threads::SetCurrentThreadId(g_main_thread);
 
     HypClassRegistry::GetInstance().Initialize();
 
@@ -144,7 +144,7 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     AudioManager::GetInstance().Initialize();
 
 #ifdef HYP_VULKAN
-    g_rendering_api = new VulkanRenderingAPI();
+    g_render_backend = new VulkanRenderBackend();
 #else
 #error Unsupported rendering backend
 #endif
@@ -188,8 +188,8 @@ HYP_API void DestroyEngine()
 
     g_engine.Reset();
 
-    delete g_rendering_api;
-    g_rendering_api = nullptr;
+    delete g_render_backend;
+    g_render_backend = nullptr;
 }
 
 } // namespace hyperion

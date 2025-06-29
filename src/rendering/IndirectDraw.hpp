@@ -56,12 +56,12 @@ public:
     IndirectDrawState();
     ~IndirectDrawState();
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetInstanceBuffer(uint32 frame_index) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetInstanceBuffer(uint32 frame_index) const
     {
         return m_instance_buffers[frame_index];
     }
 
-    HYP_FORCE_INLINE const GPUBufferRef& GetIndirectBuffer(uint32 frame_index) const
+    HYP_FORCE_INLINE const GpuBufferRef& GetIndirectBuffer(uint32 frame_index) const
     {
         return m_indirect_buffers[frame_index];
     }
@@ -84,9 +84,9 @@ private:
     Array<ObjectInstance> m_object_instances;
     Array<IndirectDrawCommand> m_draw_commands;
 
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_indirect_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_instance_buffers;
-    FixedArray<GPUBufferRef, max_frames_in_flight> m_staging_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_indirect_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_instance_buffers;
+    FixedArray<GpuBufferRef, max_frames_in_flight> m_staging_buffers;
     uint32 m_num_draw_commands;
     uint8 m_dirty_bits;
 };

@@ -38,13 +38,13 @@ namespace Hyperion
         {
         }
         
-        public UIDataSource(TypeID elementTypeId, UIElementFactoryBase factory)
+        public UIDataSource(TypeId elementTypeId, UIElementFactoryBase factory)
         {
-            UIDataSource_SetElementTypeIDAndFactory(NativeAddress, ref elementTypeId, factory.NativeAddress);
+            UIDataSource_SetElementTypeIdAndFactory(NativeAddress, ref elementTypeId, factory.NativeAddress);
         }
 
-        [DllImport("hyperion", EntryPoint="UIDataSource_SetElementTypeIDAndFactory")]
-        private static extern void UIDataSource_SetElementTypeIDAndFactory([In] IntPtr uiDataSource, [In] ref TypeID elementTypeId, [In] IntPtr elementFactory);
+        [DllImport("hyperion", EntryPoint="UIDataSource_SetElementTypeIdAndFactory")]
+        private static extern void UIDataSource_SetElementTypeIdAndFactory([In] IntPtr uiDataSource, [In] ref TypeId elementTypeId, [In] IntPtr elementFactory);
     }
 
     [HypClassBinding(Name="UIElementFactoryBase")]

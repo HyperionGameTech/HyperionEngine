@@ -222,7 +222,7 @@ struct FBOMStaticData
     }
 
 private:
-    // Optional custom set ID
+    // Optional custom set Id
     Optional<UniqueID> m_id;
 };
 

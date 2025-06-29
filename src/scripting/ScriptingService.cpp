@@ -75,7 +75,7 @@ public:
         const FilePath& binary_output_directory,
         ScriptingServiceThreadCallback callback,
         void* callback_self_ptr)
-        : TaskThread(ThreadID(NAME("ScriptingServiceThread")), ThreadPriorityValue::LOWEST),
+        : TaskThread(ThreadId(NAME("ScriptingServiceThread")), ThreadPriorityValue::LOWEST),
           m_script_tracker(new ScriptTracker),
           m_watch_directory(watch_directory),
           m_intermediate_directory(intermediate_directory),

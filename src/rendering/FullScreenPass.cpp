@@ -306,7 +306,7 @@ void FullScreenPass::CreateFramebuffer()
         // AssertThrow(m_gbuffer != nullptr);
         // m_extent = m_gbuffer->GetExtent();
         // TEMP HACK
-        m_extent = g_rendering_api->GetSwapchain()->GetExtent();
+        m_extent = g_render_backend->GetSwapchain()->GetExtent();
     }
 
     Vec2u framebuffer_extent = m_extent;
@@ -324,7 +324,7 @@ void FullScreenPass::CreateFramebuffer()
         framebuffer_extent = Vec2u { uint32(reshaped_extent.x * 2), uint32(reshaped_extent.y) };
     }
 
-    m_framebuffer = g_rendering_api->MakeFramebuffer(framebuffer_extent);
+    m_framebuffer = g_render_backend->MakeFramebuffer(framebuffer_extent);
 
     TextureDesc texture_desc;
     texture_desc.type = TT_TEX2D;
@@ -335,7 +335,7 @@ void FullScreenPass::CreateFramebuffer()
     texture_desc.wrap_mode = TWM_CLAMP_TO_EDGE;
     texture_desc.image_usage = IU_ATTACHMENT | IU_SAMPLED;
 
-    ImageRef attachment_image = g_rendering_api->MakeImage(texture_desc);
+    ImageRef attachment_image = g_render_backend->MakeImage(texture_desc);
     DeferCreate(attachment_image);
 
     AttachmentRef attachment = m_framebuffer->AddAttachment(
@@ -445,7 +445,7 @@ void FullScreenPass::CreateRenderTextureToScreenPass()
     AssertThrow(render_texture_to_screen_shader.IsValid());
 
     const DescriptorTableDeclaration& descriptor_table_decl = render_texture_to_screen_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {
@@ -476,13 +476,13 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
         return;
     }
 
-    GPUBufferRef merge_half_res_textures_uniform_buffer;
+    GpuBufferRef merge_half_res_textures_uniform_buffer;
 
     { // Create uniform buffer
         MergeHalfResTexturesUniforms uniforms;
         uniforms.dimensions = m_extent;
 
-        merge_half_res_textures_uniform_buffer = g_rendering_api->MakeGPUBuffer(GPUBufferType::CBUFF, sizeof(uniforms));
+        merge_half_res_textures_uniform_buffer = g_render_backend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(uniforms));
         HYPERION_ASSERT_RESULT(merge_half_res_textures_uniform_buffer->Create());
         merge_half_res_textures_uniform_buffer->Copy(sizeof(uniforms), &uniforms);
     }
@@ -491,7 +491,7 @@ void FullScreenPass::CreateMergeHalfResTexturesPass()
     AssertThrow(merge_half_res_textures_shader.IsValid());
 
     const DescriptorTableDeclaration& descriptor_table_decl = merge_half_res_textures_shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-    DescriptorTableRef descriptor_table = g_rendering_api->MakeDescriptorTable(&descriptor_table_decl);
+    DescriptorTableRef descriptor_table = g_render_backend->MakeDescriptorTable(&descriptor_table_decl);
 
     for (uint32 frame_index = 0; frame_index < max_frames_in_flight; frame_index++)
     {

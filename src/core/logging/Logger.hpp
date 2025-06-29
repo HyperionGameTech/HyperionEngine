@@ -84,7 +84,7 @@ public:
     LogChannel& operator=(LogChannel&& other) noexcept = delete;
     HYP_API ~LogChannel();
 
-    /*! \brief Get the ID of this channel. */
+    /*! \brief Get the Id of this channel. */
     HYP_FORCE_INLINE uint32 GetID() const
     {
         return m_id;
@@ -250,11 +250,11 @@ using logging::LogMessage;
 #undef HYP_LOG_ONCE
 #endif
 
-#define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                              \
-    do                                                                                                                                                                                                                                                         \
-    {                                                                                                                                                                                                                                                          \
+#define HYP_LOG_ONCE(channel, category, fmt, ...)                                                                                                                                                                                                      \
+    do                                                                                                                                                                                                                                                 \
+    {                                                                                                                                                                                                                                                  \
         ::hyperion::logging::LogOnceHelper::ExecuteLogOnce<HYP_STATIC_STRING(__FILE__), __LINE__, HYP_PRETTY_FUNCTION_NAME, hyperion::logging::category(), HYP_STATIC_STRING(fmt "\n")>(hyperion::logging::GetLogger(), Log_##channel, ##__VA_ARGS__); \
-    }                                                                                                                                                                                                                                                          \
+    }                                                                                                                                                                                                                                                  \
     while (0)
 
 #endif

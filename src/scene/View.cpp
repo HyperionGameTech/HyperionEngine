@@ -175,7 +175,7 @@ void View::Init()
             }
         }));
 
-    AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with ID #%u", GetID().Value());
+    AssertThrowMsg(m_camera.IsValid(), "Camera is not valid for View with Id #%u", GetID().Value());
     InitObject(m_camera);
 
     const Vec2u extent = MathUtil::Max(m_view_desc.output_target_desc.extent, Vec2u::One());
@@ -189,7 +189,7 @@ void View::Init()
     }
     else if (m_view_desc.output_target_desc.attachments.Any())
     {
-        FramebufferRef framebuffer = g_rendering_api->MakeFramebuffer(extent, m_view_desc.output_target_desc.num_views);
+        FramebufferRef framebuffer = g_render_backend->MakeFramebuffer(extent, m_view_desc.output_target_desc.num_views);
 
         for (uint32 attachment_index = 0; attachment_index < m_view_desc.output_target_desc.attachments.Size(); ++attachment_index)
         {
@@ -210,14 +210,14 @@ void View::Init()
         m_output_target = ViewOutputTarget(framebuffer);
     }
 
-    AssertThrowMsg(m_output_target.IsValid(), "View with ID #%u must have a valid output target!", GetID().Value());
+    AssertThrowMsg(m_output_target.IsValid(), "View with Id #%u must have a valid output target!", GetID().Value());
 
     Array<TResourceHandle<RenderScene>> render_scenes;
     render_scenes.Reserve(m_scenes.Size());
 
     for (const Handle<Scene>& scene : m_scenes)
     {
-        AssertThrowMsg(scene.IsValid(), "Scene is not valid for View with ID #%u", GetID().Value());
+        AssertThrowMsg(scene.IsValid(), "Scene is not valid for View with Id #%u", GetID().Value());
         InitObject(scene);
 
         AssertThrow(scene->IsReady());
@@ -264,7 +264,7 @@ void View::UpdateVisibility()
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot update visibility!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot update visibility!", GetID().Value());
         return;
     }
 
@@ -280,7 +280,7 @@ void View::Update(float delta)
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
-    RenderProxyList& rpl = RendererAPI_GetProducerProxyList(this);
+    RenderProxyList& rpl = RenderApi_GetProducerProxyList(this);
     rpl.viewport = m_viewport;
     rpl.priority = m_priority;
     rpl.meshes.Advance(AdvanceAction::CLEAR);
@@ -367,7 +367,7 @@ void View::RemoveScene(const Handle<Scene>& scene)
     m_scenes.Erase(scene);
 }
 
-typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectEntities(RenderProxyList& rpl)
+typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectEntities(RenderProxyList& rpl)
 {
     AssertReady();
 
@@ -384,7 +384,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectEntities(Re
     }
 }
 
-typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities(RenderProxyList& rpl)
+typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectAllEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -392,12 +392,12 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect entities!", GetID().Value());
 
         return rpl.meshes.GetDiff();
     }
 
-    const ID<Camera> camera_id = m_camera->GetID();
+    const Id<Camera> camera_id = m_camera->GetID();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -471,7 +471,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities
         for (RenderProxy* proxy : added)
         {
             // Temp shit
-            RendererAPI_AddRef(proxy->entity.GetUnsafe());
+            RenderApi_AddRef(proxy->entity.GetUnsafe());
 
             // for now:
             proxy->IncRefs();
@@ -479,7 +479,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities
 
         for (RenderProxy* proxy : removed)
         {
-            RendererAPI_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.GetID());
 
             // for now:
             proxy->DecRefs();
@@ -489,7 +489,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectAllEntities
     return diff;
 }
 
-typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
+typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectDynamicEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -498,13 +498,13 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
 
     if (!m_camera.IsValid())
     {
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect dynamic entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect dynamic entities!", GetID().Value());
         // if camera is invalid, update without adding any entities
 
         return rpl.meshes.GetDiff();
     }
 
-    const ID<Camera> camera_id = m_camera->GetID();
+    const Id<Camera> camera_id = m_camera->GetID();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -568,7 +568,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
         {
 
             // temp shit
-            RendererAPI_AddRef(proxy->entity.GetUnsafe());
+            RenderApi_AddRef(proxy->entity.GetUnsafe());
 
             // for now:
             proxy->IncRefs();
@@ -576,7 +576,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
 
         for (RenderProxy* proxy : removed)
         {
-            RendererAPI_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.GetID());
 
             // for now:
             proxy->DecRefs();
@@ -586,7 +586,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectDynamicEnti
     return diff;
 }
 
-typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
+typename ResourceTracker<Id<Entity>, RenderProxy>::Diff View::CollectStaticEntities(RenderProxyList& rpl)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_game_thread | ThreadCategory::THREAD_CATEGORY_TASK);
@@ -596,12 +596,12 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
     if (!m_camera.IsValid())
     {
         // if camera is invalid, update without adding any entities
-        HYP_LOG(Scene, Warning, "Camera is not valid for View with ID #%u, cannot collect static entities!", GetID().Value());
+        HYP_LOG(Scene, Warning, "Camera is not valid for View with Id #%u, cannot collect static entities!", GetID().Value());
 
         return rpl.meshes.GetDiff();
     }
 
-    const ID<Camera> camera_id = m_camera->GetID();
+    const Id<Camera> camera_id = m_camera->GetID();
 
     const bool skip_frustum_culling = (m_flags & ViewFlags::SKIP_FRUSTUM_CULLING);
 
@@ -664,7 +664,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
         for (RenderProxy* proxy : added)
         {
             // temp shit
-            RendererAPI_AddRef(proxy->entity.GetUnsafe());
+            RenderApi_AddRef(proxy->entity.GetUnsafe());
 
             // for now:
             proxy->IncRefs();
@@ -672,7 +672,7 @@ typename ResourceTracker<ID<Entity>, RenderProxy>::Diff View::CollectStaticEntit
 
         for (RenderProxy* proxy : removed)
         {
-            RendererAPI_ReleaseRef(proxy->entity.GetID());
+            RenderApi_ReleaseRef(proxy->entity.GetID());
 
             // for now:
             proxy->DecRefs();
@@ -751,8 +751,8 @@ void View::CollectLights(RenderProxyList& rpl)
             // temp shit
             light->GetRenderResource().IncRef();
 
-            RendererAPI_AddRef(light);
-            RendererAPI_UpdateRenderProxy(light->GetID());
+            RenderApi_AddRef(light);
+            RenderApi_UpdateRenderProxy(light->GetID());
         }
 
         for (Light* light : removed)
@@ -760,15 +760,15 @@ void View::CollectLights(RenderProxyList& rpl)
             // temp shit
             light->GetRenderResource().DecRef();
 
-            RendererAPI_ReleaseRef(light->GetID());
+            RenderApi_ReleaseRef(light->GetID());
         }
 
-        Array<ID<Light>> changed_ids;
+        Array<Id<Light>> changed_ids;
         rpl.lights.GetChanged(changed_ids);
 
-        for (ID<Light> id : changed_ids)
+        for (Id<Light> id : changed_ids)
         {
-            RendererAPI_UpdateRenderProxy(id);
+            RenderApi_UpdateRenderProxy(id);
         }
     }
 }
@@ -825,21 +825,21 @@ void View::CollectLightmapVolumes(RenderProxyList& rpl)
 
         for (LightmapVolume* volume : added)
         {
-            RendererAPI_AddRef(volume);
-            RendererAPI_UpdateRenderProxy(volume->GetID());
+            RenderApi_AddRef(volume);
+            RenderApi_UpdateRenderProxy(volume->GetID());
         }
 
         for (LightmapVolume* volume : removed)
         {
-            RendererAPI_ReleaseRef(volume->GetID());
+            RenderApi_ReleaseRef(volume->GetID());
         }
 
-        Array<ID<LightmapVolume>> changed_ids;
+        Array<Id<LightmapVolume>> changed_ids;
         rpl.lightmap_volumes.GetChanged(changed_ids);
 
-        for (ID<LightmapVolume> id : changed_ids)
+        for (Id<LightmapVolume> id : changed_ids)
         {
-            RendererAPI_UpdateRenderProxy(id);
+            RenderApi_UpdateRenderProxy(id);
         }
     }
 }
@@ -895,21 +895,21 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
         for (EnvGrid* env_grid : added)
         {
-            RendererAPI_AddRef(env_grid);
-            RendererAPI_UpdateRenderProxy(env_grid->GetID());
+            RenderApi_AddRef(env_grid);
+            RenderApi_UpdateRenderProxy(env_grid->GetID());
         }
 
         for (EnvGrid* env_grid : removed)
         {
-            RendererAPI_ReleaseRef(env_grid->GetID());
+            RenderApi_ReleaseRef(env_grid->GetID());
         }
 
-        Array<ID<EnvGrid>> changed_ids;
+        Array<Id<EnvGrid>> changed_ids;
         rpl.env_grids.GetChanged(changed_ids);
 
-        for (ID<EnvGrid> id : changed_ids)
+        for (Id<EnvGrid> id : changed_ids)
         {
-            RendererAPI_UpdateRenderProxy(id);
+            RenderApi_UpdateRenderProxy(id);
         }
     }
 }
@@ -977,21 +977,21 @@ void View::CollectEnvProbes(RenderProxyList& rpl)
 
         for (EnvProbe* probe : added)
         {
-            RendererAPI_AddRef(probe);
-            RendererAPI_UpdateRenderProxy(probe->GetID());
+            RenderApi_AddRef(probe);
+            RenderApi_UpdateRenderProxy(probe->GetID());
         }
 
         for (EnvProbe* probe : removed)
         {
-            RendererAPI_ReleaseRef(probe->GetID());
+            RenderApi_ReleaseRef(probe->GetID());
         }
 
-        Array<ID<EnvProbe>> changed_ids;
+        Array<Id<EnvProbe>> changed_ids;
         rpl.env_probes.GetChanged(changed_ids);
 
-        for (ID<EnvProbe> id : changed_ids)
+        for (Id<EnvProbe> id : changed_ids)
         {
-            RendererAPI_UpdateRenderProxy(id);
+            RenderApi_UpdateRenderProxy(id);
         }
     }
 }

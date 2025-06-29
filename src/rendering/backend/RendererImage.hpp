@@ -157,11 +157,11 @@ public:
 
     HYP_API virtual void CopyFromBuffer(
         CommandBufferBase* command_buffer,
-        const GPUBufferBase* src_buffer) const = 0;
+        const GpuBufferBase* src_buffer) const = 0;
 
     HYP_API virtual void CopyToBuffer(
         CommandBufferBase* command_buffer,
-        GPUBufferBase* dst_buffer) const = 0;
+        GpuBufferBase* dst_buffer) const = 0;
 
     HYP_API virtual ImageViewRef MakeLayerImageView(uint32 layer_index) const = 0;
 

@@ -6,7 +6,7 @@
 #include <rendering/RenderTexture.hpp>
 #include <rendering/RenderProxy.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <rendering/backend/RenderCommand.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -77,7 +77,7 @@ struct RENDER_COMMAND(BakeLightmapVolumeTexture)
 
         SingleTimeCommands commands;
 
-        commands.Push([&](RHICommandList& cmd)
+        commands.Push([&](CmdList& cmd)
             {
                 for (uint32 texture_type_index = 0; texture_type_index < uint32(LTT_MAX); texture_type_index++)
                 {

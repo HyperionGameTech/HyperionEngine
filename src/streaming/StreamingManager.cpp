@@ -67,7 +67,7 @@ static Vec2i WorldSpaceToCellCoord(const WorldGridLayerInfo& layer_info, const V
 class StreamingWorkerThread : public TaskThread
 {
 public:
-    StreamingWorkerThread(ThreadID id)
+    StreamingWorkerThread(ThreadId id)
         : TaskThread(id, ThreadPriorityValue::LOW)
     {
     }
@@ -147,7 +147,7 @@ public:
     friend class StreamingManager;
 
     StreamingManagerThread()
-        : Thread(ThreadID(Name::Unique("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
+        : Thread(ThreadId(Name::Unique("StreamingManagerThread")), ThreadPriorityValue::NORMAL),
           m_thread_pool(MakeUnique<StreamingThreadPool>())
     {
     }
@@ -421,7 +421,7 @@ void StreamingManagerThread::DoWork(StreamingManager* streaming_manager)
     }
 
     // HYP_LOG(Streaming, Debug, "Processing streaming work on thread: {}, {} layers, {} volumes, {} cells",
-    //     Threads::CurrentThreadID().GetName(),
+    //     Threads::CurrentThreadId().GetName(),
     //     m_layers.Size(),
     //     m_volumes.Size(),
     //     String::Join(
@@ -589,7 +589,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
             TaskSystem::GetInstance().Enqueue([this, &layer_data, cell]()
                 {
                     HYP_LOG(Streaming, Debug, "Loading StreamingCell at coord: {} on thread: {} for layer: {}",
-                        cell->GetPatchInfo().coord, Threads::CurrentThreadID().GetName(), layer_data.layer->InstanceClass()->GetName());
+                        cell->GetPatchInfo().coord, Threads::CurrentThreadId().GetName(), layer_data.layer->InstanceClass()->GetName());
 
                     bool is_ok = true;
 
@@ -652,7 +652,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
 
             HYP_LOG(Streaming, Debug, "Removed StreamingCell at coord: {} for layer: {} on thread: {}",
                 cell->GetPatchInfo().coord, layer_data.layer->InstanceClass()->GetName().LookupString(),
-                Threads::CurrentThreadID().GetName());
+                Threads::CurrentThreadId().GetName());
 
             layer_data.Lock();
 
@@ -661,7 +661,7 @@ void StreamingManagerThread::ProcessCellUpdatesForLayer(LayerData& layer_data)
                 {
                     HYP_LOG(Streaming, Debug, "Unloading StreamingCell at coord: {} for layer: {} on thread: {}",
                         cell->GetPatchInfo().coord, layer_data.layer->InstanceClass()->GetName().LookupString(),
-                        Threads::CurrentThreadID().GetName());
+                        Threads::CurrentThreadId().GetName());
 
                     // cell->OnStreamEnd();
 

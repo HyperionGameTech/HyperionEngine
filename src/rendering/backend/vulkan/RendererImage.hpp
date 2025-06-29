@@ -4,7 +4,7 @@
 #define RENDERER_BACKEND_RENDERER_VULKAN_IMAGE_HPP
 
 #include <rendering/backend/RendererImage.hpp>
-#include <rendering/backend/RendererBuffer.hpp>
+#include <rendering/backend/RendererGpuBuffer.hpp>
 #include <core/math/MathUtil.hpp>
 
 #include <Types.hpp>
@@ -80,11 +80,11 @@ public:
 
     HYP_API virtual void CopyFromBuffer(
         CommandBufferBase* command_buffer,
-        const GPUBufferBase* src_buffer) const override;
+        const GpuBufferBase* src_buffer) const override;
 
     HYP_API virtual void CopyToBuffer(
         CommandBufferBase* command_buffer,
-        GPUBufferBase* dst_buffer) const override;
+        GpuBufferBase* dst_buffer) const override;
 
     /*! \brief Creates a view of the image for the specified array layer
      */

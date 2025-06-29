@@ -42,7 +42,7 @@ protected:
     virtual void Destroy_Internal() override;
     virtual void Update_Internal() override;
 
-    virtual GPUBufferHolderBase* GetGPUBufferHolder() const override;
+    virtual GpuBufferHolderBase* GetGpuBufferHolder() const override;
 
 private:
     EnvGrid* m_env_grid;
@@ -63,7 +63,7 @@ struct HYP_API EnvGridPassData : PassData
     ComputePipelineRef m_finalize_sh;
 
     Array<DescriptorTableRef> m_compute_sh_descriptor_tables;
-    Array<GPUBufferRef> m_sh_tiles_buffers;
+    Array<GpuBufferRef> m_sh_tiles_buffers;
 
     ComputePipelineRef m_clear_voxels;
     ComputePipelineRef m_voxelize_probe;
@@ -73,7 +73,7 @@ struct HYP_API EnvGridPassData : PassData
     Array<ImageViewRef> m_voxel_grid_mips;
     Array<DescriptorTableRef> m_generate_voxel_grid_mipmaps_descriptor_tables;
 
-    Array<GPUBufferRef> m_uniform_buffers;
+    Array<GpuBufferRef> m_uniform_buffers;
 
     ComputePipelineRef m_compute_irradiance;
     ComputePipelineRef m_compute_filtered_depth;

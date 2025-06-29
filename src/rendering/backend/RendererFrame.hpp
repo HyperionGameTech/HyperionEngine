@@ -8,7 +8,7 @@
 #include <rendering/backend/RendererSemaphore.hpp>
 #include <rendering/backend/RenderObject.hpp>
 
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 #include <core/Defines.hpp>
 
@@ -38,12 +38,12 @@ public:
         return m_frame_index;
     }
 
-    HYP_FORCE_INLINE RHICommandList& GetCommandList()
+    HYP_FORCE_INLINE CmdList& GetCommandList()
     {
         return m_command_list;
     }
 
-    HYP_FORCE_INLINE const RHICommandList& GetCommandList() const
+    HYP_FORCE_INLINE const CmdList& GetCommandList() const
     {
         return m_command_list;
     }
@@ -60,7 +60,7 @@ protected:
     }
 
     uint32 m_frame_index;
-    RHICommandList m_command_list;
+    CmdList m_command_list;
     HashSet<DescriptorSetBase*> m_used_descriptor_sets;
 };
 

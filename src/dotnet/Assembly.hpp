@@ -55,7 +55,7 @@ public:
         return m_flags;
     }
 
-    RC<Class> NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeID type_id, Class* parent_class, uint32 flags);
+    RC<Class> NewClass(const HypClass* hyp_class, int32 type_hash, const char* type_name, uint32 type_size, TypeId type_id, Class* parent_class, uint32 flags);
     RC<Class> FindClassByName(const char* type_name);
     RC<Class> FindClassByTypeHash(int32 type_hash);
 

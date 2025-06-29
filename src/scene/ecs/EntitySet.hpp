@@ -144,7 +144,7 @@ public:
     friend struct EntitySetIterator<Components...>;
     friend struct EntitySetView<Components...>;
 
-    using Element = Tuple<Entity*, TypeID, FixedArray<ComponentID, sizeof...(Components)>>;
+    using Element = Tuple<Entity*, TypeId, FixedArray<ComponentID, sizeof...(Components)>>;
 
     using Iterator = EntitySetIterator<Components...>;
     using ConstIterator = EntitySetIterator<const Components...>;
@@ -228,7 +228,7 @@ public:
 
             EntityData& entity_data = m_entities.GetEntityData(entity);
 
-            m_elements.EmplaceBack(entity, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentID<Components>()... });
+            m_elements.EmplaceBack(entity, entity_data.type_id, FixedArray<ComponentID, sizeof...(Components)> { entity_data.template GetComponentId<Components>()... });
         }
         else
         {
@@ -332,7 +332,7 @@ struct EntitySetView
 
         if constexpr (sizeof...(Components) != 0)
         {
-            static const FixedArray<TypeID, sizeof...(Components)> component_type_ids = { TypeID::ForType<Components>()... };
+            static const FixedArray<TypeId, sizeof...(Components)> component_type_ids = { TypeId::ForType<Components>()... };
             static const FixedArray<ANSIString, sizeof...(Components)> component_names = { TypeNameWithoutNamespace<Components>().Data()... };
 
             for (SizeType i = 0; i < m_component_data_race_detectors.Size(); i++)
@@ -342,7 +342,7 @@ struct EntitySetView
                         return info.type_id == type_id;
                     });
 
-                AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with TypeID %u (%s)", component_type_ids[i].Value(), component_names[i].Data());
+                AssertThrowMsg(component_infos_it != component_infos.End(), "Component info not found for component with TypeId %u (%s)", component_type_ids[i].Value(), component_names[i].Data());
 
                 EnumFlags<DataAccessFlags> access_flags = DataAccessFlags::ACCESS_NONE;
 

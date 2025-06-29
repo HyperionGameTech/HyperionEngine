@@ -6,7 +6,7 @@
 #include <core/Defines.hpp>
 
 #include <core/utilities/ValueStorage.hpp>
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 
 #include <core/memory/Memory.hpp>
 #include <core/memory/AnyRef.hpp>
@@ -27,8 +27,8 @@ namespace hyperion {
 
 class HypClass;
 
-extern HYP_API const HypClass* GetClass(TypeID type_id);
-extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeID type_id);
+extern HYP_API const HypClass* GetClass(TypeId type_id);
+extern HYP_API bool IsInstanceOfHypClass(const HypClass* hyp_class, const void* ptr, TypeId type_id);
 
 namespace memory {
 
@@ -139,7 +139,7 @@ struct RefCountData
 {
     using Count = CountType;
 
-    TypeID type_id;
+    TypeId type_id;
     Count strong_count;
     Count weak_count;
     void (*dtor)(void*);
@@ -151,7 +151,7 @@ struct RefCountData
         : strong_count(0),
           weak_count(0)
     {
-        type_id = TypeID::Void();
+        type_id = TypeId::Void();
         dtor = nullptr;
         inc_ref_count = nullptr;
         dec_ref_count = nullptr;
@@ -174,7 +174,7 @@ struct RefCountData
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return type_id != TypeID::Void();
+        return type_id != TypeId::Void();
     }
 
     HYP_FORCE_INLINE uint32 UseCount_Strong() const
@@ -208,7 +208,7 @@ struct RefCountData
 
         static_assert(!std::is_void_v<T>, "Cannot initialize RefCountedPtr data with void pointer");
 
-        type_id = TypeID::ForType<Normalized>();
+        type_id = TypeId::ForType<Normalized>();
         dtor = &Memory::DestructAndFree<Normalized>;
         inc_ref_count = &IncRefCount_Impl<T, RefCountData>;
         dec_ref_count = &DecRefCount_Impl<T, RefCountData>;
@@ -222,7 +222,7 @@ struct RefCountData
         inc_ref_count = nullptr;
         dec_ref_count = nullptr;
 
-        type_id = TypeID::Void();
+        type_id = TypeId::Void();
 
         current_dtor(ptr);
     }
@@ -355,9 +355,9 @@ public:
         return m_ptr;
     }
 
-    HYP_FORCE_INLINE TypeID GetTypeID() const
+    HYP_FORCE_INLINE TypeId GetTypeId() const
     {
-        return m_ref ? m_ref->type_id : TypeID::Void();
+        return m_ref ? m_ref->type_id : TypeId::Void();
     }
 
     /*! \brief Returns true if no value has been assigned to the reference counted pointer. */
@@ -435,7 +435,7 @@ public:
 
     HYP_NODISCARD HYP_FORCE_INLINE AnyRef ToRef() const
     {
-        return AnyRef(GetTypeID(), m_ptr);
+        return AnyRef(GetTypeId(), m_ptr);
     }
 
     /*! \brief Used by objects inheriting from this class or marshaling data. Not ideal to use externally */
@@ -949,11 +949,11 @@ public:
                 std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>> || std::is_base_of_v<T, Ty>,
                 "Is<T> check is invalid; will never be true");
 
-            constexpr TypeID type_id = TypeID::ForType<Ty>();
+            constexpr TypeId type_id = TypeId::ForType<Ty>();
 
-            return Base::GetTypeID() == type_id
+            return Base::GetTypeId() == type_id
                 || std::is_convertible_v<std::add_pointer_t<T>, std::add_pointer_t<Ty>>
-                || IsInstanceOfHypClass(GetClass(type_id), Base::m_ptr, Base::GetTypeID())
+                || IsInstanceOfHypClass(GetClass(type_id), Base::m_ptr, Base::GetTypeId())
                 || (std::is_polymorphic_v<Ty> && dynamic_cast<Ty*>(static_cast<T*>(Base::m_ptr)) != nullptr);
         }
     }
@@ -1194,11 +1194,11 @@ public:
     template <class Ty>
     HYP_FORCE_INLINE bool Is() const
     {
-        constexpr TypeID type_id = TypeID::ForType<Ty>();
+        constexpr TypeId type_id = TypeId::ForType<Ty>();
 
         return std::is_same_v<Ty, void>
-            || Base::GetTypeID() == type_id
-            || IsInstanceOfHypClass(GetClass(type_id), Base::m_ptr, Base::GetTypeID());
+            || Base::GetTypeId() == type_id
+            || IsInstanceOfHypClass(GetClass(type_id), Base::m_ptr, Base::GetTypeId());
     }
 
     /*! \brief Releases the reference to the currently held value, if any, and returns it.
@@ -1704,9 +1704,9 @@ public:
         }
     }
 
-    HYP_FORCE_INLINE constexpr TypeID GetTypeID() const
+    HYP_FORCE_INLINE constexpr TypeId GetTypeId() const
     {
-        return TypeID::ForType<T>();
+        return TypeId::ForType<T>();
     }
 
     HYP_FORCE_INLINE bool Empty() const

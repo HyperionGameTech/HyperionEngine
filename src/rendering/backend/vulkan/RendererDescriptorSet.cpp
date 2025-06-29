@@ -8,7 +8,7 @@
 #include <rendering/backend/vulkan/RendererComputePipeline.hpp>
 #include <rendering/backend/vulkan/rt/RendererRaytracingPipeline.hpp>
 #include <rendering/backend/vulkan/rt/RendererAccelerationStructure.hpp>
-#include <rendering/backend/vulkan/VulkanRenderingAPI.hpp>
+#include <rendering/backend/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/backend/RendererDevice.hpp>
 #include <rendering/backend/RendererHelpers.hpp>
@@ -28,11 +28,11 @@
 
 namespace hyperion {
 
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 
-static inline VulkanRenderingAPI* GetRenderingAPI()
+static inline VulkanRenderBackend* GetRenderBackend()
 {
-    return static_cast<VulkanRenderingAPI*>(g_rendering_api);
+    return static_cast<VulkanRenderBackend*>(g_render_backend);
 }
 
 #pragma region VulkanDescriptorSet
@@ -53,7 +53,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
         case DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC: // fallthrough
         case DescriptorSetElementType::SSBO:                   // fallthrough
         case DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC: // fallthrough
-            PrefillElements<GPUBufferRef>(name, element.count);
+            PrefillElements<GpuBufferRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::IMAGE:         // fallthrough
@@ -146,7 +146,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
                 const uint32 index = values_it.first;
                 const DescriptorSetElement::ValueType& value = values_it.second;
 
-                const GPUBufferRef& ref = value.Get<GPUBufferRef>();
+                const GpuBufferRef& ref = value.Get<GpuBufferRef>();
                 AssertThrowMsg(ref.IsValid(), "Invalid buffer reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
                 AssertThrowMsg(ref->IsCreated(), "Buffer not initialized for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 
@@ -156,7 +156,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* out_is_dirty)
                 descriptor_element_info.descriptor_type = helpers::ToVkDescriptorType(layout_element->type);
 
                 descriptor_element_info.buffer_info = VkDescriptorBufferInfo {
-                    .buffer = static_cast<VulkanGPUBuffer*>(ref.Get())->GetVulkanHandle(),
+                    .buffer = static_cast<VulkanGpuBuffer*>(ref.Get())->GetVulkanHandle(),
                     .offset = 0,
                     .range = layout_has_size ? layout_element->size : ref->Size()
                 };
@@ -326,7 +326,7 @@ void VulkanDescriptorSet::Update(bool force)
     }
 
     vkUpdateDescriptorSets(
-        GetRenderingAPI()->GetDevice()->GetDevice(),
+        GetRenderBackend()->GetDevice()->GetDevice(),
         uint32(vk_write_descriptor_sets.Size()),
         vk_write_descriptor_sets.Data(),
         0,
@@ -351,7 +351,7 @@ RendererResult VulkanDescriptorSet::Create()
         return HYP_MAKE_ERROR(RendererError, "Descriptor set layout is not valid: {}", 0, m_layout.GetName().LookupString());
     }
 
-    HYPERION_BUBBLE_ERRORS(GetRenderingAPI()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
+    HYPERION_BUBBLE_ERRORS(GetRenderBackend()->GetOrCreateVkDescriptorSetLayout(m_layout, m_vk_layout_wrapper));
 
     if (m_layout.IsTemplate())
     {
@@ -360,7 +360,7 @@ RendererResult VulkanDescriptorSet::Create()
 
     RendererResult result;
 
-    HYPERION_PASS_ERRORS(GetRenderingAPI()->CreateDescriptorSet(m_vk_layout_wrapper, m_handle), result);
+    HYPERION_PASS_ERRORS(GetRenderBackend()->CreateDescriptorSet(m_vk_layout_wrapper, m_handle), result);
 
     if (!result)
     {
@@ -387,7 +387,7 @@ RendererResult VulkanDescriptorSet::Destroy()
 
     if (m_handle != VK_NULL_HANDLE)
     {
-        GetRenderingAPI()->DestroyDescriptorSet(m_handle);
+        GetRenderBackend()->DestroyDescriptorSet(m_handle);
         m_handle = VK_NULL_HANDLE;
     }
 

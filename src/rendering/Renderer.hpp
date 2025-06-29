@@ -17,7 +17,7 @@
 #include <rendering/CullData.hpp>
 
 #include <rendering/backend/RenderObject.hpp>
-#include <rendering/rhi/RHICommandList.hpp>
+#include <rendering/rhi/CmdList.hpp>
 
 namespace hyperion {
 
@@ -164,13 +164,13 @@ extern const RenderSetup& NullRenderSetup();
 
 struct PassDataExt
 {
-    TypeID type_id;
+    TypeId type_id;
 
     virtual ~PassDataExt() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        constexpr TypeID invalid_type_id = TypeID::Void();
+        constexpr TypeId invalid_type_id = TypeId::Void();
 
         return type_id != invalid_type_id;
     }
@@ -183,7 +183,7 @@ struct PassDataExt
     template <class OtherPassDataExt>
     HYP_FORCE_INLINE OtherPassDataExt* AsType()
     {
-        constexpr TypeID other_type_id = TypeID::ForType<OtherPassDataExt>();
+        constexpr TypeId other_type_id = TypeId::ForType<OtherPassDataExt>();
 
         if (type_id != other_type_id)
         {
@@ -196,7 +196,7 @@ struct PassDataExt
     template <class OtherPassDataExt>
     HYP_FORCE_INLINE const OtherPassDataExt* AsType() const
     {
-        constexpr TypeID other_type_id = TypeID::ForType<OtherPassDataExt>();
+        constexpr TypeId other_type_id = TypeId::ForType<OtherPassDataExt>();
 
         if (type_id != other_type_id)
         {
@@ -224,7 +224,7 @@ struct HYP_API PassData
 
     CullData cull_data;
 
-    // cached by ID<RenderGroup>
+    // cached by Id<RenderGroup>
     SparsePagedArray<RenderGroupCacheEntry, 32> render_group_cache;
     // iterator for removing cache data over frames
     typename SparsePagedArray<RenderGroupCacheEntry, 32>::Iterator render_group_cache_iterator;

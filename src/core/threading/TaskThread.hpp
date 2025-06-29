@@ -15,12 +15,12 @@
 namespace hyperion {
 namespace threading {
 
-class ThreadID;
+class ThreadId;
 
 class HYP_API TaskThread : public Thread<Scheduler>
 {
 public:
-    TaskThread(const ThreadID& thread_id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    TaskThread(const ThreadId& thread_id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
     TaskThread(Name name, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
     virtual ~TaskThread() override = default;

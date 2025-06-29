@@ -47,11 +47,11 @@ namespace hyperion {
 HYP_DECLARE_LOG_CHANNEL(UI);
 
 UIStage::UIStage()
-    : UIStage(ThreadID::Current())
+    : UIStage(ThreadId::Current())
 {
 }
 
-UIStage::UIStage(ThreadID owner_thread_id)
+UIStage::UIStage(ThreadId owner_thread_id)
     : UIObject(owner_thread_id),
       m_surface_size { 1000, 1000 }
 {
@@ -71,13 +71,13 @@ UIStage::~UIStage()
 {
     if (m_scene.IsValid())
     {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadID()))
+        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
         {
             m_scene->RemoveFromWorld();
         }
         else
         {
-            Threads::GetThread(m_scene->GetOwnerThreadID())->GetScheduler().Enqueue([scene = m_scene]()
+            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
                 {
                     scene->RemoveFromWorld();
                 },
@@ -130,7 +130,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
 
     if (!new_scene.IsValid())
     {
-        const ThreadID owner_thread_id = m_scene.IsValid() ? m_scene->GetOwnerThreadID() : ThreadID::Current();
+        const ThreadId owner_thread_id = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
 
         new_scene = CreateObject<Scene>(
             nullptr,

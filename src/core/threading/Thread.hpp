@@ -3,7 +3,7 @@
 #ifndef HYPERION_THREAD_HPP
 #define HYPERION_THREAD_HPP
 
-#include <core/threading/ThreadID.hpp>
+#include <core/threading/ThreadId.hpp>
 
 #include <core/threading/AtomicVar.hpp>
 
@@ -39,8 +39,8 @@ class HYP_API ThreadBase
 public:
     virtual ~ThreadBase();
 
-    /*! \brief Get the ID of this thread. This ID is unique to this thread and is used to identify it. */
-    HYP_FORCE_INLINE const ThreadID& GetID() const
+    /*! \brief Get the Id of this thread. This Id is unique to this thread and is used to identify it. */
+    HYP_FORCE_INLINE const ThreadId& GetID() const
     {
         return m_id;
     }
@@ -61,9 +61,9 @@ public:
     virtual Scheduler& GetScheduler() = 0;
 
 protected:
-    ThreadBase(const ThreadID& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
 
-    const ThreadID m_id;
+    const ThreadId m_id;
     ThreadPriorityValue m_priority;
     ThreadLocalStorage* m_tls;
 };
@@ -75,7 +75,7 @@ template <class Scheduler, class... Args>
 class Thread : public ThreadBase
 {
 public:
-    Thread(const ThreadID& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
+    Thread(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
     Thread(const Thread& other) = delete;
     Thread& operator=(const Thread& other) = delete;
     Thread(Thread&& other) noexcept = delete;
@@ -121,7 +121,7 @@ private:
 };
 
 template <class Scheduler, class... Args>
-Thread<Scheduler, Args...>::Thread(const ThreadID& id, ThreadPriorityValue priority)
+Thread<Scheduler, Args...>::Thread(const ThreadId& id, ThreadPriorityValue priority)
     : ThreadBase(id, priority),
       m_is_running(false),
       m_stop_requested(false),

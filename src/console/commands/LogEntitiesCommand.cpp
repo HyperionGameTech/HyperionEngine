@@ -63,7 +63,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
             }
 
             entity_manager_json["scene"] = entity_manager->GetScene()->GetName().LookupString();
-            entity_manager_json["owner_thread_id"] = entity_manager->GetOwnerThreadID().GetName().LookupString();
+            entity_manager_json["owner_thread_id"] = entity_manager->GetOwnerThreadId().GetName().LookupString();
 
             json::JSONArray entity_manager_entities_json;
 
@@ -105,7 +105,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
 
                         for (const auto& it : *entity_manager->GetAllComponents(entity))
                         {
-                            const TypeID component_type_id = it.first;
+                            const TypeId component_type_id = it.first;
                             const ComponentID component_id = it.second;
 
                             const IComponentInterface* component_interface = ComponentInterfaceRegistry::GetInstance().GetComponentInterface(component_type_id);
@@ -119,7 +119,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                             component_json["type"] = component_interface->GetTypeName();
                             component_json["id"] = component_id;
 
-                            if (component_type_id == TypeID::ForType<NodeLinkComponent>())
+                            if (component_type_id == TypeId::ForType<NodeLinkComponent>())
                             {
                                 const NodeLinkComponent* node_link_component = entity_manager->TryGetComponent<NodeLinkComponent>(entity);
                                 if (node_link_component)
@@ -142,7 +142,7 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                                     }
                                 }
                             }
-                            else if (component_type_id == TypeID::ForType<UIComponent>())
+                            else if (component_type_id == TypeId::ForType<UIComponent>())
                             {
                                 const UIComponent* ui_component = entity_manager->TryGetComponent<UIComponent>(entity);
                                 if (ui_component)
@@ -170,13 +170,13 @@ Result LogEntitiesCommand::Execute_Impl(const CommandLineArguments& args)
                     });
             };
 
-            if (Threads::CurrentThreadID() == entity_manager->GetOwnerThreadID())
+            if (Threads::CurrentThreadId() == entity_manager->GetOwnerThreadId())
             {
                 impl();
             }
             else
             {
-                Task task = Threads::GetThread(entity_manager->GetOwnerThreadID())->GetScheduler().Enqueue(std::move(impl));
+                Task task = Threads::GetThread(entity_manager->GetOwnerThreadId())->GetScheduler().Enqueue(std::move(impl));
                 task.Await();
             }
 

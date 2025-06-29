@@ -9,8 +9,8 @@
 
 namespace hyperion {
 
-HYP_API extern SizeType GetNumDescendants(TypeID type_id);
-HYP_API extern int GetSubclassIndex(TypeID base_type_id, TypeID subclass_type_id);
+HYP_API extern SizeType GetNumDescendants(TypeId type_id);
+HYP_API extern int GetSubclassIndex(TypeId base_type_id, TypeId subclass_type_id);
 
 class RenderGlobalState;
 
@@ -99,7 +99,7 @@ public:
     virtual bool Bind(HypObjectBase* object) = 0;
     virtual void Unbind(HypObjectBase* object) = 0;
     virtual void UpdateBoundResources() = 0;
-    virtual const Bitset& GetBoundIndices(TypeID type_id) const = 0;
+    virtual const Bitset& GetBoundIndices(TypeId type_id) const = 0;
 
 protected:
     ResourceBinderBase(ResourceBindingAllocatorBase* binding_allocator)
@@ -119,7 +119,7 @@ class ResourceBinder : public ResourceBinderBase
 {
     struct Impl final
     {
-        Impl(TypeID type_id)
+        Impl(TypeId type_id)
             : type_id(type_id)
         {
         }
@@ -129,7 +129,7 @@ class ResourceBinder : public ResourceBinderBase
             // Unbind all objects that were bound in the last frame
             for (Bitset::BitIndex bit_index : last_frame_ids)
             {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
+                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 AssertDebug(it != bindings.End());
@@ -152,7 +152,7 @@ class ResourceBinder : public ResourceBinderBase
 
         bool Bind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
-            IDBase id = object->GetID();
+            IdBase id = object->GetID();
 
             if (!id.IsValid())
             {
@@ -174,7 +174,7 @@ class ResourceBinder : public ResourceBinderBase
 
         void Unbind(ResourceBindingAllocatorBase* allocator, HypObjectBase* object)
         {
-            IDBase id = object->GetID();
+            IdBase id = object->GetID();
 
             if (!id.IsValid())
             {
@@ -194,7 +194,7 @@ class ResourceBinder : public ResourceBinderBase
 
             for (Bitset::BitIndex bit_index : removed)
             {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
+                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 AssertDebug(it != bindings.End());
@@ -216,7 +216,7 @@ class ResourceBinder : public ResourceBinderBase
 
             for (Bitset::BitIndex bit_index : newly_added)
             {
-                const ID<T> id = ID<T>(IDBase { type_id, uint32(bit_index + 1) });
+                const Id<T> id = Id<T>(IdBase { type_id, uint32(bit_index + 1) });
 
                 const auto it = bindings.FindAs(id);
                 if (it != bindings.End())
@@ -236,7 +236,7 @@ class ResourceBinder : public ResourceBinderBase
                 }
 
                 auto insert_result = bindings.Insert(WeakHandle<T> { id }, index);
-                AssertDebugMsg(insert_result.second, "Failed to insert binding for object with ID %u - it should not already exist!", id.Value());
+                AssertDebugMsg(insert_result.second, "Failed to insert binding for object with Id %u - it should not already exist!", id.Value());
 
                 if (OnBindingChanged != nullptr)
                 {
@@ -271,7 +271,7 @@ class ResourceBinder : public ResourceBinderBase
             return Bitset(last_frame_ids).Resize(count) & ~Bitset(current_frame_ids).Resize(count);
         }
 
-        TypeID type_id;
+        TypeId type_id;
         // these bitsets are used to track which objects were bound in the last frame with bitwise operations
         Bitset last_frame_ids;
         Bitset current_frame_ids;
@@ -281,11 +281,11 @@ class ResourceBinder : public ResourceBinderBase
 public:
     ResourceBinder(ResourceBindingAllocatorBase* binding_allocator)
         : ResourceBinderBase(binding_allocator),
-          m_impl(TypeID::ForType<T>())
+          m_impl(TypeId::ForType<T>())
     {
         AssertDebug(m_binding_allocator != nullptr);
 
-        const SizeType num_descendants = GetNumDescendants(TypeID::ForType<T>());
+        const SizeType num_descendants = GetNumDescendants(TypeId::ForType<T>());
 
         // Create storage for subclass implementations
         // subclasses use a bitset (indexing by the subclass' StaticIndex) to determine which implementations are initialized
@@ -320,8 +320,8 @@ public:
             return false;
         }
 
-        constexpr TypeID base_type_id = TypeID::ForType<T>();
-        const TypeID object_type_id = object->GetTypeID();
+        constexpr TypeId base_type_id = TypeId::ForType<T>();
+        const TypeId object_type_id = object->GetTypeId();
 
         if (object_type_id == base_type_id)
         {
@@ -331,7 +331,7 @@ public:
         {
             const int subclass_index = GetSubclassIndex(base_type_id, object_type_id);
             AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
-                "ResourceBinder<%s>: Attempted to bind object with TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
+                "ResourceBinder<%s>: Attempted to bind object with TypeId %u which is not a subclass of the expected TypeId (%u) or has no static index",
                 TypeNameWithoutNamespace<T>().Data(), object_type_id.Value(), base_type_id.Value());
 
             if (!m_subclass_impls_initialized.Test(subclass_index))
@@ -350,18 +350,18 @@ public:
     {
         AssertDebug(object != nullptr);
 
-        constexpr TypeID type_id = TypeID::ForType<T>();
+        constexpr TypeId type_id = TypeId::ForType<T>();
 
-        if (object->GetTypeID() == type_id)
+        if (object->GetTypeId() == type_id)
         {
             m_impl.Unbind(m_binding_allocator, object);
         }
         else
         {
-            const int subclass_index = GetSubclassIndex(type_id, object->GetTypeID());
+            const int subclass_index = GetSubclassIndex(type_id, object->GetTypeId());
             AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
-                "ResourceBinder<%s>: Attempted to unbind object with TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), object->GetTypeID().Value(), type_id.Value());
+                "ResourceBinder<%s>: Attempted to unbind object with TypeId %u which is not a subclass of the expected TypeId (%u) or has no static index",
+                TypeNameWithoutNamespace<T>().Data(), object->GetTypeId().Value(), type_id.Value());
 
             if (!m_subclass_impls_initialized.Test(subclass_index))
             {
@@ -385,25 +385,25 @@ public:
         }
     }
 
-    virtual const Bitset& GetBoundIndices(TypeID type_id) const override
+    virtual const Bitset& GetBoundIndices(TypeId type_id) const override
     {
         static const Bitset empty_bitset;
 
-        if (type_id == TypeID::Void())
+        if (type_id == TypeId::Void())
         {
             return empty_bitset;
         }
 
-        if (type_id == TypeID::ForType<T>())
+        if (type_id == TypeId::ForType<T>())
         {
             return m_impl.current_frame_ids;
         }
         else
         {
-            const int subclass_index = GetSubclassIndex(TypeID::ForType<T>(), type_id);
+            const int subclass_index = GetSubclassIndex(TypeId::ForType<T>(), type_id);
             AssertDebugMsg(subclass_index >= 0 && subclass_index < int(m_subclass_impls.Size()),
-                "ResourceBinder<%s>: Attempted to get bound indices for TypeID %u which is not a subclass of the expected TypeID (%u) or has no static index",
-                TypeNameWithoutNamespace<T>().Data(), type_id.Value(), TypeID::ForType<T>().Value());
+                "ResourceBinder<%s>: Attempted to get bound indices for TypeId %u which is not a subclass of the expected TypeId (%u) or has no static index",
+                TypeNameWithoutNamespace<T>().Data(), type_id.Value(), TypeId::ForType<T>().Value());
 
             if (!m_subclass_impls_initialized.Test(subclass_index))
             {

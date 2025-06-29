@@ -15,14 +15,14 @@ class SafeDeleter;
 class ShaderManager;
 class MaterialCache;
 class RenderGlobalState;
-class IRenderingAPI;
+class IRenderBackend;
 
 extern Handle<Engine> g_engine;
 extern Handle<AssetManager> g_asset_manager;
 extern ShaderManager* g_shader_manager;
 extern MaterialCache* g_material_system;
 extern SafeDeleter* g_safe_deleter;
-extern IRenderingAPI* g_rendering_api;
+extern IRenderBackend* g_render_backend;
 extern RenderGlobalState* g_render_global_state;
 
 } // namespace hyperion

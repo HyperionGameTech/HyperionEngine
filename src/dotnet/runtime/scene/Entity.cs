@@ -6,12 +6,12 @@ namespace Hyperion
     [HypClassBinding(Name="Entity")]
     public class Entity : HypObject
     {
-        public IDBase ID
+        public IdBase Id
         {
             get
             {
                 ulong idValue = Entity_GetID(NativeAddress);
-                return new IDBase(new TypeID((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFF));
+                return new IdBase(new TypeId((uint)(idValue >> 32)), (uint)(idValue & 0xFFFFFFFF));
             }
         }
 

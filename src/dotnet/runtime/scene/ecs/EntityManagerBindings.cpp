@@ -28,7 +28,7 @@ extern "C"
         AssertThrow(manager != nullptr);
         AssertThrow(entity != nullptr);
 
-        return manager->HasComponent(TypeID { component_type_id }, entity);
+        return manager->HasComponent(TypeId { component_type_id }, entity);
     }
 
     HYP_EXPORT void* EntityManager_GetComponent(EntityManager* manager, uint32 component_type_id, Entity* entity)
@@ -36,7 +36,7 @@ extern "C"
         AssertThrow(manager != nullptr);
         AssertThrow(entity != nullptr);
 
-        return manager->TryGetComponent(TypeID { component_type_id }, entity).GetPointer();
+        return manager->TryGetComponent(TypeId { component_type_id }, entity).GetPointer();
     }
 
     HYP_EXPORT void EntityManager_AddComponent(EntityManager* manager, Entity* entity, uint32 component_type_id, HypData* component_hyp_data)
@@ -45,7 +45,7 @@ extern "C"
         AssertThrow(entity != nullptr);
         AssertThrow(component_hyp_data != nullptr);
 
-        AssertThrow(manager->IsValidComponentType(TypeID { component_type_id }));
+        AssertThrow(manager->IsValidComponentType(TypeId { component_type_id }));
 
         Handle<Entity> entity_handle = entity->HandleFromThis();
         AssertThrow(entity_handle.IsValid());

@@ -286,7 +286,7 @@ SocketResultType SocketServer::Send(Name client_name, const ByteBuffer& data)
 #pragma region SocketServerThread
 
 SocketServerThread::SocketServerThread(const String& socket_name)
-    : Thread(ThreadID(CreateNameFromDynamicString(ANSIString("SocketServerThread_") + socket_name.Data())))
+    : Thread(ThreadId(CreateNameFromDynamicString(ANSIString("SocketServerThread_") + socket_name.Data())))
 {
 }
 

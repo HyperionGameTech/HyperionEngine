@@ -3,7 +3,7 @@
 #ifndef HYPERION_ECS_COMPONENT_INTERFACE_HPP
 #define HYPERION_ECS_COMPONENT_INTERFACE_HPP
 
-#include <core/utilities/TypeID.hpp>
+#include <core/utilities/TypeId.hpp>
 #include <core/utilities/Optional.hpp>
 #include <core/utilities/Variant.hpp>
 #include <core/utilities/EnumFlags.hpp>
@@ -40,7 +40,7 @@ struct EntityTagComponent;
 
 class HypClass;
 
-extern HYP_API const HypClass* GetClass(TypeID);
+extern HYP_API const HypClass* GetClass(TypeId);
 
 extern HYP_API bool ComponentInterface_CreateInstance(const HypClass* hyp_class, HypData& out_hyp_data);
 
@@ -57,7 +57,7 @@ class IComponentInterface
 public:
     virtual ~IComponentInterface() = default;
 
-    virtual TypeID GetTypeID() const = 0;
+    virtual TypeId GetTypeId() const = 0;
     virtual ANSIStringView GetTypeName() const = 0;
     virtual const HypClass* GetClass() const = 0;
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const = 0;
@@ -84,7 +84,7 @@ public:
         : m_component_factory(std::move(component_factory)),
           m_component_container_factory(component_container_factory)
     {
-        AssertThrowMsg(::hyperion::GetClass(TypeID::ForType<Component>()) != nullptr, "No HypClass registered for Component of type %s", TypeName<Component>().Data());
+        AssertThrowMsg(::hyperion::GetClass(TypeId::ForType<Component>()) != nullptr, "No HypClass registered for Component of type %s", TypeName<Component>().Data());
     }
 
     ComponentInterface(const ComponentInterface&) = delete;
@@ -114,9 +114,9 @@ public:
 
     virtual ~ComponentInterface() override = default;
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
-        return TypeID::ForType<Component>();
+        return TypeId::ForType<Component>();
     }
 
     virtual ANSIStringView GetTypeName() const override
@@ -126,7 +126,7 @@ public:
 
     virtual const HypClass* GetClass() const override
     {
-        return ::hyperion::GetClass(TypeID::ForType<Component>());
+        return ::hyperion::GetClass(TypeId::ForType<Component>());
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -202,9 +202,9 @@ public:
 
     virtual ~EntityTagComponentInterface() override = default;
 
-    virtual TypeID GetTypeID() const override
+    virtual TypeId GetTypeId() const override
     {
-        return TypeID::ForType<EntityTagComponent<Tag>>();
+        return TypeId::ForType<EntityTagComponent<Tag>>();
     }
 
     virtual ANSIStringView GetTypeName() const override
@@ -214,7 +214,7 @@ public:
 
     virtual const HypClass* GetClass() const override
     {
-        return ::hyperion::GetClass(TypeID::ForType<EntityTagComponent<Tag>>());
+        return ::hyperion::GetClass(TypeId::ForType<EntityTagComponent<Tag>>());
     }
 
     virtual ComponentContainerFactoryBase* GetComponentContainerFactory() const override
@@ -259,9 +259,9 @@ public:
     void Initialize();
     void Shutdown();
 
-    void Register(TypeID type_id, UniquePtr<IComponentInterface> (*fptr)());
+    void Register(TypeId type_id, UniquePtr<IComponentInterface> (*fptr)());
 
-    const IComponentInterface* GetComponentInterface(TypeID type_id) const
+    const IComponentInterface* GetComponentInterface(TypeId type_id) const
     {
         AssertThrowMsg(m_is_initialized, "Component interface registry not initialized!");
 
@@ -319,7 +319,7 @@ struct ComponentInterfaceRegistration
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
-            TypeID::ForType<ComponentType>(),
+            TypeId::ForType<ComponentType>(),
             []() -> UniquePtr<IComponentInterface>
             {
                 return MakeUnique<ComponentInterface<ComponentType, ShouldSerialize>>(
@@ -335,7 +335,7 @@ struct ComponentInterfaceRegistration<EntityTagComponent<Tag>, ShouldSerialize>
     ComponentInterfaceRegistration()
     {
         ComponentInterfaceRegistry::GetInstance().Register(
-            TypeID::ForType<EntityTagComponent<Tag>>(),
+            TypeId::ForType<EntityTagComponent<Tag>>(),
             []() -> UniquePtr<IComponentInterface>
             {
                 return MakeUnique<EntityTagComponentInterface<Tag, ShouldSerialize>>(

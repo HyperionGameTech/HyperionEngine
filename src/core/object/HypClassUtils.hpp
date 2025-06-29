@@ -79,7 +79,7 @@ namespace hyperion {
 struct HYP_API HypClassRegistrationBase
 {
 protected:
-    HypClassRegistrationBase(TypeID type_id, HypClass* hyp_class);
+    HypClassRegistrationBase(TypeId type_id, HypClass* hyp_class);
 };
 
 template <class T>
@@ -90,7 +90,7 @@ struct HypClassRegistration final : public HypClassRegistrationBase
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
     HypClassRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypClassInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeId::ForType<T>(), &HypClassInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
@@ -103,7 +103,7 @@ struct HypStructRegistration final : public HypClassRegistrationBase
         | (std::is_abstract_v<T> ? HypClassFlags::ABSTRACT : HypClassFlags::NONE);
 
     HypStructRegistration(Name name, int static_index, uint32 num_descendants, Name parent_name, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypStructInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeId::ForType<T>(), &HypStructInstance<T>::GetInstance(name, static_index, num_descendants, parent_name, attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
@@ -114,7 +114,7 @@ struct HypEnumRegistration final : public HypClassRegistrationBase
     static constexpr EnumFlags<HypClassFlags> flags = HypClassFlags::ENUM_TYPE;
 
     HypEnumRegistration(Name name, int static_index, uint32 num_descendants, Span<const HypClassAttribute> attributes, Span<HypMember> members)
-        : HypClassRegistrationBase(TypeID::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, static_index, num_descendants, Name::Invalid(), attributes, flags, Span<HypMember>(members.Begin(), members.End())))
+        : HypClassRegistrationBase(TypeId::ForType<T>(), &HypEnumInstance<T>::GetInstance(name, static_index, num_descendants, Name::Invalid(), attributes, flags, Span<HypMember>(members.Begin(), members.End())))
     {
     }
 };
