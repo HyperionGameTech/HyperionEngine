@@ -119,13 +119,13 @@ struct EnvProbeShaderData
     Vec4f aabb_min;
     Vec4f world_position;
 
-    uint32 texture_index;
-    uint32 flags;
-    float camera_near;
-    float camera_far;
+    uint32 texture_index = ~0u;
+    uint32 flags = 0;
+    float camera_near = 0.01f;
+    float camera_far = 100.0f;
 
     Vec2u dimensions;
-    uint64 visibility_bits;
+    uint64 visibility_bits = 0;
     Vec4i position_in_grid;
 
     EnvProbeSphericalHarmonics sh;

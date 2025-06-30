@@ -81,6 +81,8 @@ struct ResourceBindings;
 
 enum GlobalRenderBuffer : uint8
 {
+    GRB_INVALID = uint8(-1),
+
     GRB_WORLDS = 0,
     GRB_CAMERAS,
     GRB_LIGHTS,

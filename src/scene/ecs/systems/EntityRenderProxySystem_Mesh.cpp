@@ -85,7 +85,10 @@ struct RENDER_COMMAND(UpdateEntityDrawData)
 
             // @TODO: Refactor this to instead acquire indices from `objects` to use, rather than using the entity Id index.
             // This will allow us to remove empty blocks when unused.
-            g_render_global_state->gpu_buffers[GRB_ENTITIES]->Set(proxy.entity.Id().ToIndex(), entity_shader_data);
+            g_render_global_state->gpu_buffers[GRB_ENTITIES]->WriteBufferData(
+                proxy.entity.Id().ToIndex(),
+                &entity_shader_data,
+                sizeof(EntityShaderData));
         }
 
         HYPERION_RETURN_OK;

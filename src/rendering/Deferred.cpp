@@ -713,12 +713,8 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderable_at
     // Default pass type (non parallax corrected)
 
     static const FixedArray<Pair<ApplyReflectionProbeMode, ShaderProperties>, ApplyReflectionProbeMode::MAX> apply_reflection_probe_passes = {
-        Pair<ApplyReflectionProbeMode, ShaderProperties> {
-            ApplyReflectionProbeMode::DEFAULT,
-            ShaderProperties {} },
-        Pair<ApplyReflectionProbeMode, ShaderProperties> {
-            ApplyReflectionProbeMode::PARALLAX_CORRECTED,
-            ShaderProperties { { "ENV_PROBE_PARALLAX_CORRECTED" } } }
+        Pair<ApplyReflectionProbeMode, ShaderProperties> { ApplyReflectionProbeMode::DEFAULT, ShaderProperties {} },
+        Pair<ApplyReflectionProbeMode, ShaderProperties> { ApplyReflectionProbeMode::PARALLAX_CORRECTED, ShaderProperties { { "ENV_PROBE_PARALLAX_CORRECTED" } } }
     };
 
     for (const auto& it : apply_reflection_probe_passes)
@@ -894,8 +890,10 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 break;
             }
 
-            RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(env_probe->Id()));
-            AssertThrow(env_probe_proxy != nullptr);
+            // RenderProxyEnvProbe* env_probe_proxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(env_probe->Id()));
+            // AssertThrow(env_probe_proxy != nullptr);
+            // AssertDebug(env_probe_proxy->buffer_data.texture_index != ~0u, "EnvProbe texture index not set: not bound for proxy %p at frame idx %u!", (void*)env_probe_proxy,
+            //     RenderApi_GetFrameIndex_RenderThread());
 
             frame->GetCommandList().Add<BindDescriptorSet>(
                 graphics_pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame_index),
@@ -903,7 +901,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 ArrayMap<Name, uint32> {
                     { NAME("WorldsBuffer"), ShaderDataOffset<WorldShaderData>(*rs.world) },
                     { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe, 0) } },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(env_probe) } },
                 global_descriptor_set_index);
 
             frame->GetCommandList().Add<BindDescriptorSet>(

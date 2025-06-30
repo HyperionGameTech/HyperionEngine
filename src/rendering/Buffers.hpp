@@ -216,25 +216,28 @@ public:
     // Ensures capacity for the given index.
     virtual void EnsureCapacity(uint32 index) = 0;
 
-    template <class T>
-    HYP_FORCE_INLINE void Set(uint32 index, const T& value)
+    void WriteBufferData(uint32 index, const void* ptr, SizeType size)
     {
-        AssertThrowMsg(TypeId::ForType<T>() == m_struct_type_id, "T does not match the expected type!");
+        AssertDebug(size == m_struct_size, "Size does not match the expected size! Size = %llu, Expected = %llu", size, m_struct_size);
 
-        Set_Internal(index, &value);
+        WriteBufferData_Internal(index, ptr);
     }
 
-    HYP_FORCE_INLINE void Set(uint32 index, const void* ptr, SizeType size)
+    static void WriteBufferData_Static(GpuBufferHolderBase* gpu_buffer_holder, uint32 index, void* buffer_data_ptr, SizeType buffer_size)
     {
-        AssertThrowMsg(size == m_struct_size, "Size does not match the expected size! Size = %llu, Expected = %llu", size, m_struct_size);
+        AssertDebug(gpu_buffer_holder != nullptr);
+        AssertDebug(buffer_size == gpu_buffer_holder->m_struct_size,
+            "Size does not match the expected size! Size = %llu, Expected = %llu",
+            buffer_size,
+            gpu_buffer_holder->m_struct_size);
 
-        Set_Internal(index, ptr);
+        gpu_buffer_holder->WriteBufferData_Internal(index, buffer_data_ptr);
     }
 
 protected:
     void CreateBuffers(GpuBufferType type, SizeType count, SizeType size, SizeType alignment = 0);
 
-    virtual void Set_Internal(uint32 index, const void* ptr) = 0;
+    virtual void WriteBufferData_Internal(uint32 index, const void* ptr) = 0;
 
     TypeId m_struct_type_id;
     SizeType m_struct_size;
@@ -424,15 +427,15 @@ public:
         m_pool.EnsureCapacity(index);
     }
 
-    HYP_FORCE_INLINE void Set(uint32 index, const StructType& value)
+    HYP_FORCE_INLINE void WriteBufferData(uint32 index, const StructType& value)
     {
         m_pool.SetElement(index, value);
     }
 
 private:
-    virtual void Set_Internal(uint32 index, const void* ptr) override
+    virtual void WriteBufferData_Internal(uint32 index, const void* buffer_data_ptr) override
     {
-        Set(index, *static_cast<const StructType*>(ptr));
+        WriteBufferData(index, *reinterpret_cast<const StructType*>(buffer_data_ptr));
     }
 
     GpuBufferHolderMemoryPool<StructType> m_pool;

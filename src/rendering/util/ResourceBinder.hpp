@@ -413,7 +413,7 @@ public:
 
         if (type_id == base_type_id)
         {
-            return m_impl.current_frame_ids;
+            return m_impl.last_frame_ids;
         }
         else
         {
@@ -428,7 +428,7 @@ public:
                 return empty_bitset;
             }
 
-            return m_subclass_impls[subclass_index].Get().current_frame_ids;
+            return m_subclass_impls[subclass_index].Get().last_frame_ids;
         }
     }
 

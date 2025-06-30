@@ -81,7 +81,7 @@ HYP_API void DebugLog_Write(LogType type, const char* callee, uint32_t line, con
 
 HYP_API void DebugLog_FlushOutputStream()
 {
-    fputs("", HYP_DEBUG_OUTPUT_STREAM);
+    fputs("\n\n", HYP_DEBUG_OUTPUT_STREAM);
     fflush(HYP_DEBUG_OUTPUT_STREAM);
 }
 
@@ -97,7 +97,7 @@ HYP_API bool IsDebuggerAttached()
     return ::IsDebuggerPresent();
 #elif defined(HYP_UNIX)
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-    struct kinfo_proc info{};
+    struct kinfo_proc info {};
     size_t size = sizeof(info);
 
     if (sysctl(mib, 4, &info, &size, nullptr, 0) != 0)
