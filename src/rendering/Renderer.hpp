@@ -44,7 +44,7 @@ using threading::TaskBatch;
 HYP_STRUCT(ConfigName = "app", JsonPath = "rendering")
 struct RendererConfig : public ConfigBase<RendererConfig>
 {
-    HYP_FIELD(JsonPath = "raytracing.pathTracing.Enabled")
+    HYP_FIELD(JsonPath = "raytracing.pathTracing.enabled")
     bool pathTracer = false;
 
     HYP_FIELD(JsonPath = "raytracing.reflections.enabled")

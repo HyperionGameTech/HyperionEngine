@@ -1020,8 +1020,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
     Assert(view != nullptr);
 
-    HYP_LOG(Rendering, Debug, "Creating View pass data for View {}", view->Id());
-
     if (view->GetFlags() & ViewFlags::GBUFFER)
     {
         Handle<DeferredPassData> pd = CreateObject<DeferredPassData>();
@@ -1819,10 +1817,12 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     {
         Handle<View> raytracingView = view->GetRaytracingView().Lock();
 
-        if (raytracingView.IsValid())
+        if (raytracingView != nullptr)
         {
             const Handle<RaytracingPassData>& raytracingPassData = ObjCast<RaytracingPassData>(FetchViewPassData(raytracingView));
             Assert(raytracingPassData != nullptr);
+
+            raytracingPassData->parentPass = pd;
 
             RenderSetup newRs = rs;
             newRs.passData = raytracingPassData;
@@ -1838,6 +1838,9 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
                 AssertDebug(pd->ddgi != nullptr);
                 pd->ddgi->Render(frame, newRs);
             }
+
+            // unset parent pass after using it
+            raytracingPassData->parentPass = nullptr;
         }
     }
 

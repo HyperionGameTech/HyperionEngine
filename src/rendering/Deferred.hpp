@@ -340,6 +340,9 @@ class HYP_API RaytracingPassData : public PassData
     HYP_OBJECT_BODY(RaytracingPassData);
 
 public:
+    // Set only while rendering to this pass
+    DeferredPassData* parentPass = nullptr;
+
     FixedArray<TLASRef, g_framesInFlight> raytracingTlases;
 
     virtual ~RaytracingPassData() override;

@@ -185,6 +185,12 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
+    RaytracingPassData* pd = ObjCast<RaytracingPassData>(renderSetup.passData);
+    AssertDebug(pd != nullptr);
+
+    DeferredPassData* parentPass = pd->parentPass;
+    AssertDebug(parentPass != nullptr);
+
     UpdatePipelineState(frame, renderSetup);
     UpdateUniforms(frame, renderSetup);
 
@@ -203,10 +209,8 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
-    /// FIXME: passData is a RaytracingPassData which will not have descriptor sets per-view,
-    /// so this will trigger an assertion failure!
     frame->renderQueue << BindDescriptorSet(
-        renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
+        parentPass->descriptorSets[frame->GetFrameIndex()],
         m_raytracingPipeline,
         ArrayMap<Name, uint32> {},
         viewDescriptorSetIndex);
@@ -235,7 +239,12 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
         }
     }
 
-    m_temporalBlending->Render(frame, renderSetup);
+    // Create a new RenderSetup for temporal blending as it will need to bind View descriptors,
+    // which we don't have on RaytracingPassData
+    RenderSetup newRenderSetup = renderSetup;
+    newRenderSetup.passData = parentPass;
+
+    m_temporalBlending->Render(frame, newRenderSetup);
 }
 
 void RaytracingReflections::CreateImages()
@@ -244,7 +253,7 @@ void RaytracingReflections::CreateImages()
 
     m_texture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
-        TF_RGBA8,
+        TF_RGBA16F,
         Vec3u { m_config.extent, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
@@ -278,7 +287,7 @@ void RaytracingReflections::CreateTemporalBlending()
 {
     m_temporalBlending = MakeUnique<TemporalBlending>(
         m_config.extent,
-        TF_RGBA8,
+        TF_RGBA16F,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,

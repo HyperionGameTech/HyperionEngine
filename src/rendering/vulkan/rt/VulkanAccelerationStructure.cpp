@@ -676,15 +676,17 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
 
     bool meshDescriptionsBufferRecreated = false;
 
-    if (!m_meshDescriptionsBuffer || m_meshDescriptionsBuffer->Size() < meshDescriptionsBufferSize)
+    if (!m_meshDescriptionsBuffer)
     {
-        SafeRelease(std::move(m_meshDescriptionsBuffer));
-
         m_meshDescriptionsBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::SSBO, meshDescriptionsBufferSize);
         m_meshDescriptionsBuffer->SetDebugName(NAME("ASMeshDescriptionsBuffer"));
         HYP_GFX_CHECK(m_meshDescriptionsBuffer->Create());
 
         meshDescriptionsBufferRecreated = true;
+    }
+    else
+    {
+        m_meshDescriptionsBuffer->EnsureCapacity(meshDescriptionsBufferSize, &meshDescriptionsBufferRecreated);
     }
 
     if (meshDescriptionsBufferRecreated)

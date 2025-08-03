@@ -201,8 +201,6 @@ void HyperionEditor::Init()
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         5.0f);
 
-    // sunEntity->SetShadowMapFilter(SMF_VSM);
-
     sunEntity->Attach(sunNode);
 #endif
 
@@ -223,13 +221,10 @@ void HyperionEditor::Init()
     }
 
 #if 1
-    // temp
+    // Test assets, nevermind this
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
-//     batch->Add("test_model", "models/pica_pica/pica_pica.obj");
-    // batch->Add("test_model", "models/testbed/testbed.obj");
-    //batch->Add("zombie", "models/ogrexml/dragger_Body.mesh.xml");
-    //    batch->Add("z2", "models/monkey.fbx");
+    batch->Add("test_model", "models/testbed/testbed.obj");
 
     Handle<Entity> rootEntity = scene->GetEntityManager()->AddEntity();
     scene->GetRoot()->SetEntity(rootEntity);
@@ -239,7 +234,6 @@ void HyperionEditor::Init()
             {
                 Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
-//                 node->Scale(3.0f);
                 node->Scale(0.05f);
                 node->SetName(NAME("test_model"));
                 node->LockTransform();
@@ -257,28 +251,6 @@ void HyperionEditor::Init()
 
                 envGridNode->SetEntity(envGridEntity);
 #endif
-
-#if 0 // test reflection probe
-
-                Handle<Node> envProbeNode = scene->GetRoot()->AddChild();
-                envProbeNode->SetName(NAME("TestProbe"));
-
-                Handle<Entity> envProbeEntity = scene->GetEntityManager()->AddEntity<ReflectionProbe>(node->GetWorldAABB() * 1.01f, Vec2u(256, 256));
-
-                scene->GetEntityManager()->AddComponent<TransformComponent>(envProbeEntity, TransformComponent {});
-                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envProbeEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
-
-                envProbeNode->SetEntity(envProbeEntity);
-#endif
-
-                if (auto& z2 = results["z2"]; z2.IsValid())
-                {
-                    Handle<Node> node = z2.ExtractAs<Node>();
-                    node->Scale(0.25f);
-                    node->Translate(Vec3f(0.0f, 2.0f, 5.2f));
-
-                    scene->GetRoot()->AddChild(node);
-                }
 
                 if (auto& zombieAsset = results["zombie"]; zombieAsset.IsValid())
                 {
@@ -307,36 +279,12 @@ void HyperionEditor::Init()
                     zombie->SetName(NAME("zombie"));
                 }
 
-                /// testing
-
+                /// testing Voxel octree
                 g_voxelOctree = new VoxelOctree();
                 if (auto res = g_voxelOctree->Build(VoxelOctreeParams {}, scene->GetEntityManager()); res.HasError())
                 {
                     HYP_LOG(Editor, Error, "Failed to build voxel octree for lightmapper: {}", res.GetError().GetMessage());
                 }
-
-                //                Handle<Mesh> voxelMesh = MeshBuilder::BuildVoxelMesh(*g_voxelOctree);
-                //
-                //                Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
-                //
-                //                MaterialAttributes materialAttributes {};
-                //                materialAttributes.shaderDefinition = ShaderDefinition {
-                //                    NAME("Forward"),
-                //                    ShaderProperties(voxelMesh->GetVertexAttributes(), { { NAME("UNLIT") } })
-                //                };
-                //                materialAttributes.bucket = RB_TRANSLUCENT;
-                //                materialAttributes.cullFaces = FaceCullMode::FCM_NONE;
-                //                Handle<Material> material = CreateObject<Material>(Name::Invalid(), materialAttributes);
-                //
-                //                Handle<Node> voxelNode = CreateObject<Node>();
-                //                voxelNode->SetEntity(entity);
-                //
-                //                scene->GetRoot()->AddChild(std::move(voxelNode));
-                //
-                //                scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { voxelMesh, material });
-                //                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { voxelMesh->GetAABB() });
-
-                /// testing
             })
         .Detach();
 

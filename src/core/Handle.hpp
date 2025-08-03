@@ -235,12 +235,12 @@ struct Handle final : HandleBase
 
     /*! \brief Get a pointer to the object that the handle is referencing.
      *  \return A pointer to the object. */
-    HYP_FORCE_INLINE T* Get() const
+    HYP_FORCE_INLINE T* Get() const &
     {
         return static_cast<T*>(ptr);
     }
 
-    HYP_FORCE_INLINE operator T*() const
+    HYP_FORCE_INLINE operator T* const() const &
     {
         return Get();
     }
