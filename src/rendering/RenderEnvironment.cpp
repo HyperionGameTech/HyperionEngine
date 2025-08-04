@@ -6,6 +6,8 @@
 #include <rendering/RenderFrame.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/ParticleSystem.hpp>
+#include <rendering/GaussianSplatting.hpp>
 
 #include <rendering/debug/DebugDrawer.hpp>
 
