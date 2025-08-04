@@ -352,8 +352,6 @@ struct ResourceData final
 
 struct ResourceSubtypeData final
 {
-    static constexpr uint32 poolPageSize = 1024;
-
     TypeId typeId;
 
     // Map from id -> ResourceData

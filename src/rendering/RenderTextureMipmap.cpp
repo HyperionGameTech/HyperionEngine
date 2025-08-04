@@ -21,13 +21,13 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
     ImageRef m_image;
     ImageViewRef m_imageView;
     Array<ImageViewRef> m_mipImageViews;
-    Array<RC<FullScreenPass>> m_passes;
+    Array<Handle<FullScreenPass>> m_passes;
 
     RENDER_COMMAND(RenderTextureMipmapLevels)(
         ImageRef image,
         ImageViewRef imageView,
         Array<ImageViewRef> mipImageViews,
-        Array<RC<FullScreenPass>> passes)
+        Array<Handle<FullScreenPass>> passes)
         : m_image(std::move(image)),
           m_imageView(std::move(imageView)),
           m_mipImageViews(std::move(mipImageViews)),
@@ -60,7 +60,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
 
         for (uint32 mipLevel = 0; mipLevel < uint32(m_mipImageViews.Size()); mipLevel++)
         {
-            RC<FullScreenPass>& pass = m_passes[mipLevel];
+            Handle<FullScreenPass>& pass = m_passes[mipLevel];
             Assert(pass != nullptr);
 
             const uint32 prevMipWidth = mipWidth,
@@ -137,7 +137,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
     Array<ImageViewRef> mipImageViews;
     mipImageViews.Resize(numMipLevels);
 
-    Array<RC<FullScreenPass>> passes;
+    Array<Handle<FullScreenPass>> passes;
     passes.Resize(numMipLevels);
 
     ShaderRef shader = g_shaderManager->GetOrCreate(
@@ -164,7 +164,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         mipImageViews[mipLevel] = std::move(mipImageView);
 
         {
-            RC<FullScreenPass> pass = MakeRefCountedPtr<FullScreenPass>(
+            Handle<FullScreenPass> pass = CreateObject<FullScreenPass>(
                 shader,
                 descriptorTable,
                 texture->GetFormat(),
