@@ -3,12 +3,16 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
 
 #include <rendering/RenderObject.hpp>
 
 #include <Types.hpp>
 
 namespace hyperion {
+
+class Material;
+
 enum class AccelerationStructureType : uint8
 {
     BOTTOM_LEVEL,
@@ -71,6 +75,11 @@ protected:
 class HYP_API BLASBase : public RenderObject<BLASBase>
 {
 protected:
+    BLASBase()
+        : m_materialBinding(0)
+    {
+    }
+
     virtual ~BLASBase() override = default;
 
 public:
@@ -83,8 +92,28 @@ public:
 
     virtual RendererResult Create() = 0;
     virtual RendererResult Destroy() = 0;
+    
+    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
+    {
+        return m_material;
+    }
 
-    virtual void SetTransform(const Matrix4& transform) = 0;
+    HYP_FORCE_INLINE uint32 GetMaterialBinding() const
+    {
+        return m_materialBinding;
+    }
+
+    virtual void SetMaterialBinding(uint32 materialBinding)
+    {
+        m_materialBinding = materialBinding;
+    }
+
+     virtual void SetTransform(const Matrix4& transform) = 0;
+
+protected:
+    Handle<Material> m_material;
+    uint32 m_materialBinding;
+
 };
 
 } // namespace hyperion

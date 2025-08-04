@@ -91,9 +91,9 @@ void RaytracingReflections::UpdatePipelineState(FrameBase* frame, const RenderSe
 
             descriptorSet->SetElement(NAME("TLAS"), tlas);
             descriptorSet->SetElement(NAME("MeshDescriptionsBuffer"), tlas->GetMeshDescriptionsBuffer());
-
             descriptorSet->SetElement(NAME("OutputImage"), g_renderBackend->GetTextureImageView(m_texture));
             descriptorSet->SetElement(NAME("RTRadianceUniforms"), m_uniformBuffers[frameIndex]);
+            descriptorSet->SetElement(NAME("MaterialsBuffer"), g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
         };
 
     if (m_raytracingPipeline != nullptr)
@@ -194,6 +194,24 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
     UpdatePipelineState(frame, renderSetup);
     UpdateUniforms(frame, renderSetup);
 
+    // Reset progressive blending if the camera view matrix has changed (for path tracing)
+    if (IsPathTracer())
+    {
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+
+        if (cameraProxy->bufferData.view != m_previousViewMatrix)
+        {
+            RenderSetup newRenderSetup = renderSetup;
+            newRenderSetup.passData = parentPass;
+            
+            m_temporalBlending->ResetProgressiveBlending();
+            m_temporalBlending->Render(frame, newRenderSetup);
+
+            m_previousViewMatrix = cameraProxy->bufferData.view;
+        }
+    }
+
     const uint32 viewDescriptorSetIndex = m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
     AssertDebug(viewDescriptorSetIndex != ~0u);
 
@@ -220,24 +238,10 @@ void RaytracingReflections::Render(FrameBase* frame, const RenderSetup& renderSe
     const Vec3u imageExtent = m_texture->GetGpuImage()->GetExtent();
 
     const SizeType numPixels = imageExtent.Volume();
-    // const SizeType halfNumPixels = numPixels / 2;
+    const SizeType halfNumPixels = numPixels / 2;
 
-    frame->renderQueue << TraceRays(m_raytracingPipeline, Vec3u { uint32(numPixels), 1, 1 });
+    frame->renderQueue << TraceRays(m_raytracingPipeline, Vec3u { uint32(halfNumPixels), 1, 1 });
     frame->renderQueue << InsertBarrier(m_texture->GetGpuImage(), RS_SHADER_RESOURCE);
-
-    // Reset progressive blending if the camera view matrix has changed (for path tracing)
-    if (IsPathTracer())
-    {
-        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
-        Assert(cameraProxy != nullptr);
-
-        if (cameraProxy->bufferData.view != m_previousViewMatrix)
-        {
-            m_temporalBlending->ResetProgressiveBlending();
-
-            m_previousViewMatrix = cameraProxy->bufferData.view;
-        }
-    }
 
     // Create a new RenderSetup for temporal blending as it will need to bind View descriptors,
     // which we don't have on RaytracingPassData
@@ -253,7 +257,7 @@ void RaytracingReflections::CreateImages()
 
     m_texture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
-        TF_RGBA16F,
+        TF_RGBA8,
         Vec3u { m_config.extent, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
@@ -287,7 +291,7 @@ void RaytracingReflections::CreateTemporalBlending()
 {
     m_temporalBlending = MakeUnique<TemporalBlending>(
         m_config.extent,
-        TF_RGBA16F,
+        TF_RGBA8,
         IsPathTracer()
             ? TemporalBlendTechnique::TECHNIQUE_4 // progressive blending
             : TemporalBlendTechnique::TECHNIQUE_1,

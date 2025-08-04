@@ -1112,8 +1112,6 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
         pd->view = view->WeakHandleFromThis();
         pd->viewport = view->GetViewport();
 
-        CreateViewTopLevelAccelerationStructures(view, *pd);
-
         return pd;
     }
 
@@ -1341,13 +1339,12 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
 {
     SafeRelease(std::move(passData.raytracingTlases));
 
-    // @FIXME: Hack solution since TLAS can only be created if it has a non-zero number of BLASes.
-    // This whole thing should be reworked
+    // Hack to fix driver crash when building TLAS with no meshes
     Handle<Mesh> defaultMesh = MeshBuilder::Cube();
     InitObject(defaultMesh);
 
     BLASRef blas = MeshBlasBuilder::Build(defaultMesh);
-    DeferCreate(blas);
+    HYP_GFX_ASSERT(blas->Create());
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
@@ -1356,7 +1353,7 @@ void DeferredRenderer::CreateViewTopLevelAccelerationStructures(View* view, Rayt
         tlas = g_renderBackend->MakeTLAS();
         tlas->AddBLAS(blas);
 
-        DeferCreate(tlas);
+        HYP_GFX_ASSERT(tlas->Create());
     }
 }
 
@@ -1829,25 +1826,28 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             const Handle<RaytracingPassData>& raytracingPassData = ObjCast<RaytracingPassData>(FetchViewPassData(raytracingView));
             Assert(raytracingPassData != nullptr);
 
-            raytracingPassData->parentPass = pd;
-
-            RenderSetup newRs = rs;
-            newRs.passData = raytracingPassData;
-
-            if (useRaytracingReflections)
+            if (raytracingPassData->raytracingTlases[frameIndex] != nullptr)
             {
-                AssertDebug(pd->raytracingReflections != nullptr);
-                pd->raytracingReflections->Render(frame, newRs);
-            }
+                raytracingPassData->parentPass = pd;
 
-            if (useRaytracingGlobalIllumination)
-            {
-                AssertDebug(pd->ddgi != nullptr);
-                pd->ddgi->Render(frame, newRs);
-            }
+                RenderSetup newRs = rs;
+                newRs.passData = raytracingPassData;
 
-            // unset parent pass after using it
-            raytracingPassData->parentPass = nullptr;
+                if (useRaytracingReflections)
+                {
+                    AssertDebug(pd->raytracingReflections != nullptr);
+                    pd->raytracingReflections->Render(frame, newRs);
+                }
+
+                if (useRaytracingGlobalIllumination)
+                {
+                    AssertDebug(pd->ddgi != nullptr);
+                    pd->ddgi->Render(frame, newRs);
+                }
+
+                // unset parent pass after using it
+                raytracingPassData->parentPass = nullptr;
+            }
         }
     }
 
@@ -1996,43 +1996,92 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
 
-    if (TLASRef& tlas = pd->raytracingTlases[frameIndex])
+    if (!pd->raytracingTlases[frameIndex])
     {
-        for (Entity* entity : rpl.GetMeshEntities())
+        for (TLASRef& tlas : pd->raytracingTlases)
         {
-            Assert(entity);
+            tlas = g_renderBackend->MakeTLAS();
+        }
+    }
 
-            RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(entity->Id());
-            Assert(meshProxy);
+    bool hasBlas = false;
 
-            BLASRef& blas = meshProxy->raytracingData.bottomLevelAccelerationStructures[frame->GetFrameIndex()];
+    for (Entity* entity : rpl.GetMeshEntities())
+    {
+        AssertDebug(entity != nullptr);
 
-            if (!blas)
+        RenderProxyMesh* meshProxy = rpl.GetMeshEntities().GetProxy(entity->Id());
+        Assert(meshProxy != nullptr);
+
+        AssertDebug(meshProxy->mesh != nullptr);
+
+        BLASRef& blas = meshProxy->raytracingData.bottomLevelAccelerationStructures[frame->GetFrameIndex()];
+
+        const bool materialsDiffer = blas != nullptr
+            && blas->GetMaterial() != meshProxy->material;
+
+        if (!blas || materialsDiffer)
+        {
+            if (blas != nullptr)
             {
-                blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
-                Assert(blas != nullptr);
-
-                blas->SetTransform(meshProxy->bufferData.modelMatrix);
-
-                if (!blas->IsCreated())
+                for (TLASRef& tlas : pd->raytracingTlases)
                 {
-                    HYP_GFX_ASSERT(blas->Create());
+                    tlas->RemoveBLAS(blas);
                 }
-            }
-            else
-            {
-                blas->SetTransform(meshProxy->bufferData.modelMatrix);
+
+                SafeRelease(std::move(blas));
             }
 
-            if (!tlas->HasBLAS(blas))
+            blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
+            Assert(blas != nullptr);
+
+            blas->SetTransform(meshProxy->bufferData.modelMatrix);
+
+            if (!blas->IsCreated())
+            {
+                HYP_GFX_ASSERT(blas->Create());
+            }
+        }
+        else
+        {
+            const uint32 materialBinding = RenderApi_RetrieveResourceBinding(meshProxy->material.Id());
+            const bool materialBindingsDiffer = blas->GetMaterialBinding() != materialBinding;
+
+            if (materialBindingsDiffer)
+            {
+                // needs to rebuild mesh descriptions if material binding changed
+                blas->SetMaterialBinding(materialBinding);
+            }
+
+            blas->SetTransform(meshProxy->bufferData.modelMatrix);
+        }
+
+        if (!pd->raytracingTlases[frameIndex]->HasBLAS(blas))
+        {
+            for (TLASRef& tlas : pd->raytracingTlases)
             {
                 tlas->AddBLAS(blas);
             }
+
+            hasBlas = true;
+        }
+    }
+
+    if (!pd->raytracingTlases[frameIndex]->IsCreated() )
+    {
+        if (hasBlas)
+        {
+            for (TLASRef& tlas : pd->raytracingTlases)
+            {
+                HYP_GFX_ASSERT(tlas->Create());
+            }
         }
 
-        RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
-        tlas->UpdateStructure(updateStateFlags);
+        return;
     }
+
+    RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
+    pd->raytracingTlases[frameIndex]->UpdateStructure(updateStateFlags);
 }
 
 void DeferredRenderer::PerformOcclusionCulling(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector)

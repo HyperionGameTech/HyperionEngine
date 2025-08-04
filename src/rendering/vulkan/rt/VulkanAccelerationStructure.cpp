@@ -173,7 +173,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     AccelerationStructureType type,
     Span<const VkAccelerationStructureGeometryKHR> geometries,
     Span<const uint32> primitiveCounts,
-    bool update,
+    const bool update,
     RTUpdateStateFlags& outUpdateStateFlags)
 {
     if (update)
@@ -221,6 +221,8 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (!m_buffer)
     {
+        HYP_GFX_ASSERT(!update);
+
         m_buffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_BUFFER, accelerationStructureSize);
         m_buffer->SetDebugName(NAME("ASBuffer"));
         HYP_GFX_CHECK(m_buffer->Create());
@@ -228,34 +230,31 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     HYP_GFX_CHECK(m_buffer->EnsureCapacity(accelerationStructureSize, &wasRebuilt));
 
-    // set to true to force recreate (for debug)
-    wasRebuilt = true;
-
-    if (wasRebuilt)
+    if (!update || wasRebuilt)
     {
         outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
 
         if (update)
         {
-            //// delete the current acceleration structure once the frame is done, rather than stalling the gpu here
-            //GetRenderBackend()->GetCurrentFrame()->OnFrameEnd
-            //    .Bind([oldAccelerationStructure = m_accelerationStructure](...)
-            //    {
-            //        g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-            //            GetRenderBackend()->GetDevice()->GetDevice(),
-            //            oldAccelerationStructure,
-            //            nullptr);
-            //    })
-            //    .Detach();
+            // delete the current acceleration structure once the frame is done, rather than stalling the gpu here
+            GetRenderBackend()->GetCurrentFrame()->OnFrameEnd
+                .Bind([oldAccelerationStructure = m_accelerationStructure](...)
+                {
+                    g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
+                        GetRenderBackend()->GetDevice()->GetDevice(),
+                        oldAccelerationStructure,
+                        nullptr);
+                })
+                .Detach();
 
-            HYP_GFX_ASSERT(GetRenderBackend()->GetDevice()->Wait()); // To prevent deletion while in use 
+            //HYP_GFX_ASSERT(GetRenderBackend()->GetDevice()->Wait()); // To prevent deletion while in use 
 
-            // delete the current acceleration structure
-            g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
-                GetRenderBackend()->GetDevice()->GetDevice(),
-                m_accelerationStructure,
-                nullptr
-            );
+            //// delete the current acceleration structure
+            //g_vulkanDynamicFunctions->vkDestroyAccelerationStructureKHR(
+            //    GetRenderBackend()->GetDevice()->GetDevice(),
+            //    m_accelerationStructure,
+            //    nullptr
+            //);
 
             m_accelerationStructure = VK_NULL_HANDLE;
 
@@ -497,7 +496,10 @@ RendererResult VulkanTLAS::Create()
 
     RTUpdateStateFlags updateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
 
-    HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), GetGeometries(), GetPrimitiveCounts(), false, updateStateFlags));
+    Array<VkAccelerationStructureGeometryKHR> geometries = GetGeometries();
+    Array<uint32> primitiveCounts = GetPrimitiveCounts();
+
+    HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, false, updateStateFlags));
 
     HYP_GFX_ASSERT(updateStateFlags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE);
 
@@ -521,12 +523,13 @@ void VulkanTLAS::AddBLAS(const BLASRef& blas)
 {
     HYP_GFX_ASSERT(blas != nullptr);
 
-    if (m_blas.FindAs(blas) != m_blas.End())
+    if (m_blas.FindAs(VULKAN_CAST(blas.Get())) != m_blas.End())
     {
+        // already has the BLAS
         return;
     }
 
-    VulkanBLASRef vulkanBlas { blas };
+    VulkanBLASRef vulkanBlas = VULKAN_CAST(blas);
 
     HYP_GFX_ASSERT(vulkanBlas->IsCreated());
     HYP_GFX_ASSERT(!vulkanBlas->GetGeometries().Empty());
@@ -554,11 +557,19 @@ void VulkanTLAS::AddBLAS(const BLASRef& blas)
 
 void VulkanTLAS::RemoveBLAS(const BLASRef& blas)
 {
-    auto it = m_blas.FindAs(blas);
+    if (!blas)
+    {
+        return;
+    }
+
+    auto it = m_blas.FindIf([pBlas = blas.Get()](auto&& item)
+        {
+            return item.Get() == pBlas;
+        });
 
     if (it != m_blas.End())
     {
-        VulkanBLASRef& vulkanBlas = *it;
+        VulkanBLASRef vulkanBlas = std::move(*it);
         m_blas.Erase(it);
 
         SafeRelease(std::move(vulkanBlas));
@@ -574,7 +585,7 @@ bool VulkanTLAS::HasBLAS(const BLASRef& blas)
         return false;
     }
 
-    return m_blas.Contains(blas);
+    return m_blas.FindAs(VULKAN_CAST(blas.Get())) != m_blas.End();
 }
 
 RendererResult VulkanTLAS::BuildInstancesBuffer()
@@ -719,16 +730,17 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
 
         HYP_GFX_ASSERT(blas->GetGeometries().Any(), "No geometries added to BLAS node %u!", i);
 
-        uint32 materialBoundIndex = ~0u;
-
-        const Handle<Material>& material = blas->GetGeometries()[0]->GetMaterial();
+        const Handle<Material>& material = blas->GetMaterial();
 
         if (material.IsValid())
         {
-            materialBoundIndex = RenderApi_RetrieveResourceBinding(material);
-
-            HYP_GFX_ASSERT(materialBoundIndex != ~0u, "Material %s (ID: #%u) was not bound at time of building mesh descriptions buffer",
+            blas->m_materialBinding = RenderApi_RetrieveResourceBinding(material);
+            HYP_GFX_ASSERT(blas->m_materialBinding != ~0u, "Material %s (ID: #%u) was not bound at time of building mesh descriptions buffer",
                 *material->GetName(), material->Id().Value());
+        }
+        else
+        {
+            blas->m_materialBinding = ~0u;
         }
 
         HYP_GFX_ASSERT(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
@@ -736,7 +748,7 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
 
         meshDescription.vertexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedVerticesBuffer())->GetBufferDeviceAddress();
         meshDescription.indexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedIndicesBuffer())->GetBufferDeviceAddress();
-        meshDescription.materialIndex = materialBoundIndex;
+        meshDescription.materialIndex = blas->m_materialBinding;
         meshDescription.numIndices = blas->GetGeometries()[0]->NumIndices();
         meshDescription.numVertices = blas->GetGeometries()[0]->NumVertices();
     }
@@ -781,8 +793,11 @@ RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFla
     {
         HYP_GFX_CHECK(BuildInstancesBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
         HYP_GFX_CHECK(BuildMeshDescriptionsBuffer(dirtyRange.GetStart(), dirtyRange.GetEnd()));
+        
+        Array<VkAccelerationStructureGeometryKHR> geometries = GetGeometries();
+        Array<uint32> primitiveCounts = GetPrimitiveCounts();
 
-        HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), GetGeometries(), GetPrimitiveCounts(), true, outUpdateStateFlags));
+        HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, true, outUpdateStateFlags));
 
         outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS | RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
     }
@@ -811,11 +826,13 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     HYP_GFX_CHECK(BuildInstancesBuffer());
     outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
+    
+    Array<VkAccelerationStructureGeometryKHR> geometries = GetGeometries();
+    Array<uint32> primitiveCounts = GetPrimitiveCounts();
 
     HYP_GFX_CHECK(CreateAccelerationStructure(
         GetType(),
-        GetGeometries(),
-        GetPrimitiveCounts(),
+        geometries, primitiveCounts,
         true,
         outUpdateStateFlags));
 
@@ -838,9 +855,10 @@ VulkanBLAS::VulkanBLAS(
     const Matrix4& transform)
     : VulkanAccelerationStructureBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),
-      m_packedIndicesBuffer(packedIndicesBuffer),
-      m_material(material)
+      m_packedIndicesBuffer(packedIndicesBuffer)
 {
+    m_material = material;
+
     m_geometries.PushBack(MakeRenderObject<VulkanAccelerationGeometry>(
         m_packedVerticesBuffer,
         m_packedIndicesBuffer,

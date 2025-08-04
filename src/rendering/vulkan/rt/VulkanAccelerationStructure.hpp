@@ -200,6 +200,8 @@ using VulkanAccelerationStructureWeakRef = RenderObjectHandle_Weak<VulkanAcceler
 class HYP_API VulkanBLAS final : public BLASBase, public VulkanAccelerationStructureBase
 {
 public:
+    friend class VulkanTLAS;
+
     VulkanBLAS(
         const GpuBufferRef& packedVerticesBuffer,
         const GpuBufferRef& packedIndicesBuffer,
@@ -219,6 +221,24 @@ public:
         VulkanAccelerationStructureBase::SetTransform(transform);
     }
 
+    virtual void SetMaterialBinding(uint32 materialBinding) override
+    {
+        if (m_materialBinding == materialBinding)
+        {
+            return;
+        }
+    
+        m_materialBinding = materialBinding;
+    
+        if (!IsCreated())
+        {
+            return;
+        }
+    
+        m_flags |= ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE;
+    }
+
+
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
     RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags);
 
@@ -227,7 +247,6 @@ private:
 
     GpuBufferRef m_packedVerticesBuffer;
     GpuBufferRef m_packedIndicesBuffer;
-    Handle<Material> m_material;
 };
 
 class HYP_API VulkanTLAS final : public TLASBase, public VulkanAccelerationStructureBase

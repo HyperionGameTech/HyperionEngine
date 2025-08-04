@@ -268,6 +268,7 @@ void DDGI::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
             descriptorSet->SetElement(NAME("MeshDescriptionsBuffer"), tlas->GetMeshDescriptionsBuffer());
             descriptorSet->SetElement(NAME("DDGIUniforms"), m_uniformBuffers[frameIndex]);
             descriptorSet->SetElement(NAME("ProbeRayData"), m_radianceBuffer);
+            descriptorSet->SetElement(NAME("MaterialsBuffer"), g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
         };
 
     if (m_pipeline != nullptr)
@@ -467,78 +468,54 @@ void DDGI::Render(FrameBase* frame, const RenderSetup& renderSetup)
     frame->renderQueue << DispatchCompute(m_updateDepth, Vec3u { probeCounts.x * probeCounts.y, probeCounts.z, 1u });
 
 #if 0 // @FIXME: Properly implement an optimized way to copy border texels without invoking for each pixel in the images.
-    m_irradianceImage->InsertBarrier(
-        frame->renderQueue,
-        RS_UNORDERED_ACCESS
-    );
-
-    m_depthImage->InsertBarrier(
-        frame->renderQueue,
-        RS_UNORDERED_ACCESS
-    );
+    frame->renderQueue << InsertBarrier(m_irradianceImage, RS_UNORDERED_ACCESS);
+    frame->renderQueue << InsertBarrier(m_depthImage, RS_UNORDERED_ACCESS);
 
     // now copy border texels
-    m_copyBorderTexelsIrradiance->Bind(frame->renderQueue);
-
-    m_copyBorderTexelsIrradiance->GetDescriptorTable()->Bind(
-        frame,
+    frame->renderQueue << BindComputePipeline(m_copyBorderTexelsIrradiance);
+    
+    frame->renderQueue << BindDescriptorTable(
+        m_copyBorderTexelsIrradiance->GetDescriptorTable(),
         m_copyBorderTexelsIrradiance,
-        {
-            {
-                NAME("Global"),
-                {
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(envProbe.Get(), 0) }
-                }
-            }
-        }
-    );
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        frame->GetFrameIndex());
 
-    m_copyBorderTexelsIrradiance->Dispatch(
-        frame->renderQueue,
+    
+    frame->renderQueue << DispatchCompute(
+        m_copyBorderTexelsIrradiance, 
         Vec3u {
             (probeCounts.x * probeCounts.y * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.x)) + 7 / 8,
             (probeCounts.z * (m_gridInfo.irradianceOctahedronSize + m_gridInfo.probeBorder.z)) + 7 / 8,
             1u
-        }
-    );
+        });
     
-    m_copyBorderTexelsDepth->Bind(frame->renderQueue);
+    frame->renderQueue << BindComputePipeline(m_copyBorderTexelsIrradiance);
+    
+    frame->renderQueue << BindDescriptorTable(
+        m_copyBorderTexelsIrradiance->GetDescriptorTable(),
+        m_copyBorderTexelsIrradiance,
+        ArrayMap<Name, ArrayMap<Name, uint32>> {
+            { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        frame->GetFrameIndex());
 
-    m_copyBorderTexelsDepth->GetDescriptorTable()->Bind(
-        frame,
-        m_copyBorderTexelsDepth,
-        {
-            {
-                NAME("Global"),
-                {
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(*renderSetup.camera) },
-                    { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid.Get(), 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(envProbe.Get(), 0) }
-                }
-            }
-        }
-    );
     
-    m_copyBorderTexelsDepth->Dispatch(
-        frame->renderQueue,
+    frame->renderQueue << DispatchCompute(
+        m_copyBorderTexelsIrradiance, 
         Vec3u {
             (probeCounts.x * probeCounts.y * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.x)) + 15 / 16,
             (probeCounts.z * (m_gridInfo.depthOctahedronSize + m_gridInfo.probeBorder.z)) + 15 / 16,
             1u
-        }
-    );
-
-    m_irradianceImage->InsertBarrier(
-        frame->renderQueue,
-        RS_SHADER_RESOURCE
-    );
-
-    m_depthImage->InsertBarrier(
-        frame->renderQueue,
-        RS_SHADER_RESOURCE
-    );
+        });
+    
+    frame->renderQueue << InsertBarrier(m_irradianceImage, RS_SHADER_RESOURCE);
+    frame->renderQueue << InsertBarrier(m_depthImage, RS_SHADER_RESOURCE);
 #endif
 }
 

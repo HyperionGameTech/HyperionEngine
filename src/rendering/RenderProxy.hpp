@@ -243,7 +243,7 @@ public:
     LightmapVolumeShaderData bufferData {};
 };
 
-struct MaterialShaderData
+struct alignas(16) MaterialShaderData
 {
     Vec4f albedo;
 

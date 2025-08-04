@@ -99,7 +99,14 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 
         if (evt.mouseButtons & MouseButtonState::RIGHT)
         {
-            camera->SetTranslation(camera->GetTranslation() + dirCrossY * float(-deltaSign.y));
+            if (MathUtil::Abs(delta.y) > MathUtil::Abs(delta.x))
+            {
+                camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * float(-deltaSign.y));
+            }
+            else
+            {
+                camera->SetTranslation(camera->GetTranslation() + dirCrossY * float(deltaSign.x));
+            }
         }
         else
         {

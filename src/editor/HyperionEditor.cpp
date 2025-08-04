@@ -234,7 +234,7 @@ void HyperionEditor::Init()
             {
                 Handle<Node> node = results["test_model"].ExtractAs<Node>();
 
-                node->Scale(0.05f);
+                node->Scale(0.03f);
                 node->SetName(NAME("test_model"));
                 node->LockTransform();
 
