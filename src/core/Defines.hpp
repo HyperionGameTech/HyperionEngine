@@ -78,7 +78,7 @@
 #define HYP_LINUX 1
 #endif
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__) || defined(__ARM_ARCH)
 #define HYP_ARM 1
 #endif
 

@@ -632,15 +632,19 @@ public:
 
 #if defined(__clang__) || defined(__GNUC__)
 #if defined(_MSC_VER)
-        return FastLog2(value); // fallback :/
+        return FastLog2(value); // fallback
 #else
         return __builtin_ctzll(value);
-#endif
+#endif // _MSC_VER
 #elif defined(_MSC_VER)
+#ifndef HYP_ARM
         return _tzcnt_u64(value);
 #else
+        return FastLog2(value); // fallback
+#endif // HYP_ARM
+#else
         return __builtin_ctzll(value);
-#endif
+#endif // _MSC_VER
     }
 
     // https://stackoverflow.com/questions/11376288/fast-computing-of-log2-for-64-bit-integers
