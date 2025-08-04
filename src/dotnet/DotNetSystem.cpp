@@ -66,26 +66,10 @@ static Optional<FilePath> FindAssemblyFilePath(const FilePath& basePath, const c
 {
     HYP_NAMED_SCOPE("Find .NET Assembly File Path");
 
-    FilePath filepath = FilePath::Current() / path;
+    const FilePath filepath = basePath / path;
 
     if (!filepath.Exists())
     {
-        HYP_LOG(DotNET, Warning, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
-
-        filepath = basePath / path;
-    }
-
-    if (!filepath.Exists())
-    {
-        HYP_LOG(DotNET, Warning, "Failed to load .NET assembly at path: {}. Trying next path...", filepath);
-
-        filepath = GetResourceDirectory() / "scripts" / "bin" / path;
-    }
-
-    if (!filepath.Exists())
-    {
-        HYP_LOG(DotNET, Error, "Failed to load .NET assembly at path: {}. Could not locate an assembly for {}.", filepath, path);
-
         return {};
     }
 
