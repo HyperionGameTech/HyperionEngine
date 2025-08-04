@@ -16,9 +16,7 @@
 
 #include <rendering/debug/DebugDrawer.hpp>
 
-#include <rendering/AsyncCompute.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderDevice.hpp>
 #include <rendering/RenderSwapchain.hpp>
 #include <rendering/RenderConfig.hpp>
 

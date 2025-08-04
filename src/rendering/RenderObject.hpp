@@ -1175,12 +1175,16 @@ static inline void SafeRelease(RenderObjectHandle_Strong<T>&& handle)
         return;
     }
 
+    static_assert(implementationExists<T>, "T not a defined type - cannot use SafeRelease()");
+
     RenderObjectDeleter::GetQueue<typename T::Type>().Push(std::move(handle));
 }
 
 template <class T, class AllocatorType>
 static inline void SafeRelease(Array<RenderObjectHandle_Strong<T>, AllocatorType>&& handles)
 {
+    static_assert(implementationExists<T>, "T not a defined type - cannot use SafeRelease()");
+
     for (auto& it : handles)
     {
         if (!it.IsValid())
@@ -1197,6 +1201,8 @@ static inline void SafeRelease(Array<RenderObjectHandle_Strong<T>, AllocatorType
 template <class T, SizeType Sz>
 static inline void SafeRelease(FixedArray<RenderObjectHandle_Strong<T>, Sz>&& handles)
 {
+    static_assert(implementationExists<T>, "T not a defined type - cannot use SafeRelease()");
+
     for (auto& it : handles)
     {
         if (!it.IsValid())
@@ -1211,6 +1217,8 @@ static inline void SafeRelease(FixedArray<RenderObjectHandle_Strong<T>, Sz>&& ha
 template <class T, auto KeyBy>
 static inline void SafeRelease(HashSet<RenderObjectHandle_Strong<T>, KeyBy>&& handles)
 {
+    static_assert(implementationExists<T>, "T not a defined type - cannot use SafeRelease()");
+
     for (auto& it : handles)
     {
         if (!it.IsValid())

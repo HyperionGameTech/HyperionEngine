@@ -301,26 +301,7 @@ struct DescriptorSetElement
     FlatMap<uint32, ValueType> values;
     Range<uint32> dirtyRange {};
 
-    ~DescriptorSetElement()
-    {
-        if (values.Empty())
-        {
-            return;
-        }
-
-        for (auto& it : values)
-        {
-            if (!it.second.HasValue())
-            {
-                continue;
-            }
-
-            Visit(std::move(it.second), [](auto&& ref)
-                {
-                    SafeRelease(std::move(ref));
-                });
-        }
-    }
+    ~DescriptorSetElement();
 
     HYP_FORCE_INLINE bool IsDirty() const
     {

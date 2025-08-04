@@ -1,9 +1,10 @@
-#include <rendering/SafeDeleter.hpp>
 #include <rendering/RenderProxy.hpp>
-
-#include <scene/Entity.hpp>
+#include <rendering/SafeDeleter.hpp>
 #include <rendering/Mesh.hpp>
 #include <rendering/Material.hpp>
+#include <rendering/rt/RenderAccelerationStructure.hpp>
+
+#include <scene/Entity.hpp>
 
 #include <scene/animation/Skeleton.hpp>
 

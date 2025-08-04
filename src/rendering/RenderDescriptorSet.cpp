@@ -148,6 +148,31 @@ HashCode DescriptorSetLayout::GetHashCode() const
 
 #pragma endregion DescriptorSetLayout
 
+#pragma region DescriptorSetElement
+
+DescriptorSetElement::~DescriptorSetElement()
+{
+    if (values.Empty())
+    {
+        return;
+    }
+
+    for (auto& it : values)
+    {
+        if (!it.second.HasValue())
+        {
+            continue;
+        }
+
+        Visit(std::move(it.second), [](auto&& ref)
+            {
+                SafeRelease(std::move(ref));
+            });
+    }
+}
+
+#pragma endregion DescriptorSetElement
+
 #pragma region DescriptorSetBase
 
 DescriptorSetBase::~DescriptorSetBase()
