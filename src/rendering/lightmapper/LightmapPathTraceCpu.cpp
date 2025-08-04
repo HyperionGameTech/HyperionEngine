@@ -310,6 +310,7 @@ LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(LightmapTopLeve
       m_shadingType(shadingType),
       m_numTracingTasks(0)
 {
+    AssertDebug(accelerationStructure != nullptr);
 }
 
 LightmapRenderer_CpuPathTracing::~LightmapRenderer_CpuPathTracing()

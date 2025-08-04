@@ -170,7 +170,7 @@ struct LightmapJobParams
     Span<LightmapSubElement> subElementsView;
     HashMap<Handle<Entity>, LightmapSubElement*>* subElementsByEntity;
 
-    Array<ILightmapRenderer*> renderers;
+    Array<UniquePtr<ILightmapRenderer>>* renderers = nullptr;
 };
 
 class HYP_API LightmapJob
@@ -348,7 +348,6 @@ public:
     bool IsComplete() const;
 
     void Initialize();
-    void Build();
     void Update(float delta);
 
     Delegate<void> OnComplete;
@@ -364,6 +363,19 @@ protected:
     virtual UniquePtr<LightmapJob> CreateJob(LightmapJobParams&& params) = 0;
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) = 0;
 
+    LightmapperConfig m_config;
+
+    Handle<Scene> m_scene;
+    BoundingBox m_aabb;
+
+    Handle<LightmapVolume> m_volume;
+
+    Array<LightmapSubElement> m_subElements;
+    HashMap<Handle<Entity>, LightmapSubElement*> m_subElementsByEntity;
+
+private:
+    void Build();
+
     LightmapJobParams CreateLightmapJobParams(SizeType startIndex, SizeType endIndex);
 
     void AddJob(UniquePtr<LightmapJob>&& job)
@@ -377,21 +389,11 @@ protected:
 
     void HandleCompletedJob(LightmapJob* job);
 
-    LightmapperConfig m_config;
-
-    Handle<Scene> m_scene;
-    BoundingBox m_aabb;
-
-    Handle<LightmapVolume> m_volume;
-
     Array<UniquePtr<ILightmapRenderer>> m_lightmapRenderers;
 
     Queue<UniquePtr<LightmapJob>> m_queue;
     Mutex m_queueMutex;
     AtomicVar<uint32> m_numJobs;
-
-    Array<LightmapSubElement> m_subElements;
-    HashMap<Handle<Entity>, LightmapSubElement*> m_subElementsByEntity;
 };
 
 } // namespace hyperion

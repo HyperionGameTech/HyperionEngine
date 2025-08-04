@@ -131,7 +131,6 @@ Task<void>* LightmapperSubsystem::GenerateLightmaps(const Handle<Scene>& scene, 
         .Detach();
 
     lightmapper->Initialize();
-    lightmapper->Build();
 
     m_lightmappers.Insert(scene.Id(), std::move(lightmapper));
 

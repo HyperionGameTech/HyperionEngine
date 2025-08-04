@@ -154,9 +154,7 @@ void LightmapRenderer_GpuPathTracing::Create()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        HYP_NOT_IMPLEMENTED();
-        // TEMP FIX ME!!!! build new TLAS for the scene (not attached to view pass data)
-        const TLASRef& tlas = TLASRef::Null(); // m_scene->GetWorld()->GetRenderResource().GetEnvironment()->GetTopLevelAccelerationStructures()[frameIndex];
+        const TLASRef& tlas = TLASRef::Null();
         Assert(tlas != nullptr);
 
         const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frameIndex);

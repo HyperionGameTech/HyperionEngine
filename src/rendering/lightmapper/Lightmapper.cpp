@@ -125,10 +125,12 @@ struct RENDER_COMMAND(LightmapRender)
             {
                 Array<LightmapHit> hitsBuffer;
                 hitsBuffer.Resize(previousRays.Size());
+                
+                AssertDebug(job->GetParams().renderers != nullptr);
 
-                for (ILightmapRenderer* lightmapRenderer : job->GetParams().renderers)
+                for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
                 {
-                    Assert(lightmapRenderer != nullptr);
+                    AssertDebug(lightmapRenderer != nullptr);
 
                     lightmapRenderer->ReadHitsBuffer(frame, hitsBuffer);
 
@@ -141,9 +143,11 @@ struct RENDER_COMMAND(LightmapRender)
 
         if (rays.Any())
         {
-            for (ILightmapRenderer* lightmapRenderer : job->GetParams().renderers)
+            AssertDebug(job->GetParams().renderers != nullptr);
+
+            for (UniquePtr<ILightmapRenderer>& lightmapRenderer : *job->GetParams().renderers)
             {
-                Assert(lightmapRenderer != nullptr);
+                AssertDebug(lightmapRenderer != nullptr);
 
                 lightmapRenderer->Render(frame, renderSetup, job, rays, rayOffset);
             }
@@ -404,7 +408,12 @@ void LightmapJob::Process()
         return;
     }
 
-    const SizeType maxRays = MathUtil::Min(m_params.renderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
+    AssertDebug(m_params.renderers != nullptr);
+    Array<UniquePtr<ILightmapRenderer>>& lightmapRenderers = *m_params.renderers;
+
+    AssertDebug(lightmapRenderers[0] != nullptr);
+
+    const SizeType maxRays = MathUtil::Min(lightmapRenderers[0]->MaxRaysPerFrame(), m_params.config->maxRaysPerFrame);
 
     Array<LightmapRay> rays;
     rays.Reserve(maxRays);
@@ -413,9 +422,9 @@ void LightmapJob::Process()
 
     const uint32 rayOffset = uint32(m_texelIndex % (m_texelIndices.Size() * m_params.config->numSamples));
 
-    for (ILightmapRenderer* lightmapRenderer : m_params.renderers)
+    for (UniquePtr<ILightmapRenderer>& lightmapRenderer : lightmapRenderers)
     {
-        Assert(lightmapRenderer != nullptr);
+        AssertDebug(lightmapRenderer != nullptr);
 
         lightmapRenderer->UpdateRays(rays);
     }
@@ -501,6 +510,21 @@ void Lightmapper::Initialize()
 {
     HYP_LOG(Lightmap, Info, "Initializing lightmapper: {}", m_config.ToString());
 
+    m_volume = CreateObject<LightmapVolume>(m_aabb);
+    InitObject(m_volume);
+
+    Handle<Entity> lightmapVolumeEntity = m_scene->GetEntityManager()->AddEntity();
+    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmapVolumeEntity, LightmapVolumeComponent { m_volume });
+    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmapVolumeEntity, BoundingBoxComponent { m_aabb, m_aabb });
+
+    Handle<Node> lightmapVolumeNode = m_scene->GetRoot()->AddChild();
+    lightmapVolumeNode->SetName(Name::Unique("LightmapVolume"));
+    lightmapVolumeNode->SetEntity(lightmapVolumeEntity);
+    
+    Initialize_Internal();
+
+    Build();
+
     for (uint32 i = 0; i < uint32(LightmapShadingType::MAX); i++)
     {
         switch (LightmapShadingType(i))
@@ -535,25 +559,12 @@ void Lightmapper::Initialize()
     }
 
     Assert(m_lightmapRenderers.Any());
-
-    m_volume = CreateObject<LightmapVolume>(m_aabb);
-    InitObject(m_volume);
-
-    Handle<Entity> lightmapVolumeEntity = m_scene->GetEntityManager()->AddEntity();
-    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmapVolumeEntity, LightmapVolumeComponent { m_volume });
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmapVolumeEntity, BoundingBoxComponent { m_aabb, m_aabb });
-
-    Handle<Node> lightmapVolumeNode = m_scene->GetRoot()->AddChild();
-    lightmapVolumeNode->SetName(Name::Unique("LightmapVolume"));
-    lightmapVolumeNode->SetEntity(lightmapVolumeEntity);
-    
-    Initialize_Internal();
 }
 
-LightmapJobParams Lightmapper::CreateLightmapJobParams(
-    SizeType startIndex,
-    SizeType endIndex)
+LightmapJobParams Lightmapper::CreateLightmapJobParams(SizeType startIndex, SizeType endIndex)
 {
+    AssertDebug(m_volume != nullptr);
+
     LightmapJobParams jobParams {
         &m_config,
         m_scene,
@@ -562,12 +573,7 @@ LightmapJobParams Lightmapper::CreateLightmapJobParams(
         &m_subElementsByEntity
     };
 
-    jobParams.renderers.Resize(m_lightmapRenderers.Size());
-
-    for (SizeType i = 0; i < m_lightmapRenderers.Size(); i++)
-    {
-        jobParams.renderers[i] = m_lightmapRenderers[i].Get();
-    }
+    jobParams.renderers = &m_lightmapRenderers;
 
     return jobParams;
 }
