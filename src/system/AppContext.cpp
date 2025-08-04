@@ -295,16 +295,6 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
 AppContextBase::~AppContextBase() = default;
 
-const Handle<Game>& AppContextBase::GetGame() const
-{
-    return m_game;
-}
-
-void AppContextBase::SetGame(const Handle<Game>& game)
-{
-    m_game = game;
-}
-
 void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 {
     m_mainWindow = window;

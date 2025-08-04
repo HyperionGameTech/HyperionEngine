@@ -177,9 +177,6 @@ public:
         return m_inputManager;
     }
 
-    void SetGame(const Handle<Game>& game);
-    const Handle<Game>& GetGame() const;
-
     virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 

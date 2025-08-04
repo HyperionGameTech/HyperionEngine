@@ -597,6 +597,10 @@ void RenderApi_Init()
     g_threadFrameIndex = &g_frameIndex[CONSUMER];
     g_threadFrameCounter = &g_frameCounter[CONSUMER];
 
+    RenderObjectDeleter::Initialize();
+
+    g_renderGlobalState = new RenderGlobalState();
+
     ResourceContainerFactoryRegistry& registry = ResourceContainerFactoryRegistry::GetInstance();
     registry.InvokeAll(*g_renderGlobalState->resourceBindings, g_resources);
 

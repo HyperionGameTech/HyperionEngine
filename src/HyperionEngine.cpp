@@ -213,17 +213,6 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 #endif
     
     ConfigurationTable renderGlobalConfigOverrides;
-    
-    // if ray tracing is not supported, we need to update the configuration
-    if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
-    {
-        renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
-        renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
-        renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
-        renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
-        
-        UpdateGlobalConfig(renderGlobalConfigOverrides);
-    }
 
     g_engine = CreateObject<Engine>();
 
@@ -246,6 +235,67 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     }
 
     ComponentInterfaceRegistry::GetInstance().Initialize();
+
+    Handle<AppContextBase> appContext;
+
+#ifdef HYP_SDL
+    appContext = CreateObject<SDLAppContext>("Hyperion", GetCommandLineArguments());
+#else
+    HYP_FAIL("AppContext not implemented for this platform");
+#endif
+
+    Vec2i resolution = { 1280, 720 };
+
+    EnumFlags<WindowFlags> windowFlags = WindowFlags::HIGH_DPI;
+
+    if (GetCommandLineArguments()["Headless"].ToBool())
+    {
+        windowFlags |= WindowFlags::HEADLESS;
+    }
+
+    if (GetCommandLineArguments()["ResX"].IsNumber())
+    {
+        resolution.x = GetCommandLineArguments()["ResX"].ToInt32();
+    }
+
+    if (GetCommandLineArguments()["ResY"].IsNumber())
+    {
+        resolution.y = GetCommandLineArguments()["ResY"].ToInt32();
+    }
+
+    if (!(windowFlags & WindowFlags::HEADLESS))
+    {
+        HYP_LOG(Core, Info, "Running in windowed mode: {}x{}", resolution.x, resolution.y);
+
+        appContext->SetMainWindow(appContext->CreateSystemWindow({ "Hyperion Engine", resolution, windowFlags }));
+    }
+    else
+    {
+        HYP_LOG(Core, Info, "Running in headless mode");
+    }
+
+    Assert(g_renderBackend != nullptr);
+    Assert(g_renderBackend->Initialize(*appContext));
+
+    { // override global config after renderer initialize
+        ConfigurationTable renderGlobalConfigOverrides;
+
+        // if ray tracing is not supported, we need to update the configuration
+        if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
+        {
+            renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
+            renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
+        
+            UpdateGlobalConfig(renderGlobalConfigOverrides);
+        }
+    }
+
+    RenderApi_Init();
+
+    g_engine->SetAppContext(appContext);
+    InitObject(g_engine);
 
     return true;
 }
