@@ -496,7 +496,7 @@ namespace Hyperion
                     }
                     catch (Exception ex)
                     {
-                        Logger.Log(LogType.Fatal, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType.Name, ex);
+                        Logger.Log(LogType.Error, "Error invoking method {0} on type {1}: {2}", methodInfo.Name, methodInfo.DeclaringType.Name, ex);
                         
                         throw;
                     }

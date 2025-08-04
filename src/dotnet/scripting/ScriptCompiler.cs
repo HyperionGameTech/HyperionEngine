@@ -323,9 +323,12 @@ namespace Hyperion
             }
 
             System.Diagnostics.Process process = new System.Diagnostics.Process();
+#if HYP_MACOS
+            process.StartInfo.FileName = "/usr/local/share/dotnet/dotnet";
+#else
             process.StartInfo.FileName = "dotnet";
+#endif
             process.StartInfo.Arguments = $"build";
-            process.StartInfo.UseShellExecute = false;
             process.StartInfo.WorkingDirectory = projectOutputDirectory;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
