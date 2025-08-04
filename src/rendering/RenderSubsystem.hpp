@@ -26,7 +26,7 @@ class RenderEnvironment;
 struct RenderSetup;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API RenderSubsystem : public HypObject<RenderSubsystem>
+class HYP_API RenderSubsystem : public HypObjectBase
 {
     HYP_OBJECT_BODY(RenderSubsystem);
 

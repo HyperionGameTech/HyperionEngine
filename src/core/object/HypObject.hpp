@@ -80,11 +80,4 @@ public:                                                                         
                                                                                  \
 private:
 
-template <class T>
-class HypObject : public HypObjectBase
-{
-public:
-    virtual ~HypObject() = default;
-};
-
 } // namespace hyperion

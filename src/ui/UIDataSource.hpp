@@ -50,7 +50,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIElementFactoryBase : public HypObject<UIElementFactoryBase>
+class HYP_API UIElementFactoryBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(UIElementFactoryBase);
 
@@ -204,7 +204,7 @@ private:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API UIDataSourceBase : public HypObject<UIDataSourceBase>
+class HYP_API UIDataSourceBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(UIDataSourceBase);
 

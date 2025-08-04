@@ -60,6 +60,8 @@ inline Array<char> ToMultiByte(const wchar_t* wstr)
 #define HYP_UTF8_TOMULTIBYTE(str) (str)
 #endif
 
+// #define HYP_UTF8_CHECKED
+
 #define HYP_UTF8_ASSERT(cond)      \
     do                             \
     {                              \
@@ -70,6 +72,8 @@ inline Array<char> ToMultiByte(const wchar_t* wstr)
     }                              \
     while (0)
 
+#ifdef HYP_UTF8_CHECKED
+
 #define HYP_UTF8_CHECK_BOUNDS(idx, max) \
     do                                  \
     {                                   \
@@ -79,6 +83,10 @@ inline Array<char> ToMultiByte(const wchar_t* wstr)
         }                               \
     }                                   \
     while (0)
+
+#else
+#define HYP_UTF8_CHECK_BOUNDS(...)
+#endif
 
 using u32char = uint32;
 using u16char = uint16;
@@ -448,9 +456,9 @@ inline u32char *utf32Strcat(u32char *dst, const u32char *src)
 #endif
 
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
- *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
+ *   \ref{str} _must_ be at least sizeof(u32char)
  */
-inline u32char Char8to32(const char* str, SizeType max = sizeof(u32char))
+static inline HYP_FORCE_INLINE u32char Char8to32(const char* str)
 {
     union
     {
@@ -471,25 +479,25 @@ inline u32char Char8to32(const char* str, SizeType max = sizeof(u32char))
     else if ((ch & 0xE0) == 0xC0)
     {
         retBytes[0] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[1] = str[i];
     }
     else if ((ch & 0xF0) == 0xE0)
     {
         retBytes[0] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[1] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[2] = str[i];
     }
     else if ((ch & 0xF8) == 0xF0)
     {
         retBytes[0] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[1] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[2] = str[i++];
-        HYP_UTF8_CHECK_BOUNDS(i, max);
+        HYP_UTF8_CHECK_BOUNDS(i, sizeof(u32char));
         retBytes[3] = str[i];
     }
     else
@@ -504,7 +512,7 @@ inline u32char Char8to32(const char* str, SizeType max = sizeof(u32char))
 /*! \brief Convert a single utf-8 character (multiple code units) into a single utf-32 char
  *   \ref{str} _must_ be at least the the size of `max` (defaults to sizeof(u32char))
  */
-inline u32char Char8to32(const char* str, SizeType max, SizeType& outCodepoints)
+static inline HYP_FORCE_INLINE u32char Char8to32(const char* str, SizeType max, SizeType& outCodepoints)
 {
     union
     {
@@ -558,29 +566,26 @@ inline u32char Char8to32(const char* str, SizeType max, SizeType& outCodepoints)
 /*! \brief Convert a single UTF-32 char to UTF-8 array of code points.
  *  The array at \ref{dst} MUST have a sizeof u32char (4 bytes)
  */
-inline void Char32to8(u32char src, u8char* dst, SizeType& outCodepoints)
+static inline HYP_FORCE_INLINE void Char32to8(u32char src, u8char* dst, SizeType& outCodepoints)
 {
+    // set all dst bytes to 0
+    *reinterpret_cast<u32char*>(dst) = 0;
+
     outCodepoints = 0;
-
-    // set all bytes to 0
-    std::memset(dst, 0, sizeof(u32char));
-
+    
     const char* srcBytes = reinterpret_cast<char*>(&src);
-
-    for (int i = 0; i < sizeof(u32char); i++)
-    {
-        if (srcBytes[i] == '\0')
-        {
-            // stop reading
-            break;
-        }
-
-        dst[i] = srcBytes[i];
-        outCodepoints++;
-    }
+    
+    if (HYP_UNLIKELY(!*srcBytes)) return;
+    dst[outCodepoints++] = *(srcBytes++);
+    if (!*srcBytes) return;
+    dst[outCodepoints++] = *(srcBytes++);
+    if (!*srcBytes) return;
+    dst[outCodepoints++] = *(srcBytes++);
+    if (!*srcBytes) return;
+    dst[outCodepoints++] = *(srcBytes++);
 }
 
-inline void Char32to8(u32char src, u8char* dst)
+static inline void Char32to8(u32char src, u8char* dst)
 {
     SizeType codepoints = 0;
     Char32to8(src, dst, codepoints);

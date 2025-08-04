@@ -32,7 +32,7 @@ enum class EditorActionStackState : uint32
 HYP_MAKE_ENUM_FLAGS(EditorActionStackState)
 
 HYP_CLASS()
-class HYP_API EditorActionStack : public HypObject<EditorActionStack>
+class HYP_API EditorActionStack : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorActionStack);
 

@@ -325,7 +325,7 @@ void Material::UpdateRenderProxy(IRenderProxy* proxy)
     bufferData.parallaxHeight = GetParameter<float>(MATERIAL_KEY_PARALLAX_HEIGHT);
 
     bufferData.textureUsage = 0;
-    
+
     uint32* textureIndicesU32 = reinterpret_cast<uint32*>(&bufferData.textureIndices);
     Memory::MemSet(textureIndicesU32, 0, sizeof(bufferData.textureIndices));
 
@@ -392,7 +392,7 @@ HashCode Material::GetHashCode() const
 #pragma region MaterialGroup
 
 MaterialGroup::MaterialGroup()
-    : HypObject()
+    : HypObjectBase()
 {
 }
 

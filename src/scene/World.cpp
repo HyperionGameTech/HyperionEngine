@@ -20,6 +20,8 @@
 
 #include <core/object/HypClassUtils.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
@@ -36,11 +38,13 @@
 
 namespace hyperion {
 
+HYP_API extern const GlobalConfig& GetGlobalConfig();
+
 #define HYP_WORLD_ASYNC_SUBSYSTEM_UPDATES
 #define HYP_WORLD_ASYNC_VIEW_COLLECTION
 
 World::World()
-    : HypObject(),
+    : HypObjectBase(),
       m_worldGrid(CreateObject<WorldGrid>(this)),
       m_detachedScenes(this),
       m_raytracingView(nullptr),
@@ -143,7 +147,7 @@ void World::Init()
     // Create a View that is intended to collect objects used by RT gi/reflections
     // since we'll need to have resources bound even if they aren't directly in any camera's view frustum.
     // (for example there could be some stuff behind the player we want to see reflections of)
-    if (g_engine->GetAppContext()->GetConfiguration().Get("rendering.raytracing.enabled").ToBool(false))
+    if (GetGlobalConfig().Get("rendering.raytracing.enabled").ToBool(false))
     {
         // dummy output target
         ViewOutputTargetDesc outputTargetDesc {

@@ -37,7 +37,7 @@ enum class PhysicsShapeType : uint32
 };
 
 HYP_CLASS(Abstract)
-class PhysicsShape : public HypObject<PhysicsShape>
+class PhysicsShape : public HypObjectBase
 {
     HYP_OBJECT_BODY(PhysicsShape);
 
@@ -184,7 +184,7 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API RigidBody final : public HypObject<RigidBody>
+class HYP_API RigidBody final : public HypObjectBase
 {
     HYP_OBJECT_BODY(RigidBody);
 

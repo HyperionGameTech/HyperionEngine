@@ -33,7 +33,7 @@ class Material;
 
 /*! \brief Represents a 3D mesh in the engine, containing vertex data, indices, and rendering attributes. */
 HYP_CLASS()
-class HYP_API Mesh final : public HypObject<Mesh>
+class HYP_API Mesh final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Mesh);
 

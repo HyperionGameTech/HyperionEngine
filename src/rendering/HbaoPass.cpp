@@ -19,6 +19,8 @@
 
 #include <core/math/Vector2.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -29,6 +31,8 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Rendering);
+
+HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 struct HBAOUniforms
 {
@@ -84,7 +88,7 @@ void HBAO::Create()
     HYP_SCOPE;
 
     ShaderProperties shaderProperties;
-    shaderProperties.Set(NAME("HBIL_ENABLED"), g_engine->GetAppContext()->GetConfiguration().Get("rendering.hbil.enabled").ToBool());
+    shaderProperties.Set(NAME("HBIL_ENABLED"), GetGlobalConfig().Get("rendering.hbil.enabled").ToBool());
 
     if (ShouldRenderHalfRes())
     {

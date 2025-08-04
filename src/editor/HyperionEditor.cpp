@@ -201,7 +201,7 @@ void HyperionEditor::Init()
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         5.0f);
 
-    sunEntity->Attach(sunNode);
+    sunEntity->AttachTo(sunNode);
 #endif
 
     // Add Skybox

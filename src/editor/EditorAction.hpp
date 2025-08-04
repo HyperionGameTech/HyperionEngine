@@ -24,7 +24,7 @@ class EditorSubsystem;
 class EditorProject;
 
 HYP_CLASS(Abstract)
-class EditorActionBase : public HypObject<EditorActionBase>
+class EditorActionBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorActionBase);
 

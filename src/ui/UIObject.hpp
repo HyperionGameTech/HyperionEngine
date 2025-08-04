@@ -495,7 +495,7 @@ struct UIObjectSpawnContext
 #pragma region UIObject
 
 HYP_CLASS(Abstract)
-class HYP_API UIObject : public HypObject<UIObject>
+class HYP_API UIObject : public HypObjectBase
 {
     HYP_OBJECT_BODY(UIObject);
 

@@ -78,7 +78,7 @@ public:
 };
 
 HYP_CLASS()
-class HYP_API Scene final : public HypObject<Scene>
+class HYP_API Scene final : public HypObjectBase
 {
     friend class World;
     friend class UIStage;

@@ -84,14 +84,78 @@ static String GetIndentationString(uint32 depth)
     return indentation;
 }
 
-template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T>& subscriptWrapper, Span<UTF8StringView> parts, bool createIntermediateObjects = false);
+template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWrapper, UTF8StringView path, bool createIntermediateObjects)
+{
+    if (path.Size() == 0)
+    {
+        return subscriptWrapper;
+    }
+
+    static constexpr utf::u32char separator = utf::u32char('.');
+    
+    JSONSubscriptWrapper<T> elementSubscriptWrapper = subscriptWrapper;
+
+    while (elementSubscriptWrapper.value && elementSubscriptWrapper.value->IsObject())
+    {
+        SizeType characterIndex = 0;
+        UTF8StringView curr = path;
+
+        for (utf::u32char ch : path)
+        {
+            if (ch == separator)
+            {
+                curr = path.Substr(0, characterIndex);
+                path = path.Substr(characterIndex + 1, SizeType(-1));
+                
+                ++characterIndex;
+
+                break;
+            }
+            
+            ++characterIndex;
+        }
+
+        auto& asObject = elementSubscriptWrapper.value->AsObject();
+
+        auto it = asObject.FindAs(curr);
+
+        if (it == asObject.End())
+        {
+            if (!createIntermediateObjects)
+            {
+                return { nullptr };
+            }
+
+            it = asObject.Insert(curr, JSONUndefined()).first;
+        }
+
+        auto& value = it->second;
+
+        if (createIntermediateObjects && (value.IsUndefined() || value.IsNull()))
+        {
+            value = JSONObject();
+        }
+
+        elementSubscriptWrapper = JSONSubscriptWrapper<T> { &value };
+        
+        if (curr.Data() == path.Data()) // no separator found if pointers are the same
+        {
+            return elementSubscriptWrapper;
+        }
+    }
+
+    return elementSubscriptWrapper;
+}
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWrapper, Span<UTF8StringView> parts);
+JSONSubscriptWrapper<const T> SelectHelper(const JSONSubscriptWrapper<const T>& subscriptWrapper, UTF8StringView path)
+{
+    return SelectHelper(JSONSubscriptWrapper<T>(const_cast<T* const>(subscriptWrapper.value)), path, false);
+}
 
-template <class T>
-JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T>& subscriptWrapper, Span<UTF8StringView> parts, bool createIntermediateObjects)
+template <class T, typename = std::enable_if_t<!std::is_const_v<T>>>
+JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWrapper, Span<UTF8StringView> parts, bool createIntermediateObjects)
 {
     if (parts.Size() == 0)
     {
@@ -133,44 +197,9 @@ JSONSubscriptWrapper<T> SelectHelper(JSONSubscriptWrapper<T>& subscriptWrapper, 
 }
 
 template <class T>
-JSONSubscriptWrapper<T> SelectHelper(const JSONSubscriptWrapper<T>& subscriptWrapper, Span<UTF8StringView> parts)
+JSONSubscriptWrapper<const T> SelectHelper(const JSONSubscriptWrapper<const T>& subscriptWrapper, Span<UTF8StringView> parts)
 {
-    if (parts.Size() == 0)
-    {
-        return subscriptWrapper;
-    }
-
-    if (!subscriptWrapper.value)
-    {
-        return subscriptWrapper;
-    }
-
-    if (subscriptWrapper.value->IsObject())
-    {
-        auto& asObject = subscriptWrapper.value->AsObject();
-
-        auto it = asObject.FindAs(*parts.Begin());
-
-        if (it == asObject.End())
-        {
-            return { nullptr };
-        }
-
-        auto& value = it->second;
-
-        if (parts.Size() == 1)
-        {
-            return JSONSubscriptWrapper<T> { &value };
-        }
-        else
-        {
-            return SelectHelper(
-                JSONSubscriptWrapper<T> { &value },
-                parts + 1);
-        }
-    }
-
-    return JSONSubscriptWrapper<T> { nullptr };
+    return SelectHelper(JSONSubscriptWrapper<T>(const_cast<T* const>(subscriptWrapper.value)), parts, false);
 }
 
 #pragma endregion Helpers
@@ -367,7 +396,7 @@ JSONSubscriptWrapper<JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringV
         return *this;
     }
 
-    return SelectHelper(*this, SplitStringView(path, '.').ToSpan(), createIntermediateObjects);
+    return SelectHelper(*this, path, createIntermediateObjects);
 }
 
 JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8StringView path) const
@@ -377,7 +406,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<JSONValue>::Get(UTF8S
         return JSONSubscriptWrapper<const JSONValue> { value };
     }
 
-    return SelectHelper(JSONSubscriptWrapper<const JSONValue> { value }, SplitStringView(path, '.').ToSpan());
+    return SelectHelper(JSONSubscriptWrapper<const JSONValue> { value }, path);
 }
 
 void JSONSubscriptWrapper<JSONValue>::Set(UTF8StringView path, const JSONValue& value)
@@ -610,7 +639,7 @@ JSONSubscriptWrapper<const JSONValue> JSONSubscriptWrapper<const JSONValue>::Get
         return *this;
     }
 
-    return SelectHelper(*this, SplitStringView(path, '.').ToSpan());
+    return SelectHelper(*this, path);
 }
 
 HashCode JSONSubscriptWrapper<const JSONValue>::GetHashCode() const

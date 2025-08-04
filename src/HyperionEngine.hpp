@@ -1,8 +1,10 @@
-/* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
+/* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #pragma once
+
 #include <core/Handle.hpp>
 #include <core/Defines.hpp>
+#include <core/config/Config.hpp>
 
 namespace hyperion {
 
@@ -24,6 +26,8 @@ HYP_API const CommandLineArguments& GetCommandLineArguments();
 HYP_API const FilePath& GetExecutablePath();
 
 HYP_API const FilePath& GetResourceDirectory();
+
+HYP_API const GlobalConfig& GetGlobalConfig();
 
 HYP_API bool InitializeEngine(int argc, char** argv);
 HYP_API void DestroyEngine();

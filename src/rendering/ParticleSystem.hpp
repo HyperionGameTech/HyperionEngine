@@ -36,7 +36,7 @@ struct ParticleSpawnerParams
 };
 
 HYP_CLASS()
-class HYP_API ParticleSpawner final : public HypObject<ParticleSpawner>
+class HYP_API ParticleSpawner final : public HypObjectBase
 {
     HYP_OBJECT_BODY(ParticleSpawner);
 
@@ -96,7 +96,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API ParticleSystem : public HypObject<ParticleSystem>
+class HYP_API ParticleSystem : public HypObjectBase
 {
     HYP_OBJECT_BODY(ParticleSystem);
 

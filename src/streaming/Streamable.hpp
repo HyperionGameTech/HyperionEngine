@@ -44,7 +44,7 @@ struct StreamableKey
 };
 
 HYP_CLASS(Abstract)
-class HYP_API StreamableBase : public HypObject<StreamableBase>
+class HYP_API StreamableBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(StreamableBase);
 

@@ -71,7 +71,7 @@ struct WindowOptions
 };
 
 HYP_CLASS(Abstract)
-class HYP_API ApplicationWindow : public HypObject<ApplicationWindow>
+class HYP_API ApplicationWindow : public HypObjectBase
 {
     HYP_OBJECT_BODY(ApplicationWindow);
 
@@ -152,7 +152,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API AppContextBase : public HypObject<AppContextBase>
+class HYP_API AppContextBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(AppContextBase);
 
@@ -163,16 +163,6 @@ public:
     HYP_FORCE_INLINE const ANSIString& GetAppName() const
     {
         return m_name;
-    }
-
-    HYP_FORCE_INLINE GlobalConfig& GetConfiguration()
-    {
-        return m_configuration;
-    }
-
-    HYP_FORCE_INLINE const GlobalConfig& GetConfiguration() const
-    {
-        return m_configuration;
     }
 
     HYP_FORCE_INLINE ApplicationWindow* GetMainWindow() const
@@ -205,7 +195,6 @@ protected:
     Handle<ApplicationWindow> m_mainWindow;
     Handle<InputManager> m_inputManager;
     ANSIString m_name;
-    GlobalConfig m_configuration;
     Handle<Game> m_game;
 };
 

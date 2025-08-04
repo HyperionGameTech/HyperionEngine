@@ -37,6 +37,8 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/threading/TaskSystem.hpp>
 #include <core/threading/TaskThread.hpp>
 
@@ -59,6 +61,8 @@
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 static constexpr uint32 g_maxBouncesCpu = 4;
 
@@ -292,7 +296,7 @@ private:
 
 uint32 LightmapThreadPool::NumThreadsToCreate()
 {
-    uint32 numThreads = g_engine->GetAppContext()->GetConfiguration().Get("lightmapper.numThreadsPerJob").ToUInt32(4);
+    uint32 numThreads = GetGlobalConfig().Get("lightmapper.numThreadsPerJob").ToUInt32(4);
     return MathUtil::Clamp(numThreads, 1u, 128u);
 }
 

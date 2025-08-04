@@ -32,7 +32,7 @@ class WorldGridLayer;
 class StreamingManager;
 
 HYP_CLASS()
-class HYP_API WorldGrid final : public HypObject<WorldGrid>
+class HYP_API WorldGrid final : public HypObjectBase
 {
     HYP_OBJECT_BODY(WorldGrid);
 

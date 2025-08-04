@@ -170,7 +170,7 @@ struct NodeUnlockTransformScope;
 HYP_API extern void Node_OnPostLoad(Node& node);
 
 HYP_CLASS(PostLoad = "Node_OnPostLoad")
-class HYP_API Node : public HypObject<Node>
+class HYP_API Node : public HypObjectBase
 {
     friend class Scene;
     friend class Entity;

@@ -137,7 +137,7 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
     }
 }
 
-void Entity::Attach(const Handle<Node>& attachNode)
+void Entity::AttachTo(const Handle<Node>& attachNode)
 {
     { // detach from node if already attached.
         EntityManager* entityManager = GetEntityManager();

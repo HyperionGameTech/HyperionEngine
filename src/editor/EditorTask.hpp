@@ -25,7 +25,7 @@ class UIObject;
 class EditorTaskThread;
 
 HYP_CLASS(Abstract)
-class EditorTaskBase : public HypObject<EditorTaskBase>
+class EditorTaskBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorTaskBase);
 

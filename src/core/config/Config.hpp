@@ -93,10 +93,10 @@ class HYP_API ConfigurationTable
     friend class ConfigBase;
 
 protected:
-    ConfigurationTable();
     ConfigurationTable(const String& configName, const HypClass* hypClass);
 
 public:
+    ConfigurationTable();
     ConfigurationTable(const String& configName);
     ConfigurationTable(const String& configName, const String& subobjectPath);
     ConfigurationTable(const ConfigurationTable& other);

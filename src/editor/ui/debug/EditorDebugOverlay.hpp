@@ -19,7 +19,7 @@ class UIStage;
 class Texture;
 
 HYP_CLASS(Abstract)
-class HYP_API EditorDebugOverlayBase : public HypObject<EditorDebugOverlayBase>
+class HYP_API EditorDebugOverlayBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorDebugOverlayBase);
 

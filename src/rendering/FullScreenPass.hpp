@@ -30,7 +30,7 @@ class GBuffer;
 struct RenderSetup;
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API FullScreenPass : public HypObject<FullScreenPass>
+class HYP_API FullScreenPass : public HypObjectBase
 {
     HYP_OBJECT_BODY(FullScreenPass);
 

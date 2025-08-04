@@ -64,7 +64,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API World final : public HypObject<World>
+class HYP_API World final : public HypObjectBase
 {
     HYP_OBJECT_BODY(World);
 
@@ -181,7 +181,7 @@ public:
     /*! \brief Get Views attached to this World. Buffered so it is safe to access from either the render thread or game thread. */
     Span<const Handle<View>> GetViews() const;
 
-    //! May be null if raytracing is not enabled
+    /*! \brief Gets the View responsible for collecting objects used in ray tracing. Will return nullptr if ray tracing is not enabled. */
     HYP_FORCE_INLINE View* GetRaytracingView() const
     {
         return m_raytracingView;

@@ -742,7 +742,7 @@ private:
 };
 
 HYP_CLASS()
-class MaterialGroup final : public HypObject<MaterialGroup>
+class MaterialGroup final : public HypObjectBase
 {
     HYP_OBJECT_BODY(MaterialGroup);
 

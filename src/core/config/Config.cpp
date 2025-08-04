@@ -184,7 +184,7 @@ ConfigurationTable& ConfigurationTable::Merge(const ConfigurationTable& other)
         targetObject = json::JSONObject();
     }
 
-    targetObject.AsObject().Merge(otherSubobject.AsObject());
+    targetObject.AsObject().MergeDeep(otherSubobject.AsObject());
 
     return *this;
 }

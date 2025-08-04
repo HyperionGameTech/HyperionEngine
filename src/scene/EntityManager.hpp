@@ -260,7 +260,7 @@ private:
 class EntityManager;
 /*! \brief The EntityManager is responsible for managing Entities, their components, and Systems within a Scene. */
 HYP_CLASS()
-class HYP_API EntityManager final : public HypObject<EntityManager>
+class HYP_API EntityManager final : public HypObjectBase
 {
     HYP_OBJECT_BODY(EntityManager);
 

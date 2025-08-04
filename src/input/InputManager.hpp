@@ -66,7 +66,7 @@ private:
 };
 
 HYP_CLASS()
-class InputManager : public HypObject<InputManager>
+class InputManager : public HypObjectBase
 {
     HYP_OBJECT_BODY(InputManager);
 

@@ -15,7 +15,7 @@
 namespace hyperion {
 
 HYP_CLASS(Abstract)
-class HYP_API ConsoleCommandBase : public HypObject<ConsoleCommandBase>
+class HYP_API ConsoleCommandBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(ConsoleCommandBase);
 

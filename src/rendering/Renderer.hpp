@@ -221,7 +221,7 @@ protected:
 /*! \brief Data and passes used for rendering a View in the Deferred Renderer. */
 
 HYP_CLASS(NoScriptBindings)
-class HYP_API PassData : public HypObject<PassData>
+class HYP_API PassData : public HypObjectBase
 {
     HYP_OBJECT_BODY(PassData);
 

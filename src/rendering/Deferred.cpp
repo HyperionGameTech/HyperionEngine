@@ -38,6 +38,8 @@
 #include <scene/EnvGrid.hpp>
 #include <scene/EnvProbe.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <core/profiling/ProfileScope.hpp>
 
 #include <core/filesystem/FsUtil.hpp>
@@ -80,26 +82,28 @@ static const Float16 g_ltcBrdf[] = {
 
 static_assert(sizeof(g_ltcBrdf) == 64 * 64 * 4 * 2, "Invalid LTC BRDF size");
 
+HYP_API extern const GlobalConfig& GetGlobalConfig();
+
 void GetDeferredShaderProperties(ShaderProperties& outShaderProperties)
 {
-    const GlobalConfig& appConfig = g_engine->GetAppContext()->GetConfiguration();
-    const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
+    static const GlobalConfig& globalConfig = GetGlobalConfig();
+    static const IRenderConfig& renderConfig = g_renderBackend->GetRenderConfig();
 
-    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.IsRaytracingSupported() && appConfig.Get("rendering.raytracing.reflections.enabled").ToBool());
-    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.IsRaytracingSupported() && appConfig.Get("rendering.raytracing.globalIllumination.enabled").ToBool());
-    outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), appConfig.Get("rendering.envGrid.globalIllumination.enabled").ToBool());
-    outShaderProperties.Set(NAME("HBIL_ENABLED"), appConfig.Get("rendering.hbil.enabled").ToBool());
-    outShaderProperties.Set(NAME("HBAO_ENABLED"), appConfig.Get("rendering.hbao.enabled").ToBool());
+    outShaderProperties.Set(NAME("RT_REFLECTIONS_ENABLED"), renderConfig.IsRaytracingSupported() && globalConfig.Get("rendering.raytracing.reflections.enabled").ToBool());
+    outShaderProperties.Set(NAME("RT_GI_ENABLED"), renderConfig.IsRaytracingSupported() && globalConfig.Get("rendering.raytracing.globalIllumination.enabled").ToBool());
+    outShaderProperties.Set(NAME("ENV_GRID_ENABLED"), globalConfig.Get("rendering.envGrid.globalIllumination.enabled").ToBool());
+    outShaderProperties.Set(NAME("HBIL_ENABLED"), globalConfig.Get("rendering.hbil.enabled").ToBool());
+    outShaderProperties.Set(NAME("HBAO_ENABLED"), globalConfig.Get("rendering.hbao.enabled").ToBool());
 
-    if (appConfig.Get("rendering.raytracing.pathTracing.enabled").ToBool())
+    if (globalConfig.Get("rendering.raytracing.pathTracing.enabled").ToBool())
     {
         outShaderProperties.Set(NAME("PATHTRACER"));
     }
-    else if (appConfig.Get("rendering.debug.reflections").ToBool())
+    else if (globalConfig.Get("rendering.debug.reflections").ToBool())
     {
         outShaderProperties.Set(NAME("DEBUG_REFLECTIONS"));
     }
-    else if (appConfig.Get("rendering.debug.irradiance").ToBool())
+    else if (globalConfig.Get("rendering.debug.irradiance").ToBool())
     {
         outShaderProperties.Set(NAME("DEBUG_IRRADIANCE"));
     }
@@ -745,8 +749,10 @@ void ReflectionsPass::CreatePipeline(const RenderableAttributeSet& renderableAtt
 
 bool ReflectionsPass::ShouldRenderSSR() const
 {
-    return g_engine->GetAppContext()->GetConfiguration().Get("rendering.ssr.enabled").ToBool(true)
-        && !g_engine->GetAppContext()->GetConfiguration().Get("rendering.raytracing.reflections.enabled").ToBool(false);
+    static const ConfigurationValue& ssrEnabled = GetGlobalConfig().Get("rendering.ssr.enabled");
+    static const ConfigurationValue& raytracingReflectionsEnabled = GetGlobalConfig().Get("rendering.raytracing.reflections.enabled");
+    
+    return ssrEnabled.ToBool(true) && !raytracingReflectionsEnabled.ToBool(false);
 }
 
 void ReflectionsPass::CreateSSRRenderer()
@@ -1105,7 +1111,7 @@ Handle<PassData> DeferredRenderer::CreateViewPassData(View* view, PassDataExt&)
 
         pd->view = view->WeakHandleFromThis();
         pd->viewport = view->GetViewport();
-        
+
         CreateViewTopLevelAccelerationStructures(view, *pd);
 
         return pd;
@@ -1310,7 +1316,7 @@ void DeferredRenderer::CreateViewRaytracingPasses(View* view, DeferredPassData& 
     }
 
     const bool shouldEnableRaytracingForView = view->GetRaytracingView().IsValid()
-        && g_engine->GetAppContext()->GetConfiguration().Get("rendering.raytracing.enabled").ToBool();
+        && GetGlobalConfig().Get("rendering.raytracing.enabled").ToBool();
 
     if (!shouldEnableRaytracingForView)
     {
@@ -1982,13 +1988,13 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
     }
 
     const uint32 frameIndex = frame->GetFrameIndex();
-    
+
     RaytracingPassData* pd = ObjCast<RaytracingPassData>(rs.passData);
 
     RenderProxyList& rpl = RenderApi_GetConsumerProxyList(rs.view);
     rpl.BeginRead();
     HYP_DEFER({ rpl.EndRead(); });
-    
+
     if (TLASRef& tlas = pd->raytracingTlases[frameIndex])
     {
         for (Entity* entity : rpl.GetMeshEntities())

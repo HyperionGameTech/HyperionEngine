@@ -8,6 +8,8 @@
 
 #include <core/logging/Logger.hpp>
 
+#include <core/config/Config.hpp>
+
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDevice.hpp>
 
@@ -26,6 +28,8 @@
 namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Core);
+
+HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 HYP_API const CommandLineArgumentDefinitions& DefaultCommandLineArgumentDefinitions()
 {
@@ -275,7 +279,6 @@ bool SDLAppContext::GetVkExtensions(Array<const char*>& outExtensions) const
 #pragma region AppContextBase
 
 AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& arguments)
-    : m_configuration("app")
 {
     m_inputManager = CreateObject<InputManager>();
 
@@ -283,9 +286,9 @@ AppContextBase::AppContextBase(ANSIString name, const CommandLineArguments& argu
 
     if (m_name.Empty())
     {
-        if (json::JSONValue configAppName = m_configuration.Get("app.name"))
+        if (json::JSONValue configAppName = GetGlobalConfig().Get("app.name"))
         {
-            m_name = m_configuration.Get("app.name").ToString();
+            m_name =  GetGlobalConfig().Get("app.name").ToString();
         }
     }
 }
@@ -312,20 +315,6 @@ void AppContextBase::SetMainWindow(const Handle<ApplicationWindow>& window)
 
 void AppContextBase::UpdateConfigurationOverrides()
 {
-    // if ray tracing is not supported, we need to update the configuration
-    if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
-    {
-        m_configuration.Set("rendering.raytracing.enabled", false);
-        m_configuration.Set("rendering.raytracing.reflections.enabled", false);
-        m_configuration.Set("rendering.raytracing.globalIllumination.enabled", false);
-        m_configuration.Set("rendering.raytracing.pathTracing.enabled", false);
-
-        // Save new configuration to disk
-        if (m_configuration.IsChanged())
-        {
-            m_configuration.Save();
-        }
-    }
 }
 
 #pragma endregion AppContextBase

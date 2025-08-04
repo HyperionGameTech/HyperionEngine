@@ -41,7 +41,7 @@ struct GaussianSplattingModelData
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplattingInstance final : public HypObject<GaussianSplattingInstance>
+class HYP_API GaussianSplattingInstance final : public HypObjectBase
 {
     HYP_OBJECT_BODY(GaussianSplattingInstance);
 
@@ -118,7 +118,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API GaussianSplatting final : public HypObject<GaussianSplatting>
+class HYP_API GaussianSplatting final : public HypObjectBase
 {
     HYP_OBJECT_BODY(GaussianSplatting);
 

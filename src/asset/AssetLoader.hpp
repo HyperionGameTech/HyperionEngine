@@ -367,7 +367,7 @@ template <class T>
 using TAssetLoadResult = TResult<TLoadedAsset<T>, AssetLoadError>;
 
 HYP_CLASS(Abstract)
-class HYP_API AssetLoaderBase : public HypObject<AssetLoaderBase>
+class HYP_API AssetLoaderBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetLoaderBase);
 

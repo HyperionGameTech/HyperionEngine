@@ -56,6 +56,9 @@ IRenderBackend* g_renderBackend = nullptr;
 RenderGlobalState* g_renderGlobalState = nullptr;
 ShaderCompiler* g_shaderCompiler = nullptr;
 
+static LinkedList<GlobalConfig> g_globalConfigChain;
+static Mutex g_globalConfigMutex;
+
 static CommandLineArguments g_commandLineArguments;
 
 static void HandleFatalError(const char* message)
@@ -142,6 +145,40 @@ HYP_API const FilePath& GetResourceDirectory()
     return resourceDirectoryData.path;
 }
 
+static void UpdateGlobalConfig(const ConfigurationTable& mergeValues)
+{
+    Mutex::Guard guard(g_globalConfigMutex);
+    
+    GlobalConfig* prevGlobalConfig = nullptr;
+    
+    if (g_globalConfigChain.Any())
+    {
+        prevGlobalConfig = &g_globalConfigChain.Back();
+    }
+    
+    GlobalConfig& newGlobalConfig = g_globalConfigChain.EmplaceBack("app");
+    
+    if (prevGlobalConfig != nullptr)
+    {
+        newGlobalConfig.Merge(*prevGlobalConfig);
+    }
+    
+    newGlobalConfig.Merge(mergeValues);
+    newGlobalConfig.Save();
+}
+
+HYP_API const GlobalConfig& GetGlobalConfig()
+{
+    Mutex::Guard guard(g_globalConfigMutex);
+    
+    if (g_globalConfigChain.Empty())
+    {
+        g_globalConfigChain.EmplaceBack("app");
+    }
+    
+    return g_globalConfigChain.Back();
+}
+
 HYP_API bool InitializeEngine(int argc, char** argv)
 {
     Logger::GetInstance().fatalErrorHook = &HandleFatalError;
@@ -151,6 +188,11 @@ HYP_API bool InitializeEngine(int argc, char** argv)
     InitializeNameRegistry();
 
     HypClassRegistry::GetInstance().Initialize();
+    
+    {
+        Mutex::Guard guard(g_globalConfigMutex);
+        g_globalConfigChain.EmplaceBack("app");
+    }
 
     if (!InitializeCommandLineArguments(argc, argv))
     {
@@ -169,6 +211,19 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 #else
 #error Unsupported rendering backend
 #endif
+    
+    ConfigurationTable renderGlobalConfigOverrides;
+    
+    // if ray tracing is not supported, we need to update the configuration
+    if (!g_renderBackend->GetRenderConfig().IsRaytracingSupported())
+    {
+        renderGlobalConfigOverrides.Set("rendering.raytracing.enabled", false);
+        renderGlobalConfigOverrides.Set("rendering.raytracing.reflections.enabled", false);
+        renderGlobalConfigOverrides.Set("rendering.raytracing.globalIllumination.enabled", false);
+        renderGlobalConfigOverrides.Set("rendering.raytracing.pathTracing.enabled", false);
+        
+        UpdateGlobalConfig(renderGlobalConfigOverrides);
+    }
 
     g_engine = CreateObject<Engine>();
 
@@ -231,6 +286,8 @@ HYP_API void DestroyEngine()
 
     delete g_renderBackend;
     g_renderBackend = nullptr;
+    
+    g_globalConfigChain.Clear();
 }
 
 } // namespace hyperion

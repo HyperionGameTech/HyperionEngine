@@ -9,7 +9,7 @@ namespace hyperion {
 class IRenderProxy;
 
 HYP_CLASS(Abstract)
-class HYP_API RenderProxyable : public HypObject<RenderProxyable>
+class HYP_API RenderProxyable : public HypObjectBase
 {
     HYP_OBJECT_BODY(RenderProxyable);
 

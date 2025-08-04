@@ -72,7 +72,7 @@ public:
      *  \param [in] attachNode The Node to attach the Entity to.
      */
     HYP_METHOD()
-    virtual void Attach(const Handle<Node>& attachNode);
+    virtual void AttachTo(const Handle<Node>& attachNode);
 
     /*! \brief Detaches this Entity from its current Node, if it is attached to one.
      *

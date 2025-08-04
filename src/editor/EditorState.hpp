@@ -17,7 +17,7 @@ namespace hyperion {
 class EditorProject;
 
 HYP_CLASS()
-class HYP_API EditorState : public HypObject<EditorState>
+class HYP_API EditorState : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorState);
 

@@ -29,6 +29,8 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <HyperionEngine.hpp>
+
 #include <EngineGlobals.hpp>
 #include <Engine.hpp>
 
@@ -513,6 +515,13 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
+    
+    static const ConfigurationValue& globalIlluminationEnabled = GetGlobalConfig().Get("rendering.envGrid.globalIllumination.enabled");
+
+    if (!globalIlluminationEnabled.ToBool())
+    {
+        return;
+    }
 
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.envGrid != nullptr);

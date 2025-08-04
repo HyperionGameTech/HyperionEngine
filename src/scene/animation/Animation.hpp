@@ -27,7 +27,7 @@ struct AnimationTrackDesc
 };
 
 HYP_CLASS()
-class AnimationTrack final : public HypObject<AnimationTrack>
+class AnimationTrack final : public HypObjectBase
 {
     HYP_OBJECT_BODY(AnimationTrack);
 
@@ -71,7 +71,7 @@ private:
 };
 
 HYP_CLASS()
-class Animation final : public HypObject<Animation>
+class Animation final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Animation);
 

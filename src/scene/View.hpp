@@ -134,7 +134,7 @@ private:
 };
 
 HYP_CLASS()
-class HYP_API View final : public HypObject<View>
+class HYP_API View final : public HypObjectBase
 {
     HYP_OBJECT_BODY(View);
 

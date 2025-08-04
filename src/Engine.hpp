@@ -57,7 +57,7 @@ struct EngineDelegates
 };
 
 HYP_CLASS()
-class Engine final : public HypObject<Engine>
+class Engine final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Engine);
 

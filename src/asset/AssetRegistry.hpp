@@ -139,7 +139,7 @@ enum AssetObjectFlags : uint32
 HYP_MAKE_ENUM_FLAGS(AssetObjectFlags);
 
 HYP_CLASS(Abstract)
-class HYP_API AssetObject : public HypObject<AssetObject>
+class HYP_API AssetObject : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetObject);
 
@@ -300,7 +300,7 @@ enum AssetPackageFlags : uint32
 HYP_MAKE_ENUM_FLAGS(AssetPackageFlags);
 
 HYP_CLASS()
-class HYP_API AssetPackage final : public HypObject<AssetPackage>
+class HYP_API AssetPackage final : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetPackage);
 
@@ -492,7 +492,7 @@ enum class AssetRegistryPathType : uint8
 };
 
 HYP_CLASS()
-class HYP_API AssetRegistry final : public HypObject<AssetRegistry>
+class HYP_API AssetRegistry final : public HypObjectBase
 {
     HYP_OBJECT_BODY(AssetRegistry);
 

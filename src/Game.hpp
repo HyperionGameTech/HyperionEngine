@@ -39,7 +39,7 @@ struct ManagedGameInfo
 };
 
 HYP_CLASS(Abstract)
-class HYP_API Game : public HypObject<Game>
+class HYP_API Game : public HypObjectBase
 {
     friend class GameThread;
     friend class Engine;

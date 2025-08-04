@@ -4,7 +4,6 @@
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
-
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderImage.hpp>
@@ -27,6 +26,8 @@
 #include <core/logging/Logger.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
+#include <HyperionEngine.hpp>
 
 #include <EngineGlobals.hpp>
 #include <Engine.hpp>

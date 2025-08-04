@@ -68,13 +68,13 @@ Pair<Array<Vertex>, Array<uint32>> Mesh::CalculateIndices(const Array<Vertex>& v
 }
 
 Mesh::Mesh()
-    : HypObject(),
+    : HypObjectBase(),
       m_aabb(BoundingBox::Empty())
 {
 }
 
 Mesh::Mesh(const Handle<MeshAsset>& asset, Topology topology, const VertexAttributeSet& vertexAttributes)
-    : HypObject(),
+    : HypObjectBase(),
       m_asset(asset),
       m_aabb(BoundingBox::Empty())
 {
@@ -101,7 +101,7 @@ Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topolog
 }
 
 Mesh::Mesh(const Array<Vertex>& vertexData, const ByteBuffer& indexData, Topology topology, const VertexAttributeSet& vertexAttributes)
-    : HypObject(),
+    : HypObjectBase(),
       m_aabb(BoundingBox::Empty())
 {
     const MeshDesc meshDesc {
@@ -148,7 +148,7 @@ Mesh::~Mesh()
     if (IsInitCalled())
     {
         SetReady(false);
-        
+
         SafeRelease(std::move(m_vertexBuffer));
         SafeRelease(std::move(m_indexBuffer));
     }

@@ -37,7 +37,7 @@ class StreamingNotifier final : public Semaphore<int32, SemaphoreDirection::WAIT
 };
 
 HYP_CLASS()
-class HYP_API StreamingManager final : public HypObject<StreamingManager>
+class HYP_API StreamingManager final : public HypObjectBase
 {
     HYP_OBJECT_BODY(StreamingManager);
 

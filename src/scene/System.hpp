@@ -52,7 +52,7 @@ public:
 };
 
 HYP_CLASS(Abstract)
-class HYP_API SystemBase : public HypObject<SystemBase>
+class HYP_API SystemBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(SystemBase);
 

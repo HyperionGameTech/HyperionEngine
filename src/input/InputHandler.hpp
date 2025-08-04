@@ -17,7 +17,7 @@ namespace hyperion {
 struct InputState;
 
 HYP_CLASS(Abstract)
-class HYP_API InputHandlerBase : public HypObject<InputHandlerBase>
+class HYP_API InputHandlerBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(InputHandlerBase);
 

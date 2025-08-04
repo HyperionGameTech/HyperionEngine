@@ -48,7 +48,7 @@ struct WorldGridLayerInfo
 };
 
 HYP_CLASS()
-class HYP_API WorldGridLayer : public HypObject<WorldGridLayer>
+class HYP_API WorldGridLayer : public HypObjectBase
 {
     HYP_OBJECT_BODY(WorldGridLayer);
 

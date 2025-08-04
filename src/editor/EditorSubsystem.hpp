@@ -157,7 +157,7 @@ enum class EditorManipulationMode
 
 /*! \brief A widget that can manipulate the selected object. (e.g translate, rotate, scale) */
 HYP_CLASS(Abstract)
-class HYP_API EditorManipulationWidgetBase : public HypObject<EditorManipulationWidgetBase>
+class HYP_API EditorManipulationWidgetBase : public HypObjectBase
 {
     HYP_OBJECT_BODY(EditorManipulationWidgetBase);
 
