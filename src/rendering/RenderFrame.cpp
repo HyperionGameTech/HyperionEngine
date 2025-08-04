@@ -28,7 +28,7 @@ void FrameBase::UpdateUsedDescriptorSets()
     {
         HYP_GFX_ASSERT(descriptorSet->IsCreated(),
             "Descriptor set '%s' is not yet created when updating the frame's used descriptor sets!",
-            descriptorSet->GetLayout().GetName().LookupString());
+            *descriptorSet->GetLayout().name);
 
         bool isDirty = false;
         descriptorSet->UpdateDirtyState(&isDirty);
@@ -65,7 +65,7 @@ void FrameBase::UpdateUsedDescriptorSets()
 
         HYP_LOG(Rendering, Debug, "Updating descriptor set {} ({}) for frame '{}' (index: {})",
             (void*)descriptorSet,
-            descriptorSet->GetLayout().GetName().LookupString(),
+            *descriptorSet->GetLayout().name,
             GetDebugName().LookupString(),
             m_frameIndex);
 

@@ -1,5 +1,7 @@
 #include <rendering/lightmapper/LightmapPathTraceGpu.hpp>
 
+#include <rendering/rt/RenderAccelerationStructure.hpp>
+
 #include <rendering/RenderEnvironment.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderHelpers.hpp>
