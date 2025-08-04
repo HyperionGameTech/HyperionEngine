@@ -126,7 +126,12 @@ HYP_API bool IsDebuggerAttached()
 
 HYP_API void LogAssert(const char* str)
 {
+#ifdef HYP_DEBUG_MODE
+    HYP_LOG_DYNAMIC(Core, Error, str);
+    HYP_BREAKPOINT;
+#else
     HYP_LOG_DYNAMIC(Core, Fatal, str);
+#endif
 }
 
 } // namespace debug

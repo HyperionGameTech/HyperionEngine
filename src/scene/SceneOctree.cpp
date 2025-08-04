@@ -177,6 +177,13 @@ void SceneOctree::Clear()
             }
         }
     }
+    
+    if (IsRoot() && UseEntityMap())
+    {
+        SceneOctreeState* stateCasted = static_cast<SceneOctreeState*>(m_state);
+
+        stateCasted->entityToOctant.Clear();
+    }
 
     RebuildEntriesHash();
 }
@@ -222,25 +229,25 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
 
     m_aabb = newAabb;
 
-    if (allowGrow)
+    AssertDebug(!allowGrow || IsRoot(), "allowGrow=true is only allowed on the root node");
+    
+    for (SceneOctreePayload& payload : payloads)
     {
-        Assert(IsRoot());
-
-        for (SceneOctreePayload& payload : payloads)
+        for (SceneOctreePayload::Entry& entry : payload.entries)
         {
-            for (SceneOctreePayload::Entry& entry : payload.entries)
+            if (allowGrow)
             {
                 if (entry.aabb.IsValid() && entry.aabb.IsFinite())
                 {
                     m_aabb = m_aabb.Union(entry.aabb);
                 }
+            }
 
-                if (UseEntityMap() && entry.value != nullptr)
-                {
-                    SceneOctreeState* stateCasted = static_cast<SceneOctreeState*>(m_state);
+            if (UseEntityMap() && entry.value != nullptr)
+            {
+                SceneOctreeState* stateCasted = static_cast<SceneOctreeState*>(m_state);
 
-                    stateCasted->entityToOctant.Erase(entry.value);
-                }
+                stateCasted->entityToOctant.Erase(entry.value);
             }
         }
     }
@@ -426,7 +433,7 @@ SceneOctree::Result SceneOctree::Insert_Internal(Entity* entity, const BoundingB
 
         if (stateCasted->entityToOctant.Find(entity) != stateCasted->entityToOctant.End())
         {
-            return HYP_MAKE_ERROR(Error, "Entry already exists in entry map");
+            return HYP_MAKE_ERROR(Error, "Entity {} already exists in entity to octant map", entity->Id());
         }
 
         stateCasted->entityToOctant[entity] = this;

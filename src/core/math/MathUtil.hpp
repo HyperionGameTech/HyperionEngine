@@ -17,6 +17,10 @@
 #include <limits>
 #include <type_traits>
 
+#if defined(__x86_64__) || defined(__i386__)
+#include <immintrin.h>
+#endif
+
 namespace hyperion {
 
 template <class T>
