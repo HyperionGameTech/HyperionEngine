@@ -239,7 +239,7 @@ HYP_API void Engine::Init()
     m_scriptingService = MakeUnique<ScriptingService>(
         GetResourceDirectory() / "scripts" / "src",
         GetResourceDirectory() / "scripts" / "projects",
-        GetResourceDirectory() / "scripts" / "bin");
+        GetExecutablePath()); // copy script binaries into executable path
 
     m_scriptingService->Start();
 #endif
