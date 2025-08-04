@@ -34,44 +34,6 @@ struct ShaderObject
     }
 };
 
-HYP_ENUM()
-enum ShaderModuleType : uint32
-{
-    SMT_UNSET = 0,
-
-    /* Graphics and general purpose shaders */
-    SMT_VERTEX,
-    SMT_FRAGMENT,
-    SMT_GEOMETRY,
-    SMT_COMPUTE,
-
-    /* Mesh shaders */
-    SMT_TASK,
-    SMT_MESH,
-
-    /* Tesselation */
-    SMT_TESS_CONTROL,
-    SMT_TESS_EVAL,
-
-    /* Raytracing hardware specific */
-    SMT_RAY_GEN,
-    SMT_RAY_INTERSECT,
-    SMT_RAY_ANY_HIT,
-    SMT_RAY_CLOSEST_HIT,
-    SMT_RAY_MISS,
-
-    SMT_MAX
-};
-
-static inline bool IsRaytracingShaderModule(ShaderModuleType type)
-{
-    return type == SMT_RAY_GEN
-        || type == SMT_RAY_INTERSECT
-        || type == SMT_RAY_ANY_HIT
-        || type == SMT_RAY_CLOSEST_HIT
-        || type == SMT_RAY_MISS;
-}
-
 class ShaderBase : public RenderObject<ShaderBase>
 {
 public:

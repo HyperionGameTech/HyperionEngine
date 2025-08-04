@@ -1,121 +1,49 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/RenderBackend.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
+#include <rendering/RenderBackend.hpp>
+#include <rendering/RenderGpuBuffer.hpp>
+#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderSampler.hpp>
 #include <rendering/RenderConfig.hpp>
+#include <rendering/shader_compiler/ShaderCompiler.hpp>
+#include <rendering/rt/RenderAccelerationStructure.hpp>
 
 #include <rendering/Buffers.hpp>
 
 namespace hyperion {
-#pragma region DescriptorSetDeclaration
-
-DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakName name) const
-{
-    for (uint32 slotIndex = 0; slotIndex < DESCRIPTOR_SLOT_MAX; slotIndex++)
-    {
-        for (const DescriptorDeclaration& decl : slots[slotIndex])
-        {
-            if (decl.name == name)
-            {
-                return const_cast<DescriptorDeclaration*>(&decl);
-            }
-        }
-    }
-
-    return nullptr;
-}
-
-uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, WeakName name) const
-{
-    HYP_GFX_ASSERT(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
-
-    uint32 flatIndex = 0;
-
-    for (uint32 slotIndex = 0; slotIndex < uint32(slot); slotIndex++)
-    {
-        if (slotIndex == uint32(slot) - 1)
-        {
-            uint32 declIndex = 0;
-
-            for (const DescriptorDeclaration& decl : slots[slotIndex])
-            {
-                if (decl.name == name)
-                {
-                    return flatIndex + declIndex;
-                }
-
-                declIndex++;
-            }
-        }
-
-        flatIndex += slots[slotIndex].Size();
-    }
-
-    return ~0u;
-}
-
-DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(WeakName name) const
-{
-    for (const DescriptorSetDeclaration& decl : elements)
-    {
-        if (decl.name == name)
-        {
-            return const_cast<DescriptorSetDeclaration*>(&decl);
-        }
-    }
-
-    return nullptr;
-}
-
-DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
-{
-    return &elements.PushBack(std::move(descriptorSetDeclaration));
-}
-
-DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
-{
-    static struct Initializer
-    {
-        DescriptorTableDeclaration decl;
-
-        DescriptorTableDeclaration::DeclareSet globalSet { &decl, 0, NAME("Global") };
-        DescriptorTableDeclaration::DeclareSet viewSet { &decl, 1, NAME("View"), /* isTemplate */ true };
-        DescriptorTableDeclaration::DeclareSet objectSet { &decl, 2, NAME("Object") };
-        DescriptorTableDeclaration::DeclareSet materialSet { &decl, 3, NAME("Material") };
-    } initializer;
-
-    return initializer.decl;
-}
-
-#pragma endregion DescriptorSetDeclaration
 
 #pragma region DescriptorSetLayout
 
 DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
-    : m_decl(decl),
-      m_isTemplate(false),
-      m_isReference(false)
+    : decl(decl),
+      isTemplate(false),
+      isReference(false)
 {
     if (!decl)
     {
         return;
     }
 
-    m_isTemplate = decl->flags[DescriptorSetDeclarationFlags::TEMPLATE];
-    m_isReference = decl->flags[DescriptorSetDeclarationFlags::REFERENCE];
+    name = decl->name;
 
-    if (m_isReference)
+    isTemplate = decl->flags[DescriptorSetDeclarationFlags::TEMPLATE];
+    isReference = decl->flags[DescriptorSetDeclarationFlags::REFERENCE];
+
+    if (isReference)
     {
-        m_decl = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl->name);
+        decl = GetStaticDescriptorTableDeclaration().FindDescriptorSetDeclaration(decl->name);
 
-        HYP_GFX_ASSERT(m_decl != nullptr, "Invalid global descriptor set reference: %s", decl->name.LookupString());
+        HYP_GFX_ASSERT(decl != nullptr, "Invalid global descriptor set reference: %s", decl->name.LookupString());
+
+        this->decl = decl;
     }
 
-    for (const Array<DescriptorDeclaration>& slot : m_decl->slots)
+    for (const Array<DescriptorDeclaration>& slot : decl->slots)
     {
         for (const DescriptorDeclaration& descriptor : slot)
         {
-            const uint32 descriptorIndex = m_decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
+            const uint32 descriptorIndex = decl->CalculateFlatIndex(descriptor.slot, descriptor.name);
             HYP_GFX_ASSERT(descriptorIndex != ~0u);
 
             if (descriptor.cond != nullptr && !descriptor.cond())
@@ -176,7 +104,7 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
     Array<Pair<Name, uint32>> dynamicElementsWithIndex;
 
     // Add to list of dynamic buffer names
-    for (const auto& it : m_elements)
+    for (const auto& it : elements)
     {
         if (it.second.type == DescriptorSetElementType::UNIFORM_BUFFER_DYNAMIC
             || it.second.type == DescriptorSetElementType::STORAGE_BUFFER_DYNAMIC)
@@ -190,12 +118,32 @@ DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetDeclaration* decl)
             return a.second < b.second;
         });
 
-    m_dynamicElements.Resize(dynamicElementsWithIndex.Size());
+    dynamicElements.Resize(dynamicElementsWithIndex.Size());
 
     for (SizeType i = 0; i < dynamicElementsWithIndex.Size(); i++)
     {
-        m_dynamicElements[i] = dynamicElementsWithIndex[i].first;
+        dynamicElements[i] = dynamicElementsWithIndex[i].first;
     }
+}
+
+HashCode DescriptorSetLayout::GetHashCode() const
+{
+    HashCode hc;
+
+    if (!decl)
+    {
+        return hc; // empty hash
+    }
+
+    hc.Add(decl->GetHashCode());
+
+    for (const auto& it : elements)
+    {
+        hc.Add(it.first.GetHashCode());
+        hc.Add(it.second.GetHashCode());
+    }
+
+    return hc;
 }
 
 #pragma endregion DescriptorSetLayout
@@ -274,5 +222,132 @@ void DescriptorSetBase::SetElement(Name name, const TLASRef& ref)
 }
 
 #pragma endregion DescriptorSetBase
+
+#pragma region DescriptorTableBase
+
+void DescriptorTableBase::Update(uint32 frameIndex, bool force)
+{
+    if (!IsValid())
+    {
+        return;
+    }
+
+    for (const DescriptorSetRef& set : m_sets[frameIndex])
+    {
+        const DescriptorSetLayout& layout = set->GetLayout();
+
+        if (layout.IsReference() || layout.IsTemplate())
+        {
+            // references are updated elsewhere
+            // template descriptor sets are not updated (no handle to update)
+            continue;
+        }
+
+        bool isDirty = false;
+        set->UpdateDirtyState(&isDirty);
+
+        if (!isDirty && !force)
+        {
+            continue;
+        }
+
+        set->Update(force);
+    }
+}
+
+const DescriptorSetRef& DescriptorTableBase::GetDescriptorSet(Name name, uint32 frameIndex) const
+{
+    for (const DescriptorSetRef& set : m_sets[frameIndex])
+    {
+        if (!set->GetLayout().IsValid())
+        {
+            continue;
+        }
+
+        if (set->GetLayout().GetDeclaration()->name == name)
+        {
+            return set;
+        }
+    }
+
+    return DescriptorSetRef::unset;
+}
+
+const DescriptorSetRef& DescriptorTableBase::GetDescriptorSet(uint32 descriptorSetIndex, uint32 frameIndex) const
+{
+    for (const DescriptorSetRef& set : m_sets[frameIndex])
+    {
+        if (!set->GetLayout().IsValid())
+        {
+            continue;
+        }
+
+        if (set->GetLayout().GetDeclaration()->setIndex == descriptorSetIndex)
+        {
+            return set;
+        }
+    }
+
+    return DescriptorSetRef::unset;
+}
+
+uint32 DescriptorTableBase::GetDescriptorSetIndex(Name name) const
+{
+    return m_decl ? m_decl->GetDescriptorSetIndex(name) : ~0u;
+}
+
+RendererResult DescriptorTableBase::Create()
+{
+    if (!IsValid())
+    {
+        return HYP_MAKE_ERROR(RendererError, "Descriptor table declaration is not valid");
+    }
+
+    RendererResult result;
+
+    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    {
+        for (const DescriptorSetRef& set : m_sets[frameIndex])
+        {
+            Assert(set->GetLayout().IsValid());
+
+            const Name descriptorSetName = set->GetLayout().GetDeclaration()->name;
+
+            // use FindDescriptorSetDeclaration rather than `set->GetLayout().GetDeclaration()`, since we need to know
+            // if the descriptor set is a reference to a global set
+            DescriptorSetDeclaration* decl = m_decl->FindDescriptorSetDeclaration(descriptorSetName);
+            AssertDebug(decl != nullptr);
+
+            if ((decl->flags & DescriptorSetDeclarationFlags::REFERENCE))
+            {
+                // should be created elsewhere
+                continue;
+            }
+
+            result = set->Create();
+
+            if (!result)
+            {
+                return result;
+            }
+        }
+    }
+
+    return result;
+}
+
+RendererResult DescriptorTableBase::Destroy()
+{
+    for (auto& it : m_sets)
+    {
+        SafeRelease(std::move(it));
+    }
+
+    m_sets = {};
+
+    return {};
+}
+
+#pragma endregion DescriptorTableBase
 
 } // namespace hyperion

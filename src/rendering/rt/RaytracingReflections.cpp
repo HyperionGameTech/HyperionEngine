@@ -2,6 +2,7 @@
 
 #include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
+#include <rendering/rt/RenderAccelerationStructure.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/Deferred.hpp>
 #include <rendering/PlaceholderData.hpp>

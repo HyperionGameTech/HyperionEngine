@@ -44,10 +44,7 @@ struct MeshRaytracingData
     HYP_FIELD()
     FixedArray<BLASRef, g_framesInFlight> bottomLevelAccelerationStructures;
 
-    ~MeshRaytracingData()
-    {
-        SafeRelease(std::move(bottomLevelAccelerationStructures));
-    }
+    ~MeshRaytracingData();
 };
 
 class IRenderProxy

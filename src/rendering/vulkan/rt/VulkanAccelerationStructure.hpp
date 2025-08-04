@@ -110,19 +110,19 @@ public:
         return m_deviceAddress;
     }
 
-    HYP_FORCE_INLINE AccelerationStructureFlags GetFlags() const
+    HYP_FORCE_INLINE EnumFlags<AccelerationStructureFlags> GetFlags() const
     {
         return m_flags;
     }
 
-    HYP_FORCE_INLINE void SetFlag(AccelerationStructureFlagBits flag)
+    HYP_FORCE_INLINE void SetFlag(EnumFlags<AccelerationStructureFlags> flag)
     {
-        m_flags = AccelerationStructureFlags(m_flags | flag);
+        m_flags |= flag;
     }
 
-    HYP_FORCE_INLINE void ClearFlag(AccelerationStructureFlagBits flag)
+    HYP_FORCE_INLINE void ClearFlag(EnumFlags<AccelerationStructureFlags> flag)
     {
-        m_flags = AccelerationStructureFlags(m_flags & ~flag);
+        m_flags &= ~flag;
     }
 
     HYP_FORCE_INLINE const Array<VulkanAccelerationGeometryRef>& GetGeometries() const
@@ -170,12 +170,12 @@ public:
 protected:
     HYP_FORCE_INLINE void SetTransformUpdateFlag()
     {
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
+        SetFlag(ASF_TRANSFORM_UPDATE);
     }
 
     HYP_FORCE_INLINE void SetNeedsRebuildFlag()
     {
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+        SetFlag(ASF_NEEDS_REBUILDING);
     }
 
     RendererResult CreateAccelerationStructure(
@@ -183,7 +183,7 @@ protected:
         Span<const VkAccelerationStructureGeometryKHR> geometries,
         Span<const uint32> primitiveCounts,
         bool update,
-        RTUpdateStateFlags& outUpdateStateFlags);
+        EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags);
 
     GpuBufferRef m_buffer;
     GpuBufferRef m_scratchBuffer;
@@ -191,14 +191,16 @@ protected:
     Matrix4 m_transform;
     VkAccelerationStructureKHR m_accelerationStructure;
     uint64 m_deviceAddress;
-    AccelerationStructureFlags m_flags;
+    EnumFlags<AccelerationStructureFlags> m_flags;
 };
 
 using VulkanAccelerationStructureRef = RenderObjectHandle_Strong<VulkanAccelerationStructureBase>;
 using VulkanAccelerationStructureWeakRef = RenderObjectHandle_Weak<VulkanAccelerationStructureBase>;
 
-class HYP_API VulkanBLAS final : public BLASBase, public VulkanAccelerationStructureBase
+class VulkanBLAS final : public BLASBase, public VulkanAccelerationStructureBase
 {
+    friend class VulkanTLAS;
+
 public:
     VulkanBLAS(
         const GpuBufferRef& packedVerticesBuffer,
@@ -219,18 +221,19 @@ public:
         VulkanAccelerationStructureBase::SetTransform(transform);
     }
 
+    virtual void SetMaterialBinding(uint32 materialBinding) override;
+
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags);
+    RendererResult UpdateStructure(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags);
 
 private:
-    RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
+    RendererResult Rebuild(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags);
 
     GpuBufferRef m_packedVerticesBuffer;
     GpuBufferRef m_packedIndicesBuffer;
-    Handle<Material> m_material;
 };
 
-class HYP_API VulkanTLAS final : public TLASBase, public VulkanAccelerationStructureBase
+class VulkanTLAS final : public TLASBase, public VulkanAccelerationStructureBase
 {
 public:
     VulkanTLAS();
@@ -246,10 +249,10 @@ public:
     virtual RendererResult Destroy() override;
 
     /*! \brief Rebuild IF the rebuild flag has been set. Otherwise this is a no-op. */
-    virtual RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) override;
+    virtual RendererResult UpdateStructure(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags) override;
 
 private:
-    RendererResult Rebuild(RTUpdateStateFlags& outUpdateStateFlags);
+    RendererResult Rebuild(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags);
 
     Array<VkAccelerationStructureGeometryKHR> GetGeometries() const;
     Array<uint32> GetPrimitiveCounts() const;

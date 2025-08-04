@@ -12,6 +12,9 @@
 
 #include <core/math/Extent.hpp>
 #include <core/math/Vector2.hpp>
+#include <core/math/Vector3.hpp>
+#include <core/math/Vector4.hpp>
+#include <core/math/Matrix4.hpp>
 
 #include <core/Defines.hpp>
 
@@ -169,6 +172,69 @@ enum ResourceState : uint32
     RS_READ_GENERIC,
     RS_PREDICATION
 };
+
+enum class GpuBufferType : uint8
+{
+    NONE = 0,
+    MESH_INDEX_BUFFER,
+    MESH_VERTEX_BUFFER,
+    CBUFF,
+    SSBO,
+    ATOMIC_COUNTER,
+    STAGING_BUFFER,
+    INDIRECT_ARGS_BUFFER,
+    SHADER_BINDING_TABLE,
+    ACCELERATION_STRUCTURE_BUFFER,
+    ACCELERATION_STRUCTURE_INSTANCE_BUFFER,
+    RT_MESH_INDEX_BUFFER,
+    RT_MESH_VERTEX_BUFFER,
+    SCRATCH_BUFFER,
+    MAX
+};
+
+enum BufferIDMask : uint64
+{
+    ID_MASK_BUFFER = (0x1ull << 32ull),
+    ID_MASK_IMAGE = (0x2ull << 32ull)
+};
+
+HYP_ENUM()
+enum ShaderModuleType : uint32
+{
+    SMT_UNSET = 0,
+
+    /* Graphics and general purpose shaders */
+    SMT_VERTEX,
+    SMT_FRAGMENT,
+    SMT_GEOMETRY,
+    SMT_COMPUTE,
+
+    /* Mesh shaders */
+    SMT_TASK,
+    SMT_MESH,
+
+    /* Tesselation */
+    SMT_TESS_CONTROL,
+    SMT_TESS_EVAL,
+
+    /* Raytracing hardware specific */
+    SMT_RAY_GEN,
+    SMT_RAY_INTERSECT,
+    SMT_RAY_ANY_HIT,
+    SMT_RAY_CLOSEST_HIT,
+    SMT_RAY_MISS,
+
+    SMT_MAX
+};
+
+static inline bool IsRaytracingShaderModule(ShaderModuleType type)
+{
+    return type == SMT_RAY_GEN
+        || type == SMT_RAY_INTERSECT
+        || type == SMT_RAY_ANY_HIT
+        || type == SMT_RAY_CLOSEST_HIT
+        || type == SMT_RAY_MISS;
+}
 
 static inline constexpr TextureBaseFormat GetBaseFormat(TextureFormat fmt)
 {
@@ -858,13 +924,18 @@ struct PushConstantData
     }
 };
 
-} // namespace hyperion
+enum DescriptorSlot : uint32
+{
+    DESCRIPTOR_SLOT_NONE,
+    DESCRIPTOR_SLOT_SRV,
+    DESCRIPTOR_SLOT_UAV,
+    DESCRIPTOR_SLOT_CBUFF,
+    DESCRIPTOR_SLOT_SSBO,
+    DESCRIPTOR_SLOT_ACCELERATION_STRUCTURE,
+    DESCRIPTOR_SLOT_SAMPLER,
+    DESCRIPTOR_SLOT_MAX
+};
 
-#include <core/math/Vector3.hpp>
-#include <core/math/Vector4.hpp>
-#include <core/math/Matrix4.hpp>
-
-namespace hyperion {
 struct alignas(16) MeshDescription
 {
     uint64 vertexBufferAddress;

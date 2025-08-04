@@ -143,6 +143,88 @@ static String BuildPreamble(const ShaderProperties& properties, const Descriptor
 
 #pragma endregion Helpers
 
+#pragma region DescriptorSetDeclaration
+
+DescriptorDeclaration* DescriptorSetDeclaration::FindDescriptorDeclaration(WeakName name) const
+{
+    for (uint32 slotIndex = 0; slotIndex < DESCRIPTOR_SLOT_MAX; slotIndex++)
+    {
+        for (const DescriptorDeclaration& decl : slots[slotIndex])
+        {
+            if (decl.name == name)
+            {
+                return const_cast<DescriptorDeclaration*>(&decl);
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+uint32 DescriptorSetDeclaration::CalculateFlatIndex(DescriptorSlot slot, WeakName name) const
+{
+    HYP_GFX_ASSERT(slot != DESCRIPTOR_SLOT_NONE && slot < DESCRIPTOR_SLOT_MAX);
+
+    uint32 flatIndex = 0;
+
+    for (uint32 slotIndex = 0; slotIndex < uint32(slot); slotIndex++)
+    {
+        if (slotIndex == uint32(slot) - 1)
+        {
+            uint32 declIndex = 0;
+
+            for (const DescriptorDeclaration& decl : slots[slotIndex])
+            {
+                if (decl.name == name)
+                {
+                    return flatIndex + declIndex;
+                }
+
+                declIndex++;
+            }
+        }
+
+        flatIndex += slots[slotIndex].Size();
+    }
+
+    return ~0u;
+}
+
+DescriptorSetDeclaration* DescriptorTableDeclaration::FindDescriptorSetDeclaration(WeakName name) const
+{
+    for (const DescriptorSetDeclaration& decl : elements)
+    {
+        if (decl.name == name)
+        {
+            return const_cast<DescriptorSetDeclaration*>(&decl);
+        }
+    }
+
+    return nullptr;
+}
+
+DescriptorSetDeclaration* DescriptorTableDeclaration::AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration)
+{
+    return &elements.PushBack(std::move(descriptorSetDeclaration));
+}
+
+DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration()
+{
+    static struct Initializer
+    {
+        DescriptorTableDeclaration decl;
+
+        DescriptorTableDeclaration::DeclareSet globalSet { &decl, 0, NAME("Global") };
+        DescriptorTableDeclaration::DeclareSet viewSet { &decl, 1, NAME("View"), /* isTemplate */ true };
+        DescriptorTableDeclaration::DeclareSet objectSet { &decl, 2, NAME("Object") };
+        DescriptorTableDeclaration::DeclareSet materialSet { &decl, 3, NAME("Material") };
+    } initializer;
+
+    return initializer.decl;
+}
+
+#pragma endregion DescriptorSetDeclaration
+
 #pragma region DescriptorUsageSet
 
 DescriptorTableDeclaration DescriptorUsageSet::BuildDescriptorTableDeclaration() const

@@ -21,6 +21,7 @@
 #include <rendering/Material.hpp>
 #include <rendering/Texture.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/rt/RenderAccelerationStructure.hpp>
 #include <rendering/rt/MeshBlasBuilder.hpp>
 #include <rendering/rt/RaytracingReflections.hpp>
 #include <rendering/rt/DDGI.hpp>
@@ -2000,8 +2001,18 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
 
             BLASRef& blas = meshProxy->raytracingData.bottomLevelAccelerationStructures[frame->GetFrameIndex()];
 
-            if (!blas)
+            const bool materialsDiffer = blas != nullptr
+                && blas->GetMaterial() != meshProxy->material;
+
+            if (!blas || materialsDiffer)
             {
+                if (blas)
+                {
+                    tlas->RemoveBLAS(blas);
+
+                    SafeRelease(std::move(blas));
+                }
+
                 blas = MeshBlasBuilder::Build(meshProxy->mesh, meshProxy->material);
                 Assert(blas != nullptr);
 
@@ -2014,6 +2025,15 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
             }
             else
             {
+                const uint32 materialBinding = RenderApi_RetrieveResourceBinding(meshProxy->material.Id());
+                const bool materialBindingsDiffer = blas->GetMaterialBinding() != materialBinding;
+
+                if (materialBindingsDiffer)
+                {
+                    // needs to rebuild mesh descriptions if material binding changed
+                    blas->SetMaterialBinding(materialBinding);
+                }
+
                 blas->SetTransform(meshProxy->bufferData.modelMatrix);
             }
 
@@ -2023,7 +2043,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
             }
         }
 
-        RTUpdateStateFlags updateStateFlags = RTUpdateStateFlagBits::RT_UPDATE_STATE_FLAGS_NONE;
+        EnumFlags<RaytracingUpdateFlags> updateStateFlags = RUF_NONE;
         tlas->UpdateStructure(updateStateFlags);
     }
 }

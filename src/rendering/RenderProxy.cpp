@@ -16,4 +16,13 @@ namespace hyperion {
 
 extern HYP_API SafeDeleter* g_safeDeleter;
 
+#pragma region MeshRaytracingData
+
+MeshRaytracingData::~MeshRaytracingData()
+{
+    SafeRelease(std::move(bottomLevelAccelerationStructures));
+}
+
+#pragma endregion MeshRaytracingData
+
 } // namespace hyperion

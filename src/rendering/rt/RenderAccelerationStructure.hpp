@@ -3,41 +3,47 @@
 #pragma once
 
 #include <core/Defines.hpp>
+#include <core/Handle.hpp>
+
+#include <core/utilities/EnumFlags.hpp>
 
 #include <rendering/RenderObject.hpp>
 
 #include <Types.hpp>
 
 namespace hyperion {
-enum class AccelerationStructureType : uint8
+
+class Material;
+
+enum AccelerationStructureType : uint8
 {
-    BOTTOM_LEVEL,
-    TOP_LEVEL
+    AST_BOTTOM_LEVEL = 0,
+    AST_TOP_LEVEL
 };
 
-using RTUpdateStateFlags = uint32;
-
-enum RTUpdateStateFlagBits : RTUpdateStateFlags
+enum RaytracingUpdateFlags : uint32
 {
-    RT_UPDATE_STATE_FLAGS_NONE = 0x0,
-    RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE = 0x1,
-    RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS = 0x2,
-    RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES = 0x4,
-    RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM = 0x8,
-    RT_UPDATE_STATE_FLAGS_UPDATE_MATERIAL = 0x10
+    RUF_NONE = 0x0,
+    RUF_UPDATE_ACCELERATION_STRUCTURE = 0x1,
+    RUF_UPDATE_MESH_DESCRIPTIONS = 0x2,
+    RUF_UPDATE_INSTANCES = 0x4,
+    RUF_UPDATE_TRANSFORM = 0x8,
+    RUF_UPDATE_MATERIAL = 0x10
 };
 
-using AccelerationStructureFlags = uint32;
+HYP_MAKE_ENUM_FLAGS(RaytracingUpdateFlags);
 
-enum AccelerationStructureFlagBits : AccelerationStructureFlags
+enum AccelerationStructureFlags : uint32
 {
-    ACCELERATION_STRUCTURE_FLAGS_NONE = 0x0,
-    ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING = 0x1,
-    ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE = 0x2,
-    ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE = 0x4
+    ASF_NONE = 0x0,
+    ASF_NEEDS_REBUILDING = 0x1,
+    ASF_TRANSFORM_UPDATE = 0x2,
+    ASF_MATERIAL_UPDATE = 0x4
 };
 
-class HYP_API TLASBase : public RenderObject<TLASBase>
+HYP_MAKE_ENUM_FLAGS(AccelerationStructureFlags);
+
+class TLASBase : public RenderObject<TLASBase>
 {
 protected:
     virtual ~TLASBase() override = default;
@@ -45,7 +51,7 @@ protected:
 public:
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
     {
-        return AccelerationStructureType::TOP_LEVEL;
+        return AST_TOP_LEVEL;
     }
 
     HYP_FORCE_INLINE const GpuBufferRef& GetMeshDescriptionsBuffer() const
@@ -62,21 +68,26 @@ public:
     virtual RendererResult Create() = 0;
     virtual RendererResult Destroy() = 0;
 
-    virtual RendererResult UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags) = 0;
+    virtual RendererResult UpdateStructure(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags) = 0;
 
 protected:
     GpuBufferRef m_meshDescriptionsBuffer;
 };
 
-class HYP_API BLASBase : public RenderObject<BLASBase>
+class BLASBase : public RenderObject<BLASBase>
 {
 protected:
+    BLASBase()
+        : m_materialBinding(0)
+    {
+    }
+
     virtual ~BLASBase() override = default;
 
 public:
     HYP_FORCE_INLINE AccelerationStructureType GetType() const
     {
-        return AccelerationStructureType::BOTTOM_LEVEL;
+        return AST_BOTTOM_LEVEL;
     }
 
     virtual bool IsCreated() const = 0;
@@ -84,7 +95,26 @@ public:
     virtual RendererResult Create() = 0;
     virtual RendererResult Destroy() = 0;
 
+    HYP_FORCE_INLINE const Handle<Material>& GetMaterial() const
+    {
+        return m_material;
+    }
+
+    HYP_FORCE_INLINE uint32 GetMaterialBinding() const
+    {
+        return m_materialBinding;
+    }
+
+    virtual void SetMaterialBinding(uint32 materialBinding)
+    {
+        m_materialBinding = materialBinding;
+    }
+
     virtual void SetTransform(const Matrix4& transform) = 0;
+
+protected:
+    Handle<Material> m_material;
+    uint32 m_materialBinding;
 };
 
 } // namespace hyperion

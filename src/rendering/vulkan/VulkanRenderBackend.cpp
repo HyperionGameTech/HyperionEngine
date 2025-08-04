@@ -707,7 +707,7 @@ DescriptorSetRef VulkanRenderBackend::MakeDescriptorSet(const DescriptorSetLayou
     newLayout.SetIsReference(false);
 
     DescriptorSetRef descriptorSet = MakeRenderObject<VulkanDescriptorSet>(newLayout);
-    descriptorSet->SetDebugName(layout.GetName());
+    descriptorSet->SetDebugName(layout.name);
 
     return descriptorSet;
 }

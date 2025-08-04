@@ -12,7 +12,6 @@
 #include <core/math/Vertex.hpp>
 
 #include <rendering/RenderShader.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
 
 #include <util/ini/INIFile.hpp>
 
@@ -558,6 +557,220 @@ struct HashedShaderDefinition
     }
 };
 
+HYP_STRUCT()
+struct DescriptorDeclaration
+{
+    using ConditionFunction = bool (*)();
+
+    HYP_FIELD(Property = "Slot", Serialize = true)
+    DescriptorSlot slot = DESCRIPTOR_SLOT_NONE;
+
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name;
+
+    HYP_FIELD(Property = "Count", Serialize = true)
+    uint32 count = 1;
+
+    HYP_FIELD(Property = "Size", Serialize = true)
+    uint32 size = uint32(-1);
+
+    HYP_FIELD(Property = "IsDynamic", Serialize = true)
+    bool isDynamic = false;
+
+    HYP_FIELD(Property = "Index", Transient = true, Serialize = false)
+    uint32 index = ~0u;
+
+    ConditionFunction cond = nullptr;
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(slot);
+        hc.Add(name);
+        hc.Add(count);
+        hc.Add(size);
+        hc.Add(isDynamic);
+        hc.Add(index);
+
+        // cond excluded intentionally
+
+        return hc;
+    }
+};
+
+enum class DescriptorSetDeclarationFlags : uint8
+{
+    NONE = 0x0,
+    REFERENCE = 0x1, // is this a reference to a global descriptor set declaration?
+    TEMPLATE = 0x2   // is this descriptor set intended to be used as a template for other sets? (e.g material textures)
+};
+
+HYP_MAKE_ENUM_FLAGS(DescriptorSetDeclarationFlags)
+
+HYP_STRUCT()
+struct DescriptorSetDeclaration
+{
+    HYP_FIELD(Property = "SetIndex", Serialize = true)
+    uint32 setIndex = ~0u;
+
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name name = Name::Invalid();
+
+    HYP_FIELD(Property = "Slots", Serialize = true)
+    FixedArray<Array<DescriptorDeclaration, DynamicAllocator>, DESCRIPTOR_SLOT_MAX> slots = {};
+
+    HYP_FIELD(Property = "Flags", Serialize = true)
+    EnumFlags<DescriptorSetDeclarationFlags> flags = DescriptorSetDeclarationFlags::NONE;
+
+    DescriptorSetDeclaration() = default;
+
+    DescriptorSetDeclaration(uint32 setIndex, Name name)
+        : setIndex(setIndex),
+          name(name)
+    {
+    }
+
+    DescriptorSetDeclaration(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration& operator=(const DescriptorSetDeclaration& other) = default;
+    DescriptorSetDeclaration(DescriptorSetDeclaration&& other) noexcept = default;
+    DescriptorSetDeclaration& operator=(DescriptorSetDeclaration&& other) noexcept = default;
+    ~DescriptorSetDeclaration() = default;
+
+    HYP_FORCE_INLINE void AddDescriptorDeclaration(DescriptorDeclaration decl)
+    {
+        AssertDebug(decl.slot != DESCRIPTOR_SLOT_NONE && decl.slot < DESCRIPTOR_SLOT_MAX);
+
+        decl.index = uint32(slots[uint32(decl.slot) - 1].Size());
+        slots[uint32(decl.slot) - 1].PushBack(std::move(decl));
+    }
+
+    /*! \brief Calculate a flat index for a Descriptor that is part of this set.
+        Returns -1 if not found */
+    uint32 CalculateFlatIndex(DescriptorSlot slot, WeakName name) const;
+
+    DescriptorDeclaration* FindDescriptorDeclaration(WeakName name) const;
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        hc.Add(setIndex);
+        hc.Add(name);
+        hc.Add(flags);
+
+        for (const auto& slot : slots)
+        {
+            for (const auto& decl : slot)
+            {
+                hc.Add(decl.GetHashCode());
+            }
+        }
+
+        return hc;
+    }
+};
+
+HYP_STRUCT()
+struct DescriptorTableDeclaration
+{
+    HYP_FIELD(Property = "Elements", Serialize = true)
+    Array<DescriptorSetDeclaration> elements;
+
+    DescriptorSetDeclaration* FindDescriptorSetDeclaration(WeakName name) const;
+    DescriptorSetDeclaration* AddDescriptorSetDeclaration(DescriptorSetDeclaration&& descriptorSetDeclaration);
+
+    /*! \brief Get the index of a descriptor set in the table
+        \param name The name of the descriptor set
+        \return The index of the descriptor set in the table, or -1 if not found */
+    HYP_FORCE_INLINE uint32 GetDescriptorSetIndex(WeakName name) const
+    {
+        for (const auto& it : elements)
+        {
+            if (it.name == name)
+            {
+                return it.setIndex;
+            }
+        }
+
+        return ~0u;
+    }
+
+    HYP_FORCE_INLINE HashCode GetHashCode() const
+    {
+        HashCode hc;
+
+        for (const DescriptorSetDeclaration& decl : elements)
+        {
+            hc.Add(decl.GetHashCode());
+        }
+
+        return hc;
+    }
+
+    struct DeclareSet
+    {
+        DeclareSet(DescriptorTableDeclaration* table, uint32 setIndex, Name name, bool isTemplate = false)
+        {
+            AssertDebug(table != nullptr);
+
+            if (table->elements.Size() <= setIndex)
+            {
+                table->elements.Resize(setIndex + 1);
+            }
+
+            DescriptorSetDeclaration& decl = table->elements[setIndex];
+            decl.setIndex = setIndex;
+            decl.name = name;
+
+            if (isTemplate)
+            {
+                decl.flags |= DescriptorSetDeclarationFlags::TEMPLATE;
+            }
+        }
+    };
+
+    struct DeclareDescriptor
+    {
+        DeclareDescriptor(DescriptorTableDeclaration* table, Name setName, DescriptorSlot slotType, Name descriptorName, DescriptorDeclaration::ConditionFunction cond = nullptr, uint32 count = 1, uint32 size = ~0u, bool isDynamic = false)
+        {
+            AssertDebug(table != nullptr);
+
+            uint32 setIndex = ~0u;
+
+            for (SizeType i = 0; i < table->elements.Size(); ++i)
+            {
+                if (table->elements[i].name == setName)
+                {
+                    setIndex = uint32(i);
+                    break;
+                }
+            }
+
+            AssertDebug(setIndex != ~0u, "Descriptor set {} not found", setName);
+
+            DescriptorSetDeclaration& descriptorSetDecl = table->elements[setIndex];
+            AssertDebug(descriptorSetDecl.setIndex == setIndex);
+            AssertDebug(slotType > 0 && slotType < descriptorSetDecl.slots.Size());
+
+            const uint32 slotTypeIndex = uint32(slotType) - 1;
+
+            const uint32 slotIndex = uint32(descriptorSetDecl.slots[slotTypeIndex].Size());
+
+            DescriptorDeclaration& descriptorDecl = descriptorSetDecl.slots[slotTypeIndex].EmplaceBack();
+            descriptorDecl.index = slotIndex;
+            descriptorDecl.slot = slotType;
+            descriptorDecl.name = descriptorName;
+            descriptorDecl.cond = cond;
+            descriptorDecl.size = size;
+            descriptorDecl.count = count;
+            descriptorDecl.isDynamic = isDynamic;
+        }
+    };
+};
+
+extern DescriptorTableDeclaration& GetStaticDescriptorTableDeclaration();
+
 using DescriptorUsageFlags = uint32;
 
 enum DescriptorUsageFlagBits : DescriptorUsageFlags
@@ -707,7 +920,6 @@ struct DescriptorUsageType
 };
 
 HYP_STRUCT()
-
 struct DescriptorUsage
 {
     HYP_FIELD(Property = "Slot", Serialize = true)

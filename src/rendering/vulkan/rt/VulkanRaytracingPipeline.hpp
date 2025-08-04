@@ -4,6 +4,7 @@
 
 #include <rendering/rt/RenderRaytracingPipeline.hpp>
 #include <rendering/vulkan/VulkanPipeline.hpp>
+#include <rendering/Shared.hpp>
 
 #include <core/containers/Array.hpp>
 #include <core/containers/HashMap.hpp>

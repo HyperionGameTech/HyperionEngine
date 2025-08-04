@@ -7,6 +7,7 @@
 #include <rendering/RenderGraphicsPipeline.hpp>
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/RenderDescriptorSet.hpp>
 
 #include <core/threading/Threads.hpp>
 #include <core/threading/Task.hpp>

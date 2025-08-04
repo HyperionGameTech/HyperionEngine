@@ -39,9 +39,9 @@ static VkAccelerationStructureTypeKHR ToVkAccelerationStructureType(Acceleration
 {
     switch (type)
     {
-    case AccelerationStructureType::BOTTOM_LEVEL:
+    case AST_BOTTOM_LEVEL:
         return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    case AccelerationStructureType::TOP_LEVEL:
+    case AST_TOP_LEVEL:
         return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
     default:
         return VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
@@ -150,7 +150,7 @@ VulkanAccelerationStructureBase::VulkanAccelerationStructureBase(const Matrix4& 
     : m_transform(transform),
       m_accelerationStructure(VK_NULL_HANDLE),
       m_deviceAddress(0),
-      m_flags(ACCELERATION_STRUCTURE_FLAGS_NONE)
+      m_flags(ASF_NONE)
 {
 }
 
@@ -174,7 +174,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     Span<const VkAccelerationStructureGeometryKHR> geometries,
     Span<const uint32> primitiveCounts,
     bool update,
-    RTUpdateStateFlags& outUpdateStateFlags)
+    EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags)
 {
     if (update)
     {
@@ -233,7 +233,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
 
     if (wasRebuilt)
     {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE;
+        outUpdateStateFlags |= RUF_UPDATE_ACCELERATION_STRUCTURE;
 
         if (update)
         {
@@ -362,7 +362,7 @@ RendererResult VulkanAccelerationStructureBase::CreateAccelerationStructure(
     SafeRelease(std::move(commandBuffer));
     SafeRelease(std::move(fence));
 
-    ClearFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+    ClearFlag(ASF_NEEDS_REBUILDING);
     
     return RendererResult();
 }
@@ -446,7 +446,7 @@ VulkanTLAS::~VulkanTLAS()
     HYP_GFX_ASSERT(m_accelerationStructure == VK_NULL_HANDLE, "Acceleration structure should have been destroyed before destructor call");
 }
 
-HYP_API bool VulkanTLAS::IsCreated() const
+bool VulkanTLAS::IsCreated() const
 {
     return m_accelerationStructure != VK_NULL_HANDLE;
 }
@@ -495,14 +495,14 @@ RendererResult VulkanTLAS::Create()
 
     HYP_GFX_CHECK(BuildInstancesBuffer());
 
-    RTUpdateStateFlags updateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
+    EnumFlags<RaytracingUpdateFlags> updateStateFlags = RUF_NONE;
 
     HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), GetGeometries(), GetPrimitiveCounts(), false, updateStateFlags));
 
-    HYP_GFX_ASSERT(updateStateFlags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE);
+    HYP_GFX_ASSERT(updateStateFlags & RUF_UPDATE_ACCELERATION_STRUCTURE);
 
     HYP_GFX_CHECK(BuildMeshDescriptionsBuffer());
-    updateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS;
+    updateStateFlags |= RUF_UPDATE_MESH_DESCRIPTIONS;
     
     return RendererResult();
 }
@@ -549,7 +549,7 @@ void VulkanTLAS::AddBLAS(const BLASRef& blas)
 
     m_blas.PushBack(std::move(vulkanBlas));
 
-    SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+    SetFlag(ASF_NEEDS_REBUILDING);
 }
 
 void VulkanTLAS::RemoveBLAS(const BLASRef& blas)
@@ -563,7 +563,7 @@ void VulkanTLAS::RemoveBLAS(const BLASRef& blas)
 
         SafeRelease(std::move(vulkanBlas));
 
-        SetFlag(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING);
+        SetFlag(ASF_NEEDS_REBUILDING);
     }
 }
 
@@ -719,16 +719,18 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
 
         HYP_GFX_ASSERT(blas->GetGeometries().Any(), "No geometries added to BLAS node %u!", i);
 
-        uint32 materialBoundIndex = ~0u;
-
-        const Handle<Material>& material = blas->GetGeometries()[0]->GetMaterial();
+        const Handle<Material>& material = blas->GetMaterial();
 
         if (material.IsValid())
         {
-            materialBoundIndex = RenderApi_RetrieveResourceBinding(material);
+            blas->m_materialBinding = RenderApi_RetrieveResourceBinding(material);
 
-            HYP_GFX_ASSERT(materialBoundIndex != ~0u, "Material %s (ID: #%u) was not bound at time of building mesh descriptions buffer",
+            HYP_GFX_ASSERT(blas->m_materialBinding != ~0u, "Material %s (ID: #%u) was not bound at time of building mesh descriptions buffer",
                 *material->GetName(), material->Id().Value());
+        }
+        else
+        {
+            blas->m_materialBinding = ~0u;
         }
 
         HYP_GFX_ASSERT(blas->GetGeometries()[0]->GetPackedVerticesBuffer() && blas->GetGeometries()[0]->GetPackedVerticesBuffer()->IsCreated());
@@ -736,7 +738,7 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
 
         meshDescription.vertexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedVerticesBuffer())->GetBufferDeviceAddress();
         meshDescription.indexBufferAddress = VULKAN_CAST(blas->GetGeometries()[0]->GetPackedIndicesBuffer())->GetBufferDeviceAddress();
-        meshDescription.materialIndex = materialBoundIndex;
+        meshDescription.materialIndex = blas->m_materialBinding;
         meshDescription.numIndices = blas->GetGeometries()[0]->NumIndices();
         meshDescription.numVertices = blas->GetGeometries()[0]->NumVertices();
     }
@@ -752,11 +754,11 @@ RendererResult VulkanTLAS::BuildMeshDescriptionsBuffer(uint32 first, uint32 last
     return RendererResult();
 }
 
-RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanTLAS::UpdateStructure(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags)
 {
-    outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
+    outUpdateStateFlags = RUF_NONE;
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
+    if (m_flags & ASF_NEEDS_REBUILDING)
     {
         return Rebuild(outUpdateStateFlags);
     }
@@ -768,7 +770,7 @@ RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFla
         const VulkanBLASRef& blas = m_blas[i];
         HYP_GFX_ASSERT(blas != nullptr);
 
-        RTUpdateStateFlags blasUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
+        EnumFlags<RaytracingUpdateFlags> blasUpdateStateFlags = RUF_NONE;
         HYP_GFX_CHECK(blas->UpdateStructure(blasUpdateStateFlags));
 
         if (blasUpdateStateFlags)
@@ -784,13 +786,13 @@ RendererResult VulkanTLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFla
 
         HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), GetGeometries(), GetPrimitiveCounts(), true, outUpdateStateFlags));
 
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS | RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
+        outUpdateStateFlags |= RUF_UPDATE_MESH_DESCRIPTIONS | RUF_UPDATE_INSTANCES;
     }
     
     return RendererResult();
 }
 
-RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanTLAS::Rebuild(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags)
 {
     HYP_GFX_ASSERT(m_accelerationStructure != VK_NULL_HANDLE);
 
@@ -810,7 +812,7 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
     }
 
     HYP_GFX_CHECK(BuildInstancesBuffer());
-    outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_INSTANCES;
+    outUpdateStateFlags |= RUF_UPDATE_INSTANCES;
 
     HYP_GFX_CHECK(CreateAccelerationStructure(
         GetType(),
@@ -820,7 +822,7 @@ RendererResult VulkanTLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
         outUpdateStateFlags));
 
     HYP_GFX_CHECK(BuildMeshDescriptionsBuffer());
-    outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MESH_DESCRIPTIONS;
+    outUpdateStateFlags |= RUF_UPDATE_MESH_DESCRIPTIONS;
     
     return RendererResult();
 }
@@ -838,9 +840,10 @@ VulkanBLAS::VulkanBLAS(
     const Matrix4& transform)
     : VulkanAccelerationStructureBase(transform),
       m_packedVerticesBuffer(packedVerticesBuffer),
-      m_packedIndicesBuffer(packedIndicesBuffer),
-      m_material(material)
+      m_packedIndicesBuffer(packedIndicesBuffer)
 {
+    m_material = material;
+
     m_geometries.PushBack(MakeRenderObject<VulkanAccelerationGeometry>(
         m_packedVerticesBuffer,
         m_packedIndicesBuffer,
@@ -851,9 +854,26 @@ VulkanBLAS::VulkanBLAS(
 
 VulkanBLAS::~VulkanBLAS() = default;
 
-HYP_API bool VulkanBLAS::IsCreated() const
+bool VulkanBLAS::IsCreated() const
 {
     return m_accelerationStructure != VK_NULL_HANDLE;
+}
+
+void VulkanBLAS::SetMaterialBinding(uint32 materialBinding)
+{
+    if (m_materialBinding == materialBinding)
+    {
+        return;
+    }
+
+    m_materialBinding = materialBinding;
+
+    if (!IsCreated())
+    {
+        return;
+    }
+
+    m_flags |= ASF_MATERIAL_UPDATE;
 }
 
 RendererResult VulkanBLAS::Create()
@@ -891,10 +911,10 @@ RendererResult VulkanBLAS::Create()
         }
     }
 
-    RTUpdateStateFlags updateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
+    EnumFlags<RaytracingUpdateFlags> updateStateFlags = RUF_NONE;
 
     HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, false, updateStateFlags));
-    HYP_GFX_ASSERT(updateStateFlags & RT_UPDATE_STATE_FLAGS_UPDATE_ACCELERATION_STRUCTURE);
+    HYP_GFX_ASSERT(updateStateFlags & RUF_UPDATE_ACCELERATION_STRUCTURE);
 
     return RendererResult();
 }
@@ -907,25 +927,25 @@ RendererResult VulkanBLAS::Destroy()
     return VulkanAccelerationStructureBase::Destroy();
 }
 
-RendererResult VulkanBLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanBLAS::UpdateStructure(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags)
 {
-    outUpdateStateFlags = RT_UPDATE_STATE_FLAGS_NONE;
+    outUpdateStateFlags = RUF_NONE;
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE)
+    if (m_flags & ASF_MATERIAL_UPDATE)
     {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_MATERIAL;
+        outUpdateStateFlags |= RUF_UPDATE_MATERIAL;
 
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_MATERIAL_UPDATE);
+        ClearFlag(ASF_MATERIAL_UPDATE);
     }
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE)
+    if (m_flags & ASF_TRANSFORM_UPDATE)
     {
-        outUpdateStateFlags |= RT_UPDATE_STATE_FLAGS_UPDATE_TRANSFORM;
+        outUpdateStateFlags |= RUF_UPDATE_TRANSFORM;
 
-        ClearFlag(ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
+        ClearFlag(ASF_TRANSFORM_UPDATE);
     }
 
-    if (m_flags & ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING)
+    if (m_flags & ASF_NEEDS_REBUILDING)
     {
         return Rebuild(outUpdateStateFlags);
     }
@@ -933,7 +953,7 @@ RendererResult VulkanBLAS::UpdateStructure(RTUpdateStateFlags& outUpdateStateFla
     return RendererResult();
 }
 
-RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
+RendererResult VulkanBLAS::Rebuild(EnumFlags<RaytracingUpdateFlags>& outUpdateStateFlags)
 {
     Array<VkAccelerationStructureGeometryKHR> geometries(m_geometries.Size());
     Array<uint32> primitiveCounts(m_geometries.Size());
@@ -949,7 +969,7 @@ RendererResult VulkanBLAS::Rebuild(RTUpdateStateFlags& outUpdateStateFlags)
 
     HYP_GFX_CHECK(CreateAccelerationStructure(GetType(), geometries, primitiveCounts, true, outUpdateStateFlags));
 
-    m_flags &= ~(ACCELERATION_STRUCTURE_FLAGS_NEEDS_REBUILDING | ACCELERATION_STRUCTURE_FLAGS_TRANSFORM_UPDATE);
+    m_flags &= ~(ASF_NEEDS_REBUILDING | ASF_TRANSFORM_UPDATE);
 
     return RendererResult();
 }

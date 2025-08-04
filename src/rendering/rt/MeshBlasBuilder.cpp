@@ -1,6 +1,7 @@
 /* Copyright (c) 2025 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/rt/MeshBlasBuilder.hpp>
+#include <rendering/rt/RenderAccelerationStructure.hpp>
 #include <rendering/RenderCommand.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/Mesh.hpp>

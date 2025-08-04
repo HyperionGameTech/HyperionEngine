@@ -2,17 +2,6 @@
 
 #pragma once
 
-#include <rendering/Shared.hpp>
-#include <rendering/RenderDescriptorSet.hpp>
-
-#include <core/containers/Array.hpp>
-#include <core/utilities/Optional.hpp>
-#include <core/Defines.hpp>
-
-#include <core/math/Vector4.hpp>
-
-#include <Types.hpp>
-
 namespace hyperion {
 
 } // namespace hyperion
