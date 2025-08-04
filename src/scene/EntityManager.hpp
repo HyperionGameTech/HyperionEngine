@@ -699,8 +699,15 @@ public:
         return entityData->components;
     }
 
-    void AddComponent(Entity* entity, const HypData& componentData);
     void AddComponent(Entity* entity, HypData&& componentData);
+    
+    HYP_FORCE_INLINE void AddComponents(Entity* entity, Array<HypData>&& components)
+    {
+        for (HypData& component : components)
+        {
+            AddComponent(entity, std::move(component));
+        }
+    }
 
     bool RemoveComponent(TypeId componentTypeId, Entity* entity);
 
@@ -718,15 +725,29 @@ public:
 
         EntityData* entityData = m_entities.TryGetEntityData(entity);
         Assert(entityData != nullptr);
+        
+        static const TypeId componentTypeId = TypeId::ForType<Component>();
 
         Component* componentPtr = nullptr;
         TypeMap<ComponentId> componentIds;
 
         auto componentIt = entityData->FindComponent<Component>();
-        // @TODO: Replace the component if it already exists
-        Assert(componentIt == entityData->components.End(), "Entity already has component of type {}", TypeNameWithoutNamespace<Component>().Data());
+        
+        // Replace the component if it already exists
+        if (componentIt != entityData->components.End())
+        {
+            const ComponentId componentId = componentIt->second;
+            
+            auto componentContainerIt = m_containers.Find(componentTypeId);
+            Assert(componentContainerIt != m_containers.End(), "Component container does not exist");
 
-        static const TypeId componentTypeId = TypeId::ForType<Component>();
+            HYP_MT_CHECK_READ(componentContainerIt->second->GetDataRaceDetector());
+
+            Component& currentComponent = static_cast<ComponentContainer<Component>&>(*componentContainerIt->second).GetComponent(componentId);
+            currentComponent = std::move(component);
+            
+            return currentComponent;
+        }
 
         const Pair<ComponentId, Component&> componentInsertResult = GetContainer<Component>().AddComponent(std::move(component));
 

@@ -289,7 +289,7 @@ public:
                 Assert(meshComponent.mesh.IsValid());
             }
 
-            entityManager->AddComponent(entity, *child.m_deserializedObject);
+            entityManager->AddComponent(entity, std::move(*child.m_deserializedObject));
         }
 
         out = HypData(entity);

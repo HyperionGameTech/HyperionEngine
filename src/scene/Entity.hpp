@@ -27,10 +27,11 @@ struct EntityInitInfo
 {
     bool receivesUpdate : 1 = false;
     bool canEverUpdate : 1 = true;
-    uint8 bvhDepth : 3 = 3; // 0 means no BVH, 1 means 1 level deep, etc.
+    uint8 bvhDepth = 3; // 0 means no BVH, 1 means 1 level deep, etc.
 
     // Initial tags to add to the Entity when it is created
     Array<EntityTag, InlineAllocator<4>> initialTags;
+    Array<HypData> initialComponents;
 };
 
 HYP_CLASS()

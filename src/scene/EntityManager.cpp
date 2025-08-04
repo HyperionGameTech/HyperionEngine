@@ -424,6 +424,11 @@ Handle<Entity> EntityManager::AddBasicEntity()
     {
         AddTags(entity, entity->m_entityInitInfo.initialTags);
     }
+    
+    if (entity->m_entityInitInfo.initialComponents.Any())
+    {
+        AddComponents(entity, std::move(entity->m_entityInitInfo.initialComponents));
+    }
 
     if (IsInitCalled())
     {
@@ -495,6 +500,11 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
     if (entity->m_entityInitInfo.initialTags.Any())
     {
         AddTags(entity, entity->m_entityInitInfo.initialTags);
+    }
+    
+    if (entity->m_entityInitInfo.initialComponents.Any())
+    {
+        AddComponents(entity, std::move(entity->m_entityInitInfo.initialComponents));
     }
 
     if (IsInitCalled())
@@ -570,6 +580,11 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     if (entity->m_entityInitInfo.initialTags.Any())
     {
         AddTags(entity, entity->m_entityInitInfo.initialTags);
+    }
+    
+    if (entity->m_entityInitInfo.initialComponents.Any())
+    {
+        AddComponents(entity, std::move(entity->m_entityInitInfo.initialComponents));
     }
 
     if (IsInitCalled())
@@ -799,6 +814,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         {
             const TypeId componentTypeId = componentData.GetTypeId();
             EnsureValidComponentType(componentTypeId);
+            
+            ComponentContainerBase* container = other->TryGetContainer(componentTypeId);
+            Assert(container != nullptr, "Component container does not exist for component of type '%s'", *GetComponentTypeName(componentTypeId));
 
             // Update the EntityData
             auto componentIt = entityData->FindComponent(componentTypeId);
@@ -809,16 +827,16 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
                 {
                     // Duplicate of the same tag, don't worry about it
 
-                    return;
+                    continue;
                 }
+                
+                // Update component data
+                container->SetComponent(componentIt->second, std::move(componentData));
 
-                HYP_FAIL("Cannot add duplicate component of type '%s'", *GetComponentTypeName(componentTypeId));
+                continue;
             }
 
-            ComponentContainerBase* container = other->TryGetContainer(componentTypeId);
-            Assert(container != nullptr, "Component container does not exist for component of type '%s'", *GetComponentTypeName(componentTypeId));
-
-            const ComponentId componentId = container->AddComponent(componentData);
+            const ComponentId componentId = container->AddComponent(std::move(componentData));
 
             componentIds.Set(componentTypeId, componentId);
 
@@ -886,86 +904,6 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
     }
 }
 
-void EntityManager::AddComponent(Entity* entity, const HypData& componentData)
-{
-    AssertDebug(!componentData.IsNull());
-
-    Threads::AssertOnThread(m_ownerThreadId);
-
-    Assert(entity, "Invalid entity");
-
-    Handle<Entity> entityHandle = entity->HandleFromThis();
-    Assert(entityHandle.IsValid());
-
-    EntityData* entityData = m_entities.TryGetEntityData(entity);
-    Assert(entityData != nullptr, "Entity with Id #%u does not exist", entity->Id().Value());
-
-    const TypeId componentTypeId = componentData.GetTypeId();
-    EnsureValidComponentType(componentTypeId);
-
-    TypeMap<ComponentId> componentIds;
-
-    // Update the EntityData
-    auto componentIt = entityData->FindComponent(componentTypeId);
-
-    if (componentIt != entityData->components.End())
-    {
-        if (IsEntityTagComponent(componentTypeId))
-        {
-            // Duplicate of the same tag, don't worry about it
-
-            return;
-        }
-
-        HYP_FAIL("Cannot add duplicate component of type '%s'", *GetComponentTypeName(componentTypeId));
-    }
-
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
-    Assert(container != nullptr, "Component container does not exist for component of type '%s'", *GetComponentTypeName(componentTypeId));
-
-    const ComponentId componentId = container->AddComponent(componentData);
-
-    entityData->components.Set(componentTypeId, componentId);
-
-    {
-        Mutex::Guard entitySetsGuard(m_entitySetsMutex);
-
-        // Update entity sets
-        auto componentEntitySetsIt = m_componentEntitySets.Find(componentTypeId);
-
-        if (componentEntitySetsIt != m_componentEntitySets.End())
-        {
-            for (TypeId entitySetTypeId : componentEntitySetsIt->second)
-            {
-                EntitySetBase& entitySet = *m_entitySets.At(entitySetTypeId);
-
-                entitySet.OnEntityUpdated(entity);
-            }
-        }
-
-        componentIds = entityData->components;
-    }
-
-    AnyRef componentRef = container->TryGetComponent(componentId);
-    Assert(componentRef.HasValue(), "Failed to get component of type '%s' with Id %u from component container", *GetComponentTypeName(componentTypeId), componentId);
-
-    // Note: Call before notifying systems as they are able to remove components!
-
-    EntityTag tag;
-    if (IsEntityTagComponent(componentTypeId, tag))
-    {
-        entity->OnTagAdded(tag);
-    }
-    else
-    {
-        // Note: Call before notifying systems as they are able to remove components!
-        entity->OnComponentAdded(componentRef);
-    }
-
-    // Notify systems that entity is being added to them
-    NotifySystemsOfEntityAdded(entityHandle, componentIds);
-}
-
 void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
 {
     AssertDebug(!componentData.IsNull());
@@ -982,6 +920,9 @@ void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
 
     const TypeId componentTypeId = componentData.GetTypeId();
     EnsureValidComponentType(componentTypeId);
+    
+    ComponentContainerBase* container = TryGetContainer(componentTypeId);
+    Assert(container != nullptr, "Component container does not exist for component of type '%s'", *GetComponentTypeName(componentTypeId));
 
     TypeMap<ComponentId> componentIds;
 
@@ -996,12 +937,11 @@ void EntityManager::AddComponent(Entity* entity, HypData&& componentData)
 
             return;
         }
-
-        HYP_FAIL("Cannot add duplicate component of type '%s'", *GetComponentTypeName(componentTypeId));
+        
+        container->SetComponent(componentIt->second, std::move(componentData));
+        
+        return;
     }
-
-    ComponentContainerBase* container = TryGetContainer(componentTypeId);
-    Assert(container != nullptr, "Component container does not exist for component of type '%s'", *GetComponentTypeName(componentTypeId));
 
     const ComponentId componentId = container->AddComponent(std::move(componentData));
 

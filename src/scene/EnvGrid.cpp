@@ -104,6 +104,8 @@ EnvGrid::EnvGrid(const BoundingBox& aabb, const EnvGridOptions& options)
 {
     m_entityInitInfo.receivesUpdate = true;
     m_entityInitInfo.canEverUpdate = true;
+    
+    m_entityInitInfo.initialComponents.EmplaceBack(BoundingBoxComponent { aabb });
 }
 
 EnvGrid::~EnvGrid()

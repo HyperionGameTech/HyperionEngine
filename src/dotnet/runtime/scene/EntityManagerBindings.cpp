@@ -54,7 +54,7 @@ extern "C"
 
         Handle<Entity> entityHandle = entity->HandleFromThis();
 
-        manager->AddComponent(entityHandle, *componentHypData);
+        manager->AddComponent(entityHandle, std::move(*componentHypData));
     }
 
     HYP_EXPORT int8 EntityManager_AddTypedEntity(EntityManager* manager, const HypClass* hypClass, HypData* outHypData)

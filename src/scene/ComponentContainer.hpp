@@ -158,14 +158,6 @@ public:
      *
      *  \return The Id of the added component.
      */
-    virtual ComponentId AddComponent(const HypData& componentData) = 0;
-
-    /*! \brief Adds a component to the component container, using HypData to store the component data generically.
-     *
-     *  \param componentData The HypData containing the component data to add.
-     *
-     *  \return The Id of the added component.
-     */
     virtual ComponentId AddComponent(HypData&& componentData) = 0;
 
     /*! \brief Removes the component with the given Id from the component container.
@@ -184,6 +176,16 @@ public:
      *  \return True if the component was removed, false otherwise.
      */
     virtual bool RemoveComponent(ComponentId id, HypData& outHypData) = 0;
+    
+    /*! \brief Sets an existing component to a new value. The component must already exist,
+     *  and the component data must be the same type as this container's held object type
+     *
+     *  \param id The ID of the component to assign
+     *  \param componentData The HypData containing the component data to set.
+     *
+     *  \returns True on success, false if component was not found
+     */
+    virtual bool SetComponent(ComponentId id, HypData&& componentData) = 0;
 
     /*! \brief Moves the component with the given Id from this component container to the given component container.
      *       The component container must be of the same type as this component container, otherwise an assertion will be thrown.
@@ -347,14 +349,6 @@ public:
         return Pair<ComponentId, Component&> { id, insertResult.first->second };
     }
 
-    virtual ComponentId AddComponent(const HypData& componentData) override
-    {
-        Assert(componentData.IsValid(), "Cannot add an invalid component");
-        Assert(componentData.Is<Component>(), "Component data is not of the correct type");
-
-        return AddComponent(componentData.Get<Component>()).first;
-    }
-
     virtual ComponentId AddComponent(HypData&& componentData) override
     {
         Assert(componentData.IsValid(), "Cannot add an invalid component");
@@ -390,6 +384,24 @@ public:
             outHypData = HypData(std::move(it->second));
 
             m_components.Erase(it);
+
+            return true;
+        }
+
+        return false;
+    }
+    
+    virtual bool SetComponent(ComponentId id, HypData&& componentData) override
+    {
+        HYP_MT_CHECK_RW(m_dataRaceDetector);
+        
+        Assert(componentData.IsValid() && componentData.GetTypeId() == GetComponentTypeId());
+
+        auto it = m_components.Find(id);
+
+        if (it != m_components.End())
+        {
+            m_components.Set(id, std::move(componentData.Get<Component>()));
 
             return true;
         }
