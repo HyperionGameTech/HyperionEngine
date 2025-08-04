@@ -604,15 +604,17 @@ RendererResult VulkanTLAS::BuildInstancesBuffer(uint32 first, uint32 last)
 
     bool instancesBufferRecreated = false;
 
-    if (!m_instancesBuffer || m_instancesBuffer->Size() < instancesBufferSize)
+    if (!m_instancesBuffer)
     {
-        SafeRelease(std::move(m_instancesBuffer));
-
         m_instancesBuffer = GetRenderBackend()->MakeGpuBuffer(GpuBufferType::ACCELERATION_STRUCTURE_INSTANCE_BUFFER, instancesBufferSize);
         m_instancesBuffer->SetDebugName(NAME("ASInstancesBuffer"));
         HYP_GFX_CHECK(m_instancesBuffer->Create());
 
         instancesBufferRecreated = true;
+    }
+    else
+    {
+        m_instancesBuffer->EnsureCapacity(instancesBufferSize, &instancesBufferRecreated);
     }
 
     if (instancesBufferRecreated)

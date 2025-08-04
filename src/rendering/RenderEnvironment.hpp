@@ -2,14 +2,10 @@
 
 #pragma once
 
-#include <rendering/ParticleSystem.hpp>
-#include <rendering/GaussianSplatting.hpp>
-#include <rendering/rt/RaytracingReflections.hpp>
-#include <rendering/rt/DDGI.hpp>
-
 #include <rendering/RenderObject.hpp>
 
 #include <core/Name.hpp>
+#include <core/Handle.hpp>
 
 #include <core/utilities/Pair.hpp>
 
@@ -20,6 +16,8 @@
 namespace hyperion {
 
 class Engine;
+class ParticleSystem;
+class GaussianSplatting;
 
 using RenderEnvironmentUpdates = uint64;
 
