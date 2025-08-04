@@ -1657,10 +1657,11 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
 
 #ifdef HYP_ENABLE_RENDER_STATS
         RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
-        rpl.BeginRead();
-        HYP_DEFER({ rpl.EndRead(); });
+        // RenderProxyList already be in read state (see above)
 
         counts[ERS_VIEWS]++;
+        counts[ERS_TEXTURES] += rpl.GetTextures().NumCurrent();
+        counts[ERS_MATERIALS] += rpl.GetMaterials().NumCurrent();
         counts[ERS_LIGHTMAP_VOLUMES] += rpl.GetLightmapVolumes().NumCurrent();
         counts[ERS_LIGHTS] += rpl.GetLights().NumCurrent();
         counts[ERS_ENV_GRIDS] += rpl.GetEnvGrids().NumCurrent();

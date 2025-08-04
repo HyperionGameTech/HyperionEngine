@@ -37,6 +37,8 @@ struct VariantHelper<T, Ts...>
     static constexpr bool copyAssignable = (std::is_copy_assignable_v<T> && (std::is_copy_assignable_v<Ts> && ...));
     static constexpr bool moveConstructible = (std::is_move_constructible_v<T> && (std::is_move_constructible_v<Ts> && ...));
     static constexpr bool moveAssignable = (std::is_move_assignable_v<T> && (std::is_move_assignable_v<Ts> && ...));
+    
+    static constexpr bool triviallyDestructible = (std::is_trivially_destructible_v<T> && (std::is_trivially_destructible_v<Ts> && ...));
 
     static constexpr TypeId thisTypeId = TypeId::ForType<NormalizedType<T>>();
 
@@ -177,7 +179,7 @@ protected:
 
 public:
     static constexpr int invalidTypeIndex = -1;
-    static constexpr TypeId typeIds[sizeof...(Types)] { TypeId::ForType<Types>()... };
+    static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
 
     VariantBase()
         : m_currentIndex(-1)
@@ -217,7 +219,10 @@ public:
             }
             else
             {
-                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+                if (!VariantHelper<Types...>::triviallyDestructible)
+                {
+                    destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+                }
 
                 m_currentIndex = invalidTypeIndex;
 
@@ -279,9 +284,12 @@ public:
 
     ~VariantBase()
     {
-        if (IsValid())
+        if constexpr (!VariantHelper<Types...>::triviallyDestructible)
         {
-            destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            if (IsValid())
+            {
+                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            }
         }
     }
 
@@ -417,9 +425,12 @@ public:
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
-        if (IsValid())
+        if constexpr (!VariantHelper<Types...>::triviallyDestructible)
         {
-            destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            if (IsValid())
+            {
+                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            }
         }
 
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
@@ -435,9 +446,12 @@ public:
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
-        if (IsValid())
+        if constexpr (!VariantHelper<Types...>::triviallyDestructible)
         {
-            destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            if (IsValid())
+            {
+                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            }
         }
 
         constexpr TypeId typeId = TypeId::ForType<NormalizedType<T>>();
@@ -454,9 +468,12 @@ public:
     {
         static_assert(Helper::template holdsType<T>, "Type is not valid for the variant");
 
-        if (IsValid())
+        if constexpr (!VariantHelper<Types...>::triviallyDestructible)
         {
-            destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            if (IsValid())
+            {
+                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            }
         }
 
         m_currentIndex = invalidTypeIndex;
@@ -473,9 +490,12 @@ public:
      */
     void Reset()
     {
-        if (IsValid())
+        if constexpr (!VariantHelper<Types...>::triviallyDestructible)
         {
-            destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            if (IsValid())
+            {
+                destructFunctions[m_currentIndex](CurrentTypeId(), m_storage.GetPointer());
+            }
         }
 
         m_currentIndex = invalidTypeIndex;
@@ -514,7 +534,7 @@ protected:
 
     HYP_FORCE_INLINE constexpr TypeId CurrentTypeId() const
     {
-        return m_currentIndex != invalidTypeIndex ? typeIds[m_currentIndex] : TypeId::Void();
+        return typeIds[m_currentIndex + 1];
     }
 };
 
@@ -575,7 +595,10 @@ public:
             }
             else
             {
-                Base::destructFunctions[Base::m_currentIndex](Base::CurrentTypeId(), Base::m_storage.GetPointer());
+                if constexpr (!VariantHelper<Types...>::triviallyDestructible)
+                {
+                    Base::destructFunctions[Base::m_currentIndex](Base::CurrentTypeId(), Base::m_storage.GetPointer());
+                }
 
                 Base::m_currentIndex = Base::invalidTypeIndex;
 
@@ -667,7 +690,9 @@ template <class... Types>
 struct Variant : private ConstructAssignmentTraits<true, utilities::VariantHelper<Types...>::copyConstructible, utilities::VariantHelper<Types...>::moveConstructible, Variant<Types...>>
 {
     static constexpr int invalidTypeIndex = utilities::VariantBase<Types...>::invalidTypeIndex;
-    static constexpr TypeId typeIds[sizeof...(Types)] { TypeId::ForType<Types>()... };
+    
+    // we do sizeof...(Types) + 1 so getting type id from index is just accessing the element at type index + 1.
+    static constexpr TypeId typeIds[sizeof...(Types) + 1] { TypeId::Void(), TypeId::ForType<Types>()... };
 
     // template <class ...Args>
     // Variant(Args &&... args)
