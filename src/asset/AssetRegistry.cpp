@@ -81,6 +81,8 @@ void AssetDataResourceBase::Initialize()
         return;
     }
 
+    Assert(stream.GetSource() != nullptr);
+
     HypData value;
 
     FBOMLoadContext context;
@@ -922,18 +924,21 @@ Result AssetPackage::OpenAssetReadStream(Name assetName, BufferedReader& stream)
 
     Handle<AssetObject> assetObject = *it;
 
-    if (m_packageDir.IsDirectory())
+    if (!m_packageDir.IsDirectory())
     {
-        FileBufferedReaderSource* source = new FileBufferedReaderSource(m_packageDir / *assetObject->GetName());
+        // package not saved
+        return HYP_MAKE_ERROR(Error, "Package not saved; cannot load asset");
+    }
 
-        stream = BufferedReader { source };
+    FileBufferedReaderSource* source = new FileBufferedReaderSource(m_packageDir / *assetObject->GetName());
 
-        if (!stream.IsOpen())
-        {
-            delete source;
+    stream = BufferedReader { source };
 
-            return HYP_MAKE_ERROR(Error, "Failed to open stream for asset '{}'", assetName);
-        }
+    if (!stream.IsOpen())
+    {
+        delete source;
+
+        return HYP_MAKE_ERROR(Error, "Failed to open stream for asset '{}'", assetName);
     }
 
     return {};

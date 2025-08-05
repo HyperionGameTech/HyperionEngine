@@ -60,7 +60,7 @@ public:
 class HYP_API LightmapRenderer_CpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_CpuPathTracing(LightmapTopLevelAccelerationStructure* accelerationStructure, const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_CpuPathTracing(LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType);
     LightmapRenderer_CpuPathTracing(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing& operator=(const LightmapRenderer_CpuPathTracing& other) = delete;
     LightmapRenderer_CpuPathTracing(LightmapRenderer_CpuPathTracing&& other) noexcept = delete;
@@ -96,6 +96,7 @@ private:
     static SharedCpuData* CreateSharedCpuData(RenderProxyList& rpl);
 
     LightmapTopLevelAccelerationStructure* m_accelerationStructure;
+    LightmapThreadPool* m_threadPool;
 
     Handle<Scene> m_scene;
     LightmapShadingType m_shadingType;
@@ -103,8 +104,6 @@ private:
     Array<LightmapHit, DynamicAllocator> m_hitsBuffer;
 
     Array<LightmapRay, DynamicAllocator> m_currentRays;
-
-    LightmapThreadPool m_threadPool;
 
     AtomicVar<uint32> m_numTracingTasks;
 };
@@ -171,7 +170,7 @@ private:
 
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
     {
-        return MakeUnique<LightmapRenderer_CpuPathTracing>(m_accelerationStructure.Get(), m_scene, shadingType);
+        return MakeUnique<LightmapRenderer_CpuPathTracing>(m_accelerationStructure.Get(), &m_threadPool, m_scene, shadingType);
     }
 
     virtual void Initialize_Internal() override;
@@ -182,6 +181,8 @@ private:
 
     UniquePtr<LightmapTopLevelAccelerationStructure> m_accelerationStructure;
     ResourceCache m_resourceCache;
+
+    LightmapThreadPool m_threadPool;
 };
 
 } // namespace hyperion

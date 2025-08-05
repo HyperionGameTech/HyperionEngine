@@ -297,33 +297,30 @@ private:
 uint32 LightmapThreadPool::NumThreadsToCreate()
 {
     uint32 numThreads = GetGlobalConfig().Get("lightmapper.numThreadsPerJob").ToUInt32(4);
-    return MathUtil::Clamp(numThreads, 1u, 128u);
+    return MathUtil::Clamp(numThreads, 1u, Threads::NumCores());
 }
 
 #pragma endregion LightmapThreadPool
 
 #pragma region LightmapRenderer_CpuPathTracing
 
-LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(LightmapTopLevelAccelerationStructure* accelerationStructure, const Handle<Scene>& scene, LightmapShadingType shadingType)
+LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType)
     : m_accelerationStructure(accelerationStructure),
+      m_threadPool(threadPool),
       m_scene(scene),
       m_shadingType(shadingType),
       m_numTracingTasks(0)
 {
     AssertDebug(accelerationStructure != nullptr);
+    AssertDebug(threadPool != nullptr);
 }
 
 LightmapRenderer_CpuPathTracing::~LightmapRenderer_CpuPathTracing()
 {
-    if (m_threadPool.IsRunning())
-    {
-        m_threadPool.Stop();
-    }
 }
 
 void LightmapRenderer_CpuPathTracing::Create()
 {
-    m_threadPool.Start();
 }
 
 void LightmapRenderer_CpuPathTracing::UpdateRays(Span<const LightmapRay> rays)
@@ -431,10 +428,10 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
     m_numTracingTasks.Increment(rays.Size(), MemoryOrder::RELEASE);
 
     TaskBatch* taskBatch = new TaskBatch();
-    taskBatch->pool = &m_threadPool;
+    taskBatch->pool = m_threadPool;
 
     const uint32 numItems = uint32(m_currentRays.Size());
-    const uint32 numBatches = m_threadPool.GetProcessorAffinity();
+    const uint32 numBatches = m_threadPool->GetProcessorAffinity();
     const uint32 itemsPerBatch = (numItems + numBatches - 1) / numBatches;
 
     for (uint32 batchIndex = 0; batchIndex < numBatches; batchIndex++)
@@ -673,11 +670,17 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJob* job, cons
 Lightmapper_CpuPathTracing::Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
     : Lightmapper(std::move(config), scene, aabb)
 {
+    if (m_threadPool.IsRunning())
+    {
+        m_threadPool.Stop();
+    }
 }
 
 void Lightmapper_CpuPathTracing::Initialize_Internal()
 {
     BuildResourceCache();
+
+    m_threadPool.Start();
 }
 
 void Lightmapper_CpuPathTracing::Build_Internal()
