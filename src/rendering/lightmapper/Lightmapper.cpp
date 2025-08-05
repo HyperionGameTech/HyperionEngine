@@ -629,19 +629,6 @@ void Lightmapper::Build()
             continue;
         }
 
-        if (m_config.traceMode == LightmapTraceMode::GPU_PATH_TRACING)
-        {
-            HYP_NOT_IMPLEMENTED();
-            // FIXME!!
-
-            /*if (!meshComponent.raytracingData)
-            {
-                HYP_LOG(Lightmap, Info, "Skipping Entity {} because it has no raytracing data set", entity->Id());
-
-                continue;
-            }*/
-        }
-
         m_subElements.PushBack(LightmapSubElement {
             entity->HandleFromThis(),
             meshComponent.mesh,

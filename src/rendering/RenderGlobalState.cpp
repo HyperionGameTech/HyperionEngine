@@ -695,8 +695,13 @@ static HYP_FORCE_INLINE void SyncResourcesImpl(ResourceTracker<ObjId<ElementType
 }
 
 template <class ElementType, class ProxyType>
-static inline void SyncResources(ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& lhs, ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>& rhs)
+static inline void SyncResources(ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pLhs, ResourceTracker<ObjId<ElementType>, ElementType*, ProxyType>* pRhs)
 {
+    AssertDebug(pLhs != nullptr && pLhs != nullptr);
+
+    auto& lhs = *pLhs;
+    auto& rhs = *pRhs;
+
     lhs.Advance();
 
     SyncResourcesImpl(lhs, rhs.GetSubclassImpl(-1));
@@ -706,7 +711,7 @@ static inline void SyncResources(ResourceTracker<ObjId<ElementType>, ElementType
         SyncResourcesImpl(lhs, rhs.GetSubclassImpl(int(subclassIndex)));
     }
 
-    auto diff = lhs.GetDiff();
+    const ResourceTrackerDiff& diff = lhs.GetDiff();
 
     if (!diff.NeedsUpdate())
     {
@@ -820,10 +825,12 @@ static inline void SyncResources(ResourceTracker<ObjId<ElementType>, ElementType
 template <SizeType... Indices>
 static HYP_FORCE_INLINE void SyncResourcesT(ResourceTrackerBase** dstResourceTrackers, ResourceTrackerBase** srcResourceTrackers, std::index_sequence<Indices...>)
 {
-    (SyncResources(static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*dstResourceTrackers[Indices]), static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type&>(*srcResourceTrackers[Indices])), ...);
+    (SyncResources(
+        static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type*>(dstResourceTrackers[Indices]),
+        static_cast<typename TupleElement_Tuple<Indices, RenderProxyList::ResourceTrackerTypes>::Type*>(srcResourceTrackers[Indices])), ...);
 }
 
-static inline void CopyDependencies(ViewData& vd, RenderProxyList& rpl)
+static HYP_FORCE_INLINE void CopyDependencies(ViewData& vd, RenderProxyList& rpl)
 {
     AssertDebug(vd.rplRender.resourceTrackers.Size() == TupleSize<RenderProxyList::ResourceTrackerTypes>::value);
     AssertDebug(rpl.resourceTrackers.Size() == TupleSize<RenderProxyList::ResourceTrackerTypes>::value);
