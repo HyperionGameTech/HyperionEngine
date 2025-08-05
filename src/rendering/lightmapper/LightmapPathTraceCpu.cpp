@@ -304,8 +304,14 @@ uint32 LightmapThreadPool::NumThreadsToCreate()
 
 #pragma region LightmapRenderer_CpuPathTracing
 
-LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(LightmapTopLevelAccelerationStructure* accelerationStructure, LightmapThreadPool* threadPool, const Handle<Scene>& scene, LightmapShadingType shadingType)
-    : m_accelerationStructure(accelerationStructure),
+LightmapRenderer_CpuPathTracing::LightmapRenderer_CpuPathTracing(
+    Lightmapper* lightmapper,
+    LightmapTopLevelAccelerationStructure* accelerationStructure,
+    LightmapThreadPool* threadPool,
+    const Handle<Scene>& scene,
+    LightmapShadingType shadingType)
+    : ILightmapRenderer(lightmapper),
+      m_accelerationStructure(accelerationStructure),
       m_threadPool(threadPool),
       m_scene(scene),
       m_shadingType(shadingType),

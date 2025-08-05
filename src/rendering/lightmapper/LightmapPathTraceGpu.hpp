@@ -4,7 +4,11 @@
 
 #include <rendering/lightmapper/Lightmapper.hpp>
 
+#include <rendering/RenderObject.hpp>
+
 namespace hyperion {
+
+class RenderProxyList;
 
 class HYP_API LightmapJob_GpuPathTracing : public LightmapJob
 {
@@ -20,7 +24,7 @@ public:
 class HYP_API LightmapRenderer_GpuPathTracing : public ILightmapRenderer
 {
 public:
-    LightmapRenderer_GpuPathTracing(const Handle<Scene>& scene, LightmapShadingType shadingType);
+    LightmapRenderer_GpuPathTracing(Lightmapper* lightmapper, const Handle<Scene>& scene, LightmapShadingType shadingType);
     LightmapRenderer_GpuPathTracing(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing& operator=(const LightmapRenderer_GpuPathTracing& other) = delete;
     LightmapRenderer_GpuPathTracing(LightmapRenderer_GpuPathTracing&& other) noexcept = delete;
@@ -49,6 +53,7 @@ public:
 
 private:
     void CreateUniformBuffer();
+    void UpdatePipelineState(FrameBase* frame);
     void UpdateUniforms(FrameBase* frame, uint32 rayOffset);
 
     Handle<Scene> m_scene;
@@ -59,11 +64,16 @@ private:
 
     GpuBufferRef m_hitsBufferGpu;
 
+    FixedArray<TLASRef, g_framesInFlight> m_accelerationStructures;
+
     RaytracingPipelineRef m_raytracingPipeline;
 };
 
+HYP_CLASS()
 class HYP_API Lightmapper_GpuPathTracing : public Lightmapper
 {
+    HYP_OBJECT_BODY(Lightmapper_GpuPathTracing);
+
 public:
     Lightmapper_GpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
     virtual ~Lightmapper_GpuPathTracing() override = default;
@@ -76,7 +86,7 @@ protected:
 
     virtual UniquePtr<ILightmapRenderer> CreateRenderer(LightmapShadingType shadingType) override
     {
-        return MakeUnique<LightmapRenderer_GpuPathTracing>(m_scene, shadingType);
+        return MakeUnique<LightmapRenderer_GpuPathTracing>(this, m_scene, shadingType);
     }
 };
 
