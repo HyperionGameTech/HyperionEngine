@@ -22,6 +22,8 @@
 #include <core/logging/LogChannels.hpp>
 #include <core/logging/Logger.hpp>
 
+#include <util/img/Bitmap.hpp>
+
 #include <EngineGlobals.hpp>
 #include <Engine.hpp>
 
@@ -332,6 +334,8 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
+    
+    AssertReady();
 
     GpuBufferRef gpuBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
     HYP_GFX_ASSERT(gpuBuffer->Create());
@@ -348,7 +352,6 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
 
             renderQueue << CopyImageToBuffer(m_gpuImage, gpuBuffer);
 
-            renderQueue << InsertBarrier(gpuBuffer, RS_COPY_SRC);
             renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
         });
 
@@ -365,6 +368,60 @@ void Texture::Readback(ByteBuffer& outByteBuffer)
     gpuBuffer->Read(outByteBuffer.Size(), outByteBuffer.Data());
 
     gpuBuffer->Destroy();
+}
+
+void Texture::EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
+    
+    AssertReady();
+
+    FrameBase* currentFrame = g_renderBackend->GetCurrentFrame();
+    
+    // No current frame, fallback to blocking Readback() call.
+    if (!currentFrame)
+    {
+        ByteBuffer byteBuffer;
+        Readback(byteBuffer);
+        
+        callback(std::move(byteBuffer));
+        
+        return;
+    }
+    
+    RenderQueue& renderQueue = currentFrame->renderQueue;
+    
+    const ResourceState previousResourceState = m_gpuImage->GetResourceState();
+    
+    GpuBufferRef stagingBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::STAGING_BUFFER, m_gpuImage->GetByteSize());
+    HYP_GFX_ASSERT(stagingBuffer->Create());
+    stagingBuffer->Map();
+
+    renderQueue << InsertBarrier(m_gpuImage, RS_COPY_SRC);
+    renderQueue << InsertBarrier(stagingBuffer, RS_COPY_DST);
+
+    renderQueue << CopyImageToBuffer(m_gpuImage, stagingBuffer);
+
+    renderQueue << InsertBarrier(m_gpuImage, previousResourceState);
+    
+    currentFrame->OnFrameEnd
+        .Bind([
+            gpuImageRef = m_gpuImage /* hold a strong reference to our buffer to ensure it is kept alive */,
+            stagingBuffer = std::move(stagingBuffer),
+            callback = std::move(callback)](...) mutable
+        {
+            ByteBuffer byteBuffer;
+            byteBuffer.SetSize(stagingBuffer->Size());
+            
+            stagingBuffer->Read(byteBuffer.Size(), byteBuffer.Data());
+            
+            SafeRelease(std::move(stagingBuffer));
+            SafeRelease(std::move(gpuImageRef));
+            
+            callback(std::move(byteBuffer));
+        })
+        .Detach();
 }
 
 Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
@@ -390,33 +447,27 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         return Vec4f::Zero();
     }
 
-    ResourceHandle resourceHandle;
-    TextureData* textureData = nullptr;
-
+    if (!m_asset->IsLoaded())
     {
-        if (!m_asset->IsLoaded())
-        {
-            HYP_LOG_ONCE(Texture, Info, "Texture does not have data loaded, loading from disk...");
+        HYP_LOG_ONCE(Texture, Debug, "Texture does not have data loaded, will be streamed in");
+    }
+    
+    ResourceHandle resourceHandle = ResourceHandle(*m_asset->GetResource());
 
-            resourceHandle = ResourceHandle(*m_asset->GetResource());
-        }
+    if (!resourceHandle)
+    {
+        HYP_LOG_ONCE(Texture, Warning, "Texture resource handle is not valid, cannot sample");
 
-        if (!resourceHandle)
-        {
-            HYP_LOG_ONCE(Texture, Warning, "Texture resource handle is not valid, cannot sample");
-
-            return Vec4f::Zero();
-        }
-
-        textureData = m_asset->GetTextureData();
+        return Vec4f::Zero();
     }
 
+    TextureData* textureData = m_asset->GetTextureData();
     Assert(textureData != nullptr);
 
-    const Vec3u coord = {
-        uint32(uvw.x * float(textureData->desc.extent.x - 1) + 0.5f),
-        uint32(uvw.y * float(textureData->desc.extent.y - 1) + 0.5f),
-        uint32(uvw.z * float(textureData->desc.extent.z - 1) + 0.5f)
+    Vec3u coord = {
+        uint32(std::fmodf(uvw.x, 1.0f) * float(textureData->desc.extent.x - 1) + 0.5f),
+        uint32(std::fmodf(uvw.y, 1.0f) * float(textureData->desc.extent.y - 1) + 0.5f),
+        uint32(std::fmodf(uvw.z, 1.0f) * float(textureData->desc.extent.z - 1) + 0.5f)
     };
 
     const uint32 bytesPerComponent = BytesPerComponent(textureData->desc.format);
@@ -437,31 +488,68 @@ Vec4f Texture::Sample(Vec3f uvw, uint32 faceIndex)
         + coord.y * (textureData->desc.extent.x * bytesPerComponent * numComponents)
         + coord.x * bytesPerComponent * numComponents;
 
-    if (index >= textureData->imageData.Size())
+    if (index + (bytesPerComponent * numComponents) >= textureData->imageData.Size())
     {
-        HYP_LOG_ONCE(Texture, Warning, "Index out of bounds, index: {}, buffer size: {}, coord: {}, dimensions: {}, num faces: {}", index, textureData->imageData.Size(),
+        HYP_LOG_ONCE(Texture, Warning, "Sample() call would attempt to read out of bounds of data for Texture {} ({})!\n\tTexel index: {}, texture data buffer size: {}, coord: {}, dimensions: {}, num faces: {}",
+            GetName(), Id(),
+            index, textureData->imageData.Size(),
             coord, textureData->desc.extent, NumFaces());
 
         return Vec4f::Zero();
     }
-
-    const ubyte* data = textureData->imageData.Data() + index;
-
-    switch (numComponents)
+    
+    if ((textureData->desc.format >= TF_R16F && textureData->desc.format <= TF_RGBA32F) || textureData->desc.format == TF_R11G11B10F)
     {
-    case 1:
-        return Vec4f(float(data[0]) / 255.0f);
-    case 2:
-        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, 0.0f, 1.0f);
-    case 3:
-        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, float(data[2]) / 255.0f, 1.0f);
-    case 4:
-        return Vec4f(float(data[0]) / 255.0f, float(data[1]) / 255.0f, float(data[2]) / 255.0f, float(data[3]) / 255.0f);
-    default: // should never happen
-        HYP_LOG_ONCE(Texture, Error, "Unsupported number of components: {}", numComponents);
-
-        return Vec4f::Zero();
+        // FP format
+        switch (numComponents)
+        {
+        case 1: return PixelReference<float, 1>(textureData->imageData.Data() + index).GetRGBA();
+        case 2: return PixelReference<float, 2>(textureData->imageData.Data() + index).GetRGBA();
+        case 3: return PixelReference<float, 3>(textureData->imageData.Data() + index).GetRGBA();
+        case 4: return PixelReference<float, 4>(textureData->imageData.Data() + index).GetRGBA();
+        default: break;
+        }
     }
+    else if (textureData->desc.format >= TF_R16 && textureData->desc.format <= TF_RGBA16)
+    {
+        // 16 bit integer format
+        switch (numComponents)
+        {
+        case 1: return PixelReference<uint16, 1>(textureData->imageData.Data() + index).GetRGBA();
+        case 2: return PixelReference<uint16, 2>(textureData->imageData.Data() + index).GetRGBA();
+        case 3: return PixelReference<uint16, 3>(textureData->imageData.Data() + index).GetRGBA();
+        case 4: return PixelReference<uint16, 4>(textureData->imageData.Data() + index).GetRGBA();
+        default: break;
+        }
+    }
+    else if (textureData->desc.format >= TF_R32 && textureData->desc.format <= TF_RGBA32)
+    {
+        // 32 bit integer format
+        switch (numComponents)
+        {
+        case 1: return PixelReference<uint32, 1>(textureData->imageData.Data() + index).GetRGBA();
+        case 2: return PixelReference<uint32, 2>(textureData->imageData.Data() + index).GetRGBA();
+        case 3: return PixelReference<uint32, 3>(textureData->imageData.Data() + index).GetRGBA();
+        case 4: return PixelReference<uint32, 4>(textureData->imageData.Data() + index).GetRGBA();
+        default: break;
+        }
+    }
+    else
+    {
+        // ubyte format
+        switch (numComponents)
+        {
+        case 1: return PixelReference<ubyte, 1>(textureData->imageData.Data() + index).GetRGBA();
+        case 2: return PixelReference<ubyte, 2>(textureData->imageData.Data() + index).GetRGBA();
+        case 3: return PixelReference<ubyte, 3>(textureData->imageData.Data() + index).GetRGBA();
+        case 4: return PixelReference<ubyte, 4>(textureData->imageData.Data() + index).GetRGBA();
+        default: break;
+        }
+    }
+
+    HYP_LOG_ONCE(Texture, Error, "Unsupported texture format to read on CPU: {}", int(textureData->desc.format));
+
+    return Vec4f::Zero();
 }
 
 Vec4f Texture::Sample2D(Vec2f uv)

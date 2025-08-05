@@ -133,7 +133,14 @@ public:
 
     void GenerateMipmaps();
 
+    /*! \brief Blocking call to readback GPU image data into a CPU-side buffer. Must be called on the render thread.
+     *  Do not use frequently as this will stall the gpu */
     void Readback(ByteBuffer& outByteBuffer);
+    
+    /*! \brief Enqueues commands to read GPU image data into a CPU-side buffer. Must be called on the render thread.
+     *  The callback will be called when the current frame is no longer being used by the GPU. If no current frame exists,
+     *  Readback() will be called instead. */
+    void EnqueueReadback(Proc<void(ByteBuffer&& byteBuffer)>&& callback);
 
     Vec4f Sample(Vec3f uvw, uint32 faceIndex);
     Vec4f Sample2D(Vec2f uv);

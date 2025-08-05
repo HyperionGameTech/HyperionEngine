@@ -220,7 +220,7 @@ static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugU
     }
     else
     {
-        DebugLog(LogType::Error, "vkCreateDebugUtilsMessengerExt not present! disabling message callback...\n");
+        HYP_LOG(RenderingBackend, Error, "vkCreateDebugUtilsMessengerExt not present! disabling message callback...\n");
 
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }

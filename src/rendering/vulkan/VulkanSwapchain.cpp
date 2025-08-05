@@ -219,11 +219,9 @@ RendererResult VulkanSwapchain::Create()
             HYP_GFX_CHECK(HYP_MAKE_ERROR(RendererError, "Image resource state is not PRESENT!"));
         }
 
-        VulkanFramebufferRef framebuffer = MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT);
+        VulkanFramebufferRef framebuffer = VULKAN_CAST(m_framebuffers.PushBack(MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT)));
         framebuffer->AddAttachment(0, VulkanImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
-
-        m_framebuffers.PushBack(std::move(framebuffer));
     }
 
     VulkanDeviceQueue* queue = &GetRenderBackend()->GetDevice()->GetGraphicsQueue();
@@ -233,13 +231,14 @@ RendererResult VulkanSwapchain::Create()
         VkCommandPool pool = queue->commandPools[0];
         HYP_GFX_ASSERT(pool != VK_NULL_HANDLE);
 
-        VulkanCommandBufferRef commandBuffer = MakeRenderObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        HYP_GFX_CHECK(commandBuffer->Create(pool));
-        m_commandBuffers[i] = std::move(commandBuffer);
+        m_commandBuffers[i] = MakeRenderObject<VulkanCommandBuffer>(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        m_frames[i] = MakeRenderObject<VulkanFrame>(i);
 
-        VulkanFrameRef frame = MakeRenderObject<VulkanFrame>(i);
+        VulkanCommandBufferRef& commandBuffer = m_commandBuffers[i];
+        HYP_GFX_CHECK(commandBuffer->Create(pool));
+
+        VulkanFrameRef& frame = m_frames[i];
         HYP_GFX_CHECK(frame->Create());
-        m_frames[i] = std::move(frame);
     }
 
     HYPERION_RETURN_OK;

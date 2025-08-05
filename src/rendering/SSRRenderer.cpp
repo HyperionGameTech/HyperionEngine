@@ -27,7 +27,7 @@ namespace hyperion {
 
 static constexpr bool useTemporalBlending = true;
 
-static constexpr TextureFormat ssrFormat = TF_RGBA16F;
+static constexpr TextureFormat ssrFormat = TF_RGBA8;
 
 struct SSRUniforms
 {
@@ -138,7 +138,7 @@ void SSRRenderer::Create()
     {
         m_temporalBlending = MakeUnique<TemporalBlending>(
             m_config.extent,
-            TF_RGBA16F,
+            ssrFormat,
             TemporalBlendTechnique::TECHNIQUE_1,
             TemporalBlendFeedback::HIGH,
             g_renderBackend->GetTextureImageView(m_sampledResultTexture),
@@ -182,6 +182,8 @@ ShaderProperties SSRRenderer::GetShaderProperties() const
     case TF_RGBA32F:
         shaderProperties.Set(NAME("OUTPUT_RGBA32F"));
         break;
+    default:
+        HYP_FAIL("Invalid SSR format type");
     }
 
     return shaderProperties;
@@ -194,8 +196,8 @@ void SSRRenderer::CreateUniformBuffers()
     uniforms.rayStep = m_config.rayStep;
     uniforms.numIterations = m_config.numIterations;
     uniforms.maxRayDistance = 1000.0f;
-    uniforms.distanceBias = 0.1f;
-    uniforms.offset = 0.001f;
+    uniforms.distanceBias = 0.02f;
+    uniforms.offset = 0.25f;
     uniforms.eyeFadeStart = m_config.eyeFade.x;
     uniforms.eyeFadeEnd = m_config.eyeFade.y;
     uniforms.screenEdgeFadeStart = m_config.screenEdgeFade.x;

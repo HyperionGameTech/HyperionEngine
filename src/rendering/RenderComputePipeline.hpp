@@ -31,6 +31,8 @@ public:
     {
         m_shader = shader;
     }
+    
+    virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create() = 0;
     virtual RendererResult Destroy() = 0;

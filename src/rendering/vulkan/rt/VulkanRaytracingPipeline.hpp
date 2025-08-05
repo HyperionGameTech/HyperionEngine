@@ -19,6 +19,11 @@ public:
     HYP_API VulkanRaytracingPipeline();
     HYP_API VulkanRaytracingPipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
     HYP_API virtual ~VulkanRaytracingPipeline() override;
+    
+    virtual bool IsCreated() const override
+    {
+        return VulkanPipelineBase::IsCreated();
+    }
 
     HYP_API virtual RendererResult Create() override;
     HYP_API virtual RendererResult Destroy() override;

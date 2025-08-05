@@ -230,7 +230,7 @@ struct LogOnceHelper
         }
         else if ((uint32(count) & (uint32(count) - 1)) == 0)
         {
-            LogStatic<Category, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING(" (and {} more like this)")>()>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
+            LogStatic<Category, ChannelArg, LogOnceFormatString.template Concat<HYP_STATIC_STRING("\t... and {} more like this\n")>()>(logger, std::forward<LogOnceArgTypes>(args)..., uint32(count));
         }
     }
 };

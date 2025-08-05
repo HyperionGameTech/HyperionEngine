@@ -558,7 +558,7 @@ static ViewData* GetViewData(View* view)
     AssertDebug(view != nullptr);
 
 #ifdef HYP_DEBUG_MODE
-    Threads::AssertOnThread(g_renderThread);
+    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 #endif
 
     auto viewDataIt = g_viewData.Find(view);
@@ -859,7 +859,7 @@ RenderProxyList& RenderApi_GetConsumerProxyList(View* view)
     AssertDebug(view != nullptr);
 
 #ifdef HYP_DEBUG_MODE
-    Threads::AssertOnThread(g_renderThread);
+    Threads::AssertOnThread(g_renderThread | ThreadCategory::THREAD_CATEGORY_TASK);
 #endif
 
     return GetViewData(view)->rplRender;

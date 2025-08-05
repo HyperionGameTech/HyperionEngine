@@ -741,13 +741,12 @@ static ByteBuffer CompileToSPIRV(
                         {
                             fieldTypeName = it->type->getCompleteString(true, false, false, true).data();
                         }
+                        
+                        auto& field = outDescriptorUsageType.AddField(
+                            CreateNameFromDynamicString(it->type->getFieldName().data()),
+                            DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName))).second;
 
-                        HandleType(
-                            it->type,
-                            outDescriptorUsageType.AddField(
-                                                      CreateNameFromDynamicString(it->type->getFieldName().data()),
-                                                      DescriptorUsageType(CreateNameFromDynamicString(fieldTypeName)))
-                                .second);
+                        HandleType(it->type, field);
                     }
                 }
             };

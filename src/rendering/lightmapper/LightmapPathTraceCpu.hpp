@@ -163,7 +163,7 @@ class HYP_API Lightmapper_CpuPathTracing : public Lightmapper
 
 public:
     Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb);
-    virtual ~Lightmapper_CpuPathTracing() override = default;
+    virtual ~Lightmapper_CpuPathTracing() override;
 
 private:
     virtual UniquePtr<LightmapJob> CreateJob(LightmapJobParams&& params)

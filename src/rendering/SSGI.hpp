@@ -33,7 +33,7 @@ struct SSGIConfig : public ConfigBase<SSGIConfig>
 
     void PostLoadCallback()
     {
-        extent = Vec2u { 1024, 1024 };
+        extent = Vec2u { 1280, 720 };
 
         switch (quality)
         {

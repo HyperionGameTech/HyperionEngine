@@ -119,6 +119,8 @@ public:
     }
 
     void SetFramebuffers(const Array<FramebufferRef>& framebuffers);
+    
+    virtual bool IsCreated() const = 0;
 
     virtual RendererResult Create();
     virtual RendererResult Destroy();

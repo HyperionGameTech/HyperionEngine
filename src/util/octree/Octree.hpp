@@ -276,7 +276,7 @@ protected:
     }
 
     //! derived classes must implement this
-    // static UniquePtr<Derived> CreateChildOctant(Derived* parent, const BoundingBox& aabb, uint8 index);
+    // static Derived* CreateChildOctant(Derived* parent, const BoundingBox& aabb, uint8 index);
 
     HYP_FORCE_INLINE bool ContainsAabb(const BoundingBox& aabb) const
     {

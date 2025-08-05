@@ -25,7 +25,7 @@ struct Proc_Impl;
 template <class MemoryType, class ReturnType, class... Args>
 struct Proc_Impl<ReturnType(Args...), MemoryType>
 {
-    ReturnType (*invokeFn)(void*, Args&...);
+    ReturnType (*invokeFn)(void*, Args...);
     void (*moveFn)(Proc_Impl*, Proc_Impl*);
     void (*deleteFn)(void*);
 
@@ -146,15 +146,15 @@ template <class ReturnType, class... Args>
 struct Invoker
 {
     template <class Func>
-    static HYP_NODISCARD ReturnType InvokeFn(void* ptr, Args&... args)
+    static HYP_NODISCARD ReturnType InvokeFn(void* ptr, Args... args)
     {
         if constexpr (std::is_function_v<std::remove_pointer_t<Func>>)
         {
-            return reinterpret_cast<Func>(ptr)(args...);
+            return reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
         }
         else
         {
-            return (*HYP_ALIGN_PTR_AS(ptr, Func))(args...);
+            return (*HYP_ALIGN_PTR_AS(ptr, Func))(std::forward<Args>(args)...);
         }
     }
 };
@@ -164,15 +164,15 @@ template <class... Args>
 struct Invoker<void, Args...>
 {
     template <class Func>
-    static void InvokeFn(void* ptr, Args&... args)
+    static void InvokeFn(void* ptr, Args... args)
     {
         if constexpr (std::is_function_v<std::remove_pointer_t<Func>>)
         {
-            reinterpret_cast<Func>(ptr)(args...);
+            reinterpret_cast<Func>(ptr)(std::forward<Args>(args)...);
         }
         else
         {
-            (*HYP_ALIGN_PTR_AS(ptr, Func))(args...);
+            (*HYP_ALIGN_PTR_AS(ptr, Func))(std::forward<Args>(args)...);
         }
     }
 };
@@ -351,7 +351,7 @@ public:
     {
         HYP_CORE_ASSERT(m_impl.HasValue());
 
-        return m_impl.invokeFn(m_impl.GetPointer(), args...);
+        return m_impl.invokeFn(m_impl.GetPointer(), std::forward<Args>(args)...);
     }
 
     /*! \brief Resets the Proc object, releasing any resources it may hold. \ref{IsValid} will return false after calling this function. */
@@ -381,12 +381,12 @@ public:
         {
             m_ptr = const_cast<void*>(static_cast<const void*>(&proc));
 
-            m_invokeFn = [](void* ptr, Args&... args) -> ReturnType
+            m_invokeFn = [](void* ptr, Args... args) -> ReturnType
             {
                 const Proc<ReturnType(Args...)>& proc = *static_cast<const Proc<ReturnType(Args...)>*>(ptr);
                 HYP_CORE_ASSERT(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
 
-                return proc(args...);
+                return proc(std::forward<Args>(args)...);
             };
         }
     }
@@ -398,12 +398,12 @@ public:
         {
             m_ptr = static_cast<void*>(&proc);
 
-            m_invokeFn = [](void* ptr, Args&... args) -> ReturnType
+            m_invokeFn = [](void* ptr, Args... args) -> ReturnType
             {
                 Proc<ReturnType(Args...)>& proc = *static_cast<Proc<ReturnType(Args...)>*>(ptr);
                 HYP_CORE_ASSERT(proc.IsValid(), "Cannot invoke ProcRef referencing invalid Proc");
 
-                return proc(args...);
+                return proc(std::forward<Args>(args)...);
             };
         }
     }
@@ -412,9 +412,9 @@ public:
     ProcRef(Callable&& callable)
         : m_ptr(const_cast<void*>(static_cast<const void*>(&callable)))
     {
-        m_invokeFn = [](void* ptr, Args&... args) -> ReturnType
+        m_invokeFn = [](void* ptr, Args... args) -> ReturnType
         {
-            return (*static_cast<NormalizedType<Callable>*>(ptr))(args...);
+            return (*static_cast<NormalizedType<Callable>*>(ptr))(std::forward<Args>(args)...);
         };
     }
 
@@ -425,9 +425,9 @@ public:
         {
             m_ptr = reinterpret_cast<void*>(fn);
 
-            m_invokeFn = [](void* ptr, Args&... args) -> ReturnType
+            m_invokeFn = [](void* ptr, Args... args) -> ReturnType
             {
-                return (reinterpret_cast<ReturnType (*)(Args...)>(ptr))(args...);
+                return (reinterpret_cast<ReturnType (*)(Args...)>(ptr))(std::forward<Args>(args)...);
             };
         }
     }
@@ -459,12 +459,12 @@ public:
 
     HYP_FORCE_INLINE ReturnType operator()(Args... args) const
     {
-        return m_invokeFn(m_ptr, args...);
+        return m_invokeFn(m_ptr, std::forward<Args>(args)...);
     }
 
 private:
     void* m_ptr;
-    ReturnType (*m_invokeFn)(void*, Args&...);
+    ReturnType (*m_invokeFn)(void*, Args...);
 };
 
 // General specialization for when return type and args cannot be deduced (in the case of a lambda)

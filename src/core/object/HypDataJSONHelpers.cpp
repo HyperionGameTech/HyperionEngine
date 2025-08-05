@@ -48,7 +48,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 json::JSONValue temp(std::move(outJson));
                 temp.Set(path, jsonValue);
 
-                outJson = std::move(temp).AsObject();
+                outJson = std::move(temp.AsObject());
             }
             else
             {
@@ -83,7 +83,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 json::JSONValue temp(std::move(outJson));
                 temp.Set(path, jsonValue);
 
-                outJson = std::move(temp).AsObject();
+                outJson = std::move(temp.AsObject());
             }
             else
             {
@@ -118,7 +118,7 @@ bool ObjectToJSON(const HypClass* hypClass, const HypData& target, json::JSONObj
                 json::JSONValue temp(std::move(outJson));
                 temp.Set(path, jsonValue);
 
-                outJson = std::move(temp).AsObject();
+                outJson = std::move(temp.AsObject());
             }
             else
             {

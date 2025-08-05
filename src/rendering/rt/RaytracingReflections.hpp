@@ -26,7 +26,7 @@ HYP_STRUCT(ConfigName = "app", JsonPath = "rendering.raytracing")
 struct RaytracingReflectionsConfig : public ConfigBase<RaytracingReflectionsConfig>
 {
     HYP_FIELD(JsonIgnore)
-    Vec2u extent = { 1024, 1024 };
+    Vec2u extent = { 1280, 720 };
 
     HYP_FIELD(JsonPath = "pathTracing.enabled")
     bool pathTracing = false;

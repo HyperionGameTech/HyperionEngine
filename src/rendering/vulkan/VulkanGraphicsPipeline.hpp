@@ -50,6 +50,11 @@ public:
     }
 
     void SetRenderPass(const VulkanRenderPassRef& renderPass);
+    
+    virtual bool IsCreated() const override
+    {
+        return VulkanPipelineBase::IsCreated();
+    }
 
     virtual void Bind(CommandBufferBase* cmd) override;
     virtual void Bind(CommandBufferBase* cmd, Vec2i viewportOffset, Vec2u viewportExtent) override;

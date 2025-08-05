@@ -99,9 +99,8 @@ private:
 
     ShaderProperties GetShaderProperties() const;
 
-    void CreateImageOutputs();
-    void CreateDescriptorSets();
-    void CreateComputePipelines();
+    void CreateImages();
+    void CreatePipeline();
 
     Vec2u m_extent;
     TextureFormat m_imageFormat;
@@ -111,8 +110,9 @@ private:
 
     uint16 m_blendingFrameCounter;
 
-    ComputePipelineRef m_performBlending;
-    DescriptorTableRef m_descriptorTable;
+    ComputePipelineRef m_csPerformBlending;
+    
+    FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
 
     ImageViewRef m_inputImageView;
     FramebufferRef m_inputFramebuffer;

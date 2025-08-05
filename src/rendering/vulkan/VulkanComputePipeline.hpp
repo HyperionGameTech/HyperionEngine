@@ -16,6 +16,11 @@ public:
     VulkanComputePipeline();
     VulkanComputePipeline(const VulkanShaderRef& shader, const VulkanDescriptorTableRef& descriptorTable);
     virtual ~VulkanComputePipeline() override;
+    
+    virtual bool IsCreated() const override
+    {
+        return VulkanPipelineBase::IsCreated();
+    }
 
     virtual RendererResult Create() override;
     virtual RendererResult Destroy() override;

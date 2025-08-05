@@ -751,7 +751,7 @@ bool ReflectionsPass::ShouldRenderSSR() const
 {
     static const ConfigurationValue& ssrEnabled = GetGlobalConfig().Get("rendering.ssr.enabled");
     static const ConfigurationValue& raytracingReflectionsEnabled = GetGlobalConfig().Get("rendering.raytracing.reflections.enabled");
-    
+
     return ssrEnabled.ToBool(true) && !raytracingReflectionsEnabled.ToBool(false);
 }
 
@@ -2067,7 +2067,7 @@ void DeferredRenderer::UpdateRaytracingView(FrameBase* frame, const RenderSetup&
         }
     }
 
-    if (!pd->raytracingTlases[frameIndex]->IsCreated() )
+    if (!pd->raytracingTlases[frameIndex]->IsCreated())
     {
         if (hasBlas)
         {

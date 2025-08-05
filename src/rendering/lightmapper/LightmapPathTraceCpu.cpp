@@ -442,8 +442,11 @@ void LightmapRenderer_CpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
     for (uint32 batchIndex = 0; batchIndex < numBatches; batchIndex++)
     {
-        taskBatch->AddTask([this, sharedCpuData, job, batchIndex, itemsPerBatch, numItems, envProbeTexture](...)
+        taskBatch->AddTask([this, view = renderSetup.view, sharedCpuData, job, batchIndex, itemsPerBatch, numItems, envProbeTexture](...)
             {
+                // Keep the ViewData alive to prevent needing to recreate it a bunch
+                RenderApi_GetConsumerProxyList(view);
+            
                 uint32 seed = std::rand();
 
                 const uint32 offsetIndex = batchIndex * itemsPerBatch;
@@ -676,6 +679,10 @@ void LightmapRenderer_CpuPathTracing::TraceSingleRayOnCPU(LightmapJob* job, cons
 Lightmapper_CpuPathTracing::Lightmapper_CpuPathTracing(LightmapperConfig&& config, const Handle<Scene>& scene, const BoundingBox& aabb)
     : Lightmapper(std::move(config), scene, aabb)
 {
+}
+
+Lightmapper_CpuPathTracing::~Lightmapper_CpuPathTracing()
+{
     if (m_threadPool.IsRunning())
     {
         m_threadPool.Stop();
@@ -684,13 +691,12 @@ Lightmapper_CpuPathTracing::Lightmapper_CpuPathTracing(LightmapperConfig&& confi
 
 void Lightmapper_CpuPathTracing::Initialize_Internal()
 {
-    BuildResourceCache();
-
     m_threadPool.Start();
 }
 
 void Lightmapper_CpuPathTracing::Build_Internal()
 {
+    BuildResourceCache();
     BuildAccelerationStructures();
 }
 

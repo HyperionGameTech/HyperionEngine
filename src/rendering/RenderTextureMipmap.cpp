@@ -69,19 +69,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
             mipWidth = MathUtil::Max(1u, extent.x >> (mipLevel));
             mipHeight = MathUtil::Max(1u, extent.y >> (mipLevel));
 
-            struct
             {
-                Vec4u dimensions;
-                Vec4u prevDimensions;
-                uint32 mipLevel;
-            } pushConstants;
-
-            pushConstants.dimensions = { mipWidth, mipHeight, 0, 0 };
-            pushConstants.prevDimensions = { prevMipWidth, prevMipHeight, 0, 0 };
-            pushConstants.mipLevel = mipLevel;
-
-            {
-                pass->GetGraphicsPipeline()->SetPushConstants(&pushConstants, sizeof(pushConstants));
                 pass->Begin(frame, NullRenderSetup());
 
                 renderQueue << BindDescriptorTable(
