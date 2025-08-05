@@ -20,6 +20,7 @@ set(COMMON_LIBRARIES
 )
 
 find_package(Threads REQUIRED)
+find_package(ZLIB)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS "/Zc:preprocessor /MD /O2 /Zi /MP")
@@ -46,7 +47,14 @@ if(CURL_FOUND)
     set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${CURL_LIBRARIES})
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
+if(ZLIB_FOUND)
+    message(STATUS "Zlib found at ${ZLIB_INCLUDE_DIRS}")
+
+    add_definitions(-DHYP_ZLIB=1)
+
+    include_directories(${ZLIB_INCLUDE_DIRS})
+    set(COMMON_LIBRARIES ${COMMON_LIBRARIES} ${ZLIB_LIBRARIES})
+elseif(EXISTS "${CMAKE_SOURCE_DIR}/submodules/zlib/CMakeLists.txt")
     message(STATUS "Zlib submodule found")
 
     add_definitions(-DHYP_ZLIB=1)
