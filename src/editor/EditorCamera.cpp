@@ -89,23 +89,26 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         return false;
     }
 
-    const Vec2f delta = (evt.position - evt.previousPosition) * 50.0f;
+    constexpr float lookMultiplier = 30.0f;
+    constexpr float moveMultiplier = 0.16f;
+
+    const Vec2f delta = (evt.position - evt.previousPosition);
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
-    if (evt.mouseButtons & MouseButtonState::LEFT)
+    if (evt.mouseButtons & MouseButtonState::RIGHT)
     {
         const Vec2i deltaSign = Vec2i(MathUtil::Sign(delta));
 
-        if (evt.mouseButtons & MouseButtonState::RIGHT)
+        if (evt.mouseButtons & MouseButtonState::LEFT)
         {
             if (MathUtil::Abs(delta.y) > MathUtil::Abs(delta.x))
             {
-                camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * float(-deltaSign.y));
+                camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * float(-deltaSign.y) * moveMultiplier);
             }
             else
             {
-                camera->SetTranslation(camera->GetTranslation() + dirCrossY * float(deltaSign.x));
+                camera->SetTranslation(camera->GetTranslation() + dirCrossY * float(deltaSign.x) * moveMultiplier);
             }
         }
         else
@@ -115,19 +118,19 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
             forward.y = 0.0f; // Ignore vertical component
             forward.Normalize();
 
-            camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x));
+            camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x * lookMultiplier));
 
-            camera->SetTranslation(camera->GetTranslation() + forward * float(-deltaSign.y));
+            camera->SetTranslation(camera->GetTranslation() + forward * float(-deltaSign.y) * moveMultiplier);
         }
     }
-    else if (evt.mouseButtons & MouseButtonState::RIGHT)
+    else if (evt.mouseButtons & MouseButtonState::LEFT)
     {
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x));
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(delta.y));
+        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(delta.x * lookMultiplier));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(delta.y * lookMultiplier));
 
         if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
         {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-delta.y));
+            camera->Rotate(dirCrossY, MathUtil::DegToRad(-delta.y * lookMultiplier));
         }
     }
 
