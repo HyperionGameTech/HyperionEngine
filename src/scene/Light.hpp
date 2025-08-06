@@ -283,6 +283,8 @@ public:
     void SetShadowMapFilter(ShadowMapFilter shadowMapFilter);
 
     BoundingSphere GetBoundingSphere() const;
+    
+    void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
 protected:
     void Init() override;
@@ -290,8 +292,6 @@ protected:
 
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
-
-    void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     void CreateShadowViews();
 

@@ -294,7 +294,7 @@ public:
 
                     if (shouldUpdateRenderProxy)
                     {
-                        static_cast<RenderProxyable*>(resource)->UpdateRenderProxy(pProxy);
+                        resource->UpdateRenderProxy(pProxy);
                     }
                 }
             }

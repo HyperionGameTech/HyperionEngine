@@ -711,6 +711,8 @@ public:
      * create a task on the render thread to update the Material's
      * data on the GPU. */
     void EnqueueRenderUpdates();
+    
+    void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
     /*! \brief Clone this Material. The cloned Material will have the same
      *  shader, parameters, textures, and render attributes as the original.
@@ -727,7 +729,6 @@ public:
 
 private:
     void Init() override;
-    void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     Name m_name;
 

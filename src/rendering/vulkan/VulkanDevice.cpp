@@ -447,7 +447,7 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
 
     for (const char* str : extensionNames)
     {
-        HYP_LOG(RenderingBackend, Debug, "\t%s", str);
+        HYP_LOG(RenderingBackend, Debug, "- {}", str);
     }
 
     HYP_LOG(RenderingBackend, Debug, "-----");

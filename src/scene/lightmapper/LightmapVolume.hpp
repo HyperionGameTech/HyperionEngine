@@ -144,10 +144,11 @@ public:
     const LightmapElement* GetElement(uint32 index) const;
 
     bool BuildElementTextures(const LightmapUVMap& uvMap, uint32 index);
+    
+    void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
 private:
     void Init() override;
-    void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     void UpdateAtlasTextures();
 

@@ -221,7 +221,7 @@ public:
 
     virtual void Update(float delta) override;
 
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
     uint32 m_gridSlot = ~0u; // temp
     Vec4i m_positionInGrid; // temp

@@ -179,7 +179,7 @@ public:
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
 
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
 private:
     virtual void OnAttachedToNode(Node* node) override;

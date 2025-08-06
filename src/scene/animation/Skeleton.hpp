@@ -150,10 +150,11 @@ public:
      *  \returns The animation with the given name, or nullptr if it could not be found.
      */
     const Animation* FindAnimation(UTF8StringView name, uint32* outIndex) const;
+    
+    void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
 private:
     void Init() override;
-    void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     Handle<Bone> m_rootBone;
     Array<Handle<Animation>> m_animations;

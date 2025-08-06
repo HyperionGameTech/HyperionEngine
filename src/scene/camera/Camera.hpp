@@ -597,6 +597,8 @@ public:
 
     void Update(float delta) override;
     void UpdateMatrices();
+    
+    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
 
 protected:
     void Init() override;
@@ -631,8 +633,6 @@ private:
 
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
-
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
 
     Matrix4 m_viewProjMat;
     Matrix4 m_previousViewMatrix;
