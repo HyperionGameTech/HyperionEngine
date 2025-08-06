@@ -359,7 +359,7 @@ void EnvProbe::UpdateRenderProxy(IRenderProxy* proxy)
     const FixedArray<Matrix4, 6> viewMatrices = CreateCubemapMatrices(m_aabb, GetOrigin());
 
     Memory::MemCpy(bufferData.faceViewMatrices, viewMatrices.Data(), sizeof(EnvProbeShaderData::faceViewMatrices));
-    // Memory::MemCpy(bufferData.sh.values, m_sphericalHarmonics.values, sizeof(EnvProbeSphericalHarmonics::values));
+    Memory::MemCpy(bufferData.sh.values, &m_shData, sizeof(EnvProbeSphericalHarmonics::values));
 
     bufferData.positionInGrid = m_positionInGrid;
 }

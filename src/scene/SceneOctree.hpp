@@ -16,7 +16,6 @@
 
 #include <scene/Entity.hpp>
 #include <scene/VisibilityState.hpp>
-
 #include <scene/EntityTag.hpp>
 
 #include <core/math/Vector3.hpp>
@@ -42,51 +41,13 @@ struct SceneOctreePayload
         Entity* value;
         BoundingBox aabb;
 
-        Entry() = default;
+        HYP_FORCE_INLINE Entry() = default;
 
-        Entry(Entity* value, const BoundingBox& aabb)
+        HYP_FORCE_INLINE Entry(Entity* value, const BoundingBox& aabb)
             : value(value),
               aabb(aabb)
         {
         }
-
-        Entry(const Entry& other)
-            : value(other.value),
-              aabb(other.aabb)
-        {
-        }
-
-        Entry& operator=(const Entry& other)
-        {
-            value = other.value;
-            aabb = other.aabb;
-
-            return *this;
-        }
-
-        Entry(Entry&& other) noexcept
-            : value(std::move(other.value)),
-              aabb(other.aabb)
-        {
-            other.aabb = BoundingBox::Empty();
-        }
-
-        Entry& operator=(Entry&& other) noexcept
-        {
-            if (this == &other)
-            {
-                return *this;
-            }
-
-            value = std::move(other.value);
-            aabb = other.aabb;
-
-            other.aabb = BoundingBox::Empty();
-
-            return *this;
-        }
-
-        ~Entry() = default;
 
         HYP_FORCE_INLINE bool operator==(const Entry& other) const
         {
@@ -100,11 +61,11 @@ struct SceneOctreePayload
                 || aabb != other.aabb;
         }
 
-        HashCode GetHashCode() const
+        HYP_FORCE_INLINE HashCode GetHashCode() const
         {
             HashCode hc;
 
-            hc.Add(HashCode::GetHashCode(value));
+            hc.Add(value ? value->Id() : ObjId<Entity>::invalid);
             hc.Add(aabb.GetHashCode());
 
             return hc;
@@ -200,7 +161,7 @@ public:
     void Collect(Array<Entity*>& outEntities) const;
     void Collect(const BoundingSphere& bounds, Array<Entity*>& outEntities) const;
     void Collect(const BoundingBox& bounds, Array<Entity*>& outEntities) const;
-    
+
     HYP_FORCE_INLINE OctreeBase::Result Insert(const SceneOctreePayload& payload, const BoundingBox& aabb)
     {
         return OctreeBase::Insert(payload, aabb);

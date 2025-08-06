@@ -124,7 +124,7 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 
         Mutex::Guard guard(m_dynamicClassesMutex);
 
-        HYP_LOG(Object, Info, "Register dynamic class {}", hypClass->GetName());
+        HYP_LOG(Object, Debug, "Register dynamic class {}", hypClass->GetName());
 
         HYP_CORE_ASSERT(!m_dynamicClasses.Contains(typeId), "Dynamic class already registered for type: %s", *hypClass->GetName());
 
@@ -135,7 +135,7 @@ void HypClassRegistry::RegisterClass(TypeId typeId, HypClass* hypClass)
 
     HYP_CORE_ASSERT(!m_isInitialized, "Cannot register class - HypClassRegistry instance already initialized");
 
-    HYP_LOG(Object, Info, "Register class {}", hypClass->GetName());
+    HYP_LOG(Object, Debug, "Register class {}", hypClass->GetName());
 
     const auto it = m_registeredClasses.Find(typeId);
     HYP_CORE_ASSERT(it == m_registeredClasses.End(), "Class already registered for type: %s", *hypClass->GetName());
@@ -159,7 +159,7 @@ void HypClassRegistry::UnregisterClass(const HypClass* hypClass)
         return;
     }
 
-    HYP_LOG(Object, Info, "Unregister dynamic class {}", it->second->GetName());
+    HYP_LOG(Object, Debug, "Unregister dynamic class {}", it->second->GetName());
 
     m_dynamicClasses.Erase(it);
 }

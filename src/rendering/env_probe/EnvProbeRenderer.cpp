@@ -658,13 +658,12 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
 
             g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Memory::MemCpy(renderEnvProbe->m_sphericalHarmonics.values, readbackBuffer.sh.values, sizeof(EnvProbeSphericalHarmonics::values));
-
-            // HYP_LOG(EnvProbe, Debug, "EnvProbe {} (type: {}) SH computed", renderEnvProbe->GetEnvProbe()->Id(), renderEnvProbe->GetEnvProbe()->GetEnvProbeType());
-            // for (uint32 i = 0; i < 9; i++)
-            // {
-            //     HYP_LOG(EnvProbe, Debug, "SH[{}]: {}", i, renderEnvProbe->m_sphericalHarmonics.values[i]);
-            // }
+            // Enqueue on game thread, not safe to write on render thread.
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([envProbe = std::move(envProbe), shData = readbackBuffer.sh]()
+                {
+                    envProbe->SetSphericalHarmonicsData(shData);
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
 
             for (auto& it : pipelines)
             {

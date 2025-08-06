@@ -213,14 +213,14 @@ void Skeleton::UpdateRenderProxy(IRenderProxy* proxy)
 
         for (SizeType i = 1; i < numBones; i++)
         {
-            if (Node* descendent = m_rootBone->GetDescendants()[i - 1])
+            if (Node* descendant = m_rootBone->GetDescendants()[i - 1])
             {
-                if (!descendent)
+                if (!descendant)
                 {
                     continue;
                 }
 
-                Bone* bone = ObjCast<Bone>(descendent);
+                Bone* bone = ObjCast<Bone>(descendant);
 
                 if (!bone)
                 {

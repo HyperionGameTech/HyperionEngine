@@ -19,7 +19,7 @@ void WorldAABBUpdaterSystem::OnEntityAdded(Entity* entity)
 
     if (ProcessEntity(entity, GetEntityManager().GetComponent<BoundingBoxComponent>(entity), GetEntityManager().GetComponent<TransformComponent>(entity)))
     {
-        GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM, EntityTag::UPDATE_BLAS>(entity);
+        GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entity);
 
         GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entity);
     }
@@ -48,7 +48,7 @@ void WorldAABBUpdaterSystem::Process(float delta)
             {
                 for (const WeakHandle<Entity>& entityWeak : updatedEntities)
                 {
-                    GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM, EntityTag::UPDATE_BLAS>(entityWeak.GetUnsafe());
+                    GetEntityManager().AddTags<EntityTag::UPDATE_RENDER_PROXY, EntityTag::UPDATE_VISIBILITY_STATE, EntityTag::UPDATE_ENV_PROBE_TRANSFORM>(entityWeak.GetUnsafe());
 
                     GetEntityManager().RemoveTag<EntityTag::UPDATE_AABB>(entityWeak.GetUnsafe());
                 }

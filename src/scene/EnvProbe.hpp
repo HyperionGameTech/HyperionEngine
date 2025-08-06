@@ -208,6 +208,17 @@ public:
     HYP_DEPRECATED bool IsVisible(ObjId<Camera> cameraId) const;
     HYP_DEPRECATED void SetIsVisible(ObjId<Camera> cameraId, bool isVisible);
 
+    HYP_FORCE_INLINE const EnvProbeSphericalHarmonics& GetSphericalHarmonicsData() const
+    {
+        return m_shData;
+    }
+    
+    HYP_FORCE_INLINE void SetSphericalHarmonicsData(const EnvProbeSphericalHarmonics& shData)
+    {
+        m_shData = shData;
+        SetNeedsRenderProxyUpdate();
+    }
+
     virtual void Update(float delta) override;
 
     virtual void UpdateRenderProxy(IRenderProxy* proxy) override;
@@ -245,6 +256,9 @@ protected:
 
     HYP_FIELD(Property = "EnvProbeType", Serialize = true)
     EnvProbeType m_envProbeType;
+
+    HYP_FIELD(Property = "SHData", Serialize = true)
+    EnvProbeSphericalHarmonics m_shData;
 
     float m_cameraNear;
     float m_cameraFar;

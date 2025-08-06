@@ -32,8 +32,7 @@ class Texture;
 enum class EnvGridFlags : uint32
 {
     NONE = 0x0,
-    USE_VOXEL_GRID = 0x1,
-    DEBUG_DISPLAY_PROBES = 0x2
+    USE_VOXEL_GRID = 0x1
 };
 
 HYP_MAKE_ENUM_FLAGS(EnvGridFlags);

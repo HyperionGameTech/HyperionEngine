@@ -8,6 +8,8 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 
+#include <core/object/HypClassUtils.hpp>
+
 #include <core/debug/Debug.hpp>
 
 #include <core/logging/LogChannels.hpp>
@@ -204,6 +206,10 @@ RendererResult VulkanSwapchain::Create()
         "Failed to create Vulkan swapchain!");
 
     HYP_GFX_CHECK(RetrieveImageHandles());
+    HYP_GFX_ASSERT(m_images.Any());
+
+    HYP_LOG(RenderingBackend, Info, "Creating {} swapchain framebuffers with extent and format: {}",
+        m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
 
     for (const ImageRef& image : m_images)
     {
@@ -272,7 +278,7 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
         m_imageFormat = GetRenderBackend()->GetDevice()->GetFeatures().FindSupportedSurfaceFormat(
             m_supportDetails,
             { { TF_RGBA8_SRGB, TF_BGRA8_SRGB } },
-            [this](auto&& format)
+            [this](VkSurfaceFormatKHR format)
             {
                 if (format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
                 {
@@ -286,6 +292,8 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
 
         if (m_imageFormat != TF_NONE)
         {
+            HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (sRGB): {}", EnumToString(m_imageFormat));
+
             HYPERION_RETURN_OK;
         }
     }
@@ -301,12 +309,12 @@ RendererResult VulkanSwapchain::ChooseSurfaceFormat()
             return true;
         });
 
-    if (m_imageFormat == TF_NONE)
+    if (m_imageFormat != TF_NONE)
     {
-        return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format");
+        HYP_LOG(RenderingBackend, Info, "Found supported surface format for swapchain (non-sRGB): {}", EnumToString(m_imageFormat));
     }
 
-    HYPERION_RETURN_OK;
+    return HYP_MAKE_ERROR(RendererError, "Failed to find a supported surface format!");
 }
 
 RendererResult VulkanSwapchain::ChoosePresentMode()
@@ -376,8 +384,6 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
         HYP_GFX_ASSERT(image.IsValid());
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
     }
-
-    HYP_LOG(RenderingBackend, Info, "Created swapchain with {} images", m_images.Size());
 
     HYPERION_RETURN_OK;
 }

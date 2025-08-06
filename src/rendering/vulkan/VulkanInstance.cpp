@@ -142,7 +142,7 @@ static Array<const char*> CheckValidationLayerSupport(const Array<const char*>& 
         }
         else
         {
-            DebugLog(LogType::Warn, "Validation layer %s is unavailable!\n", request);
+            HYP_LOG(RenderingBackend, Warning, "Validation layer {} is unavailable", request);
         }
     }
 
@@ -262,8 +262,8 @@ RendererResult VulkanInstance::SetupDebugMessenger()
     messengerInfo.pUserData = nullptr;
 
     VULKAN_CHECK(CreateDebugUtilsMessengerEXT(m_instance, &messengerInfo, nullptr, &this->debugMessenger));
-
-    DebugLog(LogType::Info, "Using Vulkan Debug Messenger\n");
+    
+    HYP_LOG(RenderingBackend, Info, "Enabling Vulkan debug messenger");
 #endif
     HYPERION_RETURN_OK;
 }
@@ -315,21 +315,19 @@ RendererResult VulkanInstance::Initialize(const AppContextBase& appContext, bool
 #endif
 #endif
 
-    DebugLog(LogType::Debug, "Got %llu extensions:\n", extensionNames.Size());
+    HYP_LOG(RenderingBackend, Info, "Found %llu extensions:", extensionNames.Size());
 
     for (const char* extensionName : extensionNames)
     {
-        DebugLog(LogType::Debug, "\t%s\n", extensionName);
+        HYP_LOG(RenderingBackend, Info, "\t{}", extensionName);
     }
 
     createInfo.enabledExtensionCount = uint32(extensionNames.Size());
     createInfo.ppEnabledExtensionNames = extensionNames.Data();
 
-    DebugLog(LogType::Info, "Loading [%d] Instance extensions...\n", extensionNames.Size());
+    HYP_LOG(RenderingBackend, Info, "Loading {} Instance extensions...", extensionNames.Size());
 
     VkResult instanceResult = vkCreateInstance(&createInfo, nullptr, &m_instance);
-
-    DebugLog(LogType::Info, "Instance result: %d\n", instanceResult);
     VULKAN_CHECK_MSG(instanceResult, "Failed to create Vulkan Instance!");
 
     /* Create our renderable surface from SDL */
@@ -353,10 +351,6 @@ static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMesse
     if (func != nullptr)
     {
         func(instance, debugMessenger, callbacks);
-    }
-    else
-    {
-        DebugLog(LogType::Error, "Extension for vkDestroyDebugUtilsMessengerEXT not supported!\n");
     }
 }
 

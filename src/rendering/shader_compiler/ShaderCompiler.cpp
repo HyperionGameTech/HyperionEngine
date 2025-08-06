@@ -942,12 +942,6 @@ static void ForEachPermutation(
         allCombinations.EmplaceBack(std::move(currentProperties));
     }
 
-    HYP_LOG(
-        ShaderCompiler,
-        Debug,
-        "Shader value groups: {}",
-        valueGroups.Size());
-
     // now apply the value groups onto it
     for (const ShaderProperty& valueGroup : valueGroups)
     {

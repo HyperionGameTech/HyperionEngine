@@ -20,6 +20,7 @@
 
 namespace hyperion {
 
+HYP_ENUM()
 enum ImageUsage : uint32
 {
     IU_NONE = 0x0,
@@ -31,6 +32,7 @@ enum ImageUsage : uint32
 
 HYP_MAKE_ENUM_FLAGS(ImageUsage);
 
+HYP_ENUM()
 enum ImageSupport : uint8
 {
     IS_SRV,
@@ -38,6 +40,7 @@ enum ImageSupport : uint8
     IS_DEPTH
 };
 
+HYP_ENUM()
 enum DefaultImageFormat : uint8
 {
     DIF_NONE,
@@ -47,6 +50,7 @@ enum DefaultImageFormat : uint8
     DIF_STORAGE
 };
 
+HYP_ENUM()
 enum TextureType : uint32
 {
     TT_INVALID = uint32(-1),
@@ -60,6 +64,7 @@ enum TextureType : uint32
     TT_MAX
 };
 
+HYP_ENUM()
 enum TextureBaseFormat : uint32
 {
     TFB_NONE,
@@ -72,6 +77,7 @@ enum TextureBaseFormat : uint32
     TFB_DEPTH
 };
 
+HYP_ENUM()
 enum TextureFormat : uint32
 {
     TF_NONE,
@@ -130,6 +136,7 @@ enum TextureFormat : uint32
     TF_DEPTH_32F
 };
 
+HYP_ENUM()
 enum TextureFilterMode : uint32
 {
     TFM_NEAREST,
@@ -140,6 +147,7 @@ enum TextureFilterMode : uint32
     TFM_MINMAX_MIPMAP
 };
 
+HYP_ENUM()
 enum TextureWrapMode : uint32
 {
     TWM_CLAMP_TO_EDGE,
@@ -147,6 +155,7 @@ enum TextureWrapMode : uint32
     TWM_REPEAT
 };
 
+HYP_ENUM()
 enum ResourceState : uint32
 {
     RS_UNDEFINED,

@@ -177,7 +177,7 @@ void SceneOctree::Clear()
             }
         }
     }
-    
+
     if (IsRoot() && UseEntityMap())
     {
         SceneOctreeState* stateCasted = static_cast<SceneOctreeState*>(m_state);
@@ -230,7 +230,7 @@ SceneOctree::Result SceneOctree::Rebuild(const BoundingBox& newAabb, bool allowG
     m_aabb = newAabb;
 
     AssertDebug(!allowGrow || IsRoot(), "allowGrow=true is only allowed on the root node");
-    
+
     for (SceneOctreePayload& payload : payloads)
     {
         for (SceneOctreePayload::Entry& entry : payload.entries)
@@ -337,7 +337,10 @@ SceneOctree::Result SceneOctree::Insert(Entity* entity, const BoundingBox& aabb,
 
     if (g_flags & OF_INSERT_ON_OVERLAP)
     {
-        AssertDebug(aabb.IsValid() && aabb.IsFinite() && !aabb.IsZero(), "Attempting to insert invalid AABB into Octree: {}", aabb);
+        if (!aabb.IsValid() || !aabb.IsFinite() || aabb.IsZero())
+        {
+            return HYP_MAKE_ERROR(Error, "Attempting to insert invalid AABB into Octree: {}", aabb);
+        }
     }
 
     if (aabb.IsValid() && aabb.IsFinite())
@@ -441,7 +444,7 @@ SceneOctree::Result SceneOctree::Insert_Internal(Entity* entity, const BoundingB
 
     m_payload.entries.Set(entity->Id().ToIndex(), SceneOctreePayload::Entry { entity, aabb });
 
-    // mark dirty (not for rebuild)
+    // mark dirty (not for rebuild), but ontant id has changed
     m_state->MarkOctantDirty(m_octantId);
 
     return m_octantId;
@@ -723,7 +726,10 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
         m_state->MarkOctantDirty(m_octantId, true);
     }
 
-    if (entry)
+    // needs hash recalculation due to the entry changing, at minimum
+    m_state->MarkOctantDirty(m_octantId);
+
+    if (entry != nullptr)
     {
         /* Not moved out of this octant (for now) */
         entry->aabb = newAabb;
@@ -731,7 +737,7 @@ SceneOctree::Result SceneOctree::Move(Entity* entity, const BoundingBox& aabb, b
     else
     {
         /* Moved into this octant */
-        m_payload.entries.Set(entry->value->Id().ToIndex(), SceneOctreePayload::Entry { entity, newAabb });
+        m_payload.entries.Set(entity->Id().ToIndex(), SceneOctreePayload::Entry { entity, newAabb });
 
         if (UseEntityMap())
         {
@@ -825,12 +831,6 @@ SceneOctree::Result SceneOctree::Update_Internal(Entity* entity, const BoundingB
 
     if (newAabb == oldAabb)
     {
-        if (forceInvalidation)
-        {
-            // force invalidation of this entry so the octant's hash will be updated
-            m_state->MarkOctantDirty(m_octantId);
-        }
-
         /* AABB has not changed - no need to update */
         return m_octantId;
     }

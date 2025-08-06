@@ -324,7 +324,7 @@ void VulkanDevice::DebugLogAllocatorStats() const
         char* statsString;
         vmaBuildStatsString(m_allocator, &statsString, true);
 
-        DebugLog(LogType::RenInfo, "Pre-destruction VMA stats:\n%s\n", statsString);
+        HYP_LOG(RenderingBackend, Info, "Pre-destruction VMA stats:\n%s\n", statsString);
 
         vmaFreeStatsString(m_allocator, statsString);
     }
@@ -442,15 +442,15 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
         }
     }
 
-    DebugLog(LogType::RenDebug, "Required vulkan extensions:\n");
-    DebugLog(LogType::RenDebug, "-----\n");
+    HYP_LOG(RenderingBackend, Debug, "Required vulkan extensions:");
+    HYP_LOG(RenderingBackend, Debug, "-----");
 
     for (const char* str : extensionNames)
     {
-        DebugLog(LogType::RenDebug, "\t%s\n", str);
+        HYP_LOG(RenderingBackend, Debug, "\t%s", str);
     }
 
-    DebugLog(LogType::RenDebug, "-----\n");
+    HYP_LOG(RenderingBackend, Debug, "-----");
 
     VkDeviceCreateInfo createInfo { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
     createInfo.pQueueCreateInfos = queueCreateInfos.Data();
@@ -468,8 +468,6 @@ RendererResult VulkanDevice::Create(uint32 requiredQueueFamilies)
 
     HYP_LOG(RenderingBackend, Debug, "Loading dynamic functions\n");
     m_features->SetDeviceFeatures(this);
-
-    DebugLog(LogType::Info, "Raytracing supported? : %d\n", m_features->IsRaytracingSupported());
 
     { // Create device queues
         m_queueGraphics = VulkanDeviceQueue {

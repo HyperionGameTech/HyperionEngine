@@ -192,14 +192,9 @@ public:
 
     VulkanSwapchainSupportDetails QuerySwapchainSupport(VkSurfaceKHR _surface) const
     {
+        HYP_GFX_ASSERT(m_physicalDevice != VK_NULL_HANDLE, "No physical device set!");
+        
         VulkanSwapchainSupportDetails details {};
-
-        if (m_physicalDevice == nullptr)
-        {
-            DebugLog(LogType::Debug, "No physical device set -- cannot query swapchain support!\n");
-            return details;
-        }
-
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physicalDevice, _surface, &details.capabilities);
 
         uint32 numQueueFamilies = 0;
@@ -217,11 +212,7 @@ public:
         surfaceFormats.Resize(numSurfaceFormats);
 
         vkGetPhysicalDeviceSurfaceFormatsKHR(m_physicalDevice, _surface, &numSurfaceFormats, surfaceFormats.Data());
-
-        if (surfaceFormats.Empty())
-        {
-            DebugLog(LogType::Warn, "No surface formats available!\n");
-        }
+        HYP_GFX_ASSERT(surfaceFormats.Any(), "No surface formats available!");
 
         uint32 numPresentModes = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, _surface, &numPresentModes, nullptr);
@@ -230,11 +221,7 @@ public:
         presentModes.Resize(numPresentModes);
 
         vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, _surface, &numPresentModes, presentModes.Data());
-
-        if (presentModes.Empty())
-        {
-            DebugLog(LogType::Warn, "No present modes available!\n");
-        }
+        HYP_GFX_ASSERT(presentModes.Any(), "No present modes available!");
 
         details.queueFamilyProperties = queueFamilyProperties;
         details.formats = surfaceFormats;
@@ -268,12 +255,7 @@ public:
             featureFlags |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
             break;
         default:
-            DebugLog(
-                LogType::RenError,
-                "Unknown image support type %d.\n",
-                int(supportType));
-
-            return false;
+            HYP_UNREACHABLE();
         }
 
         VkFormatProperties props;
@@ -286,26 +268,7 @@ public:
             : (tiling == VK_IMAGE_TILING_OPTIMAL) ? props.optimalTilingFeatures
                                                   : 0;
 
-        if ((flags & featureFlags) == featureFlags)
-        {
-            DebugLog(
-                LogType::Debug,
-                "Vulkan format %d with tiling mode %d and feature flags %d support found!\n",
-                format,
-                tiling,
-                featureFlags);
-
-            return true;
-        }
-
-        DebugLog(
-            LogType::Debug,
-            "Vulkan format %d with tiling mode %d and feature flags %d not supported.\n",
-            format,
-            tiling,
-            featureFlags);
-
-        return false;
+        return ((flags & featureFlags) == featureFlags);
     }
 
     /* get the first supported format out of the provided list of format choices. */
@@ -313,16 +276,8 @@ public:
     {
         Assert(possibleFormats.Size() > 0, "Size must be greater than zero!");
 
-        DebugLog(
-            LogType::Debug,
-            "Looking for format to use with support type %d. First choice: %d\n",
-            int(supportType),
-            int(possibleFormats[0]));
-
         if (m_physicalDevice == nullptr)
         {
-            DebugLog(LogType::Debug, "No physical device set -- cannot find supported format!\n");
-
             return TF_NONE;
         }
 
@@ -343,22 +298,8 @@ public:
     {
         Assert(possibleFormats.Size() != 0, "Size must be greater than zero!");
 
-        for (const VkSurfaceFormatKHR& surfaceFormat : details.formats)
-        {
-            DebugLog(
-                LogType::Debug,
-                "\tFormat: %d\tColor space: %d\n",
-                surfaceFormat.format,
-                surfaceFormat.colorSpace);
-        }
-
         for (TextureFormat format : possibleFormats)
         {
-            DebugLog(
-                LogType::Debug,
-                "Try format: %d\n",
-                format);
-
             const VkFormat vkFormat = ToVkFormat(format);
 
             if (AnyOf(details.formats, [&](auto&& surfaceFormat)
@@ -366,18 +307,9 @@ public:
                         return surfaceFormat.format == vkFormat && predicate(surfaceFormat);
                     }))
             {
-                DebugLog(
-                    LogType::Debug,
-                    "Found surface format: %d\n",
-                    format);
-
                 return format;
             }
         }
-
-        DebugLog(
-            LogType::Debug,
-            "No surface format found out of the selected options!\n");
 
         return TF_NONE;
     }

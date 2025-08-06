@@ -86,11 +86,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
 
     const auto updateVisbilityState = [&octree, &updatedEntities](Entity* entity, VisibilityStateComponent& visibilityStateComponent, BoundingBoxComponent& boundingBoxComponent)
     {
-        bool needsOctreeUpdate = false;
-
         const bool visibilityStateInvalidated = visibilityStateComponent.flags & VISIBILITY_STATE_FLAG_INVALIDATED;
-
-        needsOctreeUpdate |= visibilityStateInvalidated;
 
         visibilityStateComponent.flags &= ~VISIBILITY_STATE_FLAG_INVALIDATED;
 
@@ -121,29 +117,26 @@ void VisibilityStateUpdaterSystem::Process(float delta)
             return;
         }
 
-        if (needsOctreeUpdate)
+        visibilityStateComponent.visibilityState = nullptr;
+
+        // force entry invalidation if the bounding box is not finite,
+        // so directional lights changing cause the entire octree to be updated.
+        const bool forceEntryInvalidation = visibilityStateInvalidated;
+
+        const SceneOctree::Result updateResult = octree.Update(entity, boundingBoxComponent.worldAabb, forceEntryInvalidation);
+
+        if (updateResult.HasError())
         {
-            visibilityStateComponent.visibilityState = nullptr;
+            visibilityStateComponent.octantId = OctantId::Invalid();
 
-            // force entry invalidation if the bounding box is not finite,
-            // so directional lights changing cause the entire octree to be updated.
-            const bool forceEntryInvalidation = visibilityStateInvalidated;
+            HYP_LOG(Scene, Warning, "Failed to update entity {} in octree: {}", entity->Id(), updateResult.GetError().GetMessage());
 
-            const SceneOctree::Result updateResult = octree.Update(entity, boundingBoxComponent.worldAabb, forceEntryInvalidation);
-
-            if (updateResult.HasError())
-            {
-                visibilityStateComponent.octantId = OctantId::Invalid();
-
-                HYP_LOG(Scene, Warning, "Failed to update entity {} in octree: {}", entity->Id(), updateResult.GetError().GetMessage());
-
-                return;
-            }
-
-            AssertDebug(updateResult.GetValue() != OctantId::Invalid(), "Invalid octant Id returned from Update()");
-
-            visibilityStateComponent.octantId = updateResult.GetValue();
+            return;
         }
+
+        AssertDebug(updateResult.GetValue() != OctantId::Invalid(), "Invalid octant Id returned from Update()");
+
+        visibilityStateComponent.octantId = updateResult.GetValue();
 
         if (visibilityStateComponent.octantId != OctantId::Invalid())
         {

@@ -5,8 +5,6 @@
 #include <rendering/PlaceholderData.hpp>
 #include <rendering/RenderGlobalState.hpp>
 
-#include <rendering/debug/DebugDrawer.hpp>
-
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderImage.hpp>
@@ -389,10 +387,10 @@ void EnvGridRenderer::CreateSphericalHarmonicsData(EnvGrid* envGrid, EnvGridPass
     }
 
     FixedArray<ShaderRef, 4> shaders = {
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("MODE_CLEAR") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("MODE_BUILD_COEFFICIENTS") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("MODE_REDUCE") } }),
-        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("MODE_FINALIZE") } })
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_CLEAR") } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_BUILD_COEFFICIENTS") } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_REDUCE") } }),
+        g_shaderManager->GetOrCreate(NAME("ComputeSH"), { { NAME("LIGHTING"), NAME("MODE_FINALIZE") } })
     };
 
     for (const ShaderRef& shader : shaders)
@@ -515,7 +513,7 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_renderThread);
-    
+
     static const ConfigurationValue& globalIlluminationEnabled = GetGlobalConfig().Get("rendering.envGrid.globalIllumination.enabled");
 
     if (!globalIlluminationEnabled.ToBool())
@@ -555,30 +553,6 @@ void EnvGridRenderer::RenderFrame(FrameBase* frame, const RenderSetup& renderSet
 
     const EnvGridOptions& options = envGrid->GetOptions();
     const EnvProbeCollection& envProbeCollection = envGrid->GetEnvProbeCollection();
-
-    // Debug draw
-    if (options.flags & EnvGridFlags::DEBUG_DISPLAY_PROBES)
-    {
-        DebugDrawCommandList& debugDrawer = g_engine->GetDebugDrawer()->CreateCommandList();
-
-        for (uint32 index = 0; index < envProbeCollection.numProbes; index++)
-        {
-            const Handle<EnvProbe>& probe = envProbeCollection.GetEnvProbeDirect(index);
-
-            if (!probe.IsValid())
-            {
-                continue;
-            }
-
-            RenderProxyEnvProbe* envProbeProxy = static_cast<RenderProxyEnvProbe*>(RenderApi_GetRenderProxy(probe->Id()));
-            Assert(envProbeProxy != nullptr);
-
-            debugDrawer.ambientProbe(
-                envProbeProxy->bufferData.worldPosition.GetXYZ(),
-                0.25f,
-                *probe);
-        }
-    }
 
     // render enqueued probes
     while (pd->nextRenderIndices.Any())
@@ -904,15 +878,12 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
 
             g_renderGlobalState->gpuBuffers[GRB_ENV_PROBES]->ReadbackElement(frame->GetFrameIndex(), boundIndex, &readbackBuffer);
 
-            // Log out SH data
-            HYP_LOG(EnvGrid, Info, "EnvProbe {} SH data:\n\t{}\n\t{}\n\t{}\n\t{}\n",
-                probe->Id(),
-                readbackBuffer.sh.values[0],
-                readbackBuffer.sh.values[1],
-                readbackBuffer.sh.values[2],
-                readbackBuffer.sh.values[3]);
-
-            // resourceHandle->SetSphericalHarmonics(readbackBuffer.sh);
+            // Enqueue on game thread, not safe to write on render thread.
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([probe = std::move(probe), shData = readbackBuffer.sh]()
+                {
+                    probe->SetSphericalHarmonicsData(shData);
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
 
             delete delegateHandle;
         });

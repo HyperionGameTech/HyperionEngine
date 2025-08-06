@@ -244,7 +244,7 @@ void HyperionEditor::Init()
                 Handle<Node> envGridNode = scene->GetRoot()->AddChild();
                 envGridNode->SetName(NAME("EnvGrid2"));
 
-                Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 8, 4, 8 } });
+                Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_SH, .density = Vec3u { 10, 3, 10 } });
 
                 scene->GetEntityManager()->AddComponent<TransformComponent>(envGridEntity, TransformComponent {});
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envGridEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
@@ -297,9 +297,9 @@ void HyperionEditor::Logic(float delta)
     if (g_voxelOctree != nullptr)
     {
         DebugDrawCommandList& debugDrawCommands = g_engine->GetDebugDrawer()->CreateCommandList();
-        
-//        PerformanceClock clock;
-//        clock.Start();
+
+        //        PerformanceClock clock;
+        //        clock.Start();
 
         /*Proc<void(const VoxelOctree&, int)> drawOctant;
 
@@ -310,7 +310,7 @@ void HyperionEditor::Logic(float delta)
                 AssertDebug(!octree.IsDivided());
                 debugDrawCommands.box(octree.GetAABB().GetCenter(), octree.GetAABB().GetExtent(), Color::Cyan());
             }
-            
+
             if (octree.IsDivided())
             {
                 for (const auto& it : octree.GetOctants())
@@ -321,10 +321,10 @@ void HyperionEditor::Logic(float delta)
         };
 
         drawOctant(*g_voxelOctree, 0);*/
-//        
-//        clock.Stop();
-//        
-//        HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
+        //
+        //        clock.Stop();
+        //
+        //        HYP_LOG_TEMP("Time to draw boxes: {}", clock.ElapsedMs());
     }
 }
 

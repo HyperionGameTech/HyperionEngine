@@ -923,8 +923,8 @@ public:
      *  \returns The number of child UIObjects removed. */
     virtual int RemoveAllChildUIObjects(ProcRef<bool(UIObject*)> predicate);
 
-    /*! \brief Remove all child UIObjects from this object, including all descendents from their parents.
-     *  \details This will remove all child UIObjects from this object, including all descendents from their parents.
+    /*! \brief Remove all child UIObjects from this object, including all descendants from their parents.
+     *  \details This will remove all child UIObjects from this object, including all descendants from their parents.
         Use this primarily when the entire UIObject and all descendants should be freed from memory, and will not be used again.
      *  This is a deep removal, meaning that all child UIObjects and their children will be removed.
      *  \note This does not remove the UIObject itself, only its children. To remove the UIObject itself, use \ref{RemoveFromParent}.
@@ -947,17 +947,17 @@ public:
     HYP_METHOD()
     virtual Handle<UIObject> DetachFromParent();
 
-    /*! \brief Find a child UIObject by its Name. Checks descendents recursively. If multiple children have the same Name, the first one found is returned.
+    /*! \brief Find a child UIObject by its Name. Checks descendants recursively. If multiple children have the same Name, the first one found is returned.
      *  If no child UIObject with the specified Name is found, nullptr is returned.
      *  \param name The Name of the child UIObject to find.
-     *  \param deep If true, search all descendents. If false, only search immediate children.
+     *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject with the specified Name, or nullptr if no child UIObject with the specified Name was found. */
     Handle<UIObject> FindChildUIObject(WeakName name, bool deep = true) const;
 
-    /*! \brief Find a child UIObject by predicate. Checks descendents using breadth-first search. If multiple children match the predicate, the first one found is returned.
+    /*! \brief Find a child UIObject by predicate. Checks descendants using breadth-first search. If multiple children match the predicate, the first one found is returned.
      *  If no child UIObject matches the predicate, nullptr is returned.
      *  \param predicate The predicate to match against the child UIObjects.
-     *  \param deep If true, search all descendents. If false, only search immediate children.
+     *  \param deep If true, search all descendants. If false, only search immediate children.
      *  \return The child UIObject that matches the predicate, or nullptr if no child UIObject matches the predicate. */
     Handle<UIObject> FindChildUIObject(ProcRef<bool(UIObject*)> predicate, bool deep = true) const;
 

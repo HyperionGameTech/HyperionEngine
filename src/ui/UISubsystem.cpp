@@ -157,7 +157,7 @@ void UISubsystem::Init()
 
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
-    
+
     Assert(m_uiStage->GetCamera().IsValid());
     Assert(m_uiStage->GetCamera()->IsReady());
 
@@ -166,7 +166,7 @@ void UISubsystem::Init()
 
     ViewOutputTargetDesc outputTargetDesc {
         .extent = surfaceSize * 2,
-        .attachments = { { TF_RGBA8 }, { g_renderBackend->GetDefaultFormat(DIF_DEPTH) } }
+        .attachments = { { TF_RGBA16F }, { g_renderBackend->GetDefaultFormat(DIF_DEPTH) } }
     };
 
     ViewDesc viewDesc {

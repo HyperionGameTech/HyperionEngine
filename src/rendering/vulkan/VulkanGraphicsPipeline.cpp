@@ -341,12 +341,6 @@ RendererResult VulkanGraphicsPipeline::Rebuild()
 
     if (usedLayouts.Size() > maxSetLayouts)
     {
-        DebugLog(
-            LogType::Debug,
-            "Device max bound descriptor sets exceeded (%llu > %u)\n",
-            usedLayouts.Size(),
-            maxSetLayouts);
-
         return HYP_MAKE_ERROR(RendererError, "Device max bound descriptor sets exceeded");
     }
 

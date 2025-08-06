@@ -238,8 +238,6 @@ RendererResult VulkanFramebuffer::Create()
         HYP_GFX_ASSERT(it.second.attachment->GetImageView() != nullptr);
         HYP_GFX_ASSERT(it.second.attachment->GetImageView()->IsCreated());
 
-        auto foo = VULKAN_CAST(it.second.attachment->GetImageView());
-
         attachmentImageViews.PushBack(VULKAN_CAST(it.second.attachment->GetImageView())->GetVulkanHandle());
     }
 
@@ -253,11 +251,7 @@ RendererResult VulkanFramebuffer::Create()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        VULKAN_CHECK(vkCreateFramebuffer(
-            GetRenderBackend()->GetDevice()->GetDevice(),
-            &framebufferCreateInfo,
-            nullptr,
-            &m_handle));
+        VULKAN_CHECK(vkCreateFramebuffer(GetRenderBackend()->GetDevice()->GetDevice(), &framebufferCreateInfo, nullptr, &m_handle));
     }
 
     FrameBase* frame = GetRenderBackend()->GetCurrentFrame();
@@ -279,7 +273,14 @@ RendererResult VulkanFramebuffer::Create()
             return {};
         });
 
-    return singleTimeCommands->Execute();
+    RendererResult result = singleTimeCommands->Execute();
+    if (!result)
+    {
+        return HYP_MAKE_ERROR(RendererError, "Failed to clear framebuffer on create! Error was: {}", result.GetError().GetErrorCode(), result.GetError().GetMessage());
+    }
+    
+    // ok
+    return {};
 }
 
 RendererResult VulkanFramebuffer::Destroy()

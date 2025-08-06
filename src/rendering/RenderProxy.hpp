@@ -134,6 +134,7 @@ public:
     }
 };
 
+HYP_STRUCT(Serialize = "bitwise")
 struct EnvProbeSphericalHarmonics
 {
     Vec4f values[9];

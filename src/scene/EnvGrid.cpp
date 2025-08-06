@@ -16,6 +16,7 @@
 #include <rendering/env_probe/EnvProbeRenderer.hpp>
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/PlaceholderData.hpp>
+#include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/RenderDescriptorSet.hpp>
 
@@ -28,6 +29,8 @@
 #include <Engine.hpp>
 
 namespace hyperion {
+
+HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 static const Vec2u shProbeDimensions { 256, 256 };
 
@@ -128,7 +131,7 @@ void EnvGrid::Init()
     m_camera = CreateObject<Camera>(
         90.0f,
         -int(probeDimensions.x), int(probeDimensions.y),
-        0.001f, m_aabb.GetRadius() * 2.0f);
+        0.01f, m_aabb.GetRadius() * 2.0f);
 
     m_camera->SetName(Name::Unique("EnvGridCamera"));
     m_camera->SetTranslation(m_aabb.GetCenter());
@@ -471,6 +474,26 @@ void EnvGrid::Update(float delta)
     Threads::AssertOnThread(g_gameThread | ThreadCategory::THREAD_CATEGORY_TASK);
     AssertReady();
 
+    static const ConfigurationValue& configDebugDrawProbes = GetGlobalConfig().Get("rendering.debug.debugDrawer.envGridProbes");
+
+    // Debug draw
+    if (configDebugDrawProbes.ToBool(false))
+    {
+        DebugDrawCommandList& debugDrawer = g_engine->GetDebugDrawer()->CreateCommandList();
+
+        for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
+        {
+            const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeDirect(index);
+
+            if (!probe.IsValid())
+            {
+                continue;
+            }
+
+            debugDrawer.ambientProbe(probe->GetOrigin(), 0.25f, *probe);
+        }
+    }
+
     bool shouldRecollectEntites = false;
 
     if (!m_camera->IsReady())
@@ -491,6 +514,7 @@ void EnvGrid::Update(float delta)
     // clang-format off
     const HashCode octantHashCode = octree->GetOctantID().GetHashCode()
         .Add(octree->GetEntryListHash<EntityTag::STATIC>())
+        .Add(octree->GetEntryListHash<EntityTag::DYNAMIC>())
         .Add(octree->GetEntryListHash<EntityTag::LIGHT>());
     // clang-format on
 
