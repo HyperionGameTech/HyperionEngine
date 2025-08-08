@@ -139,7 +139,7 @@ public:
 
         if (!interopAssemblyPath.HasValue())
         {
-            HYP_LOG(DotNET, Fatal, "Could not initialize .NET runtime: Could not locate HyperionInterop.dll!");
+            HYP_LOG(DotNET, Fatal, "Could not initialize .NET runtime: Could not locate HyperionInterop.dll! Base path: {}", m_basePath);
         }
 
         PlatformString interopAssemblyPathPlatform;

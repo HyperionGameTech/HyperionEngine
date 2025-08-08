@@ -292,10 +292,11 @@ protected:
 
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
-
+    
     void OnTransformUpdated(const Transform& transform) override;
-
+    
     void CreateShadowViews();
+    void UpdateShadowViews();
 
     HYP_FIELD()
     LightType m_type;

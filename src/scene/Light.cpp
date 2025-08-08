@@ -118,6 +118,7 @@ void Light::Init()
     if (m_flags & LF_SHADOW)
     {
         CreateShadowViews();
+        UpdateShadowViews();
     }
 
     SetReady(true);
@@ -262,6 +263,34 @@ void Light::CreateShadowViews()
     }
 }
 
+void Light::UpdateShadowViews()
+{
+    for (int i = 0; i < int(m_shadowViews.Size()); i++)
+    {
+        switch (m_type)
+        {
+        case LT_DIRECTIONAL:
+            ShadowCameraHelper::UpdateShadowCameraDirectional(
+                m_shadowViews[i]->GetCamera(),
+                Vec3f::Zero(), // TODO: Center around camera
+                GetPosition(),
+                85.0f, /// TODO: add proper radius
+                m_shadowAabb);
+
+            break;
+        case LT_POINT:
+            m_shadowAabb = GetAABB();
+            
+            m_shadowViews[i]->GetCamera()->SetViewMatrix(
+                Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_shadowAabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 void Light::OnAddedToScene(Scene* scene)
 {
     Entity::OnAddedToScene(scene);
@@ -313,30 +342,16 @@ void Light::OnTransformUpdated(const Transform& transform)
     {
         SetNeedsRenderProxyUpdate();
     }
+
+    UpdateShadowViews();
 }
 
 void Light::Update(float delta)
 {
     if (m_flags & LF_SHADOW)
     {
-        /// TODO: Make update turn on/off dep. on octree changes (see EnvGrid)
         for (int i = 0; i < int(m_shadowViews.Size()); i++)
         {
-            switch (m_type)
-            {
-            case LT_DIRECTIONAL:
-                ShadowCameraHelper::UpdateShadowCameraDirectional(
-                    m_shadowViews[i]->GetCamera(),
-                    Vec3f::Zero(), // TODO: Center around camera
-                    GetPosition(),
-                    85.0f, /// TODO: add proper radius
-                    m_shadowAabb);
-
-                break;
-            default:
-                break;
-            }
-
             GetWorld()->ProcessViewAsync(m_shadowViews[i]);
         }
 
@@ -594,6 +609,8 @@ void Light::UpdateRenderProxy(RenderProxyLight* proxy)
         break;
     case LT_SPOT:
         bufferData.areaSize = m_spotAngles;
+        break;
+    case LT_POINT:
         break;
     default:
         break;

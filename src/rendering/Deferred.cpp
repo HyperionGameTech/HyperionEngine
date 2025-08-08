@@ -356,8 +356,6 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                     ArrayMap<Name, uint32> {},
                     materialDescriptorSetIndex);
             }
-            
-            HYP_LOG_TEMP("Render light {}", light->Id());
 
             frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
         }
