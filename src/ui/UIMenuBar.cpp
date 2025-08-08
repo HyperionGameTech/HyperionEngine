@@ -1,12 +1,15 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <ui/UIMenuBar.hpp>
+#include <ui/UISpacer.hpp>
 #include <ui/UIText.hpp>
 #include <ui/UIButton.hpp>
 #include <ui/UIImage.hpp>
 
 #include <input/InputManager.hpp>
 #include <input/Mouse.hpp>
+
+#include <core/object/HypClass.hpp>
 
 #include <core/utilities/Format.hpp>
 #include <core/logging/Logger.hpp>
@@ -81,12 +84,11 @@ void UIMenuItem::AddChildUIObject(const Handle<UIObject>& uiObject)
         return;
     }
 
-    auto it = m_menuItems.Find(uiObject);
+    auto it = m_menuItems.Find(uiObject.Get());
 
     if (it != m_menuItems.End())
     {
-        HYP_LOG(UI, Warning, "UIMenuItem::AddChildUIObject() called with a UIMenuItem that is already in the menu item");
-
+        // already exists
         return;
     }
 
@@ -94,10 +96,13 @@ void UIMenuItem::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     UpdateDropDownMenu();
 
-    if (uiObject.IsValid() && uiObject->IsA<UIMenuItem>())
+    if (!uiObject.IsValid())
     {
-        Handle<UIMenuItem> menuItem = ObjCast<UIMenuItem>(uiObject);
+        return;
+    }
 
+    if (Handle<UIMenuItem> menuItem = ObjCast<UIMenuItem>(uiObject))
+    {
         menuItem->OnMouseHover
             .Bind([weakThis = WeakHandleFromThis(), subMenuItemWeak = menuItem.ToWeak()](const MouseEvent& event) -> UIEventHandlerResult
                 {
@@ -500,7 +505,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
     UIMenuItem* menuItem = m_menuItems[m_selectedMenuItemIndex];
 
-    if (!menuItem || !menuItem->GetDropDownMenuElement())
+    if (!menuItem)
     {
         return;
     }
@@ -509,6 +514,7 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
     m_container->AddChildUIObject(menuItem->GetDropDownMenuElement());
     m_container->SetSize(UIObjectSize({ menuItem->GetDropDownMenuElement()->GetActualSize().x + m_container->GetPadding().x * 2, UIObjectSize::PIXEL }, { 0, UIObjectSize::AUTO }));
+
     m_container->SetPosition(GetDropDownMenuPosition(menuItem));
     m_container->SetIsVisible(true);
     m_container->Focus();
@@ -516,9 +522,14 @@ void UIMenuBar::SetSelectedMenuItemIndex(uint32 index)
 
 void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
 {
-    if (!uiObject->IsA<UIMenuItem>())
+    if (!uiObject)
     {
-        HYP_LOG(UI, Warning, "UIMenuBar::AddChildUIObject() called with a UIObject that is not a UIMenuItem");
+        return;
+    }
+
+    if (!uiObject->IsA<UIMenuItem>() && !uiObject->IsA<UISpacer>())
+    {
+        HYP_LOG(UI, Warning, "Invalid object type to add to menu bar: {}", uiObject->InstanceClass()->GetName());
 
         return;
     }
@@ -534,70 +545,63 @@ void UIMenuBar::AddChildUIObject(const Handle<UIObject>& uiObject)
 
     UIPanel::AddChildUIObject(uiObject);
 
-    Handle<UIObject> uiObjectHandle = FindChildUIObject([uiObject](UIObject* child)
-        {
-            return child == uiObject;
-        });
+    if (UIMenuItem* menuItem = ObjCast<UIMenuItem>(uiObject))
+    {
+        menuItem->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
 
-    Assert(uiObjectHandle.IsValid());
+        const Name name = menuItem->GetName();
 
-    Handle<UIMenuItem> menuItem = ObjCast<UIMenuItem>(uiObjectHandle);
-    Assert(menuItem.IsValid(), "Cast to UIMenuItem failed");
-
-    menuItem->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
-
-    const Name name = menuItem->GetName();
-
-    // Mouse hover: set selected menu item index if this menu bar has focus
-    menuItem->OnMouseHover.RemoveAllDetached();
-    menuItem->OnMouseHover
-        .Bind([this, name](const MouseEvent& data) -> UIEventHandlerResult
-            {
-                if (m_container->HasFocus(true))
+        // Mouse hover: set selected menu item index if this menu bar has focus
+        menuItem->OnMouseHover.RemoveAllDetached();
+        menuItem->OnMouseHover
+            .Bind([this, name](const MouseEvent& data) -> UIEventHandlerResult
                 {
-                    const uint32 menuItemIndex = GetMenuItemIndex(name);
-
-                    SetSelectedMenuItemIndex(menuItemIndex);
-                }
-
-                return UIEventHandlerResult::STOP_BUBBLING;
-            })
-        .Detach();
-
-    // Mouse click: toggle selected menu item index
-    // menuItem->OnClick.RemoveAllDetached();
-
-    menuItem->OnClick
-        .Bind([weakThis = WeakHandleFromThis(), name](const MouseEvent& data) -> UIEventHandlerResult
-            {
-                Handle<UIMenuBar> menuBar = weakThis.Lock();
-
-                if (!menuBar)
-                {
-                    return UIEventHandlerResult::OK;
-                }
-
-                if (data.mouseButtons == MouseButtonState::LEFT)
-                {
-                    const uint32 menuItemIndex = menuBar->GetMenuItemIndex(name);
-
-                    if (menuBar->GetSelectedMenuItemIndex() == menuItemIndex)
+                    if (m_container->HasFocus(true))
                     {
-                        menuBar->SetSelectedMenuItemIndex(~0u);
+                        const uint32 menuItemIndex = GetMenuItemIndex(name);
 
-                        menuBar->m_container->Blur();
+                        SetSelectedMenuItemIndex(menuItemIndex);
                     }
-                    else
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                })
+            .Detach();
+
+        // Mouse click: toggle selected menu item index
+        // menuItem->OnClick.RemoveAllDetached();
+
+        menuItem->OnClick
+            .Bind([weakThis = WeakHandleFromThis(), name](const MouseEvent& data) -> UIEventHandlerResult
+                {
+                    Handle<UIMenuBar> menuBar = weakThis.Lock();
+
+                    if (!menuBar)
                     {
-                        menuBar->SetSelectedMenuItemIndex(menuItemIndex);
+                        return UIEventHandlerResult::OK;
                     }
-                }
 
-                return UIEventHandlerResult::STOP_BUBBLING;
-            })
-        .Detach();
+                    if (data.mouseButtons == MouseButtonState::LEFT)
+                    {
+                        const uint32 menuItemIndex = menuBar->GetMenuItemIndex(name);
 
-    m_menuItems.PushBack(menuItem);
+                        if (menuBar->GetSelectedMenuItemIndex() == menuItemIndex)
+                        {
+                            menuBar->SetSelectedMenuItemIndex(~0u);
+
+                            menuBar->m_container->Blur();
+                        }
+                        else
+                        {
+                            menuBar->SetSelectedMenuItemIndex(menuItemIndex);
+                        }
+                    }
+
+                    return UIEventHandlerResult::STOP_BUBBLING;
+                })
+            .Detach();
+
+        m_menuItems.PushBack(menuItem);
+    }
 
     UpdateMenuItemSizes();
 }
@@ -705,19 +709,79 @@ bool UIMenuBar::RemoveMenuItem(Name name)
 
 void UIMenuBar::UpdateMenuItemSizes()
 {
-    if (m_menuItems.Empty())
+    // if (m_menuItems.Empty())
+    // {
+    //     return;
+    // }
+
+    // Vec2i offset = { 0, 0 };
+
+    // for (SizeType i = 0; i < m_menuItems.Size(); i++)
+    // {
+    //     m_menuItems[i]->SetPosition(offset);
+    //     m_menuItems[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+
+    //     offset.x += m_menuItems[i]->GetActualSize().x;
+    // }
+
+    Array<UIObject*> childUiObjects = GetChildUIObjects(false);
+
+    if (childUiObjects.Empty())
     {
         return;
     }
 
+    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    {
+        UIObject* childUiObject = childUiObjects[i];
+        Assert(childUiObject != nullptr);
+
+        if (!childUiObject->IsA<UISpacer>())
+        {
+            childUiObject->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+        }
+    }
+
+    int totalNonSpacerWidth = 0;
+    int numSpacers = 0;
+
+    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    {
+        if (childUiObjects[i]->IsA<UISpacer>())
+        {
+            numSpacers++;
+
+            continue;
+        }
+
+        totalNonSpacerWidth += childUiObjects[i]->GetActualSize().x;
+    }
+
     Vec2i offset = { 0, 0 };
 
-    for (SizeType i = 0; i < m_menuItems.Size(); i++)
-    {
-        m_menuItems[i]->SetPosition(offset);
-        m_menuItems[i]->SetSize(UIObjectSize({ 0, UIObjectSize::AUTO }, { 100, UIObjectSize::PERCENT }));
+    const int availableWidth = GetActualSize().x - (GetPadding().x * 2);
+    const int remainingWidth = MathUtil::Max(0, MathUtil::Floor(availableWidth - totalNonSpacerWidth));
+    const int spacerWidth = numSpacers > 0 ? MathUtil::Ceil(remainingWidth / numSpacers) : 0;
 
-        offset.x += m_menuItems[i]->GetActualSize().x;
+    for (SizeType i = 0; i < childUiObjects.Size(); i++)
+    {
+        UIObject* childUiObject = childUiObjects[i];
+        Assert(childUiObject != nullptr);
+
+        childUiObject->SetPosition(offset);
+
+        const Vec2i childPadding = childUiObjects[i]->GetPadding();
+
+        if (UISpacer* spacer = ObjCast<UISpacer>(childUiObject))
+        {
+            spacer->SetSize(UIObjectSize({ spacerWidth, UIObjectSize::PIXEL }, { 100, UIObjectSize::PERCENT }));
+
+            offset.x += spacerWidth + (childPadding.x * 2);
+
+            continue;
+        }
+
+        offset.x += childUiObject->GetActualSize().x;
     }
 }
 

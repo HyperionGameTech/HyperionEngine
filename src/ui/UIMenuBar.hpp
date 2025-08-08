@@ -189,7 +189,6 @@ public:
     HYP_METHOD()
     bool RemoveMenuItem(Name name);
 
-    // overloads to allow adding a UIMenuItem
     virtual void AddChildUIObject(const Handle<UIObject>& uiObject) override;
     virtual bool RemoveChildUIObject(UIObject* uiObject) override;
 

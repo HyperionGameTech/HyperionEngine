@@ -14,6 +14,7 @@
 #include <ui/UIButton.hpp>
 #include <ui/UIPanel.hpp>
 #include <ui/UITabView.hpp>
+#include <ui/UISpacer.hpp>
 #include <ui/UIMenuBar.hpp>
 #include <ui/UIGrid.hpp>
 #include <ui/UIImage.hpp>
@@ -73,6 +74,7 @@ static const FlatMap<String, std::add_pointer_t<Pair<Handle<UIObject>, const Hyp
     UI_OBJECT_CREATE_FUNCTION(GridColumn),
     UI_OBJECT_CREATE_FUNCTION(MenuBar),
     UI_OBJECT_CREATE_FUNCTION(MenuItem),
+    UI_OBJECT_CREATE_FUNCTION(Spacer),
     UI_OBJECT_CREATE_FUNCTION(DockableContainer),
     UI_OBJECT_CREATE_FUNCTION(DockableItem),
     UI_OBJECT_CREATE_FUNCTION(ListView),
