@@ -102,6 +102,7 @@ struct ViewDesc
     int priority = 0;
     Optional<RenderableAttributeSet> overrideAttributes;
     IDrawCallCollectionImpl* drawCallCollectionImpl = nullptr;
+    TextureFormat readbackTextureFormat = TF_RGBA8;             //!< If ENABLE_READBACK is set, the format of the texture we copy the output to.
 };
 
 class HYP_API ViewOutputTarget
@@ -256,6 +257,8 @@ public:
 
 protected:
     void Init() override;
+    
+    void CreateReadbackTexture();
 
     void CollectCameras(RenderProxyList& rpl);
     void CollectLights(RenderProxyList& rpl);

@@ -1380,7 +1380,8 @@ void EditorSubsystem::InitViewport()
         .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
-        .camera = m_camera
+        .camera = m_camera,
+        .readbackTextureFormat = TF_R11G11B10F
     };
 
     Handle<View> view = CreateObject<View>(viewDesc);
@@ -1662,11 +1663,11 @@ void EditorSubsystem::InitViewport()
                         for (const RayHit& rayHit : results)
                         {
                             manipulationWidget->OnDragStart(m_camera, event, node, rayHit.hitpoint);
-
-                            return UIEventHandlerResult::STOP_BUBBLING;
                         }
                     }
                 }
+
+                return UIEventHandlerResult::STOP_BUBBLING;
             }
 
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);

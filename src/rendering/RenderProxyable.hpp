@@ -4,9 +4,13 @@
 
 #include <core/object/HypObject.hpp>
 
+#include <core/Traits.hpp>
+
 namespace hyperion {
 
 class IRenderProxy;
+
+HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
 
 HYP_CLASS(Abstract)
 class HYP_API RenderProxyable : public HypObjectBase
@@ -18,8 +22,6 @@ public:
     
     /*! \brief Marks this Entity as needing its render proxy to be updated on the next time it is collected. */
     void SetNeedsRenderProxyUpdate();
-
-    virtual void UpdateRenderProxy(IRenderProxy* proxy);
 
     const int* GetRenderProxyVersionPtr() const
     {

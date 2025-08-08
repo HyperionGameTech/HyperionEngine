@@ -11,7 +11,6 @@
 namespace hyperion {
 
 HYP_STRUCT(Size = 112, Serialize = "bitwise")
-
 struct alignas(16) HYP_API Transform
 {
     static const Transform identity;

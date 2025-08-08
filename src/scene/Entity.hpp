@@ -21,6 +21,7 @@ class World;
 class Scene;
 class Node;
 class EntityManager;
+struct Transform;
 enum class EntityTag : uint64;
 
 struct EntityInitInfo
@@ -102,6 +103,8 @@ protected:
 
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
+
+    virtual void OnTransformUpdated(const Transform& transform);
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);

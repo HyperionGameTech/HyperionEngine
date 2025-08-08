@@ -27,6 +27,7 @@
 namespace hyperion {
 
 class Texture;
+class RenderProxyMaterial;
 
 enum class MaterialTextureKey : uint64
 {
@@ -712,7 +713,7 @@ public:
      * data on the GPU. */
     void EnqueueRenderUpdates();
     
-    void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyMaterial* proxy);
 
     /*! \brief Clone this Material. The cloned Material will have the same
      *  shader, parameters, textures, and render attributes as the original.

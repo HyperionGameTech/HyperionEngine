@@ -36,7 +36,7 @@
 
 namespace hyperion {
 
-static const TextureFormat g_pointLightShadowFormat = TF_RG16;
+static const TextureFormat g_pointLightShadowFormat = TF_R32;
 static const TextureFormat g_directionalLightShadowFormats[SMF_MAX] = {
     TF_RGBA8, // STANDARD
     TF_RGBA8, // PCF
@@ -74,7 +74,7 @@ Light::Light(LightType type, const Vec3f& position, const Color& color, float in
       m_position(position),
       m_color(color),
       m_intensity(intensity),
-      m_radius(radius),
+      m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
       m_shadowMapDimensions(g_defaultShadowMapDimensions[type])
@@ -93,7 +93,7 @@ Light::Light(LightType type, const Vec3f& position, const Vec3f& normal, const V
       m_areaSize(areaSize),
       m_color(color),
       m_intensity(intensity),
-      m_radius(radius),
+      m_radius(MathUtil::Max(radius, 0.001f)),
       m_falloff(1.0f),
       m_spotAngles(Vec2f::Zero()),
       m_shadowMapDimensions(g_defaultShadowMapDimensions[type])
@@ -295,6 +295,23 @@ void Light::OnRemovedFromScene(Scene* scene)
 
             shadowView->RemoveScene(scene->HandleFromThis());
         }
+    }
+}
+
+void Light::OnTransformUpdated(const Transform& transform)
+{
+    Entity::OnTransformUpdated(transform);
+
+    m_position = transform.GetTranslation();
+
+    if (m_type == LT_DIRECTIONAL)
+    {
+        m_position.Normalize();
+    }
+
+    if (IsInitCalled())
+    {
+        SetNeedsRenderProxyUpdate();
     }
 }
 
@@ -553,19 +570,18 @@ BoundingSphere Light::GetBoundingSphere() const
     return BoundingSphere(m_position, m_radius);
 }
 
-void Light::UpdateRenderProxy(IRenderProxy* proxy)
+void Light::UpdateRenderProxy(RenderProxyLight* proxy)
 {
-    RenderProxyLight* proxyCasted = static_cast<RenderProxyLight*>(proxy);
-    proxyCasted->light = WeakHandleFromThis();
-    proxyCasted->lightMaterial = m_material.ToWeak();
-    proxyCasted->shadowViews = Map(m_shadowViews, &Handle<View>::ToWeak);
+    proxy->light = WeakHandleFromThis();
+    proxy->lightMaterial = m_material.ToWeak();
+    proxy->shadowViews = Map(m_shadowViews, &Handle<View>::ToWeak);
 
     const BoundingBox aabb = GetAABB();
 
-    LightShaderData& bufferData = proxyCasted->bufferData;
+    LightShaderData& bufferData = proxy->bufferData;
     bufferData.lightType = uint32(m_type);
     bufferData.colorPacked = uint32(m_color);
-    bufferData.radiusFalloffPacked = (uint32(Float16(m_radius).Raw()) << 16) | Float16(m_falloff).Raw();
+    bufferData.radiusFalloffPacked = (uint32(Float16(m_falloff).Raw()) << 16) | Float16(m_radius).Raw();
     bufferData.positionIntensity = Vec4f(m_position, m_intensity);
     bufferData.normal = Vec4f(m_normal, 0.0f);
     bufferData.materialIndex = ~0u; // materialIndex gets set in WriteBufferData_Light()

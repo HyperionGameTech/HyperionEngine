@@ -562,12 +562,11 @@ void EnvGrid::Update(float delta)
         RenderApi_GetProducerProxyList(m_view).GetMeshEntities().NumCurrent());
 }
 
-void EnvGrid::UpdateRenderProxy(IRenderProxy* proxy)
+void EnvGrid::UpdateRenderProxy(RenderProxyEnvGrid* proxy)
 {
-    RenderProxyEnvGrid* proxyCasted = static_cast<RenderProxyEnvGrid*>(proxy);
-    proxyCasted->envGrid = WeakHandleFromThis();
+    proxy->envGrid = WeakHandleFromThis();
 
-    EnvGridShaderData& bufferData = proxyCasted->bufferData;
+    EnvGridShaderData& bufferData = proxy->bufferData;
     bufferData.center = Vec4f(m_aabb.GetCenter(), 1.0f);
     bufferData.extent = Vec4f(m_aabb.GetExtent(), 1.0f);
     bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
@@ -582,14 +581,14 @@ void EnvGrid::UpdateRenderProxy(IRenderProxy* proxy)
 
     bufferData.irradianceOctahedronSize = Vec2i(irradianceOctahedronSize);
 
-    Memory::MemSet(&proxyCasted->envProbes[0], 0, sizeof(proxyCasted->envProbes));
+    Memory::MemSet(&proxy->envProbes[0], 0, sizeof(proxy->envProbes));
 
     for (uint32 index = 0; index < m_envProbeCollection.numProbes; index++)
     {
         const Handle<EnvProbe>& probe = m_envProbeCollection.GetEnvProbeOnGameThread(index);
         Assert(probe.IsValid());
 
-        proxyCasted->envProbes[index] = probe->Id();
+        proxy->envProbes[index] = probe->Id();
     }
 }
 

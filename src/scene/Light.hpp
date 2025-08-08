@@ -25,6 +25,7 @@ namespace hyperion {
 class Camera;
 class Material;
 class View;
+class RenderProxyLight;
 
 enum ShadowMapFilter : uint32;
 
@@ -283,7 +284,7 @@ public:
 
     BoundingSphere GetBoundingSphere() const;
     
-    void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyLight* proxy);
 
 protected:
     void Init() override;
@@ -291,6 +292,8 @@ protected:
 
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
+
+    void OnTransformUpdated(const Transform& transform) override;
 
     void CreateShadowViews();
 
@@ -356,7 +359,7 @@ class HYP_API PointLight : public Light
 
 public:
     PointLight()
-        : Light(LT_POINT, Vec3f(0.0f), Color::White(), 1.0f, 10.0f)
+        : Light(LT_POINT, Vec3f(0.0f), Color::White(), 5.0f, 10.0f)
     {
     }
 

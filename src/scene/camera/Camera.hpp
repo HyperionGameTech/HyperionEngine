@@ -33,6 +33,7 @@
 namespace hyperion {
 
 class CameraStreamingVolume;
+class RenderProxyCamera;
 
 HYP_ENUM()
 enum class CameraProjectionMode : uint32
@@ -597,7 +598,7 @@ public:
     void Update(float delta) override;
     void UpdateMatrices();
     
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyCamera* proxy);
 
 protected:
     void Init() override;

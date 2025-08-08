@@ -355,7 +355,7 @@ Vec3f LightmapRenderer_CpuPathTracing::EvaluateDiffuseLighting(Light* light, con
         return (ByteUtil::UnpackVec4f(SwapEndian(bufferData.colorPacked)) * MathUtil::Max(0.0f, normal.Dot(bufferData.positionIntensity.GetXYZ().Normalized())) * bufferData.positionIntensity.w).GetXYZ();
     case LT_POINT:
     {
-        const float radius = Float16::FromRaw(bufferData.radiusFalloffPacked >> 16);
+        const float radius = Float16::FromRaw(bufferData.radiusFalloffPacked & 0xFFFFu);
 
         Vec3f lightDir = (bufferData.positionIntensity.GetXYZ() - position).Normalized();
         float dist = (bufferData.positionIntensity.GetXYZ() - position).Length();

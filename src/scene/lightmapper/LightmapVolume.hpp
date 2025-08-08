@@ -21,7 +21,7 @@ namespace hyperion {
 
 class Texture;
 struct LightmapUVMap;
-class IRenderProxy;
+class RenderProxyLightmapVolume;
 
 HYP_ENUM()
 enum LightmapTextureType : uint32
@@ -145,7 +145,7 @@ public:
 
     bool BuildElementTextures(const LightmapUVMap& uvMap, uint32 index);
     
-    void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyLightmapVolume* proxy);
 
 private:
     void Init() override;

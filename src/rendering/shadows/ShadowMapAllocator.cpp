@@ -35,7 +35,7 @@ bool ShadowMapAtlas::AddElement(const Vec2u& elementDimensions, ShadowMapAtlasEl
         return false;
     }
 
-    outElement.atlasIndex = atlasIndex;
+    outElement.layerIndex = atlasIndex;
 
     return true;
 }
@@ -134,8 +134,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
         }
 
         const ShadowMapAtlasElement atlasElement {
-            .atlasIndex = ~0u,
-            .pointLightIndex = pointLightIndex,
+            .layerIndex = pointLightIndex,
             .offsetUv = Vec2f::Zero(),
             .offsetCoords = Vec2u::Zero(),
             .dimensions = dimensions,
@@ -157,7 +156,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
         if (atlas.AddElement(dimensions, atlasElement))
         {
-            GpuImageViewRef atlasImageView = m_atlasImage->MakeLayerImageView(atlasElement.atlasIndex);
+            GpuImageViewRef atlasImageView = m_atlasImage->MakeLayerImageView(atlasElement.layerIndex);
             DeferCreate(atlasImageView);
 
             ShadowMap* shadowMap = new ShadowMap(
@@ -185,27 +184,30 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
 
     bool result = false;
 
-    if (atlasElement.atlasIndex != ~0u)
+    if (atlasElement.layerIndex != ~0u)
     {
-        Assert(atlasElement.atlasIndex < m_atlases.Size());
-
-        ShadowMapAtlas& atlas = m_atlases[atlasElement.atlasIndex];
-        result = atlas.RemoveElement(atlasElement);
-
-        if (!result)
+        if (shadowMap->GetShadowMapType() == SMT_OMNI)
         {
-            HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlasElement.atlasIndex);
+            m_pointLightShadowMapIdGenerator.ReleaseId(atlasElement.layerIndex + 1);
+            
+            result = true;
         }
-    }
-    else if (atlasElement.pointLightIndex != ~0u)
-    {
-        m_pointLightShadowMapIdGenerator.ReleaseId(atlasElement.pointLightIndex + 1);
-
-        result = true;
+        else
+        {
+            Assert(atlasElement.layerIndex < m_atlases.Size());
+            
+            ShadowMapAtlas& atlas = m_atlases[atlasElement.layerIndex];
+            result = atlas.RemoveElement(atlasElement);
+            
+            if (!result)
+            {
+                HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlasElement.layerIndex);
+            }
+        }
     }
     else
     {
-        HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid atlas index and point light index");
+        HYP_LOG(Rendering, Error, "Failed to free shadow map: invalid layer index");
     }
 
     delete shadowMap;

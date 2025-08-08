@@ -1096,6 +1096,8 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
             entityManager->AddTags<EntityTag::UPDATE_AABB>(m_entity);
         }
+
+        m_entity->OnTransformUpdated(m_worldTransform);
     }
 
     if (updateChildTransforms)

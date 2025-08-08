@@ -219,24 +219,7 @@ void View::Init()
     
     if (m_flags & ViewFlags::ENABLE_READBACK)
     {
-        m_readbackTexture.Reset();
-        m_readbackTexture = CreateObject<Texture>(TextureDesc {
-            TT_TEX2D,
-            TF_RGBA8,
-            Vec3u { m_viewport.extent, 1 },
-            TFM_NEAREST,
-            TFM_NEAREST,
-            TWM_CLAMP_TO_EDGE,
-            1,
-            IU_SAMPLED
-        });
-
-        InitObject(m_readbackTexture);
-        
-        for (uint32 i = 0; i < ArraySize(m_readbackTextureGpuImages); i++)
-        {
-            m_readbackTextureGpuImages[i] = m_readbackTexture->GetGpuImage();
-        }
+        CreateReadbackTexture();
     }
 
     SetReady(true);
@@ -388,20 +371,8 @@ void View::SetViewport(const Viewport& viewport)
         if (m_flags & ViewFlags::ENABLE_READBACK)
         {
             m_readbackTexture.Reset();
-            m_readbackTexture = CreateObject<Texture>(TextureDesc {
-                TT_TEX2D,
-                TF_RGBA8,
-                Vec3u { m_viewport.extent, 1 },
-                TFM_NEAREST,
-                TFM_NEAREST,
-                TWM_CLAMP_TO_EDGE,
-                1,
-                IU_SAMPLED
-            });
-
-            InitObject(m_readbackTexture);
             
-            OnReadbackTextureChanged(m_readbackTexture);
+            CreateReadbackTexture();
         }
         
         m_viewportBuffered[RenderApi_GetFrameIndex()] = viewport;
@@ -414,6 +385,43 @@ GpuImageBase* View::GetReadbackTextureGpuImage() const
     Threads::AssertOnThread(g_gameThread | g_renderThread);
     
     return m_readbackTextureGpuImages[RenderApi_GetFrameIndex()];
+}
+
+void View::CreateReadbackTexture()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+    
+    m_readbackTexture.Reset();
+    m_readbackTexture = CreateObject<Texture>(TextureDesc {
+        TT_TEX2D,
+        m_viewDesc.readbackTextureFormat,
+        Vec3u { m_viewport.extent, 1 },
+        TFM_NEAREST,
+        TFM_NEAREST,
+        TWM_CLAMP_TO_EDGE,
+        1,
+        IU_SAMPLED
+    });
+
+    if (IsInitCalled())
+    {
+        InitObject(m_readbackTexture);
+    }
+    
+    if (IsReady())
+    {
+        // notify change
+        OnReadbackTextureChanged(m_readbackTexture);
+    }
+    else
+    {
+        // set buffered gpu images before render thread sees them
+        for (uint32 i = 0; i < ArraySize(m_readbackTextureGpuImages); i++)
+        {
+            m_readbackTextureGpuImages[i] = m_readbackTexture->GetGpuImage();
+        }
+    }
 }
 
 void View::SetPriority(int priority)

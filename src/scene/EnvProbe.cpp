@@ -339,12 +339,11 @@ void EnvProbe::Update(float delta)
     m_octantHashCode = octantHashCode;
 }
 
-void EnvProbe::UpdateRenderProxy(IRenderProxy* proxy)
+void EnvProbe::UpdateRenderProxy(RenderProxyEnvProbe* proxy)
 {
-    RenderProxyEnvProbe* proxyCasted = static_cast<RenderProxyEnvProbe*>(proxy);
-    proxyCasted->envProbe = WeakHandleFromThis();
+    proxy->envProbe = WeakHandleFromThis();
 
-    EnvProbeShaderData& bufferData = proxyCasted->bufferData;
+    EnvProbeShaderData& bufferData = proxy->bufferData;
     bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
     bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
     bufferData.worldPosition = Vec4f(GetOrigin(), 1.0f);

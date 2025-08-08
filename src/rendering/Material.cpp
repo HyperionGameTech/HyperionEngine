@@ -302,14 +302,13 @@ Handle<Material> Material::Clone() const
     return material;
 }
 
-void Material::UpdateRenderProxy(IRenderProxy* proxy)
+void Material::UpdateRenderProxy(RenderProxyMaterial* proxy)
 {
-    RenderProxyMaterial* proxyCasted = static_cast<RenderProxyMaterial*>(proxy);
-    proxyCasted->material = WeakHandleFromThis();
+    proxy->material = WeakHandleFromThis();
 
     static const bool useBindlessTextures = g_renderBackend->GetRenderConfig().IsBindlessSupported();
 
-    MaterialShaderData& bufferData = proxyCasted->bufferData;
+    MaterialShaderData& bufferData = proxy->bufferData;
 
     bufferData.albedo = GetParameter<Vec4f>(MATERIAL_KEY_ALBEDO);
     bufferData.packedParams = Vec4u(
@@ -332,12 +331,12 @@ void Material::UpdateRenderProxy(IRenderProxy* proxy)
     const uint32 numTextureSlots = MathUtil::Min(maxTextures, useBindlessTextures ? g_maxBindlessResources : g_maxBoundTextures);
     uint32 remainingTextureSlots = numTextureSlots;
 
-    proxyCasted->boundTextures.Clear();
+    proxy->boundTextures.Clear();
 
     // unset all bound texture indices
     for (uint32 i = 0; i < g_maxBoundTextures; ++i)
     {
-        proxyCasted->boundTextureIndices[i] = ~0u;
+        proxy->boundTextureIndices[i] = ~0u;
     }
 
     for (const auto& it : m_textures)
@@ -354,8 +353,8 @@ void Material::UpdateRenderProxy(IRenderProxy* proxy)
         {
             AssertDebug(slot < g_maxBoundTextures);
 
-            const uint32 idx = uint32(proxyCasted->boundTextures.Size());
-            proxyCasted->boundTextures.PushBack(texture);
+            const uint32 idx = uint32(proxy->boundTextures.Size());
+            proxy->boundTextures.PushBack(texture);
 
             if (useBindlessTextures)
             {
@@ -369,7 +368,7 @@ void Material::UpdateRenderProxy(IRenderProxy* proxy)
             // enable this slot for the texture
             bufferData.textureUsage |= 1u << slot;
 
-            proxyCasted->boundTextureIndices[slot] = idx;
+            proxy->boundTextureIndices[slot] = idx;
 
             --remainingTextureSlots;
         }

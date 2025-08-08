@@ -767,14 +767,13 @@ void Camera::OnRemovedFromWorld(World* world)
     Entity::OnRemovedFromWorld(world);
 }
 
-void Camera::UpdateRenderProxy(IRenderProxy* proxy)
+void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
 {
-    RenderProxyCamera* proxyCasted = static_cast<RenderProxyCamera*>(proxy);
-    proxyCasted->camera = WeakHandleFromThis();
+    proxy->camera = WeakHandleFromThis();
 
-    proxyCasted->viewFrustum = m_frustum;
+    proxy->viewFrustum = m_frustum;
 
-    CameraShaderData& bufferData = proxyCasted->bufferData;
+    CameraShaderData& bufferData = proxy->bufferData;
     bufferData.id = Id().Value();
     bufferData.view = m_viewMat;
     bufferData.projection = m_projMat;

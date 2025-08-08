@@ -296,6 +296,11 @@ void Entity::OnTagRemoved(EntityTag tag)
 {
 }
 
+void Entity::OnTransformUpdated(const Transform& transform)
+{
+    // Do nothing
+}
+
 void Entity::AttachChild(const Handle<Entity>& child)
 {
     if (!child)

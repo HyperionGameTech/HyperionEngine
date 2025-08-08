@@ -25,6 +25,7 @@ namespace hyperion {
 
 class Bone;
 class Animation;
+class RenderProxySkeleton;
 
 struct SkeletonBoneData
 {
@@ -150,7 +151,7 @@ public:
      */
     const Animation* FindAnimation(UTF8StringView name, uint32* outIndex) const;
     
-    void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxySkeleton* proxy);
 
 private:
     void Init() override;

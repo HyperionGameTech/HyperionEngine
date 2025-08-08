@@ -26,6 +26,7 @@ namespace hyperion {
 class Texture;
 class View;
 class Light;
+class RenderProxyEnvProbe;
 
 enum class EnvProbeFlags : uint32
 {
@@ -221,7 +222,7 @@ public:
 
     virtual void Update(float delta) override;
 
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyEnvProbe* proxy);
 
     uint32 m_gridSlot = ~0u; // temp
     Vec4i m_positionInGrid; // temp

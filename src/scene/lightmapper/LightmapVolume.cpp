@@ -307,15 +307,13 @@ void LightmapVolume::Init()
     SetReady(true);
 }
 
-void LightmapVolume::UpdateRenderProxy(IRenderProxy* proxy)
+void LightmapVolume::UpdateRenderProxy(RenderProxyLightmapVolume* proxy)
 {
-    RenderProxyLightmapVolume* proxyCasted = static_cast<RenderProxyLightmapVolume*>(proxy);
+    proxy->lightmapVolume = WeakHandleFromThis();
 
-    proxyCasted->lightmapVolume = WeakHandleFromThis();
-
-    proxyCasted->bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
-    proxyCasted->bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
-    proxyCasted->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
+    proxy->bufferData.aabbMax = Vec4f(m_aabb.max, 1.0f);
+    proxy->bufferData.aabbMin = Vec4f(m_aabb.min, 1.0f);
+    proxy->bufferData.textureIndex = ~0u; // @TODO: Set the correct texture index based on the element
 }
 
 void LightmapVolume::UpdateAtlasTextures()

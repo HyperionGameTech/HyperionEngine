@@ -199,16 +199,15 @@ const Animation* Skeleton::FindAnimation(UTF8StringView name, uint32* outIndex) 
     return it->Get();
 }
 
-void Skeleton::UpdateRenderProxy(IRenderProxy* proxy)
+void Skeleton::UpdateRenderProxy(RenderProxySkeleton* proxy)
 {
-    RenderProxySkeleton* proxyCasted = static_cast<RenderProxySkeleton*>(proxy);
-    proxyCasted->skeleton = WeakHandleFromThis();
+    proxy->skeleton = WeakHandleFromThis();
 
     const SizeType numBones = MathUtil::Min(SkeletonShaderData::maxBones, NumBones());
 
     if (numBones != 0)
     {
-        SkeletonShaderData& bufferData = proxyCasted->bufferData;
+        SkeletonShaderData& bufferData = proxy->bufferData;
         bufferData.bones[0] = m_rootBone->GetBoneMatrix();
 
         for (SizeType i = 1; i < numBones; i++)

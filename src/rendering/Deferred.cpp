@@ -294,7 +294,10 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
             const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
             const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
-            const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
+            const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
+                ? pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"))
+                : ~0u;
+            
             const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
 
             if (isFirstLight)
@@ -353,6 +356,8 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                     ArrayMap<Name, uint32> {},
                     materialDescriptorSetIndex);
             }
+            
+            HYP_LOG_TEMP("Render light {}", light->Id());
 
             frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
         }

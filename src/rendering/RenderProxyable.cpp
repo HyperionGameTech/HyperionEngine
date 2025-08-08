@@ -14,11 +14,6 @@ void RenderProxyable::Init()
     SetReady(true);
 }
 
-void RenderProxyable::UpdateRenderProxy(IRenderProxy* proxy)
-{
-    // no default impl
-}
-
 void RenderProxyable::SetNeedsRenderProxyUpdate()
 {
     ++m_renderProxyVersion;

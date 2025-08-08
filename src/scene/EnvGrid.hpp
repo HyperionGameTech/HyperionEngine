@@ -28,6 +28,7 @@ class View;
 class Scene;
 class EnvProbe;
 class Texture;
+class RenderProxyEnvGrid;
 
 enum class EnvGridFlags : uint32
 {
@@ -179,7 +180,7 @@ public:
     HYP_METHOD()
     void Translate(const BoundingBox& aabb, const Vec3f& translation);
 
-    virtual void UpdateRenderProxy(IRenderProxy* proxy) override final;
+    void UpdateRenderProxy(RenderProxyEnvGrid* proxy);
 
 private:
     virtual void OnAttachedToNode(Node* node) override;
