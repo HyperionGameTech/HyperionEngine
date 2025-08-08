@@ -7,8 +7,8 @@
 
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
-#include <rendering/RenderImage.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/AsyncCompute.hpp>
 #include <rendering/Texture.hpp>
@@ -767,7 +767,7 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
         : &frame->renderQueue;
-    
+
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
 
     asyncRenderQueue << InsertBarrier(pd->shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);
@@ -1110,7 +1110,7 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
     Assert(probe.IsValid());
     Assert(probe->IsReady());
 
-    const ImageRef& colorImage = framebuffer->GetAttachment(0)->GetImage();
+    const GpuImageRef& colorImage = framebuffer->GetAttachment(0)->GetImage();
     const Vec3u cubemapDimensions = colorImage->GetExtent();
 
     struct

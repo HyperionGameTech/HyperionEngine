@@ -25,12 +25,12 @@ public:
     void UnsetAllResources();
 
     /*! \brief Add a texture to the bindless descriptor set. */
-    void AddResource(ObjId<Texture> id, const ImageViewRef& imageView);
+    void AddResource(ObjId<Texture> id, const GpuImageViewRef& imageView);
     /*! \brief Remove the given texture from the bindless descriptor set. */
     void RemoveResource(ObjId<Texture> id);
 
 private:
-    HashMap<ObjId<Texture>, ImageViewWeakRef> m_resources;
+    HashMap<ObjId<Texture>, GpuImageViewWeakRef> m_resources;
 };
 
 } // namespace hyperion

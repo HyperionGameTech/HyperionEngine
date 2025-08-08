@@ -6,8 +6,8 @@
 #include <rendering/RenderGlobalState.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/RenderFrame.hpp>
-#include <rendering/RenderImage.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderObject.hpp>
@@ -205,7 +205,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
     const FramebufferRef& framebuffer = outputTarget.GetFramebuffer();
     AssertDebug(framebuffer.IsValid());
 
-    const ImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
+    const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
 
     if (envProbe->ShouldComputePrefilteredEnvMap())
     {
@@ -223,7 +223,7 @@ void ReflectionProbeRenderer::RenderProbe(FrameBase* frame, const RenderSetup& r
 
         Assert(skyProbe->GetSkyboxCubemap().IsValid());
 
-        const ImageRef& dstImage = skyProbe->GetSkyboxCubemap()->GetGpuImage();
+        const GpuImageRef& dstImage = skyProbe->GetSkyboxCubemap()->GetGpuImage();
         Assert(dstImage.IsValid());
         Assert(dstImage->IsCreated());
 
@@ -549,7 +549,7 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     RenderQueue* asyncRenderQueuePtr = g_renderBackend->GetAsyncCompute()->IsSupported()
         ? &g_renderBackend->GetAsyncCompute()->renderQueue
         : &frame->renderQueue;
-    
+
     RenderQueue& asyncRenderQueue = *asyncRenderQueuePtr;
 
     asyncRenderQueue << InsertBarrier(shTilesBuffers[0], RS_UNORDERED_ACCESS, SMT_COMPUTE);

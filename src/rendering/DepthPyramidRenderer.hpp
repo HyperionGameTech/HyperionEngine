@@ -20,7 +20,7 @@ public:
     DepthPyramidRenderer(GBuffer* gbuffer);
     ~DepthPyramidRenderer();
 
-    HYP_FORCE_INLINE const ImageViewRef& GetResultImageView() const
+    HYP_FORCE_INLINE const GpuImageViewRef& GetResultImageView() const
     {
         return m_depthPyramidView;
     }
@@ -39,10 +39,10 @@ public:
 private:
     GBuffer* m_gbuffer;
 
-    ImageViewRef m_depthImageView;
-    ImageRef m_depthPyramid;
-    ImageViewRef m_depthPyramidView;
-    Array<ImageViewRef> m_mipImageViews;
+    GpuImageViewRef m_depthImageView;
+    GpuImageRef m_depthPyramid;
+    GpuImageViewRef m_depthPyramidView;
+    Array<GpuImageViewRef> m_mipImageViews;
     Array<GpuBufferRef> m_mipUniformBuffers;
     Array<DescriptorTableRef> m_mipDescriptorTables;
     SamplerRef m_depthPyramidSampler;

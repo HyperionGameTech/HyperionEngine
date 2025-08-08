@@ -3,8 +3,8 @@
 #pragma once
 
 #include <rendering/RenderAttachment.hpp>
-#include <rendering/RenderImage.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderSampler.hpp>
 
 #include <core/Defines.hpp>
@@ -38,7 +38,7 @@ public:
     virtual RendererResult Resize(Vec2u newSize) = 0;
 
     virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) = 0;
-    virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
+    virtual AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) = 0;
     virtual AttachmentRef AddAttachment(
         uint32 binding,
         TextureFormat format,

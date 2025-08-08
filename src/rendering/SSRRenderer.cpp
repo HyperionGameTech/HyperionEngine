@@ -81,8 +81,8 @@ struct RENDER_COMMAND(CreateSSRUniformBuffer)
 SSRRenderer::SSRRenderer(
     SSRRendererConfig&& config,
     GBuffer* gbuffer,
-    const ImageViewRef& mipChainImageView,
-    const ImageViewRef& deferredResultImageView)
+    const GpuImageViewRef& mipChainImageView,
+    const GpuImageViewRef& deferredResultImageView)
     : m_config(std::move(config)),
       m_gbuffer(gbuffer),
       m_mipChainImageView(mipChainImageView),

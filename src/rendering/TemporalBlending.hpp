@@ -44,7 +44,7 @@ public:
         const Vec2u& extent,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef& inputImageView,
+        const GpuImageViewRef& inputImageView,
         GBuffer* gbuffer);
 
     TemporalBlending(
@@ -60,7 +60,7 @@ public:
         TextureFormat imageFormat,
         TemporalBlendTechnique technique,
         TemporalBlendFeedback feedback,
-        const ImageViewRef& inputImageView,
+        const GpuImageViewRef& inputImageView,
         GBuffer* gbuffer);
 
     TemporalBlending(const TemporalBlending& other) = delete;
@@ -114,7 +114,7 @@ private:
 
     FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
 
-    ImageViewRef m_inputImageView;
+    GpuImageViewRef m_inputImageView;
     FramebufferRef m_inputFramebuffer;
 
     Handle<Texture> m_resultTexture;

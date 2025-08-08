@@ -10,7 +10,7 @@ namespace hyperion {
 
 struct CullData
 {
-    ImageViewRef depthPyramidImageView;
+    GpuImageViewRef depthPyramidImageView;
     Vec2u depthPyramidDimensions;
 
     CullData()

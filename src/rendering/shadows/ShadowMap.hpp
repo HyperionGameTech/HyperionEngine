@@ -40,7 +40,7 @@ enum ShadowMapType : uint32
 class ShadowMap
 {
 public:
-    ShadowMap(ShadowMapType type, ShadowMapFilter filterMode, const ShadowMapAtlasElement& atlasElement, const ImageViewRef& imageView);
+    ShadowMap(ShadowMapType type, ShadowMapFilter filterMode, const ShadowMapAtlasElement& atlasElement, const GpuImageViewRef& imageView);
     ShadowMap(const ShadowMap&) = delete;
     ShadowMap& operator=(const ShadowMap&) = delete;
     ~ShadowMap();
@@ -60,7 +60,7 @@ public:
         return m_atlasElement;
     }
 
-    HYP_FORCE_INLINE const ImageViewRef& GetImageView() const
+    HYP_FORCE_INLINE const GpuImageViewRef& GetImageView() const
     {
         return m_imageView;
     }
@@ -69,7 +69,7 @@ private:
     ShadowMapType m_type;
     ShadowMapFilter m_filterMode;
     ShadowMapAtlasElement* m_atlasElement;
-    ImageViewRef m_imageView;
+    GpuImageViewRef m_imageView;
 
     Handle<FullScreenPass> m_combineShadowMapsPass;
 };

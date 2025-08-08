@@ -80,8 +80,8 @@ public:
     SSRRenderer(
         SSRRendererConfig&& config,
         GBuffer* gbuffer,
-        const ImageViewRef& mipChainImageView,
-        const ImageViewRef& deferredResultImageView);
+        const GpuImageViewRef& mipChainImageView,
+        const GpuImageViewRef& deferredResultImageView);
     ~SSRRenderer();
 
     HYP_FORCE_INLINE const Handle<Texture>& GetUVsTexture() const
@@ -116,8 +116,8 @@ private:
 
     GBuffer* m_gbuffer;
 
-    ImageViewRef m_mipChainImageView;
-    ImageViewRef m_deferredResultImageView;
+    GpuImageViewRef m_mipChainImageView;
+    GpuImageViewRef m_deferredResultImageView;
 
     Handle<Texture> m_uvsTexture;
     Handle<Texture> m_sampledResultTexture;

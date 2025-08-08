@@ -1,6 +1,6 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/vulkan/VulkanImage.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
 #include <rendering/vulkan/VulkanInstance.hpp>
@@ -43,30 +43,30 @@ extern VkPipelineStageFlags GetVkShaderStageMask(ResourceState, bool, ShaderModu
 
 #pragma endregion VulkanImagePlatformImpl
 
-#pragma region VulkanImage
+#pragma region VulkanGpuImage
 
-VulkanImage::VulkanImage(const TextureDesc& textureDesc)
-    : ImageBase(textureDesc)
+VulkanGpuImage::VulkanGpuImage(const TextureDesc& textureDesc)
+    : GpuImageBase(textureDesc)
 {
     m_size = textureDesc.GetByteSize();
 }
 
-VulkanImage::~VulkanImage()
+VulkanGpuImage::~VulkanGpuImage()
 {
     HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE);
 }
 
-bool VulkanImage::IsCreated() const
+bool VulkanGpuImage::IsCreated() const
 {
     return m_handle != VK_NULL_HANDLE;
 }
 
-bool VulkanImage::IsOwned() const
+bool VulkanGpuImage::IsOwned() const
 {
     return m_isHandleOwned;
 }
 
-RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase* commandBuffer)
+RendererResult VulkanGpuImage::GenerateMipmaps(CommandBufferBase* commandBuffer)
 {
     if (m_handle == VK_NULL_HANDLE)
     {
@@ -154,7 +154,7 @@ RendererResult VulkanImage::GenerateMipmaps(CommandBufferBase* commandBuffer)
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanImage::Create()
+RendererResult VulkanGpuImage::Create()
 {
     if (IsCreated())
     {
@@ -164,7 +164,7 @@ RendererResult VulkanImage::Create()
     return Create(RS_UNDEFINED);
 }
 
-RendererResult VulkanImage::Create(ResourceState initialState)
+RendererResult VulkanGpuImage::Create(ResourceState initialState)
 {
     if (IsCreated())
     {
@@ -316,7 +316,7 @@ RendererResult VulkanImage::Create(ResourceState initialState)
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanImage::Destroy()
+RendererResult VulkanGpuImage::Destroy()
 {
     RendererResult result;
 
@@ -344,7 +344,7 @@ RendererResult VulkanImage::Destroy()
     return result;
 }
 
-RendererResult VulkanImage::Resize(const Vec3u& extent)
+RendererResult VulkanGpuImage::Resize(const Vec3u& extent)
 {
     if (extent == m_textureDesc.extent)
     {
@@ -390,14 +390,14 @@ RendererResult VulkanImage::Resize(const Vec3u& extent)
     return {};
 }
 
-void VulkanImage::SetResourceState(ResourceState newState)
+void VulkanGpuImage::SetResourceState(ResourceState newState)
 {
     m_resourceState = newState;
 
     m_subResourceStates.Clear();
 }
 
-ResourceState VulkanImage::GetSubResourceState(const ImageSubResource& subResource) const
+ResourceState VulkanGpuImage::GetSubResourceState(const ImageSubResource& subResource) const
 {
     auto it = m_subResourceStates.Find(subResource.GetSubResourceKey());
 
@@ -409,12 +409,12 @@ ResourceState VulkanImage::GetSubResourceState(const ImageSubResource& subResour
     return it->second;
 }
 
-void VulkanImage::SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
+void VulkanGpuImage::SetSubResourceState(const ImageSubResource& subResource, ResourceState newState)
 {
     m_subResourceStates.Set(subResource.GetSubResourceKey(), newState);
 }
 
-void VulkanImage::InsertBarrier(
+void VulkanGpuImage::InsertBarrier(
     CommandBufferBase* commandBuffer,
     ResourceState newState,
     ShaderModuleType shaderModuleType)
@@ -440,7 +440,7 @@ void VulkanImage::InsertBarrier(
         shaderModuleType);
 }
 
-void VulkanImage::InsertBarrier(
+void VulkanGpuImage::InsertBarrier(
     CommandBufferBase* commandBuffer,
     const ImageSubResource& subResource,
     ResourceState newState,
@@ -544,9 +544,9 @@ void VulkanImage::InsertBarrier(
     }
 }
 
-RendererResult VulkanImage::Blit(
+RendererResult VulkanGpuImage::Blit(
     CommandBufferBase* commandBuffer,
-    const ImageBase* src)
+    const GpuImageBase* src)
 {
     return Blit(
         commandBuffer,
@@ -555,9 +555,9 @@ RendererResult VulkanImage::Blit(
         Rect<uint32> { 0, 0, m_textureDesc.extent.x, m_textureDesc.extent.y });
 }
 
-RendererResult VulkanImage::Blit(
+RendererResult VulkanGpuImage::Blit(
     CommandBufferBase* commandBuffer,
-    const ImageBase* srcImage,
+    const GpuImageBase* srcImage,
     uint32 srcMip,
     uint32 dstMip,
     uint32 srcFace,
@@ -571,9 +571,9 @@ RendererResult VulkanImage::Blit(
         srcMip, dstMip, srcFace, dstFace);
 }
 
-RendererResult VulkanImage::Blit(
+RendererResult VulkanGpuImage::Blit(
     CommandBufferBase* commandBuffer,
-    const ImageBase* srcImage,
+    const GpuImageBase* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect)
 {
@@ -593,7 +593,7 @@ RendererResult VulkanImage::Blit(
             .baseMipLevel = 0
         };
 
-        const ResourceState srcResourceState = static_cast<const VulkanImage*>(srcImage)->GetSubResourceState(src);
+        const ResourceState srcResourceState = static_cast<const VulkanGpuImage*>(srcImage)->GetSubResourceState(src);
         const ResourceState dstResourceState = GetSubResourceState(dst);
 
         const VkImageAspectFlags aspectFlagBits =
@@ -629,9 +629,9 @@ RendererResult VulkanImage::Blit(
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanImage::Blit(
+RendererResult VulkanGpuImage::Blit(
     CommandBufferBase* commandBuffer,
-    const ImageBase* srcImage,
+    const GpuImageBase* srcImage,
     Rect<uint32> srcRect,
     Rect<uint32> dstRect,
     uint32 srcMip,
@@ -653,7 +653,7 @@ RendererResult VulkanImage::Blit(
         .baseMipLevel = dstMip
     };
 
-    const ResourceState srcResourceState = static_cast<const VulkanImage*>(srcImage)->GetSubResourceState(src);
+    const ResourceState srcResourceState = static_cast<const VulkanGpuImage*>(srcImage)->GetSubResourceState(src);
     const ResourceState dstResourceState = GetSubResourceState(dst);
 
     const VkImageAspectFlags aspectFlagBits =
@@ -688,7 +688,7 @@ RendererResult VulkanImage::Blit(
     HYPERION_RETURN_OK;
 }
 
-void VulkanImage::CopyFromBuffer(CommandBufferBase* commandBuffer, const GpuBufferBase* srcBuffer) const
+void VulkanGpuImage::CopyFromBuffer(CommandBufferBase* commandBuffer, const GpuBufferBase* srcBuffer) const
 {
     const auto flags = m_textureDesc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -726,7 +726,7 @@ void VulkanImage::CopyFromBuffer(CommandBufferBase* commandBuffer, const GpuBuff
     }
 }
 
-void VulkanImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBase* dstBuffer) const
+void VulkanGpuImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBase* dstBuffer) const
 {
     const auto flags = m_textureDesc.IsDepthStencil()
         ? IMAGE_SUB_RESOURCE_FLAGS_DEPTH | IMAGE_SUB_RESOURCE_FLAGS_STENCIL
@@ -764,7 +764,7 @@ void VulkanImage::CopyToBuffer(CommandBufferBase* commandBuffer, GpuBufferBase* 
     }
 }
 
-ImageViewRef VulkanImage::MakeLayerImageView(uint32 layerIndex) const
+GpuImageViewRef VulkanGpuImage::MakeLayerImageView(uint32 layerIndex) const
 {
     if (m_handle == VK_NULL_HANDLE)
     {
@@ -773,7 +773,7 @@ ImageViewRef VulkanImage::MakeLayerImageView(uint32 layerIndex) const
             Warning,
             "Attempt to create image view on uninitialized image");
 
-        return ImageViewRef();
+        return GpuImageViewRef();
     }
 
     return GetRenderBackend()->MakeImageView(
@@ -786,9 +786,9 @@ ImageViewRef VulkanImage::MakeLayerImageView(uint32 layerIndex) const
 
 #ifdef HYP_DEBUG_MODE
 
-void VulkanImage::SetDebugName(Name name)
+void VulkanGpuImage::SetDebugName(Name name)
 {
-    ImageBase::SetDebugName(name);
+    GpuImageBase::SetDebugName(name);
 
     if (!IsCreated())
     {
@@ -812,6 +812,6 @@ void VulkanImage::SetDebugName(Name name)
 
 #endif
 
-#pragma endregion VulkanImage
+#pragma endregion VulkanGpuImage
 
 } // namespace hyperion

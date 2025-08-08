@@ -124,12 +124,12 @@ public:
         return m_radianceBuffer;
     }
 
-    const ImageRef& GetIrradianceImage() const
+    const GpuImageRef& GetIrradianceImage() const
     {
         return m_irradianceImage;
     }
 
-    const ImageViewRef& GetIrradianceImageView() const
+    const GpuImageViewRef& GetIrradianceImageView() const
     {
         return m_irradianceImageView;
     }
@@ -160,10 +160,10 @@ private:
     FixedArray<GpuBufferRef, g_framesInFlight> m_uniformBuffers;
     GpuBufferRef m_radianceBuffer;
 
-    ImageRef m_irradianceImage;
-    ImageViewRef m_irradianceImageView;
-    ImageRef m_depthImage;
-    ImageViewRef m_depthImageView;
+    GpuImageRef m_irradianceImage;
+    GpuImageViewRef m_irradianceImageView;
+    GpuImageRef m_depthImage;
+    GpuImageViewRef m_depthImageView;
 
     DDGIUniforms m_uniforms;
 

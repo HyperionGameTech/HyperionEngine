@@ -3,7 +3,7 @@
 #include <rendering/Texture.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderSampler.hpp>
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
@@ -51,13 +51,13 @@ struct RENDER_COMMAND(CreateTextureGpuImage)
     WeakHandle<Texture> textureWeak;
     ResourceHandle resourceHandle;
     ResourceState initialState;
-    ImageRef image;
+    GpuImageRef image;
 
     RENDER_COMMAND(CreateTextureGpuImage)(
         const WeakHandle<Texture>& textureWeak,
         ResourceHandle&& resourceHandle,
         ResourceState initialState,
-        ImageRef image)
+        GpuImageRef image)
         : textureWeak(textureWeak),
           resourceHandle(std::move(resourceHandle)),
           initialState(initialState),

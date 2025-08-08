@@ -15,7 +15,7 @@
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderShader.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderBackend.hpp>
 #include <rendering/env_probe/EnvProbeRenderer.hpp>
 #include <rendering/env_grid/EnvGridRenderer.hpp>

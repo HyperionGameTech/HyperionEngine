@@ -7,12 +7,12 @@
 #include <core/Defines.hpp>
 
 namespace hyperion {
-class ImageViewBase : public RenderObject<ImageViewBase>
+class GpuImageViewBase : public RenderObject<GpuImageViewBase>
 {
 public:
-    virtual ~ImageViewBase() override = default;
+    virtual ~GpuImageViewBase() override = default;
 
-    HYP_FORCE_INLINE const ImageRef& GetImage() const
+    HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {
         return m_image;
     }
@@ -23,8 +23,8 @@ public:
     virtual RendererResult Destroy() = 0;
 
 protected:
-    ImageViewBase(
-        const ImageRef& image)
+    GpuImageViewBase(
+        const GpuImageRef& image)
         : m_image(image),
           m_mipIndex(0),
           m_numMips(0),
@@ -33,8 +33,8 @@ protected:
     {
     }
 
-    ImageViewBase(
-        const ImageRef& image,
+    GpuImageViewBase(
+        const GpuImageRef& image,
         uint32 mipIndex,
         uint32 numMips,
         uint32 faceIndex,
@@ -47,7 +47,7 @@ protected:
     {
     }
 
-    ImageRef m_image;
+    GpuImageRef m_image;
     uint32 m_mipIndex;
     uint32 m_numMips;
     uint32 m_faceIndex;

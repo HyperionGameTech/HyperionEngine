@@ -19,7 +19,7 @@
 #include <rendering/RenderResult.hpp>
 #include <rendering/RenderObject.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderSampler.hpp>
 #include <rendering/rt/RenderAccelerationStructure.hpp>
 
@@ -126,7 +126,7 @@ struct DescriptorSetElementTypeInfo<GpuBufferBase>
 };
 
 template <>
-struct DescriptorSetElementTypeInfo<ImageViewBase>
+struct DescriptorSetElementTypeInfo<GpuImageViewBase>
 {
     static constexpr uint32 mask = (1u << uint32(DescriptorSetElementType::IMAGE))
         | (1u << uint32(DescriptorSetElementType::IMAGE_STORAGE));
@@ -542,7 +542,7 @@ private:
 
 struct DescriptorSetElement
 {
-    using ValueType = Variant<GpuBufferRef, ImageViewRef, SamplerRef, TLASRef>;
+    using ValueType = Variant<GpuBufferRef, GpuImageViewRef, SamplerRef, TLASRef>;
 
     FlatMap<uint32, ValueType> values;
     Range<uint32> dirtyRange {};
@@ -615,8 +615,8 @@ public:
     void SetElement(Name name, uint32 index, const GpuBufferRef& ref);
     void SetElement(Name name, const GpuBufferRef& ref);
 
-    void SetElement(Name name, uint32 index, const ImageViewRef& ref);
-    void SetElement(Name name, const ImageViewRef& ref);
+    void SetElement(Name name, uint32 index, const GpuImageViewRef& ref);
+    void SetElement(Name name, const GpuImageViewRef& ref);
 
     void SetElement(Name name, uint32 index, const SamplerRef& ref);
     void SetElement(Name name, const SamplerRef& ref);

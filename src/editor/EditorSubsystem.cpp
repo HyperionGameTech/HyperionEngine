@@ -63,8 +63,6 @@
 #include <rendering/Mesh.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
 
-#include <rendering/subsystems/ScreenCapture.hpp>
-
 #include <rendering/font/FontAtlas.hpp>
 
 // temp
@@ -1052,16 +1050,6 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& appContext)
                 m_delegateHandlers.Remove(&project->OnSceneAdded);
                 m_delegateHandlers.Remove(&project->OnSceneRemoved);
 
-                ScreenCaptureRenderSubsystem* subsystem = GetWorld()->GetSubsystem<ScreenCaptureRenderSubsystem>();
-
-                if (subsystem)
-                {
-                    m_delegateHandlers.Remove(&subsystem->OnTextureResize);
-
-                    bool removed = GetWorld()->RemoveSubsystem(subsystem);
-                    Assert(removed);
-                }
-
                 m_delegateHandlers.Remove("SetBuildBVHFlag");
                 m_delegateHandlers.Remove("OnPackageAdded");
                 m_delegateHandlers.Remove("OnPackageRemoved");
@@ -1389,7 +1377,7 @@ void EditorSubsystem::InitViewport()
 
     Vec2u viewportSize = MathUtil::Max(Vec2u(sceneImageObject->GetActualSize()), Vec2u::One());
     ViewDesc viewDesc {
-        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER,
+        .flags = ViewFlags::DEFAULT | ViewFlags::GBUFFER | ViewFlags::ENABLE_READBACK,
         .viewport = Viewport { .extent = viewportSize, .position = Vec2i::Zero() },
         .outputTargetDesc = { .extent = viewportSize },
         .camera = m_camera
@@ -1399,21 +1387,6 @@ void EditorSubsystem::InitViewport()
     InitObject(view);
 
     HYP_LOG(Editor, Info, "Creating editor viewport with size: {}", viewportSize);
-
-    Handle<ScreenCaptureRenderSubsystem> screenCaptureRenderSubsystem = GetWorld()->AddSubsystem(CreateObject<ScreenCaptureRenderSubsystem>(view));
-    // m_delegateHandlers.Add(
-    //     screenCaptureRenderSubsystem->OnTextureResize.Bind([this, sceneImageObjectWeak = sceneImageObject.ToWeak()](const Handle<Texture>& texture)
-    //         {
-    //             if (Handle<UIObject> sceneImageObject = sceneImageObjectWeak.Lock())
-    //             {
-    //                 if (Handle<UIImage> uiImage = sceneImageObject.Cast<UIImage>())
-    //                 {
-    //                     uiImage->SetTexture(Handle<Texture>::empty);
-    //                     uiImage->SetTexture(texture);
-    //                 }
-    //             }
-    //         },
-    //         g_gameThread));
 
     GetWorld()->AddView(view);
 
@@ -1448,10 +1421,21 @@ void EditorSubsystem::InitViewport()
     Handle<UIImage> uiImage = ObjCast<UIImage>(sceneImageObject);
     Assert(uiImage.IsValid());
 
-    m_sceneTexture.Reset();
+    Handle<Texture> readbackTexture = view->GetReadbackTexture();
+    Assert(readbackTexture != nullptr);
 
-    m_sceneTexture = screenCaptureRenderSubsystem->GetTexture();
-    Assert(m_sceneTexture.IsValid());
+    m_delegateHandlers.Remove("OnReadbackTextureChanged");
+    m_delegateHandlers.Add(NAME("OnReadbackTextureChanged"), view->OnReadbackTextureChanged.Bind([uiImageWeak = uiImage.ToWeak()](const Handle<Texture>& readbackTexture)
+                                                                 {
+                                                                     Handle<UIImage> uiImage = uiImageWeak.Lock();
+
+                                                                     if (!uiImage)
+                                                                     {
+                                                                         return;
+                                                                     }
+
+                                                                     uiImage->SetTexture(readbackTexture);
+                                                                 }));
 
     m_delegateHandlers.Remove(&uiImage->OnClick);
     m_delegateHandlers.Add(uiImage->OnClick.Bind([this](const MouseEvent& event)
@@ -1802,7 +1786,7 @@ void EditorSubsystem::InitViewport()
             return UIEventHandlerResult::OK;
         }));
 
-    uiImage->SetTexture(m_sceneTexture);
+    uiImage->SetTexture(readbackTexture);
 
     InitConsoleUI();
     InitDebugOverlays();

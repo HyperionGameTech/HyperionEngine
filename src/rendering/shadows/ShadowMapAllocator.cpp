@@ -157,7 +157,7 @@ ShadowMap* ShadowMapAllocator::AllocateShadowMap(ShadowMapType shadowMapType, Sh
 
         if (atlas.AddElement(dimensions, atlasElement))
         {
-            ImageViewRef atlasImageView = m_atlasImage->MakeLayerImageView(atlasElement.atlasIndex);
+            GpuImageViewRef atlasImageView = m_atlasImage->MakeLayerImageView(atlasElement.atlasIndex);
             DeferCreate(atlasImageView);
 
             ShadowMap* shadowMap = new ShadowMap(

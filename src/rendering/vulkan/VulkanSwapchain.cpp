@@ -2,7 +2,7 @@
 
 #include <rendering/vulkan/VulkanSwapchain.hpp>
 #include <rendering/vulkan/VulkanFrame.hpp>
-#include <rendering/vulkan/VulkanImage.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanFeatures.hpp>
@@ -109,7 +109,7 @@ RendererResult VulkanSwapchain::PresentFrame(VulkanDeviceQueue* queue) const
 {
     // Debug: ensure all images are in the PRESENT state
 #ifdef HYP_DEBUG_MODE
-    for (const ImageRef& image : m_images)
+    for (const GpuImageRef& image : m_images)
     {
         HYP_GFX_ASSERT(image.IsValid());
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);
@@ -211,7 +211,7 @@ RendererResult VulkanSwapchain::Create()
     HYP_LOG(RenderingBackend, Info, "Creating {} swapchain framebuffers with extent and format: {}",
         m_images.Size(), m_extent, EnumToString(m_images[0]->GetTextureFormat()));
 
-    for (const ImageRef& image : m_images)
+    for (const GpuImageRef& image : m_images)
     {
         HYP_GFX_ASSERT(image != nullptr);
 
@@ -226,7 +226,7 @@ RendererResult VulkanSwapchain::Create()
         }
 
         VulkanFramebufferRef framebuffer = VULKAN_CAST(m_framebuffers.PushBack(MakeRenderObject<VulkanFramebuffer>(m_extent, RenderPassStage::PRESENT)));
-        framebuffer->AddAttachment(0, VulkanImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
+        framebuffer->AddAttachment(0, VulkanGpuImageRef(image), LoadOperation::CLEAR, StoreOperation::STORE);
         HYP_GFX_CHECK(framebuffer->Create());
     }
 
@@ -353,7 +353,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
             Vec3u { m_extent.x, m_extent.y, 1 }
         };
 
-        VulkanImageRef image = MakeRenderObject<VulkanImage>(desc);
+        VulkanGpuImageRef image = MakeRenderObject<VulkanGpuImage>(desc);
 
         image->m_handle = vkImages[i];
         image->m_isHandleOwned = false;
@@ -368,7 +368,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
 
     singleTimeCommands->Push([&](RenderQueue& renderQueue)
         {
-            for (const ImageRef& image : m_images)
+            for (const GpuImageRef& image : m_images)
             {
                 HYP_GFX_ASSERT(image.IsValid());
 
@@ -379,7 +379,7 @@ RendererResult VulkanSwapchain::RetrieveImageHandles()
     HYP_GFX_CHECK(singleTimeCommands->Execute());
 
     // Ensure all images are in the PRESENT state
-    for (const ImageRef& image : m_images)
+    for (const GpuImageRef& image : m_images)
     {
         HYP_GFX_ASSERT(image.IsValid());
         HYP_GFX_ASSERT(image->GetResourceState() == RS_PRESENT);

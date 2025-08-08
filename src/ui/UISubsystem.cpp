@@ -92,9 +92,9 @@ struct RENDER_COMMAND(RemoveUIRenderer)
 struct RENDER_COMMAND(SetFinalPassImageView)
     : RenderCommand
 {
-    ImageViewRef imageView;
+    GpuImageViewRef imageView;
 
-    RENDER_COMMAND(SetFinalPassImageView)(const ImageViewRef& imageView)
+    RENDER_COMMAND(SetFinalPassImageView)(const GpuImageViewRef& imageView)
         : imageView(imageView)
     {
     }
@@ -134,7 +134,7 @@ UISubsystem::~UISubsystem()
 void UISubsystem::Init()
 {
     HYP_SCOPE;
-    
+
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
 
@@ -157,7 +157,8 @@ void UISubsystem::Init()
             uiStage->SetSurfaceSize(windowSize);
 
             subsystem->CreateFramebuffer();
-        }, g_gameThread);
+        },
+        g_gameThread);
 
     const Vec2u surfaceSize = Vec2u(m_uiStage->GetSurfaceSize());
     HYP_LOG(UI, Debug, "UISubsystem: surface size is {}", surfaceSize);

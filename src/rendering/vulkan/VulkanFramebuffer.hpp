@@ -5,7 +5,7 @@
 #include <rendering/RenderFramebuffer.hpp>
 
 #include <rendering/vulkan/VulkanAttachment.hpp>
-#include <rendering/vulkan/VulkanImage.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
 #include <rendering/vulkan/VulkanRenderPass.hpp>
 
@@ -18,7 +18,7 @@ class VulkanCommandBuffer;
 
 struct VulkanAttachmentDef
 {
-    VulkanImageRef image;
+    VulkanGpuImageRef image;
     VulkanAttachmentRef attachment;
 };
 
@@ -78,7 +78,7 @@ struct VulkanAttachmentMap
         attachments.Set(
             binding,
             VulkanAttachmentDef {
-                VulkanImageRef(attachment->GetImage()),
+                VulkanGpuImageRef(attachment->GetImage()),
                 attachment });
 
         return attachment;
@@ -99,7 +99,7 @@ struct VulkanAttachmentMap
         textureDesc.extent = Vec3u { extent.x, extent.y, 1 };
         textureDesc.imageUsage = IU_SAMPLED | IU_ATTACHMENT;
 
-        VulkanImageRef image = MakeRenderObject<VulkanImage>(textureDesc);
+        VulkanGpuImageRef image = MakeRenderObject<VulkanGpuImage>(textureDesc);
 
         VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(image, framebufferWeak, stage, loadOp, storeOp);
         attachment->SetBinding(binding);
@@ -137,7 +137,7 @@ public:
     }
 
     virtual AttachmentRef AddAttachment(const AttachmentRef& attachment) override;
-    virtual AttachmentRef AddAttachment(uint32 binding, const ImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
+    virtual AttachmentRef AddAttachment(uint32 binding, const GpuImageRef& image, LoadOperation loadOp, StoreOperation storeOp) override;
 
     virtual AttachmentRef AddAttachment(
         uint32 binding,

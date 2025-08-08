@@ -28,7 +28,7 @@ HYP_DECLARE_LOG_CHANNEL(Rendering);
 
 #pragma region ShadowMap
 
-ShadowMap::ShadowMap(ShadowMapType type, ShadowMapFilter filterMode, const ShadowMapAtlasElement& atlasElement, const ImageViewRef& imageView)
+ShadowMap::ShadowMap(ShadowMapType type, ShadowMapFilter filterMode, const ShadowMapAtlasElement& atlasElement, const GpuImageViewRef& imageView)
     : m_type(type),
       m_filterMode(filterMode),
       m_atlasElement(new ShadowMapAtlasElement(atlasElement)),

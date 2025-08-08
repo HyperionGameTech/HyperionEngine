@@ -60,7 +60,7 @@ TemporalBlending::TemporalBlending(
     const Vec2u& extent,
     TemporalBlendTechnique technique,
     TemporalBlendFeedback feedback,
-    const ImageViewRef& inputImageView,
+    const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : TemporalBlending(
           extent,
@@ -95,7 +95,7 @@ TemporalBlending::TemporalBlending(
     TextureFormat imageFormat,
     TemporalBlendTechnique technique,
     TemporalBlendFeedback feedback,
-    const ImageViewRef& inputImageView,
+    const GpuImageViewRef& inputImageView,
     GBuffer* gbuffer)
     : m_extent(extent),
       m_imageFormat(imageFormat),
@@ -247,7 +247,7 @@ void TemporalBlending::CreatePipeline()
             HYP_GFX_ASSERT(m_uniformBuffers[frameIndex]->Create());
         }
 
-        const ImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
+        const GpuImageViewRef& inputImageView = m_inputFramebuffer.IsValid()
             ? m_inputFramebuffer->GetAttachment(0)->GetImageView()
             : m_inputImageView;
 
@@ -297,7 +297,7 @@ void TemporalBlending::Render(FrameBase* frame, const RenderSetup& renderSetup)
         Assert(m_csPerformBlending != nullptr && m_csPerformBlending->IsCreated());
     }
 
-    const ImageRef& activeImage = frame->GetFrameIndex() % 2 == 0
+    const GpuImageRef& activeImage = frame->GetFrameIndex() % 2 == 0
         ? m_resultTexture->GetGpuImage()
         : m_historyTexture->GetGpuImage();
 

@@ -2,7 +2,7 @@
 
 #pragma once
 #include <rendering/vulkan/VulkanResult.hpp>
-#include <rendering/vulkan/VulkanImage.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 

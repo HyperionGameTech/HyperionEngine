@@ -28,7 +28,7 @@ public:
     FinalPass& operator=(const FinalPass& other) = delete;
     ~FinalPass();
 
-    void SetUILayerImageView(const ImageViewRef& imageView);
+    void SetUILayerImageView(const GpuImageViewRef& imageView);
 
     void Create();
     void Render(FrameBase* frame, const RenderSetup& rs);
@@ -38,7 +38,7 @@ private:
     Vec2u m_extent;
     TextureFormat m_imageFormat;
     Handle<Mesh> m_quadMesh;
-    ImageViewRef m_uiLayerImageView;
+    GpuImageViewRef m_uiLayerImageView;
     Handle<FullScreenPass> m_renderTextureToScreenPass;
     uint8 m_dirtyFrameIndices;
 };

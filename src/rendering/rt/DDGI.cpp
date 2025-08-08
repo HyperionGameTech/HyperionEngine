@@ -8,7 +8,7 @@
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderComputePipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 
 #include <scene/View.hpp>
 #include <scene/EnvProbe.hpp>
@@ -41,13 +41,13 @@ struct RENDER_COMMAND(SetDDGIDescriptors)
     : RenderCommand
 {
     FixedArray<GpuBufferRef, g_framesInFlight> uniformBuffers;
-    ImageViewRef irradianceImageView;
-    ImageViewRef depthImageView;
+    GpuImageViewRef irradianceImageView;
+    GpuImageViewRef depthImageView;
 
     RENDER_COMMAND(SetDDGIDescriptors)(
         const FixedArray<GpuBufferRef, g_framesInFlight>& uniformBuffers,
-        const ImageViewRef& irradianceImageView,
-        const ImageViewRef& depthImageView)
+        const GpuImageViewRef& irradianceImageView,
+        const GpuImageViewRef& depthImageView)
         : uniformBuffers(uniformBuffers),
           irradianceImageView(irradianceImageView),
           depthImageView(depthImageView)

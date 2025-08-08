@@ -2,27 +2,27 @@
 
 #pragma once
 
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 
 #include <vulkan/vulkan.h>
 
 namespace hyperion {
-class VulkanImage;
+class VulkanGpuImage;
 
-class VulkanImageView final : public ImageViewBase
+class VulkanGpuImageView final : public GpuImageViewBase
 {
 public:
-    VulkanImageView(
-        const VulkanImageRef& image);
+    VulkanGpuImageView(
+        const VulkanGpuImageRef& image);
 
-    VulkanImageView(
-        const VulkanImageRef& image,
+    VulkanGpuImageView(
+        const VulkanGpuImageRef& image,
         uint32 mipIndex,
         uint32 numMips,
         uint32 faceIndex,
         uint32 numFaces);
 
-    virtual ~VulkanImageView() override;
+    virtual ~VulkanGpuImageView() override;
 
     HYP_FORCE_INLINE VkImageView GetVulkanHandle() const
     {

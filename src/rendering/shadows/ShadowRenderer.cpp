@@ -79,7 +79,7 @@ static Handle<FullScreenPass> CreateCombineShadowMapsPass(ShadowMapFilter filter
     return combineShadowMapsPass;
 }
 
-static ComputePipelineRef CreateBlurShadowMapPipeline(const ImageViewRef& input, const ImageViewRef& output)
+static ComputePipelineRef CreateBlurShadowMapPipeline(const GpuImageViewRef& input, const GpuImageViewRef& output)
 {
     Assert(input.IsValid());
     Assert(output.IsValid());
@@ -223,7 +223,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
 
         if (shadowMap->GetFilterMode() == SMF_VSM)
         {
-            const ImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
+            const GpuImageViewRef& inputImageView = cacheIt->second.combineShadowMapsPass != nullptr
                 ? cacheIt->second.combineShadowMapsPass->GetFinalImageView()
                 : shadowViews[0]->GetOutputTarget().GetFramebuffer()->GetAttachment(0)->GetImageView();
 
@@ -256,7 +256,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
 
     RenderApi_UpdateGpuData(light->Id());
 
-    const ImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
+    const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
     Assert(shadowMapImage.IsValid());
 
     FullScreenPass* combineShadowMapsPass = cacheIt->second.combineShadowMapsPass.Get();
@@ -300,7 +300,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         if (!combineShadowMapsPass)
         {
             // blit image into final result
-            const ImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
+            const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
             Assert(framebufferImage.IsValid());
 
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
@@ -338,7 +338,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         AttachmentBase* attachment = combineShadowMapsPass->GetFramebuffer()->GetAttachment(0);
         Assert(attachment != nullptr);
 
-        const ImageRef& srcImage = attachment->GetImage();
+        const GpuImageRef& srcImage = attachment->GetImage();
         Assert(srcImage.IsValid());
 
         // Copy combined shadow map to the final shadow map

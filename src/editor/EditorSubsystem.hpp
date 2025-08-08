@@ -42,7 +42,6 @@ class AssetPackage;
 struct MouseEvent;
 struct KeyboardEvent;
 class View;
-class ScreenCaptureRenderSubsystem;
 class ConsoleUI;
 
 namespace sys {
@@ -487,7 +486,6 @@ private:
     WeakHandle<EditorManipulationWidgetBase> m_hoveredManipulationWidget;
     WeakHandle<Node> m_hoveredManipulationWidgetNode;
 
-    Handle<Texture> m_sceneTexture;
     Handle<UIObject> m_mainPanel;
 
     WeakHandle<Node> m_focusedNode;

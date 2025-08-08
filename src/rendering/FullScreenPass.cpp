@@ -152,7 +152,7 @@ FullScreenPass::~FullScreenPass()
     SafeRelease(std::move(m_graphicsPipeline));
 }
 
-ImageViewRef FullScreenPass::GetFinalImageView() const
+GpuImageViewRef FullScreenPass::GetFinalImageView() const
 {
     if (UsesTemporalBlending())
     {
@@ -170,13 +170,13 @@ ImageViewRef FullScreenPass::GetFinalImageView() const
 
     if (!colorAttachment)
     {
-        return ImageViewRef::Null();
+        return GpuImageViewRef::Null();
     }
 
     return colorAttachment->GetImageView();
 }
 
-ImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
+GpuImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
 {
     // If we're rendering at half res, we use the same image we render to but at an offset.
     if (ShouldRenderHalfRes())
@@ -185,7 +185,7 @@ ImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
 
         if (!colorAttachment)
         {
-            return ImageViewRef::Null();
+            return GpuImageViewRef::Null();
         }
 
         return colorAttachment->GetImageView();
@@ -196,7 +196,7 @@ ImageViewRef FullScreenPass::GetPreviousFrameColorImageView() const
         return g_renderBackend->GetTextureImageView(m_previousTexture);
     }
 
-    return ImageViewRef::Null();
+    return GpuImageViewRef::Null();
 }
 
 void FullScreenPass::Create()
@@ -328,7 +328,7 @@ void FullScreenPass::CreateFramebuffer()
     textureDesc.wrapMode = TWM_CLAMP_TO_EDGE;
     textureDesc.imageUsage = IU_ATTACHMENT | IU_SAMPLED;
 
-    ImageRef attachmentImage = g_renderBackend->MakeImage(textureDesc);
+    GpuImageRef attachmentImage = g_renderBackend->MakeImage(textureDesc);
     attachmentImage->SetDebugName(NAME_FMT("{}_RenderTargetTexture", InstanceClass()->GetName()));
     DeferCreate(attachmentImage);
 
@@ -569,8 +569,8 @@ void FullScreenPass::CopyResultToPreviousTexture(FrameBase* frame, const RenderS
 
     Assert(m_previousTexture.IsValid());
 
-    const ImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetImage();
-    const ImageRef& dstImage = m_previousTexture->GetGpuImage();
+    const GpuImageRef& srcImage = m_framebuffer->GetAttachment(0)->GetImage();
+    const GpuImageRef& dstImage = m_previousTexture->GetGpuImage();
 
     frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
     frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);

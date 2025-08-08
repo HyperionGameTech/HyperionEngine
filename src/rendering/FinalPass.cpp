@@ -40,11 +40,11 @@ struct RENDER_COMMAND(SetUILayerImageView)
     : RenderCommand
 {
     FinalPass& finalPass;
-    ImageViewRef imageView;
+    GpuImageViewRef imageView;
 
     RENDER_COMMAND(SetUILayerImageView)(
         FinalPass& finalPass,
-        const ImageViewRef& imageView)
+        const GpuImageViewRef& imageView)
         : finalPass(finalPass),
           imageView(imageView)
     {
@@ -115,7 +115,7 @@ FinalPass::~FinalPass()
     SafeRelease(std::move(m_swapchain));
 }
 
-void FinalPass::SetUILayerImageView(const ImageViewRef& imageView)
+void FinalPass::SetUILayerImageView(const GpuImageViewRef& imageView)
 {
     PUSH_RENDER_COMMAND(SetUILayerImageView, *this, imageView);
 }

@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
-#include <rendering/vulkan/VulkanImageView.hpp>
-#include <rendering/vulkan/VulkanImage.hpp>
+#include <rendering/vulkan/VulkanGpuImageView.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanRenderBackend.hpp>
@@ -17,38 +17,38 @@ static inline VulkanRenderBackend* GetRenderBackend()
     return static_cast<VulkanRenderBackend*>(g_renderBackend);
 }
 
-#pragma region VulkanImageView
+#pragma region VulkanGpuImageView
 
-VulkanImageView::VulkanImageView(const VulkanImageRef& image)
-    : ImageViewBase(image),
+VulkanGpuImageView::VulkanGpuImageView(const VulkanGpuImageRef& image)
+    : GpuImageViewBase(image),
       m_handle(VK_NULL_HANDLE)
 {
 }
 
-VulkanImageView::VulkanImageView(
-    const VulkanImageRef& image,
+VulkanGpuImageView::VulkanGpuImageView(
+    const VulkanGpuImageRef& image,
     uint32 mipIndex,
     uint32 numMips,
     uint32 faceIndex,
     uint32 numFaces)
-    : ImageViewBase(image, mipIndex, numMips, faceIndex, numFaces),
+    : GpuImageViewBase(image, mipIndex, numMips, faceIndex, numFaces),
       m_handle(VK_NULL_HANDLE)
 {
 }
 
-VulkanImageView::~VulkanImageView()
+VulkanGpuImageView::~VulkanGpuImageView()
 {
     HYP_GFX_ASSERT(m_handle == VK_NULL_HANDLE, "image view should have been destroyed");
 
     SafeRelease(std::move(m_image));
 }
 
-bool VulkanImageView::IsCreated() const
+bool VulkanGpuImageView::IsCreated() const
 {
     return m_handle != VK_NULL_HANDLE;
 }
 
-RendererResult VulkanImageView::Create()
+RendererResult VulkanGpuImageView::Create()
 {
     if (!m_image)
     {
@@ -65,10 +65,10 @@ RendererResult VulkanImageView::Create()
         return HYP_MAKE_ERROR(RendererError, "Mip index out of bounds");
     }
 
-    HYP_GFX_ASSERT(static_cast<const VulkanImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
+    HYP_GFX_ASSERT(static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle() != VK_NULL_HANDLE);
 
     VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-    viewInfo.image = static_cast<const VulkanImage*>(m_image.Get())->GetVulkanHandle();
+    viewInfo.image = static_cast<const VulkanGpuImage*>(m_image.Get())->GetVulkanHandle();
     viewInfo.viewType = ToVkImageViewType(m_image->GetType());
     viewInfo.format = ToVkFormat(m_image->GetTextureFormat());
 
@@ -93,7 +93,7 @@ RendererResult VulkanImageView::Create()
     HYPERION_RETURN_OK;
 }
 
-RendererResult VulkanImageView::Destroy()
+RendererResult VulkanGpuImageView::Destroy()
 {
     if (m_handle != VK_NULL_HANDLE)
     {
@@ -105,6 +105,6 @@ RendererResult VulkanImageView::Destroy()
     HYPERION_RETURN_OK;
 }
 
-#pragma endregion VulkanImageView
+#pragma endregion VulkanGpuImageView
 
 } // namespace hyperion

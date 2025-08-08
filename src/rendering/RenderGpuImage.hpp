@@ -18,10 +18,10 @@ namespace hyperion {
 
 enum ShaderModuleType : uint32;
 
-class ImageBase : public RenderObject<ImageBase>
+class GpuImageBase : public RenderObject<GpuImageBase>
 {
 public:
-    virtual ~ImageBase() override = default;
+    virtual ~GpuImageBase() override = default;
 
     HYP_FORCE_INLINE const TextureDesc& GetTextureDesc() const
     {
@@ -123,11 +123,11 @@ public:
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src) = 0;
+        const GpuImageBase* src) = 0;
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
@@ -135,13 +135,13 @@ public:
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) = 0;
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -159,15 +159,15 @@ public:
         CommandBufferBase* commandBuffer,
         GpuBufferBase* dstBuffer) const = 0;
 
-    virtual ImageViewRef MakeLayerImageView(uint32 layerIndex) const = 0;
+    virtual GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const = 0;
 
 protected:
-    ImageBase()
+    GpuImageBase()
         : m_resourceState(RS_UNDEFINED)
     {
     }
 
-    ImageBase(const TextureDesc& textureDesc)
+    GpuImageBase(const TextureDesc& textureDesc)
         : m_textureDesc(textureDesc),
           m_resourceState(RS_UNDEFINED)
     {

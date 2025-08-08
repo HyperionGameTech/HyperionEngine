@@ -99,10 +99,10 @@ public:
 
     virtual GpuBufferRef MakeGpuBuffer(GpuBufferType bufferType, SizeType size, SizeType alignment = 0) = 0;
 
-    virtual ImageRef MakeImage(const TextureDesc& textureDesc) = 0;
+    virtual GpuImageRef MakeImage(const TextureDesc& textureDesc) = 0;
 
-    virtual ImageViewRef MakeImageView(const ImageRef& image) = 0;
-    virtual ImageViewRef MakeImageView(const ImageRef& image, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces) = 0;
+    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image) = 0;
+    virtual GpuImageViewRef MakeImageView(const GpuImageRef& image, uint32 mipIndex, uint32 numMips, uint32 faceIndex, uint32 numFaces) = 0;
 
     virtual SamplerRef MakeSampler(TextureFilterMode filterModeMin, TextureFilterMode filterModeMag, TextureWrapMode wrapMode) = 0;
 
@@ -122,7 +122,7 @@ public:
         const Matrix4& transform) = 0;
     virtual TLASRef MakeTLAS() = 0;
 
-    virtual const ImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) = 0;
+    virtual const GpuImageViewRef& GetTextureImageView(const Handle<Texture>& texture, uint32 mipIndex = 0, uint32 numMips = ~0u, uint32 faceIndex = 0, uint32 numFaces = ~0u) = 0;
 
     virtual void PopulateIndirectDrawCommandsBuffer(const GpuBufferRef& vertexBuffer, const GpuBufferRef& indexBuffer, uint32 instanceOffset, ByteBuffer& outByteBuffer) = 0;
 

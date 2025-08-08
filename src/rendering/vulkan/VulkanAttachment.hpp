@@ -17,7 +17,7 @@ class VulkanAttachment final : public AttachmentBase
 {
 public:
     VulkanAttachment(
-        const VulkanImageRef& image,
+        const VulkanGpuImageRef& image,
         const VulkanFramebufferWeakRef& framebuffer,
         RenderPassStage stage,
         LoadOperation loadOperation = LoadOperation::CLEAR,

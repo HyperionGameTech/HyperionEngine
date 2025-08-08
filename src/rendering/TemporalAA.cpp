@@ -26,7 +26,7 @@
 
 namespace hyperion {
 
-TemporalAA::TemporalAA(const ImageViewRef& inputImageView, const Vec2u& extent, GBuffer* gbuffer)
+TemporalAA::TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& extent, GBuffer* gbuffer)
     : m_inputImageView(inputImageView),
       m_extent(extent),
       m_gbuffer(gbuffer),
@@ -144,7 +144,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const ImageRef& activeImage = frame->GetFrameIndex() % 2 == 0
+    const GpuImageRef& activeImage = frame->GetFrameIndex() % 2 == 0
         ? m_resultTexture->GetGpuImage()
         : m_historyTexture->GetGpuImage();
 

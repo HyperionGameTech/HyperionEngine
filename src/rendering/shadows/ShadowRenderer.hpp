@@ -70,7 +70,7 @@ private:
     {
         ShadowMap* shadowMap = nullptr;
         Handle<FullScreenPass> combineShadowMapsPass; // Pass to combine shadow maps for this light (optional)
-        ImageRef combinedShadowMapsBlurred;
+        GpuImageRef combinedShadowMapsBlurred;
         ComputePipelineRef csBlurShadowMap; // compute pipeline for blurring VSM shadow maps
     };
 

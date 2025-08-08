@@ -16,8 +16,8 @@
 #include <core/object/HypObject.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderImage.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 
 #include <scene/VisibilityState.hpp>
 
@@ -126,7 +126,7 @@ public:
         return m_asset;
     }
 
-    HYP_FORCE_INLINE const ImageRef& GetGpuImage() const
+    HYP_FORCE_INLINE const GpuImageRef& GetGpuImage() const
     {
         return m_gpuImage;
     }
@@ -158,7 +158,7 @@ protected:
 
     Handle<TextureAsset> m_asset;
 
-    ImageRef m_gpuImage;
+    GpuImageRef m_gpuImage;
 };
 
 } // namespace hyperion

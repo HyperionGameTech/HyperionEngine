@@ -5,7 +5,7 @@
 #include <rendering/vulkan/VulkanDevice.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanCommandBuffer.hpp>
-#include <rendering/vulkan/VulkanImageView.hpp>
+#include <rendering/vulkan/VulkanGpuImageView.hpp>
 #include <rendering/vulkan/VulkanSampler.hpp>
 #include <rendering/vulkan/VulkanGraphicsPipeline.hpp>
 #include <rendering/vulkan/VulkanComputePipeline.hpp>
@@ -59,7 +59,7 @@ VulkanDescriptorSet::VulkanDescriptorSet(const DescriptorSetLayout& layout)
             break;
         case DescriptorSetElementType::IMAGE:         // fallthrough
         case DescriptorSetElementType::IMAGE_STORAGE: // fallthrough
-            PrefillElements<ImageViewRef>(name, element.count);
+            PrefillElements<GpuImageViewRef>(name, element.count);
 
             break;
         case DescriptorSetElementType::SAMPLER:
@@ -181,7 +181,7 @@ void VulkanDescriptorSet::UpdateDirtyState(bool* outIsDirty)
                 descriptorElementInfo.index = index;
                 descriptorElementInfo.descriptorType = ToVkDescriptorType(layoutElement->type);
 
-                const ImageViewRef& ref = value.Get<ImageViewRef>();
+                const GpuImageViewRef& ref = value.Get<GpuImageViewRef>();
                 HYP_GFX_ASSERT(ref.IsValid(), "Invalid image view reference for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
                 HYP_GFX_ASSERT(VULKAN_CAST(ref.Get())->GetVulkanHandle() != VK_NULL_HANDLE, "Invalid image view for descriptor set element: %s.%s[%u]", m_layout.GetName().LookupString(), name.LookupString(), index);
 

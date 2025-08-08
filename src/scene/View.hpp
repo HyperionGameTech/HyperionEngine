@@ -11,6 +11,8 @@
 #include <core/utilities/EnumFlags.hpp>
 #include <core/utilities/Variant.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <core/memory/resource/Resource.hpp>
 
 #include <rendering/RenderCollection.hpp>
@@ -64,6 +66,8 @@ enum class ViewFlags : uint32
                                  //  --- Use of these is still threadsafe, however it uses a spinlock instead of multiple buffering so contentions will eat up cpu cycles.
     NO_DRAW_CALLS = 0x2000,      //!< If set, no draw calls will be built for any mesh entities that this View collects.
 
+    ENABLE_READBACK = 0x4000,    //!< Enable render target texture readback (final texture)
+    
     // enable flags
     RAYTRACING = 0x100000, //!< Does this View contain raytracing data (acceleration structures)? (Raytracing must be enabled in the global config and must have RT hardware support)
 
@@ -193,6 +197,15 @@ public:
     /*! \brief Set the Viewport of this View.
      *  Only callable on the Game thread. */
     void SetViewport(const Viewport& viewport);
+    
+    HYP_FORCE_INLINE const Handle<Texture>& GetReadbackTexture() const
+    {
+        Threads::AssertOnThread(g_gameThread);
+        
+        return m_readbackTexture;
+    }
+    
+    GpuImageBase* GetReadbackTextureGpuImage() const;
 
     HYP_METHOD()
     HYP_FORCE_INLINE int GetPriority() const
@@ -238,6 +251,8 @@ public:
 
     /*! \brief Synchronously collect scene resources for the View, blocks the current thread until complete. */
     void CollectSync();
+    
+    Delegate<void, const Handle<Texture>&> OnReadbackTextureChanged;
 
 protected:
     void Init() override;
@@ -269,6 +284,9 @@ protected:
     // ViewID m_viewId; // unique Id for this view in the current frame
 
     int m_priority;
+    
+    Handle<Texture> m_readbackTexture;
+    GpuImageBase* m_readbackTextureGpuImages[g_tripleBuffer ? 3 : 2];
 
     Optional<RenderableAttributeSet> m_overrideAttributes;
 

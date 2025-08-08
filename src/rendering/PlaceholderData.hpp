@@ -8,8 +8,8 @@
 #include <core/object/Handle.hpp>
 
 #include <rendering/RenderBackend.hpp>
-#include <rendering/RenderImage.hpp>
-#include <rendering/RenderImageView.hpp>
+#include <rendering/RenderGpuImage.hpp>
+#include <rendering/RenderGpuImageView.hpp>
 #include <rendering/RenderSampler.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderDevice.hpp>
@@ -59,20 +59,20 @@ public:                                          \
 private:                                         \
     type##Ref member
 
-    HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8, m_image2d1x1R8);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8, m_imageView2d1x1R8);
-    HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8Storage, m_image2d1x1R8Storage);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8Storage, m_imageView2d1x1R8Storage);
-    HYP_DEF_DUMMY_DATA(Image, Image3D1x1x1R8, m_image3d1x1x1R8);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageView3D1x1x1R8, m_imageView3d1x1x1R8);
-    HYP_DEF_DUMMY_DATA(Image, Image3D1x1x1R8Storage, m_image3d1x1x1R8Storage);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageView3D1x1x1R8Storage, m_imageView3d1x1x1R8Storage);
-    HYP_DEF_DUMMY_DATA(Image, ImageCube1x1R8, m_imageCube1x1R8);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageViewCube1x1R8, m_imageViewCube1x1R8);
-    HYP_DEF_DUMMY_DATA(Image, Image2D1x1R8Array, m_image2d1x1R8Array);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageView2D1x1R8Array, m_imageView2d1x1R8Array);
-    HYP_DEF_DUMMY_DATA(Image, ImageCube1x1R8Array, m_imageCube1x1R8Array);
-    HYP_DEF_DUMMY_DATA(ImageView, ImageViewCube1x1R8Array, m_imageViewCube1x1R8Array);
+    HYP_DEF_DUMMY_DATA(GpuImage, Image2D1x1R8, m_image2d1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageView2D1x1R8, m_imageView2d1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImage, Image2D1x1R8Storage, m_image2d1x1R8Storage);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageView2D1x1R8Storage, m_imageView2d1x1R8Storage);
+    HYP_DEF_DUMMY_DATA(GpuImage, Image3D1x1x1R8, m_image3d1x1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageView3D1x1x1R8, m_imageView3d1x1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImage, Image3D1x1x1R8Storage, m_image3d1x1x1R8Storage);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageView3D1x1x1R8Storage, m_imageView3d1x1x1R8Storage);
+    HYP_DEF_DUMMY_DATA(GpuImage, ImageCube1x1R8, m_imageCube1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageViewCube1x1R8, m_imageViewCube1x1R8);
+    HYP_DEF_DUMMY_DATA(GpuImage, Image2D1x1R8Array, m_image2d1x1R8Array);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageView2D1x1R8Array, m_imageView2d1x1R8Array);
+    HYP_DEF_DUMMY_DATA(GpuImage, ImageCube1x1R8Array, m_imageCube1x1R8Array);
+    HYP_DEF_DUMMY_DATA(GpuImageView, ImageViewCube1x1R8Array, m_imageViewCube1x1R8Array);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinear, m_samplerLinear);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerLinearMipmap, m_samplerLinearMipmap);
     HYP_DEF_DUMMY_DATA(Sampler, SamplerNearest, m_samplerNearest);

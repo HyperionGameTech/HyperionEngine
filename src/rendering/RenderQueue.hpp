@@ -14,12 +14,12 @@
 #include <rendering/rt/RenderRaytracingPipeline.hpp>
 #include <rendering/RenderDescriptorSet.hpp>
 #include <rendering/RenderFramebuffer.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 #include <rendering/RenderCommandBuffer.hpp>
 #include <rendering/RenderObject.hpp>
 
-//#define HYP_RHI_COMMAND_STACK_TRACE
+// #define HYP_RHI_COMMAND_STACK_TRACE
 
 #ifdef HYP_RHI_COMMAND_STACK_TRACE
 #include <core/debug/StackDump.hpp>
@@ -452,7 +452,7 @@ public:
     {
     }
 
-    InsertBarrier(ImageBase* image, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImageBase* image, const ResourceState& state, ShaderModuleType shaderModuleType = SMT_UNSET)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
@@ -460,7 +460,7 @@ public:
     {
     }
 
-    InsertBarrier(ImageBase* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = SMT_UNSET)
+    InsertBarrier(GpuImageBase* image, const ResourceState& state, const ImageSubResource& subResource, ShaderModuleType shaderModuleType = SMT_UNSET)
         : m_buffer(nullptr),
           m_image(image),
           m_state(state),
@@ -494,7 +494,7 @@ public:
 
 private:
     GpuBufferBase* m_buffer;
-    ImageBase* m_image;
+    GpuImageBase* m_image;
     ResourceState m_state;
     Optional<ImageSubResource> m_subResource;
     ShaderModuleType m_shaderModuleType;
@@ -503,13 +503,13 @@ private:
 class Blit final : public CmdBase
 {
 public:
-    Blit(ImageBase* srcImage, ImageBase* dstImage)
+    Blit(GpuImageBase* srcImage, GpuImageBase* dstImage)
         : m_srcImage(srcImage),
           m_dstImage(dstImage)
     {
     }
 
-    Blit(ImageBase* srcImage, ImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    Blit(GpuImageBase* srcImage, GpuImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
@@ -517,7 +517,7 @@ public:
     {
     }
 
-    Blit(ImageBase* srcImage, ImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect, uint32 srcMip, uint32 dstMip, uint32 srcFace, uint32 dstFace)
+    Blit(GpuImageBase* srcImage, GpuImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect, uint32 srcMip, uint32 dstMip, uint32 srcFace, uint32 dstFace)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
@@ -567,8 +567,8 @@ private:
         uint32 dstFace;
     };
 
-    ImageBase* m_srcImage;
-    ImageBase* m_dstImage;
+    GpuImageBase* m_srcImage;
+    GpuImageBase* m_dstImage;
 
     Optional<Rect<uint32>> m_srcRect;
     Optional<Rect<uint32>> m_dstRect;
@@ -579,7 +579,7 @@ private:
 class BlitRect final : public CmdBase
 {
 public:
-    BlitRect(ImageBase* srcImage, ImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
+    BlitRect(GpuImageBase* srcImage, GpuImageBase* dstImage, const Rect<uint32>& srcRect, const Rect<uint32>& dstRect)
         : m_srcImage(srcImage),
           m_dstImage(dstImage),
           m_srcRect(srcRect),
@@ -597,8 +597,8 @@ public:
     }
 
 private:
-    ImageBase* m_srcImage;
-    ImageBase* m_dstImage;
+    GpuImageBase* m_srcImage;
+    GpuImageBase* m_dstImage;
     Rect<uint32> m_srcRect;
     Rect<uint32> m_dstRect;
 };
@@ -606,7 +606,7 @@ private:
 class CopyImageToBuffer final : public CmdBase
 {
 public:
-    CopyImageToBuffer(ImageBase* image, GpuBufferBase* buffer)
+    CopyImageToBuffer(GpuImageBase* image, GpuBufferBase* buffer)
         : m_image(image),
           m_buffer(buffer)
     {
@@ -622,14 +622,14 @@ public:
     }
 
 private:
-    ImageBase* m_image;
+    GpuImageBase* m_image;
     GpuBufferBase* m_buffer;
 };
 
 class CopyBufferToImage final : public CmdBase
 {
 public:
-    CopyBufferToImage(GpuBufferBase* buffer, ImageBase* image)
+    CopyBufferToImage(GpuBufferBase* buffer, GpuImageBase* image)
         : m_buffer(buffer),
           m_image(image)
     {
@@ -646,7 +646,7 @@ public:
 
 private:
     GpuBufferBase* m_buffer;
-    ImageBase* m_image;
+    GpuImageBase* m_image;
 };
 
 class CopyBuffer final : public CmdBase
@@ -677,7 +677,7 @@ private:
 class GenerateMipmaps final : public CmdBase
 {
 public:
-    GenerateMipmaps(ImageBase* image)
+    GenerateMipmaps(GpuImageBase* image)
         : m_image(image)
     {
     }
@@ -692,7 +692,7 @@ public:
     }
 
 private:
-    ImageBase* m_image;
+    GpuImageBase* m_image;
 };
 
 class DispatchCompute final : public CmdBase
@@ -769,7 +769,7 @@ public:
     RenderQueue(RenderQueue&& other) noexcept = delete;
     RenderQueue& operator=(RenderQueue&& other) noexcept = delete;
     ~RenderQueue();
-    
+
     HYP_FORCE_INLINE bool IsEmpty() const
     {
         return m_offset == 0;

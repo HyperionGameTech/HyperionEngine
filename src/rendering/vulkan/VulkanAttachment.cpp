@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #include <rendering/vulkan/VulkanAttachment.hpp>
-#include <rendering/vulkan/VulkanImage.hpp>
-#include <rendering/vulkan/VulkanImageView.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
+#include <rendering/vulkan/VulkanGpuImageView.hpp>
 #include <rendering/vulkan/VulkanFramebuffer.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 
@@ -85,7 +85,7 @@ static VkImageLayout GetIntermediateLayout(bool isDepthAttachment)
 #pragma region VulkanAttachment
 
 VulkanAttachment::VulkanAttachment(
-    const VulkanImageRef& image,
+    const VulkanGpuImageRef& image,
     const VulkanFramebufferWeakRef& framebuffer,
     RenderPassStage stage,
     LoadOperation loadOperation,
@@ -94,7 +94,7 @@ VulkanAttachment::VulkanAttachment(
     : AttachmentBase(image, framebuffer, loadOperation, storeOperation, blendFunction),
       m_stage(stage)
 {
-    m_imageView = MakeRenderObject<VulkanImageView>(image);
+    m_imageView = MakeRenderObject<VulkanGpuImageView>(image);
 }
 
 VulkanAttachment::~VulkanAttachment()

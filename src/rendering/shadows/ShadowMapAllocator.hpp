@@ -139,22 +139,22 @@ public:
     ShadowMapAllocator();
     ~ShadowMapAllocator();
 
-    HYP_FORCE_INLINE const ImageRef& GetAtlasImage() const
+    HYP_FORCE_INLINE const GpuImageRef& GetAtlasImage() const
     {
         return m_atlasImage;
     }
 
-    HYP_FORCE_INLINE const ImageViewRef& GetAtlasImageView() const
+    HYP_FORCE_INLINE const GpuImageViewRef& GetAtlasImageView() const
     {
         return m_atlasImageView;
     }
 
-    HYP_FORCE_INLINE const ImageRef& GetPointLightShadowMapImage() const
+    HYP_FORCE_INLINE const GpuImageRef& GetPointLightShadowMapImage() const
     {
         return m_pointLightShadowMapImage;
     }
 
-    HYP_FORCE_INLINE const ImageViewRef& GetPointLightShadowMapImageView() const
+    HYP_FORCE_INLINE const GpuImageViewRef& GetPointLightShadowMapImageView() const
     {
         return m_pointLightShadowMapImageView;
     }
@@ -169,11 +169,11 @@ private:
     Vec2u m_atlasDimensions;
     Array<ShadowMapAtlas> m_atlases;
 
-    ImageRef m_atlasImage;
-    ImageViewRef m_atlasImageView;
+    GpuImageRef m_atlasImage;
+    GpuImageViewRef m_atlasImageView;
 
-    ImageRef m_pointLightShadowMapImage;
-    ImageViewRef m_pointLightShadowMapImageView;
+    GpuImageRef m_pointLightShadowMapImage;
+    GpuImageViewRef m_pointLightShadowMapImageView;
 
     IdGenerator m_pointLightShadowMapIdGenerator;
 };

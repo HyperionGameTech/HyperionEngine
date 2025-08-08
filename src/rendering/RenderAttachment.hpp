@@ -7,7 +7,7 @@
 #include <core/containers/Array.hpp>
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 
 #include <core/Types.hpp>
 
@@ -39,12 +39,12 @@ class AttachmentBase : public RenderObject<AttachmentBase>
 public:
     virtual ~AttachmentBase() override = default;
 
-    HYP_FORCE_INLINE const ImageRef& GetImage() const
+    HYP_FORCE_INLINE const GpuImageRef& GetImage() const
     {
         return m_image;
     }
 
-    HYP_FORCE_INLINE const ImageViewRef& GetImageView() const
+    HYP_FORCE_INLINE const GpuImageViewRef& GetImageView() const
     {
         return m_imageView;
     }
@@ -116,7 +116,7 @@ public:
 
 protected:
     AttachmentBase(
-        const ImageRef& image,
+        const GpuImageRef& image,
         const FramebufferWeakRef& framebuffer,
         LoadOperation loadOperation,
         StoreOperation storeOperation,
@@ -130,8 +130,8 @@ protected:
     {
     }
 
-    ImageRef m_image;
-    ImageViewRef m_imageView;
+    GpuImageRef m_image;
+    GpuImageViewRef m_imageView;
 
     FramebufferWeakRef m_framebuffer;
 

@@ -36,7 +36,7 @@ void BindlessStorage::UnsetAllResources()
     m_resources.Clear();
 }
 
-void BindlessStorage::AddResource(ObjId<Texture> id, const ImageViewRef& imageView)
+void BindlessStorage::AddResource(ObjId<Texture> id, const GpuImageViewRef& imageView)
 {
     Threads::AssertOnThread(g_renderThread);
 

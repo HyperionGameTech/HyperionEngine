@@ -3,7 +3,7 @@
 #pragma once
 
 #include <rendering/RenderObject.hpp>
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 
 #include <core/functional/Proc.hpp>
 
@@ -20,7 +20,7 @@ public:
 
     virtual bool IsCreated() const = 0;
 
-    HYP_FORCE_INLINE const Array<ImageRef>& GetImages() const
+    HYP_FORCE_INLINE const Array<GpuImageRef>& GetImages() const
     {
         return m_images;
     }
@@ -61,7 +61,7 @@ protected:
     {
     }
 
-    Array<ImageRef> m_images;
+    Array<GpuImageRef> m_images;
     Array<FramebufferRef> m_framebuffers;
     Vec2u m_extent;
     TextureFormat m_imageFormat = TF_NONE;

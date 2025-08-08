@@ -41,7 +41,7 @@ public:
     ComputePipelineRef offsetVoxelGrid;
     ComputePipelineRef generateVoxelGridMipmaps;
 
-    Array<ImageViewRef> voxelGridMips;
+    Array<GpuImageViewRef> voxelGridMips;
     Array<DescriptorTableRef> generateVoxelGridMipmapsDescriptorTables;
 
     Array<GpuBufferRef> uniformBuffers;

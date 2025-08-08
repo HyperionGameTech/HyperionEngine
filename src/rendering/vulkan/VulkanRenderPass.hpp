@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 No Tomorrow Games. All rights reserved. */
 
 #pragma once
-#include <rendering/vulkan/VulkanImage.hpp>
-#include <rendering/vulkan/VulkanImageView.hpp>
+#include <rendering/vulkan/VulkanGpuImage.hpp>
+#include <rendering/vulkan/VulkanGpuImageView.hpp>
 #include <rendering/vulkan/VulkanSampler.hpp>
 #include <rendering/vulkan/VulkanAttachment.hpp>
 

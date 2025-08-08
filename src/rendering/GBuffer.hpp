@@ -12,7 +12,7 @@
 
 #include <rendering/RenderBucket.hpp>
 
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 #include <rendering/Shared.hpp>
 
 #include <core/Types.hpp>

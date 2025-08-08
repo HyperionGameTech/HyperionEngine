@@ -27,7 +27,7 @@ static void TransitionFramebufferAttachments(RenderQueue& renderQueue, VulkanFra
 
     for (const VulkanAttachmentDef* attachmentDef : attachmentDefs)
     {
-        const VulkanImageRef& image = attachmentDef->image;
+        const VulkanGpuImageRef& image = attachmentDef->image;
         HYP_GFX_ASSERT(image.IsValid());
 
         if (framebuffer->GetRenderPass()->GetStage() == RenderPassStage::PRESENT)
@@ -114,14 +114,14 @@ RendererResult VulkanAttachmentMap::Resize(Vec2u newSize)
 
         HYP_GFX_ASSERT(def.image.IsValid());
 
-        VulkanImageRef newImage = def.image;
+        VulkanGpuImageRef newImage = def.image;
 
         if (def.attachment->GetFramebuffer() == framebufferWeak)
         {
             TextureDesc textureDesc = def.image->GetTextureDesc();
             textureDesc.extent = Vec3u { newSize.x, newSize.y, 1 };
 
-            newImage = MakeRenderObject<VulkanImage>(textureDesc);
+            newImage = MakeRenderObject<VulkanGpuImage>(textureDesc);
             HYP_GFX_ASSERT(newImage->Create());
 
             if (def.image.IsValid())
@@ -278,7 +278,7 @@ RendererResult VulkanFramebuffer::Create()
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to clear framebuffer on create! Error was: {}", result.GetError().GetErrorCode(), result.GetError().GetMessage());
     }
-    
+
     // ok
     return {};
 }
@@ -369,12 +369,12 @@ AttachmentRef VulkanFramebuffer::AddAttachment(const AttachmentRef& attachment)
 
 AttachmentRef VulkanFramebuffer::AddAttachment(
     uint32 binding,
-    const ImageRef& image,
+    const GpuImageRef& image,
     LoadOperation loadOp,
     StoreOperation storeOp)
 {
     VulkanAttachmentRef attachment = MakeRenderObject<VulkanAttachment>(
-        VulkanImageRef(image),
+        VulkanGpuImageRef(image),
         VulkanFramebufferWeakRef(WeakHandleFromThis()),
         m_renderPass->GetStage(),
         loadOp,

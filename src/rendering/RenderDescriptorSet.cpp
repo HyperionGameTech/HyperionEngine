@@ -243,12 +243,12 @@ void DescriptorSetBase::SetElement(Name name, const GpuBufferRef& ref)
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const ImageViewRef& ref)
+void DescriptorSetBase::SetElement(Name name, uint32 index, const GpuImageViewRef& ref)
 {
-    SetElement<ImageViewRef>(name, index, ref);
+    SetElement<GpuImageViewRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const ImageViewRef& ref)
+void DescriptorSetBase::SetElement(Name name, const GpuImageViewRef& ref)
 {
     SetElement(name, 0, ref);
 }

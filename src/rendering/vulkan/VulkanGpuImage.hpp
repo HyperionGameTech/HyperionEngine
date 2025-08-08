@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <rendering/RenderImage.hpp>
+#include <rendering/RenderGpuImage.hpp>
 #include <rendering/RenderGpuBuffer.hpp>
 
 #include <system/vma/VmaUsage.hpp>
@@ -12,13 +12,13 @@
 #include <core/Types.hpp>
 
 namespace hyperion {
-class VulkanImage final : public ImageBase
+class VulkanGpuImage final : public GpuImageBase
 {
 public:
     friend class VulkanSwapchain;
 
-    VulkanImage(const TextureDesc& textureDesc);
-    virtual ~VulkanImage() override;
+    VulkanGpuImage(const TextureDesc& textureDesc);
+    virtual ~VulkanGpuImage() override;
 
     HYP_FORCE_INLINE VkImage GetVulkanHandle() const
     {
@@ -52,11 +52,11 @@ public:
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src) override;
+        const GpuImageBase* src) override;
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         uint32 srcMip,
         uint32 dstMip,
         uint32 srcFace,
@@ -64,13 +64,13 @@ public:
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect) override;
 
     virtual RendererResult Blit(
         CommandBufferBase* commandBuffer,
-        const ImageBase* src,
+        const GpuImageBase* src,
         Rect<uint32> srcRect,
         Rect<uint32> dstRect,
         uint32 srcMip,
@@ -90,7 +90,7 @@ public:
 
     /*! \brief Creates a view of the image for the specified array layer
      */
-    virtual ImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
+    virtual GpuImageViewRef MakeLayerImageView(uint32 layerIndex) const override;
 
 #ifdef HYP_DEBUG_MODE
     virtual void SetDebugName(Name name) override;

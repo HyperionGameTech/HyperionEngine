@@ -18,15 +18,15 @@ namespace hyperion {
 struct RENDER_COMMAND(RenderTextureMipmapLevels)
     : RenderCommand
 {
-    ImageRef m_image;
-    ImageViewRef m_imageView;
-    Array<ImageViewRef> m_mipImageViews;
+    GpuImageRef m_image;
+    GpuImageViewRef m_imageView;
+    Array<GpuImageViewRef> m_mipImageViews;
     Array<Handle<FullScreenPass>> m_passes;
 
     RENDER_COMMAND(RenderTextureMipmapLevels)(
-        ImageRef image,
-        ImageViewRef imageView,
-        Array<ImageViewRef> mipImageViews,
+        GpuImageRef image,
+        GpuImageViewRef imageView,
+        Array<GpuImageViewRef> mipImageViews,
         Array<Handle<FullScreenPass>> passes)
         : m_image(std::move(image)),
           m_imageView(std::move(imageView)),
@@ -56,7 +56,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
         uint32 mipWidth = extent.x,
                mipHeight = extent.y;
 
-        ImageRef& dstImage = m_image;
+        GpuImageRef& dstImage = m_image;
 
         for (uint32 mipLevel = 0; mipLevel < uint32(m_mipImageViews.Size()); mipLevel++)
         {
@@ -85,7 +85,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                 pass->End(frame, NullRenderSetup());
             }
 
-            const ImageRef& srcImage = pass->GetAttachment(0)->GetImage();
+            const GpuImageRef& srcImage = pass->GetAttachment(0)->GetImage();
 
             // Blit into mip level
             renderQueue << InsertBarrier(dstImage, RS_COPY_DST, ImageSubResource { .baseMipLevel = mipLevel });
@@ -116,13 +116,13 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
 {
     Assert(texture.IsValid());
 
-    ImageViewRef textureImageView = g_renderBackend->GetTextureImageView(texture);
+    GpuImageViewRef textureImageView = g_renderBackend->GetTextureImageView(texture);
     Assert(textureImageView.IsValid());
 
     const uint32 numMipLevels = texture->GetTextureDesc().NumMipmaps();
     const Vec3u extent = texture->GetExtent();
 
-    Array<ImageViewRef> mipImageViews;
+    Array<GpuImageViewRef> mipImageViews;
     mipImageViews.Resize(numMipLevels);
 
     Array<Handle<FullScreenPass>> passes;
@@ -141,7 +141,7 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         const uint32 mipWidth = MathUtil::Max(1u, extent.x >> mipLevel);
         const uint32 mipHeight = MathUtil::Max(1u, extent.y >> mipLevel);
 
-        ImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumFaces());
+        GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumFaces());
         DeferCreate(mipImageView);
 
         const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);

@@ -659,7 +659,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
 #pragma region ReflectionsPass
 
-ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const ImageViewRef& mipChainImageView, const ImageViewRef& deferredResultImageView)
+ReflectionsPass::ReflectionsPass(Vec2u extent, GBuffer* gbuffer, const GpuImageViewRef& mipChainImageView, const GpuImageViewRef& deferredResultImageView)
     : FullScreenPass(TF_R10G10B10A2, extent, gbuffer),
       m_mipChainImageView(mipChainImageView),
       m_deferredResultImageView(deferredResultImageView),
@@ -1135,7 +1135,7 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
     ShaderRef renderTextureToScreenShader = g_shaderManager->GetOrCreate(NAME("RenderTextureToScreen_UI"));
     Assert(renderTextureToScreenShader.IsValid());
 
-    const ImageViewRef& inputImageView = m_rendererConfig.taaEnabled
+    const GpuImageViewRef& inputImageView = m_rendererConfig.taaEnabled
         ? g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture())
         : passData.combinePass->GetFinalImageView();
 
@@ -1667,6 +1667,40 @@ void DeferredRenderer::RenderFrame(FrameBase* frame, const RenderSetup& rs)
         newRs.view = nullptr;
         newRs.passData = nullptr;
 
+        if (view->GetFlags() & ViewFlags::ENABLE_READBACK)
+        {
+            GpuImageBase* dstImage = view->GetReadbackTextureGpuImage();
+
+            if (dstImage != nullptr)
+            {
+                GpuImageBase* srcImage = m_rendererConfig.taaEnabled
+                    ? pd->temporalAa->GetResultTexture()->GetGpuImage()
+                    : pd->tonemapPass->GetFinalImageView()->GetImage();
+
+                Assert(srcImage != nullptr);
+
+                const ResourceState previousResourceState = srcImage->GetResourceState();
+
+                // wait for the image to be ready before readback
+                if (previousResourceState == RS_UNDEFINED)
+                {
+                    HYP_LOG(Rendering, Warning, "Src image in UNDEFINED resource state; skipping texture blit.");
+
+                    continue;
+                }
+
+                frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
+
+                AssertDebug(dstImage->IsCreated());
+
+                frame->renderQueue << InsertBarrier(dstImage, RS_COPY_DST);
+                frame->renderQueue << Blit(srcImage, dstImage);
+                frame->renderQueue << InsertBarrier(dstImage, RS_SHADER_RESOURCE);
+
+                frame->renderQueue << InsertBarrier(srcImage, previousResourceState);
+            }
+        }
+
 #ifdef HYP_ENABLE_RENDER_STATS
         RenderProxyList& rpl = RenderApi_GetConsumerProxyList(view);
         // RenderProxyList already be in read state (see above)
@@ -1906,7 +1940,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
     }
 
     { // generate mipchain after rendering opaque objects' lighting, now we can use it for transmission
-        const ImageRef& srcImage = deferredPassFramebuffer->GetAttachment(0)->GetImage();
+        const GpuImageRef& srcImage = deferredPassFramebuffer->GetAttachment(0)->GetImage();
         GenerateMipChain(frame, rs, renderCollector, srcImage);
     }
 
@@ -2115,7 +2149,7 @@ void DeferredRenderer::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rs,
     renderCollector.ExecuteDrawCalls(frame, rs, bucketMask);
 }
 
-void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, const ImageRef& srcImage)
+void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs, RenderCollector& renderCollector, const GpuImageRef& srcImage)
 {
     HYP_SCOPE;
 
@@ -2123,7 +2157,7 @@ void DeferredRenderer::GenerateMipChain(FrameBase* frame, const RenderSetup& rs,
 
     DeferredPassData* pd = ObjCast<DeferredPassData>(rs.passData);
 
-    const ImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
+    const GpuImageRef& mipmappedResult = pd->mipChain->GetGpuImage();
     Assert(mipmappedResult.IsValid());
 
     frame->renderQueue << InsertBarrier(srcImage, RS_COPY_SRC);
