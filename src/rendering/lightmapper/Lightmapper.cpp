@@ -67,17 +67,18 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(LightmapRender)
-    : RenderCommand
+struct RENDER_COMMAND(LightmapRender) : RenderCommand
 {
     LightmapJob* job;
-    WeakHandle<View> viewWeak;
+    Handle<World> world;
+    Handle<View> view;
     Array<LightmapRay> rays;
     uint32 rayOffset;
 
-    RENDER_COMMAND(LightmapRender)(LightmapJob* job, const WeakHandle<View>& viewWeak, Array<LightmapRay>&& rays, uint32 rayOffset)
+    RENDER_COMMAND(LightmapRender)(LightmapJob* job, const Handle<World>& world, const Handle<View>& view, Array<LightmapRay>&& rays, uint32 rayOffset)
         : job(job),
-          viewWeak(viewWeak),
+          world(world),
+          view(view),
           rays(std::move(rays)),
           rayOffset(rayOffset)
     {
@@ -91,16 +92,9 @@ struct RENDER_COMMAND(LightmapRender)
 
     virtual RendererResult operator()() override
     {
-        Handle<View> view = viewWeak.Lock();
-        if (!view)
-        {
-            HYP_LOG(Lightmap, Error, "Lightmapper View was expired when attempting to render lightmap");
-            return {};
-        }
-
         FrameBase* frame = g_renderBackend->GetCurrentFrame();
 
-        RenderSetup renderSetup { g_engineDriver->GetWorld(), view };
+        RenderSetup renderSetup { world, view };
 
         RenderProxyList* rpl = nullptr;
 
@@ -414,8 +408,13 @@ void LightmapJob::Process()
 
         m_lastLoggedPercentage = percentage;
     }
+    
+    World* world = GetScene()->GetWorld();
+    Assert(world != nullptr);
+    
+    Handle<World> worldHandle = world->HandleFromThis();
 
-    PUSH_RENDER_COMMAND(LightmapRender, this, m_params.view, std::move(rays), rayOffset);
+    PUSH_RENDER_COMMAND(LightmapRender, this, worldHandle, m_params.view, std::move(rays), rayOffset);
 }
 
 void LightmapJob::GatherRays(uint32 maxRayHits, Array<LightmapRay>& outRays)
@@ -674,6 +673,7 @@ void Lightmapper::Update(float delta)
 {
     HYP_SCOPE;
 
+    m_view->UpdateViewport();
     m_view->UpdateVisibility();
     m_view->CollectSync();
 

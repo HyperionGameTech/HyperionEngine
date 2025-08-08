@@ -106,12 +106,14 @@ struct ProcessAssetFunctorBase
 template <class T>
 struct ProcessAssetFunctor final : public ProcessAssetFunctorBase
 {
+    String batchIdentifier;
     String key;
     String path;
     AssetBatchCallbacks* callbacks;
 
-    ProcessAssetFunctor(const String& key, const String& path, AssetBatchCallbacks* callbacks)
-        : key(key),
+    ProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks)
+        : batchIdentifier(batchIdentifier),
+          key(key),
           path(path),
           callbacks(callbacks)
     {
@@ -138,7 +140,7 @@ private:
 
         LoadedAsset& asset = it->second;
 
-        if (AssetLoadResult result = assetManager.template Load<T>(path))
+        if (AssetLoadResult result = assetManager.template Load<T>(path, /* batchIdentifier */ batchIdentifier))
         {
             asset = std::move(result.GetValue());
         }
@@ -179,7 +181,8 @@ private:
 public:
     using TaskBatch::IsCompleted;
 
-    HYP_API AssetBatch(AssetManager* assetManager);
+    HYP_API AssetBatch(const Handle<AssetManager>& assetManager);
+    HYP_API AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier);
 
     AssetBatch(const AssetBatch& other) = delete;
     AssetBatch& operator=(const AssetBatch& other) = delete;
@@ -220,13 +223,15 @@ public:
     HYP_API AssetMap AwaitResults();
     HYP_API AssetMap ForceLoad();
 
-    AssetManager* m_assetManager;
-
     /*! \brief Functions bound to this delegates are called in
      *  the game thread. */
     Delegate<void, AssetMap&> OnComplete;
 
 private:
+    String m_identifier;
+    
+    Handle<AssetManager> m_assetManager;
+    
     Array<UniquePtr<ProcessAssetFunctorBase>> m_procs;
     AssetBatchCallbacks m_callbacks;
 

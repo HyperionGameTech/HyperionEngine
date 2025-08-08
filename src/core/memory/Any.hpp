@@ -41,7 +41,7 @@ protected:
 
 class CopyableAny;
 
-class Any final : public AnyBase
+class HYP_DEPRECATED Any final : public AnyBase
 {
     using DeleteFunction = std::add_pointer_t<void(void*)>;
 
@@ -374,7 +374,7 @@ protected:
     DeleteFunction m_dtor;
 };
 
-class CopyableAny final : public AnyBase
+class HYP_DEPRECATED CopyableAny final : public AnyBase
 {
     using CopyConstructor = std::add_pointer_t<void*(void*)>;
     using DeleteFunction = std::add_pointer_t<void(void*)>;

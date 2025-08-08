@@ -53,7 +53,7 @@ private:
 
     UIRenderer* m_uiRenderer;
 
-    DelegateHandler m_onGbufferResolutionChangedHandle;
+    DelegateHandler m_onResizeHandle;
 };
 
 } // namespace hyperion

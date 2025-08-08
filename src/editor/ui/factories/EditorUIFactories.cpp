@@ -36,7 +36,7 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-class HypDataUIElementFactory : public UIElementFactory<HypData, HypDataUIElementFactory>
+class HypDataUIElementFactory : public UIElementFactory<HypData>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const HypData& value) const
@@ -89,7 +89,7 @@ public:
 
             HypData getterResult = it.second->Get(value);
 
-            UIElementFactoryBase* factory = GetEditorUIElementFactory(getterResult.GetTypeId());
+            Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(getterResult.GetTypeId());
 
             if (!factory)
             {
@@ -116,7 +116,7 @@ public:
 HYP_DEFINE_UI_ELEMENT_FACTORY(HypData, HypDataUIElementFactory);
 
 template <int StringType>
-class StringUIElementFactory : public UIElementFactory<containers::String<StringType>, StringUIElementFactory<StringType>>
+class StringUIElementFactory : public UIElementFactory<containers::String<StringType>>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const containers::String<StringType>& value) const
@@ -139,7 +139,7 @@ HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::UTF16>, StringUIEle
 HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::UTF32>, StringUIElementFactory<StringType::UTF32>);
 HYP_DEFINE_UI_ELEMENT_FACTORY(containers::String<StringType::WIDE_CHAR>, StringUIElementFactory<StringType::WIDE_CHAR>);
 
-class Vec3fUIElementFactory : public UIElementFactory<Vec3f, Vec3fUIElementFactory>
+class Vec3fUIElementFactory : public UIElementFactory<Vec3f>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const Vec3f& value) const
@@ -208,7 +208,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Vec3f, Vec3fUIElementFactory);
 
-class Uint32UIElementFactory : public UIElementFactory<uint32, Uint32UIElementFactory>
+class Uint32UIElementFactory : public UIElementFactory<uint32>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const uint32& value) const
@@ -239,7 +239,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(uint32, Uint32UIElementFactory);
 
-class QuaternionUIElementFactory : public UIElementFactory<Quaternion, QuaternionUIElementFactory>
+class QuaternionUIElementFactory : public UIElementFactory<Quaternion>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const Quaternion& value) const
@@ -305,7 +305,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Quaternion, QuaternionUIElementFactory);
 
-class TransformUIElementFactory : public UIElementFactory<Transform, TransformUIElementFactory>
+class TransformUIElementFactory : public UIElementFactory<Transform>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const Transform& value) const
@@ -325,7 +325,7 @@ public:
             Handle<UIGridRow> translationValueRow = grid->AddRow();
             Handle<UIGridColumn> translationValueColumn = translationValueRow->AddColumn();
 
-            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Vec3f>())
+            if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
             {
                 Handle<UIObject> translationElement = factory->CreateUIObject(parent, HypData(value.GetTranslation()), {});
                 translationValueColumn->AddChildUIObject(translationElement);
@@ -343,7 +343,7 @@ public:
             Handle<UIGridRow> rotationValueRow = grid->AddRow();
             Handle<UIGridColumn> rotationValueColumn = rotationValueRow->AddColumn();
 
-            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Quaternion>())
+            if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Quaternion>())
             {
                 Handle<UIObject> rotationElement = factory->CreateUIObject(parent, HypData(value.GetRotation()), {});
                 rotationValueColumn->AddChildUIObject(rotationElement);
@@ -361,7 +361,7 @@ public:
             Handle<UIGridRow> scaleValueRow = grid->AddRow();
             Handle<UIGridColumn> scaleValueColumn = scaleValueRow->AddColumn();
 
-            if (UIElementFactoryBase* factory = GetEditorUIElementFactory<Vec3f>())
+            if (Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory<Vec3f>())
             {
                 Handle<UIObject> scaleElement = factory->CreateUIObject(parent, HypData(value.GetScale()), {});
                 scaleValueColumn->AddChildUIObject(scaleElement);
@@ -391,7 +391,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Transform, TransformUIElementFactory);
 
-class EditorWeakNodeFactory : public UIElementFactory<WeakHandle<Node>, EditorWeakNodeFactory>
+class EditorWeakNodeFactory : public UIElementFactory<WeakHandle<Node>>
 {
     static String GetNodeName(Node* node)
     {
@@ -451,7 +451,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Node>, EditorWeakNodeFactory);
 
-class EditorWeakSceneFactory : public UIElementFactory<WeakHandle<Scene>, EditorWeakSceneFactory>
+class EditorWeakSceneFactory : public UIElementFactory<WeakHandle<Scene>>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const WeakHandle<Scene>& value) const
@@ -495,7 +495,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Scene>, EditorWeakSceneFactory);
 
-class EntityUIElementFactory : public UIElementFactory<Handle<Entity>, EntityUIElementFactory>
+class EntityUIElementFactory : public UIElementFactory<Handle<Entity>>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const Handle<Entity>& entity) const
@@ -685,7 +685,7 @@ public:
                 }
                 else
                 {
-                    UIElementFactoryBase* factory = GetEditorUIElementFactory(componentTypeId);
+                    Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(componentTypeId);
 
                     if (!factory)
                     {
@@ -782,13 +782,16 @@ public:
                 addComponentButton->SetText("Add Component");
                 addComponentButton->OnClick.Bind([stageWeak = parent->GetStage()->WeakHandleFromThis()](...)
                 {
-                    if (Handle<UIStage> stage = stageWeak.Lock()) {
+                    if (Handle<UIStage> stage = stageWeak.Lock())
+                    {
                         auto loadedUiAsset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/Component.Add.ui.xml");
                         
-                        if (loadedUiAsset.HasValue()) {
+                        if (loadedUiAsset.HasValue())
+                        {
                             Handle<UIObject> loadedUi = loadedUiAsset->Result();
 
-                            if (Handle<UIObject> addComponentWindow = loadedUi->FindChildUIObject("Add_Component_Window")) {
+                            if (Handle<UIObject> addComponentWindow = loadedUi->FindChildUIObject("Add_Component_Window"))
+                            {
                                 stage->AddChildUIObject(addComponentWindow);
                         
                                 return UIEventHandlerResult::STOP_BUBBLING;
@@ -933,7 +936,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIElementFactory);
 
-class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef, EditorNodePropertyFactory>
+class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const EditorNodePropertyRef& value) const
@@ -947,7 +950,7 @@ public:
             return nullptr;
         }
 
-        UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeId());
+        Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(value.property->GetTypeId());
 
         if (!factory)
         {
@@ -1010,7 +1013,7 @@ public:
         // Handle<Node> nodeRc = value.node.Lock();
         // Assert(nodeRc != nullptr);
 
-        // UIElementFactoryBase* factory = GetEditorUIElementFactory(value.property->GetTypeId());
+        // Handle<UIElementFactoryBase> factory = GetEditorUIElementFactory(value.property->GetTypeId());
         // Assert(factory != nullptr);
 
         // Handle<UIPanel> content = uiObject->FindChildUIObject(WeakName("PropertyPanel_Content")).Cast<UIPanel>();
@@ -1027,7 +1030,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(EditorNodePropertyRef, EditorNodePropertyFactory);
 
-class AssetPackageUIElementFactory : public UIElementFactory<AssetPackage, AssetPackageUIElementFactory>
+class AssetPackageUIElementFactory : public UIElementFactory<AssetPackage>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const AssetPackage& value) const
@@ -1048,7 +1051,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(AssetPackage, AssetPackageUIElementFactory);
 
-class AssetObjectUIElementFactory : public UIElementFactory<AssetObject, AssetObjectUIElementFactory>
+class AssetObjectUIElementFactory : public UIElementFactory<AssetObject>
 {
 public:
     Handle<UIObject> Create(UIObject* parent, const AssetObject& value) const

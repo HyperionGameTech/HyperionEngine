@@ -167,8 +167,7 @@ using debug::LogType;
     do                                                                                                                 \
     {                                                                                                                  \
         HYP_PRINT_STACK_TRACE();                                                                                       \
-        std::snprintf(debug::GetErrorStringBuffer(), 4096, "\n\nAn engine crash has been triggered!\n\t" __VA_ARGS__); \
-        debug::LogAssert(debug::GetErrorStringBuffer());                                                               \
+        Assert(0, "\n\nAn engine crash has been triggered!\n" __VA_ARGS__);                                            \
         debug::DebugLog_FlushOutputStream();                                                                           \
                                                                                                                        \
         std::terminate();                                                                                              \

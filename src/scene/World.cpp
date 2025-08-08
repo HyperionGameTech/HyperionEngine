@@ -45,6 +45,7 @@ HYP_API extern const GlobalConfig& GetGlobalConfig();
 
 World::World()
     : HypObjectBase(),
+      m_name(Name::Unique("World")),
       m_worldGrid(CreateObject<WorldGrid>(this)),
       m_detachedScenes(this),
       m_raytracingView(nullptr),
@@ -399,6 +400,7 @@ void World::Update(float delta)
         View* view = processViews[index];
         Assert(view != nullptr);
 
+        view->UpdateViewport();
         // View must be updated on the game thread as it mutates the scene's octree state
         view->UpdateVisibility();
 

@@ -57,6 +57,8 @@ Game::~Game()
 void Game::Update(float delta)
 {
     HYP_SCOPE;
+    
+    g_engineDriver->SetCurrentWorld(m_world);
 
     g_engineDriver->GetScriptingService()->Update();
 
@@ -67,7 +69,7 @@ void Game::Update(float delta)
         m_managedGameObject->InvokeMethodByName<void, float>("Update", float(delta));
     }
 
-    g_engineDriver->GetWorld()->Update(delta);
+    m_world->Update(delta);
 }
 
 void Game::Init()
@@ -87,19 +89,19 @@ void Game::Init()
             m_managedAssembly = std::move(managedAssembly);
         }
     }
-
-    const Handle<World>& world = g_engineDriver->GetWorld();
-    Assert(world.IsValid());
-    InitObject(world);
+    
+    m_world = CreateObject<World>();
+    InitObject(m_world);
 
     Handle<UIStage> uiStage = CreateObject<UIStage>(g_gameThread);
-    m_uiSubsystem = world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
+    
+    m_uiSubsystem = m_world->AddSubsystem(CreateObject<UISubsystem>(uiStage));
 
     if (m_managedGameObject && m_managedGameObject->IsValid())
     {
         m_managedGameObject->InvokeMethodByName<void>(
             "BeforeInit",
-            world,
+            m_world,
             m_appContext->GetInputManager(),
             AssetManager::GetInstance(),
             m_uiSubsystem->GetUIStage());

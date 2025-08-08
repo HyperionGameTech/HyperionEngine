@@ -2962,6 +2962,11 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 void UIObject::SetDataSource(const Handle<UIDataSourceBase>& dataSource)
 {
     HYP_SCOPE;
+    
+    if (dataSource == m_dataSource)
+    {
+        return;
+    }
 
     m_dataSourceOnChangeHandler.Reset();
     m_dataSourceOnElementAddHandler.Reset();

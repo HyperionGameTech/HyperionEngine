@@ -90,8 +90,6 @@ public:
     virtual void Render(FrameBase* frame, const RenderSetup& rs) override;
 
 protected:
-    void CreateShader();
-
     virtual void CreatePipeline(const RenderableAttributeSet& renderableAttributes) override;
 
     virtual void Resize_Internal(Vec2u newSize) override;
@@ -99,7 +97,6 @@ protected:
 private:
     const DeferredPassMode m_mode;
 
-    FixedArray<ShaderRef, LT_MAX> m_directLightShaders;
     FixedArray<GraphicsPipelineRef, LT_MAX> m_directLightGraphicsPipelines;
 
     Handle<Texture> m_ltcMatrixTexture;
@@ -231,12 +228,12 @@ class ReflectionsPass final : public FullScreenPass
 {
     HYP_OBJECT_BODY(ReflectionsPass);
     
-    enum ApplyReflectionProbeMode : uint32
+    enum CubemapType : uint32
     {
-        DEFAULT = 0,
-        PARALLAX_CORRECTED,
+        CMT_DEFAULT = 0,
+        CMT_PARALLAX_CORRECTED,
 
-        MAX
+        CMT_MAX
     };
 
 public:
@@ -291,7 +288,7 @@ private:
     ImageViewRef m_mipChainImageView;
     ImageViewRef m_deferredResultImageView;
 
-    FixedArray<GraphicsPipelineRef, ApplyReflectionProbeMode::MAX> m_graphicsPipelines;
+    FixedArray<GraphicsPipelineRef, CMT_MAX> m_cubemapGraphicsPipelines;
 
     UniquePtr<SSRRenderer> m_ssrRenderer;
 

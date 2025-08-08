@@ -14,7 +14,7 @@ extern "C"
 
     HYP_EXPORT AssetBatch* AssetBatch_Create()
     {
-        return new AssetBatch(AssetManager::GetInstance().Get());
+        return new AssetBatch(AssetManager::GetInstance());
     }
 
     HYP_EXPORT void AssetBatch_Destroy(AssetBatch* batch)

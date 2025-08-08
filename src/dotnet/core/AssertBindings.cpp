@@ -2,13 +2,14 @@
 
 #include <core/debug/Debug.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/Types.hpp>
 
 using namespace hyperion;
 
 extern "C"
 {
-
     HYP_EXPORT void Assert_Throw(const char* message, const char* funcName, uint32 line)
     {
         if (!message)
@@ -18,11 +19,11 @@ extern "C"
 
         if (funcName != nullptr)
         {
-            HYP_FAIL("%s:%u: Assertion failed!\n\t%s", funcName, line, message);
+            HYP_FAIL("{}:{}: Assertion failed!\n\t{}", funcName, line, message);
         }
         else
         {
-            HYP_FAIL("Assertion failed!\n\t%s", message);
+            HYP_FAIL("Assertion failed!\n\t{}", message);
         }
     }
 

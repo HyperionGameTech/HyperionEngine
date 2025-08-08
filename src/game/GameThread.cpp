@@ -70,14 +70,7 @@ void GameThread::SetGame(const Handle<Game>& game)
 
 void GameThread::operator()()
 {
-    uint32 numFrames = 0;
-    float deltaTimeAccum = 0.0f;
-
-#if HYP_GAME_THREAD_LOCKED
-    LockstepGameCounter counter(1.0f / gameThreadTargetTicksPerSecond);
-#else
     GameCounter counter;
-#endif
 
     if (m_game.IsValid())
     {
@@ -99,19 +92,10 @@ void GameThread::operator()()
 #endif
 
         HYP_PROFILE_BEGIN;
+        
+        RenderApi_BeginFrame_GameThread();
 
         counter.NextTick();
-
-        deltaTimeAccum += counter.delta;
-        numFrames++;
-
-        if (deltaTimeAccum >= 1.0f)
-        {
-            //            HYP_LOG(GameThread, Debug, "Game thread ticks per second: {}", 1.0f / (deltaTimeAccum / float(numFrames)));
-
-            deltaTimeAccum = 0.0f;
-            numFrames = 0;
-        }
 
         AssetManager::GetInstance()->Update(counter.delta);
 
@@ -139,8 +123,6 @@ void GameThread::operator()()
                 tasks.Pop().Execute();
             }
         }
-
-        RenderApi_BeginFrame_GameThread();
 
         if (m_game.IsValid())
         {

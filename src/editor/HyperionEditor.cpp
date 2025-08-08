@@ -107,7 +107,7 @@ void HyperionEditor::Init()
 
     m_editorSubsystem = CreateObject<EditorSubsystem>(GetAppContext());
 
-    g_engineDriver->GetWorld()->AddSubsystem(m_editorSubsystem);
+    GetWorld()->AddSubsystem(m_editorSubsystem);
 
     // if (const Handle<WorldGrid>& worldGrid = g_engineDriver->GetWorld()->GetWorldGrid())
     // {

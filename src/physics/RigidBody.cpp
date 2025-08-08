@@ -44,7 +44,7 @@ void RigidBody::SetShape(const Handle<PhysicsShape>& shape)
 
     if (IsInitCalled())
     {
-        g_engineDriver->GetWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsShape(this);
+        g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsShape(this);
     }
 }
 
@@ -54,13 +54,13 @@ void RigidBody::SetPhysicsMaterial(const PhysicsMaterial& physicsMaterial)
 
     if (IsInitCalled())
     {
-        g_engineDriver->GetWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsMaterial(this);
+        g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().OnChangePhysicsMaterial(this);
     }
 }
 
 void RigidBody::ApplyForce(const Vector3& force)
 {
-    g_engineDriver->GetWorld()->GetPhysicsWorld().GetAdapter().ApplyForceToBody(this, force);
+    g_engineDriver->GetCurrentWorld()->GetPhysicsWorld().GetAdapter().ApplyForceToBody(this, force);
 }
 
 } // namespace hyperion::physics

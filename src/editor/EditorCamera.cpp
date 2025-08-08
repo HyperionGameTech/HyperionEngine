@@ -122,7 +122,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     
     // magic numbers for fun
     const float lookMultiplier = 5000.0f * editorLookSensitivity.ToFloat(1.0f);
-    const float moveMultiplier = 20.0f * editorMoveSensitivity.ToFloat(1.0f);
+    const float moveMultiplier = 250.0f * editorMoveSensitivity.ToFloat(1.0f);
 
     const Vec2f mouseDelta = (evt.position - evt.previousPosition) * m_deltaTime;
     const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.position - evt.previousPosition)) * m_deltaTime;

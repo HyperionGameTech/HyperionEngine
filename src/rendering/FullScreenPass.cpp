@@ -295,7 +295,6 @@ void FullScreenPass::CreateFramebuffer()
 
     if (m_framebuffer.IsValid())
     {
-        Assert(m_framebuffer->GetExtent() == m_extent);
         DeferCreate(m_framebuffer);
 
         return;

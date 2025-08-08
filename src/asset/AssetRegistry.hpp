@@ -458,6 +458,9 @@ public:
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectAdded;
     Delegate<void, Handle<AssetObject>, bool /* isDirect */> OnAssetObjectRemoved;
 
+    Delegate<void, Handle<AssetPackage>> OnSubpackageAdded;
+    Delegate<void, Handle<AssetPackage>> OnSubpackageRemoved;
+
 private:
     void Init() override;
 

@@ -22,13 +22,13 @@ extern "C"
         dataSource->Push(*uuid, std::move(*dataPtr), *parentUuid);
     }
 
-    HYP_EXPORT void UIDataSource_SetElementTypeIdAndFactory(UIDataSource* dataSource, const TypeId* elementTypeId, UIElementFactoryBase* elementFactory)
+    HYP_EXPORT void UIDataSource_SetElementFactory(UIDataSource* dataSource, const TypeId* elementTypeId, UIElementFactoryBase* elementFactory)
     {
         Assert(dataSource != nullptr);
         Assert(elementTypeId != nullptr);
         Assert(elementFactory != nullptr);
 
-        dataSource->SetElementTypeIdAndFactory(*elementTypeId, elementFactory);
+        dataSource->SetElementFactory(*elementTypeId, elementFactory->HandleFromThis());
     }
 
 } // extern "C"

@@ -11,6 +11,8 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <core/threading/ThreadLocalStorage.hpp>
+
 #include <dotnet/Object.hpp>
 
 #include <core/serialization/fbom/FBOM.hpp>
@@ -159,6 +161,34 @@ SizeType GetNumDescendants(TypeId typeId)
 
     return base->GetNumDescendants();
 }
+
+thread_local HashMap<TypeId, String>* g_formattedStringMap;
+
+const char* LookupTypeName(TypeId typeId)
+{
+    const HypClass* hypClass = GetClass(typeId);
+    
+    if (hypClass)
+    {
+        return *hypClass->GetName();
+    }
+    
+    if (!g_formattedStringMap)
+    {
+        g_formattedStringMap = (HashMap<TypeId, String>*)Threads::CurrentThreadObject()->GetTLS().Alloc(sizeof(HashMap<TypeId, String>));
+        new (g_formattedStringMap) HashMap<TypeId, String>(); /// @TODO: Destruct the map on thread / application exit
+    }
+    
+    auto it = g_formattedStringMap->Find(typeId);
+    
+    if (it == g_formattedStringMap->End())
+    {
+        it = g_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId {}", typeId.Value())).first;
+    }
+    
+    return *it->second;
+}
+
 
 #pragma endregion Helpers
 

@@ -116,6 +116,8 @@ HYP_FORCE_INLINE const HypEnumInstance<T>* GetEnum()
 HYP_API bool IsA(const HypClass* hypClass, const void* ptr, TypeId typeId);
 HYP_API bool IsA(const HypClass* hypClass, const HypClass* instanceHypClass);
 
+HYP_API const char* LookupTypeName(TypeId typeId);
+
 #pragma endregion Helpers
 
 class HypClassMemberIterator

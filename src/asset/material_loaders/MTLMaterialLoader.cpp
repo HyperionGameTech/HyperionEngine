@@ -288,16 +288,16 @@ AssetLoadResult MTLMaterialLoader::LoadAsset(LoaderState& state) const
             uint32 numEnqueued = 0;
             String pathsString;
 
-            RC<AssetBatch> texturesBatch = state.assetManager->CreateBatch();
+            RC<AssetBatch> texturesBatch = state.assetManager->CreateBatch(state.batchIdentifier);
 
             for (auto& it : textureNamesToPath)
             {
                 allFilepaths.PushBack(it.second);
 
                 ++numEnqueued;
-                texturesBatch->Add(
-                    it.first,
-                    it.second);
+                
+                texturesBatch->Add(it.first, it.second);
+                
                 if (pathsString.Any())
                 {
                     pathsString += ", ";

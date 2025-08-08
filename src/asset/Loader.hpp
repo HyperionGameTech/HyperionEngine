@@ -20,6 +20,7 @@ struct LoaderState
 
     AssetManager* assetManager;
     FilePath filepath;
+    String batchIdentifier;
     Stream stream;
 };
 

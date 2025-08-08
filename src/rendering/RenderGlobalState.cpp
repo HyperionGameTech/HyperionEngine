@@ -535,6 +535,7 @@ struct ViewData
 struct ViewFrameData
 {
     View* view = nullptr;
+    Viewport viewport {};
     RenderProxyList* rplShared = nullptr;
 
     // Only render thread touches this member, since ViewData is created from the render thread
@@ -653,7 +654,6 @@ static ViewFrameData* GetViewFrameData(View* view, uint32 slot)
 
     if (!vfd)
     {
-        // create a new pool for this view
         vfd = new ViewFrameData();
         vfd->view = view;
 
@@ -962,7 +962,20 @@ uint32 RenderApi_RetrieveResourceBinding(ObjIdBase resourceId)
 
 WorldShaderData* RenderApi_GetWorldBufferData()
 {
+#ifdef HYP_DEBUG_MODE
+    Threads::AssertOnThread(g_gameThread | g_renderThread);
+#endif
+
     return &g_frameData[*g_threadFrameIndex].worldBufferData;
+}
+
+Viewport& RenderApi_GetViewport(View* view)
+{
+#ifdef HYP_DEBUG_MODE
+    Threads::AssertOnThread(g_gameThread | g_renderThread);
+#endif
+
+    return GetViewFrameData(view, *g_threadFrameIndex)->viewport;
 }
 
 RenderStats* RenderApi_GetRenderStats()
@@ -1014,6 +1027,20 @@ void RenderApi_BeginFrame_GameThread()
     g_threadFrameCounter = &g_frameCounter[PRODUCER];
 
     g_freeSemaphore.acquire();
+
+    // for (auto& it : g_frameData[g_frameIndex[PRODUCER]].viewFrameData)
+    // {
+    //     ViewFrameData* vfd = it.second;
+
+    //     if (!vfd)
+    //     {
+    //         continue;
+    //     }
+
+    //     AssertDebug(vfd->view != nullptr);
+
+    //     vfd->viewport = vfd->view->GetViewport();
+    // }
 }
 
 void RenderApi_EndFrame_GameThread()
@@ -1357,13 +1384,15 @@ RenderGlobalState::RenderGlobalState()
     mainRenderer = new DeferredRenderer();
     mainRenderer->Initialize();
 
-    globalRenderers[GRT_ENV_PROBE].Resize(EPT_MAX);
+    Memory::MemSet(globalRenderers, 0, sizeof(globalRenderers));
+
+    globalRenderers[GRT_ENV_PROBE].ResizeZeroed(EPT_MAX);
     globalRenderers[GRT_ENV_PROBE][EPT_REFLECTION] = new ReflectionProbeRenderer();
     globalRenderers[GRT_ENV_PROBE][EPT_SKY] = new ReflectionProbeRenderer();
 
     globalRenderers[GRT_ENV_GRID].PushBack(new EnvGridRenderer());
 
-    globalRenderers[GRT_SHADOW_MAP].Resize(LT_MAX); // 1 ShadowMapRenderer per LightType
+    globalRenderers[GRT_SHADOW_MAP].ResizeZeroed(LT_MAX); // 1 ShadowMapRenderer per LightType
     globalRenderers[GRT_SHADOW_MAP][LT_POINT] = new PointShadowRenderer();
     globalRenderers[GRT_SHADOW_MAP][LT_DIRECTIONAL] = new DirectionalShadowRenderer();
 }

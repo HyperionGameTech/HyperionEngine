@@ -544,6 +544,7 @@ void EnvGrid::Update(float delta)
 
     m_camera->Update(delta);
 
+    m_view->UpdateViewport();
     m_view->UpdateVisibility();
     m_view->CollectSync();
 

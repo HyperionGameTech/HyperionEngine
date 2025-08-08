@@ -95,7 +95,7 @@ Array<FilePath> AssetLoaderBase::GetTryFilepaths(const FilePath& originalFilepat
     return paths;
 }
 
-AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& path) const
+AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& path, const String& batchIdentifier) const
 {
     HYP_SCOPE;
 
@@ -103,31 +103,36 @@ AssetLoadResult AssetLoaderBase::Load(AssetManager& assetManager, const String& 
 
     const FilePath originalFilepath(path);
 
-    const Array<FilePath> paths = GetTryFilepaths(originalFilepath);
+    const Array<FilePath> filepaths = GetTryFilepaths(originalFilepath);
 
-    for (const FilePath& path : paths)
+    for (const FilePath& filepath : filepaths)
     {
-        if (!path.Exists())
+        if (!filepath.Exists())
         {
             // File does not exist, try next path
             continue;
         }
 
-        FileBufferedReaderSource source { path };
+        FileBufferedReaderSource source { filepath };
         BufferedReader reader { &source };
 
         if (!reader.IsOpen())
         {
-            HYP_LOG(Assets, Warning, "Could not open file at path: {}, trying next path...", path);
+            HYP_LOG(Assets, Warning, "Could not open file at path: {}, trying next path...", filepath);
 
             continue;
         }
 
-        LoaderState state {
-            &assetManager,
-            path,
-            std::move(reader)
-        };
+        LoaderState state {};
+        state.assetManager = &assetManager;
+        state.filepath = filepath;
+        state.batchIdentifier = batchIdentifier;
+        state.stream = std::move(reader);
+        
+        if (state.batchIdentifier.Empty())
+        {
+            state.batchIdentifier = filepath.Basename();
+        }
 
         auto result = LoadAsset(state);
 

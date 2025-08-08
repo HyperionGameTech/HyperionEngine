@@ -84,21 +84,6 @@ UIStage::UIStage(ThreadId ownerThreadId)
 
 UIStage::~UIStage()
 {
-    if (m_scene.IsValid())
-    {
-        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
-        {
-            m_scene->RemoveFromWorld();
-        }
-        else
-        {
-            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
-                {
-                    scene->RemoveFromWorld();
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        }
-    }
 }
 
 void UIStage::SetSurfaceSize(Vec2i surfaceSize)
@@ -176,14 +161,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
     cameraNode->SetName(NAME_FMT("{}_Camera", GetName()));
     cameraNode->SetEntity(m_camera);
 
-    g_engineDriver->GetWorld()->AddScene(newScene);
-
     InitObject(newScene);
-
-    if (m_scene.IsValid())
-    {
-        m_scene->RemoveFromWorld();
-    }
 
     m_scene = std::move(newScene);
 }
@@ -331,7 +309,6 @@ void UIStage::OnRemoved_Internal()
 
     // Re-set scene root to be our node proxy
     m_scene->SetRoot(m_node);
-    m_scene->RemoveFromWorld();
 
     OnRemoved();
 }

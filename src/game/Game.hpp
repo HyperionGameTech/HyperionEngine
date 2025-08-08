@@ -29,6 +29,7 @@ class Object;
 } // namespace dotnet
 
 class UISubsystem;
+class World;
 
 struct ManagedGameInfo
 {
@@ -48,6 +49,12 @@ public:
     Game();
     Game(Optional<ManagedGameInfo> managedGameInfo);
     virtual ~Game();
+    
+    HYP_METHOD()
+    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
+    {
+        return m_world;
+    }
 
     const Handle<AppContextBase>& GetAppContext() const
     {
@@ -79,6 +86,8 @@ protected:
 
     RC<dotnet::Assembly> m_managedAssembly;
     dotnet::Object* m_managedGameObject;
+    
+    Handle<World> m_world;
 
 private:
     Optional<ManagedGameInfo> m_managedGameInfo;

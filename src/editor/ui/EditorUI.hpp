@@ -26,10 +26,10 @@ struct EditorNodePropertyRef
 
 class UIElementFactoryBase;
 
-HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeId typeId);
+HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(TypeId typeId);
 
 template <class T>
-static UIElementFactoryBase* GetEditorUIElementFactory()
+static Handle<UIElementFactoryBase> GetEditorUIElementFactory()
 {
     return GetEditorUIElementFactory(TypeId::ForType<T>());
 }

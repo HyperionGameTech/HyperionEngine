@@ -125,8 +125,7 @@ const Handle<AssetManager>& AssetManager::GetInstance()
 }
 
 AssetManager::AssetManager()
-    : m_assetCache(MakeUnique<AssetCache>()),
-      m_threadPool(MakeUnique<AssetManagerThreadPool>()),
+    : m_threadPool(MakeUnique<AssetManagerThreadPool>()),
       m_numPendingBatches { 0 }
 {
 }
@@ -266,9 +265,9 @@ const Handle<AssetCollector>& AssetManager::FindAssetCollector(ProcRef<bool(cons
     return Handle<AssetCollector>::empty;
 }
 
-RC<AssetBatch> AssetManager::CreateBatch()
+RC<AssetBatch> AssetManager::CreateBatch(const String& identifier)
 {
-    return MakeRefCountedPtr<AssetBatch>(this);
+    return MakeRefCountedPtr<AssetBatch>(HandleFromThis(), identifier);
 }
 
 void AssetManager::RegisterDefaultLoaders()

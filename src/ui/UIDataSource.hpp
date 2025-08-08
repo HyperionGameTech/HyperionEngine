@@ -31,18 +31,40 @@ class World;
 
 class UIElementFactoryBase;
 
+HYP_API extern const char* LookupTypeName(TypeId typeId);
+
 class HYP_API UIElementFactoryRegistry
 {
     struct FactoryInstance
     {
-        Handle<UIElementFactoryBase> (*makeFactoryFunction)(void);
-        Handle<UIElementFactoryBase> factoryInstance;
+        Handle<UIElementFactoryBase> (*makeFactoryFunction)(void) = nullptr;
+        Handle<UIElementFactoryBase> factoryInstance = nullptr;
     };
 
 public:
     static UIElementFactoryRegistry& GetInstance();
 
-    UIElementFactoryBase* GetFactory(TypeId typeId);
+    Handle<UIElementFactoryBase> GetFactory(TypeId typeId);
+    
+    template <class... Types>
+    Array<Handle<UIElementFactoryBase>> GetFactories()
+    {
+        Array<Handle<UIElementFactoryBase>> factories;
+        factories.Reserve(sizeof...(Types));
+        
+        constexpr FixedArray<TypeId, sizeof...(Types)> typeIds = { TypeId::ForType<Types>()... };
+        
+        for (TypeId typeId : typeIds)
+        {
+            Handle<UIElementFactoryBase> factory = GetFactory(typeId);
+            Assert(factory != nullptr);
+            
+            factories.PushBack(factory);
+        }
+        
+        return factories;
+    }
+    
     void RegisterFactory(TypeId typeId, Handle<UIElementFactoryBase> (*makeFactoryFunction)(void));
 
 private:
@@ -57,6 +79,9 @@ class HYP_API UIElementFactoryBase : public HypObjectBase
 public:
     UIElementFactoryBase() = default;
     virtual ~UIElementFactoryBase() = default;
+    
+    HYP_METHOD(Scriptable)
+    virtual TypeId GetElementTypeId() const;
 
     HYP_METHOD(Scriptable)
     Handle<UIObject> CreateUIObject(UIObject* parent, const HypData& value, const HypData& context) const;
@@ -65,6 +90,11 @@ public:
     void UpdateUIObject(UIObject* uiObject, const HypData& value, const HypData& context) const;
 
 protected:
+    virtual TypeId GetElementTypeId_Impl() const
+    {
+        HYP_PURE_VIRTUAL();
+    }
+    
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const
     {
         HYP_PURE_VIRTUAL();
@@ -76,13 +106,22 @@ protected:
     }
 };
 
-template <class T, class Derived>
+template <class T>
 class HYP_API UIElementFactory : public UIElementFactoryBase
 {
 public:
     virtual ~UIElementFactory() = default;
 
 protected:
+    virtual Handle<UIObject> Create(UIObject* parent, const T& value) const = 0;
+    virtual void Update(UIObject* uiObject, const T& value) const = 0;
+
+private:
+    virtual TypeId GetElementTypeId_Impl() const override final
+    {
+        return TypeId::ForType<T>();
+    }
+    
     virtual Handle<UIObject> CreateUIObject_Impl(UIObject* parent, const HypData& value, const HypData& context) const override final
     {
         HYP_MT_CHECK_RW(m_contextDataRaceDetector);
@@ -94,11 +133,11 @@ protected:
 
         if constexpr (isHypData<T>)
         {
-            return GetDerived().Create(parent, value);
+            return Create(parent, value);
         }
         else
         {
-            return GetDerived().Create(parent, value.Get<T>());
+            return Create(parent, value.Get<T>());
         }
     }
 
@@ -111,14 +150,15 @@ protected:
 
         if constexpr (isHypData<T>)
         {
-            return GetDerived().Update(uiObject, value);
+            return Update(uiObject, value);
         }
         else
         {
-            return GetDerived().Update(uiObject, value.Get<T>());
+            return Update(uiObject, value.Get<T>());
         }
     }
 
+protected:
     template <class ContextType>
     const ContextType* GetContext() const
     {
@@ -128,16 +168,6 @@ protected:
     }
 
 private:
-    HYP_FORCE_INLINE Derived& GetDerived()
-    {
-        return static_cast<Derived&>(*this);
-    }
-
-    HYP_FORCE_INLINE const Derived& GetDerived() const
-    {
-        return static_cast<const Derived&>(*this);
-    }
-
     mutable AnyRef m_context;
     DataRaceDetector m_contextDataRaceDetector;
 };
@@ -209,10 +239,14 @@ class HYP_API UIDataSourceBase : public HypObjectBase
     HYP_OBJECT_BODY(UIDataSourceBase);
 
 protected:
-    UIDataSourceBase(UIElementFactoryBase* elementFactory)
-        : m_elementFactory(elementFactory)
+    UIDataSourceBase(const Array<Handle<UIElementFactoryBase>>& list)
     {
-        // Assert(elementFactory != nullptr, "No element factory registered for the data source; unable to create UIObjects");
+        for (const Handle<UIElementFactoryBase>& factory : list)
+        {
+            AssertDebug(factory != nullptr);
+            
+            m_elementFactories.Set(factory->GetElementTypeId(), factory);
+        }
     }
 
 public:
@@ -221,11 +255,6 @@ public:
     UIDataSourceBase(UIDataSourceBase&& other) noexcept = delete;
     UIDataSourceBase& operator=(UIDataSourceBase&& other) noexcept = delete;
     virtual ~UIDataSourceBase() = default;
-
-    HYP_FORCE_INLINE UIElementFactoryBase* GetElementFactory() const
-    {
-        return m_elementFactory;
-    }
 
     virtual void Push(const UUID& uuid, HypData&& value, const UUID& parentUuid = UUID::Invalid()) = 0;
     virtual const UIDataSourceElement* Get(const UUID& uuid) const = 0;
@@ -265,7 +294,7 @@ public:
     Delegate<void, UIDataSourceBase*, UIDataSourceElement*, UIDataSourceElement*> OnElementUpdate;
 
 protected:
-    UIElementFactoryBase* m_elementFactory;
+    TypeMap<Handle<UIElementFactoryBase>> m_elementFactories;
 };
 
 HYP_CLASS()
@@ -283,29 +312,26 @@ class HYP_API UIDataSource : public UIDataSourceBase
 public:
     // temp : required for HypClass
     UIDataSource()
-        : UIDataSource(TypeWrapper<Any> {})
+        : UIDataSourceBase({ })
+    {
+    }
+    
+    template <class... Types>
+    UIDataSource(TypeWrapper<Types>...)
+        : UIDataSource(UIElementFactoryRegistry::GetInstance().GetFactories<Types...>())
     {
     }
 
-    template <class T>
-    UIDataSource(TypeWrapper<T>)
-        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<T>())),
-          m_elementTypeId(TypeId::ForType<T>())
+    UIDataSource(const Array<Handle<UIElementFactoryBase>>& factories)
+        : UIDataSourceBase(factories)
     {
     }
-
-    template <class T, class CreateUIObjectFunction, class UpdateUIObjectFunction>
-    UIDataSource(TypeWrapper<T>, CreateUIObjectFunction&& createUiObject, UpdateUIObjectFunction&& updateUiObject)
-        : UIDataSourceBase(UIElementFactoryRegistry::GetInstance().GetFactory(TypeId::ForType<T>())),
-          m_elementTypeId(TypeId::ForType<T>()),
-          m_createUiObjectProc([func = std::forward<CreateUIObjectFunction>(createUiObject)](UIObject* parent, const HypData& value, const HypData& context) mutable
-              {
-                  return func(parent, value.Get<T>(), context);
-              }),
-          m_updateUiObjectProc([func = std::forward<UpdateUIObjectFunction>(updateUiObject)](UIObject* uiObject, const HypData& value, const HypData& context) mutable
-              {
-                  func(uiObject, value.Get<T>(), context);
-              })
+    
+    template <class CreateUIObjectFunction, class UpdateUIObjectFunction>
+    UIDataSource(const Array<Handle<UIElementFactoryBase>>& factories, CreateUIObjectFunction&& createUiObject, UpdateUIObjectFunction&& updateUiObject)
+        : UIDataSourceBase(factories),
+          m_createUiObjectProc(std::forward<CreateUIObjectFunction>(createUiObject)),
+          m_updateUiObjectProc(std::forward<UpdateUIObjectFunction>(updateUiObject))
     {
     }
 
@@ -321,15 +347,6 @@ public:
         {
             return;
         }
-
-        if (value.GetTypeId() != m_elementTypeId && !hyperion::IsA(GetClass(m_elementTypeId), GetClass(value.GetTypeId())))
-        {
-            HYP_FAIL("Cannot add element with TypeId %u to UIDataSource - expected TypeId %u",
-                value.GetTypeId().Value(),
-                m_elementTypeId.Value());
-        }
-
-        // Assert(value.Is<T>(), "Cannot add object not of type %s to data source", TypeName<T>().Data())
 
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
@@ -374,13 +391,6 @@ public:
 
     virtual void Set(const UUID& uuid, HypData&& value) override
     {
-        if (value.GetTypeId() != m_elementTypeId && !hyperion::IsA(GetClass(m_elementTypeId), GetClass(value.GetTypeId())))
-        {
-            HYP_FAIL("Cannot set element with TypeId %u in UIDataSource - expected TypeId %u",
-                value.GetTypeId().Value(),
-                m_elementTypeId.Value());
-        }
-
         auto it = m_values.FindIf([&uuid](const auto& item)
             {
                 return item.GetUUID() == uuid;
@@ -491,13 +501,15 @@ public:
             return m_createUiObjectProc(parent, value, context);
         }
 
-        if (m_elementFactory)
+        Handle<UIElementFactoryBase> elementFactory = GetElementFactoryForType(value.ToRef().GetTypeId());
+
+        if (elementFactory)
         {
-            return m_elementFactory->CreateUIObject(parent, value, context);
+            return elementFactory->CreateUIObject(parent, value, context);
         }
         else
         {
-            HYP_FAIL("No element factory registered for the data source; unable to create UIObjects");
+            HYP_FAIL("No element factory registered for the data source; unable to create UIObject for type `{}`", LookupTypeName(value.ToRef().GetTypeId()));
         }
 
         return nullptr;
@@ -508,17 +520,32 @@ public:
         if (m_updateUiObjectProc.IsValid())
         {
             m_updateUiObjectProc(uiObject, value, context);
+
             return;
         }
 
-        if (m_elementFactory)
+        Handle<UIElementFactoryBase> elementFactory = GetElementFactoryForType(value.ToRef().GetTypeId());
+
+        if (elementFactory)
         {
-            m_elementFactory->UpdateUIObject(uiObject, value, context);
+            elementFactory->UpdateUIObject(uiObject, value, context);
         }
         else
         {
-            HYP_FAIL("No element factory registered for the data source; unable to create UIObjects");
+            HYP_FAIL("No element factory registered for the data source; unable to udpate UIObject for type {}", LookupTypeName(value.ToRef().GetTypeId()));
         }
+    }
+    
+    void SetElementFactory(TypeId typeId, const Handle<UIElementFactoryBase>& elementFactory)
+    {
+        AssertDebug(elementFactory != nullptr);
+        
+        if (!elementFactory)
+        {
+            return;
+        }
+        
+        m_elementFactories.Set(typeId, elementFactory);
     }
 
     HYP_METHOD()
@@ -554,16 +581,10 @@ public:
 
         return values;
     }
-
-    /*! \internal */
-    void SetElementTypeIdAndFactory(TypeId elementTypeId, UIElementFactoryBase* elementFactory)
-    {
-        m_elementFactory = elementFactory;
-        m_elementTypeId = elementTypeId;
-    }
-
+    
 private:
-    TypeId m_elementTypeId;
+    Handle<UIElementFactoryBase> GetElementFactoryForType(TypeId typeId) const;
+
     Forest<UIDataSourceElement> m_values;
 
     Proc<Handle<UIObject>(UIObject*, const HypData&, const HypData&)> m_createUiObjectProc;
@@ -590,11 +611,11 @@ struct UIElementFactoryRegistration : public UIElementFactoryRegistrationBase
 
 } // namespace hyperion
 
-#define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory)                                                \
-    static ::hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory) \
-    {                                                                                            \
-        []() -> Handle<UIElementFactoryBase> {                                                       \
-            return CreateObject<Factory>();                                                 \
-        }                                                                                        \
+#define HYP_DEFINE_UI_ELEMENT_FACTORY(T, Factory)                                                   \
+    static ::hyperion::UIElementFactoryRegistration<T> HYP_UNIQUE_NAME(UIElementFactory)            \
+    {                                                                                               \
+        []() -> Handle<UIElementFactoryBase> {                                                      \
+            return CreateObject<Factory>();                                                         \
+        }                                                                                           \
     }
 

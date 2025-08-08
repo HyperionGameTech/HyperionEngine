@@ -15,6 +15,8 @@
 
 #include <core/containers/HashMap.hpp>
 
+#include <core/utilities/Format.hpp>
+
 #include <core/logging/Logger.hpp>
 
 #include <core/filesystem/FsUtil.hpp>

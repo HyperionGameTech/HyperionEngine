@@ -374,7 +374,7 @@ class HYP_API AssetLoaderBase : public HypObjectBase
 public:
     virtual ~AssetLoaderBase() = default;
 
-    AssetLoadResult Load(AssetManager& assetManager, const String& path) const;
+    AssetLoadResult Load(AssetManager& assetManager, const String& path, const String& batchIdentifier = String::empty) const;
 
 protected:
     virtual AssetLoadResult LoadAsset(LoaderState& state) const = 0;

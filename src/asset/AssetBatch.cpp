@@ -9,18 +9,27 @@
 
 #include <core/profiling/ProfileScope.hpp>
 
+#include <core/logging/Logger.hpp>
+#include <core/logging/LogChannels.hpp>
+
 #include <engine/EngineDriver.hpp>
 
 namespace hyperion {
 
 #pragma region AssetBatch
 
-AssetBatch::AssetBatch(AssetManager* assetManager)
+AssetBatch::AssetBatch(const Handle<AssetManager>& assetManager, const String& identifier)
     : TaskBatch(),
-      m_assetMap(MakeUnique<AssetMap>()),
-      m_assetManager(assetManager)
+      m_assetManager(assetManager),
+      m_identifier(identifier),
+      m_assetMap(MakeUnique<AssetMap>())
 {
     Assert(assetManager != nullptr);
+}
+
+AssetBatch::AssetBatch(const Handle<AssetManager>& assetManager)
+    : AssetBatch(assetManager, String::empty)
+{
 }
 
 void AssetBatch::LoadAsync(uint32 numBatches)
@@ -127,20 +136,22 @@ void AssetBatch::Add(const String& key, const String& path)
 {
     Assert(IsCompleted(), "Cannot add assets while loading!");
     Assert(m_assetMap != nullptr, "AssetBatch is in invalid state");
+    
+    UniquePtr<ProcessAssetFunctorBase> functorPtr = m_assetManager->CreateProcessAssetFunctor(
+        m_identifier, key, path, &m_callbacks);
+    
+    if (!functorPtr)
+    {
+        HYP_LOG(Assets, Warning, "Cannot handle asset with path {} -- perhaps the asset type is not registered or the path is invalid",
+            path);
+        
+        return;
+    }
 
     if (!m_assetMap->Emplace(key).second)
     {
         return;
     }
-
-    UniquePtr<ProcessAssetFunctorBase> functorPtr = m_assetManager->CreateProcessAssetFunctor(
-        key,
-        path,
-        &m_callbacks);
-
-    Assert(
-        functorPtr != nullptr,
-        "Failed to create ProcessAssetFunctor - perhaps the asset type is not registered or the path is invalid");
 
     m_procs.PushBack(std::move(functorPtr));
 }
@@ -149,12 +160,12 @@ void AssetBatch::Add(const String& key, const String& path)
 
 #pragma region AssetManager
 
-UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeId loaderTypeId, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+UniquePtr<ProcessAssetFunctorBase> AssetManager::CreateProcessAssetFunctor(TypeId loaderTypeId, const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
 {
     auto it = m_functorFactories.Find(loaderTypeId);
     Assert(it != m_functorFactories.End());
 
-    return it->second(key, path, callbacksPtr);
+    return it->second(batchIdentifier, key, path, callbacksPtr);
 }
 
 #pragma endregion AssetManager

@@ -210,14 +210,21 @@ void ConsoleUI::Init()
         .Detach();
 
     Handle<UIDataSource> dataSource = CreateObject<UIDataSource>(
-        TypeWrapper<ConsoleHistoryEntry> {},
-        [this](UIObject* parent, ConsoleHistoryEntry& value, const HypData& context) -> Handle<UIObject>
+        UIElementFactoryRegistry::GetInstance().GetFactories<ConsoleHistoryEntry>(),
+        [this](UIObject* parent, const HypData& value, const HypData& context) -> Handle<UIObject>
         {
+            if (!value.Is<ConsoleHistoryEntry>())
+            {
+                return nullptr;
+            }
+            
+            const ConsoleHistoryEntry& entry = value.Get<ConsoleHistoryEntry>();
+            
             Handle<UIText> text = parent->CreateUIObject<UIText>(Vec2i { 0, 0 }, UIObjectSize({ 0, UIObjectSize::AUTO }, { 0, UIObjectSize::AUTO }));
-            text->SetText(value.text);
+            text->SetText(entry.text);
             text->SetTextSize(12.0f);
 
-            switch (value.type)
+            switch (entry.type)
             {
             case ConsoleHistoryEntryType::COMMAND:
                 text->SetTextColor(Vec4f { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -235,7 +242,7 @@ void ConsoleUI::Init()
 
             return text;
         },
-        [](UIObject* uiObject, ConsoleHistoryEntry& value, const HypData& context) -> void
+        [](UIObject* uiObject, const HypData& value, const HypData& context) -> void
         {
         });
 
@@ -418,5 +425,26 @@ Material::ParameterTable ConsoleUI::GetMaterialParameters() const
 }
 
 #pragma endregion ConsoleUI
+
+class UIElementFactory_ConsoleHistoryEntry : public UIElementFactory<ConsoleHistoryEntry>
+{
+public:
+    Handle<UIObject> Create(UIObject* parent, const ConsoleHistoryEntry& value) const
+    {
+        Handle<UIText> text = parent->CreateUIObject<UIText>();
+        text->SetText(value.text);
+
+        parent->SetNodeTag(NodeTag(NAME("ConsoleHistoryEntry"), value.uuid));
+
+        return text;
+    }
+
+    void Update(UIObject* uiObject, const ConsoleHistoryEntry& value) const
+    {
+        uiObject->SetText(value.text);
+    }
+};
+
+HYP_DEFINE_UI_ELEMENT_FACTORY(ConsoleHistoryEntry, UIElementFactory_ConsoleHistoryEntry);
 
 } // namespace hyperion

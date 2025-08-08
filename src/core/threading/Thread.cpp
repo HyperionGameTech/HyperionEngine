@@ -10,6 +10,8 @@
 #include <core/utilities/GlobalContext.hpp>
 #include <core/utilities/IdGenerator.hpp>
 
+#include <core/profiling/ProfileScope.hpp>
+
 #include <core/Defines.hpp>
 
 #include <core/math/MathUtil.hpp>
@@ -52,7 +54,7 @@ HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
 ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
-      m_tls(new ThreadLocalStorage())
+      m_tls(nullptr)
 {
     HYP_CORE_ASSERT(id.IsValid(), "ThreadId must be valid");
 
@@ -63,7 +65,24 @@ ThreadBase::~ThreadBase()
 {
     UnregisterThread(m_id);
 
-    delete m_tls;
+    if (m_tls)
+    {
+        delete m_tls;
+        m_tls = nullptr;
+    }
+}
+
+ThreadLocalStorage& ThreadBase::GetTLS() const
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_id);
+    
+    if (!m_tls)
+    {
+        m_tls = new ThreadLocalStorage();
+    }
+    
+    return *m_tls;
 }
 
 #pragma endregion ThreadBase

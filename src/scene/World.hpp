@@ -75,6 +75,18 @@ public:
     World(World&& other) noexcept = delete;
     World& operator=(World&& other) noexcept = delete;
     ~World() override;
+    
+    HYP_METHOD()
+    HYP_FORCE_INLINE Name GetName() const
+    {
+        return m_name;
+    }
+    
+    HYP_METHOD()
+    HYP_FORCE_INLINE void SetName(Name name)
+    {
+        m_name = name;
+    }
 
     HYP_METHOD()
     RenderStats* GetRenderStats() const;
@@ -203,6 +215,9 @@ public:
 
 private:
     void Init() override;
+    
+    HYP_FIELD(Property = "Name", Serialize = true)
+    Name m_name;
 
     PhysicsWorld m_physicsWorld;
 

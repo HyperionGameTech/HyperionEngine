@@ -12,7 +12,7 @@ enum class KeyCode : uint16
 {
     UNKNOWN = uint16(-1),
 
-    KEY_A = 'a',
+    KEY_A = 97,
     KEY_B,
     KEY_C,
     KEY_D,
@@ -39,7 +39,7 @@ enum class KeyCode : uint16
     KEY_Y,
     KEY_Z,
 
-    KEY_0 = '0',
+    KEY_0 = 48,
     KEY_1,
     KEY_2,
     KEY_3,

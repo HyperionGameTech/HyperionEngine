@@ -12,9 +12,9 @@ namespace hyperion {
 
 HYP_DECLARE_LOG_CHANNEL(Editor);
 
-HYP_API UIElementFactoryBase* GetEditorUIElementFactory(TypeId typeId)
+HYP_API Handle<UIElementFactoryBase> GetEditorUIElementFactory(TypeId typeId)
 {
-    UIElementFactoryBase* factory = UIElementFactoryRegistry::GetInstance().GetFactory(typeId);
+    Handle<UIElementFactoryBase> factory = UIElementFactoryRegistry::GetInstance().GetFactory(typeId);
 
     if (!factory)
     {

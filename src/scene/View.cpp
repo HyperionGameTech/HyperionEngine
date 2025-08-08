@@ -176,6 +176,11 @@ void View::Init()
 {
     Assert(m_camera.IsValid(), "Camera is not valid for View with Id #%u", Id().Value());
     InitObject(m_camera);
+    
+    for (Viewport& viewportBuffered : m_viewportBuffered)
+    {
+        viewportBuffered = m_viewport;
+    }
 
     const Vec2u extent = MathUtil::Max(m_viewDesc.outputTargetDesc.extent, Vec2u::One());
 
@@ -211,8 +216,6 @@ void View::Init()
 
     Assert(m_outputTarget.IsValid(), "View with id #%u must have a valid output target!", Id().Value());
 
-    AssertDebug(m_outputTarget.IsValid());
-
     SetReady(true);
 }
 
@@ -234,6 +237,15 @@ bool View::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
     }
 
     return hasHits;
+}
+
+void View::UpdateViewport()
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+    AssertReady();
+    
+    m_viewportBuffered[RenderApi_GetFrameIndex()] = m_viewport;
 }
 
 void View::UpdateVisibility()
@@ -319,9 +331,32 @@ void View::CollectSync()
     EndAsyncCollection();
 }
 
+const Viewport& View::GetViewport() const
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    
+    if (Threads::IsOnThread(g_gameThread))
+    {
+        return m_viewport;
+    }
+    
+    AssertReady();
+    
+    return m_viewportBuffered[RenderApi_GetFrameIndex()];
+}
+
 void View::SetViewport(const Viewport& viewport)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+    
     m_viewport = viewport;
+    
+    if (IsInitCalled())
+    {
+        m_viewportBuffered[RenderApi_GetFrameIndex()] = viewport;
+    }
 }
 
 void View::SetPriority(int priority)
@@ -408,26 +443,26 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                 for (auto [entity, meshComponent] : scene->GetEntityManager()->GetEntitySet<MeshComponent>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     ++numCollectedEntities;
-                    
+
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
-                    
+
                     if (const Handle<Material>& material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
-                        
+
                         for (const auto& it : material->GetTextures())
                         {
                             const Handle<Texture>& texture = it.second;
-                            
+
                             if (!texture.IsValid())
                             {
                                 continue;
                             }
-                            
+
                             rpl.GetTextures().Track(texture.Id(), texture.Get());
                         }
                     }
-                    
+
                     if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
                     {
                         rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
@@ -448,39 +483,39 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                             continue;
                         }
-                        
+
                         if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
 #endif
-                            
+
                             continue;
                         }
 #endif
                     }
-                    
+
                     ++numCollectedEntities;
-                    
+
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
-                    
+
                     if (const Handle<Material>& material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
-                        
+
                         for (const auto& it : material->GetTextures())
                         {
                             const Handle<Texture>& texture = it.second;
-                            
+
                             if (!texture.IsValid())
                             {
                                 continue;
                             }
-                            
+
                             rpl.GetTextures().Track(texture.Id(), texture.Get());
                         }
                     }
-                    
+
                     if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
                     {
                         rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
@@ -536,39 +571,39 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                             continue;
                         }
-                        
+
                         if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
 #endif
-                            
+
                             continue;
                         }
 #endif
                     }
-                    
+
                     ++numCollectedEntities;
-                    
+
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
-                    
+
                     if (const Handle<Material>& material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
-                        
+
                         for (const auto& it : material->GetTextures())
                         {
                             const Handle<Texture>& texture = it.second;
-                            
+
                             if (!texture.IsValid())
                             {
                                 continue;
                             }
-                            
+
                             rpl.GetTextures().Track(texture.Id(), texture.Get());
                         }
                     }
-                    
+
                     if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
                     {
                         rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
@@ -584,26 +619,26 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
                 for (auto [entity, meshComponent, _] : scene->GetEntityManager()->GetEntitySet<MeshComponent, EntityTagComponent<EntityTag::DYNAMIC>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
                 {
                     ++numCollectedEntities;
-                    
+
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
-                    
+
                     if (const Handle<Material>& material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
-                        
+
                         for (const auto& it : material->GetTextures())
                         {
                             const Handle<Texture>& texture = it.second;
-                            
+
                             if (!texture.IsValid())
                             {
                                 continue;
                             }
-                            
+
                             rpl.GetTextures().Track(texture.Id(), texture.Get());
                         }
                     }
-                    
+
                     if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
                     {
                         rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());
@@ -624,39 +659,39 @@ ResourceTrackerDiff View::CollectMeshEntities(RenderProxyList& rpl)
 #endif
                             continue;
                         }
-                        
+
                         if (!visibilityStateComponent.visibilityState->GetSnapshot(cameraId).ValidToParent(visibilityStateSnapshot))
                         {
 #ifdef HYP_VISIBILITY_CHECK_DEBUG
                             ++numSkippedEntities;
 #endif
-                            
+
                             continue;
                         }
 #endif
                     }
-                    
+
                     ++numCollectedEntities;
-                    
+
                     rpl.GetMeshEntities().Track(entity->Id(), entity, entity->GetRenderProxyVersionPtr());
-                    
+
                     if (const Handle<Material>& material = meshComponent.material)
                     {
                         rpl.GetMaterials().Track(material.Id(), material.Get(), material->GetRenderProxyVersionPtr());
-                        
+
                         for (const auto& it : material->GetTextures())
                         {
                             const Handle<Texture>& texture = it.second;
-                            
+
                             if (!texture.IsValid())
                             {
                                 continue;
                             }
-                            
+
                             rpl.GetTextures().Track(texture.Id(), texture.Get());
                         }
                     }
-                    
+
                     if (const Handle<Skeleton>& skeleton = meshComponent.skeleton)
                     {
                         rpl.GetSkeletons().Track(skeleton.Id(), skeleton.Get(), skeleton->GetRenderProxyVersionPtr());

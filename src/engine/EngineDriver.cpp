@@ -292,10 +292,40 @@ HYP_API void EngineDriver::Init()
 
     m_debugDrawer = MakeUnique<DebugDrawer>();
     m_debugDrawer->Initialize();
-
-    m_world = CreateObject<World>();
+    
+    m_defaultWorld = CreateObject<World>();
+    m_defaultWorld->SetName(NAME("DefaultWorld"));
+    InitObject(m_defaultWorld);
+    
+    for (Handle<World>& currentWorld : m_currentWorldBuffered)
+    {
+        currentWorld = m_defaultWorld;
+    }
 
     SetReady(true);
+}
+
+const Handle<World>& EngineDriver::GetCurrentWorld() const
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    
+    return m_currentWorldBuffered[RenderApi_GetFrameIndex()];
+}
+
+void EngineDriver::SetCurrentWorld(const Handle<World>& world)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread | g_renderThread);
+    
+    if (!world)
+    {
+        m_currentWorldBuffered[RenderApi_GetFrameIndex()] = m_defaultWorld;
+        
+        return;
+    }
+    
+    m_currentWorldBuffered[RenderApi_GetFrameIndex()] = world;
 }
 
 bool EngineDriver::IsRenderLoopActive() const
@@ -373,8 +403,8 @@ void EngineDriver::FinalizeStop()
 
         SetGlobalNetRequestThread(nullptr);
     }
-
-    m_world.Reset();
+    
+    m_currentWorldBuffered = {};
 
     m_debugDrawer.Reset();
 
@@ -393,12 +423,14 @@ HYP_API void EngineDriver::RenderNextFrame()
     FrameBase* frame = g_renderBackend->PrepareNextFrame();
 
     PreFrameUpdate(frame);
+    
+    const Handle<World>& currentWorld = m_currentWorldBuffered[RenderApi_GetFrameIndex()];
 
-    if (m_world->IsReady())
+    if (currentWorld && currentWorld->IsReady())
     {
         g_renderGlobalState->gpuBuffers[GRB_WORLDS]->WriteBufferData(0, RenderApi_GetWorldBufferData(), sizeof(WorldShaderData));
 
-        RenderSetup rs { m_world, nullptr };
+        RenderSetup rs { currentWorld, nullptr };
         g_renderGlobalState->mainRenderer->RenderFrame(frame, rs);
 
         m_finalPass->Render(frame, rs);

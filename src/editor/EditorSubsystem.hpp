@@ -395,6 +395,12 @@ public:
     void OpenProject(const Handle<EditorProject>& project);
 
     HYP_METHOD()
+    void ShowOpenProjectDialog();
+
+    HYP_METHOD()
+    void ShowImportContentDialog();
+
+    HYP_METHOD()
     void AddTask(const Handle<EditorTaskBase>& task);
 
     HYP_METHOD()

@@ -248,7 +248,7 @@ static inline Other* ObjCast(T* objectPtr)
         return static_cast<Other*>(objectPtr);
     }
 
-    if (objectPtr && objectPtr->IsA(Other::Class()))
+    if (objectPtr && objectPtr->template IsA<Other>())
     {
         return static_cast<Other*>(objectPtr);
     }
@@ -266,7 +266,7 @@ static inline const Other* ObjCast(const T* objectPtr)
         return static_cast<const Other*>(objectPtr);
     }
 
-    if (objectPtr && objectPtr->IsA(Other::Class()))
+    if (objectPtr && objectPtr->template IsA<Other>())
     {
         return static_cast<const Other*>(const_cast<T*>(objectPtr));
     }
@@ -284,7 +284,7 @@ static inline const Handle<Other>& ObjCast(const Handle<T>& handle)
         return Handle<Other>::empty;
     }
 
-    if (handle->IsA(Other::Class()))
+    if (handle->template IsA<Other>())
     {
         return reinterpret_cast<const Handle<Other>&>(handle);
     }
@@ -302,7 +302,7 @@ static inline Handle<Other> ObjCast(Handle<T>&& handle)
         return Handle<Other>::empty;
     }
 
-    if (handle->IsA(Other::Class()))
+    if (handle->template IsA<Other>())
     {
         return reinterpret_cast<Handle<Other>&&>(handle);
     }
@@ -320,7 +320,7 @@ static inline const WeakHandle<Other>& ObjCast(const WeakHandle<T>& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (handle->IsA(Other::Class()))
+    if (IsA(GetClass(handle.GetTypeId()), Other::Class()))
     {
         return reinterpret_cast<const WeakHandle<Other>&>(handle);
     }
@@ -338,7 +338,7 @@ static inline WeakHandle<Other> ObjCast(WeakHandle<T>&& handle)
         return WeakHandle<Other>::empty;
     }
 
-    if (handle->IsA(Other::Class()))
+    if (IsA(GetClass(handle.GetTypeId()), Other::Class()))
     {
         return reinterpret_cast<WeakHandle<Other>&&>(handle);
     }

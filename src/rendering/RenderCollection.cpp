@@ -451,6 +451,7 @@ void RenderCollector::ExecuteDrawCalls(FrameBase* frame, const RenderSetup& rend
 {
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView(), "RenderSetup must have a View attached");
+    AssertDebug(renderSetup.view->IsReady());
 
     if (renderSetup.view->GetFlags() & ViewFlags::GBUFFER)
     {

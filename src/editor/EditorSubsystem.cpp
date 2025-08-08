@@ -15,7 +15,6 @@
 
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
-#include <rendering/Mesh.hpp>
 #include <scene/View.hpp>
 #include <scene/Light.hpp>
 #include <rendering/Texture.hpp>
@@ -29,6 +28,7 @@
 
 #include <asset/Assets.hpp>
 #include <asset/AssetRegistry.hpp>
+#include <asset/AssetBatch.hpp>
 
 #include <core/serialization/fbom/FBOMReader.hpp>
 #include <core/serialization/fbom/FBOMWriter.hpp>
@@ -49,6 +49,7 @@
 #include <input/InputManager.hpp>
 
 #include <system/AppContext.hpp>
+#include <system/OpenFileDialog.hpp>
 
 #include <core/object/HypClassUtils.hpp>
 
@@ -59,6 +60,7 @@
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
 
+#include <rendering/Mesh.hpp>
 #include <rendering/debug/DebugDrawer.hpp>
 
 #include <rendering/subsystems/ScreenCapture.hpp>
@@ -78,11 +80,12 @@
 #include <scripting/ScriptingService.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
+
 #include <util/MeshBuilder.hpp>
 
 #include <engine/EngineGlobals.hpp>
-#include <HyperionEngine.hpp>
 #include <engine/EngineDriver.hpp>
+#include <HyperionEngine.hpp>
 
 namespace hyperion {
 
@@ -1132,7 +1135,7 @@ void EditorSubsystem::OnAddedToWorld()
 
     m_editorScene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND | SceneFlags::EDITOR);
     m_editorScene->SetName(NAME("EditorScene"));
-    g_engineDriver->GetWorld()->AddScene(m_editorScene);
+    GetWorld()->AddScene(m_editorScene);
 
     Handle<Node> cameraNode = m_editorScene->GetRoot()->AddChild();
 
@@ -1208,7 +1211,7 @@ void EditorSubsystem::OnRemovedFromWorld()
 {
     HYP_SCOPE;
 
-    g_engineDriver->GetWorld()->RemoveScene(m_editorScene);
+    GetWorld()->RemoveScene(m_editorScene);
 
     if (m_currentProject)
     {
@@ -1527,7 +1530,7 @@ void EditorSubsystem::InitViewport()
             {
                 SetHoveredManipulationWidget(event, nullptr, Handle<Node>::empty);
             }
-        
+
             m_camera->GetCameraController()->GetInputHandler()->OnMouseLeave(event);
 
             return UIEventHandlerResult::OK;
@@ -2554,7 +2557,9 @@ void EditorSubsystem::InitContentBrowser()
 
     m_contentBrowserContents = ObjCast<UIGrid>(uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents"));
     Assert(m_contentBrowserContents != nullptr);
-    m_contentBrowserContents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}));
+
+    // create data source that handles AssetObject and AssetPackage (so we display as subfolders)
+    m_contentBrowserContents->SetDataSource(CreateObject<UIDataSource>(TypeWrapper<AssetObject> {}, TypeWrapper<AssetPackage> {}));
     m_contentBrowserContents->SetIsVisible(false);
 
     m_contentBrowserContentsEmpty = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Contents_Empty");
@@ -2570,24 +2575,26 @@ void EditorSubsystem::InitContentBrowser()
         importButton->OnClick
             .Bind([this, stageWeak = uiSubsystem->GetUIStage().ToWeak()](...)
                 {
-                    if (Handle<UIStage> stage = stageWeak.Lock())
-                    {
-                        auto loadedUiAsset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
+                    ShowImportContentDialog();
 
-                        if (loadedUiAsset.HasValue())
-                        {
-                            Handle<UIObject> loadedUi = loadedUiAsset->Result();
+                    // if (Handle<UIStage> stage = stageWeak.Lock())
+                    // {
+                    //     auto loadedUiAsset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
 
-                            if (Handle<UIObject> fileBrowserDialog = loadedUi->FindChildUIObject("File_Browser_Dialog"))
-                            {
-                                stage->AddChildUIObject(fileBrowserDialog);
+                    //     if (loadedUiAsset.HasValue())
+                    //     {
+                    //         Handle<UIObject> loadedUi = loadedUiAsset->Result();
 
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            }
-                        }
+                    //         if (Handle<UIObject> fileBrowserDialog = loadedUi->FindChildUIObject("File_Browser_Dialog"))
+                    //         {
+                    //             stage->AddChildUIObject(fileBrowserDialog);
 
-                        HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loadedUiAsset.GetError().GetMessage());
-                    }
+                    //             return UIEventHandlerResult::STOP_BUBBLING;
+                    //         }
+                    //     }
+
+                    //     HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loadedUiAsset.GetError().GetMessage());
+                    // }
 
                     return UIEventHandlerResult::ERR;
                 }));
@@ -2710,6 +2717,34 @@ void EditorSubsystem::SetSelectedPackage(const Handle<AssetPackage>& package)
 
                 return IterationResult::CONTINUE;
             });
+
+        m_delegateHandlers.Add(
+            NAME("OnSubpackageAdded"),
+            package->OnSubpackageAdded.BindThreaded([this](const Handle<AssetPackage>& subpackage)
+                {
+                    m_contentBrowserContents->GetDataSource()->Push(subpackage->GetUUID(), HypData(subpackage));
+                },
+                g_gameThread));
+
+        m_delegateHandlers.Add(
+            NAME("OnSubpackageRemoved"),
+            package->OnSubpackageRemoved.BindThreaded([this](const Handle<AssetPackage>& subpackage)
+                {
+                    m_contentBrowserContents->GetDataSource()->Remove(subpackage->GetUUID());
+                },
+                g_gameThread));
+
+        package->ForEachSubpackage([this](const Handle<AssetPackage>& subpackage)
+            {
+                if (subpackage->IsHidden())
+                {
+                    return IterationResult::CONTINUE;
+                }
+
+                m_contentBrowserContents->GetDataSource()->Push(subpackage->GetUUID(), HypData(subpackage));
+
+                return IterationResult::CONTINUE;
+            });
     }
 
     HYP_LOG(Editor, Debug, "Num assets in package: {}", m_contentBrowserContents->GetDataSource()->Size());
@@ -2824,6 +2859,106 @@ void EditorSubsystem::OpenProject(const Handle<EditorProject>& project)
 
         g_editorState->SetCurrentProject(m_currentProject);
     }
+}
+
+void EditorSubsystem::ShowOpenProjectDialog()
+{
+    HYP_SCOPE;
+
+    ShowOpenFileDialog(
+        "Select the project file to open",
+        GetResourceDirectory(),
+        { "hyp" },
+        /* allowMultiple */ false, /* allowDirectories */ true,
+        [](TResult<Array<FilePath>>&& result)
+        {
+            if (result.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to select project file: {}", result.GetError().GetMessage());
+                return;
+            }
+
+            if (result.GetValue().Empty())
+            {
+                HYP_LOG(Editor, Warning, "No project file selected.");
+                return;
+            }
+            
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([projectFilepath = std::move(result.GetValue()[0])]()
+            {
+                TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
+                
+                if (loadProjectResult.HasError())
+                {
+                    HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
+                    return;
+                }
+                
+                Handle<EditorProject> project = loadProjectResult.GetValue();
+                
+                if (!project.IsValid())
+                {
+                    HYP_LOG(Editor, Error, "Loaded project is invalid.");
+                    return;
+                }
+                
+                if (EditorSubsystem* editorSubsystem = g_engineDriver->GetCurrentWorld()->GetSubsystem<EditorSubsystem>())
+                {
+                    editorSubsystem->OpenProject(project);
+                    
+                    return;
+                }
+                
+                HYP_LOG(Editor, Fatal, "EditorSubsystem does not exist!");
+            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+        });
+}
+
+void EditorSubsystem::ShowImportContentDialog()
+{
+    HYP_SCOPE;
+
+    ShowOpenFileDialog(
+        "Select the file(s) to import into the project",
+        GetResourceDirectory(),
+        { "obj", "jpg", "jpeg", "png", "tga", "bmp", "ogre.xml" },
+        /* allowMultiple */ true, /* allowDirectories */ false,
+        [](TResult<Array<FilePath>>&& result)
+        {
+            if (result.HasError())
+            {
+                HYP_LOG(Editor, Error, "Failed to select files to import: {}", result.GetError().GetMessage());
+
+                return;
+            }
+
+            // Create identifier based on the common folder of the assets
+            String identifier = "Unknown";
+
+            if (result.GetValue().Any())
+            {
+                identifier = result.GetValue()[0].BasePath().Basename();
+            }
+
+            // Queue up an asset batch
+            RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch(identifier);
+
+            for (const FilePath& file : result.GetValue())
+            {
+                batch->Add(file.Basename(), FilePath::Relative(file, GetExecutablePath()));
+            }
+
+            batch->OnComplete
+                .Bind([](AssetMap& results)
+                    {
+                        HYP_LOG(Editor, Info, "{} assets loaded.", results.Size());
+
+                        // @TODO Open folder the assets ended up in
+                    })
+                .Detach();
+
+            batch->LoadAsync();
+        });
 }
 
 void EditorSubsystem::AddTask(const Handle<EditorTaskBase>& task)

@@ -135,31 +135,36 @@ void UISubsystem::Init()
 {
     HYP_SCOPE;
 
-    m_onGbufferResolutionChangedHandle = g_engineDriver->GetDelegates().OnAfterSwapchainRecreated.Bind([weakThis = WeakHandleFromThis()]()
+    m_onResizeHandle = g_engineDriver->GetAppContext()->GetMainWindow()->OnWindowSizeChanged.Bind([weakThis = WeakHandleFromThis()](Vec2i windowSize)
         {
-            Threads::AssertOnThread(g_renderThread);
-
-            HYP_LOG(UI, Debug, "UISubsystem: resizing to {}", g_engineDriver->GetAppContext()->GetMainWindow()->GetDimensions());
-
-            Handle<UISubsystem> subsystem = weakThis.Lock();
-
-            if (!subsystem)
-            {
-                HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
-
-                return;
-            }
-
             PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
-            subsystem->CreateFramebuffer();
+            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([weakThis, surfaceSize = windowSize]()
+                {
+                    Handle<UISubsystem> subsystem = weakThis.Lock();
+
+                    if (!subsystem)
+                    {
+                        HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
+
+                        return;
+                    }
+
+                    Handle<UIStage> uiStage = subsystem->GetUIStage();
+                    AssertDebug(uiStage != nullptr);
+
+                    if (uiStage)
+                    {
+                        uiStage->SetSurfaceSize(surfaceSize);
+                    }
+
+                    subsystem->CreateFramebuffer();
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
         });
 
     Assert(m_uiStage != nullptr);
     InitObject(m_uiStage);
-
-    Assert(m_uiStage->GetCamera().IsValid());
-    Assert(m_uiStage->GetCamera()->IsReady());
 
     const Vec2u surfaceSize = Vec2u(m_uiStage->GetSurfaceSize());
     HYP_LOG(UI, Debug, "UISubsystem: surface size is {}", surfaceSize);
@@ -192,13 +197,23 @@ void UISubsystem::Init()
 void UISubsystem::OnAddedToWorld()
 {
     HYP_SCOPE;
+
+    if (m_uiStage && m_uiStage->GetScene())
+    {
+        GetWorld()->AddScene(m_uiStage->GetScene()->HandleFromThis());
+    }
 }
 
 void UISubsystem::OnRemovedFromWorld()
 {
+    if (m_uiStage && m_uiStage->GetScene())
+    {
+        GetWorld()->RemoveScene(m_uiStage->GetScene()->HandleFromThis());
+    }
+
     PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
-    m_onGbufferResolutionChangedHandle.Reset();
+    m_onResizeHandle.Reset();
 }
 
 void UISubsystem::PreUpdate(float delta)
@@ -211,6 +226,7 @@ void UISubsystem::Update(float delta)
 {
     m_uiStage->Update(delta);
 
+    m_view->UpdateViewport();
     m_view->UpdateVisibility();
 
     RenderProxyList& rpl = RenderApi_GetProducerProxyList(m_view);

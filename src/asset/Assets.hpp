@@ -177,7 +177,8 @@ class AssetManager final : public HypObjectBase
     HYP_OBJECT_BODY(AssetManager);
 
 public:
-    using ProcessAssetFunctorFactory = std::add_pointer_t<UniquePtr<ProcessAssetFunctorBase>(const String& /* key */, const String& /* path */, AssetBatchCallbacks* /* callbacks */)>;
+    typedef UniquePtr<ProcessAssetFunctorBase>(*ProcessAssetFunctorFactory)(
+        const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacks);
 
     static constexpr bool assetCacheEnabled = false;
 
@@ -231,18 +232,18 @@ public:
         assetLoaderDefinition.extensions = FlatSet<String>(formatStrings.Begin(), formatStrings.End());
         assetLoaderDefinition.loader = CreateObject<Loader>();
 
-        m_functorFactories.Set<Loader>([](const String& key, const String& path, AssetBatchCallbacks* callbacksPtr) -> UniquePtr<ProcessAssetFunctorBase>
+        m_functorFactories.Set<Loader>([](const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr) -> UniquePtr<ProcessAssetFunctorBase>
             {
-                return MakeUnique<ProcessAssetFunctor<ResultType>>(key, path, callbacksPtr);
+                return MakeUnique<ProcessAssetFunctor<ResultType>>(batchIdentifier, key, path, callbacksPtr);
             });
     }
 
     /*! \brief Load a single asset synchronously
      *  \param typeId The TypeId of asset to load
      *  \param path The path to the asset
-     *  \param flags Flags to control the loading process
+     *  \param batchIdentifier Optional string identifier used to group assets together once they're imported.
      *  \return The result of the load operation */
-    HYP_NODISCARD AssetLoadResult Load(const TypeId& typeId, const String& path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD AssetLoadResult Load(const TypeId& typeId, const String& path, const String& batchIdentifier = String::empty)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, typeId);
 
@@ -254,16 +255,16 @@ public:
         const Handle<AssetLoaderBase>& loader = loaderDefinition->loader;
         Assert(loader.IsValid());
 
-        return AssetLoadResult(loader->Load(*this, path));
+        return AssetLoadResult(loader->Load(*this, path, batchIdentifier));
     }
 
     /*! \brief Load a single asset synchronously
      *  \tparam T The type of asset to load
      *  \param path The path to the asset
-     *  \param flags Flags to control the loading process
+     *  \param batchIdentifier Optional identifier string to group assets together once they're imported.
      *  \return The result of the load operation */
     template <class T>
-    HYP_NODISCARD TAssetLoadResult<T> Load(const String& path, AssetLoadFlags flags = ASSET_LOAD_FLAGS_CACHE_READ | ASSET_LOAD_FLAGS_CACHE_WRITE)
+    HYP_NODISCARD TAssetLoadResult<T> Load(const String& path, const String& batchIdentifier = String::empty)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path, TypeId::ForType<T>());
 
@@ -275,29 +276,19 @@ public:
         AssetLoaderBase* loader = loaderDefinition->loader.Get();
         Assert(loader != nullptr);
 
-        return TAssetLoadResult<T>(loader->Load(*this, path));
+        return TAssetLoadResult<T>(loader->Load(*this, path, batchIdentifier));
     }
 
     HYP_API const AssetLoaderDefinition* GetLoaderDefinition(const FilePath& path, TypeId desiredTypeId = TypeId::Void());
 
-    HYP_API RC<AssetBatch> CreateBatch();
+    HYP_API RC<AssetBatch> CreateBatch(const String& identifier = String::empty);
 
     HYP_FORCE_INLINE const Handle<AssetRegistry>& GetAssetRegistry() const
     {
         return m_assetRegistry;
     }
 
-    HYP_FORCE_INLINE AssetCache* GetAssetCache() const
-    {
-        return m_assetCache.Get();
-    }
-
     void Update(float delta);
-
-    HYP_FORCE_INLINE HashCode GetHashCode() const
-    {
-        HYP_NOT_IMPLEMENTED();
-    }
 
     Delegate<void, const Handle<AssetCollector>&> OnAssetCollectorAdded;
     Delegate<void, const Handle<AssetCollector>&> OnAssetCollectorRemoved;
@@ -309,33 +300,34 @@ private:
     /*! \internal Called from AssetBatch on LoadAsync() */
     HYP_API void AddPendingBatch(const RC<AssetBatch>& batch);
 
-    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loaderTypeId, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr);
+    HYP_API UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(TypeId loaderTypeId,
+        const String& batchIdentifier,
+        const String& key,
+        const String& path,
+        AssetBatchCallbacks* callbacksPtr);
 
     template <class Loader>
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
     {
-        return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), key, path, callbacksPtr);
+        return CreateProcessAssetFunctor(TypeId::ForType<Loader>(), batchIdentifier, key, path, callbacksPtr);
     }
 
-    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
+    UniquePtr<ProcessAssetFunctorBase> CreateProcessAssetFunctor(const String& batchIdentifier, const String& key, const String& path, AssetBatchCallbacks* callbacksPtr)
     {
         const AssetLoaderDefinition* loaderDefinition = GetLoaderDefinition(path);
 
         if (!loaderDefinition)
         {
-            DebugLog(LogType::Error, "No registered loader for path: %s\n", path.Data());
-
+            // no registered loader for the path
             return nullptr;
         }
 
-        return CreateProcessAssetFunctor(loaderDefinition->loaderTypeId, key, path, callbacksPtr);
+        return CreateProcessAssetFunctor(loaderDefinition->loaderTypeId, batchIdentifier, key, path, callbacksPtr);
     }
 
     void RegisterDefaultLoaders();
 
     Handle<AssetRegistry> m_assetRegistry;
-
-    UniquePtr<AssetCache> m_assetCache;
 
     UniquePtr<AssetManagerThreadPool> m_threadPool;
 

@@ -80,15 +80,15 @@ public:
     }
 
     HYP_METHOD()
-    HYP_FORCE_INLINE const Handle<World>& GetWorld() const
-    {
-        return m_world;
-    }
-
+    const Handle<World>& GetCurrentWorld() const;
+    
+    HYP_METHOD()
+    void SetCurrentWorld(const Handle<World>& world);
+    
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<World>& GetDefaultWorld() const
     {
-        return m_world;
+        return m_defaultWorld;
     }
 
     HYP_FORCE_INLINE DebugDrawer* GetDebugDrawer() const
@@ -147,6 +147,9 @@ private:
     UniquePtr<FinalPass> m_finalPass;
 
     UniquePtr<ScriptingService> m_scriptingService;
+    
+    FixedArray<Handle<World>, g_tripleBuffer ? 3 : 2> m_currentWorldBuffered;
+    Handle<World> m_defaultWorld;
 
     EngineDelegates m_delegates;
 

@@ -442,16 +442,6 @@ public:
     {
     }
 
-    explicit UniquePtr(Any&& value)
-        : Base()
-    {
-        Base::m_holder.typeId = value.m_typeId;
-        Base::m_holder.value = value.m_ptr;
-        Base::m_holder.dtor = value.m_dtor;
-
-        (void)value.Release<void>();
-    }
-
     UniquePtr(const Base& other) = delete;
     UniquePtr& operator=(const Base& other) = delete;
     UniquePtr(const UniquePtr& other) = delete;

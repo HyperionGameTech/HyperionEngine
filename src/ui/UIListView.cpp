@@ -136,6 +136,7 @@ void UIListViewItem::SetIsExpanded(bool isExpanded)
     m_isExpanded = isExpanded;
 
     m_expandedElement->SetIsVisible(m_isExpanded);
+    // UpdateSize();
 }
 
 void UIListViewItem::SetIsSelectedItem(bool isSelectedItem)

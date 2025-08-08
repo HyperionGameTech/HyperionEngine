@@ -98,12 +98,19 @@ void GBuffer::Create()
 {
     HYP_SCOPE;
 
+    if (m_isCreated)
+    {
+        return;
+    }
+
     HYP_LOG(Rendering, Debug, "Creating GBuffer with resolution {}", m_extent);
 
     for (auto& framebuffer : m_framebuffers)
     {
         DeferCreate(framebuffer);
     }
+
+    m_isCreated = true;
 }
 
 void GBuffer::Resize(Vec2u extent)
@@ -126,19 +133,22 @@ void GBuffer::Resize(Vec2u extent)
 
     CreateBucketFramebuffers();
 
-    for (auto& framebuffer : m_framebuffers)
+    if (m_isCreated)
     {
-        DeferCreate(framebuffer);
-    }
+        for (auto& framebuffer : m_framebuffers)
+        {
+            DeferCreate(framebuffer);
+        }
 
-    OnGBufferResolutionChanged(m_extent);
+        OnGBufferResolutionChanged(m_extent);
+    }
 }
 
 void GBuffer::CreateBucketFramebuffers()
 {
     HYP_SCOPE;
-
-    Assert(m_framebuffers.Empty());
+    
+    m_framebuffers.Clear();
 
     for (GBufferTarget& it : m_buckets)
     {

@@ -473,6 +473,8 @@ void AssetPackage::Init()
         {
             InitObject(subpackage);
 
+            OnSubpackageAdded(subpackage);
+
             subpackages.PushBack(subpackage);
         }
     }
@@ -1243,6 +1245,11 @@ Handle<AssetPackage> AssetRegistry::GetSubpackage(const Handle<AssetPackage>& pa
             subpackage->m_parentPackage = parentPackage;
             subpackage->m_flags |= parentPackage->m_flags;
 
+            if (parentPackage->IsInitCalled())
+            {
+                parentPackage->OnSubpackageAdded(subpackage);
+            }
+
             parentPackage->m_subpackages.Insert(subpackage);
             isNew = true;
         }
@@ -1293,6 +1300,11 @@ bool AssetRegistry::RemovePackage(AssetPackage* package)
             {
                 auto it = parentPackage->m_subpackages.Find(package->GetName());
                 Assert(it != parentPackage->m_subpackages.End());
+
+                if (parentPackage->IsInitCalled())
+                {
+                    parentPackage->OnSubpackageRemoved(strongPackage);
+                }
 
                 parentPackage->m_subpackages.Erase(it);
 
@@ -1421,6 +1433,11 @@ Result AssetRegistry::LoadPackageFromManifest(const FilePath& dir, UTF8StringVie
                     {
                         subpackage->m_parentPackage = outPackage;
                         subpackage->m_flags |= outPackage->m_flags;
+
+                        if (outPackage->IsInitCalled())
+                        {
+                            outPackage->OnSubpackageAdded(subpackage);
+                        }
 
                         outPackage->m_subpackages.Insert(subpackage);
                     }
