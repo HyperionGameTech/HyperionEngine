@@ -183,7 +183,7 @@ const char* LookupTypeName(TypeId typeId)
     
     if (it == g_formattedStringMap->End())
     {
-        it = g_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId {}", typeId.Value())).first;
+        it = g_formattedStringMap->Insert(typeId, HYP_FORMAT("TypeId({})", typeId.Value())).first;
     }
     
     return *it->second;

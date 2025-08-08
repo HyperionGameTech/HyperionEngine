@@ -1167,7 +1167,7 @@ void EditorSubsystem::OnAddedToWorld()
 
     g_engineDriver->GetScriptingService()->OnScriptStateChanged.Bind([](const ManagedScript& script)
                                                                    {
-                                                                       DebugLog(LogType::Debug, "Script state changed: now is %u", script.state);
+                                                                       HYP_LOG(Script, Debug, "Script state changed: now is {}", EnumToString(ScriptCompileStatus(script.compileStatus)));
                                                                    })
         .Detach();
 
@@ -1543,7 +1543,7 @@ void EditorSubsystem::InitViewport()
             m_shouldCancelNextClick = true;
 
             // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
-            if (IsHoveringManipulationWidget())
+            if (IsHoveringManipulationWidget() && !g_engineDriver->GetAppContext()->GetInputManager()->IsMouseLocked())
             {
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
                 Handle<Node> node = m_hoveredManipulationWidgetNode.Lock();
@@ -1557,6 +1557,7 @@ void EditorSubsystem::InitViewport()
 
                 if (manipulationWidget->OnMouseMove(m_camera, event, Handle<Node>(node)))
                 {
+
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
             }
@@ -1629,6 +1630,7 @@ void EditorSubsystem::InitViewport()
 
                         if (node == m_hoveredManipulationWidgetNode)
                         {
+
                             return UIEventHandlerResult::STOP_BUBBLING;
                         }
 

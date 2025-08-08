@@ -4,14 +4,15 @@
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
 #include <scene/Node.hpp>
-#include <rendering/Mesh.hpp>
-
+#include <scene/util/EntityScripting.hpp>
 #include <scene/EntityManager.hpp>
+#include <scene/EntityTag.hpp>
 #include <scene/ComponentInterface.hpp>
 #include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
-#include <scene/EntityTag.hpp>
+#include <scene/components/ScriptComponent.hpp>
 
+#include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
 
 #include <core/logging/Logger.hpp>
@@ -265,11 +266,26 @@ void Entity::OnComponentAdded(AnyRef component)
                 return;
             }
         }
+
+        return;
     }
+
+    // if (ScriptComponent* scriptComponent = component.TryGet<ScriptComponent>())
+    // {
+    //     EntityScripting::InitEntityScriptComponent(this, *scriptComponent);
+
+    //     return;
+    // }
 }
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
+    // if (ScriptComponent* scriptComponent = component.TryGet<ScriptComponent>())
+    // {
+    //     EntityScripting::DeinitEntityScriptComponent(this, *scriptComponent);
+
+    //     return;
+    // }
 }
 
 void Entity::OnTagAdded(EntityTag tag)

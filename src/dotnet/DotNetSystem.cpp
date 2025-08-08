@@ -229,6 +229,8 @@ public:
 
         if (!filepath.HasValue())
         {
+            HYP_LOG(DotNET, Error, "Failed to load assembly {}: Could not find assembly DLL (base path: {})", path, m_basePath);
+            
             return nullptr;
         }
 

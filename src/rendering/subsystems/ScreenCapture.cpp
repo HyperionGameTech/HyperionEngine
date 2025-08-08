@@ -36,8 +36,6 @@ ScreenCaptureRenderSubsystem::ScreenCaptureRenderSubsystem(const Handle<View>& v
 
 ScreenCaptureRenderSubsystem::~ScreenCaptureRenderSubsystem()
 {
-    HYP_SYNC_RENDER(); // wait for render commands to finish
-
     SafeRelease(std::move(m_buffer));
 }
 
@@ -68,8 +66,7 @@ void ScreenCaptureRenderSubsystem::OnRemovedFromWorld()
 
 void ScreenCaptureRenderSubsystem::Update(float delta)
 {
-    struct RENDER_COMMAND(UpdateScreenCapture)
-        : RenderCommand
+    struct RENDER_COMMAND(UpdateScreenCapture) : RenderCommand
     {
         WeakHandle<ScreenCaptureRenderSubsystem> subsystemWeak;
 

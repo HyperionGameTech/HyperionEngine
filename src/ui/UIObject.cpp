@@ -2507,25 +2507,20 @@ void UIObject::SetScriptComponent(ScriptComponent&& scriptComponent)
     HYP_SCOPE;
 
     const Scene* scene = GetScene();
-
-    if (!scene)
-    {
-        return;
-    }
+    Assert(scene != nullptr && scene->IsReady());
 
     const Handle<Entity>& entity = GetEntity();
+    Assert(entity != nullptr && entity->IsReady());
 
-    if (!entity.IsValid())
+    const Handle<EntityManager>& entityManager = scene->GetEntityManager();
+    Assert(entityManager != nullptr && entityManager->IsReady());
+
+    if (entityManager->HasComponent<ScriptComponent>(entity))
     {
-        return;
+        Assert(entityManager->RemoveComponent<ScriptComponent>(entity));
     }
 
-    if (scene->GetEntityManager()->HasComponent<ScriptComponent>(entity))
-    {
-        scene->GetEntityManager()->RemoveComponent<ScriptComponent>(entity);
-    }
-
-    scene->GetEntityManager()->AddComponent<ScriptComponent>(entity, std::move(scriptComponent));
+    entityManager->AddComponent<ScriptComponent>(entity, std::move(scriptComponent));
 }
 
 void UIObject::RemoveScriptComponent()
@@ -2962,7 +2957,7 @@ void UIObject::OnScrollOffsetUpdate(Vec2f delta)
 void UIObject::SetDataSource(const Handle<UIDataSourceBase>& dataSource)
 {
     HYP_SCOPE;
-    
+
     if (dataSource == m_dataSource)
     {
         return;

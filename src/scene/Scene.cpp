@@ -205,6 +205,8 @@ void Scene::Init()
 
     InitObject(m_root);
     InitObject(m_entityManager);
+
+    AssertDebug(m_entityManager->GetWorld() == m_world);
 }
 
 void Scene::SetOwnerThreadId(ThreadId ownerThreadId)

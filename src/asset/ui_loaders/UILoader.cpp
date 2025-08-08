@@ -603,7 +603,13 @@ public:
 
                         continue;
                     }
+//                    
+//                    AssertDebug(uiObject->GetScene() != nullptr && uiObject->GetScene()->IsReady());
+//                    AssertDebug(uiObject->GetEntity() != nullptr && uiObject->GetScene()->IsReady());
+//                    AssertDebug(scriptComponent->resource != nullptr);
 
+                    // May be null if script not found because it needs to be compiled the first time...
+                    // @FIXME
                     if (!scriptComponent->resource)
                     {
                         HYP_LOG(Assets, Error, "Failed to bind \"{}\" event - No ManagedObjectResource found on ScriptComponent for UIObject \"{}\"",

@@ -1119,7 +1119,7 @@ public:
 
     /*! \internal */
     void ForEachChildUIObject_Proc(ProcRef<IterationResult(UIObject*)> proc, bool deep = true) const;
-
+    
     /*! \brief Spawn a new UIObject with the given HypClass \ref{hypClass}. The object will not be attached to the current UIStage.
      *  The object will not be named. To name the object, use the other CreateUIObject overload.
      *

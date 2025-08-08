@@ -734,6 +734,8 @@ void Camera::UpdateMouseLocked()
             if (const Handle<AppContextBase>& appContext = g_engineDriver->GetAppContext())
             {
                 m_mouseLockScope = appContext->GetInputManager()->AcquireMouseLock();
+
+                return;
             }
         }
     }

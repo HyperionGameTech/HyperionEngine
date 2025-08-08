@@ -100,7 +100,7 @@ void SystemMessageBox::Show() const
     {
         if (buttonIndex < 0 || buttonIndex >= m_buttons.Size())
         {
-            HYP_LOG(Core, Warning, "MessageBox Show() returned invalid index: {}, {} buttons", buttonIndex, m_buttons.Size());
+            HYP_LOG(Core, Warning, "ShowMessageBox() returned invalid index: {}, {} buttons", buttonIndex, m_buttons.Size());
 
             return;
         }

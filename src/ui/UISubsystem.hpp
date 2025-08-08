@@ -14,6 +14,7 @@ namespace hyperion {
 
 class Scene;
 class View;
+class World;
 
 class UIStage;
 class UIRenderer;

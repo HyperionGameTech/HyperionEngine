@@ -370,11 +370,11 @@ DynamicLogChannelHandle& DynamicLogChannelHandle::operator=(DynamicLogChannelHan
 
 #pragma region LogChannel
 
-LogChannel::LogChannel(Name name)
+LogChannel::LogChannel(Name name, LogChannel* parentChannel)
     : m_id(~0u),
       m_name(name),
       m_flags(LogChannelFlags::NONE),
-      m_parentChannel(nullptr),
+      m_parentChannel(parentChannel),
       m_maskBitset(0)
 {
 }

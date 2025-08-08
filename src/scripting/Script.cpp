@@ -19,14 +19,14 @@ Script::Script(const ScriptDesc& desc)
 
     Memory::StrCpy(m_managedScript.path, m_desc.path.Data(), MathUtil::Min(m_desc.path.Size() + 1, scriptMaxPathLength));
     Memory::MemSet(m_managedScript.assemblyPath, '\0', scriptMaxPathLength);
-    m_managedScript.state = uint32(CompiledScriptState::UNINITIALIZED);
+    m_managedScript.compileStatus = SCS_UNINITIALIZED;
 }
 
 Script::~Script() = default;
 
-EnumFlags<CompiledScriptState> Script::GetState() const
+EnumFlags<ScriptCompileStatus> Script::GetCompileStatus() const
 {
-    return EnumFlags<CompiledScriptState>(m_managedScript.state);
+    return EnumFlags<ScriptCompileStatus>(m_managedScript.compileStatus);
 }
 
 } // namespace hyperion

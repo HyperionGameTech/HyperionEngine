@@ -112,7 +112,7 @@ public:
     friend class Logger;
     friend class LogChannelRegistrar;
 
-    LogChannel(Name name);
+    LogChannel(Name name, LogChannel* parentChannel = nullptr);
     LogChannel(const LogChannel& other) = delete;
     LogChannel& operator=(const LogChannel& other) = delete;
     LogChannel(LogChannel&& other) noexcept = delete;

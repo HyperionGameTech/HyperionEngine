@@ -351,7 +351,6 @@ void World::Update(float delta)
     Array<EntityManager*> entityManagers;
     entityManagers.Reserve(m_scenes.Size());
 
-    // @TODO Collect all scenes, envgrids, envprobes for Views into a single list to call Update() on them all.
     for (uint32 index = 0; index < m_scenes.Size(); index++)
     {
         const Handle<Scene>& scene = m_scenes[index];

@@ -20,16 +20,17 @@ class Assembly;
 class Object;
 } // namespace dotnet
 
-enum class CompiledScriptState : uint32
+HYP_ENUM()
+enum ScriptCompileStatus : uint32
 {
-    UNINITIALIZED = 0x0,
-    COMPILED = 0x1,
-    DIRTY = 0x2,
-    PROCESSING = 0x4,
-    ERRORED = 0x8
+    SCS_UNINITIALIZED = 0x0,
+    SCS_COMPILED = 0x1,
+    SCS_DIRTY = 0x2,
+    SCS_PROCESSING = 0x4,
+    SCS_ERRORED = 0x8
 };
 
-HYP_MAKE_ENUM_FLAGS(CompiledScriptState)
+HYP_MAKE_ENUM_FLAGS(ScriptCompileStatus)
 
 struct ScriptDesc
 {
@@ -42,25 +43,25 @@ static constexpr SizeType scriptMaxClassNameLength = 1024;
 HYP_STRUCT()
 struct ManagedScript
 {
-    HYP_FIELD(Serialize, Property = "UUID")
+    HYP_FIELD(Property = "UUID", Serialize = true)
     UUID uuid;
 
-    HYP_FIELD(Serialize, Property = "Path")
+    HYP_FIELD(Property = "Path", Serialize = true)
     char path[scriptMaxPathLength];
 
-    HYP_FIELD(Serialize, Property = "AssemblyPath")
+    HYP_FIELD(Property = "AssemblyPath", Serialize = true)
     char assemblyPath[scriptMaxPathLength];
 
-    HYP_FIELD(Serialize, Property = "ClassName")
+    HYP_FIELD(Property = "ClassName", Serialize = true)
     char className[scriptMaxClassNameLength];
 
-    HYP_FIELD(Serialize, Property = "State")
-    uint32 state;
+    HYP_FIELD(Property = "CompileStatus", Serialize = false)
+    uint32 compileStatus;
 
-    HYP_FIELD(Serialize, Property = "HotReloadVersion")
+    HYP_FIELD(Property = "HotReloadVersion", Serialize = true)
     int32 hotReloadVersion;
 
-    HYP_FIELD(Serialize, Property = "LastModifiedTimestamp")
+    HYP_FIELD(Property = "LastModifiedTimestamp", Serialize = true)
     uint64 lastModifiedTimestamp;
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
@@ -71,7 +72,7 @@ struct ManagedScript
         hashCode.Add(&path[0]);
         hashCode.Add(&assemblyPath[0]);
         hashCode.Add(&className[0]);
-        hashCode.Add(state);
+        hashCode.Add(compileStatus);
 
         return hashCode;
     }
@@ -115,7 +116,7 @@ public:
         m_managedScript = managedScript;
     }
 
-    EnumFlags<CompiledScriptState> GetState() const;
+    EnumFlags<ScriptCompileStatus> GetCompileStatus() const;
 
 private:
     ScriptDesc m_desc;

@@ -61,7 +61,14 @@ extern "C"
     {
         const Name channelName = CreateNameFromDynamicString(name);
 
-        return Logger::GetInstance().CreateDynamicLogChannel(channelName, &g_logChannel_Script).Release();
+        // owns allocation
+        LogChannel* logChannel = new LogChannel(channelName, &g_logChannel_Script);
+
+        Logger::GetInstance()
+            .CreateDynamicLogChannel(*logChannel)
+            .Release();
+
+        return logChannel;
     }
 
     HYP_EXPORT void Logger_DestroyLogChannel(LogChannel* logChannel)

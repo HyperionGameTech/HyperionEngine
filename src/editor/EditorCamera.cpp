@@ -48,7 +48,6 @@ static const Bitset g_wasdBits = CreateWasdBitset(true);
 EditorCameraInputHandler::EditorCameraInputHandler(const WeakHandle<CameraController>& controller)
     : m_controller(controller)
 {
-    Assert(m_controller.IsValid(), "Null camera controller or not of type EditorCameraController");
 }
 
 bool EditorCameraInputHandler::OnKeyDown_Impl(const KeyboardEvent& evt)

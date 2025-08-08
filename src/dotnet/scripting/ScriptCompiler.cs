@@ -17,6 +17,8 @@ namespace Hyperion
         private string sourceDirectory;
         private string intermediateDirectory;
         private string binaryOutputDirectory;
+        
+        private const int timeoutMilliseconds = 30000; // 30 seconds
 
         public ScriptCompiler(string sourceDirectory, string intermediateDirectory, string binaryOutputDirectory)
         {
@@ -25,7 +27,7 @@ namespace Hyperion
             this.binaryOutputDirectory = binaryOutputDirectory;
 
             // Make the directories if they don't exist.
-            
+
             foreach (string directory in new string[] { sourceDirectory, intermediateDirectory, binaryOutputDirectory })
             {
                 try
@@ -49,6 +51,8 @@ namespace Hyperion
 
         public void BuildAllProjects()
         {
+            Logger.Log(logChannel, LogType.Info, "Building all projects in source directory: {0}", sourceDirectory);
+
             string[] symLinks = System.IO.Directory.GetFiles(binaryOutputDirectory, "*.*.dll", System.IO.SearchOption.AllDirectories)
                 .Where(file => (System.IO.File.GetAttributes(file) & System.IO.FileAttributes.ReparsePoint) == System.IO.FileAttributes.ReparsePoint)
                 .ToArray();
@@ -72,6 +76,8 @@ namespace Hyperion
 
             foreach (string directory in directories)
             {
+                Logger.Log(logChannel, LogType.Info, "Processing directory: {0}", directory);
+
                 string moduleName;
                 int hotReloadVersion;
 
@@ -231,6 +237,8 @@ namespace Hyperion
                 projectOutputDirectory: projectOutputDirectory
             );
 
+            Logger.Log(logChannel, LogType.Info, "Generating .csproj at {0}", projectFilePath);
+
             if (!GenerateCSharpProjectFile(
                 projectFilePath: projectFilePath,
                 scriptDirectory: scriptDirectory,
@@ -305,6 +313,8 @@ namespace Hyperion
 
         private bool RunDotNetCLI(string projectOutputDirectory, out int hotReloadVersion)
         {
+            Logger.Log(logChannel, LogType.Info, "Running dotnet CLI in {0}", projectOutputDirectory);
+
             hotReloadVersion = -1;
 
             // ensure the working dir exists
@@ -332,7 +342,10 @@ namespace Hyperion
             process.StartInfo.WorkingDirectory = projectOutputDirectory;
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
+
+#if !HYP_MACOS
             process.OutputDataReceived += (object sendingProcess, System.Diagnostics.DataReceivedEventArgs eventArgs) =>
             {
                 Logger.Log(logChannel, LogType.Info, "{0}", eventArgs.Data);
@@ -341,6 +354,7 @@ namespace Hyperion
             {
                 Logger.Log(logChannel, LogType.Error, "{0}", eventArgs.Data);
             };
+#endif
 
             try
             {
@@ -353,10 +367,35 @@ namespace Hyperion
                 return false;
             }
 
+#if !HYP_MACOS
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+#else
+            // due to a bug isolated to macOS causing deadlock / hang on process exit,
+            // we need to handle output synchronously.
+            string standardOutput = process.StandardOutput.ReadToEnd();
+            string standardErrorOutput = process.StandardError.ReadToEnd();
 
-            process.WaitForExit();
+            if (!string.IsNullOrEmpty(standardOutput))
+                Logger.Log(logChannel, LogType.Info, "{0}", standardOutput);
+
+            if (!string.IsNullOrEmpty(standardErrorOutput))
+                Logger.Log(logChannel, LogType.Error, "{0}", standardErrorOutput);
+#endif
+
+            Logger.Log(logChannel, LogType.Info, "Waiting for dotnet process to finish...");
+
+            if (!process.WaitForExit(timeoutMilliseconds))
+            {
+                Logger.Log(logChannel, LogType.Error, "dotnet process timed out after {0} milliseconds", timeoutMilliseconds);
+
+                // kill the process
+                process.Kill();
+
+                return false;
+            }
+
+            Logger.Log(logChannel, LogType.Info, "dotnet process finished with exit code {0}", process.ExitCode);
 
             if (process.ExitCode != 0)
             {
@@ -375,12 +414,14 @@ namespace Hyperion
 
             // Grep all DLLs in the output directory
             string[] dlls = System.IO.Directory.GetFiles(System.IO.Path.Combine(projectOutputDirectory, "bin"), "*.dll", System.IO.SearchOption.AllDirectories);
-            string[] outputDlls = new string[dlls.Length];
+            List<string> outputDlls = new List<string>();
 
             for (int i = 0; i < dlls.Length; i++)
             {
                 // Copy the DLL to the output directory
                 string outputDllPath = System.IO.Path.Combine(binaryOutputDirectory, System.IO.Path.GetFileName(dlls[i]));
+
+                Logger.Log(logChannel, LogType.Info, "Copying output script assembly {0} to {1}", dlls[i], outputDllPath);
 
                 try
                 {
@@ -388,15 +429,15 @@ namespace Hyperion
                 }
                 catch (Exception e)
                 {
-                    Logger.Log(logChannel, LogType.Error, "Failed to copy DLL: {0}", e.Message);
+                    Logger.Log(logChannel, LogType.Error, "Failed to copy script assembly: {0}", e.Message);
 
-                    return false;
+                    continue;
                 }
 
-                outputDlls[i] = outputDllPath;
+                outputDlls.Add(outputDllPath);
             }
 
-            return CreateSymLinks(outputDlls, out hotReloadVersion);
+            return CreateSymLinks(outputDlls.ToArray(), out hotReloadVersion);
         }
 
         private bool CreateSymLinks(string[] dlls, out int hotReloadVersion)
@@ -410,6 +451,11 @@ namespace Hyperion
 
             foreach (string dll in dlls)
             {
+                if (dll == null)
+                {
+                    continue;
+                }
+
                 string? directoryName = System.IO.Path.GetDirectoryName(dll);
 
                 if (directoryName == null)
@@ -452,6 +498,11 @@ namespace Hyperion
 
             foreach (string dll in dlls)
             {
+                if (dll == null)
+                {
+                    continue;
+                }
+
                 string fileName = System.IO.Path.GetFileName(dll);
                 string directory = dll.Substring(0, dll.Length - fileName.Length);
 

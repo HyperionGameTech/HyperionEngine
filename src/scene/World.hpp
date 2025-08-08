@@ -59,6 +59,8 @@ private:
 
         InitObject(scene);
 
+        AssertDebug(world != nullptr && scene->GetWorld() == world);
+
         return scene;
     }
 };
