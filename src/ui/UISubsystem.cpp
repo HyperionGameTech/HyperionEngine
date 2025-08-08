@@ -134,37 +134,30 @@ UISubsystem::~UISubsystem()
 void UISubsystem::Init()
 {
     HYP_SCOPE;
+    
+    Assert(m_uiStage != nullptr);
+    InitObject(m_uiStage);
 
-    m_onResizeHandle = g_engineDriver->GetAppContext()->GetMainWindow()->OnWindowSizeChanged.Bind([weakThis = WeakHandleFromThis()](Vec2i windowSize)
+    m_onResizeHandle = g_engineDriver->GetAppContext()->GetMainWindow()->OnWindowSizeChanged.BindThreaded([weakThis = WeakHandleFromThis()](Vec2i windowSize)
         {
             PUSH_RENDER_COMMAND(SetFinalPassImageView, nullptr);
 
-            Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([weakThis, surfaceSize = windowSize]()
-                {
-                    Handle<UISubsystem> subsystem = weakThis.Lock();
+            Handle<UISubsystem> subsystem = weakThis.Lock();
 
-                    if (!subsystem)
-                    {
-                        HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
+            if (!subsystem)
+            {
+                HYP_LOG(UI, Warning, "UISubsystem: subsystem is expired on resize");
 
-                        return;
-                    }
+                return;
+            }
 
-                    Handle<UIStage> uiStage = subsystem->GetUIStage();
-                    AssertDebug(uiStage != nullptr);
+            Handle<UIStage> uiStage = subsystem->GetUIStage();
+            AssertDebug(uiStage != nullptr);
 
-                    if (uiStage)
-                    {
-                        uiStage->SetSurfaceSize(surfaceSize);
-                    }
+            uiStage->SetSurfaceSize(windowSize);
 
-                    subsystem->CreateFramebuffer();
-                },
-                TaskEnqueueFlags::FIRE_AND_FORGET);
-        });
-
-    Assert(m_uiStage != nullptr);
-    InitObject(m_uiStage);
+            subsystem->CreateFramebuffer();
+        }, g_gameThread);
 
     const Vec2u surfaceSize = Vec2u(m_uiStage->GetSurfaceSize());
     HYP_LOG(UI, Debug, "UISubsystem: surface size is {}", surfaceSize);

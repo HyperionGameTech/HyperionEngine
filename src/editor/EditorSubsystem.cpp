@@ -2566,38 +2566,19 @@ void EditorSubsystem::InitContentBrowser()
     Assert(m_contentBrowserContentsEmpty != nullptr);
     m_contentBrowserContentsEmpty->SetIsVisible(true);
 
-    Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button");
-    Assert(importButton != nullptr);
+    if (Handle<UIObject> importButton = uiSubsystem->GetUIStage()->FindChildUIObject("ContentBrowser_Import_Button"))
+    {
+        m_delegateHandlers.Remove(NAME("ImportClicked"));
+        m_delegateHandlers.Add(
+            NAME("ImportClicked"),
+            importButton->OnClick
+                .Bind([this](...)
+                    {
+                        ShowImportContentDialog();
 
-    m_delegateHandlers.Remove(NAME("ImportClicked"));
-    m_delegateHandlers.Add(
-        NAME("ImportClicked"),
-        importButton->OnClick
-            .Bind([this, stageWeak = uiSubsystem->GetUIStage().ToWeak()](...)
-                {
-                    ShowImportContentDialog();
-
-                    // if (Handle<UIStage> stage = stageWeak.Lock())
-                    // {
-                    //     auto loadedUiAsset = AssetManager::GetInstance()->Load<UIObject>("ui/dialog/FileBrowserDialog.ui.xml");
-
-                    //     if (loadedUiAsset.HasValue())
-                    //     {
-                    //         Handle<UIObject> loadedUi = loadedUiAsset->Result();
-
-                    //         if (Handle<UIObject> fileBrowserDialog = loadedUi->FindChildUIObject("File_Browser_Dialog"))
-                    //         {
-                    //             stage->AddChildUIObject(fileBrowserDialog);
-
-                    //             return UIEventHandlerResult::STOP_BUBBLING;
-                    //         }
-                    //     }
-
-                    //     HYP_LOG(Editor, Error, "Failed to load file browser dialog! Error: {}", loadedUiAsset.GetError().GetMessage());
-                    // }
-
-                    return UIEventHandlerResult::ERR;
-                }));
+                        return UIEventHandlerResult::STOP_BUBBLING;
+                    }));
+    }
 }
 
 void EditorSubsystem::AddPackageToContentBrowser(const Handle<AssetPackage>& package, bool nested)
@@ -2883,34 +2864,35 @@ void EditorSubsystem::ShowOpenProjectDialog()
                 HYP_LOG(Editor, Warning, "No project file selected.");
                 return;
             }
-            
+
             Threads::GetThread(g_gameThread)->GetScheduler().Enqueue([projectFilepath = std::move(result.GetValue()[0])]()
-            {
-                TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
-                
-                if (loadProjectResult.HasError())
                 {
-                    HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
-                    return;
-                }
-                
-                Handle<EditorProject> project = loadProjectResult.GetValue();
-                
-                if (!project.IsValid())
-                {
-                    HYP_LOG(Editor, Error, "Loaded project is invalid.");
-                    return;
-                }
-                
-                if (EditorSubsystem* editorSubsystem = g_engineDriver->GetCurrentWorld()->GetSubsystem<EditorSubsystem>())
-                {
-                    editorSubsystem->OpenProject(project);
-                    
-                    return;
-                }
-                
-                HYP_LOG(Editor, Fatal, "EditorSubsystem does not exist!");
-            }, TaskEnqueueFlags::FIRE_AND_FORGET);
+                    TResult<Handle<EditorProject>> loadProjectResult = EditorProject::Load(projectFilepath);
+
+                    if (loadProjectResult.HasError())
+                    {
+                        HYP_LOG(Editor, Error, "Failed to load project: {}", loadProjectResult.GetError().GetMessage());
+                        return;
+                    }
+
+                    Handle<EditorProject> project = loadProjectResult.GetValue();
+
+                    if (!project.IsValid())
+                    {
+                        HYP_LOG(Editor, Error, "Loaded project is invalid.");
+                        return;
+                    }
+
+                    if (EditorSubsystem* editorSubsystem = g_engineDriver->GetCurrentWorld()->GetSubsystem<EditorSubsystem>())
+                    {
+                        editorSubsystem->OpenProject(project);
+
+                        return;
+                    }
+
+                    HYP_LOG(Editor, Fatal, "EditorSubsystem does not exist!");
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
         });
 }
 

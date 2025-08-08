@@ -93,18 +93,18 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
-    if (m_camera.IsValid())
-    {
-        m_camera->SetWidth(surfaceSize.x);
-        m_camera->SetHeight(surfaceSize.y);
-
-        // @FIXME: needs to remove and re-add the camera controller
-
-        m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-            0.0f, -float(surfaceSize.x),
-            0.0f, float(surfaceSize.y),
-            float(g_minDepth), float(g_maxDepth)));
-    }
+//    if (m_camera.IsValid())
+//    {
+//        m_camera->SetWidth(surfaceSize.x);
+//        m_camera->SetHeight(surfaceSize.y);
+//
+//        // @FIXME: needs to remove and re-add the camera controller
+//
+//        m_camera->AddCameraController(CreateObject<OrthoCameraController>(
+//            0.0f, -float(surfaceSize.x),
+//            0.0f, float(surfaceSize.y),
+//            float(g_minDepth), float(g_maxDepth)));
+//    }
 
     UpdateSize(true);
     UpdatePosition(true);
@@ -598,19 +598,19 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
                     mouseHoverEventHandlerResult |= currentResult;
 
-                    BoundingBoxComponent& boundingBoxComponent = uiObject->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(uiObject->GetEntity());
+//                    BoundingBoxComponent& boundingBoxComponent = uiObject->GetScene()->GetEntityManager()->GetComponent<BoundingBoxComponent>(uiObject->GetEntity());
 
-                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
-                        uiObject->InstanceClass()->GetName(),
-                        uiObject->GetName(),
-                        uiObject->GetText(),
-                        uiObject->GetActualSize(),
-                        uiObject->GetActualInnerSize(),
-                        uiObject->GetTextSize(),
-                        uiObject->GetNode()->GetWorldAABB().GetExtent(),
-                        uiObject->HasChildUIObjects(),
-                        uiObject->GetActualSizeClamped(),
-                        uiObject->GetComputedDepth());
+//                    HYP_LOG(UI, Debug, "Mouse hover on {}: {}, Text: {}, Size: {}, Inner size: {}, Text Size: {}, Node AABB: {}, Has children: {}, Size clamped: {}, Depth: {}",
+//                        uiObject->InstanceClass()->GetName(),
+//                        uiObject->GetName(),
+//                        uiObject->GetText(),
+//                        uiObject->GetActualSize(),
+//                        uiObject->GetActualInnerSize(),
+//                        uiObject->GetTextSize(),
+//                        uiObject->GetNode()->GetWorldAABB().GetExtent(),
+//                        uiObject->HasChildUIObjects(),
+//                        uiObject->GetActualSizeClamped(),
+//                        uiObject->GetComputedDepth());
 
                     if (mouseHoverEventHandlerResult & UIEventHandlerResult::STOP_BUBBLING)
                     {
@@ -635,11 +635,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = event.GetMouseButtons() });
-                }
-                else
-                {
-                    HYP_LOG(UI, Warning, "Focused element has been destroyed");
+                        .mouseButtons = event.GetMouseButtons()
+                    });
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -790,8 +787,6 @@ UIEventHandlerResult UIStage::OnInputEvent(
                 continue;
             }
             
-            stateMouseButtons &= ~buttons;
-            
             // trigger mouse up
             if (Handle<UIObject> uiObject = it->first.Lock())
             {
@@ -806,11 +801,13 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = stateMouseButtons
+                    .mouseButtons = (stateMouseButtons & ~buttons)
                 });
 
                 eventHandlerResult |= currentResult;
             }
+            
+            stateMouseButtons &= ~buttons;
             
             if (!stateMouseButtons) // now empty after update; remove from the map
             {

@@ -2,7 +2,11 @@
 
 #include <util/xml/SAXParser.hpp>
 
+#include <core/utilities/DeferredScope.hpp>
+
 #include <core/io/BufferedByteReader.hpp>
+
+#include <core/Util.hpp>
 
 namespace hyperion {
 namespace xml {
@@ -43,147 +47,207 @@ SAXParser::Result SAXParser::Parse(BufferedReader* reader)
          inAttributeValue = false,
          inAttributeName = false;
 
-    utf::u32char lastChar = utf::u32char(-1);
+    utf::u32char lastChars[4] { utf::u32char(-1) };
+
     String elementStr, commentStr, valueStr;
     Array<Pair<String, String>> attribs;
 
-    reader->ReadChars([&](char ch)
-        {
-            if (ch != '\t' && ch != '\n')
-            {
-                if (ch == '<')
-                {
-                    elementStr.Clear();
-                    inCharacters = false;
+    const auto checkLastChars = [&lastChars]<class T>(std::initializer_list<T> compareChars) -> bool
+    {
+        const SizeType minSize = compareChars.size() < ArraySize(lastChars) ? compareChars.size() : ArraySize(lastChars);
 
-                    if (!valueStr.Empty())
+        for (SizeType i = 0; i < minSize; i++)
+        {
+            if (lastChars[i] != utf::u32char(*(compareChars.begin() + i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    reader->ReadChars([&](const char ch)
+        {
+            HYP_DEFER({
+                // shift over last chars
+                for (int i = int(ArraySize(lastChars)) - 1; i > 0; i--)
+                {
+                    lastChars[i] = lastChars[i - 1];
+                }
+
+                lastChars[0] = ch;
+            });
+
+            if (inComment)
+            {
+                if (lastChars[2] != -1)
+                {
+                    if (lastChars[3] != -1)
                     {
-                        m_handler->Characters(valueStr);
+                        commentStr.Append(lastChars[3]);
                     }
 
-                    isOpening = true;
-                    isReading = true;
-                    inElement = true;
-                    inAttributes = false;
-                    isClosing = false;
-                    valueStr.Clear();
-                    attribs.Clear();
+                    commentStr.Append(lastChars[2]);
                 }
-                else if (ch == '!' && inElement)
+
+                if (ch == '>' && checkLastChars({ '-', '-' }))
+                {
+                    inComment = false;
+                    inElement = false;
+                    m_handler->Comment(commentStr);
+                }
+
+                return;
+            }
+
+            if (ch == '\t' || ch == '\n')
+            {
+                return;
+            }
+
+            if (ch == '<')
+            {
+                elementStr.Clear();
+                inCharacters = false;
+
+                if (!valueStr.Empty())
+                {
+                    m_handler->Characters(valueStr);
+                }
+
+                isOpening = true;
+                isReading = true;
+                inElement = true;
+                inAttributes = false;
+                isClosing = false;
+                valueStr.Clear();
+                attribs.Clear();
+
+                return;
+            }
+
+            if (ch == '-')
+            {
+                if (checkLastChars({ '-', '!', '<' }))
                 {
                     inComment = true;
                     commentStr = "";
                 }
-                else if (ch == '?' && inElement)
+
+                return;
+            }
+
+            if (ch == '?' && inElement)
+            {
+                inHeader = true;
+
+                return;
+            }
+
+            if (ch == '/' && (inElement || (inAttributes && !inAttributeValue)))
+            {
+                isOpening = false;
+                isClosing = true;
+
+                return;
+            }
+
+            if (ch == '>')
+            {
+
+                inCharacters = true;
+
+                if (!inHeader)
                 {
-                    inHeader = true;
-                }
-                else if (ch == '/' && (inElement || (inAttributes && !inAttributeValue)))
-                {
-                    isOpening = false;
-                    isClosing = true;
-                }
-                else if (ch == '>')
-                {
-                    inCharacters = true;
-                    if (inComment)
+                    if (isOpening || lastChars[0] == '/')
                     {
-                        inComment = false;
-                        m_handler->Comment(commentStr);
+                        AttributeMap locals;
+
+                        for (auto& attr : attribs)
+                        {
+                            if (!attr.first.Empty())
+                            {
+                                locals[attr.first.ToLower()] = attr.second;
+                            }
+                        }
+
+                        m_handler->Begin(elementStr, locals);
+                        isOpening = false;
                     }
-                    else if (inHeader)
+
+                    if (isClosing)
                     {
-                        inHeader = false;
+                        m_handler->End(elementStr);
+                    }
+
+                    inAttributes = false;
+                    inElement = false;
+                    isClosing = false;
+                    isReading = false;
+
+                    attribs.Clear();
+                }
+
+                inHeader = false;
+
+                return;
+            }
+
+            if (inHeader)
+            {
+                return;
+            }
+
+            if (isReading)
+            {
+                if (inElement)
+                {
+                    if (ch == ' ')
+                    {
+                        inElement = false;
+                        inAttributes = true;
+                        attribs.PushBack({ "", "" });
                     }
                     else
                     {
-                        if (isOpening || lastChar == '/')
-                        {
-                            AttributeMap locals;
-
-                            for (auto& attr : attribs)
-                            {
-                                if (!attr.first.Empty())
-                                {
-                                    locals[attr.first.ToLower()] = attr.second;
-                                }
-                            }
-
-                            m_handler->Begin(elementStr, locals);
-                            isOpening = false;
-                        }
-
-                        if (isClosing)
-                        {
-                            m_handler->End(elementStr);
-                        }
-
-                        inAttributes = false;
-                        inElement = false;
-                        isClosing = false;
-                        isReading = false;
-
-                        attribs.Clear();
+                        elementStr += ch;
                     }
                 }
-                else
+                else if (inAttributes && isOpening)
                 {
-                    if (!inComment && !inHeader)
+                    if (!inAttributeValue && ch == ' ')
                     {
-                        if (isReading)
+                        attribs.PushBack({ "", "" });
+                    }
+                    else if (ch == '\"' && lastChars[0] != '\\')
+                    {
+                        inAttributeValue = !inAttributeValue;
+                    }
+                    else if (ch != '\\')
+                    {
+                        auto& last = attribs.Back();
+                        if (!inAttributeValue && ch != '=')
                         {
-                            if (inElement)
-                            {
-                                if (ch == ' ')
-                                {
-                                    inElement = false;
-                                    inAttributes = true;
-                                    attribs.PushBack({ "", "" });
-                                }
-                                else
-                                {
-                                    elementStr += ch;
-                                }
-                            }
-                            else if (inAttributes && isOpening)
-                            {
-                                if (!inAttributeValue && ch == ' ')
-                                {
-                                    attribs.PushBack({ "", "" });
-                                }
-                                else if (ch == '\"' && lastChar != '\\')
-                                {
-                                    inAttributeValue = !inAttributeValue;
-                                }
-                                else if (ch != '\\')
-                                {
-                                    auto& last = attribs.Back();
-                                    if (!inAttributeValue && ch != '=')
-                                    {
-                                        last.first += ch;
-                                    }
-                                    else if (inAttributeValue)
-                                    {
-                                        last.second += ch;
-                                    }
-                                }
-                            }
+                            last.first += ch;
                         }
-                        else if (inCharacters)
+                        else if (inAttributeValue)
                         {
-                            if (ch != ' ' || (lastChar != ' ' && (lastChar != '\n' && lastChar != '<')))
-                            {
-                                valueStr += ch;
-                            }
+                            last.second += ch;
                         }
                     }
-                    else if (inComment && ch != '-')
-                    {
-                        commentStr += ch;
-                    }
+                }
+
+                return;
+            }
+
+            if (inCharacters)
+            {
+                if (ch != ' ' || (lastChars[0] != ' ' && (lastChars[0] != '\n' && lastChars[0] != '<')))
+                {
+                    valueStr += ch;
                 }
             }
-            lastChar = ch;
         });
 
     return { Result::SRT_OK };

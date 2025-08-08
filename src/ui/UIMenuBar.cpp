@@ -23,20 +23,22 @@ UIMenuItem::UIMenuItem()
     SetPadding({ 5, 2 });
     SetBackgroundColor(Color::Transparent());
 
-    OnEnabled.Bind([this]()
-                 {
-                     UpdateMaterial(false);
+    OnEnabled
+        .Bind([this]()
+            {
+                UpdateMaterial(false);
 
-                     return UIEventHandlerResult::OK;
-                 })
+                return UIEventHandlerResult::OK;
+            })
         .Detach();
 
-    OnDisabled.Bind([this]()
-                  {
-                      UpdateMaterial(false);
+    OnDisabled
+        .Bind([this]()
+            {
+                UpdateMaterial(false);
 
-                      return UIEventHandlerResult::OK;
-                  })
+                return UIEventHandlerResult::OK;
+            })
         .Detach();
 }
 
@@ -122,8 +124,6 @@ void UIMenuItem::AddChildUIObject(const Handle<UIObject>& uiObject)
                 })
             .Detach();
     }
-
-    HYP_LOG(UI, Info, "Add child UI object with name {} to menu item", uiObject->GetName());
 }
 
 bool UIMenuItem::RemoveChildUIObject(UIObject* uiObject)
@@ -148,21 +148,6 @@ bool UIMenuItem::RemoveChildUIObject(UIObject* uiObject)
     }
 
     return m_dropDownMenu->RemoveChildUIObject(uiObject);
-
-    // auto it = m_menuItems.FindIf([uiObject](const Handle<UIObject> &item)
-    // {
-    //     return item.Get() == uiObject;
-    // });
-
-    // if (it == m_menuItems.End()) {
-    //     return UIObject::RemoveChildUIObject(uiObject);
-    // }
-
-    // m_menuItems.Erase(it);
-
-    // UpdateDropDownMenu();
-
-    // return true;
 }
 
 void UIMenuItem::SetIconTexture(const Handle<Texture>& texture)
@@ -393,15 +378,16 @@ void UIMenuBar::Init()
 
     // @TODO: OnRemoved_Internal() , remove m_container from stage
 
-    m_container->OnClick.Bind([this](const MouseEvent& data) -> UIEventHandlerResult
-                            {
-                                // Hide container on any item clicked
-                                SetSelectedMenuItemIndex(~0u);
-                                // Lose focus of the container (otherwise hovering over other menu items will cause the menu strips to reappear)
-                                Blur();
+    m_container->OnClick
+        .Bind([this](const MouseEvent& data) -> UIEventHandlerResult
+            {
+                // Hide container on any item clicked
+                SetSelectedMenuItemIndex(~0u);
+                // Lose focus of the container (otherwise hovering over other menu items will cause the menu strips to reappear)
+                Blur();
 
-                                return UIEventHandlerResult::STOP_BUBBLING;
-                            })
+                return UIEventHandlerResult::STOP_BUBBLING;
+            })
         .Detach();
 
     // m_container->OnLoseFocus.Bind([this](const MouseEvent &data) -> UIEventHandlerResult
