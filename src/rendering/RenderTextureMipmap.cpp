@@ -78,9 +78,11 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                     {},
                     frame->GetFrameIndex());
 
+                // frame->renderQueue << DrawQuad();
+
                 frame->renderQueue << BindVertexBuffer(pass->GetQuadMesh()->GetVertexBuffer());
                 frame->renderQueue << BindIndexBuffer(pass->GetQuadMesh()->GetIndexBuffer());
-                frame->renderQueue << DrawIndexed(pass->GetQuadMesh()->NumIndices());
+                frame->renderQueue << DrawIndexed(6);
 
                 pass->End(frame, NullRenderSetup());
             }
@@ -144,9 +146,9 @@ void TextureMipmapRenderer::RenderMipmaps(const Handle<Texture>& texture)
         GpuImageViewRef mipImageView = g_renderBackend->MakeImageView(texture->GetGpuImage(), mipLevel, 1, 0, texture->NumFaces());
         DeferCreate(mipImageView);
 
-        const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet(NAME("GenerateMipmapsDescriptorSet"), 0);
+        const DescriptorSetRef& generateMipmapsDescriptorSet = descriptorTable->GetDescriptorSet("GenerateMipmapsDescriptorSet", 0);
         Assert(generateMipmapsDescriptorSet != nullptr);
-        generateMipmapsDescriptorSet->SetElement(NAME("InputTexture"), mipLevel == 0 ? textureImageView : mipImageViews[mipLevel - 1]);
+        generateMipmapsDescriptorSet->SetElement("InputTexture", mipLevel == 0 ? textureImageView : mipImageViews[mipLevel - 1]);
         DeferCreate(descriptorTable);
 
         mipImageViews[mipLevel] = std::move(mipImageView);

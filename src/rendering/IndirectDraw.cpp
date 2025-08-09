@@ -315,7 +315,7 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ObjectVisibilityDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
         auto* shaderBufferElement = descriptorSet->GetLayout().GetElement(NAME("EntityInstanceBatchesBuffer"));
@@ -342,9 +342,9 @@ void IndirectRenderer::Create(IDrawCallCollectionImpl* impl)
             }
         }
 
-        descriptorSet->SetElement(NAME("ObjectInstancesBuffer"), m_indirectDrawState.GetInstanceBuffer(frameIndex));
-        descriptorSet->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirectDrawState.GetIndirectBuffer(frameIndex));
-        descriptorSet->SetElement(NAME("EntityInstanceBatchesBuffer"), entityInstanceBatches->GetBuffer(frameIndex));
+        descriptorSet->SetElement("ObjectInstancesBuffer", m_indirectDrawState.GetInstanceBuffer(frameIndex));
+        descriptorSet->SetElement("IndirectDrawCommandsBuffer", m_indirectDrawState.GetIndirectBuffer(frameIndex));
+        descriptorSet->SetElement("EntityInstanceBatchesBuffer", entityInstanceBatches->GetBuffer(frameIndex));
     }
 
     DeferCreate(descriptorTable);
@@ -429,11 +429,10 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     frame->renderQueue << BindDescriptorTable(
         m_objectVisibility->GetDescriptorTable(),
         m_objectVisibility,
-        { { NAME("Global"),
-            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
         frameIndex);
 
-    const uint32 viewDescriptorSetIndex = m_objectVisibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 viewDescriptorSetIndex = m_objectVisibility->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
     if (viewDescriptorSetIndex != ~0u)
     {
@@ -480,11 +479,11 @@ void IndirectRenderer::RebuildDescriptors(FrameBase* frame)
 
     const DescriptorTableRef& descriptorTable = m_objectVisibility->GetDescriptorTable();
 
-    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("ObjectVisibilityDescriptorSet"), frameIndex);
+    const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("ObjectVisibilityDescriptorSet", frameIndex);
     Assert(descriptorSet != nullptr);
 
-    descriptorSet->SetElement(NAME("ObjectInstancesBuffer"), m_indirectDrawState.GetInstanceBuffer(frameIndex));
-    descriptorSet->SetElement(NAME("IndirectDrawCommandsBuffer"), m_indirectDrawState.GetIndirectBuffer(frameIndex));
+    descriptorSet->SetElement("ObjectInstancesBuffer", m_indirectDrawState.GetInstanceBuffer(frameIndex));
+    descriptorSet->SetElement("IndirectDrawCommandsBuffer", m_indirectDrawState.GetIndirectBuffer(frameIndex));
 
     descriptorSet->Update();
 }

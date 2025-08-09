@@ -139,7 +139,7 @@ void DepthPyramidRenderer::Create()
 
         const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-        const DescriptorSetDeclaration* depthPyramidDescriptorSetDecl = descriptorTableDecl.FindDescriptorSetDeclaration(NAME("DepthPyramidDescriptorSet"));
+        const DescriptorSetDeclaration* depthPyramidDescriptorSetDecl = descriptorTableDecl.FindDescriptorSetDeclaration("DepthPyramidDescriptorSet");
         Assert(depthPyramidDescriptorSetDecl != nullptr);
 
         while (m_mipDescriptorTables.Size() > numMipLevels)
@@ -160,24 +160,24 @@ void DepthPyramidRenderer::Create()
             {
                 for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
                 {
-                    const DescriptorSetRef& depthPyramidDescriptorSet = descriptorTable->GetDescriptorSet(NAME("DepthPyramidDescriptorSet"), frameIndex);
+                    const DescriptorSetRef& depthPyramidDescriptorSet = descriptorTable->GetDescriptorSet("DepthPyramidDescriptorSet", frameIndex);
                     Assert(depthPyramidDescriptorSet != nullptr);
 
                     if (mipLevel == 0)
                     {
                         // first mip level -- input is the actual depth image
-                        depthPyramidDescriptorSet->SetElement(NAME("InImage"), m_depthImageView);
+                        depthPyramidDescriptorSet->SetElement("InImage", m_depthImageView);
                     }
                     else
                     {
                         Assert(m_mipImageViews[mipLevel - 1] != nullptr);
 
-                        depthPyramidDescriptorSet->SetElement(NAME("InImage"), m_mipImageViews[mipLevel - 1]);
+                        depthPyramidDescriptorSet->SetElement("InImage", m_mipImageViews[mipLevel - 1]);
                     }
 
-                    depthPyramidDescriptorSet->SetElement(NAME("OutImage"), m_mipImageViews[mipLevel]);
-                    depthPyramidDescriptorSet->SetElement(NAME("UniformBuffer"), m_mipUniformBuffers[mipLevel]);
-                    depthPyramidDescriptorSet->SetElement(NAME("DepthPyramidSampler"), m_depthPyramidSampler);
+                    depthPyramidDescriptorSet->SetElement("OutImage", m_mipImageViews[mipLevel]);
+                    depthPyramidDescriptorSet->SetElement("UniformBuffer", m_mipUniformBuffers[mipLevel]);
+                    depthPyramidDescriptorSet->SetElement("DepthPyramidSampler", m_depthPyramidSampler);
                 }
             };
 

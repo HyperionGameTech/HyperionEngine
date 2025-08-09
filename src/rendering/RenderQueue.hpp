@@ -61,7 +61,8 @@ public:
 
         commandBuffer->BindVertexBuffer(cmdCasted->m_buffer);
 
-        cmdCasted->~BindVertexBuffer();
+        static_assert(std::is_trivially_destructible_v<BindVertexBuffer>);
+        // cmdCasted->~BindVertexBuffer();
     }
 
 private:
@@ -83,7 +84,8 @@ public:
 
         commandBuffer->BindIndexBuffer(cmdCasted->m_buffer);
 
-        cmdCasted->~BindIndexBuffer();
+        static_assert(std::is_trivially_destructible_v<BindIndexBuffer>);
+        // cmdCasted->~BindIndexBuffer();
     }
 
 private:
@@ -106,7 +108,8 @@ public:
 
         commandBuffer->DrawIndexed(cmdCasted->m_numIndices, cmdCasted->m_numInstances, cmdCasted->m_instanceIndex);
 
-        cmdCasted->~DrawIndexed();
+        static_assert(std::is_trivially_destructible_v<DrawIndexed>);
+        // cmdCasted->~DrawIndexed();
     }
 
 private:
@@ -130,12 +133,19 @@ public:
 
         commandBuffer->DrawIndexedIndirect(cmdCasted->m_buffer, cmdCasted->m_bufferOffset);
 
-        cmdCasted->~DrawIndexedIndirect();
+        static_assert(std::is_trivially_destructible_v<DrawIndexedIndirect>);
+        // cmdCasted->~DrawIndexedIndirect();
     }
 
 private:
     GpuBufferBase* m_buffer;
     uint32 m_bufferOffset;
+};
+
+class DrawQuad final : public CmdBase
+{
+public:
+    static void InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer);
 };
 
 class BeginFramebuffer final : public CmdBase
@@ -157,7 +167,8 @@ public:
 
         cmdCasted->m_framebuffer->BeginCapture(commandBuffer);
 
-        cmdCasted->~BeginFramebuffer();
+        static_assert(std::is_trivially_destructible_v<BeginFramebuffer>);
+        // cmdCasted->~BeginFramebuffer();
     }
 
 private:
@@ -183,7 +194,8 @@ public:
 
         cmdCasted->m_framebuffer->EndCapture(commandBuffer);
 
-        cmdCasted->~EndFramebuffer();
+        static_assert(std::is_trivially_destructible_v<EndFramebuffer>);
+        // cmdCasted->~EndFramebuffer();
     }
 
 private:
@@ -204,7 +216,8 @@ public:
 
         cmdCasted->m_framebuffer->Clear(commandBuffer);
 
-        cmdCasted->~ClearFramebuffer();
+        static_assert(std::is_trivially_destructible_v<ClearFramebuffer>);
+        // cmdCasted->~ClearFramebuffer();
     }
 
 private:
@@ -246,7 +259,8 @@ public:
             cmdCasted->m_pipeline->Bind(commandBuffer);
         }
 
-        cmdCasted->~BindGraphicsPipeline();
+        static_assert(std::is_trivially_destructible_v<BindGraphicsPipeline>);
+        // cmdCasted->~BindGraphicsPipeline();
     }
 
 private:
@@ -269,7 +283,8 @@ public:
 
         cmdCasted->m_pipeline->Bind(commandBuffer);
 
-        cmdCasted->~BindComputePipeline();
+        static_assert(std::is_trivially_destructible_v<BindComputePipeline>);
+        // cmdCasted->~BindComputePipeline();
     }
 
 private:
@@ -290,7 +305,8 @@ public:
 
         cmdCasted->m_pipeline->Bind(commandBuffer);
 
-        cmdCasted->~BindRaytracingPipeline();
+        static_assert(std::is_trivially_destructible_v<BindRaytracingPipeline>);
+        // cmdCasted->~BindRaytracingPipeline();
     }
 
 private:
@@ -489,7 +505,8 @@ public:
             }
         }
 
-        cmdCasted->~InsertBarrier();
+        static_assert(std::is_trivially_destructible_v<InsertBarrier>);
+        // cmdCasted->~InsertBarrier();
     }
 
 private:
@@ -555,7 +572,8 @@ public:
             }
         }
 
-        cmdCasted->~Blit();
+        static_assert(std::is_trivially_destructible_v<Blit>);
+        // cmdCasted->~Blit();
     }
 
 private:
@@ -593,7 +611,8 @@ public:
 
         cmdCasted->m_dstImage->Blit(commandBuffer, cmdCasted->m_srcImage, cmdCasted->m_srcRect, cmdCasted->m_dstRect);
 
-        cmdCasted->~BlitRect();
+        static_assert(std::is_trivially_destructible_v<BlitRect>);
+        // cmdCasted->~BlitRect();
     }
 
 private:
@@ -618,7 +637,8 @@ public:
 
         cmdCasted->m_image->CopyToBuffer(commandBuffer, cmdCasted->m_buffer);
 
-        cmdCasted->~CopyImageToBuffer();
+        static_assert(std::is_trivially_destructible_v<CopyImageToBuffer>);
+        // cmdCasted->~CopyImageToBuffer();
     }
 
 private:
@@ -641,7 +661,8 @@ public:
 
         cmdCasted->m_image->CopyFromBuffer(commandBuffer, cmdCasted->m_buffer);
 
-        cmdCasted->~CopyBufferToImage();
+        static_assert(std::is_trivially_destructible_v<CopyBufferToImage>);
+        // cmdCasted->~CopyBufferToImage();
     }
 
 private:
@@ -665,7 +686,8 @@ public:
 
         cmdCasted->m_dstBuffer->CopyFrom(commandBuffer, cmdCasted->m_srcBuffer, cmdCasted->m_size);
 
-        cmdCasted->~CopyBuffer();
+        static_assert(std::is_trivially_destructible_v<CopyBuffer>);
+        // cmdCasted->~CopyBuffer();
     }
 
 private:
@@ -688,7 +710,8 @@ public:
 
         cmdCasted->m_image->GenerateMipmaps(commandBuffer);
 
-        cmdCasted->~GenerateMipmaps();
+        static_assert(std::is_trivially_destructible_v<GenerateMipmaps>);
+        // cmdCasted->~GenerateMipmaps();
     }
 
 private:
@@ -710,7 +733,8 @@ public:
 
         cmdCasted->m_pipeline->Dispatch(commandBuffer, cmdCasted->m_workgroupCount);
 
-        cmdCasted->~DispatchCompute();
+        static_assert(std::is_trivially_destructible_v<DispatchCompute>);
+        // cmdCasted->~DispatchCompute();
     }
 
 private:
@@ -733,7 +757,8 @@ public:
 
         cmdCasted->m_pipeline->TraceRays(commandBuffer, cmdCasted->m_workgroupCount);
 
-        cmdCasted->~TraceRays();
+        static_assert(std::is_trivially_destructible_v<TraceRays>);
+        // cmdCasted->~TraceRays();
     }
 
 private:
@@ -759,7 +784,11 @@ class RenderQueue
     static inline void MoveCmdStatic(CmdBase* cmd, void* where)
     {
         new (where) CmdType(std::move(*static_cast<CmdType*>(cmd)));
-        static_cast<CmdType*>(cmd)->~CmdType();
+
+        if constexpr (!std::is_trivially_destructible_v<CmdType>)
+        {
+            static_cast<CmdType*>(cmd)->~CmdType();
+        }
     }
 
 public:

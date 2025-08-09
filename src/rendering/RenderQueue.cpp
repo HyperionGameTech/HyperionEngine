@@ -3,6 +3,7 @@
 #include <rendering/RenderQueue.hpp>
 #include <rendering/RenderFrame.hpp>
 #include <rendering/RenderGlobalState.hpp>
+#include <rendering/Mesh.hpp>
 
 #if defined(HYP_DEBUG_MODE) && defined(HYP_VULKAN)
 // for debugging
@@ -12,6 +13,8 @@
 
 #include <core/logging/Logger.hpp>
 #include <core/logging/LogChannels.hpp>
+
+#include <util/MeshBuilder.hpp>
 
 namespace hyperion {
 
@@ -161,5 +164,33 @@ void BindGraphicsPipeline::PrepareStatic(CmdBase* cmd, FrameBase*)
 }
 
 #pragma endregion BindGraphicsPipeline
+
+#pragma region DrawQuad
+
+static Handle<Mesh> g_quadMesh;
+
+void DrawQuad::InvokeStatic(CmdBase* cmd, CommandBufferBase* commandBuffer)
+{
+    if (HYP_UNLIKELY(!g_quadMesh))
+    {
+        g_quadMesh = MeshBuilder::Quad();
+        InitObject(g_quadMesh);
+
+        Threads::CurrentThreadObject()->AtExit([]()
+            {
+                g_quadMesh.Reset();
+            });
+    }
+
+    commandBuffer->BindIndexBuffer(g_quadMesh->GetIndexBuffer());
+    commandBuffer->BindVertexBuffer(g_quadMesh->GetVertexBuffer());
+    commandBuffer->DrawIndexed(6);
+
+    static_assert(std::is_trivially_destructible_v<DrawQuad>);
+
+    // reinterpret_cast<DrawQuad*>(cmd)->~DrawQuad();
+}
+
+#pragma endregion DrawQuad
 
 } // namespace hyperion

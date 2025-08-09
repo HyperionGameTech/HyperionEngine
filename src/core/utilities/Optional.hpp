@@ -14,32 +14,74 @@ namespace utilities {
 template <class T, typename IsReferenceType = void>
 class Optional;
 
+// Used to implement trivial destructor for Optional<T> where T is a trivially destructible type
+template <class T, class IsTriviallyDestructibleType>
+class OptionalBase;
+
 template <class T>
-class Optional<T, std::enable_if_t<!std::is_reference_v<std::remove_const_t<T>>>>
+class OptionalBase<T, std::true_type> // trivia
 {
+protected:
+    OptionalBase() = default;
+
+public:
+    ~OptionalBase() = default;
+
+protected:
+    ValueStorage<T> m_storage;
+    bool m_hasValue;
+};
+
+template <class T>
+class OptionalBase<T, std::false_type> // not trivially destructible
+{
+protected:
+    OptionalBase() = default;
+
+public:
+    ~OptionalBase()
+    {
+        if (m_hasValue)
+        {
+            m_storage.Destruct();
+        }
+    }
+
+protected:
+    ValueStorage<T> m_storage;
+    bool m_hasValue;
+};
+
+template <class T>
+class Optional<T, std::enable_if_t<!std::is_reference_v<std::remove_const_t<T>>>> // NOLINT
+    : OptionalBase<T, std::bool_constant<std::is_trivially_destructible_v<T>>>
+{
+    using Base = OptionalBase<T, std::bool_constant<std::is_trivially_destructible_v<T>>>;
+    
 public:
     Optional()
-        : m_hasValue(false)
     {
+        Base::m_hasValue = false;
     }
 
     /*! \brief Constructs an Optional<T> from a pointer to T. If the given value is
      *  nullptr, it will be an empty Optional<T>. Otherwise, the value will be set to
      *  the value that is pointed to. */
     Optional(T* ptr)
-        : m_hasValue(ptr != nullptr)
     {
+        Base::m_hasValue = (ptr != nullptr);
+
         if (ptr != nullptr)
         {
-            m_storage.Construct(*ptr);
+            Base::m_storage.Construct(*ptr);
         }
     }
 
     template <class Ty, class = std::enable_if_t<std::is_convertible_v<Ty, T>>>
     Optional(Ty&& value) noexcept
-        : m_hasValue(true)
     {
-        m_storage.Construct(std::forward<Ty>(value));
+        Base::m_hasValue = true;
+        Base::m_storage.Construct(std::forward<Ty>(value));
     }
 
     template <class Ty, class = std::enable_if_t<std::is_convertible_v<Ty, T>>>
@@ -51,11 +93,12 @@ public:
     }
 
     Optional(const Optional& other)
-        : m_hasValue(other.m_hasValue)
     {
-        if (m_hasValue)
+        Base::m_hasValue = other.m_hasValue;
+        
+        if (Base::m_hasValue)
         {
-            m_storage.Construct(other.Get());
+            Base::m_storage.Construct(other.Get());
         }
     }
 
@@ -79,11 +122,12 @@ public:
     }
 
     Optional(Optional&& other) noexcept
-        : m_hasValue(other.m_hasValue)
     {
+        Base::m_hasValue = other.m_hasValue;
+
         if (other.m_hasValue)
         {
-            m_storage.Construct(std::move(other.Get()));
+            Base::m_storage.Construct(std::move(other.Get()));
 
             other.m_storage.Destruct();
             other.m_hasValue = false;
@@ -107,27 +151,21 @@ public:
         return *this;
     }
 
-    ~Optional()
-    {
-        if (m_hasValue)
-        {
-            m_storage.Destruct();
-        }
-    }
+    ~Optional() = default;
 
     HYP_FORCE_INLINE explicit operator bool() const
     {
-        return m_hasValue;
+        return Base::m_hasValue;
     }
 
     HYP_FORCE_INLINE bool operator==(const Optional& other) const
     {
-        if (m_hasValue != other.m_hasValue)
+        if (Base::m_hasValue != other.m_hasValue)
         {
             return false;
         }
 
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return Get() == other.Get();
         }
@@ -137,12 +175,12 @@ public:
 
     HYP_FORCE_INLINE bool operator!=(const Optional& other) const
     {
-        if (m_hasValue != other.m_hasValue)
+        if (Base::m_hasValue != other.m_hasValue)
         {
             return true;
         }
 
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return Get() != other.Get();
         }
@@ -152,7 +190,7 @@ public:
 
     HYP_FORCE_INLINE bool operator==(const T& value) const
     {
-        if (!m_hasValue)
+        if (!Base::m_hasValue)
         {
             return false;
         }
@@ -162,7 +200,7 @@ public:
 
     HYP_FORCE_INLINE bool operator!=(const T& value) const
     {
-        if (!m_hasValue)
+        if (!Base::m_hasValue)
         {
             return true;
         }
@@ -172,7 +210,7 @@ public:
 
     HYP_FORCE_INLINE T* TryGet()
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return &Get();
         }
@@ -182,7 +220,7 @@ public:
 
     HYP_FORCE_INLINE const T* TryGet() const
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return &Get();
         }
@@ -192,28 +230,28 @@ public:
 
     HYP_FORCE_INLINE T& Get() &
     {
-        HYP_CORE_ASSERT(m_hasValue);
+        HYP_CORE_ASSERT(Base::m_hasValue);
 
-        return m_storage.Get();
+        return Base::m_storage.Get();
     }
 
     HYP_FORCE_INLINE const T& Get() const&
     {
-        HYP_CORE_ASSERT(m_hasValue);
+        HYP_CORE_ASSERT(Base::m_hasValue);
 
-        return m_storage.Get();
+        return Base::m_storage.Get();
     }
 
     HYP_FORCE_INLINE T Get() &&
     {
-        HYP_CORE_ASSERT(m_hasValue);
+        HYP_CORE_ASSERT(Base::m_hasValue);
 
-        return std::move(m_storage.Get());
+        return std::move(Base::m_storage.Get());
     }
 
     HYP_FORCE_INLINE const T& GetOr(const T& defaultValue) const&
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return Get();
         }
@@ -223,7 +261,7 @@ public:
 
     HYP_FORCE_INLINE T GetOr(T&& defaultValue) const&
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return Get();
         }
@@ -233,7 +271,7 @@ public:
 
     HYP_FORCE_INLINE T GetOr(T&& defaultValue) &&
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return std::move(Get());
         }
@@ -244,7 +282,7 @@ public:
     template <class Function, typename = std::enable_if_t<std::is_invocable_v<NormalizedType<Function>>>>
     HYP_FORCE_INLINE const T& GetOr(Function&& func) const&
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return Get();
         }
@@ -255,7 +293,7 @@ public:
     template <class Function, typename = std::enable_if_t<std::is_invocable_v<NormalizedType<Function>>>>
     HYP_FORCE_INLINE T GetOr(Function&& func) &&
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return std::move(Get());
         }
@@ -265,33 +303,33 @@ public:
 
     HYP_FORCE_INLINE void Set(const T& value)
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
-            m_storage.Destruct();
+            Base::m_storage.Destruct();
         }
 
-        m_storage.Construct(value);
-        m_hasValue = true;
+        Base::m_storage.Construct(value);
+        Base::m_hasValue = true;
     }
 
     HYP_FORCE_INLINE void Set(T&& value)
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
-            m_storage.Destruct();
+            Base::m_storage.Destruct();
         }
 
-        m_storage.Construct(std::move(value));
-        m_hasValue = true;
+        Base::m_storage.Construct(std::move(value));
+        Base::m_hasValue = true;
     }
 
     //! \brief Remove the held value, setting the Optional<> to a default state.
     HYP_FORCE_INLINE void Unset()
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
-            m_storage.Destruct();
-            m_hasValue = false;
+            Base::m_storage.Destruct();
+            Base::m_hasValue = false;
         }
     }
 
@@ -299,23 +337,23 @@ public:
     template <class... Args>
     HYP_FORCE_INLINE void Emplace(Args&&... args)
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
-            m_storage.Destruct();
+            Base::m_storage.Destruct();
         }
 
-        m_storage.Construct(std::forward<Args>(args)...);
-        m_hasValue = true;
+        Base::m_storage.Construct(std::forward<Args>(args)...);
+        Base::m_hasValue = true;
     }
 
     HYP_FORCE_INLINE T* operator->()
     {
-        return static_cast<T*>(m_storage.GetPointer());
+        return static_cast<T*>(Base::m_storage.GetPointer());
     }
 
     HYP_FORCE_INLINE const T* operator->() const
     {
-        return static_cast<const T*>(m_storage.GetPointer());
+        return static_cast<const T*>(Base::m_storage.GetPointer());
     }
 
     HYP_FORCE_INLINE T& operator*()
@@ -330,33 +368,28 @@ public:
 
     HYP_FORCE_INLINE bool HasValue() const
     {
-        return m_hasValue;
+        return Base::m_hasValue;
     }
 
     HYP_FORCE_INLINE bool Any() const
     {
-        return m_hasValue;
+        return Base::m_hasValue;
     }
 
     HYP_FORCE_INLINE bool Empty() const
     {
-        return !m_hasValue;
+        return !Base::m_hasValue;
     }
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        if (m_hasValue)
+        if (Base::m_hasValue)
         {
             return HashCode::GetHashCode(Get());
         }
 
         return HashCode();
     }
-
-private:
-    ValueStorage<T> m_storage;
-
-    bool m_hasValue;
 };
 
 template <class T>

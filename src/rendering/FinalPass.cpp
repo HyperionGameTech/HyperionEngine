@@ -70,16 +70,16 @@ struct RENDER_COMMAND(SetUILayerImageView)
 
             for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
             {
-                const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex);
+                const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
                 Assert(descriptorSet != nullptr);
 
                 if (imageView != nullptr)
                 {
-                    descriptorSet->SetElement(NAME("InTexture"), imageView);
+                    descriptorSet->SetElement("InTexture", imageView);
                 }
                 else
                 {
-                    descriptorSet->SetElement(NAME("InTexture"), g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+                    descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
                 }
             }
         }
@@ -143,16 +143,16 @@ void FinalPass::Create()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
         if (m_uiLayerImageView != nullptr)
         {
-            descriptorSet->SetElement(NAME("InTexture"), m_uiLayerImageView);
+            descriptorSet->SetElement("InTexture", m_uiLayerImageView);
         }
         else
         {
-            descriptorSet->SetElement(NAME("InTexture"), g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("InTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         }
     }
 
@@ -192,7 +192,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
         {},
         frameIndex);
 
-    const uint32 descriptorSetIndex = m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("RenderTextureToScreenDescriptorSet"));
+    const uint32 descriptorSetIndex = m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex("RenderTextureToScreenDescriptorSet");
     AssertDebug(descriptorSetIndex != ~0u);
 
     // Render each sub-view
@@ -219,7 +219,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
             {},
             descriptorSetIndex);
 
-        frame->renderQueue << DrawIndexed(m_quadMesh->NumIndices());
+        frame->renderQueue << DrawIndexed(6);
     }
 
 #ifdef HYP_RENDER_UI_IN_FINAL_PASS
@@ -235,12 +235,12 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
         }
 
         frame->renderQueue << BindDescriptorSet(
-            m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex),
+            m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex),
             m_renderTextureToScreenPass->GetGraphicsPipeline(),
             {},
             descriptorSetIndex);
 
-        frame->renderQueue << DrawIndexed(m_quadMesh->NumIndices());
+        frame->renderQueue << DrawIndexed(6);
 
         // DebugLog(LogType::Debug, "Rendering UI layer to screen for frame index %u\n", frameIndex);
     }

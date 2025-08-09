@@ -68,8 +68,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
     {
         for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Global"), frameIndex)
-                ->SetElement(NAME("EnvProbeTextures"), prev, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("EnvProbeTextures", prev, g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
         }
     }
 
@@ -82,8 +82,8 @@ void OnBindingChanged_ReflectionProbe(EnvProbe* envProbe, uint32 prev, uint32 ne
 
         for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Global"), frameIndex)
-                ->SetElement(NAME("EnvProbeTextures"), next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("EnvProbeTextures", next, g_renderBackend->GetTextureImageView(envProbe->GetPrefilteredEnvMap()));
         }
     }
 }
@@ -136,11 +136,11 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         // @TODO: Set based on binding index
         for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Global"), frameIndex)
-                ->SetElement(NAME("LightFieldColorTexture"), g_renderBackend->GetTextureImageView(envGrid->GetLightFieldIrradianceTexture()));
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("LightFieldColorTexture", g_renderBackend->GetTextureImageView(envGrid->GetLightFieldIrradianceTexture()));
 
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Global"), frameIndex)
-                ->SetElement(NAME("LightFieldDepthTexture"), g_renderBackend->GetTextureImageView(envGrid->GetLightFieldDepthTexture()));
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("LightFieldDepthTexture", g_renderBackend->GetTextureImageView(envGrid->GetLightFieldDepthTexture()));
         }
 
         return;
@@ -156,8 +156,8 @@ void OnBindingChanged_EnvGrid(EnvGrid* envGrid, uint32 prev, uint32 next)
         // Set our voxel grid texture in the global descriptor set so we can use it in shaders
         for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
         {
-            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Global"), frameIndex)
-                ->SetElement(NAME("VoxelGridTexture"), g_renderBackend->GetTextureImageView(envGrid->GetVoxelGridTexture()));
+            g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Global", frameIndex)
+                ->SetElement("VoxelGridTexture", g_renderBackend->GetTextureImageView(envGrid->GetVoxelGridTexture()));
         }
     }
     // }

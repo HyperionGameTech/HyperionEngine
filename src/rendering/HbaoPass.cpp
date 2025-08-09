@@ -110,10 +110,10 @@ void HBAO::CreatePipeline(const RenderableAttributeSet& renderableAttributes)
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("HBAODescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("HBAODescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("UniformBuffer"), m_uniformBuffer);
+        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
     }
 
     DeferCreate(descriptorTable);
@@ -168,11 +168,10 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& renderSetup)
     frame->renderQueue << BindDescriptorTable(
         m_graphicsPipeline->GetDescriptorTable(),
         m_graphicsPipeline,
-        { { NAME("Global"),
-            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+        { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
         frameIndex);
 
-    const uint32 viewDescriptorSetIndex = m_graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 viewDescriptorSetIndex = m_graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
     if (viewDescriptorSetIndex != ~0u)
     {
@@ -188,7 +187,7 @@ void HBAO::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
     frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-    frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
+    frame->renderQueue << DrawIndexed(6);
 
     End(frame, renderSetup);
 }

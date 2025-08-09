@@ -222,18 +222,18 @@ void SSRRenderer::CreateComputePipelines()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = writeUvsShaderDescriptorTable->GetDescriptorSet(NAME("SSRDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = writeUvsShaderDescriptorTable->GetDescriptorSet("SSRDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("UVImage"), g_renderBackend->GetTextureImageView(m_uvsTexture));
-        descriptorSet->SetElement(NAME("UniformBuffer"), m_uniformBuffer);
+        descriptorSet->SetElement("UVImage", g_renderBackend->GetTextureImageView(m_uvsTexture));
+        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
 
-        descriptorSet->SetElement(NAME("GBufferNormalsTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferMaterialTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferVelocityTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferDepthTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferMipChain"), m_mipChainImageView ? m_mipChainImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement(NAME("DeferredResult"), m_deferredResultImageView ? m_deferredResultImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("GBufferNormalsTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
+        descriptorSet->SetElement("GBufferMaterialTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
+        descriptorSet->SetElement("GBufferVelocityTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        descriptorSet->SetElement("GBufferDepthTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        descriptorSet->SetElement("GBufferMipChain", m_mipChainImageView ? m_mipChainImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("DeferredResult", m_deferredResultImageView ? m_deferredResultImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(writeUvsShaderDescriptorTable);
@@ -254,19 +254,19 @@ void SSRRenderer::CreateComputePipelines()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = sampleGbufferShaderDescriptorTable->GetDescriptorSet(NAME("SSRDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = sampleGbufferShaderDescriptorTable->GetDescriptorSet("SSRDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("UVImage"), g_renderBackend->GetTextureImageView(m_uvsTexture));
-        descriptorSet->SetElement(NAME("SampleImage"), g_renderBackend->GetTextureImageView(m_sampledResultTexture));
-        descriptorSet->SetElement(NAME("UniformBuffer"), m_uniformBuffer);
+        descriptorSet->SetElement("UVImage", g_renderBackend->GetTextureImageView(m_uvsTexture));
+        descriptorSet->SetElement("SampleImage", g_renderBackend->GetTextureImageView(m_sampledResultTexture));
+        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
 
-        descriptorSet->SetElement(NAME("GBufferNormalsTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferMaterialTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferVelocityTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferDepthTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
-        descriptorSet->SetElement(NAME("GBufferMipChain"), m_mipChainImageView ? m_mipChainImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
-        descriptorSet->SetElement(NAME("DeferredResult"), m_deferredResultImageView ? m_deferredResultImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("GBufferNormalsTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_NORMALS)->GetImageView());
+        descriptorSet->SetElement("GBufferMaterialTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_MATERIAL)->GetImageView());
+        descriptorSet->SetElement("GBufferVelocityTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        descriptorSet->SetElement("GBufferDepthTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        descriptorSet->SetElement("GBufferMipChain", m_mipChainImageView ? m_mipChainImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+        descriptorSet->SetElement("DeferredResult", m_deferredResultImageView ? m_deferredResultImageView : g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
     }
 
     DeferCreate(sampleGbufferShaderDescriptorTable);
@@ -301,11 +301,11 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             m_writeUvs->GetDescriptorTable(),
             m_writeUvs,
-            { { NAME("Global"),
-                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global",
+                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
-        const uint32 viewDescriptorSetIndex = m_writeUvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 viewDescriptorSetIndex = m_writeUvs->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
         if (viewDescriptorSetIndex != ~0u)
         {
@@ -333,11 +333,10 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             m_sampleGbuffer->GetDescriptorTable(),
             m_sampleGbuffer,
-            { { NAME("Global"),
-                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { "Global", { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
-        const uint32 viewDescriptorSetIndex = m_sampleGbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 viewDescriptorSetIndex = m_sampleGbuffer->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
         if (viewDescriptorSetIndex != ~0u)
         {

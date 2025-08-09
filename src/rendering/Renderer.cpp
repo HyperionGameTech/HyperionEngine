@@ -121,7 +121,7 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
         table->SetDebugName(NAME_FMT("DescriptorTable_{}", shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists
-        const uint32 instancingDescriptorSetIndex = table->GetDescriptorSetIndex(NAME("Instancing"));
+        const uint32 instancingDescriptorSetIndex = table->GetDescriptorSetIndex("Instancing");
 
         if (instancingDescriptorSetIndex != ~0u)
         {
@@ -137,10 +137,10 @@ GraphicsPipelineRef PassData::CreateGraphicsPipeline(
                 const GpuBufferRef& gpuBuffer = impl->GetGpuBufferHolder()->GetBuffer(frameIndex);
                 Assert(gpuBuffer.IsValid());
 
-                const DescriptorSetRef& instancingDescriptorSet = table->GetDescriptorSet(NAME("Instancing"), frameIndex);
+                const DescriptorSetRef& instancingDescriptorSet = table->GetDescriptorSet("Instancing", frameIndex);
                 Assert(instancingDescriptorSet.IsValid());
 
-                instancingDescriptorSet->SetElement(NAME("EntityInstanceBatchesBuffer"), gpuBuffer);
+                instancingDescriptorSet->SetElement("EntityInstanceBatchesBuffer", gpuBuffer);
             }
         }
 

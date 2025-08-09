@@ -424,7 +424,7 @@ void DebugDrawer::Initialize()
     m_descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
     Assert(m_descriptorTable != nullptr);
 
-    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
+    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet");
     Assert(debugDrawerDescriptorSetIndex != ~0u);
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
@@ -432,7 +432,7 @@ void DebugDrawer::Initialize()
         const DescriptorSetRef& debugDrawerDescriptorSet = m_descriptorTable->GetDescriptorSet(debugDrawerDescriptorSetIndex, frameIndex);
         Assert(debugDrawerDescriptorSet != nullptr);
 
-        debugDrawerDescriptorSet->SetElement(NAME("ImmediateDrawsBuffer"), m_instanceBuffers[frameIndex]);
+        debugDrawerDescriptorSet->SetElement("ImmediateDrawsBuffer", m_instanceBuffers[frameIndex]);
     }
 
     DeferCreate(m_descriptorTable);
@@ -561,7 +561,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
             &wasInstanceBufferRebuilt));
     }
 
-    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex(NAME("DebugDrawerDescriptorSet"));
+    const uint32 debugDrawerDescriptorSetIndex = m_descriptorTable->GetDescriptorSetIndex("DebugDrawerDescriptorSet");
     Assert(debugDrawerDescriptorSetIndex != ~0u);
 
     const DescriptorSetRef& debugDrawerDescriptorSet = m_descriptorTable->GetDescriptorSet(debugDrawerDescriptorSetIndex, frameIndex);
@@ -570,7 +570,7 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
     // Update descriptor set if instance buffer was rebuilt
     if (wasInstanceBufferRebuilt)
     {
-        debugDrawerDescriptorSet->SetElement(NAME("ImmediateDrawsBuffer"), instanceBuffer);
+        debugDrawerDescriptorSet->SetElement("ImmediateDrawsBuffer", instanceBuffer);
     }
 
     auto& partitionedShaderData = m_cachedPartitionedShaderData;
@@ -696,12 +696,12 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
                 frame->renderQueue << BindDescriptorTable(
                     m_descriptorTable,
                     graphicsPipeline,
-                    { { NAME("DebugDrawerDescriptorSet"),
-                          { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)) } } },
-                        { NAME("Global"),
-                            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) } } },
-                        { NAME("Object"), {} } },
+                    { { "DebugDrawerDescriptorSet",
+                          { { "ImmediateDrawsBuffer", ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)) } } },
+                        { "Global",
+                            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) } } },
+                        { "Object", {} } },
                     frameIndex);
             }
 

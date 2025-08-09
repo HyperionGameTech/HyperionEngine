@@ -287,18 +287,6 @@ struct DescriptorSetDeclaration
 };
 
 HYP_STRUCT()
-struct DescriptorDynamicOffsets
-{
-    static constexpr uint32 maxOffsets = 8;
-
-    HYP_FIELD()
-    uint32 indices[maxOffsets] {}; // index of each elements
-
-    HYP_FIELD()
-    uint32 values[maxOffsets] {};
-};
-
-HYP_STRUCT()
 struct DescriptorTableDeclaration
 {
     HYP_FIELD(Property = "Elements", Serialize = true)

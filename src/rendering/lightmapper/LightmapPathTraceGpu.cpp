@@ -246,18 +246,18 @@ void LightmapRenderer_GpuPathTracing::UpdatePipelineState(FrameBase* frame)
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RTRadianceDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("TLAS"), m_accelerationStructures[frameIndex]);
-        descriptorSet->SetElement(NAME("MeshDescriptionsBuffer"), m_accelerationStructures[frameIndex]->GetMeshDescriptionsBuffer());
-        descriptorSet->SetElement(NAME("HitsBuffer"), m_hitsBufferGpu);
-        descriptorSet->SetElement(NAME("RaysBuffer"), m_raysBuffers[frameIndex]);
+        descriptorSet->SetElement("TLAS", m_accelerationStructures[frameIndex]);
+        descriptorSet->SetElement("MeshDescriptionsBuffer", m_accelerationStructures[frameIndex]->GetMeshDescriptionsBuffer());
+        descriptorSet->SetElement("HitsBuffer", m_hitsBufferGpu);
+        descriptorSet->SetElement("RaysBuffer", m_raysBuffers[frameIndex]);
 
-        descriptorSet->SetElement(NAME("LightsBuffer"), g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
-        descriptorSet->SetElement(NAME("MaterialsBuffer"), g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("LightsBuffer", g_renderGlobalState->gpuBuffers[GRB_LIGHTS]->GetBuffer(frameIndex));
+        descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-        descriptorSet->SetElement(NAME("RTRadianceUniforms"), m_uniformBuffers[frameIndex]);
+        descriptorSet->SetElement("RTRadianceUniforms", m_uniformBuffers[frameIndex]);
     }
 
     DeferCreate(descriptorTable);
@@ -388,7 +388,7 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
 
         if (raysBufferResized)
         {
-            m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame->GetFrameIndex())->SetElement(NAME("RaysBuffer"), m_raysBuffers[frame->GetFrameIndex()]);
+            m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex())->SetElement("RaysBuffer", m_raysBuffers[frame->GetFrameIndex()]);
         }
 
         bool hitsBufferResized = false;
@@ -397,8 +397,8 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
         m_hitsBuffers[frame->GetFrameIndex()]->Memset(rays.Size() * sizeof(LightmapHit), 0);
 
         if (hitsBufferResized) {
-            m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("RTRadianceDescriptorSet"), frame->GetFrameIndex())
-                ->SetElement(NAME("HitsBuffer"), m_hitsBuffers[frame->GetFrameIndex()]);
+            m_raytracingPipeline->GetDescriptorTable()->GetDescriptorSet("RTRadianceDescriptorSet", frame->GetFrameIndex())
+                ->SetElement("HitsBuffer", m_hitsBuffers[frame->GetFrameIndex()]);
         }*/
 
         if (raysBufferResized || hitsBufferResized)
@@ -412,9 +412,9 @@ void LightmapRenderer_GpuPathTracing::Render(FrameBase* frame, const RenderSetup
     frame->renderQueue << BindDescriptorTable(
         m_raytracingPipeline->GetDescriptorTable(),
         m_raytracingPipeline,
-        { { NAME("Global"),
-            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { "Global",
+            { { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << InsertBarrier(m_hitsBufferGpu, RS_UNORDERED_ACCESS);

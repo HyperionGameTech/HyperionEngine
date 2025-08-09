@@ -213,14 +213,14 @@ void DeferredPass::CreatePipeline(const RenderableAttributeSet& renderableAttrib
 
         for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
         {
-            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frameIndex);
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("DeferredDirectDescriptorSet", frameIndex);
             Assert(descriptorSet.IsValid());
 
-            descriptorSet->SetElement(NAME("MaterialsBuffer"), g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
+            descriptorSet->SetElement("MaterialsBuffer", g_renderGlobalState->gpuBuffers[GRB_MATERIALS]->GetBuffer(frameIndex));
 
-            descriptorSet->SetElement(NAME("LTCSampler"), m_ltcSampler);
-            descriptorSet->SetElement(NAME("LTCMatrixTexture"), g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
-            descriptorSet->SetElement(NAME("LTCBRDFTexture"), g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
+            descriptorSet->SetElement("LTCSampler", m_ltcSampler);
+            descriptorSet->SetElement("LTCMatrixTexture", g_renderBackend->GetTextureImageView(m_ltcMatrixTexture));
+            descriptorSet->SetElement("LTCBRDFTexture", g_renderBackend->GetTextureImageView(m_ltcBrdfTexture));
         }
 
         DeferCreate(descriptorTable);
@@ -292,13 +292,13 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
 
             const GraphicsPipelineRef& pipeline = m_directLightGraphicsPipelines[lightTypeIndex];
 
-            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+            const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
+            const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
             const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
-                ? pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"))
+                ? pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Material")
                 : ~0u;
 
-            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
+            const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("DeferredDirectDescriptorSet");
 
             if (isFirstLight)
             {
@@ -310,7 +310,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
                 {
                     frame->renderQueue << BindDescriptorSet(
-                        pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame->GetFrameIndex()),
+                        pipeline->GetDescriptorTable()->GetDescriptorSet("Material", frame->GetFrameIndex()),
                         pipeline,
                         {},
                         materialDescriptorSetIndex);
@@ -319,7 +319,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 if (deferredDirectDescriptorSetIndex != ~0u)
                 {
                     frame->renderQueue << BindDescriptorSet(
-                        pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame->GetFrameIndex()),
+                        pipeline->GetDescriptorTable()->GetDescriptorSet("DeferredDirectDescriptorSet", frame->GetFrameIndex()),
                         pipeline,
                         {},
                         deferredDirectDescriptorSetIndex);
@@ -332,7 +332,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             }
 
             frame->renderQueue << BindDescriptorSet(
-                pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
+                pipeline->GetDescriptorTable()->GetDescriptorSet("Global", frame->GetFrameIndex()),
                 pipeline,
                 { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { "CurrentLight", ShaderDataOffset<LightShaderData>(light, 0) } },
@@ -356,7 +356,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                     materialDescriptorSetIndex);
             }
 
-            frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
+            frame->renderQueue << DrawIndexed(6);
         }
     }
 }
@@ -601,8 +601,8 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
 
         Assert(graphicsPipeline.IsValid());
 
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
         graphicsPipeline->SetPushConstants(m_pushConstantData.Data(), m_pushConstantData.Size());
 
@@ -619,10 +619,10 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
         }
 
         frame->renderQueue << BindDescriptorSet(
-            graphicsPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex),
+            graphicsPipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex),
             graphicsPipeline,
-            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
+            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
             globalDescriptorSetIndex);
 
         frame->renderQueue << BindDescriptorSet(
@@ -631,9 +631,7 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             {},
             viewDescriptorSetIndex);
 
-        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-        frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
+        frame->renderQueue << DrawQuad();
     }
 
     frame->renderQueue << EndFramebuffer(m_framebuffer);
@@ -752,10 +750,10 @@ void ReflectionsPass::CreateSSRRenderer()
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("InTexture"), g_renderBackend->GetTextureImageView(m_ssrRenderer->GetFinalResultTexture()));
+        descriptorSet->SetElement("InTexture", g_renderBackend->GetTextureImageView(m_ssrRenderer->GetFinalResultTexture()));
     }
 
     DeferCreate(descriptorTable);
@@ -876,8 +874,11 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             frame->renderQueue << BindGraphicsPipeline(graphicsPipeline);
         }
 
-        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+        const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
+        const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+
+        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
 
         for (EnvProbe* envProbe : envProbes)
         {
@@ -894,10 +895,10 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             //     RenderApi_GetFrameIndex_RenderThread());
 
             frame->renderQueue << BindDescriptorSet(
-                graphicsPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex),
+                graphicsPipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex),
                 graphicsPipeline,
-                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
+                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                    { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
                 globalDescriptorSetIndex);
 
             frame->renderQueue << BindDescriptorSet(
@@ -906,9 +907,7 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 {},
                 viewDescriptorSetIndex);
 
-            frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-            frame->renderQueue << DrawIndexed(m_fullScreenQuad->NumIndices());
+            frame->renderQueue << DrawIndexed(6);
 
             ++numRenderedEnvProbes;
         }
@@ -1143,14 +1142,14 @@ void DeferredRenderer::CreateViewFinalPassDescriptorSet(View* view, DeferredPass
 
     const DescriptorTableDeclaration& descriptorTableDecl = renderTextureToScreenShader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DescriptorSetDeclaration* decl = descriptorTableDecl.FindDescriptorSetDeclaration(NAME("RenderTextureToScreenDescriptorSet"));
+    DescriptorSetDeclaration* decl = descriptorTableDecl.FindDescriptorSetDeclaration("RenderTextureToScreenDescriptorSet");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
 
     DescriptorSetRef descriptorSet = g_renderBackend->MakeDescriptorSet(layout);
     descriptorSet->SetDebugName(NAME("FinalPassDescriptorSet"));
-    descriptorSet->SetElement(NAME("InTexture"), inputImageView);
+    descriptorSet->SetElement("InTexture", inputImageView);
 
     DeferCreate(descriptorSet);
 
@@ -1163,7 +1162,7 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
 {
     HYP_SCOPE;
 
-    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration(NAME("View"));
+    const DescriptorSetDeclaration* decl = g_renderGlobalState->globalDescriptorTable->GetDeclaration()->FindDescriptorSetDeclaration("View");
     Assert(decl != nullptr);
 
     const DescriptorSetLayout layout { decl };
@@ -1200,11 +1199,11 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
             // not including depth texture here (hence the - 1)
             for (uint32 attachmentIndex = 0; attachmentIndex < GTN_MAX - 1; attachmentIndex++)
             {
-                descriptorSet->SetElement(NAME("GBufferTextures"), gbufferElementIndex++, opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
+                descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, opaqueFbo->GetAttachment(attachmentIndex)->GetImageView());
             }
 
             // add translucent bucket's albedo
-            descriptorSet->SetElement(NAME("GBufferTextures"), gbufferElementIndex++, translucentFbo->GetAttachment(0)->GetImageView());
+            descriptorSet->SetElement("GBufferTextures", gbufferElementIndex++, translucentFbo->GetAttachment(0)->GetImageView());
         }
         else
         {
@@ -1214,54 +1213,54 @@ void DeferredRenderer::CreateViewDescriptorSets(View* view, DeferredPassData& pa
             }
 
             // add translucent bucket's albedo
-            descriptorSet->SetElement(NAME("GBufferTranslucentTexture"), translucentFbo->GetAttachment(0)->GetImageView());
+            descriptorSet->SetElement("GBufferTranslucentTexture", translucentFbo->GetAttachment(0)->GetImageView());
         }
 
-        descriptorSet->SetElement(NAME("GBufferDepthTexture"), depthAttachment->GetImageView());
+        descriptorSet->SetElement("GBufferDepthTexture", depthAttachment->GetImageView());
 
-        descriptorSet->SetElement(NAME("GBufferMipChain"), g_renderBackend->GetTextureImageView(passData.mipChain));
+        descriptorSet->SetElement("GBufferMipChain", g_renderBackend->GetTextureImageView(passData.mipChain));
 
-        descriptorSet->SetElement(NAME("PostProcessingUniforms"), passData.postProcessing->GetUniformBuffer());
+        descriptorSet->SetElement("PostProcessingUniforms", passData.postProcessing->GetUniformBuffer());
 
-        descriptorSet->SetElement(NAME("DepthPyramidResult"), passData.depthPyramidRenderer->GetResultImageView());
+        descriptorSet->SetElement("DepthPyramidResult", passData.depthPyramidRenderer->GetResultImageView());
 
-        descriptorSet->SetElement(NAME("TAAResultTexture"), g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
+        descriptorSet->SetElement("TAAResultTexture", g_renderBackend->GetTextureImageView(passData.temporalAa->GetResultTexture()));
 
         if (passData.reflectionsPass->ShouldRenderSSR())
         {
-            descriptorSet->SetElement(NAME("SSRResultTexture"), g_renderBackend->GetTextureImageView(passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()));
+            descriptorSet->SetElement("SSRResultTexture", g_renderBackend->GetTextureImageView(passData.reflectionsPass->GetSSRRenderer()->GetFinalResultTexture()));
         }
         else
         {
-            descriptorSet->SetElement(NAME("SSRResultTexture"), g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSRResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         }
 
         if (passData.ssgi)
         {
-            descriptorSet->SetElement(NAME("SSGIResultTexture"), g_renderBackend->GetTextureImageView(passData.ssgi->GetFinalResultTexture()));
+            descriptorSet->SetElement("SSGIResultTexture", g_renderBackend->GetTextureImageView(passData.ssgi->GetFinalResultTexture()));
         }
         else
         {
-            descriptorSet->SetElement(NAME("SSGIResultTexture"), g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSGIResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         }
 
         if (passData.hbao)
         {
-            descriptorSet->SetElement(NAME("SSAOResultTexture"), passData.hbao->GetFinalImageView());
+            descriptorSet->SetElement("SSAOResultTexture", passData.hbao->GetFinalImageView());
         }
         else
         {
-            descriptorSet->SetElement(NAME("SSAOResultTexture"), g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
+            descriptorSet->SetElement("SSAOResultTexture", g_renderGlobalState->placeholderData->GetImageView2D1x1R8());
         }
 
-        descriptorSet->SetElement(NAME("DeferredResult"), passData.combinePass->GetFinalImageView());
+        descriptorSet->SetElement("DeferredResult", passData.combinePass->GetFinalImageView());
 
-        descriptorSet->SetElement(NAME("DeferredIndirectResultTexture"), passData.indirectPass->GetFinalImageView());
+        descriptorSet->SetElement("DeferredIndirectResultTexture", passData.indirectPass->GetFinalImageView());
 
-        descriptorSet->SetElement(NAME("ReflectionProbeResultTexture"), passData.reflectionsPass->GetFinalImageView());
+        descriptorSet->SetElement("ReflectionProbeResultTexture", passData.reflectionsPass->GetFinalImageView());
 
-        descriptorSet->SetElement(NAME("EnvGridRadianceResultTexture"), passData.envGridRadiancePass->GetFinalImageView());
-        descriptorSet->SetElement(NAME("EnvGridIrradianceResultTexture"), passData.envGridIrradiancePass->GetFinalImageView());
+        descriptorSet->SetElement("EnvGridRadianceResultTexture", passData.envGridRadiancePass->GetFinalImageView());
+        descriptorSet->SetElement("EnvGridIrradianceResultTexture", passData.envGridIrradiancePass->GetFinalImageView());
 
         HYP_GFX_ASSERT(descriptorSet->Create());
 
@@ -1288,10 +1287,10 @@ void DeferredRenderer::CreateViewCombinePass(View* view, DeferredPassData& passD
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex);
+        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet("RenderTextureToScreenDescriptorSet", frameIndex);
         Assert(descriptorSet != nullptr);
 
-        descriptorSet->SetElement(NAME("InTexture"), passData.indirectPass->GetFinalImageView());
+        descriptorSet->SetElement("InTexture", passData.indirectPass->GetFinalImageView());
     }
 
     DeferCreate(descriptorTable);
@@ -1956,9 +1955,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
                 {},
                 frameIndex);
 
-            frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
-            frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
-            frame->renderQueue << DrawIndexed(passData.combinePass->GetQuadMesh()->NumIndices());
+            frame->renderQueue << DrawQuad();
         }
 
         // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.

@@ -148,7 +148,7 @@ GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd, IDrawCallC
         descriptorTable->SetDebugName(NAME_FMT("DescriptorTable_{}", m_shader->GetCompiledShader()->GetName()));
 
         // Setup instancing buffers if "Instancing" descriptor set exists
-        const uint32 instancingDescriptorSetIndex = descriptorTable->GetDescriptorSetIndex(NAME("Instancing"));
+        const uint32 instancingDescriptorSetIndex = descriptorTable->GetDescriptorSetIndex("Instancing");
 
         if (instancingDescriptorSetIndex != ~0u)
         {
@@ -157,10 +157,10 @@ GraphicsPipelineRef RenderGroup::CreateGraphicsPipeline(PassData* pd, IDrawCallC
                 const GpuBufferRef& gpuBuffer = drawCallCollectionImpl->GetGpuBufferHolder()->GetBuffer(frameIndex);
                 Assert(gpuBuffer.IsValid());
 
-                const DescriptorSetRef& instancingDescriptorSet = descriptorTable->GetDescriptorSet(NAME("Instancing"), frameIndex);
+                const DescriptorSetRef& instancingDescriptorSet = descriptorTable->GetDescriptorSet("Instancing", frameIndex);
                 Assert(instancingDescriptorSet.IsValid());
 
-                instancingDescriptorSet->SetElement(NAME("EntityInstanceBatchesBuffer"), gpuBuffer);
+                instancingDescriptorSet->SetElement("EntityInstanceBatchesBuffer", gpuBuffer);
             }
         }
 
@@ -269,21 +269,21 @@ static void RenderAll(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-    const DescriptorSetRef& globalDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex);
+    const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
+    const DescriptorSetRef& globalDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex);
 
-    const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
+    const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
-    const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
+    const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Material");
     const DescriptorSetRef& materialDescriptorSet = useBindlessTextures
-        ? pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frameIndex)
+        ? pipeline->GetDescriptorTable()->GetDescriptorSet("Material", frameIndex)
         : DescriptorSetRef::unset;
 
-    const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
-    const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frameIndex);
+    const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
+    const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
 
-    const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
-    const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frameIndex);
+    const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
+    const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
 
     RenderStatsCounts counts;
 
@@ -294,10 +294,10 @@ static void RenderAll(
         frame->renderQueue << BindDescriptorSet(
             globalDescriptorSet,
             pipeline,
-            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
+            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentLight", ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
             globalDescriptorSetIndex);
     }
 
@@ -323,13 +323,13 @@ static void RenderAll(
     }
 
     const DrawCallBase* prevDrawCall = nullptr;
-    
-    ArrayMap<WeakName, uint32> offsets;
 
     for (const DrawCall& drawCall : drawCallCollection.drawCalls)
     {
         if (entityDescriptorSet.IsValid())
         {
+            // @TODO: Build out initial offset map, store indices as variables so we don't need to use string / name every time.
+            ArrayMap<WeakName, uint32> offsets;
             offsets["SkeletonsBuffer"] = ShaderDataOffset<SkeletonShaderData>(drawCall.skeleton, 0);
             offsets["CurrentObject"] = ShaderDataOffset<EntityShaderData>(drawCall.entityId.ToIndex());
 
@@ -413,7 +413,7 @@ static void RenderAll(
         frame->renderQueue << BindDescriptorSet(
             instancingDescriptorSet,
             pipeline,
-            { { NAME("EntityInstanceBatchesBuffer"), uint32(offset) } },
+            { { "EntityInstanceBatchesBuffer", uint32(offset) } },
             instancingDescriptorSetIndex);
 
         if (!prevDrawCall || prevDrawCall->mesh != drawCall.mesh)
@@ -473,11 +473,11 @@ static void RenderAll_Parallel(
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
-    const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Global"));
-    const DescriptorSetRef& globalDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex);
+    const uint32 globalDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
+    const DescriptorSetRef& globalDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Global", frameIndex);
 
-    const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
-    const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"));
+    const uint32 viewDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
+    const uint32 materialDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Material");
 
     RenderQueue& rootQueue = parallelRenderingState->rootQueue;
 
@@ -488,10 +488,10 @@ static void RenderAll_Parallel(
         rootQueue << BindDescriptorSet(
             globalDescriptorSet,
             pipeline,
-            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
-                { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
-                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
+            { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
+                { "EnvGridsBuffer", ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) },
+                { "CurrentLight", ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { "CurrentEnvProbe", ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } },
             globalDescriptorSetIndex);
     }
 
@@ -509,7 +509,7 @@ static void RenderAll_Parallel(
     // Bind textures globally (bindless)
     if (materialDescriptorSetIndex != ~0u && useBindlessTextures)
     {
-        const DescriptorSetRef& materialDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frameIndex);
+        const DescriptorSetRef& materialDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Material", frameIndex);
         AssertDebug(materialDescriptorSet.IsValid());
 
         rootQueue << BindDescriptorSet(
@@ -533,8 +533,8 @@ static void RenderAll_Parallel(
 
                 RenderQueue& renderQueue = parallelRenderingState->localQueues[index];
 
-                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
-                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frameIndex);
+                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
+                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
 
                 const DrawCallBase* prevDrawCall = nullptr;
 
@@ -606,11 +606,11 @@ static void RenderAll_Parallel(
 
                 RenderQueue& renderQueue = parallelRenderingState->localQueues[index];
 
-                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Object"));
-                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Object"), frameIndex);
+                const uint32 entityDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Object");
+                const DescriptorSetRef& entityDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Object", frameIndex);
 
-                const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Instancing"));
-                const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Instancing"), frameIndex);
+                const uint32 instancingDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex("Instancing");
+                const DescriptorSetRef& instancingDescriptorSet = pipeline->GetDescriptorTable()->GetDescriptorSet("Instancing", frameIndex);
 
                 const DrawCallBase* prevDrawCall = nullptr;
 
@@ -655,7 +655,7 @@ static void RenderAll_Parallel(
                     renderQueue << BindDescriptorSet(
                         instancingDescriptorSet,
                         pipeline,
-                        { { NAME("EntityInstanceBatchesBuffer"), uint32(offset) } },
+                        { { "EntityInstanceBatchesBuffer", uint32(offset) } },
                         instancingDescriptorSetIndex);
 
                     if (!prevDrawCall || prevDrawCall->mesh != drawCall.mesh)
