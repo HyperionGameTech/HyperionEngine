@@ -15,6 +15,14 @@
 
 namespace hyperion {
 
+namespace sys {
+class ApplicationWindow;
+class AppContextBase;
+} // namespace sys
+
+using sys::ApplicationWindow;
+using sys::AppContextBase;
+
 class VulkanInstance;
 class VulkanAsyncCompute;
 class VulkanRenderConfig;
@@ -155,6 +163,9 @@ public:
     HYP_API RendererResult CreateDescriptorSet(const VulkanDescriptorSetLayoutWrapperRef& layout, VkDescriptorSet& outVkDescriptorSet);
     HYP_API RendererResult DestroyDescriptorSet(VkDescriptorSet vkDescriptorSet);
     HYP_API RendererResult GetOrCreateVkDescriptorSetLayout(const DescriptorSetLayout& layout, VulkanDescriptorSetLayoutWrapperRef& outRef);
+
+    VkSurfaceKHR CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance);
+    bool GetVkExtensions(const AppContextBase* appContext, Array<const char*>& outExtensions);
 
 private:
     Delegate<void, SwapchainBase*> OnSwapchainRecreated;

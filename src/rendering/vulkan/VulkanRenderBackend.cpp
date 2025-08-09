@@ -28,6 +28,10 @@
 
 #include <vulkan/vulkan.h>
 
+#ifdef HYP_WINDOWS
+#include <vulkan/vulkan_win32.h>
+#endif
+
 #define CHECK_FRAME_RESULT(result)                  \
     do                                              \
     {                                               \
@@ -1041,6 +1045,115 @@ RendererResult VulkanRenderBackend::GetOrCreateVkDescriptorSetLayout(const Descr
 UniquePtr<SingleTimeCommands> VulkanRenderBackend::GetSingleTimeCommands()
 {
     return MakeUnique<VulkanSingleTimeCommands>();
+}
+
+VkSurfaceKHR VulkanRenderBackend::CreateVkSurface(ApplicationWindow* window, VulkanInstance* instance)
+{
+    HYP_GFX_ASSERT(window && instance);
+
+#ifdef HYP_SDL
+    if (SDLApplicationWindow* sdlWindow = ObjCast<SDLApplicationWindow>(window))
+    {
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        SDL_bool result = SDL_Vulkan_CreateSurface(static_cast<SDL_Window*>(sdlWindow->GetInternalWindowHandle()), instance->GetInstance(), &surface);
+
+        HYP_GFX_ASSERT(result == SDL_TRUE, "Failed to create Vulkan surface: %s", SDL_GetError());
+
+        return surface;
+    }
+#endif
+
+#ifdef HYP_WINDOWS
+    if (Win32ApplicationWindow* win32Window = ObjCast<Win32ApplicationWindow>(window))
+    {
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+        VkWin32SurfaceCreateInfoKHR createInfo { VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+        createInfo.hinstance = win32Window->GetHINSTANCE();
+        createInfo.hwnd = win32Window->GetHWND();
+
+        VkResult vkResult = vkCreateWin32SurfaceKHR(
+            instance->GetInstance(),
+            &createInfo,
+            nullptr,
+            &surface);
+
+        HYP_GFX_ASSERT(vkResult == VK_SUCCESS, "Failed to create Win32 Vulkan surface: %d", int(vkResult));
+
+        return surface;
+    }
+#endif
+
+    HYP_NOT_IMPLEMENTED();
+}
+
+
+bool VulkanRenderBackend::GetVkExtensions(const AppContextBase* appContext, Array<const char*> &outExtensions)
+{
+#ifdef HYP_SDL
+    if (const SDLAppContext* sdlAppContext = ObjCast<SDLAppContext>(appContext))
+    {
+        uint32 numExtensions = 0;
+        SDL_Window* sdlWindow = static_cast<SDL_Window*>(static_cast<SDLApplicationWindow*>(sdlAppContext->GetMainWindow())->GetInternalWindowHandle());
+
+        if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, nullptr))
+        {
+            return false;
+        }
+
+        outExtensions.Resize(numExtensions);
+
+        if (!SDL_Vulkan_GetInstanceExtensions(sdlWindow, &numExtensions, outExtensions.Data()))
+        {
+            return false;
+        }
+
+        return true;
+    }
+#endif
+
+#ifdef HYP_WINDOWS
+    if (const Win32AppContext* win32AppContext = ObjCast<Win32AppContext>(appContext))
+    {
+        // extensions required for Win32 surface support
+        static const char* requiredExtensions[] = {
+            "VK_KHR_surface",
+            "VK_KHR_win32_surface"
+        };
+
+        uint32_t count = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+
+        Array<VkExtensionProperties> vkProperties(count);
+        vkEnumerateInstanceExtensionProperties(nullptr, &count, vkProperties.Data());
+
+        for (const char* requiredExtension : requiredExtensions)
+        {
+            bool found = false;
+
+            for (VkExtensionProperties& it : vkProperties)
+            {
+                if (!std::strcmp(it.extensionName, requiredExtension))
+                {
+                    found = true;
+
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // required extension missing.
+                return false;
+            }
+
+            outExtensions.PushBack(requiredExtension);
+        }
+        return true;
+    }
+#endif
+
+    return false;
 }
 
 #pragma endregion VulkanRenderBackend

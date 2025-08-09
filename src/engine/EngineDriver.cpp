@@ -127,13 +127,12 @@ private:
 
         while (m_isRunning.Get(MemoryOrder::RELAXED))
         {
-            // input manager stuff
+            RenderApi_BeginFrame_RenderThread();
+
             while (m_appContext->PollEvent(event))
             {
                 m_appContext->GetMainWindow()->GetInputEventSink().Push(std::move(event));
             }
-
-            RenderApi_BeginFrame_RenderThread();
 
             if (uint32 numEnqueued = m_scheduler.NumEnqueued())
             {

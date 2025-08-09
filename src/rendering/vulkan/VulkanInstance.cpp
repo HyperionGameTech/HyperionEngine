@@ -7,6 +7,7 @@
 #include <rendering/vulkan/VulkanFeatures.hpp>
 #include <rendering/vulkan/VulkanHelpers.hpp>
 #include <rendering/vulkan/VulkanStructs.hpp>
+#include <rendering/vulkan/VulkanRenderBackend.hpp>
 
 #include <rendering/RenderBackend.hpp>
 
@@ -27,6 +28,8 @@
 
 #include <core/Types.hpp>
 
+#include <engine/EngineGlobals.hpp>
+
 #include <cstring>
 
 #ifdef HYP_IOS
@@ -40,6 +43,11 @@
 #endif
 
 namespace hyperion {
+
+static inline VulkanRenderBackend* GetRenderBackend()
+{
+    return static_cast<VulkanRenderBackend*>(g_renderBackend);
+}
 
 static VkPhysicalDevice PickPhysicalDevice(Span<VkPhysicalDevice> devices)
 {
@@ -185,30 +193,31 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
     switch (severity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        lt = LogType::RenDebug;
+
+        HYP_LOG(RenderingBackend, Debug, "Vulkan: [{}, {}]: {}",
+            callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        lt = LogType::RenWarn;
+        HYP_LOG(RenderingBackend, Warning, "Vulkan: [{}, {}]: {}",
+            callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        lt = LogType::RenError;
+        HYP_LOG(RenderingBackend, Error, "Vulkan: [{}, {}]: {}",
+            callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
+
+#ifdef HYP_DEBUG_MODE
+        HYP_BREAKPOINT;
+#endif
+
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        lt = LogType::RenInfo;
+        HYP_LOG(RenderingBackend, Info, "Vulkan: [{}, {}]: {}",
+            callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
         break;
     default:
         break;
     }
 
-    DebugLogRaw(lt, "Vulkan: [%s, %d]:\n\t%s\n",
-        callbackData->pMessageIdName, callbackData->messageIdNumber, callbackData->pMessage);
-
-#if HYP_ENABLE_BREAKPOINTS
-    if (lt == LogType::RenError)
-    {
-        HYP_BREAKPOINT;
-    }
-#endif
     return VK_FALSE;
 }
 
@@ -301,7 +310,7 @@ RendererResult VulkanInstance::Initialize(const AppContextBase& appContext, bool
     // Setup Vulkan extensions
     Array<const char*> extensionNames;
 
-    if (!appContext.GetVkExtensions(extensionNames))
+    if (!GetRenderBackend()->GetVkExtensions(&appContext, extensionNames))
     {
         return HYP_MAKE_ERROR(RendererError, "Failed to load Vulkan extensions.");
     }
@@ -332,7 +341,7 @@ RendererResult VulkanInstance::Initialize(const AppContextBase& appContext, bool
 
     /* Create our renderable surface from SDL */
     HYP_GFX_ASSERT(appContext.GetMainWindow() != nullptr);
-    m_surface = appContext.GetMainWindow()->CreateVkSurface(this);
+    m_surface = GetRenderBackend()->CreateVkSurface(appContext.GetMainWindow(), this);
 
     /* Find and set up an adequate GPU for rendering and presentation */
     HYP_GFX_CHECK(CreateDevice());

@@ -71,7 +71,8 @@ static TextureFormat GetImageFormat(GBufferTargetName targetName)
 }
 
 GBuffer::GBuffer(Vec2u extent)
-    : m_extent(extent)
+    : m_extent(extent),
+      m_isCreated(false)
 {
     for (uint32 bucketIndex = 0; bucketIndex < RB_MAX - 1; bucketIndex++)
     {
@@ -97,6 +98,7 @@ GBuffer::~GBuffer()
 void GBuffer::Create()
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     if (m_isCreated)
     {
@@ -107,7 +109,7 @@ void GBuffer::Create()
 
     for (auto& framebuffer : m_framebuffers)
     {
-        DeferCreate(framebuffer);
+        HYP_GFX_ASSERT(framebuffer->Create());
     }
 
     m_isCreated = true;
@@ -116,6 +118,7 @@ void GBuffer::Create()
 void GBuffer::Resize(Vec2u extent)
 {
     HYP_SCOPE;
+    Threads::AssertOnThread(g_renderThread);
 
     if (m_extent == extent)
     {
@@ -137,7 +140,7 @@ void GBuffer::Resize(Vec2u extent)
     {
         for (auto& framebuffer : m_framebuffers)
         {
-            DeferCreate(framebuffer);
+            HYP_GFX_ASSERT(framebuffer->Create());
         }
 
         OnGBufferResolutionChanged(m_extent);

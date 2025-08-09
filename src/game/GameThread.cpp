@@ -49,13 +49,11 @@ void GameThread::SetGame(const Handle<Game>& game)
         GetScheduler().Enqueue([this, game = game, promise = future.Promise()]()
             {
                 m_game = game;
+                
+                Assert(m_game != nullptr);
+                m_game->SetAppContext(m_appContext);
 
-                if (m_game.IsValid())
-                {
-                    m_game->SetAppContext(m_appContext);
-
-                    InitObject(m_game);
-                }
+                InitObject(m_game);
 
                 promise->Fulfill();
             });
@@ -72,12 +70,10 @@ void GameThread::operator()()
 {
     GameCounter counter;
 
-    if (m_game.IsValid())
-    {
-        m_game->SetAppContext(m_appContext);
+    Assert(m_game != nullptr);
+    m_game->SetAppContext(m_appContext);
 
-        InitObject(m_game);
-    }
+    InitObject(m_game);
 
     Queue<Scheduler::ScheduledTask> tasks;
     Array<SystemEvent> events;
@@ -104,11 +100,8 @@ void GameThread::operator()()
             for (SystemEvent& event : events)
             {
                 m_appContext->GetInputManager()->CheckEvent(&event);
-
-                if (m_game.IsValid())
-                {
-                    m_game->HandleEvent(std::move(event));
-                }
+                
+                m_game->HandleEvent(std::move(event));
             }
 
             events.Clear();

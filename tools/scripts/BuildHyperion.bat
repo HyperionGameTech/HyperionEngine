@@ -23,6 +23,6 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake" 
 
 :SKIP_CMAKE_GENERATION
 
-@REM cmake --build . --parallel 8 --config Release
+cmake --build . --parallel 8 --config Release
 
 popd

@@ -58,21 +58,6 @@ static EnumFlags<MouseButtonState> GetMouseButtonState(int sdlButton)
 
 #pragma region SystemEvent
 
-SDL_Event* SystemEvent::GetInternalEvent()
-{
-    return &m_sdlEvent;
-}
-
-KeyCode SystemEvent::GetKeyCode() const
-{
-    return KeyCode(m_sdlEvent.key.keysym.sym);
-}
-
-EnumFlags<MouseButtonState> SystemEvent::GetMouseButtons() const
-{
-    return GetMouseButtonState(m_sdlEvent.button.button);
-}
-
 #pragma endregion SystemEvent
 
 } // namespace sys

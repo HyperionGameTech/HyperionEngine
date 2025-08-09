@@ -42,7 +42,7 @@
 
 namespace hyperion {
 
-static constexpr float g_minHoldTimeToDrag = 0.01f;
+static constexpr float g_minHoldTimeToDrag = 0.05f;
 
 static HYP_FORCE_INLINE float GetTimeToNextKeyDownEvent(const UIObjectKeyState& keyState)
 {
@@ -84,6 +84,21 @@ UIStage::UIStage(ThreadId ownerThreadId)
 
 UIStage::~UIStage()
 {
+    if (m_scene.IsValid())
+    {
+        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
+        {
+            m_scene->RemoveFromWorld();
+        }
+        else
+        {
+            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
+                {
+                    scene->RemoveFromWorld();
+                },
+                TaskEnqueueFlags::FIRE_AND_FORGET);
+        }
+    }
 }
 
 void UIStage::SetSurfaceSize(Vec2i surfaceSize)
@@ -93,18 +108,18 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
-    //    if (m_camera.IsValid())
-    //    {
-    //        m_camera->SetWidth(surfaceSize.x);
-    //        m_camera->SetHeight(surfaceSize.y);
-    //
-    //        // @FIXME: needs to remove and re-add the camera controller
-    //
-    //        m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-    //            0.0f, -float(surfaceSize.x),
-    //            0.0f, float(surfaceSize.y),
-    //            float(g_minDepth), float(g_maxDepth)));
-    //    }
+        //if (m_camera.IsValid())
+        //{
+        //    m_camera->SetWidth(surfaceSize.x);
+        //    m_camera->SetHeight(surfaceSize.y);
+    
+        //    // @FIXME: needs to remove and re-add the camera controller
+    
+        //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
+        //        0.0f, -float(surfaceSize.x),
+        //        0.0f, float(surfaceSize.y),
+        //        float(g_minDepth), float(g_maxDepth)));
+        //}
 
     UpdateSize(true);
     UpdatePosition(true);
@@ -473,6 +488,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     const Vec2i mousePosition = inputManager->GetMousePosition();
     const Vec2i previousMousePosition = inputManager->GetPreviousMousePosition();
     const Vec2f mouseScreen = Vec2f(mousePosition) / Vec2f(m_surfaceSize);
+    const Vec2f invSurfaceSize = Vec2f(1.0f) / Vec2f(m_surfaceSize);
 
     switch (event.GetType())
     {
@@ -492,17 +508,29 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
             for (const Pair<WeakHandle<UIObject>, UIObjectMouseState>& it : m_mouseButtonPressedStates)
             {
-                if (it.second.heldTime >= g_minHoldTimeToDrag)
+                if (it.second.mouseButtons & mouseButtons)
                 {
                     // signal mouse drag
                     if (Handle<UIObject> uiObject = it.first.Lock())
                     {
-                        UIEventHandlerResult currentResult = uiObject->OnMouseDrag(MouseEvent {
+                        MouseEvent mouseEvent {
                             .inputManager = inputManager,
                             .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                             .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                             .absolutePosition = mousePosition,
-                            .mouseButtons = mouseButtons });
+                            .mouseButtons = mouseButtons
+                        };
+
+                        if (MathUtil::Abs(it.second.originalMousePosition - mouseScreen).LengthSquared() < invSurfaceSize.LengthSquared())
+                        {
+                            // If the mouse position hasn't changed significantly, don't trigger a drag event
+                            continue;
+                        }
+
+                        UIEventHandlerResult currentResult = uiObject->OnMouseDrag(mouseEvent);
+
+                        HYP_LOG(UI, Debug, "Drag mouse on {} : position: {}, previous position: {}, absolute position: {}",
+                            uiObject->GetName(), mouseEvent.position, mouseEvent.previousPosition, mouseEvent.absolutePosition);
 
                         mouseDragEventHandlerResult |= currentResult;
 
@@ -640,7 +668,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = event.GetMouseButtons() });
+                        .mouseButtons = inputManager->GetButtonStates()
+                    });
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -705,6 +734,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     mouseButtonPressedStatesIt = m_mouseButtonPressedStates.Set(uiObject, { event.GetMouseButtons(), 0.0f }).first;
                 }
 
+                mouseButtonPressedStatesIt->second.originalMousePosition = mouseScreen;
+                mouseButtonPressedStatesIt->second.heldTime = 0.0f; // reset held time
+
                 if (event.GetMouseButtons() & MouseButtonState::LEFT)
                 {
                     uiObject->SetFocusState(uiObject->GetFocusState() | UIObjectFocusState::PRESSED);
@@ -715,7 +747,8 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons });
+                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
+                });
 
                 eventHandlerResult |= onMouseDownResult;
 
@@ -740,41 +773,45 @@ UIEventHandlerResult UIStage::OnInputEvent(
 
         const EnumFlags<MouseButtonState> buttons = event.GetMouseButtons();
 
-        for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
+        if (buttons == MouseButtonState::LEFT)
         {
-            const Handle<UIObject>& uiObject = *it;
-
-            auto stateIt = m_mouseButtonPressedStates.Find(uiObject);
-
-            if (stateIt == m_mouseButtonPressedStates.End() || !(stateIt->second.mouseButtons & buttons))
+            for (auto it = rayTestResults.Begin(); it != rayTestResults.End(); ++it)
             {
-                continue;
-            }
+                const Handle<UIObject>& uiObject = *it;
 
-            const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
+                auto stateIt = m_mouseButtonPressedStates.Find(uiObject);
 
-            // check if we should trigger a click event
-            if (((currentState & buttons) & MouseButtonState::LEFT) && uiObject->IsEnabled())
-            {
-                const UIEventHandlerResult result = uiObject->OnClick(MouseEvent {
-                    .inputManager = inputManager,
-                    .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
-                    .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
-                    .absolutePosition = mousePosition,
-                    .mouseButtons = event.GetMouseButtons() });
-
-                eventHandlerResult |= result;
-
-                if (result & UIEventHandlerResult::ERR)
+                if (stateIt == m_mouseButtonPressedStates.End() || !(stateIt->second.mouseButtons & MouseButtonState::LEFT))
                 {
-                    HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
-
-                    break;
+                    continue;
                 }
 
-                if (result & UIEventHandlerResult::STOP_BUBBLING)
+                const EnumFlags<MouseButtonState> currentState = stateIt->second.mouseButtons;
+
+                // check if we should trigger a click event
+                if (uiObject->IsEnabled())
                 {
-                    break;
+                    const UIEventHandlerResult result = uiObject->OnClick(MouseEvent {
+                        .inputManager = inputManager,
+                        .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
+                        .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
+                        .absolutePosition = mousePosition,
+                        .mouseButtons = buttons
+                    });
+
+                    eventHandlerResult |= result;
+
+                    if (result & UIEventHandlerResult::ERR)
+                    {
+                        HYP_LOG(UI, Error, "OnClick returned error: {}", result.GetMessage().GetOr("<No message>"));
+
+                        break;
+                    }
+
+                    if (result & UIEventHandlerResult::STOP_BUBBLING)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -783,7 +820,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
         {
             EnumFlags<MouseButtonState>& stateMouseButtons = it->second.mouseButtons;
 
-            if (!(stateMouseButtons & buttons))
+            if ((stateMouseButtons & buttons) == MouseButtonState::NONE) // no overlap; skip
             {
                 ++it;
 
@@ -804,14 +841,19 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = (stateMouseButtons & ~buttons) });
+                    .mouseButtons = (stateMouseButtons & ~buttons)
+                });
 
                 eventHandlerResult |= currentResult;
+
+                stateMouseButtons &= (~buttons);
+            }
+            else
+            {
+                stateMouseButtons = MouseButtonState::NONE;
             }
 
-            stateMouseButtons &= ~buttons;
-
-            if (!stateMouseButtons) // now empty after update; remove from the map
+            if (stateMouseButtons == MouseButtonState::NONE) // now empty after update; remove from the map
             {
                 it = m_mouseButtonPressedStates.Erase(it);
 
@@ -825,9 +867,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
     case SystemEventType::EVENT_MOUSESCROLL:
     {
-        int wheelX;
-        int wheelY;
-        event.GetMouseWheel(&wheelX, &wheelY);
+        Vec2i wheel = event.GetMouseWheel();
 
         Array<Handle<UIObject>> rayTestResults;
 
@@ -854,8 +894,9 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = event.GetMouseButtons(),
-                    .wheel = Vec2i { wheelX, wheelY } });
+                    .mouseButtons = inputManager->GetButtonStates(),
+                    .wheel = wheel
+                });
 
                 eventHandlerResult |= currentResult;
 
@@ -870,7 +911,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
     case SystemEventType::EVENT_KEYDOWN:
     {
-        const KeyCode keyCode = event.GetNormalizedKeyCode();
+        const KeyCode keyCode = event.GetKeyCode();
 
         if (!m_keyedDownObjects.HasIndex(uint32(keyCode)))
         {
@@ -919,7 +960,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
     }
     case SystemEventType::EVENT_KEYUP:
     {
-        const KeyCode keyCode = event.GetNormalizedKeyCode();
+        const KeyCode keyCode = event.GetKeyCode();
 
         if (!m_keyedDownObjects.HasIndex(uint32(keyCode)))
         {

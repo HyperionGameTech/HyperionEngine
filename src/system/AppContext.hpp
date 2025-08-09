@@ -105,10 +105,6 @@ public:
         return false;
     }
 
-#ifdef HYP_VULKAN
-    virtual VkSurfaceKHR CreateVkSurface(VulkanInstance* instance) = 0;
-#endif
-
     Delegate<void, Vec2i> OnWindowSizeChanged;
 
 protected:
@@ -136,16 +132,12 @@ public:
 
     virtual bool IsHighDPI() const override;
 
-    void Initialize(WindowOptions);
+    void Initialize(WindowOptions windowOptions);
 
     void* GetInternalWindowHandle() const
     {
         return m_windowHandle;
     }
-
-#ifdef HYP_VULKAN
-    virtual VkSurfaceKHR CreateVkSurface(VulkanInstance* instance) override;
-#endif
 
 private:
     void* m_windowHandle = nullptr;
@@ -177,14 +169,10 @@ public:
         return m_inputManager;
     }
 
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) = 0;
+    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) = 0;
     virtual int PollEvent(SystemEvent& event) = 0;
 
     virtual void UpdateConfigurationOverrides();
-
-#ifdef HYP_VULKAN
-    virtual bool GetVkExtensions(Array<const char*>& outExtensions) const = 0;
-#endif
 
     Delegate<void, ApplicationWindow*> OnCurrentWindowChanged;
 
@@ -196,21 +184,72 @@ protected:
 };
 
 HYP_CLASS()
-class HYP_API SDLAppContext : public AppContextBase
+class HYP_API SDLAppContext final : public AppContextBase
 {
     HYP_OBJECT_BODY(SDLAppContext);
 
 public:
     SDLAppContext(ANSIString name, const CommandLineArguments& arguments);
-    virtual ~SDLAppContext() override;
+    ~SDLAppContext() override;
 
-    virtual Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions windowOptions) override;
 
-    virtual int PollEvent(SystemEvent& event) override;
+    int PollEvent(SystemEvent& event) override;
+};
 
-#ifdef HYP_VULKAN
-    virtual bool GetVkExtensions(Array<const char*>& outExtensions) const override;
+HYP_CLASS()
+class HYP_API Win32ApplicationWindow final : public ApplicationWindow
+{
+    HYP_OBJECT_BODY(Win32ApplicationWindow);
+
+public:
+    Win32ApplicationWindow(ANSIString title, Vec2i size);
+    ~Win32ApplicationWindow() override;
+
+    void Initialize(WindowOptions windowOptions);
+
+    void SetMousePosition(Vec2i position) override;
+    Vec2i GetMousePosition() const override;
+
+    Vec2i GetDimensions() const override;
+
+    void SetIsMouseLocked(bool locked) override;
+    bool HasMouseFocus() const override;
+
+#ifdef HYP_WINDOWS
+    HYP_FORCE_INLINE HWND GetHWND() const
+    {
+        return m_hwnd;
+    }
+
+    HYP_FORCE_INLINE HINSTANCE GetHINSTANCE() const
+    {
+        return m_hinst;
+    }
+
+private:
+    static LRESULT __stdcall StaticWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    LRESULT WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+private:
+    HWND m_hwnd = nullptr;
+    HINSTANCE m_hinst = nullptr;
+    bool m_mouseLocked = false;
 #endif
+};
+
+HYP_CLASS()
+class HYP_API Win32AppContext final : public AppContextBase
+{
+    HYP_OBJECT_BODY(Win32AppContext);
+
+public:
+    Win32AppContext(ANSIString name, const CommandLineArguments& arguments);
+    ~Win32AppContext() override;
+
+    Handle<ApplicationWindow> CreateSystemWindow(WindowOptions) override;
+
+    int PollEvent(SystemEvent& event) override;
 };
 
 } // namespace sys
@@ -224,6 +263,9 @@ using sys::ApplicationWindow;
 
 using sys::SDLAppContext;
 using sys::SDLApplicationWindow;
+
+using sys::Win32AppContext;
+using sys::Win32ApplicationWindow;
 
 } // namespace hyperion
 

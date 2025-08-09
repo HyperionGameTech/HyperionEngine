@@ -11,7 +11,7 @@ namespace hyperion {
 
 InputHandlerBase::InputHandlerBase()
     : m_inputState(MakePimpl<InputState>()),
-      m_deltaTime(0.016667f)
+      m_deltaTime(0.016667)
 {
 }
 

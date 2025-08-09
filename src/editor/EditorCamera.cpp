@@ -120,10 +120,13 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     }
     
     // magic numbers for fun
-    const float lookMultiplier = 5000.0f * editorLookSensitivity.ToFloat(1.0f);
-    const float moveMultiplier = 250.0f * editorMoveSensitivity.ToFloat(1.0f);
+    const double lookMultiplier = 7000.0 * editorLookSensitivity.ToDouble(1.0);
+    const double moveMultiplier = 25.0 * editorMoveSensitivity.ToDouble(1.0);
 
-    const Vec2f mouseDelta = (evt.position - evt.previousPosition) * m_deltaTime;
+    // double for moar bits!!1
+    const double mouseDeltaX = double(evt.position.x) - double(evt.previousPosition.x);
+    const double mouseDeltaY = double(evt.position.y) - double(evt.previousPosition.y);
+
     const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.position - evt.previousPosition)) * m_deltaTime;
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
@@ -131,25 +134,13 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     const bool isAltPressed = IsKeyDown(KeyCode::LEFT_ALT) || IsKeyDown(KeyCode::RIGHT_ALT);
     const bool isMoveKeyPressed = (GetKeyStates() & g_wasdBits).Count() != 0;
 
-    if (isAltPressed || (evt.mouseButtons & (MouseButtonState::LEFT & MouseButtonState::RIGHT)))
-    {
-        // Get the forward vector on the horizontal plane
-        Vec3f forward = camera->GetDirection();
-        forward.y = 0.0f; // Ignore vertical component
-        forward.Normalize();
+    constexpr EnumFlags<MouseButtonState> leftAndRightButtons = MouseButtonState::LEFT | MouseButtonState::RIGHT;
 
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDelta.x) * lookMultiplier);
-
-        if (!isMoveKeyPressed)
-        {
-            camera->SetTranslation(camera->GetTranslation() + forward * -deltaSign.y * moveMultiplier);
-        }
-    }
-    else if ((evt.mouseButtons & MouseButtonState::RIGHT))
+    if (isAltPressed || (evt.mouseButtons & leftAndRightButtons) == leftAndRightButtons)
     {
         if (!isMoveKeyPressed) // so we don't try to move using cam when any movement keys are pressed. would be annoying.
         {
-            if (MathUtil::Abs(mouseDelta.y) > MathUtil::Abs(mouseDelta.x))
+            if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {
                 camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
             }
@@ -159,14 +150,34 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
             }
         }
     }
+    else if ((evt.mouseButtons & MouseButtonState::RIGHT))
+    {
+        Vec3f forward = camera->GetDirection();
+        forward.y = 0.0f;
+        forward.Normalize();
+
+        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier * m_deltaTime));
+
+        if (!isMoveKeyPressed)
+        {
+            if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
+            {
+                camera->SetTranslation(camera->GetTranslation() + forward * -deltaSign.y * moveMultiplier);
+            }
+            else
+            {
+                camera->SetTranslation(camera->GetTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
+            }
+        }
+    }
     else if (evt.mouseButtons & MouseButtonState::LEFT)
     {
-        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDelta.x) * lookMultiplier);
-        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDelta.y) * lookMultiplier);
+        camera->Rotate(camera->GetUpVector(), MathUtil::DegToRad(mouseDeltaX * lookMultiplier * m_deltaTime));
+        camera->Rotate(dirCrossY, MathUtil::DegToRad(mouseDeltaY * lookMultiplier * m_deltaTime));
 
         if (camera->GetDirection().y > 0.98f || camera->GetDirection().y < -0.98f)
         {
-            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDelta.y) * lookMultiplier);
+            camera->Rotate(dirCrossY, MathUtil::DegToRad(-mouseDeltaY * lookMultiplier * m_deltaTime));
         }
     }
 

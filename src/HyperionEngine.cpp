@@ -239,7 +239,9 @@ HYP_API bool InitializeEngine(int argc, char** argv)
 
     Handle<AppContextBase> appContext;
 
-#ifdef HYP_SDL
+#ifdef HYP_WINDOWS
+    appContext = CreateObject<Win32AppContext>("Hyperion", GetCommandLineArguments());
+#elif defined(HYP_SDL)
     appContext = CreateObject<SDLAppContext>("Hyperion", GetCommandLineArguments());
 #else
     HYP_FAIL("AppContext not implemented for this platform");

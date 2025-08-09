@@ -29,7 +29,7 @@ public:
     InputHandlerBase& operator=(InputHandlerBase&& other) noexcept = delete;
     virtual ~InputHandlerBase();
     
-    HYP_FORCE_INLINE void SetDeltaTime(float deltaTime)
+    HYP_FORCE_INLINE void SetDeltaTime(double deltaTime)
     {
         m_deltaTime = deltaTime;
     }
@@ -95,7 +95,7 @@ private:
     Pimpl<InputState> m_inputState;
     
 protected:
-    float m_deltaTime;
+    double m_deltaTime;
 };
 
 HYP_CLASS()

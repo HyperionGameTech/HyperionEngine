@@ -121,11 +121,11 @@ void InputManager::CheckEvent(SystemEvent* event)
     switch (event->GetType())
     {
     case SystemEventType::EVENT_KEYDOWN:
-        KeyDown(event->GetNormalizedKeyCode());
+        KeyDown(event->GetKeyCode());
 
         break;
     case SystemEventType::EVENT_KEYUP:
-        KeyUp(event->GetNormalizedKeyCode());
+        KeyUp(event->GetKeyCode());
 
         break;
     case SystemEventType::EVENT_MOUSEBUTTON_DOWN:
@@ -146,17 +146,10 @@ void InputManager::CheckEvent(SystemEvent* event)
         UpdateMousePosition();
 
         break;
-    case SystemEventType::EVENT_WINDOW_EVENT:
-    {
-        const auto windowEventType = event->GetWindowEventType();
+    case SystemEventType::EVENT_WINDOW_RESIZED:
+        UpdateWindowSize(event->GetWindowResizeDimensions());
 
-        switch (windowEventType)
-        {
-        case SystemWindowEventType::EVENT_WINDOW_RESIZED:
-            UpdateWindowSize(event->GetWindowResizeDimensions());
-            break;
-        }
-    }
+        break;
     default:
         return;
     }
@@ -164,6 +157,9 @@ void InputManager::CheckEvent(SystemEvent* event)
 
 bool InputManager::IsMouseLocked() const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     return m_isMouseLocked;
 }
 
@@ -196,9 +192,7 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 {
     Mutex::Guard guard(m_mouseLockStatesMutex);
 
-    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState {
-        this,
-        true });
+    InputMouseLockState& mouseLockState = m_mouseLockStates.PushBack(InputMouseLockState { this, true });
 
     ApplyMouseLockState(&mouseLockState);
 
@@ -207,6 +201,9 @@ InputMouseLockScope InputManager::AcquireMouseLock()
 
 void InputManager::SetIsMouseLocked(bool isMouseLocked)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (m_isMouseLocked == isMouseLocked)
     {
         return;
@@ -232,6 +229,9 @@ void InputManager::SetIsMouseLocked(bool isMouseLocked)
 
 void InputManager::SetMousePosition(Vec2i position)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (!m_window)
     {
         return;
@@ -245,6 +245,7 @@ void InputManager::SetMousePosition(Vec2i position)
 
 void InputManager::UpdateMousePosition()
 {
+    HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
 
     if (!m_window)
@@ -258,6 +259,9 @@ void InputManager::UpdateMousePosition()
 
 void InputManager::UpdateWindowSize(Vec2i newSize)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (!m_window)
     {
         return;
@@ -275,6 +279,9 @@ void InputManager::UpdateWindowSize(Vec2i newSize)
 
 void InputManager::SetKey(KeyCode key, bool pressed)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
         m_inputState.keyStates.Set(uint32(key), pressed);
@@ -283,6 +290,9 @@ void InputManager::SetKey(KeyCode key, bool pressed)
 
 void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
         if (pressed)
@@ -298,6 +308,9 @@ void InputManager::SetMouseButton(MouseButton btn, bool pressed)
 
 bool InputManager::IsKeyDown(KeyCode key) const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (uint32(key) < NUM_KEYBOARD_KEYS)
     {
         return m_inputState.keyStates.Test(uint32(key));
@@ -308,6 +321,9 @@ bool InputManager::IsKeyDown(KeyCode key) const
 
 bool InputManager::IsButtonDown(MouseButton btn) const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (uint32(btn) < NUM_MOUSE_BUTTONS)
     {
         return m_inputState.mouseButtonStates & MouseButtonState(1u << uint32(btn));
@@ -318,6 +334,9 @@ bool InputManager::IsButtonDown(MouseButton btn) const
 
 EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     EnumFlags<MouseButtonState> state = MouseButtonState::NONE;
 
     for (uint32 i = 0; i < NUM_MOUSE_BUTTONS; i++)
@@ -333,6 +352,9 @@ EnumFlags<MouseButtonState> InputManager::GetButtonStates() const
 
 void InputManager::ApplyMouseLockState(const InputMouseLockState* mouseLockState)
 {
+    HYP_SCOPE;
+    Threads::AssertOnThread(g_gameThread);
+
     if (!mouseLockState)
     {
         // apply default state

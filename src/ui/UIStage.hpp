@@ -46,6 +46,7 @@ struct UIObjectMouseState
 {
     EnumFlags<MouseButtonState> mouseButtons = MouseButtonState::NONE;
     float heldTime = 0.0f;
+    Vec2f originalMousePosition;
 };
 
 struct UIObjectKeyState

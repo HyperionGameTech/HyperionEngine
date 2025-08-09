@@ -1527,9 +1527,9 @@ void EditorSubsystem::InitViewport()
             // prevent click being triggered on release once mouse has been dragged
             m_shouldCancelNextClick = true;
 
-            // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
-            if (IsHoveringManipulationWidget() && !g_engineDriver->GetAppContext()->GetInputManager()->IsMouseLocked())
+            if (!event.inputManager->IsMouseLocked() && IsHoveringManipulationWidget())
             {
+                // If the mouse is currently over a manipulation widget, don't allow camera to handle the event
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
                 Handle<Node> node = m_hoveredManipulationWidgetNode.Lock();
 
@@ -1542,31 +1542,30 @@ void EditorSubsystem::InitViewport()
 
                 if (manipulationWidget->OnMouseMove(m_camera, event, Handle<Node>(node)))
                 {
-
                     return UIEventHandlerResult::STOP_BUBBLING;
                 }
             }
 
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
+            
+            // handle move before we reset mouse pos
+            if (event.inputManager->IsMouseLocked())
+            {
+                const Vec2f position = uiImage->GetAbsolutePosition();
+                const Vec2i size = uiImage->GetActualSize();
 
-            return UIEventHandlerResult::OK;
+                event.inputManager->SetMousePosition(Vec2i(position + Vec2f(size) * 0.5f));
+
+                return UIEventHandlerResult::OK;
+            }
+            
+            return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnMouseMove);
     m_delegateHandlers.Add(uiImage->OnMouseMove.Bind([this, uiImage = uiImage.Get()](const MouseEvent& event)
         {
             m_camera->GetCameraController()->GetInputHandler()->OnMouseMove(event);
-
-            if (event.inputManager->IsMouseLocked())
-            {
-                const Vec2f position = uiImage->GetAbsolutePosition();
-                const Vec2i size = uiImage->GetActualSize();
-
-                // Set mouse position to previous position to keep it stationary while rotating
-                event.inputManager->SetMousePosition(Vec2i(position + event.previousPosition * Vec2f(size)));
-
-                return UIEventHandlerResult::OK;
-            }
 
             // Hover over a manipulation widget when mouse is not down
             if (!event.mouseButtons[MouseButtonState::LEFT]
@@ -1637,6 +1636,8 @@ void EditorSubsystem::InitViewport()
     m_delegateHandlers.Remove(&uiImage->OnMouseDown);
     m_delegateHandlers.Add(uiImage->OnMouseDown.Bind([this, uiImageWeak = uiImage.ToWeak()](const MouseEvent& event)
         {
+            m_shouldCancelNextClick = false;
+
             if (IsHoveringManipulationWidget())
             {
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
@@ -1672,14 +1673,14 @@ void EditorSubsystem::InitViewport()
 
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDown(event);
 
-            m_shouldCancelNextClick = false;
-
-            return UIEventHandlerResult::OK;
+            return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnMouseUp);
     m_delegateHandlers.Add(uiImage->OnMouseUp.Bind([this](const MouseEvent& event)
         {
+            m_shouldCancelNextClick = false;
+
             if (IsHoveringManipulationWidget())
             {
                 Handle<EditorManipulationWidgetBase> manipulationWidget = m_hoveredManipulationWidget.Lock();
@@ -1702,9 +1703,7 @@ void EditorSubsystem::InitViewport()
 
             m_camera->GetCameraController()->GetInputHandler()->OnMouseUp(event);
 
-            m_shouldCancelNextClick = false;
-
-            return UIEventHandlerResult::OK;
+            return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
     m_delegateHandlers.Remove(&uiImage->OnKeyDown);
