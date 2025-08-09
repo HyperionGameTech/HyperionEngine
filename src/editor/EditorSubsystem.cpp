@@ -693,7 +693,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 }
 
                 // disable depth write and depth test
-                materialAttributes.flags &= ~(MAF_DEPTH_WRITE | MAF_DEPTH_TEST);
+                materialAttributes.flags &= ~(MAF_DEPTH_TEST);
                 materialAttributes.bucket = RB_DEBUG;
 
                 // testing
@@ -1547,7 +1547,7 @@ void EditorSubsystem::InitViewport()
             }
 
             m_camera->GetCameraController()->GetInputHandler()->OnMouseDrag(event);
-            
+
             // handle move before we reset mouse pos
             if (event.inputManager->IsMouseLocked())
             {
@@ -1558,7 +1558,7 @@ void EditorSubsystem::InitViewport()
 
                 return UIEventHandlerResult::OK;
             }
-            
+
             return UIEventHandlerResult::STOP_BUBBLING;
         }));
 
@@ -3230,10 +3230,6 @@ void EditorSubsystem::SetHoveredManipulationWidget(
     EditorManipulationWidgetBase* manipulationWidget,
     const Handle<Node>& manipulationWidgetNode)
 {
-    // @TODO: On game state change, unset hovered manipulation widget
-
-    HYP_LOG(Editor, Debug, "Set hovered manipulation widget: {}", manipulationWidget != nullptr ? manipulationWidget->InstanceClass()->GetName() : Name());
-
     if (m_hoveredManipulationWidget.IsValid() && m_hoveredManipulationWidgetNode.IsValid())
     {
         Handle<Node> hoveredManipulationWidgetNode = m_hoveredManipulationWidgetNode.Lock();

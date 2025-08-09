@@ -77,9 +77,6 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                     pass->GetGraphicsPipeline(),
                     {},
                     frame->GetFrameIndex());
-
-                // frame->renderQueue << DrawQuad();
-
                 frame->renderQueue << BindVertexBuffer(pass->GetQuadMesh()->GetVertexBuffer());
                 frame->renderQueue << BindIndexBuffer(pass->GetQuadMesh()->GetIndexBuffer());
                 frame->renderQueue << DrawIndexed(6);

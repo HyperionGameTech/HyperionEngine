@@ -251,7 +251,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
     lightProxy->bufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
     lightProxy->bufferData.offsetUv = atlasElement.offsetUv;
     lightProxy->bufferData.layerIndex = atlasElement.layerIndex;
-
+    
     RenderApi_UpdateGpuData(light->Id());
 
     const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();

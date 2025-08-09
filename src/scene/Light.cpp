@@ -36,7 +36,7 @@
 
 namespace hyperion {
 
-static const TextureFormat g_pointLightShadowFormat = TF_R32;
+static const TextureFormat g_pointLightShadowFormat = TF_RG16F;
 static const TextureFormat g_directionalLightShadowFormats[SMF_MAX] = {
     TF_RGBA8, // STANDARD
     TF_RGBA8, // PCF
@@ -227,7 +227,12 @@ void Light::CreateShadowViews()
 
     Handle<Camera> shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
     shadowMapCamera->SetName(Name::Unique("ShadowMapCamera"));
-    shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+
+    if (m_type == LT_DIRECTIONAL)
+    {
+        shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+    }
+
     InitObject(shadowMapCamera);
 
     AttachChild(shadowMapCamera);
@@ -280,9 +285,9 @@ void Light::UpdateShadowViews()
             break;
         case LT_POINT:
             m_shadowAabb = GetAABB();
-            
+
             m_shadowViews[i]->GetCamera()->SetViewMatrix(
-                Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_shadowAabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
+                Matrix4::LookAt(m_shadowAabb.GetCenter(), m_shadowAabb.GetCenter() + Vec3f(0.0f, 0.0f, 1.0f), Vec3f(0.0f, 1.0f, 0.0f)));
 
             break;
         default:

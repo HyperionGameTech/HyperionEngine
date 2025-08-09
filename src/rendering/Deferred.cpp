@@ -631,7 +631,9 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
             {},
             viewDescriptorSetIndex);
 
-        frame->renderQueue << DrawQuad();
+        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
+        frame->renderQueue << DrawIndexed(6);
     }
 
     frame->renderQueue << EndFramebuffer(m_framebuffer);
@@ -877,9 +879,6 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
         const uint32 globalDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("Global");
         const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex("View");
 
-        frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
-        frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
-
         for (EnvProbe* envProbe : envProbes)
         {
             if (numRenderedEnvProbes >= g_maxBoundReflectionProbes)
@@ -907,6 +906,8 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
                 {},
                 viewDescriptorSetIndex);
 
+            frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
+            frame->renderQueue << BindIndexBuffer(m_fullScreenQuad->GetIndexBuffer());
             frame->renderQueue << DrawIndexed(6);
 
             ++numRenderedEnvProbes;
@@ -1955,7 +1956,9 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
                 {},
                 frameIndex);
 
-            frame->renderQueue << DrawQuad();
+            frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());
+            frame->renderQueue << BindIndexBuffer(passData.combinePass->GetQuadMesh()->GetIndexBuffer());
+            frame->renderQueue << DrawIndexed(passData.combinePass->GetQuadMesh()->NumIndices());
         }
 
         // Render the objects to have lightmaps applied into the translucent pass framebuffer with a full screen quad.

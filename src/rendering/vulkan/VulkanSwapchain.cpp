@@ -41,7 +41,7 @@ static RendererResult HandleNextFrame(
         VK_NULL_HANDLE,
         index);
 
-    if (vkResult == VK_ERROR_OUT_OF_DATE_KHR)
+    if (vkResult == VK_ERROR_OUT_OF_DATE_KHR && vkResult != VK_SUBOPTIMAL_KHR)
     {
         outNeedsRecreate = true;
 

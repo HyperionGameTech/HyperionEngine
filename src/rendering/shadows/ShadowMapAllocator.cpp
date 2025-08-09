@@ -87,7 +87,7 @@ void ShadowMapAllocator::Initialize()
 
     m_pointLightShadowMapImage = g_renderBackend->MakeImage(TextureDesc {
         TT_CUBEMAP_ARRAY,
-        TF_R16,
+        TF_RG16F,
         Vec3u { 256, 256, 1 },
         TFM_NEAREST,
         TFM_NEAREST,
@@ -189,16 +189,16 @@ bool ShadowMapAllocator::FreeShadowMap(ShadowMap* shadowMap)
         if (shadowMap->GetShadowMapType() == SMT_OMNI)
         {
             m_pointLightShadowMapIdGenerator.ReleaseId(atlasElement.layerIndex + 1);
-            
+
             result = true;
         }
         else
         {
             Assert(atlasElement.layerIndex < m_atlases.Size());
-            
+
             ShadowMapAtlas& atlas = m_atlases[atlasElement.layerIndex];
             result = atlas.RemoveElement(atlasElement);
-            
+
             if (!result)
             {
                 HYP_LOG(Rendering, Error, "Failed to free shadow map from atlas (atlas index: {})", atlasElement.layerIndex);
