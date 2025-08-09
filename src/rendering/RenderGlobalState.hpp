@@ -37,7 +37,6 @@ class UIRenderer;
 class MaterialDescriptorSetManager;
 class GraphicsPipelineCache;
 class BindlessStorage;
-class RenderProxyable;
 class RenderCollector;
 struct WorldShaderData;
 struct RenderStats;

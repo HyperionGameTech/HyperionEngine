@@ -14,7 +14,6 @@
 #include <core/math/Vertex.hpp>
 
 #include <scene/BVH.hpp>
-#include <rendering/RenderProxyable.hpp>
 
 #include <rendering/RenderableAttributes.hpp>
 

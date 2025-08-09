@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include <rendering/RenderProxyable.hpp>
-
 #include <rendering/ShaderManager.hpp>
 #include <rendering/RenderableAttributes.hpp>
 
@@ -69,7 +67,7 @@ enum class MaterialTextureKey : uint64
 };
 
 HYP_CLASS()
-class HYP_API Material final : public RenderProxyable
+class HYP_API Material final : public HypObjectBase
 {
     HYP_OBJECT_BODY(Material);
 
@@ -712,6 +710,16 @@ public:
      * create a task on the render thread to update the Material's
      * data on the GPU. */
     void EnqueueRenderUpdates();
+
+    const int* GetRenderProxyVersionPtr() const
+    {
+        return &m_renderProxyVersion;
+    }
+
+    void SetNeedsRenderProxyUpdate()
+    {
+        ++m_renderProxyVersion;
+    }
     
     void UpdateRenderProxy(RenderProxyMaterial* proxy);
 
@@ -741,6 +749,8 @@ private:
     bool m_isDynamic;
 
     mutable DataMutationState m_mutationState;
+
+    int m_renderProxyVersion;
 };
 
 HYP_CLASS()

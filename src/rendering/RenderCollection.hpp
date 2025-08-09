@@ -26,8 +26,6 @@
 #include <rendering/Shared.hpp>
 #include <rendering/RenderObject.hpp>
 
-#include <rendering/RenderProxyable.hpp>
-
 #include <core/Types.hpp>
 
 namespace hyperion {
@@ -311,17 +309,17 @@ public:
             {
                 Array<ObjId<ElementType>> changedIds;
                 resourceTracker.GetChanged(changedIds);
-                
+
                 for (const ObjId<ElementType>& id : changedIds)
                 {
                     ElementType** ppResource = resourceTracker.GetElement(id);
                     AssertDebug(ppResource && *ppResource);
-                    
+
                     ElementType& resource = **ppResource;
-                    
+
                     ProxyType* pProxy = resourceTracker.GetProxy(id);
                     AssertDebug(pProxy != nullptr);
-                    
+
                     resource.UpdateRenderProxy(pProxy);
                 }
             }

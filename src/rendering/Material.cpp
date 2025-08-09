@@ -65,7 +65,8 @@ Material::Material()
           .flags = MAF_DEPTH_WRITE | MAF_DEPTH_TEST
       },
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN)
+      m_mutationState(DataMutationState::CLEAN),
+      m_renderProxyVersion(0)
 {
     ResetParameters();
 }
@@ -77,7 +78,8 @@ Material::Material(Name name, RenderBucket rb)
           .bucket = rb
       },
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN)
+      m_mutationState(DataMutationState::CLEAN),
+      m_renderProxyVersion(0)
 {
     ResetParameters();
 }
@@ -93,7 +95,8 @@ Material::Material(Name name, const MaterialAttributes& attributes, const Parame
       m_textures(textures),
       m_renderAttributes(attributes),
       m_isDynamic(false),
-      m_mutationState(DataMutationState::CLEAN)
+      m_mutationState(DataMutationState::CLEAN),
+      m_renderProxyVersion(0)
 {
 }
 

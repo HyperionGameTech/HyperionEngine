@@ -18,11 +18,13 @@
 namespace hyperion {
 
 Skeleton::Skeleton()
+    : m_renderProxyVersion(0)
 {
 }
 
 Skeleton::Skeleton(const Handle<Bone>& rootBone)
-    : m_rootBone(rootBone)
+    : m_rootBone(rootBone),
+      m_renderProxyVersion(0)
 {
     if (m_rootBone)
     {

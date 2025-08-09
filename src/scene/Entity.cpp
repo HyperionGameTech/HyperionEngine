@@ -28,7 +28,8 @@ namespace hyperion {
 
 Entity::Entity()
     : m_world(nullptr),
-      m_scene(nullptr)
+      m_scene(nullptr),
+      m_renderProxyVersion(0)
 {
 }
 
@@ -314,9 +315,9 @@ void Entity::AttachChild(const Handle<Entity>& child)
     Threads::AssertOnThread(entityManager->GetOwnerThreadId());
 
     entityManager->AddExistingEntity(child);
-    
+
     NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this);
-    
+
     if (!nodeLinkComponent)
     {
         HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
@@ -324,7 +325,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
     }
 
     Handle<Node> node = nodeLinkComponent->node.Lock();
-    
+
     if (!node)
     {
         HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
@@ -332,7 +333,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
 
         return;
     }
-        
+
     if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
     {
         if (Handle<Node> childNode = childNodeLinkComponent->node.Lock())

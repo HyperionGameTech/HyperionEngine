@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace Hyperion
 {
     [HypClassBinding(Name="Entity")]
-    public class Entity : RenderProxyable
+    public class Entity : HypObject
     {
         public ObjIdBase Id
         {
