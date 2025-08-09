@@ -127,7 +127,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     const double mouseDeltaX = double(evt.position.x) - double(evt.previousPosition.x);
     const double mouseDeltaY = double(evt.position.y) - double(evt.previousPosition.y);
 
-    const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.position - evt.previousPosition)) * m_deltaTime;
+    const Vec2f deltaSign = Vec2f(MathUtil::Sign(evt.position - evt.previousPosition)) * float(m_deltaTime);
 
     const Vec3f dirCrossY = camera->GetDirection().Cross(camera->GetUpVector());
 
