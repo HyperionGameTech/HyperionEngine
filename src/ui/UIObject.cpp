@@ -23,7 +23,6 @@
 #include <scene/components/TransformComponent.hpp>
 #include <scene/components/BoundingBoxComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
-#include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/UIComponent.hpp>
 
 #include <rendering/Mesh.hpp>

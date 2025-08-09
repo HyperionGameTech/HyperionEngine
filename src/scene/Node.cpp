@@ -72,23 +72,22 @@ String NodeTag::ToString() const
 // In practice it only really shows up on UI objects where UIObject holds a reference to a Node.
 
 Node::Node(Name name, const Transform& localTransform)
-    : Node(name, Handle<Entity>::empty, localTransform)
+    : Node(name, localTransform)
 {
 }
 
-Node::Node(Name name, const Handle<Entity>& entity, const Transform& localTransform)
-    : Node(Type::NODE, name, entity, localTransform, GetDefaultScene())
+Node::Node(Name name, const Transform& localTransform)
+    : Node(name, localTransform, GetDefaultScene())
 {
 }
 
-Node::Node(Name name, const Handle<Entity>& entity, const Transform& localTransform, Scene* scene)
-    : Node(Type::NODE, name, entity, localTransform, scene)
+Node::Node(Name name, const Transform& localTransform, Scene* scene)
+    : Node(name, localTransform, scene)
 {
 }
 
-Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& localTransform, Scene* scene)
-    : m_type(type),
-      m_name(name.IsValid() ? name : NAME("<unnamed>")),
+Node::Node(Name name, const Transform& localTransform, Scene* scene)
+    : m_name(name.IsValid() ? name : NAME("<unnamed>")),
       m_parentNode(nullptr),
       m_localTransform(localTransform),
       m_scene(scene != nullptr ? scene : GetDefaultScene()),
@@ -96,8 +95,6 @@ Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& 
       m_transformChanged(false),
       m_delegates(MakeUnique<Delegates>())
 {
-    SetEntity(entity);
-
     if (scene != nullptr)
     {
         for (const Handle<Node>& child : m_childNodes)
@@ -113,8 +110,7 @@ Node::Node(Type type, Name name, const Handle<Entity>& entity, const Transform& 
 }
 
 Node::Node(Node&& other) noexcept
-    : m_type(other.m_type),
-      m_flags(other.m_flags),
+    : m_flags(other.m_flags),
       m_name(other.m_name),
       m_parentNode(other.m_parentNode),
       m_localTransform(other.m_localTransform),
@@ -125,7 +121,6 @@ Node::Node(Node&& other) noexcept
       m_transformChanged(other.m_transformChanged),
       m_delegates(std::move(other.m_delegates))
 {
-    other.m_type = Type::NODE;
     other.m_flags = NodeFlags::NONE;
     other.m_name = NAME("<unnamed>");
     other.m_parentNode = nullptr;
@@ -135,10 +130,6 @@ Node::Node(Node&& other) noexcept
     other.m_scene = GetDefaultScene();
     other.m_transformLocked = false;
     other.m_transformChanged = false;
-
-    Handle<Entity> entity = other.m_entity;
-    other.m_entity = Handle<Entity>::empty;
-    SetEntity(entity);
 
     m_childNodes = std::move(other.m_childNodes);
     m_descendants = std::move(other.m_descendants);
@@ -161,13 +152,9 @@ Node& Node::operator=(Node&& other) noexcept
 
     RemoveAllChildren();
 
-    SetEntity(Handle<Entity>::empty);
     SetScene(nullptr);
 
     m_delegates = std::move(other.m_delegates);
-
-    m_type = other.m_type;
-    other.m_type = Type::NODE;
 
     m_flags = other.m_flags;
     other.m_flags = NodeFlags::NONE;
@@ -192,10 +179,6 @@ Node& Node::operator=(Node&& other) noexcept
 
     m_scene = other.m_scene;
     other.m_scene = GetDefaultScene();
-
-    Handle<Entity> entity = other.m_entity;
-    other.m_entity = Handle<Entity>::empty;
-    SetEntity(entity);
 
     m_name = std::move(other.m_name);
 

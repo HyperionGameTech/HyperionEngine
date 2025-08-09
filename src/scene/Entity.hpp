@@ -13,6 +13,8 @@
 
 #include <core/math/Matrix4.hpp>
 
+#include <scene/Node.hpp>
+
 namespace hyperion {
 
 class World;
@@ -33,7 +35,7 @@ struct EntityInitInfo
 };
 
 HYP_CLASS()
-class HYP_API Entity : public HypObjectBase
+class HYP_API Entity : public Node
 {
     HYP_OBJECT_BODY(Entity);
 

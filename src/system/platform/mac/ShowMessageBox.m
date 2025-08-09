@@ -1,20 +1,24 @@
 #import <AppKit/AppKit.h>
 #import <Cocoa/Cocoa.h>
 
-int ShowMessageBox(int type, const char *title, const char *message, int buttons, const char *buttonTexts[3])
+int ShowMessageBox(int type, const char* title, const char* message, int buttons, const char* buttonTexts[3])
 {
-    
     __block int returnValue = -1;
     
     void (^alertBlock)(void) = ^{
         @autoreleasepool
         {
-            NSAlert *alert = [[NSAlert alloc] init];
+            NSAlert* alert = [[NSAlert alloc] init];
             [alert setMessageText:[NSString stringWithUTF8String:title]];
             [alert setInformativeText:[NSString stringWithUTF8String:message]];
 
             for (int i = 0; i < buttons && i < 3; i++)
             {
+                if (buttonTexts[i] == NULL)
+                {
+                    break;
+                }
+                
                 [alert addButtonWithTitle:[NSString stringWithUTF8String:buttonTexts[i]]];
             }
             

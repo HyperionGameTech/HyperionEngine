@@ -20,7 +20,6 @@
 #include <core/Name.hpp>
 #include <core/object/Handle.hpp>
 
-#include <scene/Entity.hpp>
 #include <scene/EntityTag.hpp>
 
 #include <core/math/Transform.hpp>
@@ -172,7 +171,6 @@ HYP_CLASS(PostLoad = "Node_OnPostLoad")
 class HYP_API Node : public HypObjectBase
 {
     friend class Scene;
-    friend class Entity;
 
     HYP_OBJECT_BODY(Node);
 
@@ -187,19 +185,13 @@ public:
 
     using NodeTagSet = HashSet<NodeTag, &NodeTag::name>;
 
-    enum class Type : uint32
-    {
-        NODE,
-        BONE
-    };
-
     /*! \brief Construct the node, optionally taking in a name string to improve identification.
      * \param name The name of the Node.
      * \param localTransform An optional parameter representing the local-space transform of this Node.
      */
     Node(Name name = Name::Invalid(), const Transform& localTransform = Transform());
-    Node(Name name, const Handle<Entity>& entity, const Transform& localTransform = Transform());
-    Node(Name name, const Handle<Entity>& entity, const Transform& localTransform, Scene* scene);
+    Node(Name name, const Transform& localTransform = Transform());
+    Node(Name name, const Transform& localTransform, Scene* scene);
 
     Node(const Node& other) = delete;
     Node& operator=(const Node& other) = delete;
@@ -226,13 +218,6 @@ public:
 
     HYP_METHOD()
     bool HasName() const;
-
-    /*! \returns The type of the node. By default, it will just be NODE. */
-    HYP_METHOD(Property = "Type")
-    HYP_FORCE_INLINE Type GetType() const
-    {
-        return m_type;
-    }
 
     /*! \brief Get the flags of the Node.
      *  \see NodeFlagBits
@@ -295,15 +280,6 @@ public:
      *   \note Calls to RefreshEntityTransform() will override this value. */
     HYP_METHOD(Property = "EntityAABB", Serialize = true, Editor = true)
     void SetEntityAABB(const BoundingBox& aabb);
-
-    HYP_METHOD(Property = "Entity", Serialize = true, Editor = true, Label = "Entity", Description = "The entity that this node is linked with.")
-    HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
-    {
-        return m_entity;
-    }
-
-    HYP_METHOD(Property = "Entity", Serialize = true, Editor = true)
-    void SetEntity(const Handle<Entity>& entity);
 
     /*! \brief Add the Node as a child of this object, taking ownership over the given Node.
      *  \param node The Node to be added as achild of this Node
@@ -609,10 +585,6 @@ public:
 
     bool TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh = true) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given Id is found. */
-    HYP_METHOD()
-    Handle<Node> FindChildWithEntity(const Entity* entity) const;
-
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
     Handle<Node> FindChildByName(WeakName name) const;
@@ -676,7 +648,7 @@ public:
 protected:
     static Scene* GetDefaultScene();
 
-    Node(Type type, Name name, const Handle<Entity>& entity, const Transform& localTransform = Transform(), Scene* scene = nullptr);
+    Node(Name name, const Transform& localTransform = Transform(), Scene* scene = nullptr);
 
     virtual void Init() override;
 
@@ -695,8 +667,6 @@ protected:
     void GetEditorDelegates(Function&& func);
 #endif
 
-    Type m_type = Type::NODE;
-
     EnumFlags<NodeFlags> m_flags = NodeFlags::NONE;
 
     HYP_FIELD(Property = "Name", Serialize = true, Editor = true, Label = "Name", Description = "The name of the node.")
@@ -707,8 +677,6 @@ protected:
     Transform m_localTransform;
     Transform m_worldTransform;
     BoundingBox m_entityAabb;
-
-    Handle<Entity> m_entity;
 
     Array<Node*> m_descendants;
 

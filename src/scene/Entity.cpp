@@ -321,7 +321,9 @@ void Entity::AttachChild(const Handle<Entity>& child)
     if (!nodeLinkComponent)
     {
         HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
-        HYP_BREAKPOINT_DEBUG_MODE;
+//        HYP_BREAKPOINT_DEBUG_MODE;
+        
+        return;
     }
 
     Handle<Node> node = nodeLinkComponent->node.Lock();
@@ -329,7 +331,7 @@ void Entity::AttachChild(const Handle<Entity>& child)
     if (!node)
     {
         HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
-        HYP_BREAKPOINT_DEBUG_MODE;
+//        HYP_BREAKPOINT_DEBUG_MODE;
 
         return;
     }
