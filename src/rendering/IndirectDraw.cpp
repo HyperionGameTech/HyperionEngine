@@ -429,9 +429,8 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
     frame->renderQueue << BindDescriptorTable(
         m_objectVisibility->GetDescriptorTable(),
         m_objectVisibility,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+        { { NAME("Global"),
+            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
         frameIndex);
 
     const uint32 viewDescriptorSetIndex = m_objectVisibility->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
@@ -441,7 +440,7 @@ void IndirectRenderer::ExecuteCullShaderInBatches(FrameBase* frame, const Render
         frame->renderQueue << BindDescriptorSet(
             renderSetup.passData->descriptorSets[frameIndex],
             m_objectVisibility,
-            ArrayMap<Name, uint32> {},
+            {},
             viewDescriptorSetIndex);
     }
 

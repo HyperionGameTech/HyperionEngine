@@ -297,7 +297,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             const uint32 materialDescriptorSetIndex = lightType == LT_AREA_RECT
                 ? pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("Material"))
                 : ~0u;
-            
+
             const uint32 deferredDirectDescriptorSetIndex = pipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("DeferredDirectDescriptorSet"));
 
             if (isFirstLight)
@@ -312,7 +312,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                     frame->renderQueue << BindDescriptorSet(
                         pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Material"), frame->GetFrameIndex()),
                         pipeline,
-                        ArrayMap<Name, uint32> {},
+                        {},
                         materialDescriptorSetIndex);
                 }
 
@@ -321,7 +321,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                     frame->renderQueue << BindDescriptorSet(
                         pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("DeferredDirectDescriptorSet"), frame->GetFrameIndex()),
                         pipeline,
-                        ArrayMap<Name, uint32> {},
+                        {},
                         deferredDirectDescriptorSetIndex);
                 }
 
@@ -334,15 +334,14 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
             frame->renderQueue << BindDescriptorSet(
                 pipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frame->GetFrameIndex()),
                 pipeline,
-                ArrayMap<Name, uint32> {
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(light, 0) } },
+                { { "CamerasBuffer", ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                    { "CurrentLight", ShaderDataOffset<LightShaderData>(light, 0) } },
                 globalDescriptorSetIndex);
 
             frame->renderQueue << BindDescriptorSet(
                 rs.passData->descriptorSets[frame->GetFrameIndex()],
                 pipeline,
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
 
             // Bind material descriptor set (for area lights)
@@ -353,7 +352,7 @@ void DeferredPass::Render(FrameBase* frame, const RenderSetup& rs)
                 frame->renderQueue << BindDescriptorSet(
                     materialDescriptorSet,
                     pipeline,
-                    ArrayMap<Name, uint32> {},
+                    {},
                     materialDescriptorSetIndex);
             }
 
@@ -622,15 +621,14 @@ void EnvGridPass::Render(FrameBase* frame, const RenderSetup& rs)
         frame->renderQueue << BindDescriptorSet(
             graphicsPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex),
             graphicsPipeline,
-            ArrayMap<Name, uint32> {
-                { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+            { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid, 0) } },
             globalDescriptorSetIndex);
 
         frame->renderQueue << BindDescriptorSet(
             rs.passData->descriptorSets[frameIndex],
             graphicsPipeline,
-            ArrayMap<Name, uint32> {},
+            {},
             viewDescriptorSetIndex);
 
         frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
@@ -898,15 +896,14 @@ void ReflectionsPass::Render(FrameBase* frame, const RenderSetup& rs)
             frame->renderQueue << BindDescriptorSet(
                 graphicsPipeline->GetDescriptorTable()->GetDescriptorSet(NAME("Global"), frameIndex),
                 graphicsPipeline,
-                ArrayMap<Name, uint32> {
-                    { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(rs.view->GetCamera()) },
                     { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(envProbe) } },
                 globalDescriptorSetIndex);
 
             frame->renderQueue << BindDescriptorSet(
                 rs.passData->descriptorSets[frameIndex],
                 graphicsPipeline,
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
 
             frame->renderQueue << BindVertexBuffer(m_fullScreenQuad->GetVertexBuffer());
@@ -1956,7 +1953,7 @@ void DeferredRenderer::RenderFrameForView(FrameBase* frame, const RenderSetup& r
             frame->renderQueue << BindDescriptorTable(
                 passData.combinePass->GetGraphicsPipeline()->GetDescriptorTable(),
                 passData.combinePass->GetGraphicsPipeline(),
-                ArrayMap<Name, ArrayMap<Name, uint32>> {},
+                {},
                 frameIndex);
 
             frame->renderQueue << BindVertexBuffer(passData.combinePass->GetQuadMesh()->GetVertexBuffer());

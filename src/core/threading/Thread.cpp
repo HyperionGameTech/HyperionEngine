@@ -5,6 +5,8 @@
 #include <core/threading/ThreadLocalStorage.hpp>
 #include <core/threading/Mutex.hpp>
 
+#include <core/functional/Delegate.hpp>
+
 #include <core/containers/HashMap.hpp>
 
 #include <core/utilities/GlobalContext.hpp>
@@ -51,6 +53,19 @@ HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority)
 
 #pragma region ThreadBase
 
+thread_local Delegate<void>* g_onThreadExit;
+
+HYP_API void OnCurrentThreadExit()
+{
+    if (g_onThreadExit)
+    {
+        (*g_onThreadExit)();
+        
+        delete g_onThreadExit;
+        g_onThreadExit = nullptr;
+    }
+}
+
 ThreadBase::ThreadBase(const ThreadId& id, ThreadPriorityValue priority)
     : m_id(id),
       m_priority(priority),
@@ -83,6 +98,19 @@ ThreadLocalStorage& ThreadBase::GetTLS() const
     }
     
     return *m_tls;
+}
+
+void ThreadBase::AtExit(Proc<void()>&& proc)
+{
+    HYP_SCOPE;
+    Threads::AssertOnThread(m_id);
+    
+    if (!g_onThreadExit)
+    {
+        g_onThreadExit = new Delegate<void>();
+    }
+    
+    g_onThreadExit->Bind(std::move(proc));
 }
 
 #pragma endregion ThreadBase

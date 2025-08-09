@@ -18,6 +18,16 @@
 #include <type_traits>
 
 namespace hyperion {
+
+namespace functional {
+
+template <class FunctionSignature>
+class Proc;
+
+} // namespace functional
+
+using functional::Proc;
+
 namespace threading {
 
 class SchedulerBase;
@@ -56,6 +66,8 @@ public:
 
     /*! \brief Get the scheduler that this thread is associated with. */
     virtual Scheduler& GetScheduler() = 0;
+    
+    void AtExit(Proc<void()>&& proc);
 
 protected:
     ThreadBase(const ThreadId& id, ThreadPriorityValue priority = ThreadPriorityValue::NORMAL);
@@ -67,6 +79,7 @@ protected:
 
 extern HYP_API void SetCurrentThreadObject(ThreadBase*);
 extern HYP_API void SetCurrentThreadPriority(ThreadPriorityValue priority);
+extern HYP_API void OnCurrentThreadExit();
 
 template <class Scheduler, class... Args>
 class Thread : public ThreadBase
@@ -161,6 +174,8 @@ bool Thread<Scheduler, Args...>::Start(Args... args)
             (*this)((tupleArgs.template GetElement<Args>())...);
 
             m_isRunning.Set(false, MemoryOrder::RELAXED);
+        
+            OnCurrentThreadExit();
         });
 
     return true;

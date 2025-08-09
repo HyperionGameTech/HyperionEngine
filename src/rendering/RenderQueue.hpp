@@ -300,7 +300,7 @@ private:
 class BindDescriptorSet final : public CmdBase
 {
 public:
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets)
@@ -312,7 +312,7 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, GraphicsPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets),
@@ -323,7 +323,7 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets)
@@ -335,7 +335,7 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, ComputePipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets),
@@ -346,7 +346,7 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index");
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets = {})
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets = {})
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets)
@@ -358,7 +358,7 @@ public:
         AssertDebug(m_bindIndex != ~0u, "Invalid bind index for descriptor set {}", descriptorSet->GetLayout().GetName());
     }
 
-    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<Name, uint32>& offsets, uint32 bindIndex)
+    BindDescriptorSet(DescriptorSetBase* descriptorSet, RaytracingPipelineBase* pipeline, const ArrayMap<WeakName, uint32>& offsets, uint32 bindIndex)
         : m_descriptorSet(descriptorSet),
           m_pipeline(pipeline),
           m_offsets(offsets),
@@ -386,14 +386,14 @@ public:
 private:
     DescriptorSetBase* m_descriptorSet;
     Variant<GraphicsPipelineBase*, ComputePipelineBase*, RaytracingPipelineBase*> m_pipeline;
-    ArrayMap<Name, uint32> m_offsets;
+    ArrayMap<WeakName, uint32> m_offsets;
     uint32 m_bindIndex;
 };
 
 class BindDescriptorTable final : public CmdBase
 {
 public:
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, GraphicsPipelineBase* graphicsPipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
           m_pipeline(graphicsPipeline),
           m_offsets(offsets),
@@ -402,7 +402,7 @@ public:
         AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
     }
 
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, ComputePipelineBase* computePipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
           m_pipeline(computePipeline),
           m_offsets(offsets),
@@ -411,7 +411,7 @@ public:
         AssertDebug(descriptorTable != nullptr, "Descriptor table must not be null");
     }
 
-    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const ArrayMap<Name, ArrayMap<Name, uint32>>& offsets, uint32 frameIndex)
+    BindDescriptorTable(DescriptorTableBase* descriptorTable, RaytracingPipelineBase* raytracingPipeline, const ArrayMap<WeakName, ArrayMap<WeakName, uint32>>& offsets, uint32 frameIndex)
         : m_descriptorTable(descriptorTable),
           m_pipeline(raytracingPipeline),
           m_offsets(offsets),
@@ -437,7 +437,7 @@ public:
 private:
     DescriptorTableBase* m_descriptorTable;
     Variant<GraphicsPipelineBase*, ComputePipelineBase*, RaytracingPipelineBase*> m_pipeline;
-    ArrayMap<Name, ArrayMap<Name, uint32>> m_offsets;
+    ArrayMap<WeakName, ArrayMap<WeakName, uint32>> m_offsets;
     uint32 m_frameIndex;
 };
 

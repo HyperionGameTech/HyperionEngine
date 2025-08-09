@@ -934,7 +934,7 @@ public:
 
     HYP_FORCE_INLINE HashCode GetHashCode() const
     {
-        return HashCode(::hyperion::FNV1::HashString(Data()));
+        return HashCode(::hyperion::FNV1::DoHashString(Data()));
     }
 
     HYP_DEF_STL_BEGIN_END(Base::Begin(), Base::End() - 1)

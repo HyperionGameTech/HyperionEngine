@@ -386,7 +386,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
         frame->renderQueue << BindComputePipeline(csBlurShadowMap);
 
         // bind descriptor set containing info needed to blur
-        frame->renderQueue << BindDescriptorTable(csBlurShadowMap->GetDescriptorTable(), csBlurShadowMap, ArrayMap<Name, ArrayMap<Name, uint32>> {}, frame->GetFrameIndex());
+        frame->renderQueue << BindDescriptorTable(csBlurShadowMap->GetDescriptorTable(), csBlurShadowMap, {}, frame->GetFrameIndex());
 
         // put our shadow map in a state for writing
         frame->renderQueue << InsertBarrier(shadowMapImage, RS_UNORDERED_ACCESS, ImageSubResource { .baseArrayLayer = atlasElement.layerIndex });

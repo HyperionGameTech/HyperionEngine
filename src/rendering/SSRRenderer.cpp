@@ -301,9 +301,8 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             m_writeUvs->GetDescriptorTable(),
             m_writeUvs,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
         const uint32 viewDescriptorSetIndex = m_writeUvs->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
@@ -315,7 +314,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
             frame->renderQueue << BindDescriptorSet(
                 renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
                 m_writeUvs,
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
         }
 
@@ -334,9 +333,8 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             m_sampleGbuffer->GetDescriptorTable(),
             m_sampleGbuffer,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
         const uint32 viewDescriptorSetIndex = m_sampleGbuffer->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
@@ -348,7 +346,7 @@ void SSRRenderer::Render(FrameBase* frame, const RenderSetup& renderSetup)
             frame->renderQueue << BindDescriptorSet(
                 renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
                 m_sampleGbuffer,
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
         }
 

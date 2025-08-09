@@ -396,9 +396,8 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
         frame->renderQueue << BindDescriptorTable(
             spawner->GetComputePipeline()->GetDescriptorTable(),
             spawner->GetComputePipeline(),
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frame->GetFrameIndex());
 
         const uint32 viewDescriptorSetIndex = spawner->GetComputePipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
@@ -410,7 +409,7 @@ void ParticleSystem::UpdateParticles(FrameBase* frame, const RenderSetup& render
             frame->renderQueue << BindDescriptorSet(
                 renderSetup.passData->descriptorSets[frame->GetFrameIndex()],
                 spawner->GetComputePipeline(),
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
         }
 
@@ -453,9 +452,8 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
         frame->renderQueue << BindDescriptorTable(
             graphicsPipeline->GetDescriptorTable(),
             graphicsPipeline,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
+            { { NAME("Global"),
+                { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) } } } },
             frameIndex);
 
         const uint32 viewDescriptorSetIndex = graphicsPipeline->GetDescriptorTable()->GetDescriptorSetIndex(NAME("View"));
@@ -467,7 +465,7 @@ void ParticleSystem::Render(FrameBase* frame, const RenderSetup& renderSetup)
             frame->renderQueue << BindDescriptorSet(
                 renderSetup.passData->descriptorSets[frameIndex],
                 graphicsPipeline,
-                ArrayMap<Name, uint32> {},
+                {},
                 viewDescriptorSetIndex);
         }
 

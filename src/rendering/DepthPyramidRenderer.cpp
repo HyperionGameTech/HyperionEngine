@@ -254,7 +254,7 @@ void DepthPyramidRenderer::Render(FrameBase* frame)
         frame->renderQueue << BindDescriptorTable(
             m_mipDescriptorTables[mipLevel],
             m_generateDepthPyramid,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {},
+            {},
             frameIndex);
 
         // set push constant data for the current mip level

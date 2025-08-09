@@ -776,11 +776,10 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     asyncRenderQueue << BindDescriptorTable(
         pd->computeShDescriptorTables[0],
         pd->clearSh,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pd->clearSh);
@@ -791,11 +790,10 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     asyncRenderQueue << BindDescriptorTable(
         pd->computeShDescriptorTables[0],
         pd->computeSh,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pd->computeSh);
@@ -834,11 +832,10 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
             asyncRenderQueue << BindDescriptorTable(
                 pd->computeShDescriptorTables[i - 1],
                 pd->reduceSh,
-                ArrayMap<Name, ArrayMap<Name, uint32>> {
-                    { NAME("Global"),
-                        { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                            { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+                { { NAME("Global"),
+                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                        { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
                 frame->GetFrameIndex());
 
             asyncRenderQueue << BindComputePipeline(pd->reduceSh);
@@ -857,11 +854,10 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_SphericalHarmonics(FrameBase* fr
     asyncRenderQueue << BindDescriptorTable(
         pd->computeShDescriptorTables[finalizeShBufferIndex],
         pd->finalizeSh,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(renderSetup.light, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pd->finalizeSh);
@@ -984,10 +980,9 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
     frame->renderQueue << BindDescriptorTable(
         pd->computeIrradiance->GetDescriptorTable(),
         pd->computeIrradiance,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << DispatchCompute(pd->computeIrradiance, Vec3u { uint32(irradianceOctahedronSize.x + 7) / 8, uint32(irradianceOctahedronSize.y + 7) / 8, 1 });
@@ -997,10 +992,9 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
     frame->renderQueue << BindDescriptorTable(
         pd->computeFilteredDepth->GetDescriptorTable(),
         pd->computeFilteredDepth,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << DispatchCompute(pd->computeFilteredDepth, Vec3u { uint32(irradianceOctahedronSize.x + 7) / 8, uint32(irradianceOctahedronSize.y + 7) / 8, 1 });
@@ -1011,10 +1005,9 @@ void EnvGridRenderer::ComputeEnvProbeIrradiance_LightField(FrameBase* frame, con
     frame->renderQueue << BindDescriptorTable(
         pd->copyBorderTexels->GetDescriptorTable(),
         pd->copyBorderTexels,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << DispatchCompute(pd->copyBorderTexels, Vec3u { uint32((irradianceOctahedronSize.x * 4) + 255) / 256, 1, 1 });
@@ -1061,9 +1054,8 @@ void EnvGridRenderer::OffsetVoxelGrid(FrameBase* frame, const RenderSetup& rende
     frame->renderQueue << BindDescriptorTable(
         pd->offsetVoxelGrid->GetDescriptorTable(),
         pd->offsetVoxelGrid,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
+        { { NAME("Global"),
+            { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << DispatchCompute(pd->offsetVoxelGrid, (envGrid->GetVoxelGridTexture()->GetExtent() + Vec3u(7)) / Vec3u(8));
@@ -1145,9 +1137,8 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
         frame->renderQueue << BindDescriptorTable(
             pd->clearVoxels->GetDescriptorTable(),
             pd->clearVoxels,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
+            { { NAME("Global"),
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(pd->clearVoxels, (probeVoxelExtent + Vec3u(7)) / Vec3u(8));
@@ -1162,9 +1153,8 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
         frame->renderQueue << BindDescriptorTable(
             pd->voxelizeProbe->GetDescriptorTable(),
             pd->voxelizeProbe,
-            ArrayMap<Name, ArrayMap<Name, uint32>> {
-                { NAME("Global"),
-                    { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
+            { { NAME("Global"),
+                { { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(envGrid) } } } },
             frame->GetFrameIndex());
 
         frame->renderQueue << DispatchCompute(
@@ -1214,7 +1204,7 @@ void EnvGridRenderer::VoxelizeProbe(FrameBase* frame, const RenderSetup& renderS
             frame->renderQueue << BindDescriptorTable(
                 pd->generateVoxelGridMipmapsDescriptorTables[mipLevel],
                 pd->generateVoxelGridMipmaps,
-                ArrayMap<Name, ArrayMap<Name, uint32>> {},
+                {},
                 frame->GetFrameIndex());
 
             pd->generateVoxelGridMipmaps->SetPushConstants(&pushConstantData, sizeof(pushConstantData));

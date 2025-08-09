@@ -189,7 +189,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
     frame->renderQueue << BindDescriptorTable(
         m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable(),
         m_renderTextureToScreenPass->GetGraphicsPipeline(),
-        ArrayMap<Name, ArrayMap<Name, uint32>> {},
+        {},
         frameIndex);
 
     const uint32 descriptorSetIndex = m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSetIndex(NAME("RenderTextureToScreenDescriptorSet"));
@@ -216,7 +216,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
         frame->renderQueue << BindDescriptorSet(
             pd->finalPassDescriptorSet,
             m_renderTextureToScreenPass->GetGraphicsPipeline(),
-            ArrayMap<Name, uint32> {},
+            {},
             descriptorSetIndex);
 
         frame->renderQueue << DrawIndexed(m_quadMesh->NumIndices());
@@ -237,7 +237,7 @@ void FinalPass::Render(FrameBase* frame, const RenderSetup& rs)
         frame->renderQueue << BindDescriptorSet(
             m_renderTextureToScreenPass->GetGraphicsPipeline()->GetDescriptorTable()->GetDescriptorSet(NAME("RenderTextureToScreenDescriptorSet"), frameIndex),
             m_renderTextureToScreenPass->GetGraphicsPipeline(),
-            ArrayMap<Name, uint32> {},
+            {},
             descriptorSetIndex);
 
         frame->renderQueue << DrawIndexed(m_quadMesh->NumIndices());

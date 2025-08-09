@@ -23,10 +23,6 @@ struct RenderCommand_CreateTemporalAAImageOutputs;
 class TemporalAA
 {
 public:
-    friend struct RenderCommand_CreateTemporalAADescriptors;
-    friend struct RenderCommand_DestroyTemporalAADescriptorsAndImageOutputs;
-    friend struct RenderCommand_CreateTemporalAAImageOutputs;
-
     TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& extent, GBuffer* gbuffer);
     TemporalAA(const TemporalAA& other) = delete;
     TemporalAA& operator=(const TemporalAA& other) = delete;
@@ -46,19 +42,20 @@ public:
     void Render(FrameBase* frame, const RenderSetup& renderSetup);
 
 private:
-    void CreateImages();
-    void CreateDescriptorSets();
-    void CreateComputePipelines();
+    void CreateTextures();
+
+    void UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup);
 
     Vec2u m_extent;
 
     GpuImageViewRef m_inputImageView;
+    GpuBufferRef m_uniformBuffer;
     GBuffer* m_gbuffer;
 
     Handle<Texture> m_resultTexture;
     Handle<Texture> m_historyTexture;
 
-    ComputePipelineRef m_computeTaa;
+    ComputePipelineRef m_computePipeline;
 
     DelegateHandler m_onGbufferResolutionChanged;
 

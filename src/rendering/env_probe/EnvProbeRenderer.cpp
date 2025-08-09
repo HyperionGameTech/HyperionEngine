@@ -360,8 +360,7 @@ void ReflectionProbeRenderer::ComputePrefilteredEnvMap(FrameBase* frame, const R
     frame->renderQueue << BindDescriptorTable(
         descriptorTable,
         convolveProbeComputePipeline,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
+        { { NAME("Global"), { { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(renderSetup.envProbe, 0) } } } },
         frame->GetFrameIndex());
 
     frame->renderQueue << DispatchCompute(
@@ -558,10 +557,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
         pipelines[NAME("Clear")].second,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[NAME("Clear")].second);
@@ -572,10 +570,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[0],
         pipelines[NAME("BuildCoeffs")].second,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[NAME("BuildCoeffs")].second);
@@ -617,10 +614,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
             asyncRenderQueue << BindDescriptorTable(
                 computeShDescriptorTables[i - 1],
                 pipelines[NAME("Reduce")].second,
-                ArrayMap<Name, ArrayMap<Name, uint32>> {
-                    { NAME("Global"),
-                        { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                            { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+                { { NAME("Global"),
+                    { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                        { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
                 frame->GetFrameIndex());
 
             asyncRenderQueue << BindComputePipeline(pipelines[NAME("Reduce")].second);
@@ -639,10 +635,9 @@ void ReflectionProbeRenderer::ComputeSH(FrameBase* frame, const RenderSetup& ren
     asyncRenderQueue << BindDescriptorTable(
         computeShDescriptorTables[finalizeShBufferIndex],
         pipelines[NAME("Finalize")].second,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {
-            { NAME("Global"),
-                { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
-                    { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
+        { { NAME("Global"),
+            { { NAME("CurrentLight"), ShaderDataOffset<LightShaderData>(directionalLight, 0) },
+                { NAME("CurrentEnvProbe"), ShaderDataOffset<EnvProbeShaderData>(skyProbe, 0) } } } },
         frame->GetFrameIndex());
 
     asyncRenderQueue << BindComputePipeline(pipelines[NAME("Finalize")].second);

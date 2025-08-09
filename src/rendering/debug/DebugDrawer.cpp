@@ -696,9 +696,8 @@ void DebugDrawer::Render(FrameBase* frame, const RenderSetup& renderSetup)
                 frame->renderQueue << BindDescriptorTable(
                     m_descriptorTable,
                     graphicsPipeline,
-                    ArrayMap<Name, ArrayMap<Name, uint32>> {
-                        { NAME("DebugDrawerDescriptorSet"),
-                            { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)) } } },
+                    { { NAME("DebugDrawerDescriptorSet"),
+                          { { NAME("ImmediateDrawsBuffer"), ShaderDataOffset<ImmediateDrawShaderData>(uint32(shaderDataOffset)) } } },
                         { NAME("Global"),
                             { { NAME("CamerasBuffer"), ShaderDataOffset<CameraShaderData>(renderSetup.view->GetCamera()) },
                                 { NAME("EnvGridsBuffer"), ShaderDataOffset<EnvGridShaderData>(renderSetup.envGrid, 0) } } },

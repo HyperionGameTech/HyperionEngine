@@ -162,7 +162,8 @@ SizeType GetNumDescendants(TypeId typeId)
     return base->GetNumDescendants();
 }
 
-thread_local HashMap<TypeId, String>* g_formattedStringMap;
+using FormattedStringMap = HashMap<TypeId, String, HashTable_DynamicNodeAllocator<KeyValuePair<TypeId, String>>>;
+thread_local FormattedStringMap* g_formattedStringMap;
 
 const char* LookupTypeName(TypeId typeId)
 {
@@ -175,8 +176,13 @@ const char* LookupTypeName(TypeId typeId)
     
     if (!g_formattedStringMap)
     {
-        g_formattedStringMap = (HashMap<TypeId, String>*)Threads::CurrentThreadObject()->GetTLS().Alloc(sizeof(HashMap<TypeId, String>));
-        new (g_formattedStringMap) HashMap<TypeId, String>(); /// @TODO: Destruct the map on thread / application exit
+        g_formattedStringMap = Threads::CurrentThreadObject()->GetTLS().Alloc<FormattedStringMap>();
+        new (g_formattedStringMap) FormattedStringMap();
+        
+        Threads::CurrentThreadObject()->AtExit([]()
+        {
+            g_formattedStringMap->~FormattedStringMap();
+        });
     }
     
     auto it = g_formattedStringMap->Find(typeId);

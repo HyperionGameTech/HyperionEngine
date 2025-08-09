@@ -83,10 +83,10 @@ void BindlessStorage::RemoveResource(ObjId<Texture> id)
 
     for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
     {
-        const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet(NAME("Material"), frameIndex);
+        const DescriptorSetRef& descriptorSet = g_renderGlobalState->globalDescriptorTable->GetDescriptorSet("Material", frameIndex);
         AssertDebug(descriptorSet.IsValid());
 
-        descriptorSet->SetElement(NAME("Textures"), id.ToIndex(), g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
+        descriptorSet->SetElement("Textures", id.ToIndex(), g_renderBackend->GetTextureImageView(g_renderGlobalState->placeholderData->defaultTexture2d));
     }
 }
 

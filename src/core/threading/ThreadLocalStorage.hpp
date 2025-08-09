@@ -61,8 +61,6 @@ public:
     template <class T>
     T* Alloc()
     {
-        static_assert(std::is_trivial_v<T>, "T must be a trivial type");
-
         void* ptr = Alloc(sizeof(T), alignof(T));
 
         return static_cast<T*>(ptr);

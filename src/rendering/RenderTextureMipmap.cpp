@@ -75,7 +75,7 @@ struct RENDER_COMMAND(RenderTextureMipmapLevels)
                 renderQueue << BindDescriptorTable(
                     pass->GetGraphicsPipeline()->GetDescriptorTable(),
                     pass->GetGraphicsPipeline(),
-                    ArrayMap<Name, ArrayMap<Name, uint32>> {},
+                    {},
                     frame->GetFrameIndex());
 
                 frame->renderQueue << BindVertexBuffer(pass->GetQuadMesh()->GetVertexBuffer());

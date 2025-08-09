@@ -223,52 +223,52 @@ DescriptorSetBase::~DescriptorSetBase()
     }
 }
 
-bool DescriptorSetBase::HasElement(Name name) const
+bool DescriptorSetBase::HasElement(WeakName name) const
 {
-    return m_elements.Find(name) != m_elements.End();
+    return m_elements.FindAs(name) != m_elements.End();
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const GpuBufferRef& ref)
-{
-    SetElement<GpuBufferRef>(name, index, ref);
-}
-
-void DescriptorSetBase::SetElement(Name name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuBufferRef& ref)
 {
     SetElement<GpuBufferRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const GpuBufferRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, uint32 bufferSize, const GpuBufferRef& ref)
+{
+    SetElement<GpuBufferRef>(name, index, ref);
+}
+
+void DescriptorSetBase::SetElement(WeakName name, const GpuBufferRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, const GpuImageViewRef& ref)
 {
     SetElement<GpuImageViewRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const GpuImageViewRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, const GpuImageViewRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, const SamplerRef& ref)
 {
     SetElement<SamplerRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const SamplerRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, const SamplerRef& ref)
 {
     SetElement(name, 0, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, uint32 index, const TLASRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, uint32 index, const TLASRef& ref)
 {
     SetElement<TLASRef>(name, index, ref);
 }
 
-void DescriptorSetBase::SetElement(Name name, const TLASRef& ref)
+void DescriptorSetBase::SetElement(WeakName name, const TLASRef& ref)
 {
     SetElement(name, 0, ref);
 }

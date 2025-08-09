@@ -22,7 +22,7 @@ struct FNV1
     static constexpr uint64 fnvPrime = 1099511628211ull;
 
     template <class CharType, SizeType Size>
-    static constexpr uint64 HashString(const CharType (&str)[Size])
+    static constexpr uint64 DoHashString(const CharType (&str)[Size])
     {
         uint64 hash = offsetBasis;
 
@@ -41,7 +41,7 @@ struct FNV1
     }
 
     template <class CharType>
-    static constexpr uint64 HashString(const CharType* str)
+    static constexpr uint64 DoHashString(const CharType* str)
     {
         uint64 hash = offsetBasis;
 
@@ -57,7 +57,7 @@ struct FNV1
     }
 
     template <class CharType>
-    static constexpr uint64 HashString(const CharType* _begin, const CharType* _end)
+    static constexpr uint64 DoHashString(const CharType* _begin, const CharType* _end)
     {
         uint64 hash = offsetBasis;
 
@@ -72,7 +72,7 @@ struct FNV1
         return hash;
     }
 
-    static constexpr uint64 HashBytes(const ubyte* _begin, const ubyte* _end)
+    static constexpr uint64 DoHashBytes(const ubyte* _begin, const ubyte* _end)
     {
         uint64 hash = offsetBasis;
 
@@ -193,7 +193,7 @@ struct HashCode
         HashCode>
     GetHashCode(const T& value)
     {
-        return HashCode(FNV1::HashBytes(reinterpret_cast<const ubyte*>(&value), reinterpret_cast<const ubyte*>(&value) + sizeof(T)));
+        return HashCode(FNV1::DoHashBytes(reinterpret_cast<const ubyte*>(&value), reinterpret_cast<const ubyte*>(&value) + sizeof(T)));
     }
 
     template <class T, class DecayedType = std::decay_t<T>>
@@ -220,22 +220,22 @@ struct HashCode
     template <SizeType Size>
     static constexpr inline HashCode GetHashCode(const char (&str)[Size])
     {
-        return HashCode(FNV1::HashString<char, Size>(str));
+        return HashCode(FNV1::DoHashString<char, Size>(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char* str)
     {
-        return HashCode(FNV1::HashString(str));
+        return HashCode(FNV1::DoHashString(str));
     }
 
     static constexpr inline HashCode GetHashCode(const char* _begin, const char* _end)
     {
-        return HashCode(FNV1::HashString(_begin, _end));
+        return HashCode(FNV1::DoHashString(_begin, _end));
     }
 
     static inline HashCode GetHashCode(const ubyte* _begin, const ubyte* _end)
     {
-        return HashCode(FNV1::HashBytes(_begin, _end));
+        return HashCode(FNV1::DoHashBytes(_begin, _end));
     }
 
     static constexpr inline HashCode GetHashCode(const HashCode& hashCode)

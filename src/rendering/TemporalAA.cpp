@@ -26,6 +26,13 @@
 
 namespace hyperion {
 
+struct alignas(16) TaaUniforms
+{
+    Vec2u dimensions;
+    Vec2u depthTextureDimensions;
+    Vec2f cameraNearFar;
+};
+
 TemporalAA::TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& extent, GBuffer* gbuffer)
     : m_inputImageView(inputImageView),
       m_extent(extent),
@@ -37,7 +44,8 @@ TemporalAA::TemporalAA(const GpuImageViewRef& inputImageView, const Vec2u& exten
 TemporalAA::~TemporalAA()
 {
     SafeRelease(std::move(m_inputImageView));
-    SafeRelease(std::move(m_computeTaa));
+    SafeRelease(std::move(m_uniformBuffer));
+    SafeRelease(std::move(m_computePipeline));
 }
 
 void TemporalAA::Create()
@@ -49,20 +57,12 @@ void TemporalAA::Create()
 
     Assert(m_gbuffer != nullptr);
 
-    CreateImages();
-    CreateComputePipelines();
-
-    m_onGbufferResolutionChanged = m_gbuffer->OnGBufferResolutionChanged.Bind([this](Vec2u newSize)
-        {
-            SafeRelease(std::move(m_computeTaa));
-
-            CreateComputePipelines();
-        });
+    CreateTextures();
 
     m_isInitialized = true;
 }
 
-void TemporalAA::CreateImages()
+void TemporalAA::CreateTextures()
 {
     m_resultTexture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
@@ -90,46 +90,86 @@ void TemporalAA::CreateImages()
     InitObject(m_historyTexture);
 }
 
-void TemporalAA::CreateComputePipelines()
+void TemporalAA::UpdatePipelineState(FrameBase* frame, const RenderSetup& renderSetup)
 {
-    ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalAA"));
-    Assert(shader.IsValid());
-
-    const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
-
-    DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
-
     const FixedArray<Handle<Texture>*, 2> textures = {
         &m_resultTexture,
         &m_historyTexture
     };
 
-    for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+    const auto setDescriptorElements = [this, &textures](DescriptorSetBase* descriptorSet, uint32 frameIndex)
     {
-        // create descriptor sets for depth pyramid generation.
-        const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frameIndex);
-        Assert(descriptorSet != nullptr);
+        descriptorSet->SetElement("InColorTexture", m_inputImageView);
+        descriptorSet->SetElement("InPrevColorTexture", g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
 
-        descriptorSet->SetElement(NAME("InColorTexture"), m_inputImageView);
-        descriptorSet->SetElement(NAME("InPrevColorTexture"), g_renderBackend->GetTextureImageView((*textures[(frameIndex + 1) % 2])));
+        descriptorSet->SetElement("InVelocityTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
 
-        descriptorSet->SetElement(NAME("InVelocityTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_VELOCITY)->GetImageView());
+        descriptorSet->SetElement("InDepthTexture", m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
 
-        descriptorSet->SetElement(NAME("InDepthTexture"), m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImageView());
+        descriptorSet->SetElement("SamplerLinear", g_renderGlobalState->placeholderData->GetSamplerLinear());
+        descriptorSet->SetElement("SamplerNearest", g_renderGlobalState->placeholderData->GetSamplerNearest());
 
-        descriptorSet->SetElement(NAME("SamplerLinear"), g_renderGlobalState->placeholderData->GetSamplerLinear());
-        descriptorSet->SetElement(NAME("SamplerNearest"), g_renderGlobalState->placeholderData->GetSamplerNearest());
+        descriptorSet->SetElement("OutColorImage", g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
 
-        descriptorSet->SetElement(NAME("OutColorImage"), g_renderBackend->GetTextureImageView((*textures[frameIndex % 2])));
+        descriptorSet->SetElement("UniformBuffer", m_uniformBuffer);
+    };
+
+    if (!m_uniformBuffer)
+    {
+        Assert(renderSetup.HasView());
+
+        RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
+        Assert(cameraProxy != nullptr);
+
+        m_uniformBuffer = g_renderBackend->MakeGpuBuffer(GpuBufferType::CBUFF, sizeof(TaaUniforms));
+        HYP_GFX_ASSERT(m_uniformBuffer->Create());
+
+        m_uniformBuffer->SetDebugName(NAME("TaaUniforms"));
+
+        TaaUniforms uniforms {};
+        uniforms.dimensions = m_extent;
+        uniforms.depthTextureDimensions = Vec2u {
+            m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent().x,
+            m_gbuffer->GetBucket(RB_OPAQUE).GetGBufferAttachment(GTN_DEPTH)->GetImage()->GetExtent().y
+        };
+        uniforms.cameraNearFar = Vec2f {
+            cameraProxy->bufferData.cameraNear,
+            cameraProxy->bufferData.cameraFar
+        };
+
+        m_uniformBuffer->Copy(sizeof(uniforms), &uniforms);
     }
 
-    DeferCreate(descriptorTable);
+    if (!m_computePipeline)
+    {
+        ShaderRef shader = g_shaderManager->GetOrCreate(NAME("TemporalAA"));
+        Assert(shader.IsValid());
 
-    m_computeTaa = g_renderBackend->MakeComputePipeline(
-        shader,
-        descriptorTable);
+        const DescriptorTableDeclaration& descriptorTableDecl = shader->GetCompiledShader()->GetDescriptorTableDeclaration();
 
-    DeferCreate(m_computeTaa);
+        DescriptorTableRef descriptorTable = g_renderBackend->MakeDescriptorTable(&descriptorTableDecl);
+
+        for (uint32 frameIndex = 0; frameIndex < g_framesInFlight; frameIndex++)
+        {
+            // create descriptor sets for depth pyramid generation.
+            const DescriptorSetRef& descriptorSet = descriptorTable->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frameIndex);
+            Assert(descriptorSet != nullptr);
+
+            setDescriptorElements(descriptorSet, frameIndex);
+        }
+
+        HYP_GFX_ASSERT(descriptorTable->Create());
+
+        m_computePipeline = g_renderBackend->MakeComputePipeline(shader, descriptorTable);
+        HYP_GFX_ASSERT(m_computePipeline->Create());
+
+        return;
+    }
+
+    const DescriptorSetRef& descriptorSet = m_computePipeline->GetDescriptorTable()->GetDescriptorSet(NAME("TemporalAADescriptorSet"), frame->GetFrameIndex());
+    Assert(descriptorSet != nullptr);
+
+    setDescriptorElements(descriptorSet, frame->GetFrameIndex());
 }
 
 void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
@@ -139,8 +179,7 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
     AssertDebug(renderSetup.IsValid());
     AssertDebug(renderSetup.HasView());
 
-    RenderProxyCamera* cameraProxy = static_cast<RenderProxyCamera*>(RenderApi_GetRenderProxy(renderSetup.view->GetCamera()));
-    Assert(cameraProxy != nullptr);
+    UpdatePipelineState(frame, renderSetup);
 
     const uint32 frameIndex = frame->GetFrameIndex();
 
@@ -150,33 +189,20 @@ void TemporalAA::Render(FrameBase* frame, const RenderSetup& renderSetup)
 
     frame->renderQueue << InsertBarrier(activeImage, RS_UNORDERED_ACCESS);
 
-    struct
-    {
-        Vec2u dimensions;
-        Vec2u depthTextureDimensions;
-        Vec2f cameraNearFar;
-    } pushConstants;
-
     const Vec3u depthTextureDimensions = m_gbuffer->GetBucket(RB_OPAQUE)
                                              .GetGBufferAttachment(GTN_DEPTH)
                                              ->GetImage()
                                              ->GetExtent();
 
-    pushConstants.dimensions = m_extent;
-    pushConstants.depthTextureDimensions = Vec2u { depthTextureDimensions.x, depthTextureDimensions.y };
-    pushConstants.cameraNearFar = Vec2f { cameraProxy->bufferData.cameraNear, cameraProxy->bufferData.cameraFar };
-
-    m_computeTaa->SetPushConstants(&pushConstants, sizeof(pushConstants));
-
-    frame->renderQueue << BindComputePipeline(m_computeTaa);
+    frame->renderQueue << BindComputePipeline(m_computePipeline);
 
     frame->renderQueue << BindDescriptorTable(
-        m_computeTaa->GetDescriptorTable(),
-        m_computeTaa,
-        ArrayMap<Name, ArrayMap<Name, uint32>> {},
+        m_computePipeline->GetDescriptorTable(),
+        m_computePipeline,
+        {},
         frameIndex);
 
-    frame->renderQueue << DispatchCompute(m_computeTaa, Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
+    frame->renderQueue << DispatchCompute(m_computePipeline, Vec3u { (m_extent.x + 7) / 8, (m_extent.y + 7) / 8, 1 });
     frame->renderQueue << InsertBarrier(activeImage, RS_SHADER_RESOURCE);
 }
 

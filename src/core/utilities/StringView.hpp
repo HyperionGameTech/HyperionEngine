@@ -462,7 +462,7 @@ public:
 
     HYP_FORCE_INLINE constexpr HashCode GetHashCode() const
     {
-        return HashCode::GetHashCode(m_begin, m_end);
+        return HashCode(::hyperion::FNV1::DoHashString(m_begin, m_end));
     }
 
     HYP_DEF_STL_BEGIN_END(m_begin, m_end)
