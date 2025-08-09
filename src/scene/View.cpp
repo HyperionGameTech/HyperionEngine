@@ -177,7 +177,7 @@ void View::Init()
 {
     Assert(m_camera.IsValid(), "Camera is not valid for View with Id #%u", Id().Value());
     InitObject(m_camera);
-    
+
     for (Viewport& viewportBuffered : m_viewportBuffered)
     {
         viewportBuffered = m_viewport;
@@ -216,7 +216,7 @@ void View::Init()
     }
 
     Assert(m_outputTarget.IsValid(), "View with id #%u must have a valid output target!", Id().Value());
-    
+
     if (m_flags & ViewFlags::ENABLE_READBACK)
     {
         CreateReadbackTexture();
@@ -250,11 +250,11 @@ void View::UpdateViewport()
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
     AssertReady();
-    
+
     const uint32 idx = RenderApi_GetFrameIndex();
-    
+
     m_viewportBuffered[idx] = m_viewport;
-    
+
     if (m_readbackTexture)
     {
         m_readbackTextureGpuImages[idx] = m_readbackTexture->GetGpuImage();
@@ -348,14 +348,14 @@ const Viewport& View::GetViewport() const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
-    
+
     if (Threads::IsOnThread(g_gameThread))
     {
         return m_viewport;
     }
-    
+
     AssertReady();
-    
+
     return m_viewportBuffered[RenderApi_GetFrameIndex()];
 }
 
@@ -363,18 +363,18 @@ void View::SetViewport(const Viewport& viewport)
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
-    
+
     m_viewport = viewport;
-    
+
     if (IsInitCalled())
     {
         if (m_flags & ViewFlags::ENABLE_READBACK)
         {
             m_readbackTexture.Reset();
-            
+
             CreateReadbackTexture();
         }
-        
+
         m_viewportBuffered[RenderApi_GetFrameIndex()] = viewport;
     }
 }
@@ -383,7 +383,7 @@ GpuImageBase* View::GetReadbackTextureGpuImage() const
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread | g_renderThread);
-    
+
     return m_readbackTextureGpuImages[RenderApi_GetFrameIndex()];
 }
 
@@ -391,7 +391,7 @@ void View::CreateReadbackTexture()
 {
     HYP_SCOPE;
     Threads::AssertOnThread(g_gameThread);
-    
+
     m_readbackTexture.Reset();
     m_readbackTexture = CreateObject<Texture>(TextureDesc {
         TT_TEX2D,
@@ -401,14 +401,13 @@ void View::CreateReadbackTexture()
         TFM_NEAREST,
         TWM_CLAMP_TO_EDGE,
         1,
-        IU_SAMPLED
-    });
+        IU_SAMPLED });
 
     if (IsInitCalled())
     {
         InitObject(m_readbackTexture);
     }
-    
+
     if (IsReady())
     {
         // notify change
@@ -819,8 +818,6 @@ void View::CollectCameras(RenderProxyList& rpl)
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Camera>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            AssertDebug(entity->IsA<Camera>());
-
             Camera* camera = static_cast<Camera*>(entity);
 
             rpl.GetCameras().Track(camera->Id(), camera, camera->GetRenderProxyVersionPtr());
@@ -844,8 +841,6 @@ void View::CollectLights(RenderProxyList& rpl)
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<Light>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            AssertDebug(entity->IsA<Light>());
-
             Light* light = static_cast<Light*>(entity);
 
             bool isLightInFrustum = false;
@@ -957,8 +952,6 @@ void View::CollectEnvGrids(RenderProxyList& rpl)
 
         for (auto [entity, _] : scene->GetEntityManager()->GetEntitySet<EntityType<EnvGrid>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
         {
-            AssertDebug(entity->IsA<EnvGrid>());
-
             EnvGrid* envGrid = static_cast<EnvGrid*>(entity);
 
             const BoundingBox& gridAabb = envGrid->GetAABB();

@@ -36,7 +36,7 @@ constexpr uint32 g_numAsyncRenderingCommandBuffers = 4;
 
 constexpr uint32 g_maxBoundReflectionProbes = 16;
 constexpr uint32 g_maxBoundAmbientProbes = 4096;
-constexpr uint32 g_maxBoundPointShadowMaps = 16;
+constexpr uint32 g_maxBoundPointShadowMaps = 8;
 constexpr uint32 g_maxBoundTextures = 16;
 
 constexpr uint32 g_maxBindlessResources = 4096;

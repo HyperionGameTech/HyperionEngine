@@ -251,7 +251,7 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
     lightProxy->bufferData.dimensionsScale = Vec4f(Vec2f(atlasElement.dimensions), atlasElement.scale);
     lightProxy->bufferData.offsetUv = atlasElement.offsetUv;
     lightProxy->bufferData.layerIndex = atlasElement.layerIndex;
-    
+
     RenderApi_UpdateGpuData(light->Id());
 
     const GpuImageRef& shadowMapImage = shadowMap->GetImageView()->GetImage();
@@ -285,16 +285,16 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
 
         RenderProxyList& rpl = RenderApi_GetConsumerProxyList(shadowView);
         rpl.BeginRead();
-
         renderProxyLists.PushBack(&rpl);
 
-        if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate() && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
+        if (!rpl.GetMeshEntities().GetDiff().NeedsUpdate()
+            && !rpl.GetSkeletons().GetDiff().NeedsUpdate())
         {
             continue;
         }
 
         RenderCollector& renderCollector = RenderApi_GetRenderCollector(shadowView);
-        renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_LIGHTMAP) | (1u << RB_TRANSLUCENT)));
+        renderCollector.ExecuteDrawCalls(frame, rs, ((1u << RB_OPAQUE) | (1u << RB_LIGHTMAP)));
 
         if (!combineShadowMapsPass)
         {
@@ -302,33 +302,54 @@ void ShadowRendererBase::RenderFrame(FrameBase* frame, const RenderSetup& render
             const GpuImageRef& framebufferImage = framebuffer->GetAttachment(0)->GetImage();
             Assert(framebufferImage.IsValid());
 
+            const uint32 numFaces = framebufferImage->NumFaces();
+
+            Assert((atlasElement.layerIndex * numFaces) + numFaces <= shadowMapImage->NumFaces(),
+                "Atlas element has layer index = {} and num faces = {} ({} x {} + {} = {}), but shadow map atlas has total num faces = {}",
+                atlasElement.layerIndex, numFaces,
+                atlasElement.layerIndex, numFaces, numFaces, (atlasElement.layerIndex * numFaces) + numFaces,
+                shadowMapImage->NumFaces());
+
+            const ImageSubResource subResource {
+                .baseArrayLayer = (atlasElement.layerIndex * numFaces),
+                .baseMipLevel = 0,
+                .numLayers = numFaces,
+                .numLevels = 1
+            };
+
             frame->renderQueue << InsertBarrier(framebufferImage, RS_COPY_SRC);
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST);
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_COPY_DST, subResource);
 
-            frame->renderQueue << Blit(
-                framebufferImage,
-                shadowMapImage,
-                Rect<uint32> { 0, 0, atlasElement.dimensions.x, atlasElement.dimensions.y },
-                Rect<uint32> {
-                    atlasElement.offsetCoords.x,
-                    atlasElement.offsetCoords.y,
-                    atlasElement.offsetCoords.x + atlasElement.dimensions.x,
-                    atlasElement.offsetCoords.y + atlasElement.dimensions.y },
-                0,                      /* srcMip */
-                0,                      /* dstMip */
-                0,                      /* srcFace */
-                atlasElement.layerIndex /* dstFace */
-            );
+            for (uint32 faceIndex = 0; faceIndex < numFaces; faceIndex++)
+            {
+                frame->renderQueue << Blit(
+                    framebufferImage,
+                    shadowMapImage,
+                    Rect<uint32> { 0, 0, atlasElement.dimensions.x, atlasElement.dimensions.y },
+                    Rect<uint32> {
+                        atlasElement.offsetCoords.x,
+                        atlasElement.offsetCoords.y,
+                        atlasElement.offsetCoords.x + atlasElement.dimensions.x,
+                        atlasElement.offsetCoords.y + atlasElement.dimensions.y },
+                    0,                                     /* srcMip */
+                    subResource.baseMipLevel,              /* dstMip */
+                    faceIndex,                             /* srcFace */
+                    subResource.baseArrayLayer + faceIndex /* dstFace */
+                );
+            }
 
+            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE, subResource);
             frame->renderQueue << InsertBarrier(framebufferImage, RS_SHADER_RESOURCE);
-            frame->renderQueue << InsertBarrier(shadowMapImage, RS_SHADER_RESOURCE);
         }
     }
 
     if (combineShadowMapsPass)
     {
+        AssertDebug(shadowViews[0]->GetViewDesc().outputTargetDesc.numViews == 1,
+            "Combining static and dynamic shadow maps does not support cubemap targets!");
+
         RenderSetup rs = renderSetup;
-        // FullScreenPass needs a View set
+        // FullScreenPass::Render needs a View set
         rs.view = shadowViews[0];
 
         // Combine passes into one

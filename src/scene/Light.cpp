@@ -228,9 +228,17 @@ void Light::CreateShadowViews()
     Handle<Camera> shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
     shadowMapCamera->SetName(Name::Unique("ShadowMapCamera"));
 
-    if (m_type == LT_DIRECTIONAL)
+    switch (m_type)
     {
+    case LT_DIRECTIONAL:
         shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+        break;
+    case LT_POINT:
+        shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
+        shadowMapCamera->SetFar(m_radius);
+        break;
+    default:
+        break;
     }
 
     InitObject(shadowMapCamera);
@@ -272,11 +280,14 @@ void Light::UpdateShadowViews()
 {
     for (int i = 0; i < int(m_shadowViews.Size()); i++)
     {
+        const Handle<View>& shadowView = m_shadowViews[i];
+        AssertDebug(shadowView != nullptr);
+
         switch (m_type)
         {
         case LT_DIRECTIONAL:
             ShadowCameraHelper::UpdateShadowCameraDirectional(
-                m_shadowViews[i]->GetCamera(),
+                shadowView->GetCamera(),
                 Vec3f::Zero(), // TODO: Center around camera
                 GetPosition(),
                 85.0f, /// TODO: add proper radius
@@ -286,8 +297,7 @@ void Light::UpdateShadowViews()
         case LT_POINT:
             m_shadowAabb = GetAABB();
 
-            m_shadowViews[i]->GetCamera()->SetViewMatrix(
-                Matrix4::LookAt(m_shadowAabb.GetCenter(), m_shadowAabb.GetCenter() + Vec3f(0.0f, 0.0f, 1.0f), Vec3f(0.0f, 1.0f, 0.0f)));
+            shadowView->GetCamera()->SetTranslation(m_position);
 
             break;
         default:

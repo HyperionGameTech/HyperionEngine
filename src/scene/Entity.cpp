@@ -314,49 +314,55 @@ void Entity::AttachChild(const Handle<Entity>& child)
     Threads::AssertOnThread(entityManager->GetOwnerThreadId());
 
     entityManager->AddExistingEntity(child);
-
-    if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this))
+    
+    NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this);
+    
+    if (!nodeLinkComponent)
     {
-        if (Handle<Node> node = nodeLinkComponent->node.Lock())
+        HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
+        HYP_BREAKPOINT_DEBUG_MODE;
+    }
+
+    Handle<Node> node = nodeLinkComponent->node.Lock();
+    
+    if (!node)
+    {
+        HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
+        HYP_BREAKPOINT_DEBUG_MODE;
+
+        return;
+    }
+        
+    if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
+    {
+        if (Handle<Node> childNode = childNodeLinkComponent->node.Lock())
         {
-            if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
-            {
-                if (Handle<Node> childNode = childNodeLinkComponent->node.Lock())
-                {
-                    node->AddChild(childNode);
-
-                    return;
-                }
-                else
-                {
-                    childNode = node->AddChild();
-                    childNode->SetEntity(child);
-
-                    childNodeLinkComponent->node = childNode;
-
-                    return;
-                }
-            }
-
-            Handle<Node> childNode = node->AddChild();
-            childNode->SetEntity(child);
-
-            if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
-            {
-                childNodeLinkComponent->node = childNode;
-            }
-            else
-            {
-                entityManager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { childNode });
-            }
+            node->AddChild(childNode);
 
             return;
         }
+        else
+        {
+            childNode = node->AddChild();
+            childNode->SetEntity(child);
 
-        HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
+            childNodeLinkComponent->node = childNode;
+
+            return;
+        }
     }
 
-    HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
+    Handle<Node> childNode = node->AddChild();
+    childNode->SetEntity(child);
+
+    if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
+    {
+        childNodeLinkComponent->node = childNode;
+    }
+    else
+    {
+        entityManager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { childNode });
+    }
 }
 
 void Entity::DetachChild(const Handle<Entity>& child)
