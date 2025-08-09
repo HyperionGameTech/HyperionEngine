@@ -46,6 +46,8 @@ enum class RenderGroupFlags : uint32;
 enum LightType : uint32;
 enum EnvProbeType : uint32;
 
+HYP_MAKE_HAS_METHOD(UpdateRenderProxy);
+
 struct ParallelRenderingState
 {
     static constexpr uint32 maxBatches = g_numAsyncRenderingCommandBuffers;

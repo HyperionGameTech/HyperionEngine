@@ -9,7 +9,6 @@
 #include <scene/EntityManager.hpp>
 #include <scene/components/VisibilityStateComponent.hpp>
 #include <scene/components/TransformComponent.hpp>
-#include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 
 #include <scene/camera/Camera.hpp>
@@ -1048,10 +1047,7 @@ bool SceneOctree::TestRay(const Ray& ray, RayTestResults& outResults, bool useBv
                     }
                     else
                     {
-                        NodeLinkComponent* nodeLinkComponent = m_entityManager->TryGetComponent<NodeLinkComponent>(entry.value);
-                        Handle<Node> node = nodeLinkComponent ? nodeLinkComponent->node.Lock() : nullptr;
-
-                        HYP_LOG(Scene, Warning, "Entity #{} (node: {}) does not have a BVH component, using AABB instead", entry.value->Id(), node ? node->GetName() : NAME("<null>"));
+                        HYP_LOG(Scene, Warning, "Entity {} does not have a BVH component, using AABB instead", entry.value->Id());
                     }
                 }
             }
