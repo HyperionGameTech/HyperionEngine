@@ -238,12 +238,10 @@ void UISubsystem::Update(float delta)
         {
             Assert(uiObject != nullptr);
 
-            const Handle<Node>& node = uiObject->GetNode();
-            Assert(node.IsValid());
+            const Handle<Entity>& entity = uiObject->GetEntity();
+            Assert(entity.IsValid());
 
-            const Handle<Entity>& entity = node->GetEntity();
-
-            MeshComponent& meshComponent = node->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(entity);
+            MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
 
             // @TODO Include a way to determine the parent tree of the UI Object because some objects will
             // have the same depth but should be rendered in a different order.

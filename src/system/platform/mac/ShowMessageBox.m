@@ -4,22 +4,38 @@
 int ShowMessageBox(int type, const char* title, const char* message, int buttons, const char* buttonTexts[3])
 {
     __block int returnValue = -1;
+
+    __block NSString* titleString = [NSString stringWithUTF8String:title];
+    __block NSString* messageString = [NSString stringWithUTF8String:message];
+    __block NSString** buttonTextStrings = malloc(sizeof(NSString*) * 3);
+
+    for (int i = 0; i < 3; i++)
+    {
+        if (buttonTexts[i] == NULL)
+        {
+            buttonTextStrings[i] = NULL;
+        }
+        else
+        {
+            buttonTextStrings[i] = [NSString stringWithUTF8String:buttonTexts[i]];
+        }
+    }
     
     void (^alertBlock)(void) = ^{
         @autoreleasepool
         {
             NSAlert* alert = [[NSAlert alloc] init];
-            [alert setMessageText:[NSString stringWithUTF8String:title]];
-            [alert setInformativeText:[NSString stringWithUTF8String:message]];
+            [alert setMessageText:titleString];
+            [alert setInformativeText:messageString];
 
-            for (int i = 0; i < buttons && i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
-                if (buttonTexts[i] == NULL)
+                if (buttonTextStrings[i] == NULL)
                 {
-                    break;
+                    break; // Stop adding buttons if we hit a NULL
                 }
-                
-                [alert addButtonWithTitle:[NSString stringWithUTF8String:buttonTexts[i]]];
+
+                [alert addButtonWithTitle:buttonTextStrings[i]];
             }
             
             if (type == 0)
@@ -53,6 +69,9 @@ int ShowMessageBox(int type, const char* title, const char* message, int buttons
             {
                 returnValue = -1;
             }
+
+            free(buttonTextStrings);
+            buttonTextStrings = NULL;
         }
     };
     

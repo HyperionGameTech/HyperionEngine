@@ -460,15 +460,15 @@ LoadedAsset OBJModelLoader::BuildModel(LoaderState& state, OBJModel& model)
 
         Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
-        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+        InitObject(entity);
+        
+        entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+        entity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { mesh->GetAABB() });
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
-        scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
+        entity->SetLocalTranslation(meshAabbCenter);
 
-        Handle<Node> node = top->AddChild(CreateObject<Node>(CreateNameFromDynamicString(objMesh.name)));
-        node->SetEntity(entity);
-        node->SetLocalTranslation(meshAabbCenter);
+        top->AddChild(entity);
     }
 
     return LoadedAsset { top };

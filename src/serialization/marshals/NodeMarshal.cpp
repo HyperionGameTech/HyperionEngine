@@ -38,8 +38,6 @@ public:
             return err;
         }
 
-        out.SetProperty("Type", uint32(inObject.GetType()));
-
         {
             FBOMData tagsData;
 
@@ -90,12 +88,18 @@ public:
             return { FBOMResult::FBOM_ERR, HYP_FORMAT("HypClass {} is not derived from Node", hypClass->GetName()) };
         }
 
-        if (!hypClass->CreateInstance(out))
+        if (!out.IsValid())
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
+            if (!hypClass->CreateInstance(out))
+            {
+                return { FBOMResult::FBOM_ERR, HYP_FORMAT("Failed to create instance of HypClass {}", hypClass->GetName()) };
+            }
         }
 
-        HYP_LOG(Serialization, Debug, "Deserializing Node of type: {}", hypClass->GetName());
+        if (!out.Is<Node>())
+        {
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Internal error; deserialized object was not of type Node. Got: {}", LookupTypeName(out.GetTypeId())) };
+        }
 
         if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, hypClass, out.ToRef()))
         {

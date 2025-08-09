@@ -41,7 +41,10 @@ public:
 
     virtual FBOMResult Serialize(ConstAnyRef in, FBOMObject& out) const override
     {
-        if (FBOMResult err = HypClassInstanceMarshal::Serialize(in, out))
+        FBOMMarshalerBase* nodeMarshal = FBOM::GetInstance().GetMarshal<Node>();
+        Assert(nodeMarshal != nullptr);
+
+        if (FBOMResult err = nodeMarshal->Serialize(in, out))
         {
             return err;
         }
@@ -158,22 +161,26 @@ public:
 
     virtual FBOMResult Deserialize(FBOMLoadContext& context, const FBOMObject& in, HypData& out) const override
     {
+        FBOMMarshalerBase* nodeMarshal = FBOM::GetInstance().GetMarshal<Node>();
+        Assert(nodeMarshal != nullptr);
+
         const HypClass* hypClass = in.GetHypClass();
         Assert(hypClass);
 
         if (!hypClass->IsDerivedFrom(Entity::Class()))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, serialized data with type '{}' (HypClass: {}, TypeId: {}) is not a subclass of Entity", in.GetType().name, hypClass->GetName(), in.GetType().GetNativeTypeId().Value()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object, serialized data with type '{}' (HypClass: {}, TypeId: {}) is not a subclass of Entity", in.GetType().name, hypClass->GetName(), in.GetType().GetNativeTypeId().Value()) };
         }
 
         if (!hypClass->CreateInstance(out))
         {
-            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object with HypClassInstanceMarshal, HypClass '{}' instance creation failed", hypClass->GetName()) };
+            return { FBOMResult::FBOM_ERR, HYP_FORMAT("Cannot deserialize object, HypClass '{}' instance creation failed", hypClass->GetName()) };
         }
 
         const Handle<Entity>& entity = out.Get<Handle<Entity>>();
+        Assert(entity != nullptr);
 
-        if (FBOMResult err = HypClassInstanceMarshal::Deserialize_Internal(context, in, in.GetHypClass(), entity.ToRef()))
+        if (FBOMResult err = nodeMarshal->Deserialize(context, in, out))
         {
             return err;
         }
@@ -181,12 +188,10 @@ public:
         HYP_LOG(Serialization, Debug, "Deserializing Entity of type {} with Id: {}",
             entity->InstanceClass()->GetName(),
             entity->Id());
+        
+        InitObject(entity);
 
         // Read components
-
-        const Handle<Scene>& detachedScene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(ThreadId::Current());
-        const Handle<EntityManager>& entityManager = detachedScene->GetEntityManager();
-        entityManager->AddExistingEntity(entity);
 
         for (const FBOMObject& child : in.GetChildren())
         {
@@ -197,7 +202,7 @@ public:
                 continue;
             }
 
-            if (!entityManager->IsValidComponentType(childTypeId))
+            if (!entity->GetEntityManager()->IsValidComponentType(childTypeId))
             {
                 HYP_LOG(Serialization, Warning, "Component with TypeId {} is not a valid component type", childTypeId.Value());
 
@@ -235,7 +240,7 @@ public:
 
                 EntityTag entityTag = EntityTag(entityTagValue);
 
-                if (!entityManager->IsEntityTagComponent(componentInterface->GetTypeId()))
+                if (!entity->GetEntityManager()->IsEntityTagComponent(componentInterface->GetTypeId()))
                 {
                     HYP_LOG(Serialization, Warning, "Component with TypeId {} is not an entity tag component", componentInterface->GetTypeId().Value());
 
@@ -246,16 +251,16 @@ public:
                 switch (entityTag)
                 {
                 case EntityTag::STATIC:
-                    entityManager->RemoveTag<EntityTag::DYNAMIC>(entity);
+                    entity->RemoveTag<EntityTag::DYNAMIC>();
                     break;
                 case EntityTag::DYNAMIC:
-                    entityManager->RemoveTag<EntityTag::STATIC>(entity);
+                    entity->RemoveTag<EntityTag::STATIC>();
                     break;
                 default:
                     break;
                 }
 
-                entityManager->AddTag(entity, entityTag);
+                entity->GetEntityManager()->AddTag(entity, entityTag);
 
                 continue;
             }
@@ -267,7 +272,7 @@ public:
                 return { FBOMResult::FBOM_ERR, HYP_FORMAT("No deserialized object found for component '{}'", componentInterface->GetTypeName()) };
             }
 
-            if (entityManager->HasComponent(childTypeId, entity))
+            if (entity->GetEntityManager()->HasComponent(childTypeId, entity))
             {
                 HYP_LOG(Serialization, Warning, "Entity already has component '{}'", componentInterface->GetTypeName());
 
@@ -289,7 +294,7 @@ public:
                 Assert(meshComponent.mesh.IsValid());
             }
 
-            entityManager->AddComponent(entity, *child.m_deserializedObject);
+            entity->GetEntityManager()->AddComponent(entity, *child.m_deserializedObject);
         }
 
         out = HypData(entity);

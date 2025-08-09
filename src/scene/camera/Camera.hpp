@@ -467,16 +467,6 @@ public:
         m_top = top;
     }
 
-    // ortho only
-    HYP_METHOD(Property = "Translation", Serialize = true, Editor = true)
-    HYP_FORCE_INLINE const Vec3f& GetTranslation() const
-    {
-        return m_translation;
-    }
-
-    HYP_METHOD(Property = "Translation", Serialize = true, Editor = true)
-    void SetTranslation(const Vec3f& translation);
-
     void SetNextTranslation(const Vec3f& translation);
 
     HYP_METHOD(Property = "Direction", Serialize = true, Editor = true)
@@ -506,13 +496,13 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE Vec3f GetTarget() const
     {
-        return m_translation + m_direction;
+        return GetWorldTranslation() + m_direction;
     }
 
     HYP_METHOD()
     HYP_FORCE_INLINE void SetTarget(const Vec3f& target)
     {
-        SetDirection(target - m_translation);
+        SetDirection(target - GetWorldTranslation());
     }
 
     HYP_METHOD()
@@ -603,6 +593,8 @@ public:
 protected:
     void Init() override;
 
+    void OnTransformUpdated(const Transform& transform) override;
+
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
     void UpdateViewProjectionMatrix();
@@ -615,7 +607,7 @@ protected:
 
     Array<Handle<CameraController>> m_cameraControllers;
 
-    Vec3f m_translation, m_nextTranslation, m_direction, m_up;
+    Vec3f m_nextTranslation, m_direction, m_up;
     Matrix4 m_viewMat, m_projMat;
     Frustum m_frustum;
 

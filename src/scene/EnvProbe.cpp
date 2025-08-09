@@ -82,12 +82,6 @@ EnvProbe::~EnvProbe()
 
 void EnvProbe::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
-        {
-            DetachChild(m_camera);
-            m_camera.Reset();
-        }));
-
     if (!IsControlledByEnvGrid())
     {
         m_camera = CreateObject<Camera>(
@@ -99,7 +93,7 @@ void EnvProbe::Init()
         m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f(0.0f, 0.0f, 1.0f), m_aabb.GetCenter(), Vec3f(0.0f, 1.0f, 0.0f)));
 
         InitObject(m_camera);
-        AttachChild(m_camera);
+        AddChild(m_camera);
 
         CreateView();
     }

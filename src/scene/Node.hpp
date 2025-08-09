@@ -31,7 +31,9 @@
 
 namespace hyperion {
 
+class Node;
 class Scene;
+class World;
 class EditorDelegates;
 
 HYP_ENUM(Flags)
@@ -190,13 +192,12 @@ public:
      * \param localTransform An optional parameter representing the local-space transform of this Node.
      */
     Node(Name name = Name::Invalid(), const Transform& localTransform = Transform());
-    Node(Name name, const Transform& localTransform = Transform());
-    Node(Name name, const Transform& localTransform, Scene* scene);
 
     Node(const Node& other) = delete;
     Node& operator=(const Node& other) = delete;
-    Node(Node&& other) noexcept;
-    Node& operator=(Node&& other) noexcept;
+    Node(Node&& other) noexcept = delete;
+    Node& operator=(Node&& other) noexcept = delete;
+    
     virtual ~Node() override;
 
     /*! \brief Get the UUID of the Node. */
@@ -626,11 +627,9 @@ public:
     {
         HashCode hc;
 
-        hc.Add(m_type);
         hc.Add(m_name);
         hc.Add(m_localTransform);
         hc.Add(m_worldTransform);
-        hc.Add(m_entity);
 
         for (const Handle<Node>& child : m_childNodes)
         {
@@ -648,16 +647,17 @@ public:
 protected:
     static Scene* GetDefaultScene();
 
-    Node(Name name, const Transform& localTransform = Transform(), Scene* scene = nullptr);
-
     virtual void Init() override;
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
     void RefreshEntityTransform();
+    void UpdateEntity();
 
     void OnNestedNodeAdded(Node* node, bool direct);
     void OnNestedNodeRemoved(Node* node, bool direct);
+
+    void SetScene_Internal(Scene* scene, Scene* previousScene);
 
 #ifdef HYP_EDITOR
     EditorDelegates* GetEditorDelegates();

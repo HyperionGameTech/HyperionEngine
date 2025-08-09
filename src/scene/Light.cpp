@@ -140,7 +140,7 @@ void Light::CreateShadowViews()
             continue;
         }
 
-        DetachChild(shadowCamera);
+        RemoveChild(shadowCamera);
     }
 
     m_shadowViews.Clear();
@@ -243,7 +243,7 @@ void Light::CreateShadowViews()
 
     InitObject(shadowMapCamera);
 
-    AttachChild(shadowMapCamera);
+    AddChild(shadowMapCamera);
 
     AssertDebug(shadowViewFlags.Size() >= 1);
     m_shadowViews.Resize(shadowViewFlags.Size());
@@ -297,7 +297,7 @@ void Light::UpdateShadowViews()
         case LT_POINT:
             m_shadowAabb = GetAABB();
 
-            shadowView->GetCamera()->SetTranslation(m_position);
+            shadowView->GetCamera()->SetWorldTranslation(m_position);
 
             break;
         default:

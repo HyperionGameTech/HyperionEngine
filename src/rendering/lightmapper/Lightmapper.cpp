@@ -23,9 +23,10 @@
 #include <scene/BVH.hpp>
 #include <scene/World.hpp>
 #include <scene/EnvProbe.hpp>
-#include <scene/Light.hpp>
 #include <scene/EnvGrid.hpp>
+#include <scene/Light.hpp>
 #include <scene/View.hpp>
+#include <scene/Entity.hpp>
 
 #include <scene/util/VoxelOctree.hpp>
 
@@ -67,7 +68,8 @@ namespace hyperion {
 
 #pragma region Render commands
 
-struct RENDER_COMMAND(LightmapRender) : RenderCommand
+struct RENDER_COMMAND(LightmapRender)
+    : RenderCommand
 {
     LightmapJob* job;
     Handle<World> world;
@@ -408,10 +410,10 @@ void LightmapJob::Process()
 
         m_lastLoggedPercentage = percentage;
     }
-    
+
     World* world = GetScene()->GetWorld();
     Assert(world != nullptr);
-    
+
     Handle<World> worldHandle = world->HandleFromThis();
 
     PUSH_RENDER_COMMAND(LightmapRender, this, worldHandle, m_params.view, std::move(rays), rayOffset);
@@ -524,13 +526,12 @@ void Lightmapper::Initialize()
     m_volume = CreateObject<LightmapVolume>(m_aabb);
     InitObject(m_volume);
 
-    Handle<Entity> lightmapVolumeEntity = m_scene->GetEntityManager()->AddEntity();
-    m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmapVolumeEntity, LightmapVolumeComponent { m_volume });
-    m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmapVolumeEntity, BoundingBoxComponent { m_aabb, m_aabb });
-
-    Handle<Node> lightmapVolumeNode = m_scene->GetRoot()->AddChild();
-    lightmapVolumeNode->SetName(Name::Unique("LightmapVolume"));
-    lightmapVolumeNode->SetEntity(lightmapVolumeEntity);
+    Handle<Entity> lightmapVolumeEntity = CreateObject<Entity>();
+    lightmapVolumeEntity->SetName(Name::Unique("LightmapVolume"));
+    m_scene->GetRoot()->AddChild(lightmapVolumeEntity);
+    
+    lightmapVolumeEntity->AddComponent<LightmapVolumeComponent>(LightmapVolumeComponent { m_volume });
+    lightmapVolumeEntity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { m_aabb, m_aabb });
 
     Initialize_Internal();
 
@@ -809,20 +810,12 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
 
         auto updateMeshComponent = [entityManagerWeak = m_scene->GetEntityManager()->WeakHandleFromThis(), elementIndex = job->GetElementIndex(), volume = m_volume, subElement = subElement, newMaterial = (isNewMaterial ? subElement.material : Handle<Material>::empty)]()
         {
-            Handle<EntityManager> entityManager = entityManagerWeak.Lock();
-
-            if (!entityManager)
-            {
-                HYP_LOG(Lightmap, Error, "Failed to lock EntityManager while updating lightmap element");
-
-                return;
-            }
-
             const Handle<Entity>& entity = subElement.entity;
+            Assert(entity != nullptr);
 
-            if (entityManager->HasComponent<MeshComponent>(entity))
+            if (entity->HasComponent<MeshComponent>())
             {
-                MeshComponent& meshComponent = entityManager->GetComponent<MeshComponent>(entity);
+                MeshComponent& meshComponent = entity->GetComponent<MeshComponent>();
 
                 if (newMaterial.IsValid())
                 {
@@ -847,10 +840,10 @@ void Lightmapper::HandleCompletedJob(LightmapJob* job)
                 meshComponent.lightmapElementIndex = elementIndex;
                 meshComponent.lightmapVolumeUuid = volume->GetUUID();
 
-                entityManager->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+                entity->AddComponent<MeshComponent>(std::move(meshComponent));
             }
 
-            entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
+            entity->AddTag<EntityTag::UPDATE_RENDER_PROXY>();
         };
 
         if (Threads::IsOnThread(m_scene->GetEntityManager()->GetOwnerThreadId()))

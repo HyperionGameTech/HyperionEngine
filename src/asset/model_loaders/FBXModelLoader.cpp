@@ -1506,14 +1506,13 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
-                const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
+                Handle<Entity> entity = CreateObject<Entity>();
+                InitObject(entity);
 
-                scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
-                scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
-                scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
-                scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
+                entity->AddComponent<MeshComponent>(MeshComponent { mesh, material });
+                entity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { mesh->GetAABB() });
 
-                node->SetEntity(entity);
+                node = entity;
             }
             else
             {

@@ -78,6 +78,7 @@ UIStage::UIStage(ThreadId ownerThreadId)
         0.0f, -float(m_surfaceSize.x),
         0.0f, float(m_surfaceSize.y),
         float(g_minDepth), float(g_maxDepth)));
+    m_camera->SetName(NAME_FMT("{}_Camera", GetName()));
 
     InitObject(m_camera);
 }
@@ -108,18 +109,18 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
-        //if (m_camera.IsValid())
-        //{
-        //    m_camera->SetWidth(surfaceSize.x);
-        //    m_camera->SetHeight(surfaceSize.y);
-    
-        //    // @FIXME: needs to remove and re-add the camera controller
-    
-        //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-        //        0.0f, -float(surfaceSize.x),
-        //        0.0f, float(surfaceSize.y),
-        //        float(g_minDepth), float(g_maxDepth)));
-        //}
+    // if (m_camera.IsValid())
+    //{
+    //     m_camera->SetWidth(surfaceSize.x);
+    //     m_camera->SetHeight(surfaceSize.y);
+
+    //    // @FIXME: needs to remove and re-add the camera controller
+
+    //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
+    //        0.0f, -float(surfaceSize.x),
+    //        0.0f, float(surfaceSize.y),
+    //        float(g_minDepth), float(g_maxDepth)));
+    //}
 
     UpdateSize(true);
     UpdatePosition(true);
@@ -148,7 +149,10 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         const ThreadId ownerThreadId = m_scene.IsValid() ? m_scene->GetOwnerThreadId() : ThreadId::Current();
 
         newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
-        newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
+        newScene->SetName(NAME_FMT("{}_Scene", GetName()));
+
+        Handle<Node> newRoot = CreateObject<Node>(GetName());
+        newScene->SetRoot(std::move(newRoot));
     }
 
     if (newScene == m_scene)
@@ -171,9 +175,7 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         m_scene.Reset();
     }
 
-    Handle<Node> cameraNode = newScene->GetRoot()->AddChild();
-    cameraNode->SetName(NAME_FMT("{}_Camera", GetName()));
-    cameraNode->SetEntity(m_camera);
+    newScene->GetRoot()->AddChild(m_camera);
 
     m_scene = std::move(newScene);
 
@@ -668,8 +670,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = inputManager->GetButtonStates()
-                    });
+                        .mouseButtons = inputManager->GetButtonStates() });
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -747,8 +748,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
-                });
+                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons });
 
                 eventHandlerResult |= onMouseDownResult;
 
@@ -796,8 +796,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = buttons
-                    });
+                        .mouseButtons = buttons });
 
                     eventHandlerResult |= result;
 
@@ -841,8 +840,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = (stateMouseButtons & ~buttons)
-                });
+                    .mouseButtons = (stateMouseButtons & ~buttons) });
 
                 eventHandlerResult |= currentResult;
 
@@ -895,8 +893,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
                     .mouseButtons = inputManager->GetButtonStates(),
-                    .wheel = wheel
-                });
+                    .wheel = wheel });
 
                 eventHandlerResult |= currentResult;
 
@@ -995,29 +992,12 @@ bool UIStage::Remove(const Entity* entity)
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    if (!m_scene.IsValid())
+    if (!m_node)
     {
         return false;
     }
 
-    if (!GetNode())
-    {
-        return false;
-    }
-
-    if (!m_scene->GetEntityManager()->HasEntity(entity))
-    {
-        return false;
-    }
-
-    if (Handle<Node> childNode = GetNode()->FindChildWithEntity(entity))
-    {
-        childNode->Remove();
-
-        return true;
-    }
-
-    return false;
+    return m_node->Remove();
 }
 
 } // namespace hyperion

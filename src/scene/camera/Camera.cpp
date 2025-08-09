@@ -185,7 +185,6 @@ Camera::Camera(int width, int height)
       m_right(0.0f),
       m_bottom(0.0f),
       m_top(0.0f),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY())
 {
@@ -204,7 +203,6 @@ Camera::Camera(float fov, int width, int height, float _near, float _far)
       m_fov(fov),
       m_width(width),
       m_height(height),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY())
 {
@@ -225,7 +223,6 @@ Camera::Camera(int width, int height, float left, float right, float bottom, flo
       m_fov(0.0f),
       m_width(width),
       m_height(height),
-      m_translation(Vec3f::Zero()),
       m_direction(Vec3f::UnitZ()),
       m_up(Vec3f::UnitY())
 {
@@ -253,7 +250,7 @@ void Camera::Init()
 {
     m_streamingVolume = CreateObject<CameraStreamingVolume>();
     /// \todo: Set a proper bounding box for the streaming volume
-    m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+    m_streamingVolume->SetBoundingBox(BoundingBox(GetWorldTranslation() - 10.0f, GetWorldTranslation() + 10.0f));
     InitObject(m_streamingVolume);
 
     if (m_flags & CameraFlags::MATCH_WINDOW_SIZE)
@@ -462,12 +459,11 @@ bool Camera::RemoveCameraController(const Handle<CameraController>& cameraContro
     return true;
 }
 
-void Camera::SetTranslation(const Vec3f& translation)
+void Camera::OnTransformUpdated(const Transform& transform)
 {
     HYP_SCOPE;
 
-    m_translation = translation;
-    m_nextTranslation = translation;
+    m_nextTranslation = transform.GetTranslation();
 
     m_previousViewMatrix = m_viewMat;
 
@@ -475,7 +471,7 @@ void Camera::SetTranslation(const Vec3f& translation)
     {
         if (const Handle<CameraController>& cameraController = GetCameraController())
         {
-            cameraController->SetTranslation(translation);
+            cameraController->SetTranslation(transform.GetTranslation());
         }
     }
 
@@ -654,14 +650,12 @@ void Camera::Update(float delta)
         }
     }
 
-    m_translation = m_nextTranslation;
-
-    UpdateMatrices();
+    SetWorldTranslation(m_nextTranslation);
 
     if (m_streamingVolume.IsValid())
     {
         /// \todo: Set a proper bounding box for the streaming volume
-        m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
+        m_streamingVolume->SetBoundingBox(BoundingBox(GetWorldTranslation() - 10.0f, GetWorldTranslation() + 10.0f));
     }
 
     SetNeedsRenderProxyUpdate();
@@ -779,7 +773,7 @@ void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)
     bufferData.projection = m_projMat;
     bufferData.previousView = m_previousViewMatrix;
     bufferData.dimensions = Vec4u { uint32(MathUtil::Abs(m_width)), uint32(MathUtil::Abs(m_height)), 0, 1 };
-    bufferData.cameraPosition = Vec4f(m_translation, 1.0f);
+    bufferData.cameraPosition = Vec4f(GetWorldTranslation(), 1.0f);
     bufferData.cameraDirection = Vec4f(m_direction, 1.0f);
     bufferData.cameraNear = m_near;
     bufferData.cameraFar = m_far;

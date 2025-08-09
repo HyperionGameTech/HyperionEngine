@@ -92,6 +92,7 @@ void SystemMessageBox::Show() const
     for (int i = 0; i < int(m_buttons.Size()); i++)
     {
         buttonTexts[i] = m_buttons[i].text.Data();
+        AssertDebug(buttonTexts[i] != nullptr);
     }
     
     AssertDebug(m_title.Data() != nullptr && m_message.Data() != nullptr);

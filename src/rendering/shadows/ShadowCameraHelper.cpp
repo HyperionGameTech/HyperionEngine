@@ -15,7 +15,7 @@ HYP_API void ShadowCameraHelper::UpdateShadowCameraDirectional(
 {
     AssertDebug(camera.IsValid());
 
-    camera->SetTranslation(center + (dir.Normalized() * -1.0f));
+    camera->SetWorldTranslation(center + (dir.Normalized() * -1.0f));
     camera->SetTarget(center);
 
     BoundingBox aabb { center - radius, center + radius };

@@ -101,7 +101,7 @@ bool EditorCameraInputHandler::OnMouseMove_Impl(const MouseEvent& evt)
 bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
 {
     HYP_SCOPE;
-    
+
     static const ConfigurationValue& editorLookSensitivity = GetGlobalConfig().Get("editor.camera.lookSensitivity");
     static const ConfigurationValue& editorMoveSensitivity = GetGlobalConfig().Get("editor.camera.lookSensitivity");
 
@@ -118,7 +118,7 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
     {
         return false;
     }
-    
+
     // magic numbers for fun
     const double lookMultiplier = 7000.0 * editorLookSensitivity.ToDouble(1.0);
     const double moveMultiplier = 25.0 * editorMoveSensitivity.ToDouble(1.0);
@@ -142,11 +142,11 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         {
             if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {
-                camera->SetTranslation(camera->GetTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + camera->GetUpVector() * -deltaSign.y * moveMultiplier);
             }
             else
             {
-                camera->SetTranslation(camera->GetTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
             }
         }
     }
@@ -162,11 +162,11 @@ bool EditorCameraInputHandler::OnMouseDrag_Impl(const MouseEvent& evt)
         {
             if (MathUtil::Abs(mouseDeltaY) > MathUtil::Abs(mouseDeltaX))
             {
-                camera->SetTranslation(camera->GetTranslation() + forward * -deltaSign.y * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + forward * -deltaSign.y * moveMultiplier);
             }
             else
             {
-                camera->SetTranslation(camera->GetTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
+                camera->SetWorldTranslation(camera->GetWorldTranslation() + dirCrossY * deltaSign.x * moveMultiplier);
             }
         }
     }
@@ -192,7 +192,7 @@ bool EditorCameraInputHandler::OnMouseLeave_Impl(const MouseEvent& evt)
 
         return true;
     }
-    
+
     return false;
 }
 
@@ -248,11 +248,11 @@ void EditorCameraController::UpdateLogic(double delta)
 
     static constexpr float speed = 15.0f;
 
-    Vec3f translation = m_camera->GetTranslation();
+    Vec3f translation = m_camera->GetWorldTranslation();
 
     const Vec3f direction = m_camera->GetDirection();
     const Vec3f dirCrossY = direction.Cross(m_camera->GetUpVector());
-    
+
     m_inputHandler->SetDeltaTime(delta);
 
     if (m_inputHandler->IsKeyDown(KeyCode::KEY_W))

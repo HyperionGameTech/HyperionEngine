@@ -367,7 +367,9 @@ void TerrainStreamingCell::OnLoaded_Impl()
     transform.SetTranslation(m_cellInfo.bounds.min);
     transform.SetScale(m_cellInfo.scale);
 
-    Handle<Entity> entity = entityManager->AddEntity();
+    Handle<Entity> entity = CreateObject<Entity>();
+    InitObject(entity);
+    
     entityManager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
     entityManager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
     entityManager->AddComponent<TransformComponent>(entity, TransformComponent { transform });
@@ -387,10 +389,12 @@ void TerrainStreamingCell::OnLoaded_Impl()
 
     entityManager->AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 
-    m_node = m_scene->GetRoot()->AddChild();
-    m_node->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));
-    m_node->SetEntity(entity);
-    m_node->SetWorldTransform(transform);
+    entity->SetName(NAME_FMT("TerrainPatch_{}", m_cellInfo.coord));
+    entity->SetWorldTransform(transform);
+    m_scene->GetRoot()->AddChild(entity);
+
+    m_node = entity;
+
     HYP_LOG(WorldGrid, Debug, "Created terrain patch node: {}, aabb: {} world pos: {}", m_node->GetName(), m_node->GetEntityAABB(), m_node->GetWorldTranslation());
 
     // auto result = AssetManager::GetInstance()->Load<Node>("models/sphere16.obj");

@@ -48,16 +48,6 @@ public:
     Entity();
     virtual ~Entity() override;
 
-    HYP_FORCE_INLINE World* GetWorld() const
-    {
-        return m_world;
-    }
-
-    HYP_FORCE_INLINE Scene* GetScene() const
-    {
-        return m_scene;
-    }
-
     HYP_FORCE_INLINE const Matrix4& GetPrevModelMatrix() const
     {
         return m_prevModelMatrix;
@@ -65,22 +55,32 @@ public:
 
     EntityManager* GetEntityManager() const;
 
+    template <class Component, class EntityManagerPtr = EntityManager*>
+    Component& GetComponent() const;
+
+    template <class Component, class EntityManagerPtr = EntityManager*>
+    Component* TryGetComponent() const;
+
+    template <class Component, class EntityManagerPtr = EntityManager*>
+    bool HasComponent() const;
+
+    template <class Component, class T = Component, class EntityManagerPtr = EntityManager*>
+    Component& AddComponent(T&& component);
+
+    template <class Component, class EntityManagerPtr = EntityManager*>
+    bool RemoveComponent();
+
+    template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
+    void AddTag();
+
+    template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
+    bool RemoveTag();
+
+    template <EntityTag Tag, class EntityManagerPtr = EntityManager*>
+    bool HasTag() const;
+
     bool ReceivesUpdate() const;
     void SetReceivesUpdate(bool receivesUpdate);
-
-    /*! \brief Attaches this Entity to a Node. If the Entity is already attached to a Node, it will be detached first.
-     *
-     *  \param [in] attachNode The Node to attach the Entity to.
-     */
-    HYP_METHOD()
-    virtual void AttachTo(const Handle<Node>& attachNode);
-
-    /*! \brief Detaches this Entity from its current Node, if it is attached to one.
-     *
-     *  \note This will not remove the Entity from the EntityManager.
-     */
-    HYP_METHOD()
-    virtual void Detach();
 
     const int* GetRenderProxyVersionPtr() const
     {
@@ -99,9 +99,6 @@ protected:
     {
     }
 
-    virtual void OnAttachedToNode(Node* node);
-    virtual void OnDetachedFromNode(Node* node);
-
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
 
@@ -116,19 +113,15 @@ protected:
 
     virtual void OnTransformUpdated(const Transform& transform);
 
-    void AttachChild(const Handle<Entity>& child);
-    void DetachChild(const Handle<Entity>& child);
-
     EntityInitInfo m_entityInitInfo;
 
 private:
-    World* m_world;
-    Scene* m_scene;
-
     Matrix4 m_prevModelMatrix;
 
     int m_renderProxyVersion;
 };
+
+#include <scene/Entity.inl>
 
 } // namespace hyperion
 

@@ -38,7 +38,7 @@ void AudioSystem::Process(float delta)
         if (Camera* camera = GetEntityManager().GetScene()->GetPrimaryCamera())
         {
             AudioManager::GetInstance().SetListenerOrientation(camera->GetDirection(), camera->GetUpVector());
-            AudioManager::GetInstance().SetListenerPosition(camera->GetTranslation());
+            AudioManager::GetInstance().SetListenerPosition(camera->GetWorldTranslation());
         }
     }
 

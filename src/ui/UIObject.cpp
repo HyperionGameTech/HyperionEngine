@@ -242,8 +242,11 @@ void UIObject::Init()
     meshComponent.instanceData.enableAutoInstancing = true;
     meshComponent.userData = MeshComponentUserData {};
 
-    scene->GetEntityManager()->AddComponent<MeshComponent>(GetEntity(), std::move(meshComponent));
-    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(GetEntity(), BoundingBoxComponent {});
+    Handle<Entity> entity = GetEntity();
+    Assert(entity != nullptr);
+
+    scene->GetEntityManager()->AddComponent<MeshComponent>(entity, std::move(meshComponent));
+    scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent {});
 
     SetReady(true);
 
@@ -1745,23 +1748,23 @@ BoundingBox UIObject::GetLocalAABB() const
 void UIObject::SetEntityAABB(const BoundingBox& aabb)
 {
     HYP_SCOPE;
+    
+    const Handle<Entity>& entity = GetEntity();
+    Assert(entity != nullptr);
 
     Transform transform;
 
-    if (Scene* scene = GetScene())
+    BoundingBoxComponent& boundingBoxComponent = entity->GetComponent<BoundingBoxComponent>();
+    boundingBoxComponent.localAabb = aabb;
+
+    if (const Handle<Node>& node = GetNode())
     {
-        BoundingBoxComponent& boundingBoxComponent = scene->GetEntityManager()->GetComponent<BoundingBoxComponent>(GetEntity());
-        boundingBoxComponent.localAabb = aabb;
+        node->SetEntityAABB(aabb);
 
-        if (const Handle<Node>& node = GetNode())
-        {
-            node->SetEntityAABB(aabb);
-
-            transform = node->GetWorldTransform();
-        }
-
-        boundingBoxComponent.worldAabb = transform * aabb;
+        transform = node->GetWorldTransform();
     }
+
+    boundingBoxComponent.worldAabb = transform * aabb;
 
     m_aabb = transform * aabb;
 
@@ -1945,9 +1948,9 @@ UIObject* UIObject::GetParentUIObject() const
 
     while (parentNode != nullptr)
     {
-        if (parentNode->GetEntity().IsValid())
+        if (Entity* entity = ObjCast<Entity>(parentNode))
         {
-            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(parentNode->GetEntity()))
+            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
             {
                 if (uiComponent->uiObject != nullptr)
                 {
@@ -1984,9 +1987,9 @@ Handle<UIObject> UIObject::GetClosestParentUIObject_Proc(const ProcRef<bool(UIOb
 
     while (parentNode)
     {
-        if (parentNode->GetEntity().IsValid())
+        if (Entity* entity = ObjCast<Entity>(parentNode))
         {
-            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(parentNode->GetEntity()))
+            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
             {
                 if (uiComponent->uiObject != nullptr)
                 {
@@ -2478,9 +2481,9 @@ ScriptComponent* UIObject::GetScriptComponent(bool deep) const
         if (node != nullptr)
         {
             Scene* scene = node->GetScene();
-            const Handle<Entity>& entity = node->GetEntity();
+            Entity* entity = ObjCast<Entity>(node);
 
-            if (entity.IsValid() && scene != nullptr)
+            if (entity != nullptr && scene != nullptr)
             {
                 if (ScriptComponent* scriptComponent = scene->GetEntityManager()->TryGetComponent<ScriptComponent>(entity))
                 {
@@ -2581,29 +2584,23 @@ void UIObject::SetNodeProxy(Handle<Node> node)
         return;
     }
 
-    if (m_node.IsValid() && m_node->GetEntity().IsValid() && m_node->GetScene() != nullptr)
+    if (m_node.IsValid() && m_node->IsReady())
     {
-        const Handle<Entity>& entity = m_node->GetEntity();
-        const Handle<EntityManager>& entityManager = m_node->GetScene()->GetEntityManager();
+        const Handle<Entity>& entity = ObjCast<Entity>(m_node);
+        Assert(entity != nullptr);
 
-        if (entityManager->HasComponent<UIComponent>(entity))
-        {
-            entityManager->RemoveComponent<UIComponent>(entity);
-        }
+        entity->RemoveComponent<UIComponent>();
     }
 
     m_node = std::move(node);
+    InitObject(m_node);
 
     if (m_node.IsValid())
     {
-        if (!m_node->GetEntity().IsValid())
-        {
-            Assert(m_node->GetScene() != nullptr);
-
-            m_node->SetEntity(m_node->GetScene()->GetEntityManager()->AddEntity());
-        }
-
-        m_node->GetScene()->GetEntityManager()->AddComponent<UIComponent>(m_node->GetEntity(), UIComponent { this });
+        const Handle<Entity>& entity = ObjCast<Entity>(m_node);
+        Assert(entity != nullptr);
+        
+        entity->AddComponent<UIComponent>(UIComponent { this });
 
         if (!m_affectsParentSize || !m_isVisible)
         {
@@ -2864,9 +2861,9 @@ void UIObject::ForEachParentUIObject(Lambda&& lambda) const
 
     while (parentNode != nullptr)
     {
-        if (parentNode->GetEntity().IsValid())
+        if (Entity* entity = ObjCast<Entity>(parentNode))
         {
-            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(parentNode->GetEntity()))
+            if (UIComponent* uiComponent = scene->GetEntityManager()->TryGetComponent<UIComponent>(entity))
             {
                 if (uiComponent->uiObject != nullptr)
                 {

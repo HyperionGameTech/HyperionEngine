@@ -519,10 +519,10 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
         return;
     }
 
-    Threads::AssertOnThread(m_ownerThreadId);
-
     // Get the current EntityManager for the entity, if it exists
-    EntityManager* otherEntityManager = entity->GetEntityManager();
+    EntityManager* otherEntityManager = entity->GetScene() != nullptr
+        ? entity->GetScene()->GetEntityManager()
+        : nullptr;
 
     if (otherEntityManager)
     {
@@ -537,6 +537,8 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
 
         return;
     }
+    
+    Threads::AssertOnThread(m_ownerThreadId);
 
     HYP_MT_CHECK_RW(m_entitiesDataRaceDetector);
 

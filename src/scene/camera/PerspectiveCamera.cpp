@@ -35,7 +35,7 @@ void PerspectiveCameraController::UpdateViewMatrix()
     HYP_SCOPE;
 
     m_camera->m_viewMat = Matrix4::LookAt(
-        m_camera->m_translation,
+        m_camera->GetWorldTranslation(),
         m_camera->GetTarget(),
         m_camera->m_up);
 }

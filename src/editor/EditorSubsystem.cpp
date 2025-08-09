@@ -271,12 +271,12 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
 
     m_dragData.Unset();
 
-    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager())
+    if (!node->IsA<Entity>() || !node->GetScene() || !node->GetScene()->GetEntityManager())
     {
         return;
     }
 
-    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ObjCast<Entity>(node.Get()));
 
     if (!meshComponent || !meshComponent->material)
     {
@@ -326,7 +326,7 @@ void TranslateEditorManipulationWidget::OnDragStart(const Handle<Camera>& camera
     const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     RayHit planeRayHit;
 
@@ -401,12 +401,12 @@ void TranslateEditorManipulationWidget::OnDragEnd(const Handle<Camera>& camera, 
 
 bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager())
+    if (!node->IsA<Entity>() || !node->GetScene() || !node->GetScene()->GetEntityManager())
     {
         return false;
     }
 
-    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ObjCast<Entity>(node.Get()));
 
     if (!meshComponent || !meshComponent->material)
     {
@@ -422,12 +422,12 @@ bool TranslateEditorManipulationWidget::OnMouseHover(const Handle<Camera>& camer
 
 bool TranslateEditorManipulationWidget::OnMouseLeave(const Handle<Camera>& camera, const MouseEvent& mouseEvent, const Handle<Node>& node)
 {
-    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager())
+    if (!node->IsA<Entity>() || !node->GetScene() || !node->GetScene()->GetEntityManager())
     {
         return false;
     }
 
-    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ObjCast<Entity>(node.Get()));
 
     if (!meshComponent || !meshComponent->material)
     {
@@ -451,7 +451,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
         return false;
     }
 
-    if (!node->GetEntity() || !node->GetScene() || !node->GetScene()->GetEntityManager())
+    if (!node->IsA<Entity>() || !node->GetScene() || !node->GetScene()->GetEntityManager())
     {
         return false;
     }
@@ -461,7 +461,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
         return false;
     }
 
-    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(node->GetEntity());
+    MeshComponent* meshComponent = node->GetScene()->GetEntityManager()->TryGetComponent<MeshComponent>(ObjCast<Entity>(node.Get()));
 
     if (!meshComponent || !meshComponent->material)
     {
@@ -477,7 +477,7 @@ bool TranslateEditorManipulationWidget::OnMouseMove(const Handle<Camera>& camera
     const Vec4f mouseWorld = camera->TransformScreenToWorld(mouseEvent.position);
     const Vec4f rayDirection = mouseWorld.Normalized();
 
-    const Ray ray { camera->GetTranslation(), rayDirection.GetXYZ() };
+    const Ray ray { camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
     // const Ray rayViewSpace { camera->GetViewMatrix() * ray.position, (camera->GetViewMatrix() * Vec4f(ray.direction, 0.0f)).GetXYZ() };
 
@@ -644,7 +644,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
             for (Node* child : node->GetDescendants())
             {
-                if (!child->GetEntity().IsValid())
+                if (!child->IsA<Entity>())
                 {
                     continue;
                 }
@@ -658,10 +658,12 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                 EntityManager& entityManager = *child->GetScene()->GetEntityManager();
 
-                entityManager.RemoveTag<EntityTag::STATIC>(child->GetEntity());
-                entityManager.AddTag<EntityTag::DYNAMIC>(child->GetEntity());
+                Entity* entity = static_cast<Entity*>(child);
 
-                VisibilityStateComponent* visibilityState = entityManager.TryGetComponent<VisibilityStateComponent>(child->GetEntity());
+                entityManager.RemoveTag<EntityTag::STATIC>(entity);
+                entityManager.AddTag<EntityTag::DYNAMIC>(entity);
+
+                VisibilityStateComponent* visibilityState = entityManager.TryGetComponent<VisibilityStateComponent>(entity);
 
                 if (visibilityState)
                 {
@@ -669,10 +671,10 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 }
                 else
                 {
-                    entityManager.AddComponent<VisibilityStateComponent>(child->GetEntity(), VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+                    entityManager.AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
                 }
 
-                MeshComponent* meshComponent = entityManager.TryGetComponent<MeshComponent>(child->GetEntity());
+                MeshComponent* meshComponent = entityManager.TryGetComponent<MeshComponent>(entity);
 
                 if (!meshComponent)
                 {
@@ -709,7 +711,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
                 meshComponent->material = MaterialCache::GetInstance()->CreateMaterial(materialAttributes, materialParameters);
                 meshComponent->material->SetIsDynamic(true);
 
-                entityManager.AddTag<EntityTag::UPDATE_RENDER_PROXY>(child->GetEntity());
+                entityManager.AddTag<EntityTag::UPDATE_RENDER_PROXY>(entity);
 
                 child->AddTag(NodeTag(NAME("TransformWidgetElementColor"), Vec4f(meshComponent->material->GetParameter(Material::MATERIAL_KEY_ALBEDO))));
             }
@@ -1125,8 +1127,6 @@ void EditorSubsystem::OnAddedToWorld()
     m_editorScene->SetName(NAME("EditorScene"));
     GetWorld()->AddScene(m_editorScene);
 
-    Handle<Node> cameraNode = m_editorScene->GetRoot()->AddChild();
-
     m_camera = CreateObject<Camera>();
     m_camera->AddCameraController(CreateObject<EditorCameraController>());
     m_camera->SetName(NAME("EditorCamera"));
@@ -1136,11 +1136,9 @@ void EditorSubsystem::OnAddedToWorld()
     m_camera->SetFar(3000.0f);
     InitObject(m_camera);
 
-    m_editorScene->GetEntityManager()->AddExistingEntity(m_camera);
-    m_editorScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
+    m_camera->AddTag<EntityTag::CAMERA_PRIMARY>();
 
-    cameraNode->SetEntity(m_camera);
-    cameraNode->SetName(m_camera->GetName());
+    m_editorScene->GetRoot()->AddChild(m_camera);
 
     LoadEditorUIDefinitions();
 
@@ -1461,7 +1459,7 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { m_camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -1577,7 +1575,7 @@ void EditorSubsystem::InitViewport()
                 const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
                 const Vec4f rayDirection = mouseWorld.Normalized();
 
-                const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                const Ray ray { m_camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                 RayTestResults results;
 
@@ -1655,7 +1653,7 @@ void EditorSubsystem::InitViewport()
                     const Vec4f mouseWorld = m_camera->TransformScreenToWorld(event.position);
                     const Vec4f rayDirection = mouseWorld.Normalized();
 
-                    const Ray ray { m_camera->GetTranslation(), rayDirection.GetXYZ() };
+                    const Ray ray { m_camera->GetWorldTranslation(), rayDirection.GetXYZ() };
 
                     RayTestResults results;
 
@@ -3043,7 +3041,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
     {
         if (focusedNode->GetScene() != nullptr)
         {
-            if (const Handle<Entity>& entity = focusedNode->GetEntity())
+            if (Handle<Entity> entity = ObjCast<Entity>(focusedNode))
             {
                 focusedNode->GetScene()->GetEntityManager()->AddTag<EntityTag::EDITOR_FOCUSED>(entity);
             }
@@ -3069,7 +3067,7 @@ void EditorSubsystem::SetFocusedNode(const Handle<Node>& focusedNode, bool shoul
 
     if (previousFocusedNode.IsValid() && previousFocusedNode->GetScene() != nullptr)
     {
-        if (const Handle<Entity>& entity = previousFocusedNode->GetEntity())
+        if (Handle<Entity> entity = ObjCast<Entity>(previousFocusedNode))
         {
             previousFocusedNode->GetScene()->GetEntityManager()->RemoveTag<EntityTag::EDITOR_FOCUSED>(entity);
         }

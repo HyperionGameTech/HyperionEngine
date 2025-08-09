@@ -193,31 +193,38 @@ void HyperionEditor::Init()
 
 // add sun
 #if 1
-    Handle<Node> sunNode = scene->GetRoot()->AddChild();
-    sunNode->SetName(NAME("Sun"));
-
-    Handle<DirectionalLight> sunEntity = scene->GetEntityManager()->AddEntity<DirectionalLight>(
+    Handle<DirectionalLight> sunEntity = CreateObject<DirectionalLight>(
         Vec3f(-0.4f, 0.8f, 0.0f).Normalize(),
         Color(Vec4f(1.0f, 0.9f, 0.8f, 1.0f)),
         5.0f);
-
-    sunEntity->AttachTo(sunNode);
+    sunEntity->SetName(NAME("Sun"));
+    scene->GetRoot()->AddChild(sunEntity);
 #endif
 
     // Add Skybox
     if (true)
     {
-        Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
+        Handle<Entity> skyboxEntity = CreateObject<Entity>();
+        skyboxEntity->SetName(NAME("Sky"));
+        skyboxEntity->SetWorldScale(1000.0f);
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(skyboxEntity, TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) });
-
-        scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skyboxEntity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
-        scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
-
-        Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
-        skydomeNode->SetEntity(skyboxEntity);
-        skydomeNode->SetName(NAME("Sky"));
+        scene->GetRoot()->AddChild(skyboxEntity);
+        
+        skyboxEntity->AddComponent<SkyComponent>(SkyComponent {});
+        skyboxEntity->AddComponent<BoundingBoxComponent>(BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
+        
+        if (VisibilityStateComponent* visibilityStateComponent = skyboxEntity->TryGetComponent<VisibilityStateComponent>())
+        {
+            *visibilityStateComponent = VisibilityStateComponent {
+                VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+            };
+        }
+        else
+        {
+            skyboxEntity->AddComponent<VisibilityStateComponent>(VisibilityStateComponent {
+                VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE
+            });
+        }
     }
 
 #if 1
@@ -225,9 +232,6 @@ void HyperionEditor::Init()
     RC<AssetBatch> batch = AssetManager::GetInstance()->CreateBatch();
     batch->Add("test_model", "models/sponza/sponza.obj");
     batch->Add("test_model", "models/testbed/testbed.obj");
-
-    Handle<Entity> rootEntity = scene->GetEntityManager()->AddEntity();
-    scene->GetRoot()->SetEntity(rootEntity);
 
     batch->OnComplete
         .Bind([this, scene](AssetMap& results)
@@ -241,40 +245,34 @@ void HyperionEditor::Init()
                 scene->GetRoot()->AddChild(node);
 
 #if 1
-                Handle<Node> envGridNode = scene->GetRoot()->AddChild();
-                envGridNode->SetName(NAME("EnvGrid2"));
-
-                Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
+                Handle<Entity> envGridEntity = CreateObject<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
+                envGridEntity->SetName(NAME("EnvGrid2"));
+                scene->GetRoot()->AddChild(envGridEntity);
 
                 scene->GetEntityManager()->AddComponent<TransformComponent>(envGridEntity, TransformComponent {});
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envGridEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
-
-                envGridNode->SetEntity(envGridEntity);
 #endif
 
                 if (auto& zombieAsset = results["zombie"]; zombieAsset.IsValid())
                 {
-                    Handle<Node> zombie = zombieAsset.ExtractAs<Node>();
+                    Handle<Entity> zombie = zombieAsset.ExtractAs<Entity>();
+                    AssertDebug(zombie != nullptr);
+
                     zombie->Scale(0.25f);
                     zombie->Translate(Vec3f(0, 2.0f, -1.0f));
 
-                    Handle<Entity> zombieEntity = zombie->GetChild(0)->GetEntity();
-
                     scene->GetRoot()->AddChild(zombie);
 
-                    if (zombieEntity.IsValid())
+                    if (auto* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombie))
                     {
-                        if (auto* meshComponent = scene->GetEntityManager()->TryGetComponent<MeshComponent>(zombieEntity))
-                        {
-                            meshComponent->material = meshComponent->material->Clone();
-                            meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
-                            meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
-                            meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
-                            InitObject(meshComponent->material);
-                        }
-
-                        scene->GetEntityManager()->AddComponent<AudioComponent>(zombieEntity, AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE, .speed = 2.0f } });
+                        meshComponent->material = meshComponent->material->Clone();
+                        meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ALBEDO, Vec4f(1.0f));
+                        meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_ROUGHNESS, 0.1f);
+                        meshComponent->material->SetParameter(Material::MaterialKey::MATERIAL_KEY_METALNESS, 0.0f);
+                        InitObject(meshComponent->material);
                     }
+
+                    scene->GetEntityManager()->AddComponent<AudioComponent>(zombie, AudioComponent { .audioSource = AssetManager::GetInstance()->Load<AudioSource>("sounds/taunt.wav")->Result(), .playbackState = { .loopMode = AudioLoopMode::AUDIO_LOOP_MODE_ONCE, .speed = 2.0f } });
 
                     zombie->SetName(NAME("zombie"));
                 }

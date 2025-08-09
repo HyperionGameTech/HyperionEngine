@@ -115,14 +115,6 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::Init()
 {
-    AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
-        {
-            m_view.Reset();
-
-            DetachChild(m_camera);
-            m_camera.Reset();
-        }));
-
     const Vec2u probeDimensions = GetProbeDimensions(m_options.type);
     Assert(probeDimensions.Volume() != 0);
 
@@ -134,9 +126,9 @@ void EnvGrid::Init()
         0.01f, m_aabb.GetRadius() * 2.0f);
 
     m_camera->SetName(Name::Unique("EnvGridCamera"));
-    m_camera->SetTranslation(m_aabb.GetCenter());
+    m_camera->SetWorldTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
-    AttachChild(m_camera);
+    AddChild(m_camera);
 
     ShaderProperties shaderProperties(staticMeshVertexAttributes, { NAME("ENV_PROBE"), NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") });
 
@@ -252,35 +244,14 @@ void EnvGrid::Init()
     };
 
     m_view = CreateObject<View>(viewDesc);
-
     InitObject(m_view);
 
+    for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
+    {
+        AddChild(envProbe);
+    }
+
     SetReady(true);
-}
-
-void EnvGrid::OnAttachedToNode(Node* node)
-{
-    HYP_SCOPE;
-    Assert(IsReady());
-
-    for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
-    {
-        AttachChild(envProbe);
-    }
-
-    // debugging
-    Assert(node->FindChildWithEntity(m_envProbeCollection.envProbes[0]) != nullptr);
-}
-
-void EnvGrid::OnDetachedFromNode(Node* node)
-{
-    // detach EnvProbes
-    HYP_SCOPE;
-
-    for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
-    {
-        DetachChild(envProbe);
-    }
 }
 
 void EnvGrid::OnAddedToWorld(World* world)
@@ -400,7 +371,7 @@ void EnvGrid::Translate(const BoundingBox& aabb, const Vec3f& translation)
 
     if (m_camera)
     {
-        m_camera->SetTranslation(m_aabb.GetCenter());
+        m_camera->SetWorldTranslation(m_aabb.GetCenter());
     }
 
     Array<uint32> updates;

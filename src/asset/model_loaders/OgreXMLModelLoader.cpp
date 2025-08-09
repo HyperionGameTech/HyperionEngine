@@ -288,10 +288,8 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         Handle<Scene> scene = g_engineDriver->GetDefaultWorld()->GetDetachedScene(Threads::CurrentThreadId());
 
-        const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
-
-        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
+        Handle<Entity> entity = CreateObject<Entity>();
+        InitObject(entity);
 
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
@@ -331,9 +329,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
         scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
 
-        Handle<Node> node = CreateObject<Node>();
-        node->SetName(CreateNameFromDynamicString(subMesh.name));
-        node->SetEntity(entity);
+        entity->SetName(CreateNameFromDynamicString(subMesh.name));
 
         if (skeleton.IsValid())
         {
@@ -352,7 +348,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(entity);
         }
 
-        top->AddChild(std::move(node));
+        top->AddChild(std::move(entity));
     }
 
     return LoadedAsset { top };

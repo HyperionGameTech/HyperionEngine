@@ -530,7 +530,7 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
     {
-        return m_node.IsValid() ? m_node->GetEntity() : Handle<Entity>::empty;
+        return ObjCast<Entity>(m_node);
     }
 
     HYP_METHOD()
@@ -1172,11 +1172,8 @@ public:
             name = Name::Unique(ANSIString("Unnamed_") + TypeNameHelper<T, true>::value.Data());
         }
 
-        Handle<Node> node = CreateObject<Node>(name);
-
-        // if (attachToRoot) {
-        //     node = GetNode()->AddChild(node);
-        // }
+        Handle<Node> node = CreateObject<Entity>();
+        node->SetName(name);
 
         // Set it to ignore parent scale so size of the UI object is not affected by the parent
         node->SetFlags(node->GetFlags() | NodeFlags::IGNORE_PARENT_SCALE);
