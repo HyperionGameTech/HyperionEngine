@@ -54,7 +54,7 @@ Result CXXModuleGenerator::Generate(const Analyzer& analyzer, const Module& mod,
         const HypClassDefinition& hypClass = pair.second;
 
         const bool isComponent = hypClass.HasAttribute("component");
-        const bool isEntity = mod.HasBaseClass(hypClass, "Entity");
+        const bool isEntity = analyzer.HasBaseClass(hypClass, "Entity");
         const bool hasScriptableMethods = hypClass.HasScriptableMethods();
 
         const HypClassAttributeValue& structSizeAttributeValue = hypClass.GetAttribute("size");

@@ -10,6 +10,7 @@
 #include <core/memory/RefCountedPtr.hpp>
 
 #include <core/utilities/EnumFlags.hpp>
+#include <core/utilities/StringView.hpp>
 
 #include <core/object/HypMemberFwd.hpp>
 #include <core/object/HypClassAttribute.hpp>
@@ -20,6 +21,7 @@ namespace hyperion {
 namespace buildtool {
 
 class ASTType;
+class Analyzer;
 
 enum class HypClassDefinitionType
 {

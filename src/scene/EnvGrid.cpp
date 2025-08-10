@@ -118,8 +118,6 @@ void EnvGrid::Init()
     AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
         {
             m_view.Reset();
-
-            DetachChild(m_camera);
             m_camera.Reset();
         }));
 
@@ -136,7 +134,6 @@ void EnvGrid::Init()
     m_camera->SetName(Name::Unique("EnvGridCamera"));
     m_camera->SetTranslation(m_aabb.GetCenter());
     InitObject(m_camera);
-    AttachChild(m_camera);
 
     ShaderProperties shaderProperties(staticMeshVertexAttributes, { NAME("ENV_PROBE"), NAME("WRITE_NORMALS"), NAME("WRITE_MOMENTS") });
 
@@ -262,6 +259,8 @@ void EnvGrid::OnAttachedToNode(Node* node)
 {
     HYP_SCOPE;
     Assert(IsReady());
+    
+    AttachChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
     {
@@ -276,6 +275,8 @@ void EnvGrid::OnDetachedFromNode(Node* node)
 {
     // detach EnvProbes
     HYP_SCOPE;
+    
+    DetachChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
     {

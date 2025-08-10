@@ -15,7 +15,6 @@
 
 #include <rendering/Mesh.hpp>
 #include <rendering/Texture.hpp>
-#include <rendering/RenderProxyable.hpp>
 
 #include <core/profiling/ProfileScope.hpp>
 

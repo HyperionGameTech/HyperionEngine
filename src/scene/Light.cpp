@@ -225,25 +225,23 @@ void Light::CreateShadowViews()
 
     AssertDebug(shaderDefinition.IsValid(), "Shader definition is not valid for light type {}", EnumToString(m_type));
 
-    Handle<Camera> shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
-    shadowMapCamera->SetName(Name::Unique("ShadowMapCamera"));
+    m_shadowMapCamera = CreateObject<Camera>(90.0f, -int(m_shadowMapDimensions.x), int(m_shadowMapDimensions.y), 0.001f, 250.0f);
+    m_shadowMapCamera->SetName(Name::Unique("ShadowMapCamera"));
 
     switch (m_type)
     {
     case LT_DIRECTIONAL:
-        shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
+        m_shadowMapCamera->AddCameraController(CreateObject<OrthoCameraController>());
         break;
     case LT_POINT:
-        shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
-        shadowMapCamera->SetFar(m_radius);
+        m_shadowMapCamera->SetDirection(Vec3f(0.0f, 0.0f, 1.0f));
+        m_shadowMapCamera->SetFar(m_radius);
         break;
     default:
         break;
     }
 
-    InitObject(shadowMapCamera);
-
-    AttachChild(shadowMapCamera);
+    InitObject(m_shadowMapCamera);
 
     AssertDebug(shadowViewFlags.Size() >= 1);
     m_shadowViews.Resize(shadowViewFlags.Size());
@@ -261,7 +259,7 @@ void Light::CreateShadowViews()
             .viewport = Viewport { .extent = m_shadowMapDimensions, .position = Vec2i::Zero() },
             .outputTargetDesc = outputTargetDesc,
             .scenes = {},
-            .camera = shadowMapCamera,
+            .camera = m_shadowMapCamera,
             .overrideAttributes = overrideAttributes
         };
 
@@ -304,6 +302,20 @@ void Light::UpdateShadowViews()
             break;
         }
     }
+}
+
+void Light::OnAttachedToNode(Node* node)
+{
+    Entity::OnAttachedToNode(node);
+
+    AttachChild(m_shadowMapCamera);
+}
+
+void Light::OnDetachedFromNode(Node* node)
+{
+    Entity::OnDetachedFromNode(node);
+
+    DetachChild(m_shadowMapCamera);
 }
 
 void Light::OnAddedToScene(Scene* scene)

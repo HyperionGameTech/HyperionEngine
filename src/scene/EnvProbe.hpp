@@ -228,8 +228,12 @@ public:
     Vec4i m_positionInGrid; // temp
 
 protected:
+    virtual void OnAttachedToNode(Node* node) override;
+    virtual void OnDetachedFromNode(Node* node) override;
+    
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
+    
     virtual void OnAddedToScene(Scene* scene) override;
     virtual void OnRemovedFromScene(Scene* scene) override;
 

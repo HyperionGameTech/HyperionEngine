@@ -290,6 +290,9 @@ protected:
     void Init() override;
     void Update(float delta) override;
 
+    void OnAttachedToNode(Node* node) override;
+    void OnDetachedFromNode(Node* node) override;
+
     void OnAddedToScene(Scene* scene) override;
     void OnRemovedFromScene(Scene* scene) override;
     
@@ -315,6 +318,7 @@ protected:
     Handle<Material> m_material;
     
     Vec2u m_shadowMapDimensions;
+    Handle<Camera> m_shadowMapCamera;
     Array<Handle<View>> m_shadowViews;
     BoundingBox m_shadowAabb;
 
