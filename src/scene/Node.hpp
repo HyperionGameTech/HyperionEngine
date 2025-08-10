@@ -682,12 +682,13 @@ protected:
 
     virtual void Init() override;
 
-    /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
-     *  and will update the TransformComponent of the entity if it exists. */
-    void RefreshEntityTransform();
+    virtual void OnAttachedToNode(Node* node);
+    virtual void OnDetachedFromNode(Node* node);
 
     void OnNestedNodeAdded(Node* node, bool direct);
     void OnNestedNodeRemoved(Node* node, bool direct);
+
+    virtual void OnTransformUpdated(const Transform& transform);
 
 #ifdef HYP_EDITOR
     EditorDelegates* GetEditorDelegates();

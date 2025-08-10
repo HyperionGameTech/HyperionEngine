@@ -53,11 +53,6 @@ public:
         return m_world;
     }
 
-    HYP_FORCE_INLINE Scene* GetScene() const
-    {
-        return m_scene;
-    }
-
     HYP_FORCE_INLINE const Matrix4& GetPrevModelMatrix() const
     {
         return m_prevModelMatrix;
@@ -102,8 +97,8 @@ protected:
     {
     }
 
-    virtual void OnAttachedToNode(Node* node);
-    virtual void OnDetachedFromNode(Node* node);
+    virtual void OnAttachedToNode(Node* node) override;
+    virtual void OnDetachedFromNode(Node* node) override;
 
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
@@ -117,8 +112,6 @@ protected:
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
 
-    virtual void OnTransformUpdated(const Transform& transform);
-
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);
 
@@ -126,7 +119,6 @@ protected:
 
 private:
     World* m_world;
-    Scene* m_scene;
     EntityManager* m_entityManager;
 
     Matrix4 m_prevModelMatrix;

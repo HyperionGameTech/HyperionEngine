@@ -11,6 +11,9 @@
 #include <scene/components/NodeLinkComponent.hpp>
 #include <scene/components/MeshComponent.hpp>
 #include <scene/components/ScriptComponent.hpp>
+#include <scene/components/TransformComponent.hpp>
+#include <scene/components/BoundingBoxComponent.hpp>
+#include <scene/components/VisibilityStateComponent.hpp>
 
 #include <rendering/Mesh.hpp>
 #include <rendering/RenderProxy.hpp>
@@ -28,7 +31,6 @@ namespace hyperion {
 
 Entity::Entity()
     : m_world(nullptr),
-      m_scene(nullptr),
       m_entityManager(nullptr),
       m_renderProxyVersion(0)
 {
@@ -36,7 +38,6 @@ Entity::Entity()
 
 Entity::~Entity()
 {
-    m_scene = nullptr;
     m_world = nullptr;
 
     // Keep a WeakHandle of Entity so the Id doesn't get reused while we're using it
@@ -188,16 +189,93 @@ void Entity::Detach()
 
 void Entity::OnAttachedToNode(Node* node)
 {
-    Assert(node != nullptr);
+    Node::OnAttachedToNode(node);
 
-    // Do nothing in default implementation.
+    EntityManager* previousEntityManager = m_entityManager;
+
+    // need to move the entity between EntityManagers
+    if (previousEntityManager)
+    {
+        Assert(m_scene != nullptr && m_scene->GetEntityManager() != nullptr);
+        
+        Handle<Entity> thisHandle = HandleFromThis();
+        
+        previousEntityManager->MoveEntity(thisHandle, m_scene->GetEntityManager());
+    }
+    else
+    {
+        Handle<Entity> thisHandle = HandleFromThis();
+        
+        m_scene->GetEntityManager()->AddExistingEntity(thisHandle);
+    }
+
+    Assert(m_entityManager != nullptr && m_entityManager == m_scene->GetEntityManager());
+
+    // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
+    // to match it, as long as we're not locked
+    // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
+    if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
+    {
+        if (!IsTransformLocked())
+        {
+            SetWorldTransform(transformComponent->transform);
+        }
+    }
+    
+    { // refresh entity transform
+        if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
+        {
+            SetEntityAABB(boundingBoxComponent->localAabb);
+        }
+        else
+        {
+            SetEntityAABB(BoundingBox::Empty());
+        }
+
+        if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
+        {
+            transformComponent->transform = m_worldTransform;
+        }
+        else
+        {
+            m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
+        }
+
+        m_entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+    }
+
+    // set entity to static by default
+    if (m_entityManager->HasTag<EntityTag::DYNAMIC>(this))
+    {
+        m_entityManager->RemoveTag<EntityTag::STATIC>(this);
+    }
+    else
+    {
+        m_entityManager->AddTag<EntityTag::STATIC>(this);
+        m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+    }
+
+    // set transformChanged to false until entity is set to DYNAMIC
+    m_transformChanged = false;
+
+    if (NodeLinkComponent* nodeLinkComponent = m_entityManager->TryGetComponent<NodeLinkComponent>(this))
+    {
+        nodeLinkComponent->node = WeakHandleFromThis();
+    }
+    else
+    {
+        m_entityManager->AddComponent<NodeLinkComponent>(this, { WeakHandleFromThis() });
+    }
+
+    if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
+    {
+        m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
+    }
 }
 
 void Entity::OnDetachedFromNode(Node* node)
 {
-    Assert(node != nullptr);
-
-    // Do nothing in default implementation.
+    Node::OnDetachedFromNode(node);
 }
 
 void Entity::OnAddedToWorld(World* world)
@@ -220,16 +298,12 @@ void Entity::OnAddedToScene(Scene* scene)
     AssertDebug(scene != nullptr);
 
     EntityManager* entityManager = nullptr;
-
-    m_scene = scene;
 }
 
 void Entity::OnRemovedFromScene(Scene* scene)
 {
     AssertDebug(scene != nullptr);
     AssertDebug(m_scene == scene);
-
-    m_scene = nullptr;
 }
 
 void Entity::OnComponentAdded(AnyRef component)
@@ -288,11 +362,6 @@ void Entity::OnTagAdded(EntityTag tag)
 
 void Entity::OnTagRemoved(EntityTag tag)
 {
-}
-
-void Entity::OnTransformUpdated(const Transform& transform)
-{
-    // Do nothing
 }
 
 void Entity::AttachChild(const Handle<Entity>& child)
