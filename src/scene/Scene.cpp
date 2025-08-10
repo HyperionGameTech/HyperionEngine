@@ -261,21 +261,6 @@ void Scene::SetWorld(World* world)
     m_world = world;
 }
 
-Handle<Node> Scene::FindNodeWithEntity(const Entity* entity) const
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
-
-    Assert(m_root);
-
-    if (m_root->GetEntity() == entity)
-    {
-        return m_root;
-    }
-
-    return m_root->FindChildWithEntity(entity);
-}
-
 Handle<Node> Scene::FindNodeByName(WeakName name) const
 {
     HYP_SCOPE;

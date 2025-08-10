@@ -611,10 +611,6 @@ public:
 
     bool TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh = true) const;
 
-    /*! \brief Search child nodes (breadth-first) until a node with an Entity with the given Id is found. */
-    HYP_METHOD()
-    Handle<Node> FindChildWithEntity(const Entity* entity) const;
-
     /*! \brief Search child nodes (breadth-first) until a node with the given name is found. */
     HYP_METHOD()
     Handle<Node> FindChildByName(WeakName name) const;

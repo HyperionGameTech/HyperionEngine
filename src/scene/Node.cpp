@@ -345,7 +345,7 @@ void Node::SetScene(Scene* scene)
 #endif
 
         m_scene = scene;
-        
+
         for (const Handle<Node>& child : m_childNodes)
         {
             if (!child.IsValid())
@@ -367,7 +367,7 @@ void Node::SetScene(Scene* scene)
         if (m_entity.IsValid())
         {
             EntityManager* previousEntityManager = m_entity->GetEntityManager();
-            
+
             if (previousEntityManager != m_scene->GetEntityManager())
             {
                 if (previousEntityManager != nullptr)
@@ -840,7 +840,7 @@ void Node::SetEntity(const Handle<Entity>& entity)
     if (m_entity.IsValid())
     {
         m_entity->OnDetachedFromNode(this);
-        
+
         RemoveChild(m_entity);
 
         if (m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
@@ -852,9 +852,9 @@ void Node::SetEntity(const Handle<Entity>& entity)
     if (entity.IsValid())
     {
         AssertDebug(m_scene && m_scene->GetEntityManager());
-        
+
         AddChild(entity);
-        
+
         EntityManager* previousEntityManager = entity->GetEntityManager();
 
         // need to move the entity between EntityManagers
@@ -1273,40 +1273,6 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
     }
 
     return hasEntityHit;
-}
-
-Handle<Node> Node::FindChildWithEntity(const Entity* entity) const
-{
-    if (!entity)
-    {
-        return Handle<Node>::empty;
-    }
-
-    // breadth-first search
-    Queue<const Node*> queue;
-    queue.Push(this);
-
-    while (queue.Any())
-    {
-        const Node* parent = queue.Pop();
-
-        for (const Handle<Node>& child : parent->GetChildren())
-        {
-            if (!child.IsValid())
-            {
-                continue;
-            }
-
-            if (child->GetEntity() == entity)
-            {
-                return child;
-            }
-
-            queue.Push(child.Get());
-        }
-    }
-
-    return Handle<Node>::empty;
 }
 
 Handle<Node> Node::FindChildByName(WeakName name) const
