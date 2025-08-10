@@ -115,6 +115,8 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::Init()
 {
+    Entity::Init();
+
     AddDelegateHandler(g_engineDriver->GetDelegates().OnShutdown.Bind([this]
         {
             m_view.Reset();
@@ -259,7 +261,7 @@ void EnvGrid::OnAttachedToNode(Node* node)
 {
     HYP_SCOPE;
     Assert(IsReady());
-    
+
     AttachChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
@@ -275,7 +277,7 @@ void EnvGrid::OnDetachedFromNode(Node* node)
 {
     // detach EnvProbes
     HYP_SCOPE;
-    
+
     DetachChild(m_camera);
 
     for (const Handle<EnvProbe>& envProbe : m_envProbeCollection.envProbes)
