@@ -331,9 +331,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
         scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material, skeleton });
         scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
 
-        Handle<Node> node = CreateObject<Node>();
-        node->SetName(CreateNameFromDynamicString(subMesh.name));
-        node->SetEntity(entity);
+        entity->SetName(CreateNameFromDynamicString(subMesh.name));
 
         if (skeleton.IsValid())
         {
@@ -352,7 +350,7 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
             scene->GetEntityManager()->AddTag<EntityTag::DYNAMIC>(entity);
         }
 
-        top->AddChild(std::move(node));
+        top->AddChild(entity);
     }
 
     return LoadedAsset { top };

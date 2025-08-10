@@ -239,9 +239,10 @@ void UISubsystem::Update(float delta)
             Assert(uiObject != nullptr);
 
             const Handle<Node>& node = uiObject->GetNode();
-            Assert(node.IsValid());
+            Assert(node != nullptr);
 
-            const Handle<Entity>& entity = node->GetEntity();
+            const Handle<Entity>& entity = ObjCast<Entity>(node);
+            Assert(entity != nullptr);
 
             MeshComponent& meshComponent = node->GetScene()->GetEntityManager()->GetComponent<MeshComponent>(entity);
 

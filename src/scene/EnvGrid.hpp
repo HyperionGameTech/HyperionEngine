@@ -183,9 +183,6 @@ public:
     void UpdateRenderProxy(RenderProxyEnvGrid* proxy);
 
 private:
-    virtual void OnAttachedToNode(Node* node) override;
-    virtual void OnDetachedFromNode(Node* node) override;
-
     virtual void OnAddedToWorld(World* world) override;
     virtual void OnRemovedFromWorld(World* world) override;
 

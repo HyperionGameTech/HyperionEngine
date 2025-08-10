@@ -525,12 +525,11 @@ void Lightmapper::Initialize()
     InitObject(m_volume);
 
     Handle<Entity> lightmapVolumeEntity = m_scene->GetEntityManager()->AddEntity();
+    lightmapVolumeEntity->SetName(Name::Unique("LightmapVolume"));
     m_scene->GetEntityManager()->AddComponent<LightmapVolumeComponent>(lightmapVolumeEntity, LightmapVolumeComponent { m_volume });
     m_scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(lightmapVolumeEntity, BoundingBoxComponent { m_aabb, m_aabb });
 
-    Handle<Node> lightmapVolumeNode = m_scene->GetRoot()->AddChild();
-    lightmapVolumeNode->SetName(Name::Unique("LightmapVolume"));
-    lightmapVolumeNode->SetEntity(lightmapVolumeEntity);
+    m_scene->GetRoot()->AddChild(lightmapVolumeEntity);
 
     Initialize_Internal();
 

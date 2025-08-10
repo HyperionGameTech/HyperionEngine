@@ -38,8 +38,6 @@ public:
             return err;
         }
 
-        out.SetProperty("Type", uint32(inObject.GetType()));
-
         {
             FBOMData tagsData;
 

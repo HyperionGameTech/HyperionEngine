@@ -110,6 +110,8 @@ Light::~Light()
 
 void Light::Init()
 {
+    Entity::Init();
+
     if (m_material.IsValid())
     {
         InitObject(m_material);
@@ -140,7 +142,7 @@ void Light::CreateShadowViews()
             continue;
         }
 
-        DetachChild(shadowCamera);
+        RemoveChild(shadowCamera);
     }
 
     m_shadowViews.Clear();
@@ -243,7 +245,7 @@ void Light::CreateShadowViews()
 
     InitObject(shadowMapCamera);
 
-    AttachChild(shadowMapCamera);
+    AddChild(shadowMapCamera);
 
     AssertDebug(shadowViewFlags.Size() >= 1);
     m_shadowViews.Resize(shadowViewFlags.Size());

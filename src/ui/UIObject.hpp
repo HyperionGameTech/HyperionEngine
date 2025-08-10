@@ -530,7 +530,7 @@ public:
     HYP_METHOD()
     HYP_FORCE_INLINE const Handle<Entity>& GetEntity() const
     {
-        return m_node.IsValid() ? m_node->GetEntity() : Handle<Entity>::empty;
+        return ObjCast<Entity>(m_node);
     }
 
     HYP_METHOD()

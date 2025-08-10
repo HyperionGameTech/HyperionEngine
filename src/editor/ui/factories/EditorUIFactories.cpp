@@ -495,6 +495,7 @@ public:
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(WeakHandle<Scene>, EditorWeakSceneFactory);
 
+#if 0 // TODO revisit
 class EntityUIElementFactory : public UIElementFactory<Handle<Entity>>
 {
 public:
@@ -935,6 +936,7 @@ public:
 };
 
 HYP_DEFINE_UI_ELEMENT_FACTORY(Handle<Entity>, EntityUIElementFactory);
+#endif
 
 class EditorNodePropertyFactory : public UIElementFactory<EditorNodePropertyRef>
 {

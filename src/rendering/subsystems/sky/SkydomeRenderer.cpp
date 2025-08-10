@@ -49,8 +49,6 @@ void SkydomeRenderer::Init()
     m_virtualScene->SetName(Name::Unique("SkydomeRendererScene"));
     InitObject(m_virtualScene);
 
-    Handle<Node> cameraNode = m_virtualScene->GetRoot()->AddChild();
-
     m_camera = m_virtualScene->GetEntityManager()->AddEntity<Camera>(
         90.0f,
         -int(m_dimensions.x), int(m_dimensions.y),
@@ -60,17 +58,10 @@ void SkydomeRenderer::Init()
 
     m_camera->SetName(Name::Unique("SkydomeRendererCamera"));
     m_camera->SetViewMatrix(Matrix4::LookAt(Vec3f::UnitZ(), Vec3f::Zero(), Vec3f::UnitY()));
-
-    InitObject(m_camera);
-
-    cameraNode->SetEntity(m_camera);
-    cameraNode->SetName(m_camera->GetName());
+    m_virtualScene->GetRoot()->AddChild(m_camera);
 
     m_envProbe = m_virtualScene->GetEntityManager()->AddEntity<SkyProbe>(BoundingBox(Vec3f(-100.0f), Vec3f(100.0f)), m_dimensions);
-
-    Handle<Node> envProbeNode = m_virtualScene->GetRoot()->AddChild();
-    envProbeNode->SetEntity(m_envProbe);
-    InitObject(m_envProbe);
+    m_virtualScene->GetRoot()->AddChild(m_envProbe);
 
     auto domeNodeAsset = g_assetManager->Load<Node>("models/inv_sphere.obj");
 

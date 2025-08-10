@@ -87,6 +87,8 @@ Entity::~Entity()
 
 void Entity::Init()
 {
+    Node::Init();
+
     SetReady(true);
 }
 
@@ -137,74 +139,6 @@ void Entity::SetReceivesUpdate(bool receivesUpdate)
     {
         entityManager->RemoveTag<EntityTag::RECEIVES_UPDATE>(this);
     }
-}
-
-void Entity::AttachTo(const Handle<Node>& attachNode)
-{
-    { // detach from node if already attached.
-        EntityManager* entityManager = GetEntityManager();
-        AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while attaching to Node", Id());
-
-        Threads::AssertOnThread(entityManager->GetOwnerThreadId());
-
-        if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this))
-        {
-            if (Handle<Node> node = nodeLinkComponent->node.Lock())
-            {
-                if (node == attachNode)
-                {
-                    return;
-                }
-
-                AssertDebug(node->GetEntity() == this);
-
-                // Unset Entity first.
-                node->SetEntity(Handle<Entity>::empty);
-            }
-        }
-    }
-
-    // Attach() called with empty node, so just leave it as detached from any node, and return.
-    if (!attachNode.IsValid())
-    {
-        return;
-    }
-
-    Handle<Entity> strongThis = HandleFromThis();
-
-    // add a subnode to the attachNode, and set the entity to this.
-    Handle<Node> subnode = attachNode->AddChild();
-    subnode->SetEntity(strongThis);
-}
-
-void Entity::Detach()
-{
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while detaching from Node", Id());
-
-    Threads::AssertOnThread(entityManager->GetOwnerThreadId());
-
-    if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this))
-    {
-        if (Handle<Node> node = nodeLinkComponent->node.Lock())
-        {
-            node->SetEntity(Handle<Entity>::empty);
-        }
-    }
-}
-
-void Entity::OnAttachedToNode(Node* node)
-{
-    Assert(node != nullptr);
-
-    // Do nothing in default implementation.
-}
-
-void Entity::OnDetachedFromNode(Node* node)
-{
-    Assert(node != nullptr);
-
-    // Do nothing in default implementation.
 }
 
 void Entity::OnAddedToWorld(World* world)
@@ -300,110 +234,6 @@ void Entity::OnTagRemoved(EntityTag tag)
 void Entity::OnTransformUpdated(const Transform& transform)
 {
     // Do nothing
-}
-
-void Entity::AttachChild(const Handle<Entity>& child)
-{
-    if (!child)
-    {
-        return;
-    }
-
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while attaching child {}", Id(), child.Id());
-
-    Threads::AssertOnThread(entityManager->GetOwnerThreadId());
-
-    entityManager->AddExistingEntity(child);
-
-    NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this);
-
-    if (!nodeLinkComponent)
-    {
-        HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent, cannot attach child {}", Id(), child.Id());
-//        HYP_BREAKPOINT_DEBUG_MODE;
-        
-        return;
-    }
-
-    Handle<Node> node = nodeLinkComponent->node.Lock();
-
-    if (!node)
-    {
-        HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot attach child {}", Id(), child.Id());
-//        HYP_BREAKPOINT_DEBUG_MODE;
-
-        return;
-    }
-
-    if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
-    {
-        if (Handle<Node> childNode = childNodeLinkComponent->node.Lock())
-        {
-            node->AddChild(childNode);
-
-            return;
-        }
-        else
-        {
-            childNode = node->AddChild();
-            childNode->SetEntity(child);
-
-            childNodeLinkComponent->node = childNode;
-
-            return;
-        }
-    }
-
-    Handle<Node> childNode = node->AddChild();
-    childNode->SetEntity(child);
-
-    if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
-    {
-        childNodeLinkComponent->node = childNode;
-    }
-    else
-    {
-        entityManager->AddComponent<NodeLinkComponent>(child, NodeLinkComponent { childNode });
-    }
-}
-
-void Entity::DetachChild(const Handle<Entity>& child)
-{
-    if (!child)
-    {
-        return;
-    }
-
-    EntityManager* entityManager = GetEntityManager();
-    AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while detaching child {}", Id(), child.Id());
-
-    Threads::AssertOnThread(entityManager->GetOwnerThreadId());
-
-    if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this))
-    {
-        if (Handle<Node> node = nodeLinkComponent->node.Lock())
-        {
-            if (NodeLinkComponent* childNodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(child))
-            {
-                if (Handle<Node> childNode = childNodeLinkComponent->node.Lock())
-                {
-                    if (node->RemoveChild(childNode))
-                    {
-                        return;
-                    }
-
-                    HYP_LOG(Entity, Warning, "Failed to detach child {} node ({}) from parent's node ({})", child.Id(), childNode->GetName(), node->GetName());
-                }
-            }
-
-            HYP_LOG(Entity, Warning, "Entity {} does not have a NodeLinkComponent for child {}", Id(), child.Id());
-        }
-        else
-        {
-            HYP_LOG(Entity, Warning, "Entity {} has a NodeLinkComponent but the node is not valid, cannot detach child {}", Id(), child.Id());
-        }
-    }
 }
 
 } // namespace hyperion

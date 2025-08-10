@@ -135,7 +135,7 @@ Scene::Scene(World* world, ThreadId ownerThreadId, EnumFlags<SceneFlags> flags)
       m_octree(m_entityManager, BoundingBox(Vec3f(-250.0f), Vec3f(250.0f))),
       m_previousDelta(0.01667f)
 {
-    m_root = CreateObject<Node>(NAME("<ROOT>"), Handle<Entity>::empty, Transform::identity, this);
+    m_root = CreateObject<Node>(NAME("<ROOT>"), Transform::identity, this);
 }
 
 Scene::~Scene()
@@ -259,21 +259,6 @@ void Scene::SetWorld(World* world)
     m_entityManager->SetWorld(world);
 
     m_world = world;
-}
-
-Handle<Node> Scene::FindNodeWithEntity(const Entity* entity) const
-{
-    HYP_SCOPE;
-    Threads::AssertOnThread(m_ownerThreadId);
-
-    Assert(m_root);
-
-    if (m_root->GetEntity() == entity)
-    {
-        return m_root;
-    }
-
-    return m_root->FindChildWithEntity(entity);
 }
 
 Handle<Node> Scene::FindNodeByName(WeakName name) const

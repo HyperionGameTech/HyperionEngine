@@ -68,20 +68,6 @@ public:
     bool ReceivesUpdate() const;
     void SetReceivesUpdate(bool receivesUpdate);
 
-    /*! \brief Attaches this Entity to a Node. If the Entity is already attached to a Node, it will be detached first.
-     *
-     *  \param [in] attachNode The Node to attach the Entity to.
-     */
-    HYP_METHOD()
-    virtual void AttachTo(const Handle<Node>& attachNode);
-
-    /*! \brief Detaches this Entity from its current Node, if it is attached to one.
-     *
-     *  \note This will not remove the Entity from the EntityManager.
-     */
-    HYP_METHOD()
-    virtual void Detach();
-
     const int* GetRenderProxyVersionPtr() const
     {
         return &m_renderProxyVersion;
@@ -99,9 +85,6 @@ protected:
     {
     }
 
-    virtual void OnAttachedToNode(Node* node);
-    virtual void OnDetachedFromNode(Node* node);
-
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
 
@@ -115,9 +98,6 @@ protected:
     virtual void OnTagRemoved(EntityTag tag);
 
     virtual void OnTransformUpdated(const Transform& transform);
-
-    void AttachChild(const Handle<Entity>& child);
-    void DetachChild(const Handle<Entity>& child);
 
     EntityInitInfo m_entityInitInfo;
 

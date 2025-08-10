@@ -171,9 +171,8 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         m_scene.Reset();
     }
 
-    Handle<Node> cameraNode = newScene->GetRoot()->AddChild();
-    cameraNode->SetName(NAME_FMT("{}_Camera", GetName()));
-    cameraNode->SetEntity(m_camera);
+    m_camera->SetName(NAME_FMT("{}_Camera", GetName()));
+    newScene->GetRoot()->AddChild(m_camera);
 
     m_scene = std::move(newScene);
 
@@ -1005,19 +1004,7 @@ bool UIStage::Remove(const Entity* entity)
         return false;
     }
 
-    if (!m_scene->GetEntityManager()->HasEntity(entity))
-    {
-        return false;
-    }
-
-    if (Handle<Node> childNode = GetNode()->FindChildWithEntity(entity))
-    {
-        childNode->Remove();
-
-        return true;
-    }
-
-    return false;
+    return GetNode()->Remove();
 }
 
 } // namespace hyperion

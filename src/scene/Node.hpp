@@ -31,7 +31,9 @@
 
 namespace hyperion {
 
+class Node;
 class Scene;
+class World;
 class EditorDelegates;
 
 HYP_ENUM(Flags)
@@ -189,14 +191,8 @@ public:
      * \param name The name of the Node.
      * \param localTransform An optional parameter representing the local-space transform of this Node.
      */
-    Node(Name name = Name::Invalid(), const Transform& localTransform = Transform());
-    Node(Name name, const Transform& localTransform = Transform());
-    Node(Name name, const Transform& localTransform, Scene* scene);
+    Node(Name name = Name::Invalid(), const Transform& localTransform = Transform(), Scene* scene = nullptr);
 
-    Node(const Node& other) = delete;
-    Node& operator=(const Node& other) = delete;
-    Node(Node&& other) noexcept;
-    Node& operator=(Node&& other) noexcept;
     virtual ~Node() override;
 
     /*! \brief Get the UUID of the Node. */
@@ -626,11 +622,9 @@ public:
     {
         HashCode hc;
 
-        hc.Add(m_type);
         hc.Add(m_name);
         hc.Add(m_localTransform);
         hc.Add(m_worldTransform);
-        hc.Add(m_entity);
 
         for (const Handle<Node>& child : m_childNodes)
         {
@@ -648,9 +642,9 @@ public:
 protected:
     static Scene* GetDefaultScene();
 
-    Node(Name name, const Transform& localTransform = Transform(), Scene* scene = nullptr);
-
     virtual void Init() override;
+    
+    void InitEntity();
 
     /*! \brief Refresh the transform of the entity attached to this Node. This will update the entity AABB to match,
      *  and will update the TransformComponent of the entity if it exists. */
