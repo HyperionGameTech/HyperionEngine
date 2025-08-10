@@ -268,9 +268,6 @@ void EnvGrid::OnAttachedToNode(Node* node)
     {
         AttachChild(envProbe);
     }
-
-    // debugging
-    Assert(node->FindChildWithEntity(m_envProbeCollection.envProbes[0]) != nullptr);
 }
 
 void EnvGrid::OnDetachedFromNode(Node* node)

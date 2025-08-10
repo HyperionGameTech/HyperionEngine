@@ -1005,19 +1005,7 @@ bool UIStage::Remove(const Entity* entity)
         return false;
     }
 
-    if (!m_scene->GetEntityManager()->HasEntity(entity))
-    {
-        return false;
-    }
-
-    if (Handle<Node> childNode = GetNode()->FindChildWithEntity(entity))
-    {
-        childNode->Remove();
-
-        return true;
-    }
-
-    return false;
+    return GetNode()->RemoveChild(entity);
 }
 
 } // namespace hyperion

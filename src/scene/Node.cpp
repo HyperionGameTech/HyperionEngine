@@ -402,6 +402,25 @@ World* Node::GetWorld() const
         : g_engineDriver->GetDefaultWorld().Get();
 }
 
+void Node::OnTransformUpdated(const Transform& transform)
+{
+    // Do nothing
+}
+
+void Node::OnAttachedToNode(Node* node)
+{
+    Assert(node != nullptr);
+
+    // Do nothing in default implementation.
+}
+
+void Node::OnDetachedFromNode(Node* node)
+{
+    Assert(node != nullptr);
+
+    // Do nothing in default implementation.
+}
+
 void Node::OnNestedNodeAdded(Node* node, bool direct)
 {
     m_descendants.PushBack(node);
@@ -453,7 +472,9 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
         node->GetName().LookupString(),
         GetName().LookupString());
 
-    m_childNodes.PushBack(node);
+    InitObject(node);
+
+    node->OnAttachedToNode(this);
 
     bool wasTransformLocked = false;
 
@@ -473,10 +494,7 @@ Handle<Node> Node::AddChild(const Handle<Node>& node)
         node->LockTransform();
     }
 
-    if (IsReady())
-    {
-        InitObject(node);
-    }
+    m_childNodes.PushBack(node);
 
     Node* currentParent = this;
 
@@ -532,6 +550,7 @@ bool Node::RemoveChild(const Node* node)
     childNode->m_parentNode = nullptr;
     childNode->SetScene(nullptr);
     childNode->UpdateWorldTransform();
+    childNode->OnDetachedFromNode(this);
 
     if (wasTransformLocked)
     {
@@ -597,6 +616,10 @@ void Node::RemoveAllChildren()
             Assert(node.IsValid());
             Assert(node->GetParent() == this);
 
+            node->m_parentNode = nullptr;
+            node->SetScene(nullptr);
+            node->OnDetachedFromNode(this);
+
             Node* currentParent = this;
 
             while (currentParent != nullptr && currentParent->m_delegates != nullptr)
@@ -612,9 +635,6 @@ void Node::RemoveAllChildren()
             }
 
             OnNestedNodeRemoved(node, true);
-
-            node->m_parentNode = nullptr;
-            node->SetScene(nullptr);
         }
 
         it = m_childNodes.Erase(it);
@@ -839,8 +859,6 @@ void Node::SetEntity(const Handle<Entity>& entity)
     // Remove the NodeLinkComponent from the old entity
     if (m_entity.IsValid())
     {
-        m_entity->OnDetachedFromNode(this);
-
         RemoveChild(m_entity);
 
         if (m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
@@ -853,9 +871,23 @@ void Node::SetEntity(const Handle<Entity>& entity)
     {
         AssertDebug(m_scene && m_scene->GetEntityManager());
 
-        AddChild(entity);
-
         EntityManager* previousEntityManager = entity->GetEntityManager();
+
+        // TEMP
+        if (previousEntityManager)
+        {
+            // Update / add a NodeLinkComponent to the new entity
+            if (NodeLinkComponent* nodeLinkComponent = previousEntityManager->TryGetComponent<NodeLinkComponent>(entity))
+            {
+                nodeLinkComponent->node = WeakHandleFromThis();
+            }
+            else
+            {
+                previousEntityManager->AddComponent<NodeLinkComponent>(entity, { WeakHandleFromThis() });
+            }
+        }
+
+        AddChild(entity);
 
         // need to move the entity between EntityManagers
         if (previousEntityManager)
@@ -875,6 +907,20 @@ void Node::SetEntity(const Handle<Entity>& entity)
         AssertDebug(entity->GetScene() == m_scene);
 
         m_entity = entity;
+        
+        // TEMP
+        {
+
+            // Update / add a NodeLinkComponent to the new entity
+            if (NodeLinkComponent* nodeLinkComponent = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity))
+            {
+                nodeLinkComponent->node = WeakHandleFromThis();
+            }
+            else
+            {
+                m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, { WeakHandleFromThis() });
+            }
+        }
 
 #ifdef HYP_EDITOR
         GetEditorDelegates([this](EditorDelegates* editorDelegates)
@@ -910,23 +956,12 @@ void Node::SetEntity(const Handle<Entity>& entity)
         // set transformChanged to false until entity is set to DYNAMIC
         m_transformChanged = false;
 
-        // Update / add a NodeLinkComponent to the new entity
-        if (NodeLinkComponent* nodeLinkComponent = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(m_entity))
-        {
-            nodeLinkComponent->node = WeakHandleFromThis();
-        }
-        else
-        {
-            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(m_entity, { WeakHandleFromThis() });
-        }
-
         if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity))
         {
             m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, {});
         }
 
         InitObject(m_entity);
-        m_entity->OnAttachedToNode(this);
     }
     else
     {
@@ -1103,9 +1138,9 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
             entityManager->AddTags<EntityTag::UPDATE_AABB>(m_entity);
         }
-
-        m_entity->OnTransformUpdated(m_worldTransform);
     }
+
+    OnTransformUpdated(m_worldTransform);
 
     if (updateChildTransforms)
     {

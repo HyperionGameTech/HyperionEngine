@@ -97,9 +97,6 @@ protected:
     {
     }
 
-    virtual void OnAttachedToNode(Node* node);
-    virtual void OnDetachedFromNode(Node* node);
-
     virtual void OnAddedToWorld(World* world);
     virtual void OnRemovedFromWorld(World* world);
 
@@ -111,8 +108,6 @@ protected:
 
     virtual void OnTagAdded(EntityTag tag);
     virtual void OnTagRemoved(EntityTag tag);
-
-    virtual void OnTransformUpdated(const Transform& transform);
 
     void AttachChild(const Handle<Entity>& child);
     void DetachChild(const Handle<Entity>& child);

@@ -184,20 +184,6 @@ void Entity::Detach()
     }
 }
 
-void Entity::OnAttachedToNode(Node* node)
-{
-    Assert(node != nullptr);
-
-    // Do nothing in default implementation.
-}
-
-void Entity::OnDetachedFromNode(Node* node)
-{
-    Assert(node != nullptr);
-
-    // Do nothing in default implementation.
-}
-
 void Entity::OnAddedToWorld(World* world)
 {
     AssertDebug(world != nullptr);
@@ -283,11 +269,6 @@ void Entity::OnTagRemoved(EntityTag tag)
 {
 }
 
-void Entity::OnTransformUpdated(const Transform& transform)
-{
-    // Do nothing
-}
-
 void Entity::AttachChild(const Handle<Entity>& child)
 {
     if (!child)
@@ -299,6 +280,9 @@ void Entity::AttachChild(const Handle<Entity>& child)
     AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while attaching child {}", Id(), child.Id());
 
     Threads::AssertOnThread(entityManager->GetOwnerThreadId());
+
+    // wont work as we currently need a SetEntity() call.
+    // Node::AddChild(child);
 
     entityManager->AddExistingEntity(child);
 
@@ -363,6 +347,8 @@ void Entity::DetachChild(const Handle<Entity>& child)
     AssertDebug(entityManager != nullptr, "EntityManager is null for Entity {} while detaching child {}", Id(), child.Id());
 
     Threads::AssertOnThread(entityManager->GetOwnerThreadId());
+
+    // Node::RemoveChild(child);
 
     if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(this))
     {
