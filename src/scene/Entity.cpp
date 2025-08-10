@@ -89,7 +89,55 @@ Entity::~Entity()
 
 void Entity::Init()
 {
+    AssertDebug(m_scene != nullptr);
+    SetEntityManager(m_scene->GetEntityManager());
+
     Node::Init();
+
+    // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
+    // to match it, as long as we're not locked
+    // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
+    if (TransformComponent* transformComponent = m_entityManager->TryGetComponent<TransformComponent>(this))
+    {
+        if (!IsTransformLocked())
+        {
+            SetWorldTransform(transformComponent->transform);
+        }
+    }
+    else
+    {
+        m_entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
+    }
+
+    if (BoundingBoxComponent* boundingBoxComponent = m_entityManager->TryGetComponent<BoundingBoxComponent>(this))
+    {
+        SetEntityAABB(boundingBoxComponent->localAabb);
+    }
+    else
+    {
+        SetEntityAABB(BoundingBox::Empty());
+    }
+
+    if (!m_entityManager->HasComponent<VisibilityStateComponent>(this))
+    {
+        m_entityManager->AddComponent<VisibilityStateComponent>(this, {});
+    }
+
+    m_entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+
+    // set entity to static by default
+    if (m_entityManager->HasTag<EntityTag::DYNAMIC>(this))
+    {
+        m_entityManager->RemoveTag<EntityTag::STATIC>(this);
+    }
+    else
+    {
+        m_entityManager->AddTag<EntityTag::STATIC>(this);
+        m_entityManager->RemoveTag<EntityTag::DYNAMIC>(this);
+    }
+
+    // set transformChanged to false until entity is set to DYNAMIC
+    m_transformChanged = false;
 
     SetReady(true);
 }
@@ -191,25 +239,8 @@ void Entity::OnAttachedToNode(Node* node)
 {
     Node::OnAttachedToNode(node);
 
-    AssertDebug(node->GetScene() && node->GetScene()->GetEntityManager());
-
-    // Handle<Entity> thisHandle = HandleFromThis();
-    // EntityManager* previousEntityManager = GetEntityManager();
-
-    // // need to move the entity between EntityManagers
-    // if (previousEntityManager)
-    // {
-    //     if (previousEntityManager != node->GetScene()->GetEntityManager().Get())
-    //     {
-    //         previousEntityManager->MoveEntity(thisHandle, node->GetScene()->GetEntityManager());
-    //     }
-    // }
-    // else
-    // {
-    //     // If the EntityManager for the entity is not found, we need to create a new EntityManager for it
-    //     node->GetScene()->GetEntityManager()->AddExistingEntity(thisHandle);
-    // }
-
+    // SetScene() should've been called before this,
+    // so EntityManager should be updated
     AssertDebug(GetEntityManager() == node->GetScene()->GetEntityManager());
 }
 
@@ -276,23 +307,10 @@ void Entity::OnComponentAdded(AnyRef component)
 
         return;
     }
-
-    // if (ScriptComponent* scriptComponent = component.TryGet<ScriptComponent>())
-    // {
-    //     EntityScripting::InitEntityScriptComponent(this, *scriptComponent);
-
-    //     return;
-    // }
 }
 
 void Entity::OnComponentRemoved(AnyRef component)
 {
-    // if (ScriptComponent* scriptComponent = component.TryGet<ScriptComponent>())
-    // {
-    //     EntityScripting::DeinitEntityScriptComponent(this, *scriptComponent);
-
-    //     return;
-    // }
 }
 
 void Entity::OnTagAdded(EntityTag tag)
@@ -419,26 +437,8 @@ void Entity::SetScene(Scene* scene)
 
     Node::SetScene(scene);
 
-    AssertDebug(m_scene && m_scene->GetEntityManager());
-
-    // Move entity from previous scene to new scene
-    EntityManager* previousEntityManager = GetEntityManager();
-
-    if (previousEntityManager)
-    {
-        if (previousEntityManager != m_scene->GetEntityManager())
-        {
-            Handle<Entity> thisHandle = HandleFromThis();
-            previousEntityManager->MoveEntity(thisHandle, m_scene->GetEntityManager());
-        }
-    }
-    else
-    {
-        Handle<Entity> thisHandle = HandleFromThis();
-        m_scene->GetEntityManager()->AddExistingEntity(thisHandle);
-    }
-
-    AssertDebug(GetEntityManager() == m_scene->GetEntityManager());
+    // Move entity from previous scene to new scene's EntityManager
+    SetEntityManager(m_scene->GetEntityManager());
 }
 
 void Entity::LockTransform()
@@ -463,30 +463,47 @@ void Entity::UnlockTransform()
 void Entity::OnTransformUpdated(const Transform& transform)
 {
     Node::OnTransformUpdated(transform);
-    
+
     EntityManager* entityManager = GetEntityManager();
     AssertDebug(entityManager != nullptr);
     AssertDebug(entityManager == m_scene->GetEntityManager());
-    
+
     if (!m_transformChanged)
     {
         // Set to dynamic
         entityManager->AddTag<EntityTag::DYNAMIC>(this);
         entityManager->RemoveTag<EntityTag::STATIC>(this);
-        
+
         m_transformChanged = true;
     }
-    
-    if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(this))
+
+    TransformComponent& transformComponent = entityManager->GetComponent<TransformComponent>(this);
+    transformComponent.transform = m_worldTransform;
+
+    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+}
+
+void Entity::SetEntityManager(const Handle<EntityManager>& entityManager)
+{
+    AssertDebug(entityManager != nullptr);
+
+    EntityManager* previousEntityManager = GetEntityManager();
+
+    if (previousEntityManager)
     {
-        transformComponent->transform = m_worldTransform;
+        if (previousEntityManager != entityManager)
+        {
+            Handle<Entity> thisHandle = HandleFromThis();
+            previousEntityManager->MoveEntity(thisHandle, entityManager);
+        }
     }
     else
     {
-        entityManager->AddComponent<TransformComponent>(this, TransformComponent { m_worldTransform });
+        Handle<Entity> thisHandle = HandleFromThis();
+        entityManager->AddExistingEntity(thisHandle);
     }
-    
-    entityManager->AddTags<EntityTag::UPDATE_AABB>(this);
+
+    AssertDebug(m_entityManager == entityManager);
 }
 
 } // namespace hyperion

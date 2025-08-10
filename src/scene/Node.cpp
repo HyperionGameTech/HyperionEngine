@@ -883,38 +883,6 @@ void Node::SetEntity(const Handle<Entity>& entity)
             });
 #endif
 
-        // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
-        // to match it, as long as we're not locked
-        // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
-        if (TransformComponent* transformComponent = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity))
-        {
-            if (!IsTransformLocked())
-            {
-                SetWorldTransform(transformComponent->transform);
-            }
-        }
-
-        RefreshEntityTransform();
-
-        // set entity to static by default
-        if (m_scene->GetEntityManager()->HasTag<EntityTag::DYNAMIC>(m_entity))
-        {
-            m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(m_entity);
-        }
-        else
-        {
-            m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(m_entity);
-            m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(m_entity);
-        }
-
-        // set transformChanged to false until entity is set to DYNAMIC
-        m_transformChanged = false;
-
-        if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(m_entity))
-        {
-            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(m_entity, {});
-        }
-
         InitObject(m_entity);
     }
     else
@@ -1084,32 +1052,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
 void Node::RefreshEntityTransform()
 {
-    if (m_entity.IsValid() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
-    {
-        if (BoundingBoxComponent* boundingBoxComponent = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(m_entity))
-        {
-            SetEntityAABB(boundingBoxComponent->localAabb);
-        }
-        else
-        {
-            SetEntityAABB(BoundingBox::Empty());
-        }
-
-        if (TransformComponent* transformComponent = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(m_entity))
-        {
-            transformComponent->transform = m_worldTransform;
-        }
-        else
-        {
-            m_scene->GetEntityManager()->AddComponent<TransformComponent>(m_entity, TransformComponent { m_worldTransform });
-        }
-
-        m_scene->GetEntityManager()->AddTags<EntityTag::UPDATE_AABB>(m_entity);
-    }
-    else
-    {
-        SetEntityAABB(BoundingBox::Empty());
-    }
 }
 
 uint32 Node::CalculateDepth() const

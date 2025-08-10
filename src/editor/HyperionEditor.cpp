@@ -209,15 +209,15 @@ void HyperionEditor::Init()
     {
         Handle<Entity> skyboxEntity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(skyboxEntity, TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) });
-
         scene->GetEntityManager()->AddComponent<SkyComponent>(skyboxEntity, SkyComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(skyboxEntity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
         scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(skyboxEntity, BoundingBoxComponent { BoundingBox(Vec3f(-1000.0f), Vec3f(1000.0f)) });
 
         Handle<Node> skydomeNode = scene->GetRoot()->AddChild();
         skydomeNode->SetEntity(skyboxEntity);
         skydomeNode->SetName(NAME("Sky"));
+        
+        scene->GetEntityManager()->GetComponent<TransformComponent>(skyboxEntity) = TransformComponent { Transform(Vec3f::Zero(), Vec3f(1000.0f), Quaternion::Identity()) };
+        scene->GetEntityManager()->GetComponent<VisibilityStateComponent>(skyboxEntity) = VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE };
     }
 
 #if 1
@@ -245,8 +245,6 @@ void HyperionEditor::Init()
                 envGridNode->SetName(NAME("EnvGrid2"));
 
                 Handle<Entity> envGridEntity = scene->GetEntityManager()->AddEntity<EnvGrid>(node->GetWorldAABB() * 1.01f, EnvGridOptions { .type = EnvGridType::ENV_GRID_TYPE_LIGHT_FIELD, .density = Vec3u { 10, 3, 10 } });
-
-                scene->GetEntityManager()->AddComponent<TransformComponent>(envGridEntity, TransformComponent {});
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(envGridEntity, BoundingBoxComponent { node->GetWorldAABB() * 1.01f, node->GetWorldAABB() * 1.01f });
 
                 envGridNode->SetEntity(envGridEntity);

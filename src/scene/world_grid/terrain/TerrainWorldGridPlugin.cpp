@@ -369,9 +369,10 @@ void TerrainStreamingCell::OnLoaded_Impl()
     transform.SetScale(m_cellInfo.scale);
 
     Handle<Entity> entity = entityManager->AddEntity();
-    entityManager->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE });
+    entityManager->GetComponent<TransformComponent>(entity) = TransformComponent { transform };
+    entityManager->GetComponent<VisibilityStateComponent>(entity) = VisibilityStateComponent { VISIBILITY_STATE_FLAG_ALWAYS_VISIBLE };
+    
     entityManager->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { m_mesh->GetAABB() });
-    entityManager->AddComponent<TransformComponent>(entity, TransformComponent { transform });
 
     MeshComponent* meshComponent = entityManager->TryGetComponent<MeshComponent>(entity);
 

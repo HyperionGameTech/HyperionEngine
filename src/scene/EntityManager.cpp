@@ -410,6 +410,8 @@ Handle<Entity> EntityManager::AddBasicEntity()
     m_entities.Add(entity);
 
     entity->m_entityManager = this;
+    entity->SetScene(m_scene);
+
     InitObject(entity);
 
     // Use basic TypeId tag for the entity, as the type is just Entity
@@ -468,6 +470,8 @@ Handle<Entity> EntityManager::AddTypedEntity(const HypClass* hypClass)
     m_entities.Add(entity);
 
     entity->m_entityManager = this;
+    entity->SetScene(m_scene);
+
     InitObject(entity);
 
     if (entity->m_entityInitInfo.receivesUpdate)
@@ -543,6 +547,8 @@ void EntityManager::AddExistingEntity_Internal(const Handle<Entity>& entity)
     m_entities.Add(entity);
 
     entity->m_entityManager = this;
+    entity->SetScene(m_scene);
+
     InitObject(entity);
 
     AddTag<EntityTag::TYPE_ID>(entity);
@@ -786,7 +792,9 @@ void EntityManager::MoveEntity(const Handle<Entity>& entity, const Handle<Entity
         HYP_MT_CHECK_RW(other->m_entitiesDataRaceDetector);
 
         other->m_entities.Add(entity);
+
         entity->m_entityManager = other;
+        entity->SetScene(other->m_scene);
 
         InitObject(entity);
 

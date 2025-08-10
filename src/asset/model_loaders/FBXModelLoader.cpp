@@ -1508,10 +1508,8 @@ AssetLoadResult FBXModelLoader::LoadAsset(LoaderState& state) const
 
                 const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-                scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
                 scene->GetEntityManager()->AddComponent<MeshComponent>(entity, MeshComponent { mesh, material });
                 scene->GetEntityManager()->AddComponent<BoundingBoxComponent>(entity, BoundingBoxComponent { mesh->GetAABB() });
-                scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
 
                 node->SetEntity(entity);
             }

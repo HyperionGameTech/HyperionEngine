@@ -125,6 +125,8 @@ protected:
     EntityInitInfo m_entityInitInfo;
 
 private:
+    void SetEntityManager(const Handle<EntityManager>& entityManager);
+
     World* m_world;
     EntityManager* m_entityManager;
 

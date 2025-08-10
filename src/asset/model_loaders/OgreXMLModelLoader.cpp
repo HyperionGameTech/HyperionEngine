@@ -290,9 +290,6 @@ AssetLoadResult OgreXMLModelLoader::LoadAsset(LoaderState& state) const
 
         const Handle<Entity> entity = scene->GetEntityManager()->AddEntity();
 
-        scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent {});
-        scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, VisibilityStateComponent {});
-
         Name assetName = CreateNameFromDynamicString(subMesh.name);
 
         MeshData meshData;

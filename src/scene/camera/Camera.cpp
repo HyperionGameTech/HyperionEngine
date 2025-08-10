@@ -251,12 +251,11 @@ Camera::~Camera()
 
 void Camera::Init()
 {
-    Entity::Init();
-
     m_streamingVolume = CreateObject<CameraStreamingVolume>();
-    /// \todo: Set a proper bounding box for the streaming volume
     m_streamingVolume->SetBoundingBox(BoundingBox(m_translation - 10.0f, m_translation + 10.0f));
     InitObject(m_streamingVolume);
+    
+    Entity::Init();
 
     if (m_flags & CameraFlags::MATCH_WINDOW_SIZE)
     {
