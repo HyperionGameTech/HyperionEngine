@@ -3,7 +3,7 @@
 #include <scene/Node.hpp>
 #include <scene/Scene.hpp>
 #include <scene/World.hpp>
-#include <rendering/Mesh.hpp>
+#include <scene/Entity.hpp>
 #include <scene/BVH.hpp>
 
 #include <scene/animation/Bone.hpp>
@@ -33,6 +33,8 @@
 
 #include <engine/EngineGlobals.hpp>
 #include <engine/EngineDriver.hpp>
+
+#include <rendering/Mesh.hpp>
 
 #include <cstring>
 

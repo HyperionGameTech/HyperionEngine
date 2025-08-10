@@ -28,7 +28,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
     {
         return;
     }
-    
+
     GetEntityManager().AddTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
 
     visibilityStateComponent.visibilityState = nullptr;
@@ -56,7 +56,7 @@ void VisibilityStateUpdaterSystem::OnEntityAdded(Entity* entity)
 
         // HYP_LOG(Octree, Debug, "Inserted entity #{} into octree, inserted at {}, {}", entity.Id().Value(), visibilityStateComponent.octantId.GetIndex(), visibilityStateComponent.octantId.GetDepth());
 
-         GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
+        GetEntityManager().RemoveTag<EntityTag::UPDATE_VISIBILITY_STATE>(entity);
     }
     else
     {
@@ -117,7 +117,7 @@ void VisibilityStateUpdaterSystem::Process(float delta)
                 {
                     visibilityStateComponent.visibilityState = &octant->GetVisibilityState();
                 }
-                
+
                 updatedEntities.Insert(entity->WeakHandleFromThis());
             }
 
@@ -142,14 +142,14 @@ void VisibilityStateUpdaterSystem::Process(float delta)
         }
 
         visibilityStateComponent.octantId = updateResult.GetValue();
-        
+
         if (visibilityStateComponent.octantId.IsInvalid())
         {
             AssertDebug(false, "Invalid OctantId returned from Update()");
-            
+
             return;
         }
-        
+
         visibilityStateComponent.visibilityState = nullptr;
 
         if (SceneOctree* octant = octree.GetChildOctant(visibilityStateComponent.octantId))
@@ -171,12 +171,12 @@ void VisibilityStateUpdaterSystem::Process(float delta)
         if (updatedEntities.Size() >= 128)
         {
             HYP_LOG(Scene, Warning, "Updating visibility states for a lot of entities ({})! This will have a performance impact if it happens frequently."
-                "\n\tMaybe the Scene's octree should have a different bounding size or be broken into multiple Scenes."
-                "\n\tScene name: {}, flags: {}",
+                                    "\n\tMaybe the Scene's octree should have a different bounding size or be broken into multiple Scenes."
+                                    "\n\tScene name: {}, flags: {}",
                 updatedEntities.Size(), GetScene()->GetName(), uint32(GetScene()->GetFlags()));
         }
 #endif
-        
+
         AfterProcess([this, updatedEntities = std::move(updatedEntities)]()
             {
                 for (const WeakHandle<Entity>& entityWeak : updatedEntities)

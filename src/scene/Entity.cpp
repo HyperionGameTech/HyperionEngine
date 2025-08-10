@@ -29,6 +29,7 @@ namespace hyperion {
 Entity::Entity()
     : m_world(nullptr),
       m_scene(nullptr),
+      m_entityManager(nullptr),
       m_renderProxyVersion(0)
 {
 }
@@ -87,17 +88,9 @@ Entity::~Entity()
 
 void Entity::Init()
 {
+    Node::Init();
+
     SetReady(true);
-}
-
-EntityManager* Entity::GetEntityManager() const
-{
-    if (!m_scene)
-    {
-        return nullptr;
-    }
-
-    return m_scene->GetEntityManager();
 }
 
 bool Entity::ReceivesUpdate() const
