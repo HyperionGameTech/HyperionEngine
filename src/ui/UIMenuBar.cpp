@@ -405,10 +405,10 @@ void UIMenuBar::Init()
     //     return UIEventHandlerResult::STOP_BUBBLING;
     // }).Detach();
 
-    if (m_stage != nullptr)
-    {
-        m_stage->AddChildUIObject(m_container);
-    }
+//    if (m_stage != nullptr)
+//    {
+//        m_stage->AddChildUIObject(m_container);
+//    }
 
     // AddChildUIObject(m_container);
 }

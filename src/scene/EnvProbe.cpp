@@ -82,6 +82,8 @@ EnvProbe::~EnvProbe()
 
 void EnvProbe::Init()
 {
+    Entity::Init();
+    
     if (!IsControlledByEnvGrid())
     {
         m_camera = CreateObject<Camera>(

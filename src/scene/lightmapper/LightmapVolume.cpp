@@ -289,6 +289,8 @@ bool LightmapVolume::BuildElementTextures(const LightmapUVMap& uvMap, uint32 ind
 
 void LightmapVolume::Init()
 {
+    Entity::Init();
+    
     for (LightmapElement& element : m_atlas.elements)
     {
         if (!element.IsValid())

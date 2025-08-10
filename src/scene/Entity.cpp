@@ -27,7 +27,8 @@
 namespace hyperion {
 
 Entity::Entity()
-    : m_renderProxyVersion(0)
+    : m_entityManager(nullptr),
+      m_renderProxyVersion(0)
 {
 }
 
@@ -91,16 +92,6 @@ void Entity::Init()
     Node::Init();
 
     SetReady(true);
-}
-
-EntityManager* Entity::GetEntityManager() const
-{
-    HYP_SCOPE;
-    AssertReady();
-    
-    Assert(m_scene != nullptr);
-
-    return m_scene->GetEntityManager();
 }
 
 bool Entity::ReceivesUpdate() const

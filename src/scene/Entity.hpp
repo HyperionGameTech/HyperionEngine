@@ -53,7 +53,10 @@ public:
         return m_prevModelMatrix;
     }
 
-    EntityManager* GetEntityManager() const;
+    HYP_FORCE_INLINE EntityManager* GetEntityManager() const
+    {
+        return m_entityManager;
+    }
 
     template <class Component, class EntityManagerPtr = EntityManager*>
     Component& GetComponent() const;
@@ -118,6 +121,8 @@ protected:
 private:
     Matrix4 m_prevModelMatrix;
 
+    EntityManager* m_entityManager;
+    
     int m_renderProxyVersion;
 };
 

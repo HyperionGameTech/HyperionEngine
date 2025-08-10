@@ -657,8 +657,6 @@ protected:
     void OnNestedNodeAdded(Node* node, bool direct);
     void OnNestedNodeRemoved(Node* node, bool direct);
 
-    void SetScene_Internal(Scene* scene, Scene* previousScene);
-
 #ifdef HYP_EDITOR
     EditorDelegates* GetEditorDelegates();
 

@@ -110,6 +110,8 @@ Light::~Light()
 
 void Light::Init()
 {
+    Entity::Init();
+    
     if (m_material.IsValid())
     {
         InitObject(m_material);

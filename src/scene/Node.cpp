@@ -108,10 +108,13 @@ void Node::Init()
         InitObject(node);
     }
     
-    SetReady(true);
+    if (!m_scene)
+    {
+        // ensure Scene is not nullptr
+        SetScene(GetDefaultScene());
+    }
     
-    // sets to detached scene
-    SetScene_Internal(m_scene, nullptr);
+    SetReady(true);
     
     UpdateEntity();
     UpdateWorldTransform();
@@ -224,64 +227,43 @@ void Node::SetScene(Scene* scene)
 
     if (m_scene != scene)
     {
-        if (IsInitCalled())
-        {
-            SetScene_Internal(scene, m_scene);
-            
-            return;
-        }
-    }
-    
-    m_scene = scene;
-}
+        m_scene = scene;
 
-void Node::SetScene_Internal(Scene* scene, Scene* previousScene)
-{
-    HYP_SCOPE;
-    AssertReady();
-    
-    Assert(scene != nullptr);
-    Assert(scene != previousScene);
-
-    // Move entity from previous scene to new scene
-    if (Entity* entity = ObjCast<Entity>(this))
-    {
-        Assert(scene->GetEntityManager() != nullptr);
-        
-        // Hack: see Init().
-        // We pass previousScene as nullptr even though m_scene may be a valid scene if SetScene()
-        // is called before Init(). We need the EntityManager to know we're going to be adding a new Entity in this case,
-        // otherwise it'll call GetScene() which would return the scene we're trying to actually add the Entity to.
-        // In other cases, m_scene will already be equal to previousScene (see SetScene() for ex.)
-        m_scene = previousScene;
-        
-        if (previousScene != nullptr)
+        if (IsReady())
         {
-            if (previousScene->GetEntityManager() != scene->GetEntityManager())
+            // Move entity from previous scene to new scene
+            if (IsA<Entity>())
             {
-                previousScene->GetEntityManager()->MoveEntity(entity->HandleFromThis(), scene->GetEntityManager());
+                Handle<Entity> entity(HandleFromThis());
+                
+                if (entity->GetEntityManager() != nullptr)
+                {
+                    if (entity->GetEntityManager() != scene->GetEntityManager())
+                    {
+                        // move to this scene
+                        entity->GetEntityManager()->MoveEntity(entity, scene->GetEntityManager());
+                    }
+                }
+                else
+                {
+                    scene->GetEntityManager()->AddExistingEntity(entity);
+                }
             }
-        }
-        else
-        {
-            scene->GetEntityManager()->AddExistingEntity(entity->HandleFromThis());
+            
+#ifdef HYP_EDITOR
+            GetEditorDelegates([this](EditorDelegates* editorDelegates)
+            {
+                editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
+            });
+#endif
         }
     }
-    
-    m_scene = scene;
-
-#ifdef HYP_EDITOR
-    GetEditorDelegates([this](EditorDelegates* editorDelegates)
-        {
-            editorDelegates->OnNodeUpdate(this, Class()->GetProperty(NAME("Scene")));
-        });
-#endif
     
     for (const Handle<Node>& child : m_childNodes)
     {
         Assert(child != nullptr);
 
-        child->SetScene_Internal(m_scene, previousScene);
+        child->SetScene(m_scene);
     }
 }
 
@@ -496,10 +478,7 @@ bool Node::Remove()
     
     if (!m_parentNode)
     {
-        if (IsInitCalled())
-        {
-            SetScene(nullptr);
-        }
+        SetScene(nullptr);
 
         return true;
     }
@@ -796,10 +775,23 @@ void Node::UpdateEntity()
         return;
     }
 
-    Entity* entity = static_cast<Entity*>(this);
+    Handle<Entity> entity(HandleFromThis());
 
     if (m_scene != nullptr)
     {
+        if (entity->GetEntityManager() != nullptr)
+        {
+            if (entity->GetEntityManager() != m_scene->GetEntityManager())
+            {
+                // move to this scene
+                entity->GetEntityManager()->MoveEntity(entity, m_scene->GetEntityManager());
+            }
+        }
+        else
+        {
+            m_scene->GetEntityManager()->AddExistingEntity(entity);
+        }
+        
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked
         // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform

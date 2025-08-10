@@ -81,6 +81,10 @@ UIStage::UIStage(ThreadId ownerThreadId)
     m_camera->SetName(NAME_FMT("{}_Camera", GetName()));
 
     InitObject(m_camera);
+    
+    m_node = CreateObject<Entity>();
+    m_node->SetName(GetName());
+    InitObject(m_node);
 }
 
 UIStage::~UIStage()
@@ -151,8 +155,9 @@ void UIStage::SetScene(const Handle<Scene>& scene)
         newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
         newScene->SetName(NAME_FMT("{}_Scene", GetName()));
 
-        Handle<Node> newRoot = CreateObject<Node>(GetName());
-        newScene->SetRoot(std::move(newRoot));
+        Assert(m_node != nullptr && m_node->IsA<Entity>());
+        
+        newScene->SetRoot(m_node);
     }
 
     if (newScene == m_scene)

@@ -115,6 +115,8 @@ EnvGrid::~EnvGrid()
 
 void EnvGrid::Init()
 {
+    Entity::Init();
+    
     const Vec2u probeDimensions = GetProbeDimensions(m_options.type);
     Assert(probeDimensions.Volume() != 0);
 
