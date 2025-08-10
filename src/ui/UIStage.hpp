@@ -95,19 +95,6 @@ public:
     HYP_METHOD()
     void SetSurfaceSize(Vec2i surfaceSize);
 
-    /*! \brief Get the scene that contains the UI objects.
-     *
-     *  \return Handle to the scene. */
-    HYP_METHOD()
-    virtual Scene* GetScene() const override;
-
-    /*! \brief Set the scene for this UIStage.
-     *  \internal Used internally, for serialization.
-     *
-     *  \param scene The scene to set. */
-    HYP_METHOD()
-    virtual void SetScene(Scene* scene) override;
-
     HYP_METHOD()
     const Handle<Camera>& GetCamera() const
     {
@@ -169,7 +156,6 @@ private:
 
     Vec2i m_surfaceSize;
 
-    WeakHandle<Scene> m_scene;
     Handle<Camera> m_camera;
 
     RC<FontAtlas> m_defaultFontAtlas;

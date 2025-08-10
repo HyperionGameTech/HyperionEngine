@@ -655,7 +655,7 @@ Handle<Node> TranslateEditorManipulationWidget::Load_Internal() const
 
                     continue;
                 }
-                
+
                 Entity* childEntity = ObjCast<Entity>(child);
                 Assert(childEntity != nullptr);
 
@@ -1098,6 +1098,23 @@ EditorSubsystem::EditorSubsystem(const Handle<AppContextBase>& appContext)
                 }
             })
         .Detach();
+
+    m_editorScene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND | SceneFlags::EDITOR);
+    m_editorScene->SetName(NAME("EditorScene"));
+
+    m_camera = CreateObject<Camera>();
+    m_camera->AddCameraController(CreateObject<EditorCameraController>());
+    m_camera->SetName(NAME("EditorCamera"));
+    m_camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
+    m_camera->SetFOV(70.0f);
+    m_camera->SetNear(0.1f);
+    m_camera->SetFar(3000.0f);
+    InitObject(m_camera);
+
+    m_editorScene->GetEntityManager()->AddExistingEntity(m_camera);
+    m_editorScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
+
+    m_editorScene->GetRoot()->AddChild(m_camera);
 }
 
 EditorSubsystem::~EditorSubsystem()
@@ -1124,23 +1141,7 @@ void EditorSubsystem::OnAddedToWorld()
         HYP_FAIL("EditorSubsystem requires UISubsystem to be initialized");
     }
 
-    m_editorScene = CreateObject<Scene>(nullptr, SceneFlags::FOREGROUND | SceneFlags::EDITOR);
-    m_editorScene->SetName(NAME("EditorScene"));
     GetWorld()->AddScene(m_editorScene);
-
-    m_camera = CreateObject<Camera>();
-    m_camera->AddCameraController(CreateObject<EditorCameraController>());
-    m_camera->SetName(NAME("EditorCamera"));
-    m_camera->SetFlags(CameraFlags::MATCH_WINDOW_SIZE);
-    m_camera->SetFOV(70.0f);
-    m_camera->SetNear(0.1f);
-    m_camera->SetFar(3000.0f);
-    InitObject(m_camera);
-
-    m_editorScene->GetEntityManager()->AddExistingEntity(m_camera);
-    m_editorScene->GetEntityManager()->AddTag<EntityTag::CAMERA_PRIMARY>(m_camera);
-
-    m_editorScene->GetRoot()->AddChild(m_camera);
 
     LoadEditorUIDefinitions();
 

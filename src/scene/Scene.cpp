@@ -254,6 +254,12 @@ void Scene::SetWorld(World* world)
     {
         m_world->RemoveScene(HandleFromThis());
     }
+    
+    if (world != nullptr)
+    {
+        AssertDebug(m_world == nullptr, "Setting Scene {} (name: {}) world to {} but already has world {} set",
+                    Id(), GetName(), world->Id(), m_world->Id());
+    }
 
     // When world is changed, entity manager needs all systems to have this change reflected
     m_entityManager->SetWorld(world);

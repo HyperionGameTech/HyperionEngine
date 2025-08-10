@@ -1224,7 +1224,7 @@ protected:
 
     HYP_FORCE_INLINE void AssertOnOwnerThread() const
     {
-        if (Scene* scene = GetScene())
+        if (Scene* scene = Node::GetScene())
         {
             Threads::AssertOnThread(scene->GetOwnerThreadId());
         }

@@ -86,21 +86,21 @@ UIStage::UIStage(ThreadId ownerThreadId)
 
 UIStage::~UIStage()
 {
-//    if (m_scene.IsValid())
-//    {
-//        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
-//        {
-//            m_scene->RemoveFromWorld();
-//        }
-//        else
-//        {
-//            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
-//                {
-//                    scene->RemoveFromWorld();
-//                },
-//                TaskEnqueueFlags::FIRE_AND_FORGET);
-//        }
-//    }
+    //    if (m_scene.IsValid())
+    //    {
+    //        if (Threads::IsOnThread(m_scene->GetOwnerThreadId()))
+    //        {
+    //            m_scene->RemoveFromWorld();
+    //        }
+    //        else
+    //        {
+    //            Threads::GetThread(m_scene->GetOwnerThreadId())->GetScheduler().Enqueue([scene = m_scene]()
+    //                {
+    //                    scene->RemoveFromWorld();
+    //                },
+    //                TaskEnqueueFlags::FIRE_AND_FORGET);
+    //        }
+    //    }
 }
 
 void UIStage::SetSurfaceSize(Vec2i surfaceSize)
@@ -110,71 +110,23 @@ void UIStage::SetSurfaceSize(Vec2i surfaceSize)
 
     m_surfaceSize = surfaceSize;
 
-        //if (m_camera.IsValid())
-        //{
-        //    m_camera->SetWidth(surfaceSize.x);
-        //    m_camera->SetHeight(surfaceSize.y);
-    
-        //    // @FIXME: needs to remove and re-add the camera controller
-    
-        //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
-        //        0.0f, -float(surfaceSize.x),
-        //        0.0f, float(surfaceSize.y),
-        //        float(g_minDepth), float(g_maxDepth)));
-        //}
+    // if (m_camera.IsValid())
+    //{
+    //     m_camera->SetWidth(surfaceSize.x);
+    //     m_camera->SetHeight(surfaceSize.y);
+
+    //    // @FIXME: needs to remove and re-add the camera controller
+
+    //    m_camera->AddCameraController(CreateObject<OrthoCameraController>(
+    //        0.0f, -float(surfaceSize.x),
+    //        0.0f, float(surfaceSize.y),
+    //        float(g_minDepth), float(g_maxDepth)));
+    //}
 
     UpdateSize(true);
     UpdatePosition(true);
 
     SetNeedsRepaintFlag();
-}
-
-Scene* UIStage::GetScene() const
-{
-    if (Scene* uiObjectScene = UIObject::GetScene())
-    {
-        return uiObjectScene;
-    }
-
-    return m_scene.GetUnsafe(); // m_scene would have this as a root node so ref would be kept strong as long as this is alive.
-}
-
-void UIStage::SetScene(Scene* scene)
-{
-    HYP_SCOPE;
-    
-    Handle<Scene> currentScene = m_scene.Lock();
-    Handle<Scene> newScene = scene ? scene->HandleFromThis() : nullptr;
-
-    if (!newScene.IsValid())
-    {
-        const ThreadId ownerThreadId = currentScene ? currentScene->GetOwnerThreadId() : ThreadId::Current();
-
-        newScene = CreateObject<Scene>(nullptr, ownerThreadId, SceneFlags::FOREGROUND | SceneFlags::UI);
-        newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
-        newScene->SetRoot(HandleFromThis()); // strong ref
-    }
-
-    if (newScene == m_scene.GetUnsafe())
-    {
-        return;
-    }
-
-    if (currentScene != nullptr)
-    {
-        currentScene->RemoveFromWorld();
-        currentScene.Reset();
-    }
-
-    // If no World is set for the scene, use default world
-    if (newScene && !newScene->GetWorld())
-    {
-        g_engineDriver->GetDefaultWorld()->AddScene(newScene);
-    }
-
-    InitObject(newScene);
-    
-    m_scene = newScene.ToWeak(); // still holds strong ref to this so would be valid
 }
 
 const RC<FontAtlas>& UIStage::GetDefaultFontAtlas() const
@@ -251,8 +203,18 @@ void UIStage::Init()
         }
     }
 
-    // Will create a new Scene
-    SetScene(nullptr);
+    // create a new Scene
+    if (GetScene() != nullptr)
+    {
+        Handle<Scene> newScene = CreateObject<Scene>(nullptr, Threads::CurrentThreadId(), SceneFlags::FOREGROUND | SceneFlags::UI);
+        newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
+        newScene->SetRoot(HandleFromThis()); // strong ref
+        InitObject(newScene);
+
+        g_engineDriver->GetDefaultWorld()->AddScene(newScene);
+
+        SetScene(newScene);
+    }
 
     UIObject::Init();
 }
@@ -302,19 +264,6 @@ void UIStage::OnAttached_Internal(UIObject* parent)
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    // Set root to be empty node proxy, now that it is attached to another object.
-    Handle<Scene> currentScene = m_scene.Lock();
-    
-    if (!currentScene)
-    {
-        m_scene.Reset();
-        SetScene(nullptr); // create new scene
-    }
-    else
-    {
-        currentScene->SetRoot(nullptr);
-    }
-
     OnAttached();
 }
 
@@ -323,17 +272,13 @@ void UIStage::OnRemoved_Internal()
     HYP_SCOPE;
     AssertOnOwnerThread();
 
-    // Re-set scene root to be our node proxy
-    Handle<Scene> currentScene = m_scene.Lock();
-    AssertDebug(currentScene != nullptr);
-    
-    if (currentScene != nullptr)
-    {
-        Handle<Node> thisHandle = HandleFromThis();
-        AssertDebug(thisHandle != nullptr);
-        
-        currentScene->SetRoot(thisHandle);
-    }
+    Handle<Scene> newScene = CreateObject<Scene>(nullptr, Threads::CurrentThreadId(), SceneFlags::FOREGROUND | SceneFlags::UI);
+    newScene->SetName(Name::Unique(HYP_FORMAT("UIStage_{}_Scene", GetName()).Data()));
+    newScene->SetRoot(HandleFromThis()); // strong ref
+
+    g_engineDriver->GetDefaultWorld()->AddScene(newScene);
+
+    SetScene(newScene);
 
     OnRemoved();
 }
@@ -367,7 +312,7 @@ bool UIStage::TestRay(const Vec2f& position, Array<Handle<UIObject>>& outObjects
     for (auto [entity, transformComponent, boundingBoxComponent, _] : GetScene()->GetEntityManager()->GetEntitySet<TransformComponent, BoundingBoxComponent, EntityType<UIObject>>().GetScopedView(DataAccessFlags::ACCESS_READ, HYP_FUNCTION_NAME_LIT))
     {
         UIObject* uiObject = static_cast<UIObject*>(entity);
-        
+
         if ((flags & UIRayTestFlags::ONLY_VISIBLE) && !uiObject->GetComputedVisibility())
         {
             continue;
@@ -652,8 +597,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = inputManager->GetButtonStates()
-                    });
+                        .mouseButtons = inputManager->GetButtonStates() });
                 }
 
                 it = m_hoveredUiObjects.Erase(it);
@@ -731,8 +675,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons
-                });
+                    .mouseButtons = mouseButtonPressedStatesIt->second.mouseButtons });
 
                 eventHandlerResult |= onMouseDownResult;
 
@@ -780,8 +723,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                         .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                         .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                         .absolutePosition = mousePosition,
-                        .mouseButtons = buttons
-                    });
+                        .mouseButtons = buttons });
 
                     eventHandlerResult |= result;
 
@@ -825,8 +767,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .position = uiObject->TransformScreenCoordsToRelative(mousePosition),
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
-                    .mouseButtons = (stateMouseButtons & ~buttons)
-                });
+                    .mouseButtons = (stateMouseButtons & ~buttons) });
 
                 eventHandlerResult |= currentResult;
 
@@ -879,8 +820,7 @@ UIEventHandlerResult UIStage::OnInputEvent(
                     .previousPosition = uiObject->TransformScreenCoordsToRelative(previousMousePosition),
                     .absolutePosition = mousePosition,
                     .mouseButtons = inputManager->GetButtonStates(),
-                    .wheel = wheel
-                });
+                    .wheel = wheel });
 
                 eventHandlerResult |= currentResult;
 

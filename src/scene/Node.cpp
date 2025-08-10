@@ -640,7 +640,7 @@ void Node::LockTransform()
     // set entity to static
     if (Entity* entity = ObjCast<Entity>(this))
     {
-        if (const Handle<EntityManager>& entityManager = m_scene->GetEntityManager())
+        if (EntityManager* entityManager = entity->GetEntityManager())
         {
             entityManager->AddTag<EntityTag::STATIC>(entity);
             entityManager->RemoveTag<EntityTag::DYNAMIC>(entity);
@@ -706,14 +706,17 @@ void Node::InitEntity()
     
     Handle<Entity> entity(HandleFromThis());
 
-    if (entity->m_entityManager == nullptr)
+    if (entity->GetEntityManager() == nullptr)
     {
         m_scene->GetEntityManager()->AddExistingEntity(entity);
+        
+        EntityManager* entityManager = entity->GetEntityManager();
+        Assert(entityManager != nullptr);
 
         // If a TransformComponent already exists on the Entity, allow it to keep its current transform by moving the Node
         // to match it, as long as we're not locked
         // If transform is locked, the Entity's TransformComponent will be synced with the Node's current transform
-        if (TransformComponent* transformComponent = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity))
+        if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(entity))
         {
             if (!IsTransformLocked())
             {
@@ -724,32 +727,32 @@ void Node::InitEntity()
         RefreshEntityTransform();
 
         // set entity to static by default
-        if (m_scene->GetEntityManager()->HasTag<EntityTag::DYNAMIC>(entity))
+        if (entityManager->HasTag<EntityTag::DYNAMIC>(entity))
         {
-            m_scene->GetEntityManager()->RemoveTag<EntityTag::STATIC>(entity);
+            entityManager->RemoveTag<EntityTag::STATIC>(entity);
         }
         else
         {
-            m_scene->GetEntityManager()->AddTag<EntityTag::STATIC>(entity);
-            m_scene->GetEntityManager()->RemoveTag<EntityTag::DYNAMIC>(entity);
+            entityManager->AddTag<EntityTag::STATIC>(entity);
+            entityManager->RemoveTag<EntityTag::DYNAMIC>(entity);
         }
 
         // set transformChanged to false until entity is set to DYNAMIC
         m_transformChanged = false;
 
         // Update / add a NodeLinkComponent to the new entity
-        if (NodeLinkComponent* nodeLinkComponent = m_scene->GetEntityManager()->TryGetComponent<NodeLinkComponent>(entity))
+        if (NodeLinkComponent* nodeLinkComponent = entityManager->TryGetComponent<NodeLinkComponent>(entity))
         {
             nodeLinkComponent->node = WeakHandleFromThis();
         }
         else
         {
-            m_scene->GetEntityManager()->AddComponent<NodeLinkComponent>(entity, { WeakHandleFromThis() });
+            entityManager->AddComponent<NodeLinkComponent>(entity, { WeakHandleFromThis() });
         }
 
-        if (!m_scene->GetEntityManager()->HasComponent<VisibilityStateComponent>(entity))
+        if (!entityManager->HasComponent<VisibilityStateComponent>(entity))
         {
-            m_scene->GetEntityManager()->AddComponent<VisibilityStateComponent>(entity, {});
+            entityManager->AddComponent<VisibilityStateComponent>(entity, {});
         }
     }
     else
@@ -889,8 +892,6 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
     
     if (Entity* entity = ObjCast<Entity>(this))
     {
-        const Handle<EntityManager>& entityManager = m_scene->GetEntityManager();
-
         // if (!m_transformChanged) {
         //     // Set to dynamic
         //     if (entityManager != nullptr) {
@@ -905,7 +906,7 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
         //     m_transformChanged = true;
         // }
 
-        if (entityManager.IsValid())
+        if (EntityManager* entityManager = entity->GetEntityManager())
         {
             if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(entity))
             {
@@ -943,29 +944,32 @@ void Node::UpdateWorldTransform(bool updateChildTransforms)
 
 void Node::RefreshEntityTransform()
 {
-    if (IsA<Entity>() && m_scene != nullptr && m_scene->GetEntityManager() != nullptr)
+    if (IsA<Entity>())
     {
         Entity* entity = static_cast<Entity*>(this);
             
-        if (BoundingBoxComponent* boundingBoxComponent = m_scene->GetEntityManager()->TryGetComponent<BoundingBoxComponent>(entity))
+        if (EntityManager* entityManager = entity->GetEntityManager())
         {
-            SetEntityAABB(boundingBoxComponent->localAabb);
+            if (BoundingBoxComponent* boundingBoxComponent = entityManager->TryGetComponent<BoundingBoxComponent>(entity))
+            {
+                SetEntityAABB(boundingBoxComponent->localAabb);
+            }
+            else
+            {
+                SetEntityAABB(BoundingBox::Empty());
+            }
+            
+            if (TransformComponent* transformComponent = entityManager->TryGetComponent<TransformComponent>(entity))
+            {
+                transformComponent->transform = m_worldTransform;
+            }
+            else
+            {
+                entityManager->AddComponent<TransformComponent>(entity, TransformComponent { m_worldTransform });
+            }
+            
+            entityManager->AddTags<EntityTag::UPDATE_AABB>(entity);
         }
-        else
-        {
-            SetEntityAABB(BoundingBox::Empty());
-        }
-
-        if (TransformComponent* transformComponent = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity))
-        {
-            transformComponent->transform = m_worldTransform;
-        }
-        else
-        {
-            m_scene->GetEntityManager()->AddComponent<TransformComponent>(entity, TransformComponent { m_worldTransform });
-        }
-
-        m_scene->GetEntityManager()->AddTags<EntityTag::UPDATE_AABB>(entity);
     }
     else
     {
@@ -1013,14 +1017,14 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
 
     if (ray.TestAABB(worldAabb))
     {
-        if (const Entity* entity = ObjCast<Entity>(this))
+        if (const Entity* entity = ObjCast<Entity>(this); entity != nullptr && entity->GetEntityManager() != nullptr)
         {
             const BVHNode* bvh = nullptr;
             Matrix4 modelMatrix = Matrix4::Identity();
 
-            if (useBvh && m_scene && m_scene->GetEntityManager())
+            if (useBvh)
             {
-                if (MeshComponent* meshComponent = m_scene->GetEntityManager()->TryGetComponent<MeshComponent>(entity); meshComponent && meshComponent->mesh.IsValid())
+                if (MeshComponent* meshComponent = entity->GetEntityManager()->TryGetComponent<MeshComponent>(entity); meshComponent && meshComponent->mesh.IsValid())
                 {
                     if (meshComponent->mesh->GetBVH().IsValid())
                     {
@@ -1028,7 +1032,7 @@ bool Node::TestRay(const Ray& ray, RayTestResults& outResults, bool useBvh) cons
                     }
                 }
 
-                if (TransformComponent* transformComponent = m_scene->GetEntityManager()->TryGetComponent<TransformComponent>(entity))
+                if (TransformComponent* transformComponent = entity->GetEntityManager()->TryGetComponent<TransformComponent>(entity))
                 {
                     modelMatrix = transformComponent->transform.GetMatrix();
                 }

@@ -748,24 +748,28 @@ void Camera::UpdateMouseLocked()
 
 void Camera::OnAddedToWorld(World* world)
 {
+    Entity::OnAddedToWorld(world);
+    
+    HYP_LOG(Camera, Debug, "Call Camera::OnAddedToWorld for Camera {} with World {}", Id(), world->Id());
+    
     if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid())
     {
         AssertDebug(GetStreamingVolume().IsValid());
 
         worldGrid->GetStreamingManager()->AddStreamingVolume(GetStreamingVolume());
     }
-
-    Entity::OnAddedToWorld(world);
 }
 
 void Camera::OnRemovedFromWorld(World* world)
 {
+    Entity::OnRemovedFromWorld(world);
+    
+    HYP_LOG(Camera, Debug, "Call Camera::RemoveFromWorld for Camera {} with World {}", Id(), world->Id());
+    
     if (const Handle<WorldGrid>& worldGrid = world->GetWorldGrid())
     {
         worldGrid->GetStreamingManager()->RemoveStreamingVolume(GetStreamingVolume());
     }
-
-    Entity::OnRemovedFromWorld(world);
 }
 
 void Camera::UpdateRenderProxy(RenderProxyCamera* proxy)

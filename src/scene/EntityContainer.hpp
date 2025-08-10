@@ -5,9 +5,13 @@
 #include <core/containers/FlatMap.hpp>
 #include <core/containers/TypeMap.hpp>
 #include <core/containers/HashMap.hpp>
+#include <core/containers/Array.hpp>
+#include <core/containers/SparsePagedArray.hpp>
 
 #include <core/threading/DataRaceDetector.hpp>
 #include <core/threading/Spinlock.hpp>
+
+#include <core/utilities/TypeId.hpp>
 
 #include <core/object/ObjId.hpp>
 #include <core/object/Handle.hpp>
@@ -15,6 +19,9 @@
 #include <scene/ComponentContainer.hpp>
 
 namespace hyperion {
+
+HYP_API extern SizeType GetNumDescendants(TypeId typeId);
+HYP_API extern int GetSubclassIndex(TypeId baseTypeId, TypeId subclassTypeId);
 
 class Entity;
 
@@ -115,21 +122,38 @@ struct EntityData
 
 class EntityContainer
 {
-public:
-    using Iterator = HashMap<Entity*, EntityData>::Iterator;
-    using ConstIterator = HashMap<Entity*, EntityData>::ConstIterator;
-
-    HYP_FORCE_INLINE void Add(Entity* entity)
+    struct SubtypeData
     {
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
+        SparsePagedArray<EntityData, 256> data;
+    };
 
+public:
+    EntityContainer()
+    {
+        // +1 for Entity itself
+        m_subtypeData.Resize(GetNumDescendants(TypeId::ForType<Entity>()) + 1);
+    }
+
+    HYP_FORCE_INLINE Array<SubtypeData>& GetSubtypeData()
+    {
+        return m_subtypeData;
+    }
+
+    HYP_FORCE_INLINE const Array<SubtypeData>& GetSubtypeData() const
+    {
+        return m_subtypeData;
+    }
+
+    HYP_FORCE_INLINE void Add(const Handle<Entity>& entity)
+    {
         AssertDebug(entity != nullptr);
-        {
-            auto it = m_entities.Find(entity);
-            AssertDebug(it == m_entities.End(), "Entity with ID {} already exists in EntityContainer! Found: {}", entity->Id(), it->first->Id());
-        }
 
-        m_entities[entity] = { entity->WeakHandleFromThis() };
+        const ObjId<Entity> id = entity.Id();
+
+        SubtypeData& subtypeData = GetSubtypeData(id.GetTypeId());
+        AssertDebug(!subtypeData.data.HasIndex(id.ToIndex()), "Entity with ID {} already exists in EntityContainer!", id);
+
+        subtypeData.data.Emplace(id.ToIndex(), EntityData { entity.ToWeak() });
     }
 
     HYP_FORCE_INLINE bool Remove(const Entity* entity)
@@ -139,47 +163,62 @@ public:
             return false;
         }
 
-        HYP_MT_CHECK_RW(m_dataRaceDetector);
+        const TypeId typeId = entity->Id().GetTypeId();
+        SubtypeData& subtypeData = GetSubtypeData(typeId);
 
-        auto it = m_entities.FindAs(entity);
-        if (it == m_entities.End())
+        if (!subtypeData.data.HasIndex(entity->Id().ToIndex()))
         {
             return false;
         }
 
-        m_entities.Erase(it);
+        subtypeData.data.EraseAt(entity->Id().ToIndex());
 
         return true;
     }
 
     HYP_FORCE_INLINE bool HasEntity(const Entity* entity) const
     {
+        HYP_MT_CHECK_READ(m_dataRaceDetector);
+
         if (!entity)
         {
             return false;
         }
 
-        HYP_MT_CHECK_READ(m_dataRaceDetector);
+        const TypeId typeId = entity->Id().GetTypeId();
+        const SubtypeData& subtypeData = GetSubtypeData(typeId);
 
-        return m_entities.FindAs(entity) != m_entities.End();
+        return subtypeData.data.HasIndex(entity->Id().ToIndex());
     }
 
     HYP_FORCE_INLINE EntityData* TryGetEntityData(const Entity* entity)
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_entities.FindAs(entity);
+        if (!entity)
+        {
+            return nullptr;
+        }
 
-        return it != m_entities.End() ? &it->second : nullptr;
+        const TypeId typeId = entity->Id().GetTypeId();
+        SubtypeData& subtypeData = GetSubtypeData(typeId);
+
+        return subtypeData.data.TryGet(entity->Id().ToIndex());
     }
 
     HYP_FORCE_INLINE const EntityData* TryGetEntityData(const Entity* entity) const
     {
         HYP_MT_CHECK_READ(m_dataRaceDetector);
 
-        auto it = m_entities.FindAs(entity);
+        if (!entity)
+        {
+            return nullptr;
+        }
 
-        return it != m_entities.End() ? &it->second : nullptr;
+        const TypeId typeId = entity->Id().GetTypeId();
+        const SubtypeData& subtypeData = GetSubtypeData(typeId);
+
+        return subtypeData.data.TryGet(entity->Id().ToIndex());
     }
 
     HYP_FORCE_INLINE EntityData& GetEntityData(const Entity* entity)
@@ -198,10 +237,22 @@ public:
         return *data;
     }
 
-    HYP_DEF_STL_BEGIN_END(m_entities.Begin(), m_entities.End())
-
 private:
-    HashMap<Entity*, EntityData> m_entities;
+    SubtypeData& GetSubtypeData(TypeId typeId)
+    {
+        const int classIndex = GetSubclassIndex(TypeId::ForType<Entity>(), typeId) + 1;
+        AssertDebug(classIndex >= 0, "Invalid class index {}", classIndex);
+        AssertDebug(classIndex < m_subtypeData.Size(), "Invalid class index {}", classIndex);
+
+        return m_subtypeData[classIndex];
+    }
+
+    const SubtypeData& GetSubtypeData(TypeId typeId) const
+    {
+        return const_cast<EntityContainer*>(this)->GetSubtypeData(typeId);
+    }
+
+    Array<SubtypeData> m_subtypeData;
 
     HYP_DECLARE_MT_CHECK(m_dataRaceDetector);
 };

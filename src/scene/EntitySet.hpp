@@ -152,9 +152,17 @@ public:
         : m_entities(entities),
           m_componentContainers(componentContainers...)
     {
-        for (auto it = m_entities.Begin(); it != m_entities.End(); ++it)
+        for (auto& subtypeData : m_entities.GetSubtypeData())
         {
-            OnEntityUpdated(it->first);
+            for (auto it = subtypeData.data.Begin(); it != subtypeData.data.Begin(); ++it)
+            {
+                EntityData& entityData = *it;
+                
+                Entity* entity = entityData.entityWeak.GetUnsafe();
+                Assert(entity != nullptr);
+                
+                OnEntityUpdated(entity);
+            }
         }
     }
 
